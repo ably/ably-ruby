@@ -18,6 +18,16 @@ Or install it yourself as:
 
 ## Usage
 
+### Publishing a message to a channel
+
+```
+client = Ably::Rest::Client.new(api_key: "xxxxx")
+
+channel = client.channel("test")
+
+channel.publish("Hello!") #=> true
+```
+
 TODO: Write usage instructions here
 
 ## Contributing

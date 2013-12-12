@@ -1,0 +1,41 @@
+---
+http_interactions:
+- request:
+    method: post
+    uri: https://abc:123@staging-rest.ably.io/channels/test/publish
+    body:
+      encoding: ASCII-8BIT
+      string: !binary |-
+        bmFtZT1mb28mZGF0YT13b29wJTIx
+    headers:
+      Accept:
+      - appliation/json
+      User-Agent:
+      - Ably Ruby client 0.0.1
+      Content-Type:
+      - application/x-www-form-urlencoded
+  response:
+    status:
+      code: 201
+      message: Created
+    headers:
+      Access-Control-Allow-Credentials:
+      - 'true'
+      Access-Control-Allow-Origin:
+      - ! '*'
+      Content-Type:
+      - application/json
+      Date:
+      - Thu, 12 Dec 2013 18:26:04 GMT
+      Server:
+      - journey/0.4.0
+      Content-Length:
+      - '2'
+      Connection:
+      - keep-alive
+    body:
+      encoding: US-ASCII
+      string: ! '{}'
+    http_version: 
+  recorded_at: Thu, 12 Dec 2013 18:26:04 GMT
+recorded_with: VCR 2.5.0
