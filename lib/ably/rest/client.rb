@@ -40,6 +40,15 @@ module Ably
         response.body
       end
 
+      # Return the Ably service time
+      #
+      # @return [Time] The time as reported by the Ably service
+      def time
+        response = get("/time")
+
+        Time.at(response.body.first / 1000.0)
+      end
+
       private
       def request(method, path, params = {})
         connection.send(method, path, params) do |request|

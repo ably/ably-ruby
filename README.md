@@ -46,6 +46,14 @@ client = Ably::Rest::Client.new(api_key: "xxxxx")
 client.stats #=> [{:channels=>..., :apiRequests=>..., ...}]
 ```
 
+### Fetching the Ably service time
+
+```
+client = Ably::Rest::Client.new(api_key: "xxxxx")
+
+client.time #=> 2013-12-12 14:23:34 +0000
+```
+
 ## Contributing
 
 1. Fork it

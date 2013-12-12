@@ -50,4 +50,12 @@ describe "Using the Rest client" do
       end
     end
   end
+
+  describe "fetching the service time", vcr: { cassette_name: "fetching_service_time" } do
+    let(:time) { Time.parse("12th December 2013 14:23:34 +0000") }
+
+    it "should return the service time as a Time object" do
+      expect(client.time).to eql(time)
+    end
+  end
 end
