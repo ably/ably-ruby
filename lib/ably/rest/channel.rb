@@ -24,6 +24,15 @@ module Ably
         response.status == 201
       end
 
+      # Return the history of the channel
+      #
+      # @return [Array] An Array of hashes representing the history
+      def history
+        response = client.get("/channels/#{name}/history")
+
+        response.body
+      end
+
       private
       def validate_message(message)
         unless message.has_key?(:name) && message.has_key?(:data)

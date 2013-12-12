@@ -5,7 +5,7 @@ module Ably
     module Middleware
       class ParseJson < Faraday::Response::Middleware
         def parse(body)
-          JSON.parse(body)
+          JSON.parse(body, symbolize_names: true)
         end
       end
     end

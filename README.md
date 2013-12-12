@@ -28,7 +28,15 @@ channel = client.channel("test")
 channel.publish("Hello!") #=> true
 ```
 
-TODO: Write usage instructions here
+### Fetching a channel's history
+
+```
+client = Ably::Rest::Client.new(api_key: "xxxxx")
+
+channel = client.channel("test")
+
+channel.history #=> [{:name=>"test", :data=>"payload"}]
+```
 
 ## Contributing
 

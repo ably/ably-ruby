@@ -12,4 +12,19 @@ describe "Using the Rest client" do
       expect(channel.publish message).to eql(true)
     end
   end
+
+  describe "fetching channel history", vcr: { cassette_name: "fetching_channel_history" } do
+    let(:channel) { client.channel("test") }
+    let(:history) do
+      [
+        { :name => "test1", :data => "foo" },
+        { :name => "test2", :data => "bar" },
+        { :name => "test3", :data => "baz" }
+      ]
+    end
+
+    it "should return all the history for the channel" do
+      expect(channel.history).to eql(history)
+    end
+  end
 end
