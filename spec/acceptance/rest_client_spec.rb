@@ -27,4 +27,27 @@ describe "Using the Rest client" do
       expect(channel.history).to eql(history)
     end
   end
+
+  describe "fetching application stats", vcr: { cassette_name: "fetching_application_stats" } do
+    it "should return all the stats for the channel" do
+      stats = client.stats
+
+      # Just check some sizes and keys because what gets returned is quite large
+      expect(stats.size).to eql(3)
+      stats.each do |stat|
+        expect(stat.keys).to include(
+          :all,
+          :inbound,
+          :outbound,
+          :persisted,
+          :connections,
+          :channels,
+          :apiRequests,
+          :tokenRequests,
+          :count,
+          :intervalId
+        )
+      end
+    end
+  end
 end

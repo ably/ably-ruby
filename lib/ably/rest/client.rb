@@ -31,6 +31,15 @@ module Ably
         @channels[name] ||= Channel.new(self, name)
       end
 
+      # Return the stats for the application
+      #
+      # @return [Array] An Array of hashes representing the stats
+      def stats
+        response = get("/stats")
+
+        response.body
+      end
+
       private
       def request(method, path, params = {})
         connection.send(method, path, params) do |request|

@@ -38,6 +38,14 @@ channel = client.channel("test")
 channel.history #=> [{:name=>"test", :data=>"payload"}]
 ```
 
+### Fetching your application's stats
+
+```
+client = Ably::Rest::Client.new(api_key: "xxxxx")
+
+client.stats #=> [{:channels=>..., :apiRequests=>..., ...}]
+```
+
 ## Contributing
 
 1. Fork it

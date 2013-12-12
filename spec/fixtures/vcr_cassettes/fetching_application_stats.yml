@@ -1,0 +1,197 @@
+---
+http_interactions:
+- request:
+    method: get
+    uri: https://abc:123@staging-rest.ably.io/stats
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      Accept:
+      - appliation/json
+      User-Agent:
+      - Ably Ruby client 0.0.1
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Access-Control-Allow-Credentials:
+      - 'true'
+      Access-Control-Allow-Origin:
+      - ! '*'
+      Content-Type:
+      - application/json
+      Date:
+      - Thu, 12 Dec 2013 19:26:59 GMT
+      Link:
+      - <./stats?start=0&end=1386876419912&limit=100&by=minute&direction=backwards&format=undefined&first_end=1386876419912>;
+        rel="current"
+      - <./stats?start=0&end=1386876419912&limit=100&by=minute&direction=backwards&format=undefined&first_end=1386876419912>;
+        rel="first"
+      Server:
+      - journey/0.4.0
+      Content-Length:
+      - '9104'
+      Connection:
+      - keep-alive
+    body:
+      encoding: US-ASCII
+      string: ! "[\n\t{\n\t\t\"all\": {\n\t\t\t\"all\": {\n\t\t\t\t\"count\": 0,\n\t\t\t\t\"data\":
+        0\n\t\t\t},\n\t\t\t\"messages\": {\n\t\t\t\t\"count\": 0,\n\t\t\t\t\"data\":
+        0\n\t\t\t},\n\t\t\t\"presence\": {\n\t\t\t\t\"count\": 0,\n\t\t\t\t\"data\":
+        0\n\t\t\t}\n\t\t},\n\t\t\"inbound\": {\n\t\t\t\"all\": {\n\t\t\t\t\"all\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"messages\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"presence\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t}\n\t\t\t},\n\t\t\t\"realtime\":
+        {\n\t\t\t\t\"all\": {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"messages\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"presence\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t}\n\t\t\t},\n\t\t\t\"rest\":
+        {\n\t\t\t\t\"all\": {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"messages\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"presence\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t}\n\t\t\t},\n\t\t\t\"push\":
+        {\n\t\t\t\t\"all\": {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"messages\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"presence\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t}\n\t\t\t},\n\t\t\t\"httpStream\":
+        {\n\t\t\t\t\"all\": {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"messages\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"presence\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t}\n\t\t\t}\n\t\t},\n\t\t\"outbound\":
+        {\n\t\t\t\"all\": {\n\t\t\t\t\"all\": {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\":
+        0\n\t\t\t\t},\n\t\t\t\t\"messages\": {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\":
+        0\n\t\t\t\t},\n\t\t\t\t\"presence\": {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\":
+        0\n\t\t\t\t}\n\t\t\t},\n\t\t\t\"realtime\": {\n\t\t\t\t\"all\": {\n\t\t\t\t\t\"count\":
+        0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"messages\": {\n\t\t\t\t\t\"count\":
+        0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"presence\": {\n\t\t\t\t\t\"count\":
+        0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t}\n\t\t\t},\n\t\t\t\"rest\": {\n\t\t\t\t\"all\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"messages\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"presence\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t}\n\t\t\t},\n\t\t\t\"push\":
+        {\n\t\t\t\t\"all\": {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"messages\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"presence\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t}\n\t\t\t},\n\t\t\t\"httpStream\":
+        {\n\t\t\t\t\"all\": {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"messages\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"presence\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t}\n\t\t\t}\n\t\t},\n\t\t\"persisted\":
+        {\n\t\t\t\"all\": {\n\t\t\t\t\"count\": 0,\n\t\t\t\t\"data\": 0\n\t\t\t},\n\t\t\t\"messages\":
+        {\n\t\t\t\t\"count\": 0,\n\t\t\t\t\"data\": 0\n\t\t\t},\n\t\t\t\"presence\":
+        {\n\t\t\t\t\"count\": 0,\n\t\t\t\t\"data\": 0\n\t\t\t}\n\t\t},\n\t\t\"connections\":
+        {\n\t\t\t\"all\": {\n\t\t\t\t\"opened\": 0,\n\t\t\t\t\"peak\": 0,\n\t\t\t\t\"mean\":
+        0,\n\t\t\t\t\"min\": 0,\n\t\t\t\t\"refused\": 0,\n\t\t\t\t\"sample_count\":
+        0,\n\t\t\t\t\"sample_sum\": 0\n\t\t\t},\n\t\t\t\"plain\": {\n\t\t\t\t\"opened\":
+        0,\n\t\t\t\t\"peak\": 0,\n\t\t\t\t\"mean\": 0,\n\t\t\t\t\"min\": 0,\n\t\t\t\t\"refused\":
+        0,\n\t\t\t\t\"sample_count\": 3,\n\t\t\t\t\"sample_sum\": 0\n\t\t\t},\n\t\t\t\"tls\":
+        {\n\t\t\t\t\"opened\": 0,\n\t\t\t\t\"peak\": 0,\n\t\t\t\t\"mean\": 0,\n\t\t\t\t\"min\":
+        0,\n\t\t\t\t\"refused\": 0,\n\t\t\t\t\"sample_count\": 3,\n\t\t\t\t\"sample_sum\":
+        0\n\t\t\t}\n\t\t},\n\t\t\"channels\": {\n\t\t\t\"opened\": 1,\n\t\t\t\"peak\":
+        0,\n\t\t\t\"mean\": 0,\n\t\t\t\"min\": 0,\n\t\t\t\"refused\": 0,\n\t\t\t\"sample_count\":
+        3,\n\t\t\t\"sample_sum\": 0\n\t\t},\n\t\t\"apiRequests\": {\n\t\t\t\"succeeded\":
+        0,\n\t\t\t\"failed\": 0,\n\t\t\t\"refused\": 0\n\t\t},\n\t\t\"tokenRequests\":
+        {\n\t\t\t\"succeeded\": 0,\n\t\t\t\"failed\": 0,\n\t\t\t\"refused\": 0\n\t\t},\n\t\t\"count\":
+        0,\n\t\t\"intervalId\": \"2013-12-12:19:21\"\n\t},\n\t{\n\t\t\"all\": {\n\t\t\t\"all\":
+        {\n\t\t\t\t\"count\": 8,\n\t\t\t\t\"data\": 42\n\t\t\t},\n\t\t\t\"messages\":
+        {\n\t\t\t\t\"count\": 8,\n\t\t\t\t\"data\": 42\n\t\t\t},\n\t\t\t\"presence\":
+        {\n\t\t\t\t\"count\": 0,\n\t\t\t\t\"data\": 0\n\t\t\t}\n\t\t},\n\t\t\"inbound\":
+        {\n\t\t\t\"all\": {\n\t\t\t\t\"all\": {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\":
+        0\n\t\t\t\t},\n\t\t\t\t\"messages\": {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\":
+        0\n\t\t\t\t},\n\t\t\t\t\"presence\": {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\":
+        0\n\t\t\t\t}\n\t\t\t},\n\t\t\t\"realtime\": {\n\t\t\t\t\"all\": {\n\t\t\t\t\t\"count\":
+        0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"messages\": {\n\t\t\t\t\t\"count\":
+        0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"presence\": {\n\t\t\t\t\t\"count\":
+        0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t}\n\t\t\t},\n\t\t\t\"rest\": {\n\t\t\t\t\"all\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"messages\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"presence\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t}\n\t\t\t},\n\t\t\t\"push\":
+        {\n\t\t\t\t\"all\": {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"messages\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"presence\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t}\n\t\t\t},\n\t\t\t\"httpStream\":
+        {\n\t\t\t\t\"all\": {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"messages\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"presence\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t}\n\t\t\t}\n\t\t},\n\t\t\"outbound\":
+        {\n\t\t\t\"all\": {\n\t\t\t\t\"all\": {\n\t\t\t\t\t\"count\": 8,\n\t\t\t\t\t\"data\":
+        42\n\t\t\t\t},\n\t\t\t\t\"messages\": {\n\t\t\t\t\t\"count\": 8,\n\t\t\t\t\t\"data\":
+        42\n\t\t\t\t},\n\t\t\t\t\"presence\": {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\":
+        0\n\t\t\t\t}\n\t\t\t},\n\t\t\t\"realtime\": {\n\t\t\t\t\"all\": {\n\t\t\t\t\t\"count\":
+        0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"messages\": {\n\t\t\t\t\t\"count\":
+        0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"presence\": {\n\t\t\t\t\t\"count\":
+        0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t}\n\t\t\t},\n\t\t\t\"rest\": {\n\t\t\t\t\"all\":
+        {\n\t\t\t\t\t\"count\": 8,\n\t\t\t\t\t\"data\": 42\n\t\t\t\t},\n\t\t\t\t\"messages\":
+        {\n\t\t\t\t\t\"count\": 8,\n\t\t\t\t\t\"data\": 42\n\t\t\t\t},\n\t\t\t\t\"presence\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t}\n\t\t\t},\n\t\t\t\"push\":
+        {\n\t\t\t\t\"all\": {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"messages\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"presence\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t}\n\t\t\t},\n\t\t\t\"httpStream\":
+        {\n\t\t\t\t\"all\": {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"messages\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"presence\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t}\n\t\t\t}\n\t\t},\n\t\t\"persisted\":
+        {\n\t\t\t\"all\": {\n\t\t\t\t\"count\": 0,\n\t\t\t\t\"data\": 0\n\t\t\t},\n\t\t\t\"messages\":
+        {\n\t\t\t\t\"count\": 0,\n\t\t\t\t\"data\": 0\n\t\t\t},\n\t\t\t\"presence\":
+        {\n\t\t\t\t\"count\": 0,\n\t\t\t\t\"data\": 0\n\t\t\t}\n\t\t},\n\t\t\"connections\":
+        {\n\t\t\t\"all\": {\n\t\t\t\t\"opened\": 0,\n\t\t\t\t\"peak\": 0,\n\t\t\t\t\"mean\":
+        0,\n\t\t\t\t\"min\": 0,\n\t\t\t\t\"refused\": 0,\n\t\t\t\t\"sample_count\":
+        0,\n\t\t\t\t\"sample_sum\": 0\n\t\t\t},\n\t\t\t\"plain\": {\n\t\t\t\t\"opened\":
+        0,\n\t\t\t\t\"peak\": 0,\n\t\t\t\t\"mean\": 0,\n\t\t\t\t\"min\": 0,\n\t\t\t\t\"refused\":
+        0,\n\t\t\t\t\"sample_count\": 2,\n\t\t\t\t\"sample_sum\": 0\n\t\t\t},\n\t\t\t\"tls\":
+        {\n\t\t\t\t\"opened\": 0,\n\t\t\t\t\"peak\": 0,\n\t\t\t\t\"mean\": 0,\n\t\t\t\t\"min\":
+        0,\n\t\t\t\t\"refused\": 0,\n\t\t\t\t\"sample_count\": 2,\n\t\t\t\t\"sample_sum\":
+        0\n\t\t\t}\n\t\t},\n\t\t\"channels\": {\n\t\t\t\"opened\": 0,\n\t\t\t\"peak\":
+        0,\n\t\t\t\"mean\": 0,\n\t\t\t\"min\": 0,\n\t\t\t\"refused\": 0,\n\t\t\t\"sample_count\":
+        2,\n\t\t\t\"sample_sum\": 0\n\t\t},\n\t\t\"apiRequests\": {\n\t\t\t\"succeeded\":
+        2,\n\t\t\t\"failed\": 0,\n\t\t\t\"refused\": 0\n\t\t},\n\t\t\"tokenRequests\":
+        {\n\t\t\t\"succeeded\": 0,\n\t\t\t\"failed\": 0,\n\t\t\t\"refused\": 0\n\t\t},\n\t\t\"count\":
+        0,\n\t\t\"intervalId\": \"2013-12-12:19:05\"\n\t},\n\t{\n\t\t\"all\": {\n\t\t\t\"all\":
+        {\n\t\t\t\t\"count\": 1,\n\t\t\t\t\"data\": 12\n\t\t\t},\n\t\t\t\"messages\":
+        {\n\t\t\t\t\"count\": 1,\n\t\t\t\t\"data\": 12\n\t\t\t},\n\t\t\t\"presence\":
+        {\n\t\t\t\t\"count\": 0,\n\t\t\t\t\"data\": 0\n\t\t\t}\n\t\t},\n\t\t\"inbound\":
+        {\n\t\t\t\"all\": {\n\t\t\t\t\"all\": {\n\t\t\t\t\t\"count\": 1,\n\t\t\t\t\t\"data\":
+        12\n\t\t\t\t},\n\t\t\t\t\"messages\": {\n\t\t\t\t\t\"count\": 1,\n\t\t\t\t\t\"data\":
+        12\n\t\t\t\t},\n\t\t\t\t\"presence\": {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\":
+        0\n\t\t\t\t}\n\t\t\t},\n\t\t\t\"realtime\": {\n\t\t\t\t\"all\": {\n\t\t\t\t\t\"count\":
+        0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"messages\": {\n\t\t\t\t\t\"count\":
+        0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"presence\": {\n\t\t\t\t\t\"count\":
+        0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t}\n\t\t\t},\n\t\t\t\"rest\": {\n\t\t\t\t\"all\":
+        {\n\t\t\t\t\t\"count\": 1,\n\t\t\t\t\t\"data\": 12\n\t\t\t\t},\n\t\t\t\t\"messages\":
+        {\n\t\t\t\t\t\"count\": 1,\n\t\t\t\t\t\"data\": 12\n\t\t\t\t},\n\t\t\t\t\"presence\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t}\n\t\t\t},\n\t\t\t\"push\":
+        {\n\t\t\t\t\"all\": {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"messages\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"presence\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t}\n\t\t\t},\n\t\t\t\"httpStream\":
+        {\n\t\t\t\t\"all\": {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"messages\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"presence\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t}\n\t\t\t}\n\t\t},\n\t\t\"outbound\":
+        {\n\t\t\t\"all\": {\n\t\t\t\t\"all\": {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\":
+        0\n\t\t\t\t},\n\t\t\t\t\"messages\": {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\":
+        0\n\t\t\t\t},\n\t\t\t\t\"presence\": {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\":
+        0\n\t\t\t\t}\n\t\t\t},\n\t\t\t\"realtime\": {\n\t\t\t\t\"all\": {\n\t\t\t\t\t\"count\":
+        0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"messages\": {\n\t\t\t\t\t\"count\":
+        0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"presence\": {\n\t\t\t\t\t\"count\":
+        0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t}\n\t\t\t},\n\t\t\t\"rest\": {\n\t\t\t\t\"all\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"messages\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"presence\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t}\n\t\t\t},\n\t\t\t\"push\":
+        {\n\t\t\t\t\"all\": {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"messages\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"presence\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t}\n\t\t\t},\n\t\t\t\"httpStream\":
+        {\n\t\t\t\t\"all\": {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"messages\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t},\n\t\t\t\t\"presence\":
+        {\n\t\t\t\t\t\"count\": 0,\n\t\t\t\t\t\"data\": 0\n\t\t\t\t}\n\t\t\t}\n\t\t},\n\t\t\"persisted\":
+        {\n\t\t\t\"all\": {\n\t\t\t\t\"count\": 0,\n\t\t\t\t\"data\": 0\n\t\t\t},\n\t\t\t\"messages\":
+        {\n\t\t\t\t\"count\": 0,\n\t\t\t\t\"data\": 0\n\t\t\t},\n\t\t\t\"presence\":
+        {\n\t\t\t\t\"count\": 0,\n\t\t\t\t\"data\": 0\n\t\t\t}\n\t\t},\n\t\t\"connections\":
+        {\n\t\t\t\"all\": {\n\t\t\t\t\"opened\": 0,\n\t\t\t\t\"peak\": 0,\n\t\t\t\t\"mean\":
+        0,\n\t\t\t\t\"min\": 0,\n\t\t\t\t\"refused\": 0,\n\t\t\t\t\"sample_count\":
+        0,\n\t\t\t\t\"sample_sum\": 0\n\t\t\t},\n\t\t\t\"plain\": {\n\t\t\t\t\"opened\":
+        0,\n\t\t\t\t\"peak\": 0,\n\t\t\t\t\"mean\": 0,\n\t\t\t\t\"min\": 0,\n\t\t\t\t\"refused\":
+        0,\n\t\t\t\t\"sample_count\": 8,\n\t\t\t\t\"sample_sum\": 0\n\t\t\t},\n\t\t\t\"tls\":
+        {\n\t\t\t\t\"opened\": 0,\n\t\t\t\t\"peak\": 0,\n\t\t\t\t\"mean\": 0,\n\t\t\t\t\"min\":
+        0,\n\t\t\t\t\"refused\": 0,\n\t\t\t\t\"sample_count\": 8,\n\t\t\t\t\"sample_sum\":
+        0\n\t\t\t}\n\t\t},\n\t\t\"channels\": {\n\t\t\t\"opened\": 1,\n\t\t\t\"peak\":
+        0,\n\t\t\t\"mean\": 0,\n\t\t\t\"min\": 0,\n\t\t\t\"refused\": 0,\n\t\t\t\"sample_count\":
+        8,\n\t\t\t\"sample_sum\": 0\n\t\t},\n\t\t\"apiRequests\": {\n\t\t\t\"succeeded\":
+        1,\n\t\t\t\"failed\": 0,\n\t\t\t\"refused\": 0\n\t\t},\n\t\t\"tokenRequests\":
+        {\n\t\t\t\"succeeded\": 0,\n\t\t\t\"failed\": 0,\n\t\t\t\"refused\": 0\n\t\t},\n\t\t\"count\":
+        0,\n\t\t\"intervalId\": \"2013-12-12:18:26\"\n\t}\n]"
+    http_version: 
+  recorded_at: Thu, 12 Dec 2013 19:26:59 GMT
+recorded_with: VCR 2.5.0
