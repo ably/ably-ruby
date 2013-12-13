@@ -1,0 +1,42 @@
+---
+http_interactions:
+- request:
+    method: post
+    uri: https://staging-rest.ably.io/keys/abc/requestToken
+    body:
+      encoding: US-ASCII
+      string: id=abc&client_id&ttl=3600&timestamp=1386957600&capability=%7B%22foo%22%3A%5B%22publish%22%5D%7D&nonce=some-random-string&mac=mXmngj871o6UknfKEI9srcUV6mOWoVOiQYxwMJZYSZg%3D
+    headers:
+      Accept:
+      - appliation/json
+      User-Agent:
+      - Ably Ruby client 0.0.1
+      Content-Type:
+      - application/x-www-form-urlencoded
+  response:
+    status:
+      code: 201
+      message: Created
+    headers:
+      Access-Control-Allow-Credentials:
+      - 'true'
+      Access-Control-Allow-Origin:
+      - ! '*'
+      Content-Type:
+      - application/json
+      Date:
+      - Fri, 13 Dec 2013 18:32:10 GMT
+      Server:
+      - journey/0.4.0
+      Content-Length:
+      - '164'
+      Connection:
+      - keep-alive
+    body:
+      encoding: US-ASCII
+      string: ! "{\n\t\"access_token\": {\n\t\t\"id\": \"abcdef\",\n\t\t\"key\":
+        \"abc\",\n\t\t\"issued_at\": 1386957600,\n\t\t\"expires\": 1386961200,\n\t\t\"capability\":
+        {\n\t\t\t\"foo\": [\n\t\t\t\t\"publish\"\n\t\t\t]\n\t\t}\n\t}\n}"
+    http_version: 
+  recorded_at: Fri, 13 Dec 2013 18:32:10 GMT
+recorded_with: VCR 2.5.0

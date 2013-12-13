@@ -1,15 +1,23 @@
 require "base64"
+require "securerandom"
 require "json"
 require "faraday"
 
+require "ably/token"
 require "ably/rest/middleware/parse_json"
 
 module Ably
   module Rest
     # Wrapper for the Ably REST API
     class Client
+      TOKEN_DEFAULTS = {
+        capability: { "*" => ["*"] },
+        ttl:        1 * 60 * 60
+      }
+
       def initialize(options)
-        @api_key = options[:api_key]
+        @app_id, @app_secret = options[:api_key].split(":")
+        @client_id = options[:client_id]
       end
 
       # Perform an HTTP GET request to the API
@@ -18,8 +26,8 @@ module Ably
       end
 
       # Perform an HTTP POST request to the API
-      def post(path, params)
-        request(:post, path, params)
+      def post(path, params, options = {})
+        request(:post, path, params, options)
       end
 
       # Return a Channel for the given name
@@ -49,10 +57,34 @@ module Ably
         Time.at(response.body.first / 1000.0)
       end
 
+      # Request a Token which can be used to make authenticated requests
+      def request_token(params = {})
+        params = {
+          id:         @app_id,
+          client_id:  @client_id,
+          ttl:        TOKEN_DEFAULTS[:ttl],
+          timestamp:  Time.now.to_i,
+          capability: TOKEN_DEFAULTS[:capability],
+          nonce:      SecureRandom.hex
+        }.merge(params)
+
+        if params[:capability].is_a?(Hash)
+          params[:capability] = params[:capability].to_json
+        end
+
+        params[:mac] = sign_params(params, @app_secret)
+
+        response = post("/keys/#{@app_id}/requestToken", params, basic_auth: false)
+
+        Ably::Token.new(response.body[:access_token])
+      end
+
       private
-      def request(method, path, params = {})
+      def request(method, path, params = {}, options = {})
         connection.send(method, path, params) do |request|
-          request.headers[:authorization] = "Basic #{encode64(@api_key)}"
+          unless options[:basic_auth] == false
+            request.headers[:authorization] = basic_auth_header
+          end
         end
       end
 
@@ -96,8 +128,28 @@ module Ably
         end
       end
 
+      def basic_auth_header
+        "Basic #{encode64("#{@app_id}:#{@app_secret}")}"
+      end
+
       def encode64(text)
         Base64.encode64(text).gsub("\n", '')
+      end
+
+      # Sign the request params using the secret
+      def sign_params(params, secret)
+        text = params.values_at(
+          :id,
+          :ttl,
+          :capability,
+          :client_id,
+          :timestamp,
+          :nonce
+        ).map { |t| "#{t}\n" }.join("")
+
+        encode64(
+          Digest::HMAC.digest(text, secret, Digest::SHA256)
+        )
       end
     end
   end

@@ -58,4 +58,30 @@ describe "Using the Rest client" do
       expect(client.time).to eql(time)
     end
   end
+
+  describe "fetching a token", vcr: { cassette_name: "fetching_a_token" } do
+    let(:timestamp)  { Time.parse("13th December 2013 18:00:00 +0000").to_i }
+    let(:nonce)      { "some-random-string" }
+    let(:ttl)        { 60 * 60 }
+    let(:capability) { { :foo => ["publish"] } }
+
+    it "should return the requested token" do
+      expected_token = Ably::Token.new(
+        id:         "abcdef",
+        key:        "abc",
+        issued_at:  timestamp,
+        expires:    timestamp + ttl,
+        capability: capability
+      )
+
+      actual_token = client.request_token(
+        timestamp:  timestamp,
+        nonce:      nonce,
+        ttl:        ttl,
+        capability: capability
+      )
+
+      expect(actual_token).to eq(expected_token)
+    end
+  end
 end
