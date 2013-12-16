@@ -30,13 +30,13 @@ module Ably
         request(:post, path, params, options)
       end
 
-      # Return a Channel for the given name
+      # Return a REST Channel for the given name
       #
       # @param name [String] The name of the channel
       # @return [Ably::Rest::Channel]
       def channel(name)
         @channels ||= {}
-        @channels[name] ||= Channel.new(self, name)
+        @channels[name] ||= Ably::Rest::Channel.new(self, name)
       end
 
       # Return the stats for the application

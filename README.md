@@ -16,7 +16,47 @@ Or install it yourself as:
 
     $ gem install ably
 
-## Usage
+## Using the Realtime API
+
+### Subscribing to a channel
+
+Given:
+
+```
+client = Ably::Realtime::Client.new(api_key: "xxxxx")
+
+channel = client.channel("test")
+```
+
+Subscribe to all events:
+
+```
+channel.subscribe do |message|
+  message[:name] #=> "greeting"
+  message[:data] #=> "Hello World!"
+end
+```
+
+Only certain events:
+
+```
+channel.subscribe("myEvent") do |message|
+  message[:name] #=> "myEvent"
+  message[:data] #=> "myData"
+end
+```
+
+### Publishing to a channel
+
+```
+client = Ably::Realtime::Client.new(api_key: "xxxxx")
+
+channel = client.channel("test")
+
+channel.publish("greeting", "Hello World!")
+```
+
+## Using the REST API
 
 ### Publishing a message to a channel
 
