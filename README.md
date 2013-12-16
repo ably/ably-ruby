@@ -65,7 +65,7 @@ client = Ably::Rest::Client.new(api_key: "xxxxx")
 
 channel = client.channel("test")
 
-channel.publish("Hello!") #=> true
+channel.publish("myEvent", "Hello!") #=> true
 ```
 
 ### Fetching a channel's history

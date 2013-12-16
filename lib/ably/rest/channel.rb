@@ -16,10 +16,13 @@ module Ably
       #
       # @param message [Hash] The message to publish (must contain :name and :data keys)
       # @return [Boolean] true if the message was published, otherwise false
-      def publish(message)
-        validate_message(message)
+      def publish(event, message)
+        payload = {
+          name: event,
+          data: message
+        }
 
-        response = client.post("/channels/#{name}/publish", message)
+        response = client.post("/channels/#{name}/publish", payload)
 
         response.status == 201
       end
@@ -31,17 +34,6 @@ module Ably
         response = client.get("/channels/#{name}/history")
 
         response.body
-      end
-
-      private
-      def validate_message(message)
-        unless message.has_key?(:name) && message.has_key?(:data)
-          raise ArgumentError, "message must be a Hash with :name and :data keys"
-        end
-
-        if message[:name].empty?
-          raise ArgumentError, "message name must not be empty"
-        end
       end
     end
   end

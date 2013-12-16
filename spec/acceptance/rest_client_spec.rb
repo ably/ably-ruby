@@ -6,10 +6,11 @@ describe "Using the Rest client" do
 
   describe "publishing messages", vcr: { cassette_name: "publishing_messages" } do
     let(:channel) { client.channel("test") }
-    let(:message) { { name: "foo", data: "woop!" } }
+    let(:event)   { "foo" }
+    let(:message) { "woop!" }
 
     it "should publish the message ok" do
-      expect(channel.publish message).to eql(true)
+      expect(channel.publish(event, message)).to eql(true)
     end
   end
 
