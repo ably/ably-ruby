@@ -5,23 +5,9 @@
 #
 # See http://rubydoc.info/gems/rspec-core/RSpec/Core/Configuration
 
-require "webmock/rspec"
-WebMock.disable_net_connect!
-
-require "vcr"
-require "vcr/test_frameworks/rspec"
-VCR::RSpec::Metadata.configure!
-
-VCR.configure do |c|
-  c.cassette_library_dir = "spec/fixtures/vcr_cassettes"
-  c.hook_into :webmock
-  c.default_cassette_options = {
-    match_requests_on: [:method, :uri, :headers, :body],
-    record: :once
-  }
-end
-
 require "ably"
+
+require "support/api_helper"
 
 RSpec.configure do |config|
   config.treat_symbols_as_metadata_keys_with_true_values = true

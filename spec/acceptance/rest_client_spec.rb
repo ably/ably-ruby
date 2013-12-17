@@ -1,10 +1,9 @@
 require "spec_helper"
 
 describe "Using the Rest client" do
-  let(:api_key) { "abc:123" }
   let(:client)  { Ably::Rest::Client.new(api_key: api_key) }
 
-  describe "publishing messages", vcr: { cassette_name: "publishing_messages" } do
+  describe "publishing messages" do
     let(:channel) { client.channel("test") }
     let(:event)   { "foo" }
     let(:message) { "woop!" }
@@ -14,9 +13,9 @@ describe "Using the Rest client" do
     end
   end
 
-  describe "fetching channel history", vcr: { cassette_name: "fetching_channel_history" } do
-    let(:channel) { client.channel("test") }
-    let(:history) do
+  describe "fetching channel history" do
+    let(:channel) { client.channel("persisted") }
+    let(:expected_history) do
       [
         { :name => "test1", :data => "foo" },
         { :name => "test2", :data => "bar" },
@@ -24,65 +23,74 @@ describe "Using the Rest client" do
       ]
     end
 
-    it "should return all the history for the channel" do
-      expect(channel.history).to eql(history)
+    before(:each) do
+      expected_history.each do |message|
+        channel.publish(message[:name], message[:data]) || raise("Unable to publish message")
+      end
+
+      sleep(10)
     end
-  end
 
-  describe "fetching application stats", vcr: { cassette_name: "fetching_application_stats" } do
-    it "should return all the stats for the channel" do
-      stats = client.stats
+    it "should return all the history for the channel" do
+      actual_history = channel.history
 
-      # Just check some sizes and keys because what gets returned is quite large
-      expect(stats.size).to eql(3)
-      stats.each do |stat|
-        expect(stat.keys).to include(
-          :all,
-          :inbound,
-          :outbound,
-          :persisted,
-          :connections,
-          :channels,
-          :apiRequests,
-          :tokenRequests,
-          :count,
-          :intervalId
-        )
+      expect(actual_history.size).to eql(3)
+
+      expected_history.each do |message|
+        expect(actual_history).to include(message)
       end
     end
   end
 
-  describe "fetching the service time", vcr: { cassette_name: "fetching_service_time" } do
-    let(:time) { Time.parse("12th December 2013 14:23:34 +0000") }
+  describe "fetching application stats" do
+    let(:number_of_channels) { 3 }
+    let(:number_of_messages_per_channel) { 10 }
 
-    it "should return the service time as a Time object" do
-      expect(client.time).to eql(time)
+    before(:each) do
+      number_of_channels.times do |i|
+        channel = client.channel("stats-#{i}")
+
+        number_of_messages_per_channel.times do |j|
+          channel.publish("event-#{j}", "data-#{j}") || raise("Unable to publish message")
+        end
+      end
+
+      sleep(10)
+    end
+
+    it "should return all the stats for the application" do
+      stats = client.stats
+
+      expect(stats.size).to eql(1)
+
+      stat = stats.first
+
+      expect(stat[:inbound][:all][:all][:count]).to eql(number_of_channels * number_of_messages_per_channel)
+      expect(stat[:inbound][:rest][:all][:count]).to eql(number_of_channels * number_of_messages_per_channel)
+      expect(stat[:channels][:opened]).to eql(number_of_channels)
     end
   end
 
-  describe "fetching a token", vcr: { cassette_name: "fetching_a_token" } do
-    let(:timestamp)  { Time.parse("13th December 2013 18:00:00 +0000").to_i }
-    let(:nonce)      { "some-random-string" }
+  describe "fetching the service time" do
+    it "should return the service time as a Time object" do
+      expect(client.time).to be_within(1).of(Time.now)
+    end
+  end
+
+  describe "fetching a token" do
     let(:ttl)        { 60 * 60 }
     let(:capability) { { :foo => ["publish"] } }
 
     it "should return the requested token" do
-      expected_token = Ably::Token.new(
-        id:         "abcdef",
-        key:        "abc",
-        issued_at:  timestamp,
-        expires:    timestamp + ttl,
-        capability: capability
-      )
-
       actual_token = client.request_token(
-        timestamp:  timestamp,
-        nonce:      nonce,
         ttl:        ttl,
         capability: capability
       )
 
-      expect(actual_token).to eq(expected_token)
+      expect(actual_token.id).to match(/^#{app_id}\.[\w-]+$/)
+      expect(actual_token.app_key).to match(/^#{app_id}\.#{key_id}$/)
+      expect(actual_token.issued_at).to be_within(1).of(Time.now)
+      expect(actual_token.expires_at).to be_within(1).of(Time.now + ttl)
     end
   end
 end
