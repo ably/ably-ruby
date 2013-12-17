@@ -21,8 +21,8 @@ module Ably
       end
 
       # Perform an HTTP GET request to the API
-      def get(path)
-        request(:get, path)
+      def get(path, params = {})
+        request(:get, path, params)
       end
 
       # Perform an HTTP POST request to the API
@@ -42,8 +42,8 @@ module Ably
       # Return the stats for the application
       #
       # @return [Array] An Array of hashes representing the stats
-      def stats
-        response = get("/stats")
+      def stats(params = {})
+        response = get("/stats", params)
 
         response.body
       end
