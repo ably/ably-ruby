@@ -30,11 +30,6 @@ module Ably
       presence:     14,
       message:      15
     }
-
-    # TODO: Support SSL endpoint
-    def self.api_endpoint
-      "ws://staging-realtime.ably.io"
-    end
   end
 end
 

@@ -19,6 +19,8 @@ module Ably
 
       def connection_completed
         @state = :connecting
+
+        start_tls if @client.use_ssl?
         @driver.start
       end
 
@@ -32,7 +34,7 @@ module Ably
 
       # WebSocket::Driver interface
       def url
-        "#{Ably::Realtime.api_endpoint}?access_token=#{@client.token.id}&binary=false&timestamp=#{Time.now.to_i}"
+        @client.endpoint.to_s
       end
 
       def write(data)

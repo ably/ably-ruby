@@ -10,6 +10,8 @@ module Ably
   module Rest
     # Wrapper for the Ably REST API
     class Client
+      DOMAIN = "staging-rest.ably.io"
+
       TOKEN_DEFAULTS = {
         capability: { "*" => ["*"] },
         ttl:        1 * 60 * 60
@@ -18,6 +20,7 @@ module Ably
       def initialize(options)
         @app_id, @app_secret = options[:api_key].split(":")
         @client_id = options[:client_id]
+        @ssl = options[:ssl] || false
       end
 
       # Perform an HTTP GET request to the API
@@ -79,6 +82,10 @@ module Ably
         Ably::Token.new(response.body[:access_token])
       end
 
+      def use_ssl?
+        @ssl == true
+      end
+
       private
       def request(method, path, params = {}, options = {})
         connection.send(method, path, params) do |request|
@@ -88,11 +95,18 @@ module Ably
         end
       end
 
+      def endpoint
+        URI::Generic.build(
+          scheme: use_ssl? ? "https" : "http",
+          host:   DOMAIN
+        )
+      end
+
       # Return a Faraday::Connection to use to make HTTP requests
       #
       # @return [Faraday::Connection]
       def connection
-        @connection ||= Faraday.new(Ably::Rest.api_endpoint, connection_options)
+        @connection ||= Faraday.new(endpoint.to_s, connection_options)
       end
 
       # Return a Hash of connection options to initiate the Faraday::Connection with

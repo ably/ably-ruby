@@ -4,7 +4,10 @@ module Ably
     class Client
       include Callbacks
 
+      DOMAIN = "staging-realtime.ably.io"
+
       def initialize(options)
+        @ssl         = options[:ssl] || false
         @rest_client = Ably::Rest::Client.new(options)
 
         on(:attached) do |data|
@@ -54,13 +57,23 @@ module Ably
         connection.send(payload)
       end
 
+      def use_ssl?
+        @ssl == true
+      end
+
+      def endpoint
+        @endpoint ||= URI::Generic.build(
+          scheme: use_ssl? ? "wss" : "ws",
+          host:   DOMAIN,
+          query:  "access_token=#{token.id}&binary=false&timestamp=#{Time.now.to_i}"
+        )
+      end
+
       private
       def connection
         @connection ||= begin
-          uri  = URI(Ably::Realtime.api_endpoint)
-          host = uri.host
-          # port = uri.scheme == "wss" ? 443 : 80
-          port = 80
+          host = endpoint.host
+          port = use_ssl? ? 443 : 80
 
           EventMachine.connect(host, port, Connection, self)
         end
