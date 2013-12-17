@@ -17,7 +17,7 @@ module Ably
     end
 
     def expires_at
-      Time.at(attributes[:expires_at])
+      Time.at(attributes[:expires])
     end
 
     def ==(other)
