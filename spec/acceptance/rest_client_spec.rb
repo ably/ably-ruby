@@ -47,6 +47,16 @@ describe "Using the Rest client" do
     let(:number_of_messages_per_channel) { 10 }
 
     before(:each) do
+      # Wait until the start of the next minute according to the service
+      # time because stats are created in 1 minute intervals
+      service_time    = client.time
+      @interval_start = (service_time.to_i / 60 + 1) * 60
+      sleep_time      = @interval_start - Time.now.to_i
+
+      if sleep_time > 0
+        sleep(sleep_time)
+      end
+
       number_of_channels.times do |i|
         channel = client.channel("stats-#{i}")
 
@@ -59,7 +69,7 @@ describe "Using the Rest client" do
     end
 
     it "should return all the stats for the application" do
-      stats = client.stats
+      stats = client.stats(start: @interval_start * 1000)
 
       expect(stats.size).to eql(1)
 
