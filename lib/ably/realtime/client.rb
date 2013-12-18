@@ -69,7 +69,6 @@ module Ably
         )
       end
 
-      private
       def connection
         @connection ||= begin
           host = endpoint.host

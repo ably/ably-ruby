@@ -7,6 +7,7 @@ module Ably
       end
 
       def trigger(event, *args)
+        @callbacks ||= Hash.new { |hash, key| hash[key] = [] }
         @callbacks[event].each { |cb| cb.call(*args) }
       end
     end

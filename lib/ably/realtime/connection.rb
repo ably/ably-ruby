@@ -1,6 +1,8 @@
 module Ably
   module Realtime
     class Connection < EventMachine::Connection
+      include Callbacks
+
       def initialize(client)
         @client = client
       end
@@ -12,13 +14,13 @@ module Ably
 
       # EventMachine::Connection interface
       def post_init
-        @state = :initialised
+        trigger :initalised
 
         setup_driver
       end
 
       def connection_completed
-        @state = :connecting
+        trigger :connecting
 
         start_tls if @client.use_ssl?
         @driver.start
@@ -29,7 +31,7 @@ module Ably
       end
 
       def unbind
-        @state = :disconnected
+        trigger :disconnected
       end
 
       # WebSocket::Driver interface
@@ -45,8 +47,7 @@ module Ably
       def setup_driver
         @driver = WebSocket::Driver.client(self)
 
-        @driver.on("open")  { @state = :connected }
-        @driver.on("close") { @state = :disconnected }
+        @driver.on("open")  { trigger :connected }
 
         @driver.on("message") do |event|
           message = JSON.parse(event.data, symbolize_names: true)
