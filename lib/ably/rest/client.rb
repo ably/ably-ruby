@@ -130,7 +130,7 @@ module Ably
       #
       # @see http://mislav.uniqpath.com/2011/07/faraday-advanced-http/
       def middleware
-        @middleware ||= Faraday::Builder.new do |builder|
+        @middleware ||= Faraday::RackBuilder.new do |builder|
           # Convert request params to "www-form-urlencoded"
           builder.use Faraday::Request::UrlEncoded
 
