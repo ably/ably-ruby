@@ -20,7 +20,7 @@ module Ably
       def initialize(options)
         @app_id, @app_secret = options[:api_key].split(":")
         @client_id = options[:client_id]
-        @ssl = options[:ssl] || false
+        @ssl                 = options[:ssl] || true
       end
 
       # Perform an HTTP GET request to the API

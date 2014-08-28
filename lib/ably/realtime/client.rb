@@ -7,7 +7,7 @@ module Ably
       DOMAIN = "staging-realtime.ably.io"
 
       def initialize(options)
-        @ssl         = options[:ssl] || false
+        @ssl         = options[:ssl] || true
         @rest_client = Ably::Rest::Client.new(options)
 
         on(:attached) do |data|
