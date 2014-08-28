@@ -120,7 +120,7 @@ module Ably
         @connection_options ||= {
           builder: middleware,
           headers: {
-            accept:     "appliation/json",
+            accept:     "application/json",
             user_agent: "Ably Ruby client #{Ably::VERSION}"
           },
           request: {
