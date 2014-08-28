@@ -12,6 +12,10 @@ module ApiHelper
   def api_key
     TestApp.instance.api_key
   end
+
+  def environment
+    TestApp.instance.environment
+  end
 end
 
 RSpec.configure do |config|

@@ -54,8 +54,12 @@ class TestApp
     Faraday.delete(url, nil, headers)
   end
 
+  def environment
+    'sandbox'
+  end
+
   private
   def sandbox_client
-    @sandbox_client ||= Ably::Rest::Client.new(api_key: 'not:used', ssl: true, environment: 'sandbox')
+    @sandbox_client ||= Ably::Rest::Client.new(api_key: 'not:used', ssl: true, environment: environment)
   end
 end
