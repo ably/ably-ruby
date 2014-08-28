@@ -18,6 +18,9 @@ module Ably
       }
 
       def initialize(options)
+        raise ArgumentError, "api_key is missing" unless options.has_key?(:api_key)
+        raise ArgumentError, "api_key is invalid" unless options[:api_key].to_s.match(/[\w_-]+\.[\w_-]+:[\w_-]+/)
+
         @key_id, @key_secret = options[:api_key].split(':')
         @client_id           = options[:client_id]
         @ssl                 = options[:ssl] || true
@@ -48,7 +51,12 @@ module Ably
       #
       # @return [Array] An Array of hashes representing the stats
       def stats(params = {})
-        response = get("/stats", params)
+        default_params = {
+          :direction => :forwards,
+          :by        => :minute
+        }
+
+        response = get("/stats", default_params.merge(params))
 
         response.body
       end
