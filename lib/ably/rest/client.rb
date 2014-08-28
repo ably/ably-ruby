@@ -22,6 +22,7 @@ module Ably
         @client_id           = options[:client_id]
         @ssl                 = options[:ssl] || true
         @environment         = options[:environment] # nil is production
+        @debug_http          = options[:debug_http]
       end
 
       # Perform an HTTP GET request to the API
@@ -107,7 +108,9 @@ module Ably
       #
       # @return [Faraday::Connection]
       def connection
-        @connection ||= Faraday.new(endpoint.to_s, connection_options)
+        @connection ||= Faraday.new(endpoint.to_s, connection_options) do |faraday|
+          faraday.response :logger if @debug_http
+        end
       end
 
       # Return a Hash of connection options to initiate the Faraday::Connection with
