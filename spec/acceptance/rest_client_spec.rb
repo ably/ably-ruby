@@ -83,7 +83,7 @@ describe "Using the Rest client" do
 
   describe "fetching the service time" do
     it "should return the service time as a Time object" do
-      expect(client.time).to be_within(1).of(Time.now)
+      expect(client.time).to be_within(2).of(Time.now)
     end
   end
 
@@ -99,8 +99,8 @@ describe "Using the Rest client" do
 
       expect(actual_token.id).to match(/^#{app_id}\.[\w-]+$/)
       expect(actual_token.app_key).to match(/^#{app_id}\.#{key_id}$/)
-      expect(actual_token.issued_at).to be_within(1).of(Time.now)
-      expect(actual_token.expires_at).to be_within(1).of(Time.now + ttl)
+      expect(actual_token.issued_at).to be_within(2).of(Time.now)
+      expect(actual_token.expires_at).to be_within(2).of(Time.now + ttl)
     end
   end
 end
