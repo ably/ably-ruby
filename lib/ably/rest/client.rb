@@ -10,7 +10,7 @@ module Ably
   module Rest
     # Wrapper for the Ably REST API
     class Client
-      DOMAIN = "staging-rest.ably.io"
+      DOMAIN = "rest.ably.io"
 
       TOKEN_DEFAULTS = {
         capability: { "*" => ["*"] },
@@ -18,9 +18,10 @@ module Ably
       }
 
       def initialize(options)
-        @app_id, @app_secret = options[:api_key].split(":")
-        @client_id = options[:client_id]
+        @key_id, @key_secret = options[:api_key].split(':')
+        @client_id           = options[:client_id]
         @ssl                 = options[:ssl] || true
+        @environment         = options[:environment] # nil is production
       end
 
       # Perform an HTTP GET request to the API
@@ -63,7 +64,7 @@ module Ably
       # Request a Token which can be used to make authenticated requests
       def request_token(params = {})
         params = {
-          id:         @app_id,
+          id:         @key_id,
           client_id:  @client_id,
           ttl:        TOKEN_DEFAULTS[:ttl],
           timestamp:  Time.now.to_i,
@@ -75,15 +76,22 @@ module Ably
           params[:capability] = params[:capability].to_json
         end
 
-        params[:mac] = sign_params(params, @app_secret)
+        params[:mac] = sign_params(params, @key_secret)
 
-        response = post("/keys/#{@app_id}/requestToken", params, basic_auth: false)
+        response = post("/keys/#{@key_id}/requestToken", params, basic_auth: false)
 
         Ably::Token.new(response.body[:access_token])
       end
 
       def use_ssl?
         @ssl == true
+      end
+
+      def endpoint
+        URI::Generic.build(
+          scheme: use_ssl? ? "https" : "http",
+          host:   [@environment, DOMAIN].compact.join('-')
+        )
       end
 
       private
@@ -93,13 +101,6 @@ module Ably
             request.headers[:authorization] = basic_auth_header
           end
         end
-      end
-
-      def endpoint
-        URI::Generic.build(
-          scheme: use_ssl? ? "https" : "http",
-          host:   DOMAIN
-        )
       end
 
       # Return a Faraday::Connection to use to make HTTP requests
@@ -143,7 +144,7 @@ module Ably
       end
 
       def basic_auth_header
-        "Basic #{encode64("#{@app_id}:#{@app_secret}")}"
+        "Basic #{encode64("#{@key_id}:#{@key_secret}")}"
       end
 
       def encode64(text)

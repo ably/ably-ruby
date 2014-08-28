@@ -13,7 +13,7 @@ class TestApp
   include Singleton
 
   def initialize
-    url = "https://staging-rest.ably.io/apps"
+    url = "#{sandbox_client.endpoint}/apps"
 
     headers = {
       "Accept"       => "application/json",
@@ -46,11 +46,16 @@ class TestApp
   end
 
   def delete
-    url = "https://staging-rest.ably.io/apps/#{app_id}"
+    url = "#{sandbox_client.endpoint}/apps/#{app_id}"
 
     basic_auth = Base64.encode64(api_key).chomp
     headers    = { "Authorization" => "Basic #{basic_auth}" }
 
     Faraday.delete(url, nil, headers)
+  end
+
+  private
+  def sandbox_client
+    @sandbox_client ||= Ably::Rest::Client.new(api_key: 'not:used', ssl: true, environment: 'sandbox')
   end
 end

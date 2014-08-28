@@ -1,7 +1,7 @@
 require "spec_helper"
 
 describe "Using the Rest client" do
-  let(:client)  { Ably::Rest::Client.new(api_key: api_key) }
+  let(:client) { Ably::Rest::Client.new(api_key: api_key, environment: 'sandbox') }
 
   describe "publishing messages" do
     let(:channel) { client.channel("test") }
