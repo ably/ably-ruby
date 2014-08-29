@@ -5,6 +5,8 @@
 #
 # See http://rubydoc.info/gems/rspec-core/RSpec/Core/Configuration
 
+require 'webmock/rspec'
+
 require "ably"
 
 require "support/api_helper"
@@ -18,4 +20,12 @@ RSpec.configure do |config|
   # the seed, which is printed after each run.
   #     --seed 1234
   config.order = 'random'
+
+  config.before(:example) do
+    WebMock.disable!
+  end
+
+  config.before(:example, :webmock => true) do
+    WebMock.enable!
+  end
 end

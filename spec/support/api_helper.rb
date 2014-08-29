@@ -22,10 +22,12 @@ RSpec.configure do |config|
   config.include ApiHelper
 
   config.before(:suite) do
+    WebMock.disable!
     TestApp.instance
   end
 
   config.after(:suite) do
+    WebMock.disable!
     TestApp.instance.delete
   end
 end

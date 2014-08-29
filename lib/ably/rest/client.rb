@@ -4,6 +4,7 @@ require "json"
 require "faraday"
 
 require "ably/token"
+require "ably/rest/middleware/exceptions"
 require "ably/rest/middleware/parse_json"
 
 module Ably
@@ -65,7 +66,7 @@ module Ably
       #
       # @return [Time] The time as reported by the Ably service
       def time
-        response = get("/time")
+        response = request(:get, '/time', {}, basic_auth: false)
 
         Time.at(response.body.first / 1000.0)
       end
@@ -116,9 +117,7 @@ module Ably
       #
       # @return [Faraday::Connection]
       def connection
-        @connection ||= Faraday.new(endpoint.to_s, connection_options) do |faraday|
-          faraday.response :logger if @debug_http
-        end
+        @connection ||= Faraday.new(endpoint.to_s, connection_options)
       end
 
       # Return a Hash of connection options to initiate the Faraday::Connection with
@@ -148,6 +147,12 @@ module Ably
 
           # Parse JSON response bodies
           builder.use Ably::Rest::Middleware::ParseJson
+
+          # Log HTTP requests if debug_http option set
+          builder.response :logger if @debug_http
+
+          # Raise exceptions if response code is invalid
+          builder.use Ably::Rest::Middleware::Exceptions
 
           # Set Faraday's HTTP adapter
           builder.adapter Faraday.default_adapter
