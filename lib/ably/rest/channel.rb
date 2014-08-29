@@ -45,6 +45,10 @@ module Ably
         PagedResource.new(response, url, client)
       end
 
+      def presence
+        @presence ||= Presence.new(client, self)
+      end
+
       private
       def base_path
         "/channels/#{CGI.escape(name)}"
