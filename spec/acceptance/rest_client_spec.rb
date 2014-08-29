@@ -1,4 +1,5 @@
 require "spec_helper"
+require "securerandom"
 
 describe "Using the Rest client" do
   let(:client) do
@@ -62,7 +63,7 @@ describe "Using the Rest client" do
   end
 
   describe "fetching channel history" do
-    let(:channel) { client.channel("persisted") }
+    let(:channel) { client.channel("persisted:#{SecureRandom.hex(4)}") }
     let(:expected_history) do
       [
         { :name => "test1", :data => "foo" },
@@ -75,8 +76,6 @@ describe "Using the Rest client" do
       expected_history.each do |message|
         channel.publish(message[:name], message[:data]) || raise("Unable to publish message")
       end
-
-      sleep(10)
     end
 
     it "should return all the history for the channel" do
@@ -87,6 +86,29 @@ describe "Using the Rest client" do
       expected_history.each do |message|
         expect(actual_history).to include(message)
       end
+    end
+
+    it "should return paged history" do
+      page_1 = channel.history(limit: 1)
+      page_2 = page_1.next
+      page_3 = page_2.next
+
+      all_items = [page_1[0], page_2[0], page_3[0]]
+      expect(all_items.uniq).to eql(all_items)
+
+      expect(page_1.size).to eql(1)
+      expect(page_1).to_not be_last
+      expect(page_1).to be_first
+
+      # Page 2
+      expect(page_2.size).to eql(1)
+      expect(page_2).to_not be_last
+      expect(page_2).to_not be_first
+
+      # Page 3
+      expect(page_3.size).to eql(1)
+      expect(page_3).to be_last
+      expect(page_3).to_not be_first
     end
   end
 

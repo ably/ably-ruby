@@ -22,18 +22,32 @@ module Ably
           data: message
         }
 
-        response = client.post("/channels/#{name}/publish", payload)
+        response = client.post("#{base_path}/publish", payload)
 
         response.status == 201
       end
 
-      # Return the history of the channel
+      # Return the message history of the channel
       #
-      # @return [Array] An Array of hashes representing the history
-      def history
-        response = client.get("/channels/#{name}/history")
+      # Options:
+      #   - start:      Time or millisecond since epoch
+      #   - end:        Time or millisecond since epoch
+      #   - direction:  :forwards or :backwards
+      #   - limit:      Maximum number of messages to retrieve up to 10,000
+      #   - by:         :message, :bundle or :hour. Defaults to :message
+      #
+      # @return [PagedResource] An Array of hashes representing the message history that supports paging (next, first)
+      def history(options = {})
+        url = "#{base_path}/messages"
+        # TODO: Remove live param as all history should be live
+        response = client.get(url, options.merge(live: true))
 
-        response.body
+        PagedResource.new(response, url, client)
+      end
+
+      private
+      def base_path
+        "/channels/#{CGI.escape(name)}"
       end
     end
   end

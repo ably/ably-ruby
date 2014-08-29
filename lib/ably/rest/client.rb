@@ -30,8 +30,8 @@ module Ably
       end
 
       # Perform an HTTP GET request to the API
-      def get(path, params = {})
-        request(:get, path, params)
+      def get(path, params = {}, options = {})
+        request(:get, path, params, options)
       end
 
       # Perform an HTTP POST request to the API
@@ -66,7 +66,7 @@ module Ably
       #
       # @return [Time] The time as reported by the Ably service
       def time
-        response = request(:get, '/time', {}, basic_auth: false)
+        response = get('/time', {}, basic_auth: false)
 
         Time.at(response.body.first / 1000.0)
       end
