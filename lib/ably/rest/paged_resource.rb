@@ -19,22 +19,26 @@ module Ably
       end
 
       def last?
-        pagination_header('next').nil?
+        !supports_paging? ||
+          pagination_header('next').nil?
       end
 
       def first?
-        pagination_header('first') == pagination_header('current')
+        !supports_paging? ||
+          pagination_header('first') == pagination_header('current')
       end
 
-      def pagination_header(id)
+      def pagination_headers
         link_regex = %r{<(?<url>[^>]+)>; rel="(?<rel>[^"]+)"}
-        @link_headers ||= @http_response.headers['link'].scan(link_regex).inject({}) do |hash, val_array|
+        @pagination_headers ||= @http_response.headers['link'].scan(link_regex).inject({}) do |hash, val_array|
           url, rel = val_array
           hash[rel] = url
           hash
         end
+      end
 
-        @link_headers[id]
+      def pagination_header(id)
+        pagination_headers[id]
       end
 
       def pagination_url(id)
@@ -45,6 +49,10 @@ module Ably
         else
           pagination_header[id]
         end
+      end
+
+      def supports_paging?
+        pagination_headers.empty?
       end
 
       def [](index)
