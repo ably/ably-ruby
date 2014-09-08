@@ -52,7 +52,7 @@ module Ably
       end
 
       def supports_paging?
-        pagination_headers.empty?
+        !pagination_headers.empty?
       end
 
       def [](index)
