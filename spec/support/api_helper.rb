@@ -16,6 +16,10 @@ module ApiHelper
   def environment
     TestApp.instance.environment
   end
+
+  def encode64(text)
+    Base64.encode64(text).gsub("\n", '')
+  end
 end
 
 RSpec.configure do |config|
