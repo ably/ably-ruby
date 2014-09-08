@@ -46,7 +46,7 @@ class TestApp
   end
 
   def key_id
-    key["id"]
+    "#{app_id}.#{key["id"]}"
   end
 
   def key_value
@@ -54,7 +54,7 @@ class TestApp
   end
 
   def api_key
-    "#{app_id}.#{key_id}:#{key_value}"
+    "#{key_id}:#{key_value}"
   end
 
   def delete

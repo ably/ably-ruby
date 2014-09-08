@@ -4,13 +4,19 @@ module Ably
   module Rest
     module Middleware
       class Exceptions < Faraday::Response::Middleware
-       def call(env)
+        def call(env)
           @app.call(env).on_complete do
             if env[:status] >= 400
+              error_status_code = nil
+              error_code = nil
+
               begin
                 error = JSON.parse(env[:body])['error']
+                error_status_code = error['statusCode'].to_i if error['statusCode']
+                error_code = error['code'].to_i if error['code']
+
                 if error
-                  message = "#{error['message']} (status: #{error['statusCode']}, code: #{error['code']})"
+                  message = "#{error['message']} (status: #{error_status_code}, code: #{error_code})"
                 else
                   message = env[:body]
                 end
@@ -23,7 +29,7 @@ module Ably
               if env[:status] >= 500
                 raise Ably::ServerError, message
               else
-                raise Ably::InvalidRequest, message
+                raise Ably::InvalidRequest.new(message, status: error_status_code, code: error_code)
               end
             end
           end

@@ -19,10 +19,13 @@ module Ably
       }
 
       def initialize(options)
-        raise ArgumentError, "api_key is missing" unless options.has_key?(:api_key)
-        raise ArgumentError, "api_key is invalid" unless options[:api_key].to_s.match(/[\w_-]+\.[\w_-]+:[\w_-]+/)
+        unless options.has_key?(:token)
+          raise ArgumentError, "api_key is missing" unless options.has_key?(:api_key)
+          raise ArgumentError, "api_key is invalid" unless options[:api_key].to_s.match(/[\w_-]+\.[\w_-]+:[\w_-]+/)
+        end
 
-        @key_id, @key_secret = options[:api_key].split(':')
+        @key_id, @key_secret = options[:api_key].split(':') if options[:api_key]
+        @token_id            = options[:token]
         @client_id           = options[:client_id]
         @tls                 = options[:tls] || true
         @environment         = options[:environment] # nil is production
@@ -66,7 +69,7 @@ module Ably
       #
       # @return [Time] The time as reported by the Ably service
       def time
-        response = get('/time', {}, basic_auth: false)
+        response = get('/time', {}, send_auth_header: false)
 
         Time.at(response.body.first / 1000.0)
       end
@@ -88,7 +91,7 @@ module Ably
 
         params[:mac] = sign_params(params, @key_secret)
 
-        response = post("/keys/#{@key_id}/requestToken", params, basic_auth: false)
+        response = post("/keys/#{@key_id}/requestToken", params, send_auth_header: false)
 
         Ably::Token.new(response.body[:access_token])
       end
@@ -107,8 +110,8 @@ module Ably
       private
       def request(method, path, params = {}, options = {})
         connection.send(method, path, params) do |request|
-          unless options[:basic_auth] == false
-            request.headers[:authorization] = basic_auth_header
+          unless options[:send_auth_header] == false
+            request.headers[:authorization] = auth_header
           end
         end
       end
@@ -159,8 +162,29 @@ module Ably
         end
       end
 
+      def auth_header
+        if token_id
+          token_auth_header
+        else
+          if @client_id
+            @token = request_token
+            token_auth_header
+          else
+            basic_auth_header
+          end
+        end
+      end
+
+      def token_id
+        (@token && @token.id) || @token_id
+      end
+
       def basic_auth_header
         "Basic #{encode64("#{@key_id}:#{@key_secret}")}"
+      end
+
+      def token_auth_header
+        "Bearer #{encode64(token_id)}"
       end
 
       def encode64(text)
