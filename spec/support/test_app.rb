@@ -72,6 +72,6 @@ class TestApp
 
   private
   def sandbox_client
-    @sandbox_client ||= Ably::Rest::Client.new(api_key: 'app.key:secret', ssl: true, environment: environment)
+    @sandbox_client ||= Ably::Rest::Client.new(api_key: 'app.key:secret', tls: true, environment: environment)
   end
 end
