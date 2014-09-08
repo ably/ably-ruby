@@ -22,7 +22,7 @@ module Ably
       def connection_completed
         trigger :connecting
 
-        start_tls if @client.use_ssl?
+        start_tls if @client.use_tls?
         @driver.start
       end
 

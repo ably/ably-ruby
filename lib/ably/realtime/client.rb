@@ -56,13 +56,13 @@ module Ably
         connection.send(payload)
       end
 
-      def use_ssl?
-        @rest_client.use_ssl?
+      def use_tls?
+        @rest_client.use_tls?
       end
 
       def endpoint
         @endpoint ||= URI::Generic.build(
-          scheme: use_ssl? ? "wss" : "ws",
+          scheme: use_tls? ? "wss" : "ws",
           host:   DOMAIN,
           query:  "access_token=#{token.id}&binary=false&timestamp=#{Time.now.to_i}"
         )
@@ -71,7 +71,7 @@ module Ably
       def connection
         @connection ||= begin
           host = endpoint.host
-          port = use_ssl? ? 443 : 80
+          port = use_tls? ? 443 : 80
 
           EventMachine.connect(host, port, Connection, self)
         end

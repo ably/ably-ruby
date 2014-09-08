@@ -24,7 +24,7 @@ module Ably
 
         @key_id, @key_secret = options[:api_key].split(':')
         @client_id           = options[:client_id]
-        @ssl                 = options[:ssl] || true
+        @tls                 = options[:tls] || true
         @environment         = options[:environment] # nil is production
         @debug_http          = options[:debug_http]
       end
@@ -93,13 +93,13 @@ module Ably
         Ably::Token.new(response.body[:access_token])
       end
 
-      def use_ssl?
-        @ssl == true
+      def use_tls?
+        @tls == true
       end
 
       def endpoint
         URI::Generic.build(
-          scheme: use_ssl? ? "https" : "http",
+          scheme: use_tls? ? "https" : "http",
           host:   [@environment, DOMAIN].compact.join('-')
         )
       end
