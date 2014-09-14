@@ -1,5 +1,6 @@
 require "ably/support"
 
+require "ably/auth"
 require "ably/exceptions"
 require "ably/rest"
 require "ably/realtime"
