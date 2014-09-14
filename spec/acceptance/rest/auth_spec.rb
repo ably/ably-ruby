@@ -5,13 +5,14 @@ describe "REST" do
   let(:client) do
     Ably::Rest::Client.new(api_key: api_key, environment: environment)
   end
+  let(:auth) { client.auth }
 
   describe "#request_token" do
     let(:ttl)        { 30 * 60 }
     let(:capability) { { :foo => ["publish"] } }
 
     it "should return the requested token" do
-      actual_token = client.request_token(
+      actual_token = auth.request_token(
         ttl:        ttl,
         capability: capability
       )
@@ -28,7 +29,7 @@ describe "REST" do
     let(:ttl)           { 60 * 60 }
     let(:capability)    { { :foo => ["publish"] } }
     let(:options)       { Hash.new }
-    subject { client.create_token_request(options) }
+    subject { auth.create_token_request(options) }
 
     it "should use the key ID from the client" do
       expect(subject[:id]).to eql(key_id)
@@ -43,7 +44,7 @@ describe "REST" do
     end
 
     it "should have a unique nonce" do
-      unique_nonces = 100.times.map { client.create_token_request[:nonce] }
+      unique_nonces = 100.times.map { auth.create_token_request[:nonce] }
       expect(unique_nonces.uniq.length).to eql(100)
     end
 
@@ -101,7 +102,7 @@ describe "REST" do
     describe "with token_id argument" do
       let(:ttl) { 60 * 60 }
       let(:token) do
-        client.request_token(
+        auth.request_token(
           ttl:        ttl,
           capability: capability
         )
@@ -124,7 +125,7 @@ describe "REST" do
       end
 
       it "should fail if timestamp is invalid" do
-        expect { client.request_token(timestamp: Time.now.to_i - 180) }.to raise_error do |error|
+        expect { auth.request_token(timestamp: Time.now.to_i - 180) }.to raise_error do |error|
           expect(error).to be_a(Ably::InvalidRequest)
           expect(error.status).to eql(401)
           expect(error.code).to eql(40101)

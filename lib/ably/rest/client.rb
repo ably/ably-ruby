@@ -3,7 +3,6 @@ require "securerandom"
 require "json"
 require "faraday"
 
-require "ably/token"
 require "ably/rest/middleware/exceptions"
 require "ably/rest/middleware/parse_json"
 
@@ -11,9 +10,11 @@ module Ably
   module Rest
     # Wrapper for the Ably REST API
     class Client
+      include Ably::Support
+
       DOMAIN = "rest.ably.io"
 
-      attr_reader :token, :token_id, :tls, :key_id
+      attr_reader :token, :token_id, :tls, :key_id, :key_secret, :client_id
 
       def initialize(options)
         unless options.has_key?(:token)
@@ -71,42 +72,8 @@ module Ably
         Time.at(response.body.first / 1000.0)
       end
 
-      # Request a Token which can be used to make authenticated requests
-      #
-      # @return [Ably::Token]
-      def request_token(options = {})
-        response = post("/keys/#{@key_id}/requestToken", create_token_request(options), send_auth_header: false)
-
-        Ably::Token.new(response.body[:access_token])
-      end
-
-      # Creates and signs a token request that can be used by any client library
-      # to request a valid token
-      #
-      # @return [Hash]
-      def create_token_request(options = {})
-        timestamp = if options[:query_time]
-          time
-        else
-          Time.now
-        end.to_i
-
-        token_request = {
-          id:         @key_id,
-          client_id:  @client_id,
-          ttl:        Token::DEFAULTS[:ttl],
-          timestamp:  timestamp,
-          capability: Token::DEFAULTS[:capability],
-          nonce:      SecureRandom.hex
-        }.merge(options)
-
-        if token_request[:capability].is_a?(Hash)
-          token_request[:capability] = token_request[:capability].to_json
-        end
-
-        token_request[:mac] = sign_params(token_request, @key_secret)
-
-        token_request
+      def auth
+        @auth ||= Auth.new(self)
       end
 
       def use_tls?
@@ -180,7 +147,7 @@ module Ably
           token_auth_header
         else
           if @client_id
-            @token = request_token
+            @token = auth.request_token
             token_auth_header
           else
             basic_auth_header
@@ -198,26 +165,6 @@ module Ably
 
       def token_auth_header
         "Bearer #{encode64(token_id)}"
-      end
-
-      def encode64(text)
-        Base64.encode64(text).gsub("\n", '')
-      end
-
-      # Sign the request params using the secret
-      def sign_params(params, secret)
-        text = params.values_at(
-          :id,
-          :ttl,
-          :capability,
-          :client_id,
-          :timestamp,
-          :nonce
-        ).map { |t| "#{t}\n" }.join("")
-
-        encode64(
-          Digest::HMAC.digest(text, secret, Digest::SHA256)
-        )
       end
     end
   end

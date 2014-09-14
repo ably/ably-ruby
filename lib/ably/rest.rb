@@ -1,3 +1,4 @@
+require "ably/rest/auth"
 require "ably/rest/channel"
 require "ably/rest/client"
 require "ably/rest/paged_resource"
