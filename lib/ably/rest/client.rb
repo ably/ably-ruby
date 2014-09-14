@@ -13,10 +13,7 @@ module Ably
     class Client
       DOMAIN = "rest.ably.io"
 
-      TOKEN_DEFAULTS = {
-        capability: { "*" => ["*"] },
-        ttl:        1 * 60 * 60
-      }
+      attr_reader :token, :token_id, :tls, :key_id
 
       def initialize(options)
         unless options.has_key?(:token)
@@ -75,25 +72,41 @@ module Ably
       end
 
       # Request a Token which can be used to make authenticated requests
-      def request_token(params = {})
-        params = {
-          id:         @key_id,
-          client_id:  @client_id,
-          ttl:        TOKEN_DEFAULTS[:ttl],
-          timestamp:  Time.now.to_i,
-          capability: TOKEN_DEFAULTS[:capability],
-          nonce:      SecureRandom.hex
-        }.merge(params)
-
-        if params[:capability].is_a?(Hash)
-          params[:capability] = params[:capability].to_json
-        end
-
-        params[:mac] = sign_params(params, @key_secret)
-
-        response = post("/keys/#{@key_id}/requestToken", params, send_auth_header: false)
+      #
+      # @return [Ably::Token]
+      def request_token(options = {})
+        response = post("/keys/#{@key_id}/requestToken", create_token_request(options), send_auth_header: false)
 
         Ably::Token.new(response.body[:access_token])
+      end
+
+      # Creates and signs a token request that can be used by any client library
+      # to request a valid token
+      #
+      # @return [Hash]
+      def create_token_request(options = {})
+        timestamp = if options[:query_time]
+          time
+        else
+          Time.now
+        end.to_i
+
+        token_request = {
+          id:         @key_id,
+          client_id:  @client_id,
+          ttl:        Token::DEFAULTS[:ttl],
+          timestamp:  timestamp,
+          capability: Token::DEFAULTS[:capability],
+          nonce:      SecureRandom.hex
+        }.merge(options)
+
+        if token_request[:capability].is_a?(Hash)
+          token_request[:capability] = token_request[:capability].to_json
+        end
+
+        token_request[:mac] = sign_params(token_request, @key_secret)
+
+        token_request
       end
 
       def use_tls?

@@ -1,5 +1,10 @@
 module Ably
   class Token
+    DEFAULTS = {
+      capability: { "*" => ["*"] },
+      ttl:        60 * 60 # 1 hour
+    }
+
     def initialize(attributes)
       @attributes = attributes
     end
@@ -8,7 +13,7 @@ module Ably
       attributes[:id]
     end
 
-    def app_key
+    def key_id
       attributes[:key]
     end
 
@@ -18,6 +23,18 @@ module Ably
 
     def expires_at
       Time.at(attributes[:expires])
+    end
+
+    def capability
+      attributes[:capability]
+    end
+
+    def client_id
+      attributes[:client_id]
+    end
+
+    def nonce
+      attributes[:nonce]
     end
 
     def ==(other)
