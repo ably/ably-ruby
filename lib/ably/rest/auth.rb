@@ -19,10 +19,15 @@ module Ably
       Ably::Token.new(response.body[:access_token])
     end
 
-    # Creates and signs a token request that can be used by any client library
-    # to request a valid token
+    # Creates and signs a token request that can then subsequently be used by any client to request a token
     #
     # @param [Hash] options the options for the token request
+    # @option options [String] :id key ID for the designated application
+    # @option options [String] :client_id client ID identifying this connection to other clients
+    # @option options [Integer] :ttl validity time in seconds for the requested {Ably::Token}.  Limits may apply, see {http://docs.ably.io/other/authentication/}
+    # @option options [Integer] :timestamp the time of the of the request in seconds since the epoch
+    # @option options [Hash] :capability canonicalised representation of the resource paths and associated operations
+    # @option options [String] :nonce an unquoted, unescaped random string of at least 16 characters
     # @return [Hash]
     def create_token_request(options = {})
       timestamp = if options[:query_time]
