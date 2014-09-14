@@ -9,6 +9,10 @@ module ApiHelper
     TestApp.instance.key_id
   end
 
+  def key_secret
+    api_key.split(':')[1]
+  end
+
   def api_key
     TestApp.instance.api_key
   end
