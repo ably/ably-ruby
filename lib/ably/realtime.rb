@@ -30,6 +30,9 @@ module Ably
       presence:     14,
       message:      15
     }
+
+    def self.new(*args)
+      Ably::Realtime::Client.new(*args)
+    end
   end
 end
-
