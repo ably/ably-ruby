@@ -23,7 +23,7 @@ Or install it yourself as:
 Given:
 
 ```
-client = Ably::Realtime::Client.new(api_key: "xxxxx")
+client = Ably::Realtime.new(api_key: "xxxxx")
 
 channel = client.channel("test")
 ```
@@ -49,7 +49,7 @@ end
 ### Publishing to a channel
 
 ```
-client = Ably::Realtime::Client.new(api_key: "xxxxx")
+client = Ably::Realtime.new(api_key: "xxxxx")
 
 channel = client.channel("test")
 
@@ -61,7 +61,7 @@ channel.publish("greeting", "Hello World!")
 ### Publishing a message to a channel
 
 ```
-client = Ably::Rest::Client.new(api_key: "xxxxx")
+client = Ably::Rest.new(api_key: "xxxxx")
 
 channel = client.channel("test")
 
@@ -71,7 +71,7 @@ channel.publish("myEvent", "Hello!") #=> true
 ### Fetching a channel's history
 
 ```
-client = Ably::Rest::Client.new(api_key: "xxxxx")
+client = Ably::Rest.new(api_key: "xxxxx")
 
 channel = client.channel("test")
 
@@ -81,7 +81,7 @@ channel.history #=> [{:name=>"test", :data=>"payload"}]
 ### Fetching your application's stats
 
 ```
-client = Ably::Rest::Client.new(api_key: "xxxxx")
+client = Ably::Rest.new(api_key: "xxxxx")
 
 client.stats #=> [{:channels=>..., :apiRequests=>..., ...}]
 ```
@@ -89,7 +89,7 @@ client.stats #=> [{:channels=>..., :apiRequests=>..., ...}]
 ### Fetching the Ably service time
 
 ```
-client = Ably::Rest::Client.new(api_key: "xxxxx")
+client = Ably::Rest.new(api_key: "xxxxx")
 
 client.time #=> 2013-12-12 14:23:34 +0000
 ```
