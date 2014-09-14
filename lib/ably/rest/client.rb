@@ -1,5 +1,3 @@
-require "base64"
-require "securerandom"
 require "json"
 require "faraday"
 
@@ -111,7 +109,7 @@ module Ably
           builder: middleware,
           headers: {
             accept:     "application/json",
-            user_agent: "Ably Ruby client #{Ably::VERSION}"
+            user_agent: user_agent
           },
           request: {
             open_timeout: 5,

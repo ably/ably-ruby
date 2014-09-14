@@ -10,4 +10,5 @@ module Ably
 
   class ServerError < StandardError; end
   class InvalidPageError < StandardError; end
+  class InvalidResponseBody < StandardError; end
 end
