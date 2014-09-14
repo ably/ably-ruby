@@ -3,11 +3,13 @@ require "json"
 module Ably
   module Rest
     module Middleware
+      # HTTP exceptions raised by Ably due to an error status code
+      # Ably returns JSON error codes and messages so include this if possible in the exception messages
       class Exceptions < Faraday::Response::Middleware
         def call(env)
           @app.call(env).on_complete do
             if env[:status] >= 400
-              error_status_code = nil
+              error_status_code = env[:status]
               error_code = nil
 
               begin
