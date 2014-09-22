@@ -10,31 +10,31 @@ module Ably
     end
 
     def id
-      attributes[:id]
+      attributes.fetch(:id)
     end
 
     def key_id
-      attributes[:key]
+      attributes.fetch(:key)
     end
 
     def issued_at
-      Time.at(attributes[:issued_at])
+      Time.at(attributes.fetch(:issued_at))
     end
 
     def expires_at
-      Time.at(attributes[:expires])
+      Time.at(attributes.fetch(:expires))
     end
 
     def capability
-      attributes[:capability]
+      attributes.fetch(:capability)
     end
 
     def client_id
-      attributes[:client_id]
+      attributes.fetch(:client_id)
     end
 
     def nonce
-      attributes[:nonce]
+      attributes.fetch(:nonce)
     end
 
     def ==(other)
