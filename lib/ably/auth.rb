@@ -12,8 +12,55 @@ module Ably
   class Auth
     include Ably::Support
 
+    # The current token generated from an explicit/implicit authorise request
+    attr_reader :current_token
+
     def initialize(client)
       @client = client
+    end
+
+    # Ensures valid auth credentials are present for the library instance. This may rely on an already-known and valid token, and will obtain a new token if necessary.
+    #
+    # In the event that a new token request is made, the specified options are used.
+    #
+    # @param [Hash] options the options for the token request
+    # @option options [String]  :key_id       key ID for the designated application (defaults to client key_id)
+    # @option options [String]  :key_secret   key secret for the designated application used to sign token requests (defaults to client key_secret)
+    # @option options [String]  :client_id    client ID identifying this connection to other clients (defaults to client client_id if configured)
+    # @option options [String]  :auth_url     a URL to be used to GET or POST a set of token request params, to obtain a signed token request.
+    # @option options [Hash]    :auth_headers a set of application-specific headers to be added to any request made to the authUrl
+    # @option options [Hash]    :auth_params  a set of application-specific query params to be added to any request made to the authUrl
+    # @option options [Symbol]  :auth_method  HTTP method to use with auth_url, must be either `:get` or `:post` (defaults to :get)
+    # @option options [Integer] :ttl          validity time in seconds for the requested {Ably::Token}.  Limits may apply, see {http://docs.ably.io/other/authentication/}
+    # @option options [Hash]    :capability   canonicalised representation of the resource paths and associated operations
+    # @option options [Boolean] :query_time   when true will query the {https://ably.io Ably} system for the current time instead of using the local time
+    # @option options [Integer] :timestamp    the time of the of the request in seconds since the epoch
+    # @option options [String]  :nonce        an unquoted, unescaped random string of at least 16 characters
+    # @option options [Boolean] :force        obtains a new token even if the current token is valid
+    #
+    # @yield [options] (optional) if an auth block is passed to this method, then this block will be called to create a new token request object
+    # @yieldparam [Hash] options options passed to request_token will be in turn sent to the block in this argument
+    # @yieldreturn [Hash] valid token request object, see {#create_token_request}
+    #
+    # @return [Ably::Token]
+    #
+    # @example
+    #    # will issue a simple token request using basic auth
+    #    client = Ably::Rest::Client.new(api_key: 'key.id:secret')
+    #    token = client.auth.authorise
+    #
+    #    # will use token request from block to authorise if not already authorised
+    #    token = client.auth.authorise do |options|
+    #      # create token_request object
+    #      token_request
+    #    end
+    #
+    def authorise(options = {}, &block)
+      if !options[:force] && current_token
+        return current_token unless current_token.expired?
+      end
+
+      @current_token = request_token(options, &block)
     end
 
     # Request a {Ably::Token} which can be used to make authenticated token based requests
@@ -26,7 +73,7 @@ module Ably
     # @option options [Hash]    :auth_headers a set of application-specific headers to be added to any request made to the authUrl
     # @option options [Hash]    :auth_params  a set of application-specific query params to be added to any request made to the authUrl
     # @option options [Symbol]  :auth_method  HTTP method to use with auth_url, must be either `:get` or `:post` (defaults to :get)
-    # @option options [Integer] :ttl validity time in seconds for the requested {Ably::Token}.  Limits may apply, see {http://docs.ably.io/other/authentication/}
+    # @option options [Integer] :ttl          validity time in seconds for the requested {Ably::Token}.  Limits may apply, see {http://docs.ably.io/other/authentication/}
     # @option options [Hash]    :capability   canonicalised representation of the resource paths and associated operations
     # @option options [Boolean] :query_time   when true will query the {https://ably.io Ably} system for the current time instead of using the local time
     # @option options [Integer] :timestamp    the time of the of the request in seconds since the epoch

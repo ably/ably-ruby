@@ -196,8 +196,51 @@ describe "REST" do
     end
   end
 
-  describe "#authorise" do
-    # it ""
+  describe '#authorise' do
+    context 'with no previous authorisation' do
+      let(:request_options) do
+        { auth_url: 'http://somewhere.com/' }
+      end
+
+      it 'has no current_token' do
+        expect(auth.current_token).to be_nil
+      end
+
+      it 'passes all options to request_token' do
+        expect(auth).to receive(:request_token).with(request_options)
+        auth.authorise request_options
+      end
+
+      it 'returns a valid token' do
+        expect(auth.authorise).to be_a(Ably::Token)
+      end
+
+      it 'issues a new token if option :force => true' do
+        expect { auth.authorise(force: true) }.to change { auth.current_token }
+      end
+    end
+
+    context 'with previous authorisation' do
+      before do
+        auth.authorise
+        expect(auth.current_token).to_not be_expired
+      end
+
+      it 'does not request a token if token is not expired' do
+        expect(auth).to_not receive(:request_token)
+        auth.authorise
+      end
+
+      it 'requests a new token if token is expired' do
+        allow(auth.current_token).to receive(:expired?).and_return(true)
+        expect(auth).to receive(:request_token)
+        expect { auth.authorise }.to change { auth.current_token }
+      end
+
+      it 'issues a new token if option :force => true' do
+        expect { auth.authorise(force: true) }.to change { auth.current_token }
+      end
+    end
   end
 
   describe "#create_token_request" do

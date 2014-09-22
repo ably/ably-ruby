@@ -5,6 +5,8 @@ module Ably
       ttl:        60 * 60 # 1 hour
     }
 
+    TOKEN_EXPIRY_BUFFER = 5
+
     def initialize(attributes)
       @attributes = attributes
     end
@@ -38,7 +40,13 @@ module Ably
     end
 
     def ==(other)
-      attributes == other.attributes
+      other.class == self.class &&
+        attributes == other.attributes
+    end
+
+    # Returns true if token is expired or about to expire
+    def expired?
+      expires_at < Time.now + TOKEN_EXPIRY_BUFFER
     end
 
     protected
