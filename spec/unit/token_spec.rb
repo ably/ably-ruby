@@ -49,5 +49,42 @@ describe Ably::Token do
         end
       end
     end
+
+    context '#expired?' do
+      let(:expire_time) { Time.now + Ably::Token::TOKEN_EXPIRY_BUFFER }
+
+      context 'once grace period buffer has passed' do
+        subject { Ably::Token.new(expires: expire_time - 1) }
+
+        it 'is true' do
+          expect(subject.expired?).to eql(true)
+        end
+      end
+
+      context 'within grace period buffer' do
+        subject { Ably::Token.new(expires: expire_time + 1) }
+
+        it 'is false' do
+          expect(subject.expired?).to eql(false)
+        end
+      end
+    end
+  end
+
+  context '==' do
+    let(:token_attributes) { { id: 'unique' } }
+
+    it 'is true when attributes are the same' do
+      new_token = -> { Ably::Token.new(token_attributes) }
+      expect(new_token[]).to eq(new_token[])
+    end
+
+    it 'is false when attributes are not the same' do
+      expect(Ably::Token.new(id: 1)).to_not eq(Ably::Token.new(id: 2))
+    end
+
+    it 'is false when class type differs' do
+      expect(Ably::Token.new(id: 1)).to_not eq(nil)
+    end
   end
 end
