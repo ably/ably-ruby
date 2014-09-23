@@ -24,7 +24,7 @@ module Ably
 
       DOMAIN = "rest.ably.io"
 
-      attr_reader :tls, :environment, :auth
+      attr_reader :tls, :environment, :auth, :channels
       def_delegator :auth, :client_id, :auth_options
 
       # Creates a {Ably::Rest::Client Rest Client} and configures the {Ably::Auth} object for the connection.
@@ -71,16 +71,16 @@ module Ably
         @environment         = options.delete(:environment) # nil is production
         @debug_http          = options.delete(:debug_http)
 
-        @auth = Auth.new(self, options, &auth_block)
+        @auth     = Auth.new(self, options, &auth_block)
+        @channels = Ably::Rest::Channels.new(self)
       end
 
       # Return a REST {Ably::Rest::Channel} for the given name
       #
-      # @param name [String] The name of the channel
-      # @return [Ably::Rest::Channel]
-      def channel(name)
-        @channels ||= {}
-        @channels[name] ||= Ably::Rest::Channel.new(self, name)
+      # @param [String] name see {Ably::Rest::Channels#get}
+      # @param [Hash] channel_options see {Ably::Rest::Channels#get}
+      def channel(name, channel_options = {})
+        channels.get(name, channel_options)
       end
 
       # Return the stats for the application

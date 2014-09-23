@@ -1,15 +1,17 @@
 module Ably
   module Rest
     class Channel
-      attr_reader :client, :name
+      attr_reader :client, :name, :options
 
       # Initialize a new Channel object
       #
       # @param client [Ably::Rest::Client]
       # @param name [String] The name of the channel
-      def initialize(client, name)
-        @client = client
-        @name   = name
+      # @param channel_options [Hash] Channel options, currently reserved for Encryption options
+      def initialize(client, name, channel_options = {})
+        @client  = client
+        @name    = name
+        @options = channel_options.dup.freeze
       end
 
       # Publish a message to the channel
