@@ -10,27 +10,37 @@ module Ably
       # @param [Faraday::Response] http_response Initial HTTP response from an Ably request to a paged resource
       # @param [String] base_url Base URL for request that generated the http_response so that subsequent paged requests can be made
       # @param [Ably::Rest::Client] client {Ably::Client} used to make the request to Ably
+      # @param [Hash] options Options for this paged resource
+      # @option options [Symbol] :coerce_into symbol representing class that should be used to represent each item in the PagedResource
       #
       # @return [Ably::Rest::PagedResource]
-      def initialize(http_response, base_url, client)
+      def initialize(http_response, base_url, client, coerce_into: nil)
         @http_response = http_response
-        @body          = http_response.body
         @client        = client
         @base_url      = "#{base_url.gsub(%r{/[^/]*$}, '')}/"
+        @coerce_into   = coerce_into
+
+        @body = if coerce_into
+          http_response.body.map do |item|
+            Kernel.const_get(coerce_into).new(item)
+          end
+        else
+          http_response.body
+        end
       end
 
       # Retrieve the first page of results
       #
       # @return [Ably::Rest::PagedResource]
       def first
-        PagedResource.new(@client.get(pagination_url('first')), @base_url, @client)
+        PagedResource.new(@client.get(pagination_url('first')), @base_url, @client, coerce_into: @coerce_into)
       end
 
       # Retrieve the next page of results
       #
       # @return [Ably::Rest::PagedResource]
       def next
-        PagedResource.new(@client.get(pagination_url('next')), @base_url, @client)
+        PagedResource.new(@client.get(pagination_url('next')), @base_url, @client, coerce_into: @coerce_into)
       end
 
       # True if this is the last page in the paged resource set
