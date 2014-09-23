@@ -6,11 +6,11 @@ require 'ably/version'
 Gem::Specification.new do |spec|
   spec.name          = "ably"
   spec.version       = Ably::VERSION
-  spec.authors       = ["Lewis Marshall"]
-  spec.email         = ["lewis@lmars.net"]
+  spec.authors       = ["Lewis Marshall", "Matthew O'Riordan"]
+  spec.email         = ["lewis@lmars.net", "matt@ably.io"]
   spec.description   = %q{A Ruby client library for ably.io, the real-time messaging service}
   spec.summary       = %q{A Ruby client library for ably.io, the real-time messaging service}
-  spec.homepage      = "https://ably.io"
+  spec.homepage      = "http://github.com/ably/ably-ruby"
   spec.license       = "MIT"
 
   spec.files         = `git ls-files`.split($/)
