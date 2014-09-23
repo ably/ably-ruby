@@ -87,8 +87,7 @@ describe "REST" do
 
     context 'with :auth_url option', webmock: true do
       let(:auth_url)          { 'https://www.fictitious.com/get_token' }
-      let(:token_request_id)  { SecureRandom.hex }
-      let(:token_request)     { { id: token_request_id }.to_json }
+      let(:token_request)     { { id: key_id }.to_json }
       let(:token_response)    { { access_token: { } }.to_json }
       let(:query_params)      { nil }
       let(:headers)           { nil }
@@ -111,7 +110,7 @@ describe "REST" do
 
       let!(:request_token_stub) do
         stub_request(:post, "#{client.endpoint}/keys/#{key_id}/requestToken").
-          with(:body => hash_including({ 'id' => token_request_id })).
+          with(:body => hash_including({ 'id' => key_id })).
           to_return(:status => 201, :body => token_response, :headers => { 'Content-Type' => 'application/json' })
       end
 
@@ -176,7 +175,7 @@ describe "REST" do
 
     context 'with auth_block' do
       let(:client_id) { SecureRandom.hex }
-      let(:options) { { key: SecureRandom.hex } }
+      let(:options) { { client_id: client_id } }
       let!(:token) do
         auth.request_token(options) do |block_options|
           @block_called = true
@@ -187,7 +186,7 @@ describe "REST" do
 
       it 'calls the block' do
         expect(@block_called).to eql(true)
-        expect(@block_options).to eql(options)
+        expect(@block_options).to include(options)
       end
 
       it 'uses the token request when requesting a new token' do
@@ -291,6 +290,18 @@ describe "REST" do
       end
     end
 
+    context "missing key ID and/or secret" do
+      let(:client) { Ably::Rest::Client.new(auth_url: 'http://example.com') }
+
+      it "should raise an exception if key secret is missing" do
+        expect { auth.create_token_request(key_id: 'id') }.to raise_error Ably::TokenRequestError
+      end
+
+      it "should raise an exception if key id is missing" do
+        expect { auth.create_token_request(key_secret: 'secret') }.to raise_error Ably::TokenRequestError
+      end
+    end
+
     context "with :query_time option" do
       let(:time)    { Time.now - 30 }
       let(:options) { { query_time: true } }
@@ -333,7 +344,7 @@ describe "REST" do
       end
       let(:token_id) { token.id }
       let(:token_auth_client) do
-        Ably::Rest::Client.new(token: token_id, environment: environment)
+        Ably::Rest::Client.new(token_id: token_id, environment: environment)
       end
 
       it "authenticates successfully" do
@@ -389,8 +400,10 @@ describe "REST" do
       end
 
       context "will create a token" do
-        it "after request is made only" do
-          expect(client.token).to be_nil
+        let(:token) { client.auth.current_token }
+
+        it "before a request is made" do
+          expect(token).to be_nil
         end
 
         it "when a message is published" do
@@ -400,12 +413,12 @@ describe "REST" do
         it "with capability and TTL defaults" do
           client.channel("foo").publish("event", "data")
 
-          expect(client.token).to be_a(Ably::Token)
+          expect(token).to be_a(Ably::Token)
           capability_with_str_key = Ably::Token::DEFAULTS[:capability]
           capability = Hash[capability_with_str_key.keys.map(&:to_sym).zip(capability_with_str_key.values)]
-          expect(client.token.capability).to eql(capability)
-          expect(client.token.expires_at).to be_within(2).of(Time.now + Ably::Token::DEFAULTS[:ttl])
-          expect(client.token.client_id).to eql(client_id)
+          expect(token.capability).to eql(capability)
+          expect(token.expires_at).to be_within(2).of(Time.now + Ably::Token::DEFAULTS[:ttl])
+          expect(token.client_id).to eql(client_id)
         end
       end
     end

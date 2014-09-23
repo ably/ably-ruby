@@ -6,17 +6,65 @@ require "ably/rest/middleware/external_exceptions"
 require "ably/rest/middleware/parse_json"
 
 module Ably
-  # Auth is responsible for authentication with {https://ably.io Ably} using token authentication
+  # Auth is responsible for authentication with {https://ably.io Ably} using basic or token authentication
   #
   # Find out more about Ably authentication at: http://docs.ably.io/other/authentication/
+  #
+  # @!attribute [r] client_id
+  #   @return [String] The provided client ID, used for identifying this client for presence purposes
+  # @!attribute [r] current_token
+  #   @return [Ably::Token] Current {Ably::Token} issued by this library or one of the provided callbacks used to authenticate requests
+  # @!attribute [r] token_id
+  #   @return [String] Token ID provided to the {Ably::Client} constructor that is used to authenticate all requests
+  # @!attribute [r] api_key
+  #   @return [String] Complete API key containing both the key ID and key secret, if present
+  # @!attribute [r] key_id
+  #   @return [String] Key ID (public part of the API key), if present
+  # @!attribute [r] key_secret
+  #   @return [String] Key secret (private secure part of the API key), if present
+  # @!attribute [r] options
+  #   @return [Hash] {Ably::Auth} options configured for this client
+
   class Auth
     include Ably::Support
 
-    # The current token generated from an explicit/implicit authorise request
-    attr_reader :current_token
+    attr_reader :options, :current_token
+    alias_method :auth_options, :options
 
-    def initialize(client)
-      @client = client
+    # Creates an Auth object
+    #
+    # @param [Ably::Rest::Client] client  {Ably::Rest::Client} this Auth object uses
+    # @param [Hash] auth_options          see {Ably::Rest::Client#initialize}
+    # @yield [auth_options]               see {Ably::Rest::Client#initialize}
+    def initialize(client, auth_options, &auth_block)
+      @client        = client
+      @options       = auth_options
+      @auth_callback = auth_block if block_given?
+
+      unless auth_options.kind_of?(Hash)
+        raise ArgumentError, "Expected auth_options to be a Hash"
+      end
+
+      if auth_options[:api_key] && (auth_options[:key_secret] || auth_options[:key_id])
+        raise ArgumentError, "api_key and key_id or key_secret are mutually exclusive. Provider either an api_key or key_id & key_secret"
+      end
+
+      if auth_options[:api_key]
+        api_key_parts = auth_options[:api_key].to_s.match(/(?<id>[\w_-]+\.[\w_-]+):(?<secret>[\w_-]+)/)
+        raise ArgumentError, "api_key is invalid" unless api_key_parts
+        auth_options[:key_id] = api_key_parts[:id]
+        auth_options[:key_secret] = api_key_parts[:secret]
+      end
+
+      if using_basic_auth? && !api_key_present?
+        raise ArgumentError, "api_key is missing. Either an API key, token, or token auth method must be provided"
+      end
+
+      if has_client_id? && !api_key_present?
+        raise ArgumentError, "client_id cannot be provided without a complete API key. Key ID & Secret is needed to authenticate with Ably and obtain a token"
+      end
+
+      @options.freeze
     end
 
     # Ensures valid auth credentials are present for the library instance. This may rely on an already-known and valid token, and will obtain a new token if necessary.
@@ -97,20 +145,20 @@ module Ably
     #    end
     #
     def request_token(options = {}, &block)
-      token_options = options.dup
+      token_options = self.auth_options.merge(options)
 
-      auth_url = options.delete(:auth_url)
+      auth_url = token_options.delete(:auth_url)
       token_request = if block_given?
         yield(token_options)
+      elsif auth_callback
+        auth_callback.call(token_options)
       elsif auth_url
         token_request_from_auth_url(auth_url, token_options)
       else
         create_token_request(token_options)
       end
 
-      key_id = token_options[:key_id] || client.key_id
-
-      response = client.post("/keys/#{key_id}/requestToken", token_request, send_auth_header: false)
+      response = client.post("/keys/#{token_request.fetch(:id)}/requestToken", token_request, send_auth_header: false)
 
       Ably::Token.new(response.body[:access_token])
     end
@@ -140,36 +188,97 @@ module Ably
     #    #   :mac=>"881oZHeFo6oMim7N64y2vFHtSlpQ2gn/uE56a8gUxHw="
     #    # }
     def create_token_request(options = {})
-      token_attributes = %w(id client_id ttl timestamp capability nonce)
+      token_attributes   = %w(id client_id ttl timestamp capability nonce)
 
-      token_options = options.dup
-      token_options[:id] = token_options.delete(:key_id) if token_options.has_key?(:key_id)
+      token_options      = options.dup
+      request_key_id     = token_options.delete(:key_id) || key_id
+      request_key_secret = token_options.delete(:key_secret) || key_secret
 
-      timestamp = if options[:query_time]
+      raise TokenRequestError, "Key ID and Key Secret are required to generate a new token request" unless request_key_id && request_key_secret
+
+      timestamp = if token_options[:query_time]
         client.time
       else
         Time.now
       end.to_i
 
       token_request = {
-        id:         client.key_id,
-        client_id:  client.client_id,
+        id:         request_key_id,
+        client_id:  client_id,
         ttl:        Token::DEFAULTS[:ttl],
         timestamp:  timestamp,
         capability: Token::DEFAULTS[:capability],
         nonce:      SecureRandom.hex
-      }.merge(options.select { |key, val| token_attributes.include?(key.to_s) })
+      }.merge(token_options.select { |key, val| token_attributes.include?(key.to_s) })
 
       if token_request[:capability].is_a?(Hash)
         token_request[:capability] = token_request[:capability].to_json
       end
 
-      token_request[:mac] = sign_params(token_request, options[:key_secret] || client.key_secret)
+      token_request[:mac] = sign_params(token_request, request_key_secret)
 
       token_request
     end
 
+    def api_key
+      "#{key_id}:#{key_secret}" if api_key_present?
+    end
+
+    def key_id
+      options[:key_id]
+    end
+
+    def key_secret
+      options[:key_secret]
+    end
+
+    # True when Basic Auth is being used to authenticate with Ably
+    def using_basic_auth?
+      !using_token_auth?
+    end
+
+    # True when Token Auth is being used to authenticate with Ably
+    def using_token_auth?
+      token_id || current_token || has_client_id? || token_creatable_externally?
+    end
+
+    def client_id
+      options[:client_id]
+    end
+
+    def token_id
+      options[:token_id]
+    end
+
+    # Auth header string used in HTTP requests to Ably
+    #
+    # @return [String] HTTP authentication value used in HTTP_AUTHORIZATION header
+    def auth_header
+      if using_token_auth?
+        token_auth_header
+      else
+        basic_auth_header
+      end
+    end
+
     private
+    attr_reader :auth_callback
+
+    def basic_auth_header
+      raise InsecureRequestError, "Cannot use Basic Auth over non-TLS connections" unless client.use_tls?
+      "Basic #{encode64("#{api_key}")}"
+    end
+
+    def token_auth_header
+      current_token_id = if token_id
+        token_id
+      else
+        authorise.id
+      end
+
+      "Bearer #{encode64(current_token_id)}"
+    end
+
     # Sign the request params using the secret
     #
     # @return [Hash]
@@ -240,6 +349,30 @@ module Ably
         # Set Faraday's HTTP adapter
         builder.adapter Faraday.default_adapter
       end
+    end
+
+    def token_callback_present?
+      !!auth_callback
+    end
+
+    def token_url_present?
+      !!options[:auth_url]
+    end
+
+    def token_creatable_externally?
+      token_callback_present? || token_url_present?
+    end
+
+    def token_renewable?
+      use_basic_auth? || token_creatable_externally?
+    end
+
+    def has_client_id?
+      !!client_id
+    end
+
+    def api_key_present?
+      key_id && key_secret
     end
 
     private
