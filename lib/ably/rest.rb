@@ -5,6 +5,9 @@ require "ably/rest/presence"
 
 module Ably
   module Rest
+    # Convenience method providing an alias to {Ably::Rest::Client} constructor.
+    #
+    # @return [Ably::Rest::Client]
     def self.new(*args)
       Ably::Rest::Client.new(*args)
     end
