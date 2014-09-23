@@ -7,7 +7,7 @@ module Ably
         def parse(body)
           JSON.parse(body, symbolize_names: true)
         rescue JSON::ParserError => e
-          raise InvalidResponseBody, "Expected JSON response. #{e.message}"
+          raise Ably::Exceptions::InvalidResponseBody, "Expected JSON response. #{e.message}"
         end
       end
     end

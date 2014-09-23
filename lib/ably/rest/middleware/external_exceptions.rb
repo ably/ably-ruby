@@ -13,9 +13,9 @@ module Ably
               message = "Error #{error_status_code}: #{(env[:body] || '')[0...200]}"
 
               if error_status_code >= 500
-                raise Ably::ServerError, message
+                raise Ably::Exceptions::ServerError, message
               else
-                raise Ably::InvalidRequest, message
+                raise Ably::Exceptions::InvalidRequest, message
               end
             end
           end

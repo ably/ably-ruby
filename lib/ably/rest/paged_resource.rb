@@ -94,7 +94,7 @@ module Ably
       end
 
       def pagination_url(id)
-        raise InvalidPageError, "Paging heading link #{id} does not exist" unless pagination_header(id)
+        raise Ably::Exceptions::InvalidPageError, "Paging heading link #{id} does not exist" unless pagination_header(id)
 
         if pagination_header(id).match(%r{^\./})
           "#{@base_url}#{pagination_header(id)[2..-1]}"

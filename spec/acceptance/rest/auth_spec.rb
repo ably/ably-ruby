@@ -156,7 +156,7 @@ describe "REST" do
           end
 
           it 'raises ServerError' do
-            expect { auth.request_token options }.to raise_error(Ably::ServerError)
+            expect { auth.request_token options }.to raise_error(Ably::Exceptions::ServerError)
           end
         end
 
@@ -167,7 +167,7 @@ describe "REST" do
           end
 
           it 'raises InvalidResponseBody' do
-            expect { auth.request_token options }.to raise_error(Ably::InvalidResponseBody)
+            expect { auth.request_token options }.to raise_error(Ably::Exceptions::InvalidResponseBody)
           end
         end
       end
@@ -294,11 +294,11 @@ describe "REST" do
       let(:client) { Ably::Rest::Client.new(auth_url: 'http://example.com') }
 
       it "should raise an exception if key secret is missing" do
-        expect { auth.create_token_request(key_id: 'id') }.to raise_error Ably::TokenRequestError
+        expect { auth.create_token_request(key_id: 'id') }.to raise_error Ably::Exceptions::TokenRequestError
       end
 
       it "should raise an exception if key id is missing" do
-        expect { auth.create_token_request(key_secret: 'secret') }.to raise_error Ably::TokenRequestError
+        expect { auth.create_token_request(key_secret: 'secret') }.to raise_error Ably::Exceptions::TokenRequestError
       end
     end
 
@@ -353,7 +353,7 @@ describe "REST" do
 
       it "disallows publishing on unspecified capability channels" do
         expect { token_auth_client.channel("bar").publish("event", "data") }.to raise_error do |error|
-          expect(error).to be_a(Ably::InvalidRequest)
+          expect(error).to be_a(Ably::Exceptions::InvalidRequest)
           expect(error.status).to eql(401)
           expect(error.code).to eql(40160)
         end
@@ -361,7 +361,7 @@ describe "REST" do
 
       it "fails if timestamp is invalid" do
         expect { auth.request_token(timestamp: Time.now.to_i - 180) }.to raise_error do |error|
-          expect(error).to be_a(Ably::InvalidRequest)
+          expect(error).to be_a(Ably::Exceptions::InvalidRequest)
           expect(error.status).to eql(401)
           expect(error.code).to eql(40101)
         end

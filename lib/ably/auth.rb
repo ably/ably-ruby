@@ -194,7 +194,7 @@ module Ably
       request_key_id     = token_options.delete(:key_id) || key_id
       request_key_secret = token_options.delete(:key_secret) || key_secret
 
-      raise TokenRequestError, "Key ID and Key Secret are required to generate a new token request" unless request_key_id && request_key_secret
+      raise Ably::Exceptions::TokenRequestError, "Key ID and Key Secret are required to generate a new token request" unless request_key_id && request_key_secret
 
       timestamp = if token_options[:query_time]
         client.time
@@ -277,7 +277,7 @@ module Ably
     attr_reader :auth_callback
 
     def basic_auth_header
-      raise InsecureRequestError, "Cannot use Basic Auth over non-TLS connections" unless client.use_tls?
+      raise Ably::Exceptions::InsecureRequestError, "Cannot use Basic Auth over non-TLS connections" unless client.use_tls?
       "Basic #{encode64("#{api_key}")}"
     end
 
