@@ -75,7 +75,7 @@ describe Ably::Rest do
         end
 
         it 'fails when authenticating with basic auth' do
-          expect { client.channel('a').publish('event', 'message') }.to raise_error(Ably::InsecureRequestError)
+          expect { client.channel('a').publish('event', 'message') }.to raise_error(Ably::Exceptions::InsecureRequestError)
         end
       end
 

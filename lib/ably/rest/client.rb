@@ -150,13 +150,13 @@ module Ably
         attempts = 0
         begin
           yield
-        rescue Ably::InvalidRequest => e
+        rescue Ably::Exceptions::InvalidRequest => e
           attempts += 1
           if attempts == 1 && e.code == 40140 && auth.token_renewable?
             auth.authorise force: true
             retry
           else
-            raise Ably::InvalidToken.new(e.message, status: e.status, code: e.code)
+            raise Ably::Exceptions::InvalidToken.new(e.message, status: e.status, code: e.code)
           end
         end
       end

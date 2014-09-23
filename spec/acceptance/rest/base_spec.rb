@@ -7,10 +7,10 @@ describe "REST" do
   end
 
   describe "invalid requests in middleware" do
-    it "should raise a InvalidRequest exception with a valid message" do
+    it "should raise an InvalidRequest exception with a valid message" do
       invalid_client = Ably::Rest::Client.new(api_key: 'appid.keyuid:keysecret')
       expect { invalid_client.channel('test').publish('foo', 'choo') }.to raise_error do |error|
-        expect(error).to be_a(Ably::InvalidRequest)
+        expect(error).to be_a(Ably::Exceptions::InvalidRequest)
         expect(error.message).to match(/invalid credentials/)
         expect(error.code).to eql(40100)
         expect(error.status).to eql(401)
@@ -25,7 +25,7 @@ describe "REST" do
       end
 
       it "should raise a ServerError exception" do
-        expect { client.time }.to raise_error(Ably::ServerError, /Internal error/)
+        expect { client.time }.to raise_error(Ably::Exceptions::ServerError, /Internal error/)
       end
     end
 
@@ -35,7 +35,7 @@ describe "REST" do
       end
 
       it "should raise a ServerError exception" do
-        expect { client.time }.to raise_error(Ably::ServerError, /Unknown/)
+        expect { client.time }.to raise_error(Ably::Exceptions::ServerError, /Unknown/)
       end
     end
   end
@@ -62,7 +62,7 @@ describe "REST" do
         if [1, 3].include?(@publish_attempts)
           { status: 201, :body => '[]' }
         else
-          raise Ably::InvalidRequest.new('Authentication failure', status: 401, code: 40140)
+          raise Ably::Exceptions::InvalidRequest.new('Authentication failure', status: 401, code: 40140)
         end
       end
     end
@@ -87,7 +87,7 @@ describe "REST" do
       it 'should raise the exception' do
         client.channel(channel).publish('evt', 'msg')
         expect(@publish_attempts).to eql(1)
-        expect { client.channel(channel).publish('evt', 'msg') }.to raise_error Ably::InvalidToken
+        expect { client.channel(channel).publish('evt', 'msg') }.to raise_error Ably::Exceptions::InvalidToken
         expect(@token_requests).to eql(0)
       end
     end
