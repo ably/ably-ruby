@@ -13,4 +13,5 @@ module Ably
   class InvalidResponseBody < StandardError; end
   class InsecureRequestError < StandardError; end
   class TokenRequestError < StandardError; end
+  class InvalidToken < InvalidRequest; end
 end

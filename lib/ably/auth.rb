@@ -160,7 +160,7 @@ module Ably
 
       response = client.post("/keys/#{token_request.fetch(:id)}/requestToken", token_request, send_auth_header: false)
 
-      Ably::Token.new(response.body[:access_token])
+      Ably::Token.new(response.body.fetch(:access_token))
     end
 
     # Creates and signs a token request that can then subsequently be used by any client to request a token
@@ -259,6 +259,18 @@ module Ably
       else
         basic_auth_header
       end
+    end
+
+    # True if prerequisites for creating a new token request are present
+    #
+    # One of the following criterion must be met:
+    # * Valid key id and secret
+    # * Authentication callback for new token requests
+    # * Authentication URL for new token requests
+    #
+    # @return [Boolean]
+    def token_renewable?
+      token_creatable_externally? || api_key_present?
     end
 
     private
@@ -361,10 +373,6 @@ module Ably
 
     def token_creatable_externally?
       token_callback_present? || token_url_present?
-    end
-
-    def token_renewable?
-      use_basic_auth? || token_creatable_externally?
     end
 
     def has_client_id?

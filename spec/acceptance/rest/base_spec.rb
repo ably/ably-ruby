@@ -40,6 +40,59 @@ describe "REST" do
     end
   end
 
+  describe 'authentication failure', webmock: true do
+    let(:token_1) { { id: SecureRandom.hex } }
+    let(:token_2) { { id: SecureRandom.hex } }
+    let(:channel) { 'channelname' }
+
+    before do
+      @token_requests = 0
+      @publish_attempts = 0
+
+      stub_request(:post, "#{client.endpoint}/keys/#{key_id}/requestToken").to_return do
+        @token_requests += 1
+        {
+          :body => { access_token: send("token_#{@token_requests}").merge(expires: Time.now.to_i + 3600) }.to_json,
+          :headers => { 'Content-Type' => 'application/json' }
+        }
+      end
+
+      stub_request(:post, "#{client.endpoint}/channels/#{channel}/publish").to_return do
+        @publish_attempts += 1
+        if [1, 3].include?(@publish_attempts)
+          { status: 201, :body => '[]' }
+        else
+          raise Ably::InvalidRequest.new('Authentication failure', status: 401, code: 40140)
+        end
+      end
+    end
+
+    context 'when auth#token_renewable?' do
+      before do
+        client.auth.authorise
+      end
+
+      it 'should automatically reissue a token' do
+        client.channel(channel).publish('evt', 'msg')
+        expect(@publish_attempts).to eql(1)
+
+        client.channel(channel).publish('evt', 'msg')
+        expect(@publish_attempts).to eql(3)
+        expect(@token_requests).to eql(2)
+      end
+    end
+
+    context 'when NOT auth#token_renewable?' do
+      let(:client) { Ably::Rest::Client.new(token_id: 'token ID cannot be used to create a new token', environment: environment) }
+      it 'should raise the exception' do
+        client.channel(channel).publish('evt', 'msg')
+        expect(@publish_attempts).to eql(1)
+        expect { client.channel(channel).publish('evt', 'msg') }.to raise_error Ably::InvalidToken
+        expect(@token_requests).to eql(0)
+      end
+    end
+  end
+
   describe Ably::Rest::Client do
     context '#initialize' do
       context 'with an auth block' do

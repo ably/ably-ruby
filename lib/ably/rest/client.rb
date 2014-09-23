@@ -137,9 +137,26 @@ module Ably
 
       private
       def request(method, path, params = {}, options = {})
-        connection.send(method, path, params) do |request|
-          unless options[:send_auth_header] == false
-            request.headers[:authorization] = auth.auth_header
+        reauthorise_on_authorisation_failure do
+          connection.send(method, path, params) do |request|
+            unless options[:send_auth_header] == false
+              request.headers[:authorization] = auth.auth_header
+            end
+          end
+        end
+      end
+
+      def reauthorise_on_authorisation_failure
+        attempts = 0
+        begin
+          yield
+        rescue Ably::InvalidRequest => e
+          attempts += 1
+          if attempts == 1 && e.code == 40140 && auth.token_renewable?
+            auth.authorise force: true
+            retry
+          else
+            raise Ably::InvalidToken.new(e.message, status: e.status, code: e.code)
           end
         end
       end
