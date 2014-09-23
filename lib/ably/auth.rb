@@ -37,6 +37,8 @@ module Ably
     # @param [Hash] auth_options          see {Ably::Rest::Client#initialize}
     # @yield [auth_options]               see {Ably::Rest::Client#initialize}
     def initialize(client, auth_options, &auth_block)
+      auth_options = auth_options.dup
+
       @client        = client
       @options       = auth_options
       @auth_callback = auth_block if block_given?
