@@ -61,6 +61,8 @@ module Ably
       #    client = Ably::Rest::Client.new(api_key: 'key.id:secret', client_id: 'john')
       #
       def initialize(options, &auth_block)
+        options = options.dup
+
         if options.kind_of?(String)
           options = { api_key: options }
         end
