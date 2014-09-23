@@ -1,5 +1,7 @@
 module Ably
   module Rest
+    # The Ably Realtime service organises the traffic within any application into named channels.
+    # Channels are the "unit" of message distribution; clients attach to channels to subscribe to messages, and every message broadcast by the service is associated with a unique channel.
     class Channel
       attr_reader :client, :name, :options
 
@@ -16,12 +18,13 @@ module Ably
 
       # Publish a message to the channel
       #
-      # @param message [Hash] The message to publish (must contain :name and :data keys)
+      # @param name [String] The event name of the message to publish
+      # @param data [String] The message payload
       # @return [Boolean] true if the message was published, otherwise false
-      def publish(event, message)
+      def publish(name, data)
         payload = {
-          name: event,
-          data: message
+          name: name,
+          data: data
         }
 
         response = client.post("#{base_path}/publish", payload)
@@ -31,12 +34,12 @@ module Ably
 
       # Return the message history of the channel
       #
-      # Options:
-      #   - start:      Time or millisecond since epoch
-      #   - end:        Time or millisecond since epoch
-      #   - direction:  :forwards or :backwards
-      #   - limit:      Maximum number of messages to retrieve up to 10,000
-      #   - by:         :message, :bundle or :hour. Defaults to :message
+      # @param [Hash] options the options for the message history request
+      # @option options [Integer]   :start      Time or millisecond since epoch
+      # @option options [Integer]   :end        Time or millisecond since epoch
+      # @option options [Symbol]    :direction  `:forwards` or `:backwards`
+      # @option options [Integer]   :limit      Maximum number of messages to retrieve up to 10,000
+      # @option options [Symbol]    :by         `:message`, `:bundle` or `:hour`. Defaults to `:message`
       #
       # @return [PagedResource] An Array of hashes representing the message history that supports paging (next, first)
       def history(options = {})
@@ -44,7 +47,7 @@ module Ably
         # TODO: Remove live param as all history should be live
         response = client.get(url, options.merge(live: true))
 
-        PagedResource.new(response, url, client)
+        PagedResource.new(response, url, client, coerce_into: 'Ably::Message')
       end
 
       def presence
