@@ -40,7 +40,7 @@ module Ably
     end
 
     def ==(other)
-      other.class == self.class &&
+      other.kind_of?(Token) &&
         attributes == other.attributes
     end
 
