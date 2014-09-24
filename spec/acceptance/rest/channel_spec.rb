@@ -38,8 +38,8 @@ describe "REST" do
       expect(actual_history.size).to eql(3)
 
       expected_history.each do |message|
-        expect(actual_history).to include(Ably::Rest::Message.new(message))
-        expect(actual_history.map(&:raw_message)).to include(message)
+        expect(actual_history).to include(Ably::Rest::Models::Message.new(message))
+        expect(actual_history.map(&:json)).to include(message)
       end
     end
 

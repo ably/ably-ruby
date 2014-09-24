@@ -25,7 +25,7 @@ describe "REST" do
 
     %w(client_id ttl timestamp capability nonce).each do |option|
       context "option :#{option}", webmock: true do
-        let(:random)         { SecureRandom.hex }
+        let(:random)         { SecureRandom.random_number(1_000_000_000).to_s }
         let(:options)        { { option.to_sym => random } }
 
         let(:token_response) { { access_token: {} }.to_json }
@@ -47,7 +47,7 @@ describe "REST" do
       let(:key_id)        { SecureRandom.hex }
       let(:key_secret)    { SecureRandom.hex }
       let(:nonce)         { SecureRandom.hex }
-      let(:token_options) { { key_id: key_id, key_secret: key_secret, nonce: nonce, timestamp: Time.now.to_i } }
+      let(:token_options) { { key_id: key_id, key_secret: key_secret, nonce: nonce, timestamp: Time.now } }
       let(:token_request) { auth.create_token_request(token_options) }
       let(:mac) do
         hmac_for(token_request, key_secret)
@@ -271,7 +271,7 @@ describe "REST" do
 
     %w(ttl capability nonce timestamp client_id).each do |attribute|
       context "with option :#{attribute}" do
-        let(:option_value) { SecureRandom.hex }
+        let(:option_value) { SecureRandom.random_number(1_000_000_000) }
         before do
           options[attribute.to_sym] = option_value
         end
@@ -312,6 +312,15 @@ describe "REST" do
       end
     end
 
+    context "with :timestamp option" do
+      let(:token_request_time) { Time.now + 5 }
+      let(:options) { { timestamp: token_request_time } }
+
+      it 'uses the provided timestamp' do
+        expect(subject[:timestamp]).to eql(token_request_time.to_i)
+      end
+    end
+
     context "signing" do
       let(:options) do
         {
@@ -319,7 +328,7 @@ describe "REST" do
           ttl: SecureRandom.hex,
           capability: SecureRandom.hex,
           client_id: SecureRandom.hex,
-          timestamp: SecureRandom.hex,
+          timestamp: SecureRandom.random_number(1_000_000_000),
           nonce: SecureRandom.hex
         }
       end
@@ -360,7 +369,7 @@ describe "REST" do
       end
 
       it "fails if timestamp is invalid" do
-        expect { auth.request_token(timestamp: Time.now.to_i - 180) }.to raise_error do |error|
+        expect { auth.request_token(timestamp: Time.now - 180) }.to raise_error do |error|
           expect(error).to be_a(Ably::Exceptions::InvalidRequest)
           expect(error.status).to eql(401)
           expect(error.code).to eql(40101)
