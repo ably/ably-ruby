@@ -6,7 +6,7 @@ require "ably/rest/middleware/parse_json"
 
 module Ably
   module Rest
-    # Wrapper for the Ably REST API
+    # Client for the Ably REST API
     #
     # @!attribute [r] auth
     #   @return {Ably::Auth} authentication object configured for this connection
@@ -30,26 +30,15 @@ module Ably
       # Creates a {Ably::Rest::Client Rest Client} and configures the {Ably::Auth} object for the connection.
       #
       # @param [Hash,String] options an options Hash used to configure the client and the authentication, or String with an API key
+      # @option options (see Ably::Auth#authorise)
       # @option options [Boolean] :tls          TLS is used by default, providing a value of false disbles TLS.  Please note Basic Auth is disallowed without TLS as secrets cannot be transmitted over unsecured connections.
       # @option options [String]  :api_key      API key comprising the key ID and key secret in a single string
-      # @option options [String]  :key_id       key ID for the designated application (defaults to client key_id)
-      # @option options [String]  :key_secret   key secret for the designated application used to sign token requests (defaults to client key_secret)
-      # @option options [String]  :client_id    client ID identifying this connection to other clients (defaults to client client_id if configured)
-      # @option options [String]  :auth_url     a URL to be used to GET or POST a set of token request params, to obtain a signed token request.
-      # @option options [Hash]    :auth_headers a set of application-specific headers to be added to any request made to the authUrl
-      # @option options [Hash]    :auth_params  a set of application-specific query params to be added to any request made to the authUrl
-      # @option options [Symbol]  :auth_method  HTTP method to use with auth_url, must be either `:get` or `:post` (defaults to :get)
-      # @option options [Integer] :ttl          validity time in seconds for the requested {Ably::Token}.  Limits may apply, see {http://docs.ably.io/other/authentication/}
-      # @option options [Hash]    :capability   canonicalised representation of the resource paths and associated operations
-      # @option options [Boolean] :query_time   when true will query the {https://ably.io Ably} system for the current time instead of using the local time
-      # @option options [Integer] :timestamp    the time of the of the request in seconds since the epoch
-      # @option options [String]  :nonce        an unquoted, unescaped random string of at least 16 characters
       # @option options [String]  :environment  Specify 'sandbox' when testing the client library against an alternate Ably environment
       # @option options [Boolean] :debug_http   Send HTTP debugging information from Faraday for all HTTP requests to STDOUT
       #
-      # @yield [options] (optional) if an auth block is passed to this method, then this block will be called to create a new token request object
-      # @yieldparam [Hash] options options passed to request_token will be in turn sent to the block in this argument
-      # @yieldreturn [Hash] valid token request object, see {#create_token_request}
+      # @yield (see Ably::Auth#authorise)
+      # @yieldparam (see Ably::Auth#authorise)
+      # @yieldreturn (see Ably::Auth#authorise)
       #
       # @return [Ably::Rest::Client]
       #
@@ -77,8 +66,9 @@ module Ably
 
       # Return a REST {Ably::Rest::Channel} for the given name
       #
-      # @param [String] name see {Ably::Rest::Channels#get}
-      # @param [Hash] channel_options see {Ably::Rest::Channels#get}
+      # @param (see Ably::Rest::Channels#get)
+      #
+      # @return (see Ably::Rest::Channels#get)
       def channel(name, channel_options = {})
         channels.get(name, channel_options)
       end
