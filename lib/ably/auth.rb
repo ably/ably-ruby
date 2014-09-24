@@ -84,7 +84,7 @@ module Ably
     # @option options [Integer] :ttl          validity time in seconds for the requested {Ably::Token}.  Limits may apply, see {http://docs.ably.io/other/authentication/}
     # @option options [Hash]    :capability   canonicalised representation of the resource paths and associated operations
     # @option options [Boolean] :query_time   when true will query the {https://ably.io Ably} system for the current time instead of using the local time
-    # @option options [Integer] :timestamp    the time of the of the request in seconds since the epoch
+    # @option options [Time]    :timestamp    the time of the of the request
     # @option options [String]  :nonce        an unquoted, unescaped random string of at least 16 characters
     # @option options [Boolean] :force        obtains a new token even if the current token is valid
     #
@@ -126,7 +126,7 @@ module Ably
     # @option options [Integer] :ttl          validity time in seconds for the requested {Ably::Token}.  Limits may apply, see {http://docs.ably.io/other/authentication/}
     # @option options [Hash]    :capability   canonicalised representation of the resource paths and associated operations
     # @option options [Boolean] :query_time   when true will query the {https://ably.io Ably} system for the current time instead of using the local time
-    # @option options [Integer] :timestamp    the time of the of the request in seconds since the epoch
+    # @option options [Time]    :timestamp    the time of the of the request
     # @option options [String]  :nonce        an unquoted, unescaped random string of at least 16 characters
     #
     # @yield [options] (optional) if an auth block is passed to this method, then this block will be called to create a new token request object
@@ -174,7 +174,7 @@ module Ably
     # @option options [Integer] :ttl        validity time in seconds for the requested {Ably::Token}.  Limits may apply, see {http://docs.ably.io/other/authentication/}
     # @option options [Hash]    :capability canonicalised representation of the resource paths and associated operations
     # @option options [Boolean] :query_time when true will query the {https://ably.io Ably} system for the current time instead of using the local time
-    # @option options [Integer] :timestamp  the time of the of the request in seconds since the epoch
+    # @option options [Time]    :timestamp  the time of the of the request
     # @option options [String]  :nonce      an unquoted, unescaped random string of at least 16 characters
     # @return [Hash]
     #
@@ -201,7 +201,7 @@ module Ably
       timestamp = if token_options[:query_time]
         client.time
       else
-        Time.now
+        token_options.delete(:timestamp) || Time.now
       end.to_i
 
       token_request = {
@@ -263,6 +263,17 @@ module Ably
       end
     end
 
+    # Auth params used in URI endpoint for Realtime connections
+    #
+    # @return [Hash] Auth params for a new Realtime connection
+    def auth_params
+      if using_token_auth?
+        token_auth_params
+      else
+        basic_auth_params
+      end
+    end
+
     # True if prerequisites for creating a new token request are present
     #
     # One of the following criterion must be met:
@@ -278,19 +289,40 @@ module Ably
     private
     attr_reader :auth_callback
 
+    # Basic Auth HTTP Authorization header value
     def basic_auth_header
       raise Ably::Exceptions::InsecureRequestError, "Cannot use Basic Auth over non-TLS connections" unless client.use_tls?
       "Basic #{encode64("#{api_key}")}"
     end
 
-    def token_auth_header
+    def token_auth_id
       current_token_id = if token_id
         token_id
       else
         authorise.id
       end
+    end
 
-      "Bearer #{encode64(current_token_id)}"
+    # Token Auth HTTP Authorization header value
+    def token_auth_header
+      "Bearer #{encode64(token_auth_id)}"
+    end
+
+    # Basic Auth params to authenticate the Realtime connection
+    def basic_auth_params
+      raise Ably::Exceptions::InsecureRequestError, "Cannot use Basic Auth over non-TLS connections" unless client.use_tls?
+      # TODO: Change to key_secret when API is updated
+      {
+        key_id: key_id,
+        key_value: key_secret
+      }
+    end
+
+    # Token Auth params to authenticate the Realtime connection
+    def token_auth_params
+      {
+        access_token: token_auth_id
+      }
     end
 
     # Sign the request params using the secret

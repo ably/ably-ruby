@@ -1,8 +1,8 @@
 require "ably/rest/channel"
 require "ably/rest/channels"
 require "ably/rest/client"
-require "ably/rest/message"
-require "ably/rest/paged_resource"
+require "ably/rest/models/message"
+require "ably/rest/models/paged_resource"
 require "ably/rest/presence"
 
 module Ably
