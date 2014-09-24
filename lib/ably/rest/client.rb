@@ -25,7 +25,7 @@ module Ably
       DOMAIN = "rest.ably.io"
 
       attr_reader :tls, :environment, :auth, :channels
-      def_delegator :auth, :client_id, :auth_options
+      def_delegators :auth, :client_id, :auth_options
 
       # Creates a {Ably::Rest::Client Rest Client} and configures the {Ably::Auth} object for the connection.
       #

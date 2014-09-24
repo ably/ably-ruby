@@ -94,6 +94,20 @@ describe Ably::Rest do
           expect(client.endpoint.to_s).to eql('https://sandbox-rest.ably.io')
         end
       end
+
+      context 'delegators' do
+        subject { Ably::Rest::Client.new(options) }
+
+        it 'should delegate :client_id to .auth' do
+          expect(subject.auth).to receive(:client_id).and_return('john')
+          expect(subject.client_id).to eql('john')
+        end
+
+        it 'should delegate :auth_options to .auth' do
+          expect(subject.auth).to receive(:auth_options).and_return({ option: 1 })
+          expect(subject.auth_options).to eql({ option: 1 })
+        end
+      end
     end
   end
 end
