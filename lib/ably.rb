@@ -1,4 +1,5 @@
-require "ably/support"
+require "ably/modules/conversions"
+require "ably/modules/http_helpers"
 
 require "ably/auth"
 require "ably/exceptions"
