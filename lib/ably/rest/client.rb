@@ -19,7 +19,7 @@ module Ably
     # @!attribute [r] environment
     #   @return [String] May contain 'sandbox' when testing the client library against an alternate Ably environment
     class Client
-      include Ably::Support
+      include Ably::Modules::HttpHelpers
       extend Forwardable
 
       DOMAIN = "rest.ably.io"
@@ -125,6 +125,13 @@ module Ably
           scheme: use_tls? ? "https" : "http",
           host:   [@environment, DOMAIN].compact.join('-')
         )
+      end
+
+      # When true, will send HTTP debugging information from Faraday for all HTTP requests to STDOUT
+      #
+      # @return [Boolean]
+      def debug_http?
+        !!@debug_http
       end
 
       private

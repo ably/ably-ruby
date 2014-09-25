@@ -26,7 +26,7 @@ module Ably
   #   @return [Hash] {Ably::Auth} options configured for this client
 
   class Auth
-    include Ably::Support
+    include Ably::Modules::HttpHelpers
 
     attr_reader :options, :current_token
     alias_method :auth_options, :options
