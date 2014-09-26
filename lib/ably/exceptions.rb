@@ -34,5 +34,8 @@ module Ably
 
     # The token is invalid
     class InvalidToken < InvalidRequest; end
+
+    # Encryption or decryption related failures
+    class EncryptionError < StandardError; end
   end
 end
