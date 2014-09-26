@@ -1,6 +1,8 @@
 module Ably::Rest::Models
   # A Message object encapsulates an individual message published in Ably retrieved via Rest
   class Message
+    include Ably::Modules::Conversions
+
     def initialize(message)
       @message = message.dup.freeze
     end
@@ -30,7 +32,7 @@ module Ably::Rest::Models
     #
     # @return [Time]
     def sender_timestamp
-      Time.at(json[:timestamp] / 1000.0) if json[:timestamp]
+      as_time_from_epoch(json[:timestamp]) if json[:timestamp]
     end
 
     # Unique message ID

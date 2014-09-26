@@ -1,6 +1,7 @@
 module Ably
   module Realtime
     class Channel
+      include Ably::Modules::Conversions
       include Callbacks
 
       STATES = {
@@ -52,7 +53,7 @@ module Ably
       end
 
       def publish(event, data)
-        queue << { name: event, data: data, timestamp: Time.now.to_i * 1000 }
+        queue << { name: event, data: data, timestamp: as_since_epoch(Time.now) }
 
         if attached?
           process_queue

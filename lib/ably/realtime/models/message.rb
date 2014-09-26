@@ -42,7 +42,7 @@ module Ably::Realtime::Models
     end
 
     def sender_timestamp
-      Time.at(json[:timestamp] / 1000.0) if json[:timestamp]
+      as_time_from_epoch(json[:timestamp]) if json[:timestamp]
     end
 
     def ably_timestamp
@@ -56,8 +56,8 @@ module Ably::Realtime::Models
     def to_json_object
       raise RuntimeError, ":name is missing, cannot generate valid JSON for Message" unless name
 
-      json_object = json.dup.tap do |json_object|
-        json_object[:timestamp] = Time.now.to_i * 1000 unless sender_timestamp
+      json.dup.tap do |json_object|
+        json_object[:timestamp] = as_since_epoch(Time.now) unless sender_timestamp
       end
 
       javify(json_object)

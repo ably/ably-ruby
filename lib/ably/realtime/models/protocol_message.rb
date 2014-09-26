@@ -99,7 +99,7 @@ module Ably::Realtime::Models
     end
 
     def timestamp
-      Time.at(json[:timestamp] / 1000.0) if json[:timestamp]
+      as_time_from_epoch(json[:timestamp]) if json[:timestamp]
     end
 
     def message_serial

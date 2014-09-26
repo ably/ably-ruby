@@ -1,6 +1,8 @@
 module Ably
   module Rest
     class Presence
+      include Ably::Modules::Conversions
+
       attr_reader :client, :channel
 
       # Initialize a new Presence object
@@ -22,17 +24,20 @@ module Ably
 
       # Return the presence messages history for the channel
       #
-      # Options:
-      #   - start:      Time or millisecond since epoch
-      #   - end:        Time or millisecond since epoch
-      #   - direction:  :forwards or :backwards (default is :backwards)
-      #   - limit:      Maximum number of messages to retrieve up to 10,000
+      # @param [Hash] options the options for the message history request
+      # @option options [Integer,Time] :start      Time or millisecond since epoch
+      # @option options [Integer,Time] :end        Time or millisecond since epoch
+      # @option options [Symbol]       :direction  `:forwards` or `:backwards`
+      # @option options [Integer]      :limit      Maximum number of presence messages to retrieve up to 10,000
       #
       # @return [Models::PagedResource] An Array of presence-message Hash objects that supports paging (next, first)
       def history(options = {})
         url = "#{base_path}/history"
-        response = client.get(url, options)
-        Models::PagedResource.new(response, url, client)
+
+        merge_options = { live: true }  # TODO: Remove live param as all history should be live
+        [:start, :end].each { |option| merge_options[option] = as_since_epoch(options[option]) if options.has_key?(option) }
+
+        response = client.get(url, options.merge(merge_options))
       end
 
       private
