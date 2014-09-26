@@ -53,17 +53,17 @@ module Ably
       private
       attr_reader :client, :driver, :message_serial
 
-      def add_message_serial_if_ack_required_to(data)
-        if Models::ProtocolMessage.ack_required?(data[:action])
-          add_message_serial_to(data) { yield }
+      def add_message_serial_if_ack_required_to(protocol_message)
+        if Models::ProtocolMessage.ack_required?(protocol_message[:action])
+          add_message_serial_to(protocol_message) { yield }
         else
           yield
         end
       end
 
-      def add_message_serial_to(data)
+      def add_message_serial_to(protocol_message)
         @message_serial += 1
-        data.merge!(msg_serial: @message_serial)
+        protocol_message[:msgSerial] = @message_serial
         yield
       rescue StandardError => e
         @message_serial -= 1

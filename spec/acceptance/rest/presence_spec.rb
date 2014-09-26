@@ -2,8 +2,16 @@ require "spec_helper"
 require "securerandom"
 
 describe "REST" do
+  include Ably::Modules::Conversions
+
   let(:client) do
     Ably::Rest::Client.new(api_key: api_key, environment: environment)
+  end
+
+  let(:fixtures) do
+    TestApp::APP_SPEC['channels'].first['presence'].map do |fixture|
+      IdiomaticRubyWrapper(fixture, stop_at: [:client_data])
+    end
   end
 
   describe "fetching presence" do
@@ -13,9 +21,26 @@ describe "REST" do
     it "should return current members on the channel" do
       expect(presence.size).to eql(4)
 
-      TestApp::APP_SPEC['channels'].first['presence'].each do |presence_hash|
-        presence_match = presence.find { |client| client['clientId'] == presence_hash['clientId'] }
-        expect(presence_match['clientData']).to eql(presence_hash['clientData'])
+      fixtures.each do |fixture|
+        presence_message = presence.find { |client| client[:client_id] == fixture[:client_id] }
+        expect(presence_message[:client_data]).to eq(fixture[:client_data])
+      end
+    end
+  end
+
+  describe "presence history" do
+    let(:channel) { client.channel("persisted:presence_fixtures") }
+    let(:history) { channel.presence.history }
+
+    it "should return recent presence activity" do
+      expect(history.size).to eql(4)
+
+      fixtures.each do |fixture|
+        presence_message = history.find { |client| client[:client_id] == fixture['clientId'] }
+        expect(presence_message[:client_data]).to eq(fixture[:client_data])
+      end
+    end
+  end
 
   describe "options" do
     let(:channel_name) { "persisted:#{SecureRandom.hex(4)}" }
