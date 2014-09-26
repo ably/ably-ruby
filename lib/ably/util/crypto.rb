@@ -19,25 +19,26 @@ module Ably::Util
 
     def encrypt(payload)
       cipher = openssl_cipher
-
       cipher.encrypt
       cipher.key = secret
       iv = cipher.random_iv
       cipher.iv = iv
 
-      iv + cipher.update(payload) + cipher.final
+      iv << cipher.update(pack(payload)) << cipher.final
     end
 
     def decrypt(encrypted_payload_with_iv)
       raise Ably::Exceptions::EncryptionError, "iv is missing" unless encrypted_payload_with_iv.length >= block_length*2
 
-      decipher = openssl_cipher
+      iv = encrypted_payload_with_iv.slice(0..15)
+      encrypted_payload = encrypted_payload_with_iv.slice(16..-1)
 
+      decipher = openssl_cipher
       decipher.decrypt
       decipher.key = secret
-      decipher.iv = encrypted_payload_with_iv.slice(0..15)
+      decipher.iv = iv
 
-      decipher.update(encrypted_payload_with_iv.slice(16..-1)) + decipher.final
+      unpack(decipher.update(encrypted_payload) << decipher.final)
     end
 
     def random_key
@@ -49,6 +50,14 @@ module Ably::Util
     end
 
     private
+    def pack(object)
+      object.to_msgpack
+    end
+
+    def unpack(msgpack_binary)
+      MessagePack.unpack(msgpack_binary)
+    end
+
     def secret
       options[:secret]
     end
