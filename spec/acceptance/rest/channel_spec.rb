@@ -45,25 +45,25 @@ describe "REST" do
 
     it "should return paged history" do
       page_1 = channel.history(limit: 1)
-      page_2 = page_1.next
-      page_3 = page_2.next
+      page_2 = page_1.next_page
+      page_3 = page_2.next_page
 
       all_items = [page_1[0], page_2[0], page_3[0]]
       expect(all_items.uniq).to eql(all_items)
 
       expect(page_1.size).to eql(1)
-      expect(page_1).to_not be_last
-      expect(page_1).to be_first
+      expect(page_1).to_not be_last_page
+      expect(page_1).to be_first_page
 
       # Page 2
       expect(page_2.size).to eql(1)
-      expect(page_2).to_not be_last
-      expect(page_2).to_not be_first
+      expect(page_2).to_not be_last_page
+      expect(page_2).to_not be_first_page
 
       # Page 3
       expect(page_3.size).to eql(1)
-      expect(page_3).to be_last
-      expect(page_3).to_not be_first
+      expect(page_3).to be_last_page
+      expect(page_3).to_not be_first_page
     end
   end
 end

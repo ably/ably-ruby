@@ -10,7 +10,7 @@ module Ably::Rest::Models
     # @param [String] base_url Base URL for request that generated the http_response so that subsequent paged requests can be made
     # @param [Client] client {Ably::Client} used to make the request to Ably
     # @param [Hash] options Options for this paged resource
-    # @option options [Symbol] :coerce_into symbol representing class that should be used to represent each item in the PagedResource
+    # @option options [Symbol,String] :coerce_into symbol or string representing class that should be used to create each item in the PagedResource
     #
     # @return [PagedResource]
     def initialize(http_response, base_url, client, coerce_into: nil)
@@ -31,21 +31,22 @@ module Ably::Rest::Models
     # Retrieve the first page of results
     #
     # @return [PagedResource]
-    def first
+    def first_page
       PagedResource.new(client.get(pagination_url('first')), base_url, client, coerce_into: coerce_into)
     end
 
     # Retrieve the next page of results
     #
     # @return [PagedResource]
-    def next
+    def next_page
+      raise Ably::Exceptions::InvalidPageError, "There are no more pages" if supports_pagination? && last_page?
       PagedResource.new(client.get(pagination_url('next')), base_url, client, coerce_into: coerce_into)
     end
 
     # True if this is the last page in the paged resource set
     #
     # @return [Boolean]
-    def last?
+    def last_page?
       !supports_pagination? ||
         pagination_header('next').nil?
     end
@@ -53,7 +54,7 @@ module Ably::Rest::Models
     # True if this is the first page in the paged resource set
     #
     # @return [Boolean]
-    def first?
+    def first_page?
       !supports_pagination? ||
         pagination_header('first') == pagination_header('current')
     end
@@ -93,10 +94,14 @@ module Ably::Rest::Models
 
     def pagination_headers
       link_regex = %r{<(?<url>[^>]+)>; rel="(?<rel>[^"]+)"}
-      @pagination_headers ||= http_response.headers['link'].scan(link_regex).inject({}) do |hash, val_array|
-        url, rel = val_array
-        hash[rel] = url
-        hash
+      @pagination_headers ||= begin
+        # All `Link:` headers are concatenated by Faraday into a comma separated list
+        # Finding matching `<url>; rel="rel"` pairs
+        link_headers = http_response.headers['link'] || ''
+        link_headers.scan(link_regex).each_with_object({}) do |val_array, hash|
+          url, rel = val_array
+          hash[rel] = url
+        end
       end
     end
 
@@ -105,7 +110,7 @@ module Ably::Rest::Models
     end
 
     def pagination_url(id)
-      raise Ably::Exceptions::InvalidPageError, "Paging heading link #{id} does not exist" unless pagination_header(id)
+      raise Ably::Exceptions::InvalidPageError, "Paging header link #{id} does not exist" unless pagination_header(id)
 
       if pagination_header(id).match(%r{^\./})
         "#{base_url}#{pagination_header(id)[2..-1]}"
