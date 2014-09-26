@@ -1,5 +1,7 @@
 module Ably
   class Token
+    include Ably::Modules::Conversions
+
     DEFAULTS = {
       capability: { "*" => ["*"] },
       ttl:        60 * 60 # 1 hour
@@ -20,11 +22,11 @@ module Ably
     end
 
     def issued_at
-      Time.at(attributes.fetch(:issued_at))
+      as_time_from_epoch(attributes.fetch(:issued_at), granularity: :s)
     end
 
     def expires_at
-      Time.at(attributes.fetch(:expires))
+      as_time_from_epoch(attributes.fetch(:expires), granularity: :s)
     end
 
     def capability

@@ -1,6 +1,7 @@
 module Ably
   module Realtime
     class Connection < EventMachine::Connection
+      include Ably::Modules::Conversions
       include Callbacks
 
       def initialize(client)
@@ -41,7 +42,7 @@ module Ably
       # WebSocket::Driver interface
       def url
         URI(client.endpoint).tap do |endpoint|
-          endpoint.query = URI.encode_www_form(client.auth.auth_params.merge(timestamp: Time.now.to_i, binary: false))
+          endpoint.query = URI.encode_www_form(client.auth.auth_params.merge(timestamp: as_since_epoch(Time.now), binary: false))
         end.to_s
       end
 

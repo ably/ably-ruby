@@ -2,6 +2,8 @@ require 'spec_helper'
 require 'support/model_helper'
 
 describe Ably::Realtime::Models::Message do
+  include Ably::Modules::Conversions
+
   subject { Ably::Realtime::Models::Message }
   let(:protocol_message) { Ably::Realtime::Models::ProtocolMessage.new(action: 1) }
 
@@ -10,7 +12,7 @@ describe Ably::Realtime::Models::Message do
   end
 
   context '#sender_timestamp' do
-    let(:model) { subject.new({ timestamp: Time.now.to_i * 1000 }, protocol_message) }
+    let(:model) { subject.new({ timestamp: as_since_epoch(Time.now) }, protocol_message) }
     it 'retrieves attribute :sender_timestamp' do
       expect(model.sender_timestamp).to be_a(Time)
       expect(model.sender_timestamp.to_i).to be_within(1).of(Time.now.to_i)
@@ -36,7 +38,7 @@ describe Ably::Realtime::Models::Message do
       end
 
       it 'autofills a missing timestamp for all messages' do
-        expect(json_object["timestamp"].to_i / 1000).to be_within(1).of(Time.now.to_i)
+        expect(json_object["timestamp"].to_i).to be_within(1).of(as_since_epoch(Time.now))
       end
     end
 

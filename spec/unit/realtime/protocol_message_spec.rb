@@ -2,6 +2,7 @@ require 'spec_helper'
 require 'support/model_helper'
 
 describe Ably::Realtime::Models::ProtocolMessage do
+  include Ably::Modules::Conversions
   subject { Ably::Realtime::Models::ProtocolMessage }
 
   it_behaves_like 'a realtime model',
@@ -30,7 +31,7 @@ describe Ably::Realtime::Models::ProtocolMessage do
     end
 
     context '#timestamp' do
-      let(:protocol_message) { subject.new(timestamp: Time.now.to_i * 1000) }
+      let(:protocol_message) { subject.new(timestamp: as_since_epoch(Time.now)) }
       it 'retrieves attribute :timestamp' do
         expect(protocol_message.timestamp).to be_a(Time)
         expect(protocol_message.timestamp.to_i).to be_within(1).of(Time.now.to_i)

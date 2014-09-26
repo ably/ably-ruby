@@ -19,6 +19,7 @@ module Ably
     # @!attribute [r] environment
     #   @return [String] May contain 'sandbox' when testing the client library against an alternate Ably environment
     class Client
+      include Ably::Modules::Conversions
       include Ably::Modules::HttpHelpers
       extend Forwardable
 
@@ -93,7 +94,7 @@ module Ably
       def time
         response = get('/time', {}, send_auth_header: false)
 
-        Time.at(response.body.first / 1000.0)
+        as_time_from_epoch(response.body.first)
       end
 
       # True if client is configured to use TLS for all Ably communication

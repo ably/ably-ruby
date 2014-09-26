@@ -2,6 +2,8 @@ require "spec_helper"
 require "securerandom"
 
 describe "REST" do
+  include Ably::Modules::Conversions
+
   let(:client) do
     Ably::Rest::Client.new(api_key: api_key, environment: environment)
   end
@@ -64,6 +66,48 @@ describe "REST" do
       expect(page_3.size).to eql(1)
       expect(page_3).to be_last_page
       expect(page_3).to_not be_first_page
+    end
+  end
+
+  describe "options" do
+    let(:channel_name) { "persisted:#{SecureRandom.hex(4)}" }
+    let(:channel) { client.channel(channel_name) }
+    let(:endpoint) do
+      client.endpoint.tap do |client_end_point|
+        client_end_point.user = key_id
+        client_end_point.password = key_secret
+      end
+    end
+
+    [:start, :end].each do |option|
+      describe ":{option}", webmock: true do
+        let!(:history_stub) {
+          stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/messages?live=true&#{option}=#{milliseconds}").to_return(:body => '{}')
+        }
+
+        before do
+          channel.history(options)
+        end
+
+        context 'with milliseconds since epoch' do
+          let(:milliseconds) { as_since_epoch(Time.now) }
+          let(:options) { { option => milliseconds } }
+
+          specify 'are left unchanged' do
+            expect(history_stub).to have_been_requested
+          end
+        end
+
+        context 'with Time' do
+          let(:time) { Time.now }
+          let(:milliseconds) { as_since_epoch(time) }
+          let(:options) { { option => time } }
+
+          specify 'are left unchanged' do
+            expect(history_stub).to have_been_requested
+          end
+        end
+      end
     end
   end
 end

@@ -1,6 +1,7 @@
 require "spec_helper"
 
 describe Ably::Rest::Models::Message do
+  include Ably::Modules::Conversions
   context 'attributes' do
     let(:unique_value) { 'unique_value' }
 
@@ -15,7 +16,7 @@ describe Ably::Rest::Models::Message do
     end
 
     context '#sender_timestamp' do
-      subject { Ably::Rest::Models::Message.new(timestamp: Time.now.to_i * 1000) }
+      subject { Ably::Rest::Models::Message.new(timestamp: as_since_epoch(Time.now)) }
       it 'retrieves attribute :timestamp' do
         expect(subject.sender_timestamp).to be_a(Time)
         expect(subject.sender_timestamp.to_i).to be_within(1).of(Time.now.to_i)
@@ -23,7 +24,7 @@ describe Ably::Rest::Models::Message do
     end
 
     context '#json' do
-      let(:attributes) { { timestamp: Time.now.to_i * 1000 } }
+      let(:attributes) { { timestamp: as_since_epoch(Time.now) } }
       subject { Ably::Rest::Models::Message.new(attributes) }
 
       it 'provides access to #json' do
