@@ -4,7 +4,7 @@ module Ably::Rest::Models
     include Ably::Modules::Conversions
 
     def initialize(message)
-      @message = message.dup.freeze
+      @message = IdiomaticRubyWrapper(message.clone.freeze)
     end
 
     # Event name

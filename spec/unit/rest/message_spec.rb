@@ -66,7 +66,7 @@ describe Ably::Rest::Models::Message do
       expect { subject.json[:client_id] = 'Joe' }.to raise_error RuntimeError, /can't modify frozen Hash/
     end
 
-    it 'dups options' do
+    it 'clones options' do
       expect(subject.json[:client_id]).to eql('John')
       options[:client_id] = 'Joe'
       expect(subject.json[:client_id]).to eql('John')

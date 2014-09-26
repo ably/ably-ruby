@@ -425,9 +425,9 @@ describe "REST" do
           expect(token).to be_a(Ably::Token)
           capability_with_str_key = Ably::Token::DEFAULTS[:capability]
           capability = Hash[capability_with_str_key.keys.map(&:to_sym).zip(capability_with_str_key.values)]
-          expect(token.capability).to eql(capability)
+          expect(token.capability).to eq(capability)
           expect(token.expires_at.to_i).to be_within(2).of(Time.now.to_i + Ably::Token::DEFAULTS[:ttl])
-          expect(token.client_id).to eql(client_id)
+          expect(token.client_id).to eq(client_id)
         end
       end
     end

@@ -24,7 +24,7 @@ module Ably::Realtime::Models
     def initialize(json_object, protocol_message)
       @protocol_message = protocol_message
       @raw_json_object  = json_object
-      @json_object      = rubify(@raw_json_object, ignore: [:data]).freeze
+      @json_object      = IdiomaticRubyWrapper(@raw_json_object.clone.freeze, stop_at: [:data])
     end
 
     %w( name client_id ).each do |attribute|
@@ -59,11 +59,9 @@ module Ably::Realtime::Models
       json.dup.tap do |json_object|
         json_object[:timestamp] = as_since_epoch(Time.now) unless sender_timestamp
       end
-
-      javify(json_object)
     end
 
-    def to_json
+    def to_json(*args)
       to_json_object.to_json
     end
 

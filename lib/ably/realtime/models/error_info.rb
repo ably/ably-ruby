@@ -17,7 +17,7 @@ module Ably::Realtime::Models
 
     def initialize(json_object)
       @raw_json_object = json_object
-      @json_object     = rubify(@raw_json_object).freeze
+      @json_object     = IdiomaticRubyWrapper(@raw_json_object.clone.freeze)
     end
 
     %w( message code status ).each do |attribute|
