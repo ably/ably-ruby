@@ -7,20 +7,19 @@ class TestApp
     ],
     'namespaces' => [
       { 'id' => 'persisted', 'persisted' => true }
+    ],
+    'channels' => [
+      {
+        'name' => 'persisted:presence_fixtures',
+        'presence' => [
+          { 'clientId' => 'client_bool',    'clientData' => true },
+          { 'clientId' => 'client_int',     'clientData' => 24 },
+          { 'clientId' => 'client_string',  'clientData' => 'This is a string clientData payload' },
+          { 'clientId' => 'client_json',    'clientData' => { "test" => 'This is a JSONObject clientData payload'} }
+        ]
+      }
     ]
-    # ],
-    # 'channels' => [
-    #   {
-    #     'name' => 'persisted:presence_fixtures',
-    #     'presence' => [
-    #       { 'clientId' => 'client_bool',    'clientData' => true },
-    #       { 'clientId' => 'client_int',     'clientData' => 24 },
-    #       { 'clientId' => 'client_string',  'clientData' => 'This is a string clientData payload' },
-    #       { 'clientId' => 'client_json',    'clientData' => { "test" => 'This is a JSONObject clientData payload'} }
-    #     ]
-    #   }
-    # ]
-  }.to_json
+  }
 
   include Singleton
 
@@ -32,7 +31,7 @@ class TestApp
       "Content-Type" => "application/json"
     }
 
-    response = Faraday.post(url, APP_SPEC, headers)
+    response = Faraday.post(url, APP_SPEC.to_json, headers)
 
     @attributes = JSON.parse(response.body)
   end

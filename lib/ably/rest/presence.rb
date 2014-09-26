@@ -16,10 +16,11 @@ module Ably
 
       # Obtain the set of members currently present for a channel
       #
-      # @return [Models::PagedResource] An Array of presence-message Hash objects that supports paging (next, first)
+      # @return [Models::PagedResource<Models::PresenceMessage>] An Array of presence-message Hash objects that supports paging (next, first)
+      #
       def get(options = {})
         response = client.get(base_path, options)
-        Models::PagedResource.new(response, base_path, client)
+        Models::PagedResource.new(response, base_path, client, coerce_into: 'Ably::Rest::Models::PresenceMessage')
       end
 
       # Return the presence messages history for the channel
@@ -30,7 +31,8 @@ module Ably
       # @option options [Symbol]       :direction  `:forwards` or `:backwards`
       # @option options [Integer]      :limit      Maximum number of presence messages to retrieve up to 10,000
       #
-      # @return [Models::PagedResource] An Array of presence-message Hash objects that supports paging (next, first)
+      # @return [Models::PagedResource<Models::PresenceMessage>] An Array of presence-message Hash objects that supports paging (next, first)
+      #
       def history(options = {})
         url = "#{base_path}/history"
 
@@ -38,6 +40,8 @@ module Ably
         [:start, :end].each { |option| merge_options[option] = as_since_epoch(options[option]) if options.has_key?(option) }
 
         response = client.get(url, options.merge(merge_options))
+
+        Models::PagedResource.new(response, url, client, coerce_into: 'Ably::Rest::Models::PresenceMessage')
       end
 
       private
