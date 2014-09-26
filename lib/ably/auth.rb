@@ -26,6 +26,7 @@ module Ably
   #   @return [Hash] {Ably::Auth} options configured for this client
 
   class Auth
+    include Ably::Modules::Conversions
     include Ably::Modules::HttpHelpers
 
     attr_reader :options, :current_token
@@ -37,7 +38,7 @@ module Ably
     # @param [Hash] auth_options          see {Ably::Rest::Client#initialize}
     # @yield [auth_options]               see {Ably::Rest::Client#initialize}
     def initialize(client, auth_options, &auth_block)
-      auth_options = auth_options.dup
+      auth_options = auth_options.clone
 
       @client        = client
       @options       = auth_options
@@ -160,9 +161,12 @@ module Ably
         create_token_request(token_options)
       end
 
-      response = client.post("/keys/#{token_request.fetch(:id)}/requestToken", token_request, send_auth_header: false)
+      token_request = IdiomaticRubyWrapper(token_request)
 
-      Ably::Token.new(response.body.fetch(:access_token))
+      response = client.post("/keys/#{token_request.fetch(:id)}/requestToken", token_request, send_auth_header: false)
+      body = IdiomaticRubyWrapper(response.body)
+
+      Ably::Token.new(body.fetch(:access_token))
     end
 
     # Creates and signs a token request that can then subsequently be used by any client to request a token
@@ -192,7 +196,7 @@ module Ably
     def create_token_request(options = {})
       token_attributes   = %w(id client_id ttl timestamp capability nonce)
 
-      token_options      = options.dup
+      token_options      = options.clone
       request_key_id     = token_options.delete(:key_id) || key_id
       request_key_secret = token_options.delete(:key_secret) || key_secret
 

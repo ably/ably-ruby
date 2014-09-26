@@ -79,7 +79,7 @@ module Ably::Realtime::Models
 
     def initialize(json_object)
       @raw_json_object = json_object
-      @json_object     = rubify(@raw_json_object).freeze
+      @json_object     = IdiomaticRubyWrapper(@raw_json_object.clone.freeze)
     end
 
     %w( action count
@@ -134,15 +134,13 @@ module Ably::Realtime::Models
       raise RuntimeError, ":action is missing, cannot generate valid JSON for ProtocolMessage" unless action_sym
       raise RuntimeError, ":msg_serial is missing, cannot generate valid JSON for ProtocolMessage" if ack_required? && !message_serial
 
-      json_object = json.dup.tap do |json_object|
+      json.dup.tap do |json_object|
         json_object[:messages] = messages.map(&:to_json_object) unless messages.empty?
         json_object[:presence] = presence.map(&:to_json_object) unless presence.empty?
       end
-
-      javify(json_object)
     end
 
-    def to_json
+    def to_json(*args)
       to_json_object.to_json
     end
   end

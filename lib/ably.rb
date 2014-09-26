@@ -1,10 +1,13 @@
-require "ably/modules/conversions"
-require "ably/modules/http_helpers"
+%w(modules models).each do |namespace|
+  Dir.glob(File.expand_path("ably/#{namespace}/*.rb", File.dirname(__FILE__))).each do |file|
+    require file
+  end
+end
 
 require "ably/auth"
 require "ably/exceptions"
-require "ably/rest"
 require "ably/realtime"
+require "ably/rest"
 require "ably/token"
 require "ably/version"
 

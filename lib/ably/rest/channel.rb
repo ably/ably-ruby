@@ -15,7 +15,7 @@ module Ably
       def initialize(client, name, channel_options = {})
         @client  = client
         @name    = name
-        @options = channel_options.dup.freeze
+        @options = channel_options.clone.freeze
       end
 
       # Publish a message to the channel

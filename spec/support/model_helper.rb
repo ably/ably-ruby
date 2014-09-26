@@ -21,7 +21,7 @@ shared_examples 'a realtime model' do |shared_options = {}|
       let(:model_options) { { action: 5 } }
 
       it 'provides access to #json' do
-        expect(model.json).to eql(model_options)
+        expect(model.json).to eq(model_options)
       end
     end
 

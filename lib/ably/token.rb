@@ -10,7 +10,7 @@ module Ably
     TOKEN_EXPIRY_BUFFER = 5
 
     def initialize(attributes)
-      @attributes = attributes.dup.freeze
+      @attributes = attributes.clone.freeze
     end
 
     def id
