@@ -2,7 +2,7 @@ module Ably
   module Realtime
     class Connection < EventMachine::Connection
       include Ably::Modules::Conversions
-      include Callbacks
+      include Ably::Modules::Callbacks
 
       def initialize(client)
         @client         = client

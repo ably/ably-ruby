@@ -2,7 +2,7 @@ module Ably
   module Realtime
     class Channel
       include Ably::Modules::Conversions
-      include Callbacks
+      include Ably::Modules::Callbacks
 
       STATES = {
         initialised: 1,

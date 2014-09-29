@@ -1,5 +1,5 @@
 module Ably
-  module Realtime
+  module Modules
     module Callbacks
       def on(event, &block)
         @callbacks ||= Hash.new { |hash, key| hash[key] = [] }
