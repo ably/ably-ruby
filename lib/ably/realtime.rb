@@ -1,7 +1,8 @@
 require "eventmachine"
 require "websocket/driver"
 
-require "ably/realtime/callbacks"
+require "ably/modules/callbacks"
+
 require "ably/realtime/channel"
 require "ably/realtime/client"
 require "ably/realtime/connection"

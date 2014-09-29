@@ -13,7 +13,7 @@ module Ably
     # @!attribute [r] environment
     #   (see Ably::Rest::Client#environment)
     class Client
-      include Callbacks
+      include Ably::Modules::Callbacks
       extend Forwardable
 
       DOMAIN = 'realtime.ably.io'
