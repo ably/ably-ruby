@@ -28,7 +28,7 @@ describe Ably::Rest::Models::Message do
       subject { Ably::Rest::Models::Message.new(attributes) }
 
       it 'provides access to #json' do
-        expect(subject.json).to eql(attributes)
+        expect(subject.json).to eq(attributes)
       end
     end
 

@@ -8,7 +8,7 @@ describe "REST" do
 
   describe "invalid requests in middleware" do
     it "should raise an InvalidRequest exception with a valid message" do
-      invalid_client = Ably::Rest::Client.new(api_key: 'appid.keyuid:keysecret')
+      invalid_client = Ably::Rest::Client.new(api_key: 'appid.keyuid:keysecret', environment: environment)
       expect { invalid_client.channel('test').publish('foo', 'choo') }.to raise_error do |error|
         expect(error).to be_a(Ably::Exceptions::InvalidRequest)
         expect(error.message).to match(/invalid credentials/)
