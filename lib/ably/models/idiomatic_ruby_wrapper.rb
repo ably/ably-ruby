@@ -1,5 +1,22 @@
 require 'logger'
 
+module Ably::Modules
+  module Conversions
+    private
+    # Creates or returns an {IdiomaticRubyWrapper} ensuring it never wraps itself
+    #
+    # @return {IdiomaticRubyWrapper}
+    def IdiomaticRubyWrapper(object, options = {})
+      case object
+      when Ably::Models::IdiomaticRubyWrapper
+        object
+      else
+        Ably::Models::IdiomaticRubyWrapper.new(object, options)
+      end
+    end
+  end
+end
+
 module Ably::Models
   # Wraps JSON objects returned by Ably service to appear as Idiomatic Ruby Hashes with symbol keys
   # It recursively wraps containing Hashes, but will stop wrapping at arrays, any other non Hash object, or any key matching the `:stops_at` options
@@ -18,13 +35,12 @@ module Ably::Models
   # ruby_hash[:none] # => nil
   # ruby_hash.none # => nil
   #
-  # @note It is recommended you include {Ably::Modules::Conversions Ably::Modules::Conversions} so that you can use the object creation syntax `IdiomaticRubyWrappers(hash_or_another_idiomatic_ruby_wrapper)`
-  #
   # @!attribute [r] stop_at
   #   @return [Array<Symbol,String>] array of keys that this wrapper should stop wrapping at to preserve the underlying JSON hash as is
   #
   class IdiomaticRubyWrapper
     include Enumerable
+    include Ably::Modules::Conversions
 
     attr_reader :stop_at
 
@@ -171,34 +187,6 @@ module Ably::Models
       end || format_preferences.first
 
       preferred_format.call(symbolized_key)
-    end
-
-    # Convert key to mixedCase from mixed_case
-    def convert_to_mixed_case(key, force_camel: false)
-      key.to_s.
-        split('_').
-        each_with_index.map do |str, index|
-          if index > 0 || force_camel
-            str.capitalize
-          else
-            str
-          end
-        end.
-        join
-    end
-
-    # Convert key to :snake_case from snakeCase
-    def convert_to_snake_case_symbol(key)
-      key.to_s.gsub(/::/, '/').
-        gsub(/([A-Z]+)([A-Z][a-z])/,'\1_\2').
-        gsub(/([a-z\d])([A-Z])/,'\1_\2').
-        tr("-", "_").
-        downcase.
-        to_sym
-    end
-
-    def convert_to_lower_case(key)
-      key.to_s.gsub('_', '')
     end
   end
 end

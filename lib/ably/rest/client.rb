@@ -85,7 +85,9 @@ module Ably
 
         response = get("/stats", default_params.merge(params))
 
-        response.body
+        response.body.map do |stat|
+          IdiomaticRubyWrapper(stat)
+        end
       end
 
       # Return the Ably service time

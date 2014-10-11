@@ -1,16 +1,5 @@
 module Ably::Modules
   module Conversions
-    private
-    # Returns object as {IdiomaticRubyWrapper}
-    def IdiomaticRubyWrapper(object, options = {})
-      case object
-      when Ably::Models::IdiomaticRubyWrapper
-        object
-      else
-        Ably::Models::IdiomaticRubyWrapper.new(object, options)
-      end
-    end
-
     def as_since_epoch(time, granularity: :ms)
       case time
       when Time
@@ -42,6 +31,34 @@ module Ably::Modules
       else
         raise ArgumentError, "invalid granularity"
       end
+    end
+
+    # Convert key to mixedCase from mixed_case
+    def convert_to_mixed_case(key, force_camel: false)
+      key.to_s.
+        split('_').
+        each_with_index.map do |str, index|
+          if index > 0 || force_camel
+            str.capitalize
+          else
+            str
+          end
+        end.
+        join
+    end
+
+    # Convert key to :snake_case from snakeCase
+    def convert_to_snake_case_symbol(key)
+      key.to_s.gsub(/::/, '/').
+        gsub(/([A-Z]+)([A-Z][a-z])/,'\1_\2').
+        gsub(/([a-z\d])([A-Z])/,'\1_\2').
+        tr("-", "_").
+        downcase.
+        to_sym
+    end
+
+    def convert_to_lower_case(key)
+      key.to_s.gsub('_', '')
     end
   end
 end
