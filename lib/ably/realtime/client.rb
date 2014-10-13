@@ -13,7 +13,6 @@ module Ably
     # @!attribute [r] environment
     #   (see Ably::Rest::Client#environment)
     class Client
-      include Ably::Modules::Callbacks
       extend Forwardable
 
       DOMAIN = 'realtime.ably.io'
@@ -49,17 +48,17 @@ module Ably
         @auth           = @rest_client.auth
         @message_serial = 0
 
-        on(:attached) do |protocol_message|
+        __protocol_msgbus__.subscribe(:attach) do |protocol_message|
           channel = channel(protocol_message.channel)
 
           channel.trigger(:attached)
         end
 
-        on(:message) do |protocol_message|
+        __protocol_msgbus__.subscribe(:message) do |protocol_message|
           channel = channel(protocol_message.channel)
 
           protocol_message.messages.each do |message|
-            channel.trigger(:message, message)
+            channel.__protocol_msgbus__.publish :message, message
           end
         end
       end
@@ -79,7 +78,7 @@ module Ably
 
       def send_messages(channel_name, messages)
         payload = {
-          action:   Models::ProtocolMessage.action!(:message),
+          action:   Models::ProtocolMessage::ACTION.Message,
           channel:  channel_name,
           messages: messages
         }
@@ -91,7 +90,7 @@ module Ably
 
       def attach_to_channel(channel_name)
         payload = {
-          action:  Models::ProtocolMessage.action!(:attach),
+          action:  Models::ProtocolMessage::ACTION.Attach,
           channel: channel_name
         }
 
@@ -126,6 +125,12 @@ module Ably
 
       def log_http(message)
         $stdout.puts "#{Time.now.strftime('%H:%M:%S')} #{message}" if debug_http?
+      end
+
+      def __protocol_msgbus__
+        @__protocol_msgbus__ ||= Ably::Util::PubSub.new(
+          coerce_into: Proc.new { |event| Models::ProtocolMessage::ACTION(event) }
+        )
       end
 
       private

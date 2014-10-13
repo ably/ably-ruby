@@ -1,4 +1,4 @@
-require "spec_helper"
+require 'spec_helper'
 
 describe Ably::Modules::Conversions do
   let(:class_with_module) { Class.new do; include Ably::Modules::Conversions; end }

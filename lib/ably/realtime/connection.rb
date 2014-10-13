@@ -1,31 +1,68 @@
 module Ably
   module Realtime
+    # The Connection class represents the connection associated with an Ably Realtime instance.
+    # The Connection object exposes the lifecycle and parameters of the realtime connection.
+    #
+    # Connections will always be in one of the following states:
+    #
+    #   initialized:  0
+    #   connecting:   1
+    #   connected:    2
+    #   disconnected: 3
+    #   suspended:    4
+    #   closed:       5
+    #   failed:       6
+    #
+    # Note that the states are available as Enum-like constants:
+    #
+    #   Connection::STATE.Initialized
+    #   Connection::STATE.Connecting
+    #   Connection::STATE.Connected
+    #   Connection::STATE.Disconnected
+    #   Connection::STATE.Suspended
+    #   Connection::STATE.Closed
+    #   Connection::STATE.Failed
+    #
     class Connection < EventMachine::Connection
       include Ably::Modules::Conversions
-      include Ably::Modules::Callbacks
+      extend Ably::Modules::Callbacks
+      extend Ably::Modules::Enum
+
+      STATE = ruby_enum('STATE',
+        :initialized,
+        :connecting,
+        :connected,
+        :disconnected,
+        :suspended,
+        :closed,
+        :failed
+      )
+
+      add_callbacks coerce_into: Proc.new { |event| STATE(event) }
 
       def initialize(client)
         @client         = client
         @message_serial = 0
       end
 
+      alias_method :orig_send, :send
       def send(protocol_message)
         add_message_serial_if_ack_required_to(protocol_message) do
           protocol_message = Models::ProtocolMessage.new(protocol_message)
-          client.log_http("Prot msg sent =>: #{protocol_message.action_sym} #{protocol_message.to_json}")
+          client.log_http("Prot msg sent =>: #{protocol_message.action} #{protocol_message.to_json}")
           driver.text(protocol_message.to_json)
         end
       end
 
       # EventMachine::Connection interface
       def post_init
-        trigger :initalised
+        trigger STATE.Initialized
 
         setup_driver
       end
 
       def connection_completed
-        trigger :connecting
+        trigger STATE.Connecting
 
         start_tls if client.use_tls?
         driver.start
@@ -36,7 +73,7 @@ module Ably
       end
 
       def unbind
-        trigger :disconnected
+        trigger STATE.Disconnected
       end
 
       # WebSocket::Driver interface
@@ -75,13 +112,13 @@ module Ably
 
         driver.on("open") do
           client.log_http("WebSocket connection opened to #{url}")
-          trigger :connected
+          trigger STATE.Connected
         end
 
         driver.on("message") do |event|
           message = Models::ProtocolMessage.new(JSON.parse(event.data))
-          client.log_http("Prot msg recv <=: #{message.action_sym} #{message.to_json}")
-          client.trigger message.action_sym, message
+          client.log_http("Prot msg recv <=: #{message.action} #{message.to_json}")
+          client.__protocol_msgbus__.publish message.action, message
         end
       end
     end
