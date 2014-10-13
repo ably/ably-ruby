@@ -1,5 +1,6 @@
-require "json"
 require "faraday"
+require "json"
+require "logger"
 
 require "ably/rest/middleware/exceptions"
 require "ably/rest/middleware/parse_json"
@@ -25,17 +26,17 @@ module Ably
 
       DOMAIN = "rest.ably.io"
 
-      attr_reader :tls, :environment, :auth, :channels
+      attr_reader :tls, :environment, :auth, :channels, :log_level
       def_delegators :auth, :client_id, :auth_options
 
       # Creates a {Ably::Rest::Client Rest Client} and configures the {Ably::Auth} object for the connection.
       #
       # @param [Hash,String] options an options Hash used to configure the client and the authentication, or String with an API key
       # @option options (see Ably::Auth#authorise)
-      # @option options [Boolean] :tls          TLS is used by default, providing a value of false disbles TLS.  Please note Basic Auth is disallowed without TLS as secrets cannot be transmitted over unsecured connections.
-      # @option options [String]  :api_key      API key comprising the key ID and key secret in a single string
-      # @option options [String]  :environment  Specify 'sandbox' when testing the client library against an alternate Ably environment
-      # @option options [Boolean] :debug_http   Send HTTP debugging information from Faraday for all HTTP requests to STDOUT
+      # @option options [Boolean]           :tls          TLS is used by default, providing a value of false disbles TLS.  Please note Basic Auth is disallowed without TLS as secrets cannot be transmitted over unsecured connections.
+      # @option options [String]            :api_key      API key comprising the key ID and key secret in a single string
+      # @option options [String]            :environment  Specify 'sandbox' when testing the client library against an alternate Ably environment
+      # @option options [Logger::Severity]  :log_level    Log level for the standard Logger that outputs to STDOUT.  Defaults to Logger::WARN, can be set to Logger::FATAL, Logger::ERROR, Logger::WARN, Logger::INFO, Logger::DEBUG
       #
       # @yield (see Ably::Auth#authorise)
       # @yieldparam (see Ably::Auth#authorise)
@@ -60,6 +61,7 @@ module Ably
         @tls                 = options.delete(:tls) == false ? false : true
         @environment         = options.delete(:environment) # nil is production
         @debug_http          = options.delete(:debug_http)
+        @log_level           = options.delete(:log_level) || Logger::WARN
 
         @auth     = Auth.new(self, options, &auth_block)
         @channels = Ably::Rest::Channels.new(self)
@@ -130,11 +132,10 @@ module Ably
         )
       end
 
-      # When true, will send HTTP debugging information from Faraday for all HTTP requests to STDOUT
-      #
-      # @return [Boolean]
-      def debug_http?
-        !!@debug_http
+      def logger
+        @logger ||= Logger.new(STDOUT).tap do |logger|
+          logger.level = log_level
+        end
       end
 
       private
@@ -198,8 +199,8 @@ module Ably
           # Parse JSON response bodies
           builder.use Ably::Rest::Middleware::ParseJson
 
-          # Log HTTP requests if debug_http option set
-          builder.response :logger if @debug_http
+          # Log HTTP requests if log level is DEBUG option set
+          builder.response :logger if log_level == Logger::DEBUG
 
           # Raise exceptions if response code is invalid
           builder.use Ably::Rest::Middleware::Exceptions

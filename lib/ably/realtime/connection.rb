@@ -49,7 +49,7 @@ module Ably
       def send(protocol_message)
         add_message_serial_if_ack_required_to(protocol_message) do
           protocol_message = Models::ProtocolMessage.new(protocol_message)
-          client.log_http("Prot msg sent =>: #{protocol_message.action} #{protocol_message.to_json}")
+          client.logger.debug("Prot msg sent =>: #{protocol_message.action} #{protocol_message.to_json}")
           driver.text(protocol_message.to_json)
         end
       end
@@ -111,14 +111,19 @@ module Ably
         @driver = WebSocket::Driver.client(self)
 
         driver.on("open") do
-          client.log_http("WebSocket connection opened to #{url}")
+          client.logger.debug("WebSocket connection opened to #{url}")
           trigger STATE.Connected
         end
 
         driver.on("message") do |event|
-          message = Models::ProtocolMessage.new(JSON.parse(event.data))
-          client.log_http("Prot msg recv <=: #{message.action} #{message.to_json}")
-          client.__protocol_msgbus__.publish message.action, message
+          begin
+            message = Models::ProtocolMessage.new(JSON.parse(event.data))
+            client.logger.debug("Prot msg recv <=: #{message.action} #{event.data}")
+            client.__protocol_msgbus__.publish message.action, message
+          rescue KeyError
+            client.logger.error("Unsupported action for Protocol Message received: #{event.data}")
+            client.__protocol_msgbus__.publish nil, message
+          end
         end
       end
     end

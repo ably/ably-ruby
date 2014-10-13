@@ -390,8 +390,8 @@ module Ably
         # Parse JSON response bodies
         builder.use Ably::Rest::Middleware::ParseJson
 
-        # Log HTTP requests if debug_http option set
-        builder.response :logger if @debug_http
+        # Log HTTP requests if log level is Logger::DEBUG
+        builder.response :logger if client.log_level == Logger::DEBUG
 
         # Raise exceptions if response code is invalid
         builder.use Ably::Rest::Middleware::ExternalExceptions
