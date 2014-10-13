@@ -46,20 +46,6 @@ module Ably
         @rest_client    = Ably::Rest::Client.new(options)
         @auth           = @rest_client.auth
         @message_serial = 0
-
-        __protocol_msgbus__.subscribe(:attach) do |protocol_message|
-          channel = channel(protocol_message.channel)
-
-          channel.trigger(:attached)
-        end
-
-        __protocol_msgbus__.subscribe(:message) do |protocol_message|
-          channel = channel(protocol_message.channel)
-
-          protocol_message.messages.each do |message|
-            channel.__protocol_msgbus__.publish :message, message
-          end
-        end
       end
 
       def token
@@ -77,7 +63,7 @@ module Ably
 
       def send_messages(channel_name, messages)
         payload = {
-          action:   Models::ProtocolMessage::ACTION.Message,
+          action:   Models::ProtocolMessage::ACTION.Message.to_i,
           channel:  channel_name,
           messages: messages
         }
@@ -89,7 +75,7 @@ module Ably
 
       def attach_to_channel(channel_name)
         payload = {
-          action:  Models::ProtocolMessage::ACTION.Attach,
+          action:  Models::ProtocolMessage::ACTION.Attach.to_i,
           channel: channel_name
         }
 
@@ -111,14 +97,12 @@ module Ably
           host = endpoint.host
           port = use_tls? ? 443 : 80
 
-          EventMachine.connect(host, port, Connection, self)
+          EventMachine.connect(host, port, Connection, self).tap do |connection|
+            connection.on(:connected) do
+              MessageDispatcher.new(self)
+            end
+          end
         end
-      end
-
-      def __protocol_msgbus__
-        @__protocol_msgbus__ ||= Ably::Util::PubSub.new(
-          coerce_into: Proc.new { |event| Models::ProtocolMessage::ACTION(event) }
-        )
       end
 
       private

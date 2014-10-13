@@ -131,5 +131,9 @@ module Ably::Realtime::Models
     def to_json(*args)
       to_json_object.to_json
     end
+
+    def to_s
+      to_json
+    end
   end
 end

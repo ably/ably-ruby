@@ -111,5 +111,13 @@ describe Ably::Realtime::Models::ProtocolMessage do
         expect { model.to_json }.to raise_error RuntimeError, /cannot generate valid JSON/
       end
     end
+
+    context 'is aliased by #to_s' do
+      let(:model) { subject.new({ :action => attached_action, :channelSerial => 'unique', messages: [message] }) }
+
+      specify do
+        expect(json_object).to eql(JSON.parse("#{model}"))
+      end
+    end
   end
 end
