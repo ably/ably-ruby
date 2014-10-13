@@ -49,7 +49,7 @@ module Ably
       def send(protocol_message)
         add_message_serial_if_ack_required_to(protocol_message) do
           protocol_message = Models::ProtocolMessage.new(protocol_message)
-          client.logger.debug("Prot msg sent =>: #{protocol_message.action} #{protocol_message.to_json}")
+          client.logger.debug("Prot msg sent =>: #{protocol_message.action} #{protocol_message}")
           driver.text(protocol_message.to_json)
         end
       end
@@ -87,6 +87,12 @@ module Ably
         send_data(data)
       end
 
+      def __protocol_msgbus__
+        @__protocol_msgbus__ ||= Ably::Util::PubSub.new(
+          coerce_into: Proc.new { |event| Models::ProtocolMessage::ACTION(event) }
+        )
+      end
+
       private
       attr_reader :client, :driver, :message_serial
 
@@ -119,10 +125,9 @@ module Ably
           begin
             message = Models::ProtocolMessage.new(JSON.parse(event.data))
             client.logger.debug("Prot msg recv <=: #{message.action} #{event.data}")
-            client.__protocol_msgbus__.publish message.action, message
+            __protocol_msgbus__.publish :message, message
           rescue KeyError
-            client.logger.error("Unsupported action for Protocol Message received: #{event.data}")
-            client.__protocol_msgbus__.publish nil, message
+            client.logger.error("Unsupported Protocol Message received, unrecognised 'action': #{event.data}\nNo action taken")
           end
         end
       end

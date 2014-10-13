@@ -33,4 +33,6 @@ describe Ably::Realtime::Connection do
       expect { subject.off(:invalid) }.to raise_error KeyError
     end
   end
+
+  it_behaves_like 'a protocol message bus'
 end
