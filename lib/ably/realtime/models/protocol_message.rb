@@ -7,9 +7,7 @@ module Ably::Realtime::Models
   # for further details on the members of a ProtocolMessage
   #
   # @!attribute [r] action
-  #   @return [Integer] Protocol Message action from list of {ACTIONS}
-  # @!attribute [r] action_sym
-  #   @return [Symbol] Protocol Message action as a symbol
+  #   @return [ACTION] Protocol Message action {Ably::Modules::Enum} from list of {ACTION}. Returns nil if action is unsupported by protocol.
   # @!attribute [r] count
   #   @return [Integer] The count field is used for ACK and NACK actions. See {http://docs.ably.io/client-lib-development-guide/protocol/#message-acknowledgement message acknowledgement protocol}
   # @!attribute [r] error_info
@@ -35,13 +33,14 @@ module Ably::Realtime::Models
   #
   class ProtocolMessage
     include Shared
+    extend Ably::Modules::Enum
     include Ably::Modules::Conversions
 
     # Actions which are sent by the Ably Realtime API
     #
     # The values correspond to the ints which the API
     # understands.
-    ACTIONS = {
+    ACTION = ruby_enum('ACTION',
       heartbeat:    0,
       ack:          1,
       nack:         2,
@@ -58,23 +57,11 @@ module Ably::Realtime::Models
       detached:     13,
       presence:     14,
       message:      15
-    }.freeze
-
-    # Retrieve an action symbol by the integer value
-    def self.action_sym_for(action_int)
-      @actions_index_by_int ||= ACTIONS.invert.freeze
-      @actions_index_by_int[action_int]
-    end
-
-    # Retrive an action integer value from a symbol and raise an exception if invalid
-    def self.action!(action_sym)
-      ACTIONS.fetch(action_sym)
-    end
+    )
 
     # Indicates this protocol message action will generate an ACK response such as :message or :presence
     def self.ack_required?(for_action)
-      for_action = ACTIONS.fetch(for_action) if for_action.kind_of?(Symbol)
-      [action!(:presence), action!(:message)].include?(for_action)
+      [ACTION.Presence, ACTION.Message].include?(ACTION(for_action))
     end
 
     def initialize(json_object)
@@ -82,16 +69,18 @@ module Ably::Realtime::Models
       @json_object     = IdiomaticRubyWrapper(@raw_json_object.clone.freeze)
     end
 
-    %w( action count
-        channel channel_serial
+    %w( count channel channel_serial
         connection_id connection_serial ).each do |attribute|
       define_method attribute do
         json[attribute.to_sym]
       end
     end
 
-    def action_sym
-      self.class.action_sym_for(action)
+    def action
+      ACTION(json[:action])
+    rescue KeyError
+      $stderr.puts "Warning: Unsupported ProtocolMessage ACTION '#{json[:action]}'"
+      nil
     end
 
     def error
@@ -131,7 +120,7 @@ module Ably::Realtime::Models
     end
 
     def to_json_object
-      raise RuntimeError, ":action is missing, cannot generate valid JSON for ProtocolMessage" unless action_sym
+      raise RuntimeError, ":action is missing, cannot generate valid JSON for ProtocolMessage" unless action
       raise RuntimeError, ":msg_serial is missing, cannot generate valid JSON for ProtocolMessage" if ack_required? && !message_serial
 
       json.dup.tap do |json_object|

@@ -6,7 +6,7 @@ describe Ably::Realtime::Models::ProtocolMessage do
   subject { Ably::Realtime::Models::ProtocolMessage }
 
   it_behaves_like 'a realtime model',
-    with_simple_attributes: %w(action count channel channel_serial connection_id connection_serial) do
+    with_simple_attributes: %w(count channel channel_serial connection_id connection_serial) do
 
     let(:model_args) { [] }
   end
@@ -22,11 +22,23 @@ describe Ably::Realtime::Models::ProtocolMessage do
       end
     end
 
-    context '#action_sym' do
+    context '#action' do
       let(:protocol_message) { subject.new(action: 14) }
 
-      it 'returns the symbol equivalent' do
-        expect(protocol_message.action_sym).to eql(:presence)
+      it 'returns an Enum that behaves like a symbol' do
+        expect(protocol_message.action).to eq(:presence)
+      end
+
+      it 'returns an Enum that behaves like a Numeric' do
+        expect(protocol_message.action).to eq(14)
+      end
+
+      it 'returns an Enum that behaves like a String' do
+        expect(protocol_message.action).to eq('Presence')
+      end
+
+      it 'returns an Enum that matchdes the ACTION constant' do
+        expect(protocol_message.action).to eql(Ably::Realtime::Models::ProtocolMessage::ACTION.Presence)
       end
     end
 
@@ -69,8 +81,8 @@ describe Ably::Realtime::Models::ProtocolMessage do
   context '#to_json' do
     let(:json_object) { JSON.parse(model.to_json) }
     let(:message) { { 'name' => 'event', 'clientId' => 'joe' } }
-    let(:attached_action) { Ably::Realtime::Models::ProtocolMessage.action!(:attached) }
-    let(:message_action) { Ably::Realtime::Models::ProtocolMessage.action!(:message) }
+    let(:attached_action) { Ably::Realtime::Models::ProtocolMessage::ACTION.Attached }
+    let(:message_action) { Ably::Realtime::Models::ProtocolMessage::ACTION.Message }
 
     context 'with valid data' do
       let(:model) { subject.new({ :action => attached_action, :channelSerial => 'unique', messages: [message] }) }

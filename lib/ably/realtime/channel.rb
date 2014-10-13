@@ -1,25 +1,45 @@
 module Ably
   module Realtime
+    # The Channel class represents a Channel belonging to this application.
+    # The Channel instance allows messages to be published and
+    # received, and controls the lifecycle of this instance's
+    # attachment to the channel.
+    #
+    # Channels will always be in one of the following states:
+    #
+    #   initialized: 0
+    #   attaching:   1
+    #   attached:    2
+    #   detaching:   3
+    #   detached:    4
+    #   failed:      5
+    #
+    # Note that the states are available as Enum-like constants:
+    #
+    #   Channel::STATE.Initialized
+    #   Channel::STATE.Attaching
+    #   Channel::STATE.Attached
+    #   Channel::STATE.Detaching
+    #   Channel::STATE.Detached
+    #   Channel::STATE.Failed
+    #
     class Channel
       include Ably::Modules::Conversions
-      include Ably::Modules::Callbacks
+      extend Ably::Modules::Callbacks
+      extend Ably::Modules::Enum
 
-      STATES = {
-        initialised: 1,
-        attaching:   2,
-        attached:    3,
-        detaching:   4,
-        detached:    5,
-        failed:      6
-      }.freeze
+      STATE = ruby_enum('STATE',
+        :initialized,
+        :attaching,
+        :attached,
+        :detaching,
+        :detached,
+        :failed
+      )
+
+      add_callbacks coerce_into: Proc.new { |event| STATE(event) }
 
       attr_reader :client, :name
-
-      # Retrieve a state symbol by the integer value
-      def self.state_sym_for(state_int)
-        @states_index_by_int ||= STATES.invert.freeze
-        @states_index_by_int[state_int]
-      end
 
       def initialize(client, name)
         @client          = client
@@ -27,28 +47,27 @@ module Ably
         @subscriptions   = Hash.new { |hash, key| hash[key] = [] }
         @queue           = []
 
-        set_state :initialised
+        state = STATE.Initialized
 
-        on(:message) do |message|
+        __protocol_msgbus__.subscribe(:message) do |message|
           @subscriptions[:all].each { |cb| cb.call(message) }
           @subscriptions[message.name].each { |cb| cb.call(message) }
         end
 
         on(:attached) do
-          set_state :attached
+          state = STATE.Attached
           process_queue
         end
       end
 
-      # Current Channel state, will always be one of {STATES}
+      # Current Channel state {Ably::Modules::Enum}
       #
       # @return [Symbol] state
       def state
-        self.class.state_sym_for(@state)
+        @state
       end
 
       def state?(check_state)
-        check_state = STATES.fetch(check_state) if check_state.kind_of?(Symbol)
         @state == check_state
       end
 
@@ -69,23 +88,30 @@ module Ably
       end
 
       def attach
-        unless state?(:attaching)
-          set_state :attaching
+        unless state?(STATE.Attaching)
+          state = STATE.Attaching
           client.attach_to_channel(name)
         end
       end
 
       def attached?
-        state?(:attached)
+        state?(STATE.Attached)
+      end
+
+      def __protocol_msgbus__
+        @__protocol_msgbus__ ||= Ably::Util::PubSub.new(
+          coerce_into: Proc.new { |event| Models::ProtocolMessage::ACTION(event) }
+        )
       end
 
       private
       attr_reader :queue
 
-      def set_state(new_state)
-        new_state = STATES.fetch(new_state) if new_state.kind_of?(Symbol)
-        raise ArgumentError, "#{new_state} is not a valid state" unless STATES.values.include?(new_state)
-        @state = new_state
+      # Set the current Channel state {Ably::Modules::Enum}
+      #
+      # @return [Symbol] new state
+      def state=(new_state)
+        @state = State(new_state)
       end
 
       def process_queue

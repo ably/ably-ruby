@@ -38,7 +38,7 @@ describe Ably::Realtime::Models::Message do
       end
 
       it 'autofills a missing timestamp for all messages' do
-        expect(json_object["timestamp"].to_i).to be_within(1).of(as_since_epoch(Time.now))
+        expect(json_object["timestamp"].to_i).to be_within(50).of(as_since_epoch(Time.now))
       end
     end
 

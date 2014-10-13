@@ -1,5 +1,7 @@
 module Ably::Modules
   module Conversions
+    extend self
+
     def as_since_epoch(time, granularity: :ms)
       case time
       when Time
@@ -52,6 +54,7 @@ module Ably::Modules
       key.to_s.gsub(/::/, '/').
         gsub(/([A-Z]+)([A-Z][a-z])/,'\1_\2').
         gsub(/([a-z\d])([A-Z])/,'\1_\2').
+        gsub(/([a-zA-Z])(\d)/,'\1_\2').
         tr("-", "_").
         downcase.
         to_sym
