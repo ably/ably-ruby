@@ -100,7 +100,7 @@ describe Ably::Realtime::Models::ProtocolMessage do
       let(:model) { subject.new({ clientId: 'joe' }) }
 
       it 'it raises an exception' do
-        expect { model.to_json }.to raise_error RuntimeError, /cannot generate valid JSON/
+        expect { model.to_json }.to raise_error KeyError, /Action '' is not supported by ProtocolMessage/
       end
     end
 

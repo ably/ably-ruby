@@ -79,8 +79,7 @@ module Ably::Realtime::Models
     def action
       ACTION(json[:action])
     rescue KeyError
-      $stderr.puts "Warning: Unsupported ProtocolMessage ACTION '#{json[:action]}'"
-      nil
+      raise KeyError, "Action '#{json[:action]}' is not supported by ProtocolMessage"
     end
 
     def error

@@ -19,7 +19,7 @@ module Ably
 
       attr_reader :channels, :auth
       def_delegators :auth, :client_id, :auth_options
-      def_delegators :@rest_client, :tls, :environment, :use_tls?
+      def_delegators :@rest_client, :tls, :environment, :use_tls?, :logger, :log_level
 
       # Creates a {Ably::Realtime::Client Realtime Client} and configures the {Ably::Auth} object for the connection.
       #
@@ -28,7 +28,6 @@ module Ably
       # @option options [Boolean] :queue_messages If false, this disables the default behaviour whereby the library queues messages on a connection in the disconnected or connecting states
       # @option options [Boolean] :echo_messages  If false, prevents messages originating from this connection being echoed back on the same connection
       # @option options [String]  :recover        This option allows a connection to inherit the state of a previous connection that may have existed under an different instance of the Realtime library.
-      # @option options [Boolean] :debug_http     Send HTTP & websocket debugging information for all messages/requests sent and received to STDOUT
       #
       # @yield (see Ably::Rest::Client#initialize)
       # @yieldparam (see Ably::Rest::Client#initialize)
@@ -114,17 +113,6 @@ module Ably
 
           EventMachine.connect(host, port, Connection, self)
         end
-      end
-
-      # When true, will send HTTP & websocket debugging information for all messages/requests sent and received to STDOUT
-      #
-      # @return [Boolean]
-      def debug_http?
-        rest_client.debug_http?
-      end
-
-      def log_http(message)
-        $stdout.puts "#{Time.now.strftime('%H:%M:%S')} #{message}" if debug_http?
       end
 
       def __protocol_msgbus__
