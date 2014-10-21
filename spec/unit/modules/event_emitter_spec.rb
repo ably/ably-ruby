@@ -1,12 +1,12 @@
 require 'spec_helper'
 
-describe Ably::Modules::Callbacks do
+describe Ably::Modules::EventEmitter do
   let(:options) { {} }
   let(:klass) do
     callback_opts = options
     Class.new do
-      extend Ably::Modules::Callbacks
-      add_callbacks callback_opts
+      include Ably::Modules::EventEmitter
+      configure_event_emitter callback_opts
     end
   end
   let(:obj) { double('example') }

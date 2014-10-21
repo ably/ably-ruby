@@ -1,5 +1,7 @@
 module Ably::Util
-  # PubSub provides methods to publish & subscribe to events
+  # PubSub class provides methods to publish & subscribe to events, with methods and naming
+  # intentionally different to EventEmitter as it is intended for private message handling
+  # within the client library.
   #
   # @example
   #
@@ -16,11 +18,11 @@ module Ably::Util
   #   channel.messages.remove :event
   #
   class PubSub
-    extend Ably::Modules::Callbacks
+    include Ably::Modules::EventEmitter
 
     def initialize(options = {})
       self.class.instance_eval do
-        add_callbacks options
+        configure_event_emitter options
 
         alias_method :subscribe, :on
         alias_method :publish, :trigger
