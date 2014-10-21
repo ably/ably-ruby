@@ -6,6 +6,56 @@ describe "REST" do
     Ably::Rest::Client.new(api_key: api_key, environment: environment)
   end
 
+  describe "protocol" do
+    include Ably::Modules::Conversions
+
+    let(:client_options) { {} }
+    let(:client) do
+      Ably::Rest::Client.new(client_options.merge(api_key: 'appid.keyuid:keysecret'))
+    end
+
+    skip '#protocol should default to :msgpack'
+
+    context 'transport' do
+      let(:now) { Time.now - 1000 }
+      let(:body_value) { [as_since_epoch(now)] }
+
+      before do
+        stub_request(:get, "#{client.endpoint}/time").
+          with(:headers => { 'Accept' => mime }).
+          to_return(:status => 200, :body => request_body, :headers => { 'Content-Type' => mime })
+      end
+
+      context 'when protocol is set as :json' do
+        let(:client_options) { { protocol: :json } }
+        let(:mime) { 'application/json' }
+        let(:request_body) { body_value.to_json }
+
+        it 'uses JSON', webmock: true do
+          expect(client.protocol).to eql(:json)
+          expect(client.time).to be_within(1).of(now)
+        end
+
+        skip 'uses JSON against Ably service for Auth'
+        skip 'uses JSON against Ably service for Messages'
+      end
+
+      context 'when protocol is set as :msgpack' do
+        let(:client_options) { { protocol: :msgpack } }
+        let(:mime) { 'application/x-msgpack' }
+        let(:request_body) { body_value.to_msgpack }
+
+        it 'uses MsgPack', webmock: true do
+          expect(client.protocol).to eql(:msgpack)
+          expect(client.time).to be_within(1).of(now)
+        end
+
+        skip 'uses MsgPack against Ably service for Auth'
+        skip 'uses MsgPack against Ably service for Messages'
+      end
+    end
+  end
+
   describe "invalid requests in middleware" do
     it "should raise an InvalidRequest exception with a valid message" do
       invalid_client = Ably::Rest::Client.new(api_key: 'appid.keyuid:keysecret', environment: environment)

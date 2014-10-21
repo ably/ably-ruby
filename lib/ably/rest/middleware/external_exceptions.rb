@@ -1,4 +1,4 @@
-require "json"
+require 'faraday'
 
 module Ably
   module Rest

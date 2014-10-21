@@ -1,9 +1,8 @@
-require "faraday"
-require "json"
-require "logger"
+require 'faraday'
+require 'json'
+require 'logger'
 
-require "ably/rest/middleware/exceptions"
-require "ably/rest/middleware/parse_json"
+require 'ably/rest/middleware/exceptions'
 
 module Ably
   module Rest
@@ -26,7 +25,7 @@ module Ably
 
       DOMAIN = "rest.ably.io"
 
-      attr_reader :tls, :environment, :auth, :channels, :log_level
+      attr_reader :tls, :environment, :protocol, :auth, :channels, :log_level
       def_delegators :auth, :client_id, :auth_options
 
       # Creates a {Ably::Rest::Client Rest Client} and configures the {Ably::Auth} object for the connection.
@@ -36,6 +35,7 @@ module Ably
       # @option options [Boolean]           :tls          TLS is used by default, providing a value of false disbles TLS.  Please note Basic Auth is disallowed without TLS as secrets cannot be transmitted over unsecured connections.
       # @option options [String]            :api_key      API key comprising the key ID and key secret in a single string
       # @option options [String]            :environment  Specify 'sandbox' when testing the client library against an alternate Ably environment
+      # @option options [Symbol]            :protocol     Protocol used to communicate with Ably, :json and :msgpack currently supported. Defaults to :msgpack.
       # @option options [Logger::Severity]  :log_level    Log level for the standard Logger that outputs to STDOUT.  Defaults to Logger::WARN, can be set to Logger::FATAL, Logger::ERROR, Logger::WARN, Logger::INFO, Logger::DEBUG
       #
       # @yield (see Ably::Auth#authorise)
@@ -60,8 +60,11 @@ module Ably
 
         @tls                 = options.delete(:tls) == false ? false : true
         @environment         = options.delete(:environment) # nil is production
+        @protocol            = options.delete(:protocol) || :json # TODO: Default to :msgpack when protocol MsgPack support added
         @debug_http          = options.delete(:debug_http)
         @log_level           = options.delete(:log_level) || Logger::WARN
+
+        raise ArgumentError, 'Protocol is invalid.  Must be either :msgpack or :json' unless [:msgpack, :json].include?(@protocol)
 
         @auth     = Auth.new(self, options, &auth_block)
         @channels = Ably::Rest::Channels.new(self)
@@ -138,6 +141,18 @@ module Ably
         end
       end
 
+      # Mime type used for HTTP requests
+      #
+      # @return [String]
+      def mime_type
+        case protocol
+        when :json
+          'application/json'
+        else
+          'application/x-msgpack'
+        end
+      end
+
       private
       def request(method, path, params = {}, options = {})
         reauthorise_on_authorisation_failure do
@@ -178,7 +193,7 @@ module Ably
         @connection_options ||= {
           builder: middleware,
           headers: {
-            accept:     "application/json",
+            accept:     mime_type,
             user_agent: user_agent
           },
           request: {
@@ -193,17 +208,15 @@ module Ably
       # @see http://mislav.uniqpath.com/2011/07/faraday-advanced-http/
       def middleware
         @middleware ||= Faraday::RackBuilder.new do |builder|
-          # Convert request params to "www-form-urlencoded"
-          builder.use Faraday::Request::UrlEncoded
+          setup_middleware builder
 
-          # Parse JSON response bodies
-          builder.use Ably::Rest::Middleware::ParseJson
+          # Raise exceptions if response code is invalid
+          builder.use Ably::Rest::Middleware::Exceptions
+
 
           # Log HTTP requests if log level is DEBUG option set
           builder.response :logger if log_level == Logger::DEBUG
 
-          # Raise exceptions if response code is invalid
-          builder.use Ably::Rest::Middleware::Exceptions
 
           # Set Faraday's HTTP adapter
           builder.adapter Faraday.default_adapter

@@ -45,11 +45,16 @@ describe "REST" do
   describe "options" do
     let(:channel_name) { "persisted:#{SecureRandom.hex(4)}" }
     let(:presence) { client.channel(channel_name).presence }
+    let(:user) { 'appid.keyuid' }
+    let(:secret) { SecureRandom.hex(8) }
     let(:endpoint) do
       client.endpoint.tap do |client_end_point|
-        client_end_point.user = key_id
-        client_end_point.password = key_secret
+        client_end_point.user = user
+        client_end_point.password = secret
       end
+    end
+    let(:client) do
+      Ably::Rest::Client.new(api_key: "#{user}:#{secret}")
     end
 
     [:start, :end].each do |option|
