@@ -25,7 +25,7 @@ module Ably
     #
     class Channel
       include Ably::Modules::Conversions
-      extend Ably::Modules::Callbacks
+      include Ably::Modules::EventEmitter
       extend Ably::Modules::Enum
 
       STATE = ruby_enum('STATE',
@@ -37,7 +37,7 @@ module Ably
         :failed
       )
 
-      add_callbacks coerce_into: Proc.new { |event| STATE(event) }
+      configure_event_emitter coerce_into: Proc.new { |event| STATE(event) }
 
       attr_reader :client, :name
 

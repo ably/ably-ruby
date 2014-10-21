@@ -1,9 +1,7 @@
 module Ably::Realtime::Models
   # Nil object for Channels, this object is only used within the internal API of this client library
   class NilChannel
-    extend Ably::Modules::Callbacks
-
-    add_callbacks
+    include Ably::Modules::EventEmitter
 
     def name
       'Nil channel'
