@@ -1,9 +1,8 @@
-require "json"
-require "faraday"
-require "securerandom"
+require 'json'
+require 'faraday'
+require 'securerandom'
 
 require "ably/rest/middleware/external_exceptions"
-require "ably/rest/middleware/parse_json"
 
 module Ably
   # Auth is responsible for authentication with {https://ably.io Ably} using basic or token authentication
@@ -369,7 +368,7 @@ module Ably
       @connection_options ||= {
         builder: middleware,
         headers: {
-          accept:     "application/json",
+          accept:     client.mime_type,
           user_agent: user_agent
         },
         request: {
@@ -384,17 +383,14 @@ module Ably
     # @see http://mislav.uniqpath.com/2011/07/faraday-advanced-http/
     def middleware
       @middleware ||= Faraday::RackBuilder.new do |builder|
-        # Convert request params to "www-form-urlencoded"
-        builder.use Faraday::Request::UrlEncoded
-
-        # Parse JSON response bodies
-        builder.use Ably::Rest::Middleware::ParseJson
-
-        # Log HTTP requests if log level is Logger::DEBUG
-        builder.response :logger if client.log_level == Logger::DEBUG
+        setup_middleware builder
 
         # Raise exceptions if response code is invalid
         builder.use Ably::Rest::Middleware::ExternalExceptions
+
+
+        # Log HTTP requests if log level is DEBUG option set
+        builder.response :logger if client.log_level == Logger::DEBUG
 
         # Set Faraday's HTTP adapter
         builder.adapter Faraday.default_adapter
