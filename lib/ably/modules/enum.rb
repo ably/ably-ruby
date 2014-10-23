@@ -16,6 +16,8 @@ module Ably::Modules
   #   House::CONSTRUCTION.Wood == :wood # => true
   #
   module Enum
+    class Base; end
+
     # ruby_enum returns an Enum-like class that should be assigned to a constant in your class
     # The first `enum_name` argument must match the constant name so that the coercion method is available
     #
@@ -29,7 +31,7 @@ module Ably::Modules
     #   House::CONSTRUCTION(:brick) # => CONSTRUCTION.Brick
     #
     def ruby_enum(enum_name, *values)
-      enum_class = Class.new do
+      enum_class = Class.new(Enum::Base) do
         include Conversions
         extend Conversions
 
@@ -51,7 +53,11 @@ module Ably::Modules
             when ancestors.first
               identifier
             else
-              raise KeyError, "Cannot find Enum matching identifier '#{identifier}' argument as it is an unacceptable type: #{identifier.class}"
+              if identifier.class.ancestors.include?(Enum::Base)
+                by_symbol.fetch(identifier.to_sym)
+              else
+                raise KeyError, "Cannot find Enum matching identifier '#{identifier}' argument as it is an unacceptable type: #{identifier.class}"
+              end
             end
           end
 
@@ -87,6 +93,13 @@ module Ably::Modules
           # e.g. define_constants(:dog) creates Enum::Dog
           def define_values(values)
             raise RuntimeError, "#{name} Enum cannot be modified" if by_index.frozen?
+
+            # Allow another Enum to be used as a set of values
+            if values.length == 1 && klass = values.first
+              if klass.kind_of?(Class) && klass.ancestors.include?(Enum::Base)
+                values = values.first.map(&:to_sym)
+              end
+            end
 
             values.map do |value|
               # Convert any key => index_value pairs into array pairs

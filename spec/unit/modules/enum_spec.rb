@@ -184,6 +184,25 @@ describe Ably::Modules::Enum do
     end
   end
 
+  context 'defined Enum from another Enum' do
+    class ExampleBaseEnum
+      extend Ably::Modules::Enum
+      ENUMEXAMPLE = ruby_enum('ENUMEXAMPLE', :one, :second_enum)
+    end
+
+    class ExampleOtherEnum
+      extend Ably::Modules::Enum
+      ENUMEXAMPLE = ruby_enum('ENUMEXAMPLE', ExampleBaseEnum::ENUMEXAMPLE)
+    end
+
+    subject { ExampleOtherEnum::ENUMEXAMPLE }
+
+    it 'provides a MixedCase const for each provided value' do
+      expect(subject.One).to be_a(subject)
+      expect(subject.SecondEnum).to be_a(subject)
+    end
+  end
+
   context 'Enum instance' do
     context '#==' do
       subject { enum.get(:value_snake_case_2) }
