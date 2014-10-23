@@ -127,6 +127,10 @@ describe Ably::Modules::Enum do
     it 'prevents modification' do
       expect { subject.send(:define_values, :enum_id) }.to raise_error RuntimeError, /cannot be modified/
     end
+
+    it 'behaves like Enumerable' do
+      expect(subject.map(&:to_sym)).to eql([:value_zero, :value_1, :value_snake_case_2, :sentence_case])
+    end
   end
 
   context 'defined Enum from Hash class' do

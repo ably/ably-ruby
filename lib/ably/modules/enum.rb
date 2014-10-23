@@ -38,6 +38,8 @@ module Ably::Modules
         @by_symbol = {}
 
         class << self
+          include Enumerable
+
           def get(identifier)
             case identifier
             when Symbol
@@ -65,6 +67,13 @@ module Ably::Modules
             by_symbol.keys.length
           end
           alias_method :length, :size
+
+          # Method ensuring this {Enum} is {http://ruby-doc.org/core-2.1.3/Enumerable.html Enumerable}
+          def each(&block)
+            by_symbol.each do |key, value|
+              yield value
+            end
+          end
 
           # The name provided in the constructor for this Enum
           def name
