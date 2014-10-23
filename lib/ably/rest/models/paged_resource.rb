@@ -13,15 +13,15 @@ module Ably::Rest::Models
     # @option options [Symbol,String] :coerce_into symbol or string representing class that should be used to create each item in the PagedResource
     #
     # @return [PagedResource]
-    def initialize(http_response, base_url, client, coerce_into: nil)
+    def initialize(http_response, base_url, client, options = {})
       @http_response = http_response
       @client        = client
       @base_url      = "#{base_url.gsub(%r{/[^/]*$}, '')}/"
-      @coerce_into   = coerce_into
+      @coerce_into   = options[:coerce_into]
 
-      @body = if coerce_into
+      @body = if @coerce_into
         http_response.body.map do |item|
-          Kernel.const_get(coerce_into).new(item)
+          Kernel.const_get(@coerce_into).new(item)
         end
       else
         http_response.body

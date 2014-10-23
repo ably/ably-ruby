@@ -23,17 +23,17 @@ module Ably::Models
   # It also provides methods matching the symbolic keys for convenience
   #
   # @example
-  # ruby_hash = IdiomaticRubyWrapper.new({ 'keyValue' => 'true' })
-  # # or recommended to avoid wrapping wrapped objects
-  # ruby_hash = IdiomaticRubyWrapper({ 'keyValue' => 'true' })
-
-  # ruby_hash[:key_value] # => 'true'
-  # ruby_hash.key_value # => 'true'
-  # ruby_hash[:key_value] = 'new_value'
-  # ruby_hash.key_value # => 'new_value'
+  #   ruby_hash = IdiomaticRubyWrapper.new({ 'keyValue' => 'true' })
+  #   # or recommended to avoid wrapping wrapped objects
+  #   ruby_hash = IdiomaticRubyWrapper({ 'keyValue' => 'true' })
   #
-  # ruby_hash[:none] # => nil
-  # ruby_hash.none # => nil
+  #   ruby_hash[:key_value] # => 'true'
+  #   ruby_hash.key_value # => 'true'
+  #   ruby_hash[:key_value] = 'new_value'
+  #   ruby_hash.key_value # => 'new_value'
+  #
+  #   ruby_hash[:none] # => nil
+  #   ruby_hash.none # => nil
   #
   # @!attribute [r] stop_at
   #   @return [Array<Symbol,String>] array of keys that this wrapper should stop wrapping at to preserve the underlying JSON hash as is

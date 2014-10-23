@@ -2,6 +2,7 @@ module Ably::Modules
   module Conversions
     extend self
 
+    private
     def as_since_epoch(time, granularity: :ms)
       case time
       when Time

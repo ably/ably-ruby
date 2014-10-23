@@ -6,7 +6,6 @@ module Ably
     # the classes to enforce `event` names match expected values.
     #
     # @example
-    #
     #   class Example
     #     include Modules::EventEmitter
     #   end
@@ -17,10 +16,6 @@ module Ably
     #   #=> "Signal Test received"
     #
     module EventEmitter
-      def self.included(klass)
-        klass.extend ClassMethods
-      end
-
       module ClassMethods
         attr_reader :event_emitter_coerce_proc
 
@@ -66,6 +61,10 @@ module Ably
       end
 
       private
+      def self.included(klass)
+        klass.extend ClassMethods
+      end
+
       def callbacks
         @callbacks ||= Hash.new { |hash, key| hash[key] = [] }
       end
