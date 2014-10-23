@@ -69,7 +69,7 @@ module Ably::Realtime::Models
       @json_object     = IdiomaticRubyWrapper(@raw_json_object.clone.freeze)
     end
 
-    %w( count channel channel_serial
+    %w( channel channel_serial
         connection_id connection_serial ).each do |attribute|
       define_method attribute do
         json[attribute.to_sym]
@@ -93,7 +93,11 @@ module Ably::Realtime::Models
     def message_serial
       Integer(json[:msg_serial])
     rescue TypeError
-      raise TypeError, "msg_serial '#{json[:msg_serial]}' is invalid, a positive Integer is required for a ProtocolMessage"
+      raise TypeError, "msg_serial '#{json[:msg_serial]}' is invalid, a positive Integer is expected for a ProtocolMessage"
+    end
+
+    def count
+      [1, json[:count].to_i].max
     end
 
     def has_message_serial?

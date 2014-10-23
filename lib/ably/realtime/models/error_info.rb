@@ -20,11 +20,12 @@ module Ably::Realtime::Models
       @json_object     = IdiomaticRubyWrapper(@raw_json_object.clone.freeze)
     end
 
-    %w( message code status ).each do |attribute|
+    %w( message code status_code ).each do |attribute|
       define_method attribute do
         json[attribute.to_sym]
       end
     end
+    alias_method :status, :status_code
 
     def json
       @json_object
@@ -32,7 +33,7 @@ module Ably::Realtime::Models
     alias_method :to_json, :json
 
     def to_s
-      "Error: #{message} (code: #{code}, status: #{status})"
+      "Error: #{message} (code: #{code}, status_code: #{status_code})"
     end
   end
 end

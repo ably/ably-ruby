@@ -46,10 +46,11 @@ module Ably::Realtime
         case protocol_message.action
           when ACTION.Heartbeat
           when ACTION.Ack
-            ack_pending_queue_for_message_serial(protocol_message.message_serial) if protocol_message.has_message_serial?
+            ack_pending_queue_for_message_serial(protocol_message) if protocol_message.has_message_serial?
 
           when ACTION.Nack
             logger.warn "NACK received: #{protocol_message}"
+            nack_pending_queue_for_message_serial(protocol_message) if protocol_message.has_message_serial?
 
           when ACTION.Connect, ACTION.Connected
           when ACTION.Disconnect, ACTION.Disconnected
@@ -77,13 +78,29 @@ module Ably::Realtime
         end
       end
 
-      def ack_pending_queue_for_message_serial(message_serial)
+      def ack_pending_queue_for_message_serial(ack_protocol_message)
+        drop_pending_queue_from_ack(ack_protocol_message) do |protocol_message|
+          protocol_message.messages.each do |message|
+            logger.debug "Calling ACK success callbacks for #{message.to_json}"
+            message.succeed message
+          end
+        end
+      end
+
+      def nack_pending_queue_for_message_serial(nack_protocol_message)
+        drop_pending_queue_from_ack(nack_protocol_message) do |protocol_message|
+          protocol_message.messages.each do |message|
+            logger.debug "Calling NACK failure callbacks for #{message.to_json}"
+            message.fail message, nack_protocol_message.error
+          end
+        end
+      end
+
+      def drop_pending_queue_from_ack(ack_protocol_message)
+        message_serial_up_to = ack_protocol_message.message_serial + ack_protocol_message.count - 1
         connection.__pending_message_queue__.drop_while do |protocol_message|
-          if protocol_message.message_serial <= message_serial
-            protocol_message.messages.each do |message|
-              logger.debug "Calling ACK success callbacks for #{message}"
-              message.succeed message
-            end
+          if protocol_message.message_serial <= message_serial_up_to
+            yield protocol_message
             true
           end
         end
