@@ -6,7 +6,7 @@ describe Ably::Realtime::Models::ProtocolMessage do
   subject { Ably::Realtime::Models::ProtocolMessage }
 
   it_behaves_like 'a realtime model',
-    with_simple_attributes: %w(count channel channel_serial connection_id connection_serial) do
+    with_simple_attributes: %w(channel channel_serial connection_id connection_serial) do
 
     let(:model_args) { [] }
   end
@@ -55,6 +55,29 @@ describe Ably::Realtime::Models::ProtocolMessage do
       it 'converts :msg_serial to an Integer' do
         expect(protocol_message.message_serial).to be_a(Integer)
         expect(protocol_message.message_serial).to eql(55)
+      end
+    end
+
+    context '#count' do
+      context 'when missing' do
+        let(:protocol_message) { subject.new({}) }
+        it 'is 1' do
+          expect(protocol_message.count).to eql(1)
+        end
+      end
+
+      context 'when non numeric' do
+        let(:protocol_message) { subject.new(count: 'A') }
+        it 'is 1' do
+          expect(protocol_message.count).to eql(1)
+        end
+      end
+
+      context 'when greater than 1' do
+        let(:protocol_message) { subject.new(count: '666') }
+        it 'is the value of count' do
+          expect(protocol_message.count).to eql(666)
+        end
       end
     end
 

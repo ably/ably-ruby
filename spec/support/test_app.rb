@@ -3,7 +3,10 @@ require "singleton"
 class TestApp
   APP_SPEC = {
     'keys' => [
-      {}
+      {},
+      {
+        'capability' => '{ "*":["subscribe"], "canpublish:*":["publish"], "canpublish:andpresence":["presence","publish"] }'
+      }
     ],
     'namespaces' => [
       { 'id' => 'persisted', 'persisted' => true }
@@ -44,16 +47,24 @@ class TestApp
     @attributes["keys"].first
   end
 
+  def restricted_key
+    @attributes["keys"][1]
+  end
+
   def key_id
-    "#{app_id}.#{key["id"]}"
+    "#{app_id}.#{key['id']}"
   end
 
   def key_value
-    key["value"]
+    key['value']
   end
 
   def api_key
     "#{key_id}:#{key_value}"
+  end
+
+  def restricted_api_key
+    "#{app_id}.#{restricted_key['id']}:#{restricted_key['value']}"
   end
 
   def delete

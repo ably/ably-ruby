@@ -17,6 +17,10 @@ module ApiHelper
     TestApp.instance.api_key
   end
 
+  def restricted_api_key
+    TestApp.instance.restricted_api_key
+  end
+
   def environment
     TestApp.instance.environment
   end
