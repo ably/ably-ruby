@@ -55,7 +55,7 @@ describe Ably::Realtime::Models::Message do
     let(:ably_time) { Time.now + 5 }
     let(:sender_time_0) { Time.now - 5 }
     let(:sender_time_1) { Time.now - 3 }
-    let(:message_serial) { SecureRandom.hex }
+    let(:message_serial) { SecureRandom.random_number(1_000_000) }
     let(:connection_id) { SecureRandom.hex }
 
     let(:message_0_payload) do

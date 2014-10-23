@@ -1,4 +1,15 @@
 module Ably::Realtime::Models
+  def self.Message(message, protocol_message = nil)
+    case message
+    when Ably::Realtime::Models::Message
+      message.tap do
+        message.assign_to_protocol_message protocol_message
+      end
+    else
+      Message.new(message, protocol_message)
+    end
+  end
+
   # A class representing an individual message to be sent or received
   # via the Ably Realtime service.
   #
@@ -20,11 +31,17 @@ module Ably::Realtime::Models
   class Message
     include Shared
     include Ably::Modules::Conversions
+    include EventMachine::Deferrable
 
-    def initialize(json_object, protocol_message)
+    # {Message} initializer
+    #
+    # @param json_object [Hash] JSON like object with the underlying message details
+    # @param protocol_message [ProtocolMessage] if this message has been published, then it is associated with a {ProtocolMessage}
+    #
+    def initialize(json_object, protocol_message = nil)
       @protocol_message = protocol_message
       @raw_json_object  = json_object
-      @json_object      = IdiomaticRubyWrapper(@raw_json_object.clone.freeze, stop_at: [:data])
+      @json_object      = IdiomaticRubyWrapper(json_object.clone.freeze, stop_at: [:data])
     end
 
     %w( name client_id ).each do |attribute|
@@ -65,8 +82,16 @@ module Ably::Realtime::Models
       to_json_object.to_json
     end
 
+    def assign_to_protocol_message(protocol_message)
+      @protocol_message = protocol_message
+    end
+
     private
-    attr_reader :protocol_message
+
+    def protocol_message
+      raise RuntimeError, "Message is not yet published with a ProtocolMessage.  ProtocolMessage is nil" if @protocol_message.nil?
+      @protocol_message
+    end
 
     def protocol_message_index
       protocol_message.messages.index(self)

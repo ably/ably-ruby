@@ -13,7 +13,8 @@ require "ably/realtime/models/message"
 require "ably/realtime/models/nil_channel"
 require "ably/realtime/models/protocol_message"
 
-require "ably/realtime/client/message_dispatcher"
+require "ably/realtime/client/incoming_message_dispatcher"
+require "ably/realtime/client/outgoing_message_dispatcher"
 
 module Ably
   module Realtime
