@@ -4,7 +4,6 @@ module Ably::Util
   # within the client library.
   #
   # @example
-  #
   #   class Channel
   #     def messages
   #       @messages ||= PubSub.new

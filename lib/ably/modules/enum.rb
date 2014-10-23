@@ -16,6 +16,8 @@ module Ably::Modules
   #   House::CONSTRUCTION.Wood == :wood # => true
   #
   module Enum
+    private
+
     class Base; end
 
     # ruby_enum returns an Enum-like class that should be assigned to a constant in your class
@@ -177,7 +179,6 @@ module Ably::Modules
 
       # Convert any comparable object into this Enum
       # @example
-      #
       #   class Example
       #     DOGS = ruby_enum('DOGS', :terrier, :labrador, :great_dane)
       #   end
