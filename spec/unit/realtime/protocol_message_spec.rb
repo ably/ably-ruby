@@ -50,6 +50,32 @@ describe Ably::Realtime::Models::ProtocolMessage do
       end
     end
 
+    context '#message_serial' do
+      let(:protocol_message) { subject.new(msg_serial: "55") }
+      it 'converts :msg_serial to an Integer' do
+        expect(protocol_message.message_serial).to be_a(Integer)
+        expect(protocol_message.message_serial).to eql(55)
+      end
+    end
+
+    context '#has_message_serial?' do
+      context 'without msg_serial' do
+        let(:protocol_message) { subject.new({}) }
+
+        it 'returns false' do
+          expect(protocol_message.has_message_serial?).to eql(false)
+        end
+      end
+
+      context 'with msg_serial' do
+        let(:protocol_message) { subject.new(msg_serial: "55") }
+
+        it 'returns true' do
+          expect(protocol_message.has_message_serial?).to eql(true)
+        end
+      end
+    end
+
     context '#error' do
       context 'with no error attribute' do
         let(:protocol_message) { subject.new(action: 1) }
@@ -80,7 +106,7 @@ describe Ably::Realtime::Models::ProtocolMessage do
 
   context '#to_json' do
     let(:json_object) { JSON.parse(model.to_json) }
-    let(:message) { { 'name' => 'event', 'clientId' => 'joe' } }
+    let(:message) { { 'name' => 'event', 'clientId' => 'joe', 'timestamp' => as_since_epoch(Time.now) } }
     let(:attached_action) { Ably::Realtime::Models::ProtocolMessage::ACTION.Attached }
     let(:message_action) { Ably::Realtime::Models::ProtocolMessage::ACTION.Message }
 
@@ -108,12 +134,12 @@ describe Ably::Realtime::Models::ProtocolMessage do
       let(:model) { subject.new({ :action => message_action }) }
 
       it 'it raises an exception' do
-        expect { model.to_json }.to raise_error RuntimeError, /cannot generate valid JSON/
+        expect { model.to_json }.to raise_error TypeError, /msg_serial is missing/
       end
     end
 
     context 'is aliased by #to_s' do
-      let(:model) { subject.new({ :action => attached_action, :channelSerial => 'unique', messages: [message] }) }
+      let(:model) { subject.new({ :action => attached_action, :channelSerial => 'unique', messages: [message], :timestamp => as_since_epoch(Time.now) }) }
 
       specify do
         expect(json_object).to eql(JSON.parse("#{model}"))

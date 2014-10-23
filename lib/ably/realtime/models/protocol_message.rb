@@ -91,20 +91,32 @@ module Ably::Realtime::Models
     end
 
     def message_serial
-      json[:msg_serial]
+      Integer(json[:msg_serial])
+    rescue TypeError
+      raise TypeError, "msg_serial '#{json[:msg_serial]}' is invalid, a positive Integer is required for a ProtocolMessage"
+    end
+
+    def has_message_serial?
+      message_serial && true
+    rescue TypeError
+      false
     end
 
     def messages
       @messages ||=
         Array(json[:messages]).map do |message|
-          Message.new(message, self)
+          Ably::Realtime::Models.Message(message, self)
         end
+    end
+
+    def add_message(message)
+      messages << message
     end
 
     def presence
       @presence ||=
         Array(json[:presence]).map do |message|
-          PresenceMessage.new(message, self)
+          PresenceMessage(message, self)
         end
     end
 
@@ -119,8 +131,8 @@ module Ably::Realtime::Models
     end
 
     def to_json_object
-      raise RuntimeError, ":action is missing, cannot generate valid JSON for ProtocolMessage" unless action
-      raise RuntimeError, ":msg_serial is missing, cannot generate valid JSON for ProtocolMessage" if ack_required? && !message_serial
+      raise TypeError, ":action is missing, cannot generate valid JSON for ProtocolMessage" unless action
+      raise TypeError, ":msg_serial is missing, cannot generate valid JSON for ProtocolMessage" if ack_required? && !has_message_serial?
 
       json.dup.tap do |json_object|
         json_object[:messages] = messages.map(&:to_json_object) unless messages.empty?
