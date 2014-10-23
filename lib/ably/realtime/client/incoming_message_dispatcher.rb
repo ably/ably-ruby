@@ -1,8 +1,8 @@
 module Ably::Realtime
   class Client
-    # MessageDispatcher is an internal class that is used to dispatch {Ably::Realtime::Protocol} that are
-    # received from Ably via the Connection class
-    class MessageDispatcher
+    # IncomingMessageDispatcher is a (private) class that is used to dispatch {Ably::Realtime::Models::ProtocolMessage} that are
+    # received from Ably via the {Ably::Realtime::Connection}
+    class IncomingMessageDispatcher
       ACTION = Models::ProtocolMessage::ACTION
 
       def initialize(client)
@@ -46,6 +46,8 @@ module Ably::Realtime
         case protocol_message.action
           when ACTION.Heartbeat
           when ACTION.Ack
+            ack_pending_queue_for_message_serial(protocol_message.message_serial) if protocol_message.has_message_serial?
+
           when ACTION.Nack
             logger.warn "NACK received: #{protocol_message}"
 
@@ -58,13 +60,16 @@ module Ably::Realtime
 
           when ACTION.Attach
           when ACTION.Attached
-            get_channel(protocol_message.channel).trigger(:attached)
+            get_channel(protocol_message.channel).change_state Ably::Realtime::Channel::STATE.Attached
 
-          when ACTION.Detach, ACTION.Detached
+          when ACTION.Detach
+          when ACTION.Detached
+            get_channel(protocol_message.channel).change_state Ably::Realtime::Channel::STATE.Detached
+
           when ACTION.Presence
           when ACTION.Message
             protocol_message.messages.each do |message|
-              get_channel(protocol_message.channel).__protocol_msgbus__.publish :message, message
+              get_channel(protocol_message.channel).__incoming_protocol_msgbus__.publish :message, message
             end
 
           else
@@ -72,8 +77,20 @@ module Ably::Realtime
         end
       end
 
+      def ack_pending_queue_for_message_serial(message_serial)
+        connection.__pending_message_queue__.drop_while do |protocol_message|
+          if protocol_message.message_serial <= message_serial
+            protocol_message.messages.each do |message|
+              logger.debug "Calling ACK success callbacks for #{message}"
+              message.succeed message
+            end
+            true
+          end
+        end
+      end
+
       def subscribe_to_incoming_protocol_messages
-        connection.__protocol_msgbus__.subscribe(:message) do |*args|
+        connection.__incoming_protocol_msgbus__.subscribe(:message) do |*args|
           dispatch_protocol_message *args
         end
       end

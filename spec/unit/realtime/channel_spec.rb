@@ -23,5 +23,5 @@ describe Ably::Realtime::Channel do
     end
   end
 
-  it_behaves_like 'a protocol message bus'
+  it_behaves_like 'an incoming protocol message bus'
 end

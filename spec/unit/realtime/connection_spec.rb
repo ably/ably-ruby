@@ -1,4 +1,5 @@
 require 'spec_helper'
+require "support/protocol_msgbus_helper"
 
 describe Ably::Realtime::Connection do
   let(:client) { double(:client) }
@@ -34,5 +35,6 @@ describe Ably::Realtime::Connection do
     end
   end
 
-  it_behaves_like 'a protocol message bus'
+  it_behaves_like 'an incoming protocol message bus'
+  it_behaves_like 'an outgoing protocol message bus'
 end

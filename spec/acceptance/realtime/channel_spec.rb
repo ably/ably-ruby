@@ -17,6 +17,7 @@ describe Ably::Realtime::Channel do
       channel = client.channel(channel_name)
       channel.attach
       channel.on(:attached) do
+        expect(channel.state).to eq(:attached)
         attached = true
         stop_reactor
       end

@@ -1,6 +1,5 @@
 shared_examples 'a protocol message bus' do
   describe '__protocol_msgbus__ PubSub' do
-    let(:msgbus) { subject.__protocol_msgbus__ }
     let(:message) { double(:message, name: 'name', channel: 'channel', messages: []) }
 
     specify 'supports valid ProtocolMessage messages' do
@@ -14,5 +13,17 @@ shared_examples 'a protocol message bus' do
       expect { msgbus.publish(:invalid) }.to raise_error KeyError
       expect { msgbus.unsubscribe(:invalid) }.to raise_error KeyError
     end
+  end
+end
+
+shared_examples 'an incoming protocol message bus' do
+  it_behaves_like 'a protocol message bus' do
+    let(:msgbus) { subject.__incoming_protocol_msgbus__ }
+  end
+end
+
+shared_examples 'an outgoing protocol message bus' do
+  it_behaves_like 'a protocol message bus' do
+    let(:msgbus) { subject.__outgoing_protocol_msgbus__ }
   end
 end

@@ -61,27 +61,6 @@ module Ably
         @channels[name] ||= Ably::Realtime::Channel.new(self, name)
       end
 
-      def send_messages(channel_name, messages)
-        payload = {
-          action:   Models::ProtocolMessage::ACTION.Message.to_i,
-          channel:  channel_name,
-          messages: messages
-        }
-
-        payload.merge!(clientId: client_id) unless client_id.nil?
-
-        connection.send(payload)
-      end
-
-      def attach_to_channel(channel_name)
-        payload = {
-          action:  Models::ProtocolMessage::ACTION.Attach.to_i,
-          channel: channel_name
-        }
-
-        connection.send(payload)
-      end
-
       # Default Ably Realtime endpoint used for all requests
       #
       # @return [URI::Generic]
@@ -99,7 +78,8 @@ module Ably
 
           EventMachine.connect(host, port, Connection, self).tap do |connection|
             connection.on(:connected) do
-              MessageDispatcher.new(self)
+              IncomingMessageDispatcher.new(self)
+              OutgoingMessageDispatcher.new(self)
             end
           end
         end
