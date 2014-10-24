@@ -59,18 +59,24 @@ module Ably
 
       # Publish a message on the channel
       #
-      # @param event [String] The event name of the message
+      # @param name [String] The event name of the message
       # @param data [String,ByteArray] payload for the message
       # @yield [Ably::Realtime::Models::Message] On success, will call the block with the {Ably::Realtime::Models::Message}
-      # @return [Ably::Realtime::Models::Message]
+      # @return [Ably::Realtime::Models::Message] Deferrable {Ably::Realtime::Models::Message} that supports both success (callback) and failure (errback) callbacks
       #
-      def publish(event, data, &callback)
-        Models::Message.new({
-          name: event,
-          data: data,
-          timestamp: as_since_epoch(Time.now),
-          client_id: client.client_id
-        }, nil).tap do |message|
+      # @example
+      #   channel.publish('click', 'body')
+      #
+      #   channel.publish('click', 'body') do |message|
+      #     puts "#{message.name} event received with #{message.data}"
+      #   end
+      #
+      #   channel.publish('click', 'body').errback do |message, error|
+      #     puts "#{message.name} was not received, error #{error.message}"
+      #   end
+      #
+      def publish(name, data, &callback)
+        create_message(name, data).tap do |message|
           message.callback(&callback) if block_given?
           queue_message message
         end
@@ -146,6 +152,16 @@ module Ably
           action:  Models::ProtocolMessage::ACTION.Attach.to_i,
           channel: name
         )
+      end
+
+      def create_message(name, data)
+        model = {
+          name: name,
+          data: data
+        }
+        model.merge!(client_id: client.client_id) if client.client_id
+
+        Models::Message.new(model, nil)
       end
 
       # Used by {Ably::Modules::State} to debug state changes

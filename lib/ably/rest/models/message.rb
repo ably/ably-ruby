@@ -28,18 +28,18 @@ module Ably::Rest::Models
       json[:client_id]
     end
 
-    # Timestamp when message was sent.  This property is populated by the sender.
+    # Timestamp when the message was received by the Ably the real-time service
     #
     # @return [Time]
-    def sender_timestamp
+    def timestamp
       as_time_from_epoch(json[:timestamp]) if json[:timestamp]
     end
 
     # Unique message ID
     #
     # @return [String]
-    def message_id
-      json[:message_id]
+    def id
+      json[:id]
     end
 
     # Provide a normal Hash accessor to the underlying raw message object
