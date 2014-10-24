@@ -24,19 +24,16 @@ class TestApp
     ]
   }
 
+  # If an app has already been created and we need a new app, create a new test app
+  # This is sometimes needed when a test needs to be isolated from any other tests
+  def self.reload
+    instance.create_test_app if instance_variable_get('@singleton__instance__')
+  end
+
   include Singleton
 
   def initialize
-    url = "#{sandbox_client.endpoint}/apps"
-
-    headers = {
-      "Accept"       => "application/json",
-      "Content-Type" => "application/json"
-    }
-
-    response = Faraday.post(url, APP_SPEC.to_json, headers)
-
-    @attributes = JSON.parse(response.body)
+    create_test_app
   end
 
   def app_id
@@ -78,6 +75,19 @@ class TestApp
 
   def environment
     'sandbox'
+  end
+
+  def create_test_app
+    url = "#{sandbox_client.endpoint}/apps"
+
+    headers = {
+      "Accept"       => "application/json",
+      "Content-Type" => "application/json"
+    }
+
+    response = Faraday.post(url, APP_SPEC.to_json, headers)
+
+    @attributes = JSON.parse(response.body)
   end
 
   private

@@ -7,6 +7,10 @@ describe "REST" do
   end
 
   describe "fetching application stats" do
+    before(:context) do
+      reload_test_app
+    end
+
     def number_of_channels()             3 end
     def number_of_messages_per_channel() 5 end
 

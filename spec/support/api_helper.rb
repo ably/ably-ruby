@@ -25,6 +25,10 @@ module ApiHelper
     TestApp.instance.environment
   end
 
+  def reload_test_app
+    TestApp.reload
+  end
+
   def encode64(text)
     Base64.encode64(text).gsub("\n", '')
   end
