@@ -5,17 +5,18 @@ describe Ably::Realtime::Models::Message do
   include Ably::Modules::Conversions
 
   subject { Ably::Realtime::Models::Message }
-  let(:protocol_message) { Ably::Realtime::Models::ProtocolMessage.new(action: 1) }
+  let(:protocol_message_timestamp) { as_since_epoch(Time.now) }
+  let(:protocol_message) { Ably::Realtime::Models::ProtocolMessage.new(action: 1, timestamp: protocol_message_timestamp) }
 
   it_behaves_like 'a realtime model', with_simple_attributes: %w(name client_id data) do
     let(:model_args) { [protocol_message] }
   end
 
-  context '#sender_timestamp' do
-    let(:model) { subject.new({ timestamp: as_since_epoch(Time.now) }, protocol_message) }
-    it 'retrieves attribute :sender_timestamp' do
-      expect(model.sender_timestamp).to be_a(Time)
-      expect(model.sender_timestamp.to_i).to be_within(1).of(Time.now.to_i)
+  context '#timestamp' do
+    let(:model) { subject.new({}, protocol_message) }
+    it 'retrieves attribute :timestamp from ProtocolMessage' do
+      expect(model.timestamp).to be_a(Time)
+      expect(model.timestamp.to_i).to be_within(1).of(Time.now.to_i)
     end
   end
 
@@ -36,10 +37,6 @@ describe Ably::Realtime::Models::Message do
       it 'converts the attribute back to Java mixedCase notation using string keys' do
         expect(json_object["clientId"]).to eql('joe')
       end
-
-      it 'autofills a missing timestamp for all messages' do
-        expect(json_object["timestamp"].to_i).to be_within(50).of(as_since_epoch(Time.now))
-      end
     end
 
     context 'with invalid data' do
@@ -53,8 +50,6 @@ describe Ably::Realtime::Models::Message do
 
   context 'part of ProtocolMessage' do
     let(:ably_time) { Time.now + 5 }
-    let(:sender_time_0) { Time.now - 5 }
-    let(:sender_time_1) { Time.now - 3 }
     let(:message_serial) { SecureRandom.random_number(1_000_000) }
     let(:connection_id) { SecureRandom.hex }
 
@@ -68,7 +63,6 @@ describe Ably::Realtime::Models::Message do
 
     let(:message_0_json) do
       {
-        timestamp: sender_time_0,
         name: 'zero',
         data: message_0_payload
       }
@@ -76,7 +70,6 @@ describe Ably::Realtime::Models::Message do
 
     let(:message_1_json) do
       {
-        timestamp: sender_time_1,
         name: 'one',
         data: 'simple string'
       }
@@ -97,8 +90,8 @@ describe Ably::Realtime::Models::Message do
     let(:message_1) { protocol_message.messages.last }
 
     it 'should generate a message ID from the index, serial and connection id' do
-      expect(message_0.message_id).to eql("#{connection_id}:#{message_serial}:0")
-      expect(message_1.message_id).to eql("#{connection_id}:#{message_serial}:1")
+      expect(message_0.id).to eql("#{connection_id}:#{message_serial}:0")
+      expect(message_1.id).to eql("#{connection_id}:#{message_serial}:1")
     end
 
     it 'should not modify the data payload' do

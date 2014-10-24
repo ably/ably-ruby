@@ -5,7 +5,7 @@ describe Ably::Rest::Models::Message do
   context 'attributes' do
     let(:unique_value) { 'unique_value' }
 
-    %w(name data client_id message_id).each do |attribute|
+    %w(id name data client_id).each do |attribute|
       context "##{attribute}" do
         subject { Ably::Rest::Models::Message.new({ attribute.to_sym => unique_value }) }
 
@@ -15,11 +15,11 @@ describe Ably::Rest::Models::Message do
       end
     end
 
-    context '#sender_timestamp' do
+    context '#timestamp' do
       subject { Ably::Rest::Models::Message.new(timestamp: as_since_epoch(Time.now)) }
       it 'retrieves attribute :timestamp' do
-        expect(subject.sender_timestamp).to be_a(Time)
-        expect(subject.sender_timestamp.to_i).to be_within(1).of(Time.now.to_i)
+        expect(subject.timestamp).to be_a(Time)
+        expect(subject.timestamp.to_i).to be_within(1).of(Time.now.to_i)
       end
     end
 

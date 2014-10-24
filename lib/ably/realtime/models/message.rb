@@ -19,11 +19,9 @@ module Ably::Realtime::Models
   #   @return [String] The id of the publisher of this message
   # @!attribute [r] data
   #   @return [Object] The message payload. See the documentation for supported datatypes.
-  # @!attribute [r] sender_timestamp
-  #   @return [Time] Timestamp when the message was sent according to the publisher client
-  # @!attribute [r] ably_timestamp
-  #   @return [Time] Timestamp when the message was received by the Ably the service for publishing
-  # @!attribute [r] message_id
+  # @!attribute [r] timestamp
+  #   @return [Time] Timestamp when the message was received by the Ably the real-time service
+  # @!attribute [r] id
   #   @return [String] A globally unique message ID
   # @!attribute [r] json
   #   @return [Hash] Access the protocol message Hash object ruby'fied to use symbolized keys
@@ -54,15 +52,11 @@ module Ably::Realtime::Models
       @data ||= json[:data].freeze
     end
 
-    def message_id
+    def id
       "#{connection_id}:#{message_serial}:#{protocol_message_index}"
     end
 
-    def sender_timestamp
-      as_time_from_epoch(json[:timestamp]) if json[:timestamp]
-    end
-
-    def ably_timestamp
+    def timestamp
       protocol_message.timestamp
     end
 
@@ -72,10 +66,7 @@ module Ably::Realtime::Models
 
     def to_json_object
       raise RuntimeError, ":name is missing, cannot generate valid JSON for Message" unless name
-
-      json.dup.tap do |json_object|
-        json_object[:timestamp] = as_since_epoch(Time.now) unless sender_timestamp
-      end
+      json.dup
     end
 
     def to_json(*args)
