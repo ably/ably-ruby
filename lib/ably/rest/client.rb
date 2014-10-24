@@ -32,11 +32,11 @@ module Ably
       #
       # @param [Hash,String] options an options Hash used to configure the client and the authentication, or String with an API key
       # @option options (see Ably::Auth#authorise)
-      # @option options [Boolean]           :tls          TLS is used by default, providing a value of false disbles TLS.  Please note Basic Auth is disallowed without TLS as secrets cannot be transmitted over unsecured connections.
-      # @option options [String]            :api_key      API key comprising the key ID and key secret in a single string
-      # @option options [String]            :environment  Specify 'sandbox' when testing the client library against an alternate Ably environment
-      # @option options [Symbol]            :protocol     Protocol used to communicate with Ably, :json and :msgpack currently supported. Defaults to :msgpack.
-      # @option options [Logger::Severity]  :log_level    Log level for the standard Logger that outputs to STDOUT.  Defaults to Logger::WARN, can be set to Logger::FATAL, Logger::ERROR, Logger::WARN, Logger::INFO, Logger::DEBUG
+      # @option options [Boolean]                 :tls          TLS is used by default, providing a value of false disbles TLS.  Please note Basic Auth is disallowed without TLS as secrets cannot be transmitted over unsecured connections.
+      # @option options [String]                  :api_key      API key comprising the key ID and key secret in a single string
+      # @option options [String]                  :environment  Specify 'sandbox' when testing the client library against an alternate Ably environment
+      # @option options [Symbol]                  :protocol     Protocol used to communicate with Ably, :json and :msgpack currently supported. Defaults to :msgpack.
+      # @option options [Logger::Severity,Symbol] :log_level    Log level for the standard Logger that outputs to STDOUT.  Defaults to Logger::ERROR, can be set to :fatal (Logger::FATAL), :error (Logger::ERROR), :warn (Logger::WARN), :info (Logger::INFO), :debug (Logger::DEBUG)
       #
       # @yield (see Ably::Auth#authorise)
       # @yieldparam (see Ably::Auth#authorise)
@@ -62,7 +62,9 @@ module Ably
         @environment         = options.delete(:environment) # nil is production
         @protocol            = options.delete(:protocol) || :json # TODO: Default to :msgpack when protocol MsgPack support added
         @debug_http          = options.delete(:debug_http)
-        @log_level           = options.delete(:log_level) || Logger::WARN
+        @log_level           = options.delete(:log_level) || Logger::ERROR
+
+        @log_level = Logger.const_get(log_level.to_s.upcase) if log_level.kind_of?(Symbol) || log_level.kind_of?(String)
 
         raise ArgumentError, 'Protocol is invalid.  Must be either :msgpack or :json' unless [:msgpack, :json].include?(@protocol)
 
