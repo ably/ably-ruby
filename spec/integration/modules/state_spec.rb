@@ -34,6 +34,20 @@ describe Ably::Modules::State do
     expect { subject.change_state :connecting }.to change { subject.state }.to(:connecting)
   end
 
+  context '#change_state with arguments' do
+    let(:args) { [5,3,1] }
+    let(:callback_status) { { called: false } }
+
+    it 'passes the arguments through to the triggered callback' do
+      subject.on(:connecting) do |*callback_args|
+        expect(callback_args).to eql(args)
+        callback_status[:called] = true
+      end
+      expect { subject.change_state :connecting, *args }.to change { subject.state }.to(:connecting)
+      expect(callback_status).to eql(called: true)
+    end
+  end
+
   context '#state?' do
     it 'returns true if state matches' do
       expect(subject.state?(initial_state)).to eql(true)

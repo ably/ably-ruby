@@ -9,10 +9,11 @@ describe Ably::Realtime::Channel do
   end
   let(:channel_name) { SecureRandom.hex(2) }
   let(:payload) { SecureRandom.hex(4) }
+  let(:channel) { client.channel(channel_name) }
+  let(:messages) { [] }
 
-  it 'attachs to a channel' do
+  it 'attaches to a channel' do
     run_reactor do
-      channel = client.channel(channel_name)
       channel.attach
       channel.on(:attached) do
         expect(channel.state).to eq(:attached)
@@ -21,9 +22,8 @@ describe Ably::Realtime::Channel do
     end
   end
 
-  it 'attachs to a channel with a block' do
+  it 'attaches to a channel with a block' do
     run_reactor do
-      channel = client.channel(channel_name)
       channel.attach do
         expect(channel.state).to eq(:attached)
         stop_reactor
@@ -31,9 +31,8 @@ describe Ably::Realtime::Channel do
     end
   end
 
-  it 'detaches a channel with a block' do
+  it 'detaches from a channel with a block' do
     run_reactor do
-      channel = client.channel(channel_name)
       channel.attach do |chan|
         chan.detach do |detached_chan|
           expect(detached_chan.state).to eq(:detached)
@@ -44,12 +43,8 @@ describe Ably::Realtime::Channel do
   end
 
   it 'publishes 3 messages once attached' do
-    messages = []
-
     run_reactor do
-      channel = client.channel(channel_name)
-      channel.attach
-      channel.on(:attached) do
+      channel.attach do
         3.times { channel.publish('event', payload) }
       end
       channel.subscribe do |message|
@@ -62,10 +57,7 @@ describe Ably::Realtime::Channel do
   end
 
   it 'publishes 3 messages from queue before attached' do
-    messages = []
-
     run_reactor do
-      channel = client.channel(channel_name)
       3.times { channel.publish('event', SecureRandom.hex) }
       channel.subscribe do |message|
         messages << message if message.name == 'event'
@@ -77,10 +69,7 @@ describe Ably::Realtime::Channel do
   end
 
   it 'publishes 3 messages from queue before attached in a single protocol message' do
-    messages = []
-
     run_reactor do
-      channel = client.channel(channel_name)
       3.times { channel.publish('event', SecureRandom.hex) }
       channel.subscribe do |message|
         messages << message if message.name == 'event'
@@ -98,6 +87,66 @@ describe Ably::Realtime::Channel do
     # Check that all messages use message index 0,1,2
     message_indexes = messages.map { |msg| msg.id.split(':')[2] }
     expect(message_indexes).to include("0", "1", "2")
+  end
+
+  it 'subscribes and unsubscribes' do
+    run_reactor do
+      channel.subscribe('click') do |message|
+        messages << message
+      end
+      channel.attach do
+        channel.unsubscribe('click')
+        channel.publish('click', 'data')
+        EventMachine.add_timer(2) do
+          stop_reactor
+          expect(messages.length).to eql(0)
+        end
+      end
+    end
+  end
+
+  it 'subscribes and unsubscribes from multiple channels' do
+    run_reactor do
+      click_callback = -> (message) { messages << message }
+
+      channel.subscribe('click', &click_callback)
+      channel.subscribe('move', &click_callback)
+      channel.subscribe('press', &click_callback)
+
+      channel.attach do
+        channel.unsubscribe('click')
+        channel.unsubscribe('move', &click_callback)
+        channel.unsubscribe('press') { this_callback_is_not_subscribed_so_ignored }
+
+        channel.publish('click', 'data')
+        channel.publish('move', 'data')
+        channel.publish('press', 'data')
+
+        EventMachine.add_timer(2) do
+          stop_reactor
+          # Only the press subscribe callback should still be subscribed
+          expect(messages.length).to eql(1)
+        end
+      end
+    end
+  end
+
+  context 'attach failure' do
+    let(:restricted_client) do
+      Ably::Realtime::Client.new(api_key: restricted_api_key, environment: environment)
+    end
+    let(:restricted_channel) { restricted_client.channel("cannot_subscribe") }
+
+    it 'triggers failed event' do
+      run_reactor do
+        restricted_channel.attach
+        restricted_channel.on(:failed) do |error|
+          expect(restricted_channel.state).to eq(:failed)
+          expect(error.status_code).to eq(401)
+          stop_reactor
+        end
+      end
+    end
   end
 end
 

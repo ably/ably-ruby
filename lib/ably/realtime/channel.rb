@@ -90,13 +90,23 @@ module Ably
 
       # Subscribe to messages matching providing event name, or all messages if not event provided
       #
-      # @param event [String] The event name of the message to subscribe to if provided.  Defaults to all events.
+      # @param name [String] The event name of the message to subscribe to if provided.  Defaults to all events.
       # @yield [Ably::Realtime::Models::Message] For each message received, the block is called
       #
-      def subscribe(event = :all, &blk)
-        event = event.to_s unless event == :all
+      def subscribe(name = :all, &blk)
         attach unless attached? || attaching?
-        @subscriptions[event] << blk
+        subscriptions[message_name_key(name)] << blk
+      end
+
+      # Unsubscribe the matching block for messages matching providing event name, or all messages if not event provided.
+      # If not block is provided, all subscriptions will be unsubscribed
+      #
+      # @param name [String] The event name of the message to subscribe to if provided.  Defaults to all events.
+      #
+      def unsubscribe(name = :all, &blk)
+        subscriptions[message_name_key(name)].delete_if do |block|
+          !block_given? || blk == block
+        end
       end
 
       # Attach to this channel, and call the block if provided when attached.
@@ -149,12 +159,12 @@ module Ably
       end
 
       private
-      attr_reader :queue
+      attr_reader :queue, :subscriptions
 
       def setup_event_handlers
         __incoming_protocol_msgbus__.subscribe(:message) do |message|
-          @subscriptions[:all].each         { |cb| cb.call(message) }
-          @subscriptions[message.name].each { |cb| cb.call(message) }
+          subscriptions[:all].each         { |cb| cb.call(message) }
+          subscriptions[message.name].each { |cb| cb.call(message) }
         end
 
         on(STATE.Attached) do
@@ -226,6 +236,14 @@ module Ably
       # Used by {Ably::Modules::State} to debug state changes
       def logger
         client.logger
+      end
+
+      def message_name_key(name)
+        if name == :all
+          :all
+        else
+          name.to_s
+        end
       end
     end
   end
