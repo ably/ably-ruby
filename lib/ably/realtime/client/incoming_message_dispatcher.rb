@@ -58,6 +58,9 @@ module Ably::Realtime
           when ACTION.Closed
           when ACTION.Error
             logger.error "Error received: #{protocol_message.error}"
+            if protocol_message.channel && !protocol_message.has_message_serial?
+              get_channel(protocol_message.channel).change_state Ably::Realtime::Channel::STATE.Failed, protocol_message.error
+            end
 
           when ACTION.Attach
           when ACTION.Attached

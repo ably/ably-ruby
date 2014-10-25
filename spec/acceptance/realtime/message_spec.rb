@@ -111,7 +111,7 @@ describe 'Ably::Realtime::Channel Messages' do
       let(:restricted_client) do
         Ably::Realtime::Client.new(options.merge(api_key: restricted_api_key, environment: environment))
       end
-      let(:restricted_channel) { restricted_client.channel(channel_name) }
+      let(:restricted_channel) { restricted_client.channel("cansubscribe:example") }
       let(:payload) { 'Test message without permission to publish' }
 
       it 'calls the error callback' do

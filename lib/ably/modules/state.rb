@@ -42,11 +42,11 @@ module Ably::Modules
     # Set the current state {Ably::Modules::Enum}
     #
     # @return [Symbol] new state
-    def state=(new_state)
+    def state=(new_state, *args)
       if state != new_state
         logger.debug("#{self.class}: State changed from #{state} => #{new_state}") if respond_to?(:logger, true)
         @state = STATE(new_state)
-        trigger @state
+        trigger @state, *args
       end
     end
     alias_method :change_state, :state=
