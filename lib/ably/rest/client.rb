@@ -14,10 +14,12 @@ module Ably
     #   @return [String] A client ID, used for identifying this client for presence purposes
     # @!attribute [r] auth_options
     #   @return [Hash] {Ably::Auth} options configured for this client
-    # @!attribute [r] tls
-    #   @return [Boolean] True if client is configured to use TLS for all Ably communication
     # @!attribute [r] environment
     #   @return [String] May contain 'sandbox' when testing the client library against an alternate Ably environment
+    # @!attribute [r] log_level
+    #   @return [Logger::Severity] Log level configured for this {Client}
+    # @!attribute [r] channels
+    #   @return [Aby::Rest::Channels] The collection of {Ably::Rest::Channel}s that have been created
     class Client
       include Ably::Modules::Conversions
       include Ably::Modules::HttpHelpers
@@ -25,7 +27,7 @@ module Ably
 
       DOMAIN = "rest.ably.io"
 
-      attr_reader :tls, :environment, :protocol, :auth, :channels, :log_level
+      attr_reader :environment, :protocol, :auth, :channels, :log_level
       def_delegators :auth, :client_id, :auth_options
 
       # Creates a {Ably::Rest::Client Rest Client} and configures the {Ably::Auth} object for the connection.
@@ -81,7 +83,7 @@ module Ably
         channels.get(name, channel_options)
       end
 
-      # Return the stats for the application
+      # Retrieve the stats for the application
       #
       # @return [Array] An Array of hashes representing the stats
       def stats(params = {})
@@ -97,7 +99,7 @@ module Ably
         end
       end
 
-      # Return the Ably service time
+      # Retrieve the Ably service time
       #
       # @return [Time] The time as reported by the Ably service
       def time
@@ -106,9 +108,8 @@ module Ably
         as_time_from_epoch(response.body.first)
       end
 
-      # True if client is configured to use TLS for all Ably communication
-      #
-      # @return [Boolean]
+      # @!attribute [r] use_tls?
+      # @return [Boolean] True if client is configured to use TLS for all Ably communication
       def use_tls?
         @tls == true
       end
@@ -127,9 +128,8 @@ module Ably
         request(:post, path, params, options)
       end
 
-      # Default Ably REST endpoint used for all requests
-      #
-      # @return [URI::Generic]
+      # @!attribute [r] endpoint
+      # @return [URI::Generic] Default Ably REST endpoint used for all requests
       def endpoint
         URI::Generic.build(
           scheme: use_tls? ? "https" : "http",
@@ -137,15 +137,17 @@ module Ably
         )
       end
 
+      # @!attribute [r] logger
+      # @return [Logger] The Logger configured for this client when the client was instantiated.
+      #                  Configure the log_level with the `:log_level` option, refer to {Client#initialize}
       def logger
         @logger ||= Logger.new(STDOUT).tap do |logger|
           logger.level = log_level
         end
       end
 
-      # Mime type used for HTTP requests
-      #
-      # @return [String]
+      # @!attribute [r] mime_type
+      # @return [String] Mime type used for HTTP requests
       def mime_type
         case protocol
         when :json
