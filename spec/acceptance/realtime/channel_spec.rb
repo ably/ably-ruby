@@ -11,19 +11,36 @@ describe Ably::Realtime::Channel do
   let(:payload) { SecureRandom.hex(4) }
 
   it 'attachs to a channel' do
-    attached = false
-
     run_reactor do
       channel = client.channel(channel_name)
       channel.attach
       channel.on(:attached) do
         expect(channel.state).to eq(:attached)
-        attached = true
         stop_reactor
       end
     end
+  end
 
-    expect(attached).to eql(true)
+  it 'attachs to a channel with a block' do
+    run_reactor do
+      channel = client.channel(channel_name)
+      channel.attach do
+        expect(channel.state).to eq(:attached)
+        stop_reactor
+      end
+    end
+  end
+
+  it 'detaches a channel with a block' do
+    run_reactor do
+      channel = client.channel(channel_name)
+      channel.attach do |chan|
+        chan.detach do |detached_chan|
+          expect(detached_chan.state).to eq(:detached)
+          stop_reactor
+        end
+      end
+    end
   end
 
   it 'publishes 3 messages once attached' do

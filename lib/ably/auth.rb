@@ -90,7 +90,7 @@ module Ably
     #
     # @yield [options] (optional) if an auth block is passed to this method, then this block will be called to create a new token request object
     # @yieldparam [Hash] options options passed to request_token will be in turn sent to the block in this argument
-    # @yieldreturn [Hash] valid token request object, see {#create_token_request}
+    # @yieldreturn [Hash] valid token request object, see {Auth#create_token_request}
     #
     # @return [Ably::Token]
     #
@@ -131,7 +131,7 @@ module Ably
     #
     # @yield [options] (optional) if an auth block is passed to this method, then this block will be called to create a new token request object
     # @yieldparam [Hash] options options passed to request_token will be in turn sent to the block in this argument
-    # @yieldreturn [Hash] valid token request object, see {#create_token_request}
+    # @yieldreturn [Hash] valid token request object, see {Auth#create_token_request}
     #
     # @return [Ably::Token]
     #

@@ -8,18 +8,20 @@ module Ably
     #   (see Ably::Rest::Client#client_id)
     # @!attribute [r] auth_options
     #   (see Ably::Rest::Client#auth_options)
-    # @!attribute [r] tls
-    #   (see Ably::Rest::Client#tls)
     # @!attribute [r] environment
     #   (see Ably::Rest::Client#environment)
+    # @!attribute [r] channels
+    #   @return [Aby::Realtime::Channels] The collection of {Ably::Realtime::Channel}s that have been created
+    # @!attribute [r] rest_client
+    #   @return [Ably::Rest::Client] The {Ably::Rest::Client REST client} instantiated with the same credentials and configuration that is used for all REST operations such as authentication
     class Client
       extend Forwardable
 
       DOMAIN = 'realtime.ably.io'
 
-      attr_reader :channels, :auth
+      attr_reader :channels, :auth, :rest_client
       def_delegators :auth, :client_id, :auth_options
-      def_delegators :@rest_client, :tls, :environment, :use_tls?, :logger, :log_level
+      def_delegators :@rest_client, :environment, :use_tls?, :logger, :log_level, :time, :stats
 
       # Creates a {Ably::Realtime::Client Realtime Client} and configures the {Ably::Auth} object for the connection.
       #
@@ -42,28 +44,33 @@ module Ably
       #    # create a new client and configure a client ID used for presence
       #    client = Ably::Realtime::Client.new(api_key: 'key.id:secret', client_id: 'john')
       #
-      def initialize(options)
-        @rest_client    = Ably::Rest::Client.new(options)
+      def initialize(options, &auth_block)
+        @rest_client    = Ably::Rest::Client.new(options, &auth_block)
         @auth           = @rest_client.auth
-        @message_serial = 0
+        @channels       = Ably::Realtime::Channels.new(self)
       end
 
-      def token
-        @token ||= rest_client.request_token
-      end
-
-      # Return a Realtime Channel for the given name
+      # Return a {Ably::Realtime::Channel Realtime Channel} for the given name
       #
-      # @param name [String] The name of the channel
-      # @return [Ably::Realtime::Channel]
-      def channel(name)
-        @channels ||= {}
-        @channels[name] ||= Ably::Realtime::Channel.new(self, name)
+      # @param (see Ably::Realtime::Channels#get)
+      #
+      # @return (see Ably::Realtime::Channels#get)
+      def channel(name, channel_options = {})
+        channels.get(name, channel_options)
       end
 
-      # Default Ably Realtime endpoint used for all requests
-      #
-      # @return [URI::Generic]
+      # (see Ably::Rest::Client#time)
+      def time
+        rest_client.time
+      end
+
+      # (see Ably::Rest::Client#stats)
+      def stats(params = {})
+        rest_client.stats(params)
+      end
+
+      # @!attribute [r] endpoint
+      # @return [URI::Generic] Default Ably Realtime endpoint used for all requests
       def endpoint
         URI::Generic.build(
           scheme: use_tls? ? "wss" : "ws",
@@ -71,6 +78,8 @@ module Ably
         )
       end
 
+      # @!attribute [r] connection
+      # @return [Aby::Realtime::Connection] The underlying connection for this client
       def connection
         @connection ||= begin
           host = endpoint.host
@@ -84,9 +93,6 @@ module Ably
           end
         end
       end
-
-      private
-      attr_reader :rest_client
     end
   end
 end
