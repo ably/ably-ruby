@@ -4,13 +4,14 @@ require 'securerandom'
 describe 'Ably::Realtime::Channel Messages' do
   include RSpec::EventMachine
 
+  let(:default_options) { options.merge(api_key: api_key, environment: environment) }
   let(:client) do
-    Ably::Realtime::Client.new(options.merge(api_key: api_key, environment: environment))
+    Ably::Realtime::Client.new(default_options)
   end
   let(:channel) { client.channel(channel_name) }
 
   let(:other_client) do
-    Ably::Realtime::Client.new(options.merge(api_key: api_key, environment: environment))
+    Ably::Realtime::Client.new(default_options)
   end
   let(:other_client_channel) { other_client.channel(channel_name) }
 
@@ -39,12 +40,37 @@ describe 'Ably::Realtime::Channel Messages' do
 
     it 'sends a single message with an echo on another connection' do
       run_reactor do
-        other_client_channel.attach
-        other_client_channel.on(:attached) do
+        other_client_channel.attach do
           channel.publish 'test_event', payload
           other_client_channel.subscribe('test_event') do |message|
             expect(message.data).to eql(payload)
             stop_reactor
+          end
+        end
+      end
+    end
+
+    context 'with echo_messages => false' do
+      let(:no_echo_client) do
+        Ably::Realtime::Client.new(default_options.merge(echo_messages: false))
+      end
+      let(:no_echo_channel) { no_echo_client.channel(channel_name) }
+
+      it 'sends a single message without a reply yet the messages is echoed on another normal connection' do
+        run_reactor do
+          channel.attach do |echo_channel|
+            no_echo_channel.attach do
+              no_echo_channel.publish 'test_event', payload
+
+              no_echo_channel.subscribe('test_event') do |message|
+                fail "Message should not have been echoed back"
+              end
+
+              echo_channel.subscribe('test_event') do |message|
+                expect(message.data).to eql(payload)
+                EventMachine.add_timer(1.5) { stop_reactor }
+              end
+            end
           end
         end
       end
