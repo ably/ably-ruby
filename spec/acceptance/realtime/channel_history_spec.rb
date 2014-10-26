@@ -72,21 +72,49 @@ describe Ably::Realtime::Channel do
         stop_reactor
       end
 
-      it 'retrieves limited history forwards with pagination' do
-        run_reactor(5) do
-          messages_sent.times do |index|
-            channel.publish('event', "history#{index}") do
-              check_limited_history :forwards if index == messages_sent - 1
+      context 'as one ProtocolMessage' do
+        it 'retrieves limited history forwards with pagination' do
+          run_reactor(5) do
+            messages_sent.times do |index|
+              channel.publish('event', "history#{index}") do
+                check_limited_history :forwards if index == messages_sent - 1
+              end
+            end
+          end
+        end
+
+        it 'retrieves limited history backwards with pagination' do
+          run_reactor(5) do
+            messages_sent.times.to_a.reverse.each do |index|
+              channel.publish('event', "history#{index}") do
+                check_limited_history :backwards if index == messages_sent - 1
+              end
             end
           end
         end
       end
 
-      it 'retrieves limited history backwards with pagination' do
-        run_reactor(5) do
-          messages_sent.times.to_a.reverse.each do |index|
-            channel.publish('event', "history#{index}") do
-              check_limited_history :backwards if index == messages_sent - 1
+      context 'in multiple ProtocolMessages' do
+        it 'retrieves limited history forwards with pagination' do
+          run_reactor(5) do
+            messages_sent.times do |index|
+              EventMachine.add_timer(index.to_f / 10) do
+                channel.publish('event', "history#{index}") do
+                  check_limited_history :forwards if index == messages_sent - 1
+                end
+              end
+            end
+          end
+        end
+
+        it 'retrieves limited history backwards with pagination' do
+          run_reactor(5) do
+            messages_sent.times.to_a.reverse.each do |index|
+              EventMachine.add_timer((messages_sent - index).to_f / 10) do
+                channel.publish('event', "history#{index}") do
+                  check_limited_history :backwards if index == 0
+                end
+              end
             end
           end
         end
