@@ -14,14 +14,17 @@ module Ably
     #   @return [Aby::Realtime::Channels] The collection of {Ably::Realtime::Channel}s that have been created
     # @!attribute [r] rest_client
     #   @return [Ably::Rest::Client] The {Ably::Rest::Client REST client} instantiated with the same credentials and configuration that is used for all REST operations such as authentication
+    # @!attribute [r] echo_messages
+    #   @return [Boolean] If false, suppresses messages originating from this connection being echoed back on the same connection.  Defaults to true
     class Client
       extend Forwardable
 
       DOMAIN = 'realtime.ably.io'
 
-      attr_reader :channels, :auth, :rest_client
+      attr_reader :channels, :auth, :rest_client, :echo_messages
       def_delegators :auth, :client_id, :auth_options
-      def_delegators :@rest_client, :environment, :use_tls?, :logger, :log_level, :time, :stats
+      def_delegators :@rest_client, :environment, :use_tls?, :logger, :log_level
+      def_delegators :@rest_client, :time, :stats
 
       # Creates a {Ably::Realtime::Client Realtime Client} and configures the {Ably::Auth} object for the connection.
       #
@@ -48,6 +51,7 @@ module Ably
         @rest_client    = Ably::Rest::Client.new(options, &auth_block)
         @auth           = @rest_client.auth
         @channels       = Ably::Realtime::Channels.new(self)
+        @echo_messages  = options.fetch(:echo_messages, true) == false ? false : true
       end
 
       # Return a {Ably::Realtime::Channel Realtime Channel} for the given name
