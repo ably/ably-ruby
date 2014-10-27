@@ -51,7 +51,7 @@ module Ably
         @rest_client    = Ably::Rest::Client.new(options, &auth_block)
         @auth           = @rest_client.auth
         @channels       = Ably::Realtime::Channels.new(self)
-        @echo_messages  = options.fetch(:echo_messages, true) == false ? false : true
+        @echo_messages  = @rest_client.options.fetch(:echo_messages, true) == false ? false : true
       end
 
       # Return a {Ably::Realtime::Channel Realtime Channel} for the given name
@@ -73,6 +73,11 @@ module Ably
         rest_client.stats(params)
       end
 
+      # (see Ably::Realtime::Connection#close)
+      def close(&block)
+        connection.close(&block)
+      end
+
       # @!attribute [r] endpoint
       # @return [URI::Generic] Default Ably Realtime endpoint used for all requests
       def endpoint
@@ -85,17 +90,7 @@ module Ably
       # @!attribute [r] connection
       # @return [Aby::Realtime::Connection] The underlying connection for this client
       def connection
-        @connection ||= begin
-          host = endpoint.host
-          port = use_tls? ? 443 : 80
-
-          EventMachine.connect(host, port, Connection, self).tap do |connection|
-            connection.on(:connected) do
-              IncomingMessageDispatcher.new(self)
-              OutgoingMessageDispatcher.new(self)
-            end
-          end
-        end
+        @connection ||= Connection.new(self)
       end
     end
   end

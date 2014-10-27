@@ -5,17 +5,43 @@ describe Ably::Realtime::Models::ProtocolMessage do
   include Ably::Modules::Conversions
   subject { Ably::Realtime::Models::ProtocolMessage }
 
+  def new_protocol_message(options)
+    subject.new({ action: 1 }.merge(options))
+  end
+
   it_behaves_like 'a realtime model',
-    with_simple_attributes: %w(channel channel_serial connection_id connection_serial) do
+    with_simple_attributes: %w(channel channel_serial connection_id connection_serial),
+    base_model_options: { action: 1 } do
 
     let(:model_args) { [] }
+  end
+
+  context 'initializer action coercion' do
+    it 'ignores actions that are Integers' do
+      protocol_message = subject.new(action: 14)
+      expect(protocol_message.json[:action]).to eql(14)
+    end
+
+    it 'converts actions to Integers if a symbol' do
+      protocol_message = subject.new(action: :message)
+      expect(protocol_message.json[:action]).to eql(15)
+    end
+
+    it 'converts actions to Integers if a ACTION' do
+      protocol_message = subject.new(action: Ably::Realtime::Models::ProtocolMessage::ACTION.Message)
+      expect(protocol_message.json[:action]).to eql(15)
+    end
+
+    it 'raises an argument error if nil' do
+      expect { subject.new({}) }.to raise_error(ArgumentError)
+    end
   end
 
   context 'attributes' do
     let(:unique_value) { SecureRandom.hex }
 
     context 'Java naming' do
-      let(:protocol_message) { subject.new(channelSerial: unique_value) }
+      let(:protocol_message) { new_protocol_message(channelSerial: unique_value) }
 
       it 'converts the attribute to ruby symbol naming convention' do
         expect(protocol_message.channel_serial).to eql(unique_value)
@@ -23,7 +49,7 @@ describe Ably::Realtime::Models::ProtocolMessage do
     end
 
     context '#action' do
-      let(:protocol_message) { subject.new(action: 14) }
+      let(:protocol_message) { new_protocol_message(action: 14) }
 
       it 'returns an Enum that behaves like a symbol' do
         expect(protocol_message.action).to eq(:presence)
@@ -43,7 +69,7 @@ describe Ably::Realtime::Models::ProtocolMessage do
     end
 
     context '#timestamp' do
-      let(:protocol_message) { subject.new(timestamp: as_since_epoch(Time.now)) }
+      let(:protocol_message) { new_protocol_message(timestamp: as_since_epoch(Time.now)) }
       it 'retrieves attribute :timestamp' do
         expect(protocol_message.timestamp).to be_a(Time)
         expect(protocol_message.timestamp.to_i).to be_within(1).of(Time.now.to_i)
@@ -51,7 +77,7 @@ describe Ably::Realtime::Models::ProtocolMessage do
     end
 
     context '#message_serial' do
-      let(:protocol_message) { subject.new(msg_serial: "55") }
+      let(:protocol_message) { new_protocol_message(msg_serial: "55") }
       it 'converts :msg_serial to an Integer' do
         expect(protocol_message.message_serial).to be_a(Integer)
         expect(protocol_message.message_serial).to eql(55)
@@ -60,21 +86,21 @@ describe Ably::Realtime::Models::ProtocolMessage do
 
     context '#count' do
       context 'when missing' do
-        let(:protocol_message) { subject.new({}) }
+        let(:protocol_message) { new_protocol_message({}) }
         it 'is 1' do
           expect(protocol_message.count).to eql(1)
         end
       end
 
       context 'when non numeric' do
-        let(:protocol_message) { subject.new(count: 'A') }
+        let(:protocol_message) { new_protocol_message(count: 'A') }
         it 'is 1' do
           expect(protocol_message.count).to eql(1)
         end
       end
 
       context 'when greater than 1' do
-        let(:protocol_message) { subject.new(count: '666') }
+        let(:protocol_message) { new_protocol_message(count: '666') }
         it 'is the value of count' do
           expect(protocol_message.count).to eql(666)
         end
@@ -83,7 +109,7 @@ describe Ably::Realtime::Models::ProtocolMessage do
 
     context '#has_message_serial?' do
       context 'without msg_serial' do
-        let(:protocol_message) { subject.new({}) }
+        let(:protocol_message) { new_protocol_message({}) }
 
         it 'returns false' do
           expect(protocol_message.has_message_serial?).to eql(false)
@@ -91,7 +117,7 @@ describe Ably::Realtime::Models::ProtocolMessage do
       end
 
       context 'with msg_serial' do
-        let(:protocol_message) { subject.new(msg_serial: "55") }
+        let(:protocol_message) { new_protocol_message(msg_serial: "55") }
 
         it 'returns true' do
           expect(protocol_message.has_message_serial?).to eql(true)
@@ -101,7 +127,7 @@ describe Ably::Realtime::Models::ProtocolMessage do
 
     context '#error' do
       context 'with no error attribute' do
-        let(:protocol_message) { subject.new(action: 1) }
+        let(:protocol_message) { new_protocol_message(action: 1) }
 
         it 'returns nil' do
           expect(protocol_message.error).to be_nil
@@ -109,7 +135,7 @@ describe Ably::Realtime::Models::ProtocolMessage do
       end
 
       context 'with nil error' do
-        let(:protocol_message) { subject.new(error: nil) }
+        let(:protocol_message) { new_protocol_message(error: nil) }
 
         it 'returns nil' do
           expect(protocol_message.error).to be_nil
@@ -117,7 +143,7 @@ describe Ably::Realtime::Models::ProtocolMessage do
       end
 
       context 'with error' do
-        let(:protocol_message) { subject.new(error: { message: 'test_error' }) }
+        let(:protocol_message) { new_protocol_message(error: { message: 'test_error' }) }
 
         it 'returns a valid ErrorInfo object' do
           expect(protocol_message.error).to be_a(Ably::Realtime::Models::ErrorInfo)
@@ -134,7 +160,7 @@ describe Ably::Realtime::Models::ProtocolMessage do
     let(:message_action) { Ably::Realtime::Models::ProtocolMessage::ACTION.Message }
 
     context 'with valid data' do
-      let(:model) { subject.new({ :action => attached_action, :channelSerial => 'unique', messages: [message] }) }
+      let(:model) { new_protocol_message({ :action => attached_action, :channelSerial => 'unique', messages: [message] }) }
 
       it 'converts the attribute back to Java mixedCase notation using string keys' do
         expect(json_object["channelSerial"]).to eql('unique')
@@ -145,16 +171,8 @@ describe Ably::Realtime::Models::ProtocolMessage do
       end
     end
 
-    context 'with invalid name data' do
-      let(:model) { subject.new({ clientId: 'joe' }) }
-
-      it 'it raises an exception' do
-        expect { model.to_json }.to raise_error KeyError, /Action '' is not supported by ProtocolMessage/
-      end
-    end
-
     context 'with missing msg_serial for ack message' do
-      let(:model) { subject.new({ :action => message_action }) }
+      let(:model) { new_protocol_message({ :action => message_action }) }
 
       it 'it raises an exception' do
         expect { model.to_json }.to raise_error TypeError, /msg_serial is missing/
@@ -162,7 +180,7 @@ describe Ably::Realtime::Models::ProtocolMessage do
     end
 
     context 'is aliased by #to_s' do
-      let(:model) { subject.new({ :action => attached_action, :channelSerial => 'unique', messages: [message], :timestamp => as_since_epoch(Time.now) }) }
+      let(:model) { new_protocol_message({ :action => attached_action, :channelSerial => 'unique', messages: [message], :timestamp => as_since_epoch(Time.now) }) }
 
       specify do
         expect(json_object).to eql(JSON.parse("#{model}"))

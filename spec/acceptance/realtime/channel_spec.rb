@@ -82,7 +82,7 @@ describe Ably::Realtime::Channel do
 
     # Check that all messages share the same message_serial
     message_serials = messages.map { |msg| msg.id.split(':')[1] }
-    expect(message_serials.uniq).to eql(["1"])
+    expect(message_serials.uniq).to eql(["0"])
 
     # Check that all messages use message index 0,1,2
     message_indexes = messages.map { |msg| msg.id.split(':')[2] }

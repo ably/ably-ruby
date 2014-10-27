@@ -119,7 +119,7 @@ module Ably
         if attached?
           block.call self if block_given?
         else
-          on(STATE.Attached) { block.call self } if block_given?
+          once(STATE.Attached) { block.call self } if block_given?
           if !attaching?
             change_state STATE.Attaching
             send_attach_protocol_message
@@ -135,8 +135,7 @@ module Ably
         if detached? || failed?
           block.call self if block_given?
         else
-          on(STATE.Detached) { block.call self } if block_given?
-          on(STATE.Failed)   { block.call self } if block_given?
+          once(STATE.Detached, STATE.Failed) { block.call self } if block_given?
           if !detaching?
             change_state STATE.Detaching
             send_detach_protocol_message
@@ -152,8 +151,8 @@ module Ably
         rest_channel.history(options)
       end
 
-      def __incoming_protocol_msgbus__
-        @__incoming_protocol_msgbus__ ||= Ably::Util::PubSub.new(
+      def __incoming_msgbus__
+        @__incoming_msgbus__ ||= Ably::Util::PubSub.new(
           coerce_into: Proc.new { |event| Models::ProtocolMessage::ACTION(event) }
         )
       end
@@ -162,7 +161,7 @@ module Ably
       attr_reader :queue, :subscriptions
 
       def setup_event_handlers
-        __incoming_protocol_msgbus__.subscribe(:message) do |message|
+        __incoming_msgbus__.subscribe(:message) do |message|
           subscriptions[:all].each         { |cb| cb.call(message) }
           subscriptions[message.name].each { |cb| cb.call(message) }
         end
@@ -192,7 +191,7 @@ module Ably
       def process_queue
         condition = -> { attached? && messages_in_queue? }
         non_blocking_loop_while(condition) do
-          send_messages_within_protocol_message(queue.shift(MAX_PROTOCOL_MESSAGE_BATCH_SIZE))
+          send_messages_within_protocol_message queue.shift(MAX_PROTOCOL_MESSAGE_BATCH_SIZE)
         end
       end
 

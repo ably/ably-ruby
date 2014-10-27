@@ -8,18 +8,15 @@ module Ably::Realtime
 
       ACTION = Models::ProtocolMessage::ACTION
 
-      def initialize(client)
-        @client = client
+      def initialize(client, connection)
+        @client     = client
+        @connection = connection
         subscribe_to_outgoing_protocol_message_queue
         setup_event_handlers
       end
 
       private
-      attr_reader :client
-
-      def connection
-        client.connection
-      end
+      attr_reader :client, :connection
 
       def can_send_messages?
         connection.connected?
@@ -42,7 +39,7 @@ module Ably::Realtime
         non_blocking_loop_while(condition) do
           protocol_message = outgoing_queue.shift
           pending_queue << protocol_message if protocol_message.ack_required?
-          connection.send_text(protocol_message.to_json)
+          connection.transport.send_text(protocol_message.to_json)
           client.logger.debug("Prot msg sent =>: #{protocol_message.action} #{protocol_message}")
         end
       end

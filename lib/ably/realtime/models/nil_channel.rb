@@ -14,8 +14,8 @@ module Ably::Realtime::Models
       'Nil channel'
     end
 
-    def __incoming_protocol_msgbus__
-      @__incoming_protocol_msgbus__ ||= Ably::Util::PubSub.new
+    def __incoming_msgbus__
+      @__incoming_msgbus__ ||= Ably::Util::PubSub.new
     end
   end
 end

@@ -1,24 +1,17 @@
 require 'spec_helper'
-require "support/protocol_msgbus_helper"
+require 'support/protocol_msgbus_helper'
+require 'support/event_machine_helper'
 
 describe Ably::Realtime::Connection do
-  let(:client) { double(:client) }
-  let(:klass) { Class.new(Ably::Realtime::Connection) do; end }
-
-  before do
-    # Override self.new with a generic implementation of new as EventMachine::Connection
-    # overrides self.new by default, and using EventMachine in unit tests is unnecessary
-    klass.instance_eval do
-      def self.new(*args)
-        obj = self.allocate
-        obj.orig_send :initialize, *args
-        obj
-      end
-    end
-  end
+  let(:client) { instance_double('Ably::Realtime::Client', logger: double('logger').as_null_object) }
 
   subject do
-    klass.new(client)
+    Ably::Realtime::Connection.new(client)
+  end
+
+  before do
+    expect(EventMachine::Timer).to receive(:new)
+    expect(EventMachine).to receive(:next_tick)
   end
 
   describe 'callbacks' do

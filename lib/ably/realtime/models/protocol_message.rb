@@ -15,13 +15,13 @@ module Ably::Realtime::Models
   # @!attribute [r] channel
   #   @return [String] Channel name for messages
   # @!attribute [r] channel_serial
-  #   @return [String] Contains a serial number for amessage on the current channel
+  #   @return [String] Contains a serial number for a message on the current channel
   # @!attribute [r] connection_id
   #   @return [String] Contains a string connection ID
   # @!attribute [r] connection_serial
-  #   @return [Bignum] Contains a serial number for a message on the current connection
+  #   @return [Bignum] Contains a serial number for a message sent from the server to the client
   # @!attribute [r] message_serial
-  #   @return [Bignum] Contains a serial number for a message sent from the client to the service.
+  #   @return [Bignum] Contains a serial number for a message sent from the client to the server
   # @!attribute [r] timestamp
   #   @return [Time] An optional timestamp, applied by the service in messages sent to the client, to indicate the system time at which the message was sent (milliseconds past epoch)
   # @!attribute [r] messages
@@ -66,7 +66,12 @@ module Ably::Realtime::Models
 
     def initialize(json_object)
       @raw_json_object = json_object
-      @json_object     = IdiomaticRubyWrapper(@raw_json_object.clone.freeze)
+      @json_object     = IdiomaticRubyWrapper(@raw_json_object.clone)
+
+      raise ArgumentError, "Invalid ProtocolMessage, action cannot be nil" if @json_object[:action].nil?
+      @json_object[:action] = ACTION(@json_object[:action]).to_i unless @json_object[:action].kind_of?(Integer)
+
+      @json_object.freeze
     end
 
     %w( channel channel_serial

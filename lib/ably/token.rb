@@ -13,7 +13,7 @@ module Ably
     TOKEN_EXPIRY_BUFFER = 5
 
     def initialize(attributes)
-      @attributes = attributes.clone.freeze
+      @attributes = IdiomaticRubyWrapper(attributes.clone.freeze)
     end
 
     # Unique token ID used to authenticate requests
