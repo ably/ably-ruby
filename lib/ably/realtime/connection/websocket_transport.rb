@@ -15,7 +15,7 @@ module Ably::Realtime
         :disconnecting,
         :disconnected
       )
-      include Ably::Modules::State
+      include Ably::Modules::StateEmitter
 
       def initialize(connection)
         @connection = connection

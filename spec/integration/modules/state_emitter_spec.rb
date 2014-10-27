@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe Ably::Modules::State do
+describe Ably::Modules::StateEmitter do
   class ExampleStateWithEventEmitter
     include Ably::Modules::EventEmitter
     extend  Ably::Modules::Enum
@@ -11,7 +11,7 @@ describe Ably::Modules::State do
       :connected,
       :disconnected
     )
-    include Ably::Modules::State
+    include Ably::Modules::StateEmitter
 
     def initialize
       @state = :initializing
