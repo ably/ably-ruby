@@ -42,6 +42,7 @@ module Ably::Modules
     # Set the current state {Ably::Modules::Enum}
     #
     # @return [Symbol] new state
+    # @api private
     def state=(new_state, *args)
       if state != new_state
         logger.debug("#{self.class}: State changed from #{state} => #{new_state}") if respond_to?(:logger, true)

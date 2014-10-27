@@ -18,11 +18,12 @@ Gem::Specification.new do |spec|
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
   spec.require_paths = ["lib"]
 
-  spec.add_runtime_dependency "eventmachine"
+  spec.add_runtime_dependency "eventmachine", "~> 1.0"
+  spec.add_runtime_dependency "statesman", "~> 1.0.0.beta2"
   spec.add_runtime_dependency "faraday", "~> 0.9"
   spec.add_runtime_dependency "json"
-  spec.add_runtime_dependency "websocket-driver"
-  spec.add_runtime_dependency "msgpack"
+  spec.add_runtime_dependency "websocket-driver", "~> 0.3"
+  spec.add_runtime_dependency "msgpack", "~> 0.5"
 
   spec.add_development_dependency "bundler", "~> 1.3"
   spec.add_development_dependency "rake"

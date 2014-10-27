@@ -5,7 +5,7 @@ class TestApp
     'keys' => [
       {},
       {
-        'capability' => '{ "*":["subscribe"], "canpublish:*":["publish"], "canpublish:andpresence":["presence","publish"] }'
+        'capability' => '{ "cansubscribe:*":["subscribe"], "canpublish:*":["publish"], "canpublish:andpresence":["presence","publish"] }'
       }
     ],
     'namespaces' => [

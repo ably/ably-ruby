@@ -162,6 +162,11 @@ module Ably::Models
       Ably::Models::IdiomaticRubyWrapper.new(json.dup)
     end
 
+    # Freeze the underlying data
+    def freeze
+      json.freeze
+    end
+
     private
     def stop_at?(key)
       @stop_at.has_key?(key)

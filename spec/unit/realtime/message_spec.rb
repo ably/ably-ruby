@@ -77,6 +77,7 @@ describe Ably::Realtime::Models::Message do
 
     let(:protocol_message) do
       Ably::Realtime::Models::ProtocolMessage.new({
+        action: :message,
         timestamp: ably_time.to_i,
         msg_serial: message_serial,
         connection_id: connection_id,

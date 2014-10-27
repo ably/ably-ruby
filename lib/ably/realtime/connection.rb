@@ -25,18 +25,16 @@ module Ably
     #
     # @!attribute [r] state
     #   @return {Ably::Realtime::Connection::STATE} connection state
-    # @!attribute [r] __outgoing_message_queue__
-    #   @return [Array] An internal queue used to manage unsent outgoing messages.  You should never interface with this array directly.
-    # @!attribute [r] __pending_message_queue__
-    #   @return [Array] An internal queue used to manage sent messages.  You should never interface with this array directly.
-    #
-    class Connection < EventMachine::Connection
-      include Ably::Modules::Conversions
+    # @!attribute [r] id
+    #   @return {String} the assigned connection ID
+    # @!attribute [r] error_reason
+    #   @return {Ably::Realtime::Models::ErrorInfo} error information associated with a connection failure
+    class Connection
       include Ably::Modules::EventEmitter
       extend Ably::Modules::Enum
 
+      # Valid Connection states
       STATE = ruby_enum('STATE',
-        :initializing,
         :initialized,
         :connecting,
         :connected,
@@ -47,21 +45,125 @@ module Ably
       )
       include Ably::Modules::State
 
-      attr_reader :__outgoing_message_queue__, :__pending_message_queue__
+      attr_reader :id, :error_reason, :client
 
+      # @api private
+      # Underlying socket transport used for this connection, for internal use by the client library
+      # @return {Ably::Realtime::Connection::WebsocketTransport}
+      attr_reader :transport
+
+      # @api private
+      # An internal queue used to manage unsent outgoing messages.  You should never interface with this array directly
+      # @return [Array]
+      attr_reader :__outgoing_message_queue__
+
+      # @api private
+      # An internal queue used to manage sent messages.  You should never interface with this array directly
+      # @return [Array]
+      attr_reader :__pending_message_queue__
+
+      # @api private
+      # Timers used to manage connection state, for internal use by the client library
+      # @return [Hash]
+      attr_reader :timers
+
+      # @api public
       def initialize(client)
         @client                     = client
-        @message_serial             = 0
+
+        @serial                     = -1
         @__outgoing_message_queue__ = []
         @__pending_message_queue__  = []
-        @state                      = STATE.Initializing
+
+        @timers                     = Hash.new { |hash, key| hash[key] = [] }
+        @timers[:initializer]       << EventMachine::Timer.new(0.001) { connect }
+
+        Client::IncomingMessageDispatcher.new client, self
+        Client::OutgoingMessageDispatcher.new client, self
+
+        EventMachine.next_tick do
+          trigger STATE.Initialized
+        end
+
+        @state_machine              = ConnectionStateMachine.new(self)
+        @state                      = STATE(state_machine.current_state)
       end
 
-      # Required for test /unit/realtime/connection_spec.rb
-      alias_method :orig_send, :send
+      # Causes the connection to close, entering the closed state, from any state except
+      # the failed state. Once closed, the library will not attempt to re-establish the
+      # connection without a call to {Connection#connect}.
+      #
+      # @yield [Ably::Realtime::Connection] block is called as soon as this connection is in the Closed state
+      #
+      # @return <void>
+      def close(&block)
+        if closed?
+          block.call self
+        else
+          EventMachine.next_tick do
+            state_machine.transition_to(:closed)
+          end
+          once(STATE.Closed) { block.call self } if block_given?
+        end
+      end
+
+      # Causes the library to re-attempt connection, if it was previously explicitly
+      # closed by the user, or was closed as a result of an unrecoverable error.
+      #
+      # @yield [Ably::Realtime::Connection] block is called as soon as this connection is in the Connected state
+      #
+      # @return <void>
+      def connect(&block)
+        if connected?
+          block.call self
+        else
+          state_machine.transition_to(:connecting)
+          once(STATE.Connected) { block.call self } if block_given?
+        end
+      end
+
+      # Reconfigure the current connection ID and serial
+      # @return <void>
+      # @api private
+      def update_connection_serial(connection_id, serial = 0)
+        @id     = connection_id
+        @serial = serial if serial
+      end
+
+      # Send #transition_to to connection state machine
+      # @return [Boolean] true if new_state can be transitioned_to by state machine
+      # @api private
+      def transition_state_machine(new_state)
+        state_machine.transition_to(new_state)
+      end
+
+      # @!attribute [r] __outgoing_protocol_msgbus__
+      # @return [Ably::Util::PubSub] Client library internal outgoing message bus
+      # @api private
+      def __outgoing_protocol_msgbus__
+        @__outgoing_protocol_msgbus__ ||= create_pub_sub_message_bus
+      end
+
+      # @!attribute [r] __incoming_protocol_msgbus__
+      # @return [Ably::Util::PubSub] Client library internal incoming message bus
+      # @api private
+      def __incoming_protocol_msgbus__
+        @__incoming_protocol_msgbus__ ||= create_pub_sub_message_bus
+      end
+
+      # @!attribute [r] logger
+      # @return [Logger] The Logger configured for this client when the client was instantiated.
+      #                  Configure the log_level with the `:log_level` option, refer to {Ably::Realtime::Client#initialize}
+      def logger
+        client.logger
+      end
 
       # Add protocol message to the outgoing message queue and notify the dispatcher that a message is
       # ready to be sent
+      #
+      # @param [Ably::Realtime::Models::ProtocolMessage] protocol_message
+      # @return <void>
+      # @api private
       def send_protocol_message(protocol_message)
         add_message_serial_if_ack_required_to(protocol_message) do
           protocol_message = Models::ProtocolMessage.new(protocol_message)
@@ -71,57 +173,40 @@ module Ably
         end
       end
 
-      # EventMachine::Connection interface
-      def post_init
-        change_state STATE.Initialized
+      # Creates and sets up a new {WebSocketTransport} available on attribute #transport
+      # @yield [Ably::Realtime::Connection::WebsocketTransport] block is called with new websocket transport
+      # @api private
+      def setup_transport(&block)
+        if transport && !transport.ready_for_release?
+          raise RuntimeError, "Existing WebsocketTransport is connected, and must be closed first"
+        end
 
-        setup_driver
+        @transport = EventMachine.connect(connection_host, connection_port, WebsocketTransport, self) do |websocket|
+          yield websocket
+        end
       end
 
-      def connection_completed
-        change_state STATE.Connecting
+      # Reconnect the {Ably::Realtime::Connection::WebsocketTransport} following a disconnection
+      # @api private
+      def reconnect_transport
+        raise RuntimeError, "WebsocketTransport is not set up" if !transport
+        raise RuntimeError, "WebsocketTransport is not disconnected so cannot be reconnected" if !transport.disconnected?
 
-        start_tls if client.use_tls?
-        driver.start
-      end
-
-      def receive_data(data)
-        driver.parse(data)
-      end
-
-      def unbind
-        change_state STATE.Disconnected
-      end
-
-      # WebSocket::Driver interface
-      def url
-        URI(client.endpoint).tap do |endpoint|
-          endpoint.query = URI.encode_www_form(client.auth.auth_params.merge(timestamp: as_since_epoch(Time.now), binary: false))
-        end.to_s
-      end
-
-      def write(data)
-        send_data(data)
-      end
-
-      def send_text(text)
-        driver.text(text)
-      end
-
-      # Client library internal outgoing message bus
-      def __outgoing_protocol_msgbus__
-        @__outgoing_protocol_msgbus__ ||= pub_sub_message_bus
-      end
-
-      # Client library internal incoming message bus
-      def __incoming_protocol_msgbus__
-        @__incoming_protocol_msgbus__ ||= pub_sub_message_bus
+        transport.reconnect(connection_host, connection_port)
       end
 
       private
-      attr_reader :client, :driver, :message_serial
+      attr_reader :manager, :serial, :state_machine
 
-      def pub_sub_message_bus
+      def connection_host
+        client.endpoint.host
+      end
+
+      def connection_port
+        client.use_tls? ? 443 : 80
+      end
+
+      def create_pub_sub_message_bus
         Ably::Util::PubSub.new(
           coerce_into: Proc.new { |event| Models::ProtocolMessage::ACTION(event) }
         )
@@ -136,36 +221,12 @@ module Ably
       end
 
       def add_message_serial_to(protocol_message)
-        @message_serial += 1
-        protocol_message[:msgSerial] = @message_serial
+        @serial += 1
+        protocol_message[:msgSerial] = serial
         yield
       rescue StandardError => e
-        @message_serial -= 1
+        @serial -= 1
         raise e
-      end
-
-      def setup_driver
-        @driver = WebSocket::Driver.client(self)
-
-        driver.on("open") do
-          logger.debug("WebSocket connection opened to #{url}")
-          change_state STATE.Connected
-        end
-
-        driver.on("message") do |event|
-          begin
-            message = Models::ProtocolMessage.new(JSON.parse(event.data).freeze)
-            logger.debug("Prot msg recv <=: #{message.action} #{event.data}")
-            __incoming_protocol_msgbus__.publish :message, message
-          rescue KeyError
-            client.logger.error("Unsupported Protocol Message received, unrecognised 'action': #{event.data}\nNo action taken")
-          end
-        end
-      end
-
-      # Used by {Ably::Modules::State} to debug state changes
-      def logger
-        client.logger
       end
     end
   end

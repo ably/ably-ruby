@@ -30,6 +30,11 @@ module Ably
       attr_reader :environment, :protocol, :auth, :channels, :log_level
       def_delegators :auth, :client_id, :auth_options
 
+      # The additional options passed to this Client's #initialize method not available as attributes of this class
+      # @return [Hash]
+      # @api private
+      attr_reader :options
+
       # Creates a {Ably::Rest::Client Rest Client} and configures the {Ably::Auth} object for the connection.
       #
       # @param [Hash,String] options an options Hash used to configure the client and the authentication, or String with an API key
@@ -55,7 +60,6 @@ module Ably
       #
       def initialize(options, &auth_block)
         options = options.clone
-
         if options.kind_of?(String)
           options = { api_key: options }
         end
@@ -65,6 +69,7 @@ module Ably
         @protocol            = options.delete(:protocol) || :json # TODO: Default to :msgpack when protocol MsgPack support added
         @debug_http          = options.delete(:debug_http)
         @log_level           = options.delete(:log_level) || Logger::ERROR
+        @options             = options.freeze
 
         @log_level = Logger.const_get(log_level.to_s.upcase) if log_level.kind_of?(Symbol) || log_level.kind_of?(String)
 

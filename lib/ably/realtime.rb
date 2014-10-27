@@ -7,6 +7,8 @@ require "ably/realtime/channel"
 require "ably/realtime/channels"
 require "ably/realtime/client"
 require "ably/realtime/connection"
+require "ably/realtime/connection/connection_state_machine"
+require "ably/realtime/connection/websocket_transport"
 
 require "ably/realtime/models/shared"
 require "ably/realtime/models/error_info"

@@ -49,7 +49,7 @@ describe Ably::Modules::Conversions do
       let(:seconds) { Time.new.to_f }
 
       it 'converts to Time from milliseconds by default' do
-        expect(subject.as_time_from_epoch(millisecond).to_f).to be_within(0.001).of(time.to_f)
+        expect(subject.as_time_from_epoch(millisecond).to_f).to be_within(0.01).of(time.to_f)
       end
 
       it 'converts to Time from seconds' do

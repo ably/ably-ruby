@@ -5,17 +5,14 @@ module Ably::Realtime
     class IncomingMessageDispatcher
       ACTION = Models::ProtocolMessage::ACTION
 
-      def initialize(client)
-        @client = client
+      def initialize(client, connection)
+        @client     = client
+        @connection = connection
         subscribe_to_incoming_protocol_messages
       end
 
       private
-      attr_reader :client
-
-      def connection
-        client.connection
-      end
+      attr_reader :client, :connection
 
       def channels
         client.channels
@@ -43,6 +40,8 @@ module Ably::Realtime
           logger.debug "#{protocol_message.action} received: #{protocol_message}"
         end
 
+        update_connection_serial protocol_message
+
         case protocol_message.action
           when ACTION.Heartbeat
           when ACTION.Ack
@@ -52,10 +51,16 @@ module Ably::Realtime
             logger.warn "NACK received: #{protocol_message}"
             nack_pending_queue_for_message_serial(protocol_message) if protocol_message.has_message_serial?
 
-          when ACTION.Connect, ACTION.Connected
+          when ACTION.Connect
+          when ACTION.Connected
+            connection.transition_state_machine :connected
+
           when ACTION.Disconnect, ACTION.Disconnected
+
           when ACTION.Close
           when ACTION.Closed
+            connection.transition_state_machine :closed
+
           when ACTION.Error
             logger.error "Error received: #{protocol_message.error}"
             if protocol_message.channel && !protocol_message.has_message_serial?
@@ -73,12 +78,19 @@ module Ably::Realtime
           when ACTION.Presence
           when ACTION.Message
             protocol_message.messages.each do |message|
-              get_channel(protocol_message.channel).__incoming_protocol_msgbus__.publish :message, message
+              get_channel(protocol_message.channel).__incoming_msgbus__.publish :message, message
             end
 
           else
             raise ArgumentError, "Protocol Message Action #{protocol_message.action} is unsupported by this MessageDispatcher"
         end
+      end
+
+      def update_connection_serial(protocol_message)
+        if protocol_message.connection_id && (protocol_message.connection_id != connection.id)
+          logger.debug "New connection ID set to #{protocol_message.connection_id}"
+        end
+        connection.update_connection_serial protocol_message.connection_id, protocol_message.connection_serial
       end
 
       def ack_pending_queue_for_message_serial(ack_protocol_message)

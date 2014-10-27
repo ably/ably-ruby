@@ -5,7 +5,7 @@ describe Ably::Rest::Models::PagedResource do
   let(:paged_resource_class) { Ably::Rest::Models::PagedResource }
   let(:headers) { Hash.new }
   let(:client) do
-    double('client').tap do |client|
+    instance_double('Ably::Rest::Client').tap do |client|
       allow(client).to receive(:get).and_return(http_response)
     end
   end
@@ -16,7 +16,7 @@ describe Ably::Rest::Models::PagedResource do
     ]
   end
   let(:http_response) do
-    double('http_response', {
+    instance_double('Faraday::Response', {
       body: body,
       headers: headers
     })
