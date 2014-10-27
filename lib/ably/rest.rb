@@ -2,7 +2,7 @@ require "ably/rest/channel"
 require "ably/rest/channels"
 require "ably/rest/client"
 require "ably/rest/models/message"
-require "ably/rest/models/paged_resource"
+require "ably/rest/models/paginated_resource"
 require "ably/rest/models/presence_message"
 require "ably/rest/presence"
 
