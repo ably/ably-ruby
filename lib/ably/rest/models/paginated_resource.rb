@@ -3,16 +3,16 @@ module Ably::Rest::Models
   # the array of resources using {#first}, {#next}, {#last?} and {#first?}
   #
   # Paging information is provided by Ably in the LINK HTTP headers
-  class PagedResource
+  class PaginatedResource
     include Enumerable
 
     # @param [Faraday::Response] http_response Initial HTTP response from an Ably request to a paged resource
     # @param [String] base_url Base URL for request that generated the http_response so that subsequent paged requests can be made
     # @param [Client] client {Ably::Client} used to make the request to Ably
     # @param [Hash] options Options for this paged resource
-    # @option options [Symbol,String] :coerce_into symbol or string representing class that should be used to create each item in the PagedResource
+    # @option options [Symbol,String] :coerce_into symbol or string representing class that should be used to create each item in the PaginatedResource
     #
-    # @return [PagedResource]
+    # @return [PaginatedResource]
     def initialize(http_response, base_url, client, options = {})
       @http_response = http_response
       @client        = client
@@ -30,17 +30,17 @@ module Ably::Rest::Models
 
     # Retrieve the first page of results
     #
-    # @return [PagedResource]
+    # @return [PaginatedResource]
     def first_page
-      PagedResource.new(client.get(pagination_url('first')), base_url, client, coerce_into: coerce_into)
+      PaginatedResource.new(client.get(pagination_url('first')), base_url, client, coerce_into: coerce_into)
     end
 
     # Retrieve the next page of results
     #
-    # @return [PagedResource]
+    # @return [PaginatedResource]
     def next_page
       raise Ably::Exceptions::InvalidPageError, "There are no more pages" if supports_pagination? && last_page?
-      PagedResource.new(client.get(pagination_url('next')), base_url, client, coerce_into: coerce_into)
+      PaginatedResource.new(client.get(pagination_url('next')), base_url, client, coerce_into: coerce_into)
     end
 
     # True if this is the last page in the paged resource set
@@ -78,7 +78,7 @@ module Ably::Rest::Models
     alias_method :count, :length
     alias_method :size,  :length
 
-    # Method ensuring this {PagedResource} is {http://ruby-doc.org/core-2.1.3/Enumerable.html Enumerable}
+    # Method ensuring this {PaginatedResource} is {http://ruby-doc.org/core-2.1.3/Enumerable.html Enumerable}
     def each(&block)
       body.each do |item|
         if block_given?

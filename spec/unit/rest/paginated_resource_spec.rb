@@ -1,8 +1,8 @@
 require 'spec_helper'
 require 'ostruct'
 
-describe Ably::Rest::Models::PagedResource do
-  let(:paged_resource_class) { Ably::Rest::Models::PagedResource }
+describe Ably::Rest::Models::PaginatedResource do
+  let(:paginated_resource_class) { Ably::Rest::Models::PaginatedResource }
   let(:headers) { Hash.new }
   let(:client) do
     instance_double('Ably::Rest::Client').tap do |client|
@@ -23,8 +23,8 @@ describe Ably::Rest::Models::PagedResource do
   end
   let(:base_url) { 'http://rest.ably.io/channels/channel_name' }
   let(:full_url) { "#{base_url}/whatever?param=exists" }
-  let(:paged_resource_options) { Hash.new }
-  let(:first_paged_request) { paged_resource_class.new(http_response, full_url, client, paged_resource_options) }
+  let(:paginated_resource_options) { Hash.new }
+  let(:first_paged_request) { paginated_resource_class.new(http_response, full_url, client, paginated_resource_options) }
   subject { first_paged_request }
 
   it 'returns correct length from body' do
@@ -51,7 +51,7 @@ describe Ably::Rest::Models::PagedResource do
   end
 
   context 'with coercion' do
-    let(:paged_resource_options) { { coerce_into: 'OpenStruct' } }
+    let(:paginated_resource_options) { { coerce_into: 'OpenStruct' } }
 
     it 'returns coerced objects' do
       expect(subject.first).to be_a(OpenStruct)
@@ -130,8 +130,8 @@ describe Ably::Rest::Models::PagedResource do
         expect(client).to receive(:get).with("#{base_url}/history?index=1").and_return(next_http_response).once
       end
 
-      it 'returns another PagedResource' do
-        expect(subject).to be_a(paged_resource_class)
+      it 'returns another PaginatedResource' do
+        expect(subject).to be_a(paginated_resource_class)
       end
 
       it 'retrieves the next page of results' do
@@ -158,8 +158,8 @@ describe Ably::Rest::Models::PagedResource do
         end
         subject { first_paged_request.next_page.first_page }
 
-        it 'returns a PagedResource' do
-          expect(subject).to be_a(paged_resource_class)
+        it 'returns a PaginatedResource' do
+          expect(subject).to be_a(paginated_resource_class)
         end
 
         it 'retrieves the first page of results' do

@@ -20,7 +20,7 @@ module Ably
     # The HTTP request has returned a 500 error
     class ServerError < StandardError; end
 
-    # PagedResource cannot retrieve the page
+    # PaginatedResource cannot retrieve the page
     class InvalidPageError < StandardError; end
 
     # The expected response from the server was invalid
