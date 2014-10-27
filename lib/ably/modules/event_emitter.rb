@@ -39,30 +39,65 @@ module Ably
       end
 
       # On receiving an event matching the event_name, call the provided block
-      def on(event_name, &block)
-        callbacks[callbacks_event_coerced(event_name)] << block
+      #
+      # @param [Array<String>] event_names event name
+      #
+      # @return <void>
+      def on(*event_names, &block)
+        event_names.each do |event_name|
+          callbacks[callbacks_event_coerced(event_name)] << proc_for_block(block)
+        end
+      end
+
+      # On receiving an event maching the event_name, call the provided block only once and remove the registered callback
+      #
+      # @param [Array<String>] event_names event name
+      #
+      # @return <void>
+      def once(*event_names, &block)
+        event_names.each do |event_name|
+          callbacks[callbacks_event_coerced(event_name)] << proc_for_block(block, delete_once_run: true)
+        end
       end
 
       # Trigger an event with event_name that will in turn call all matching callbacks setup with `on`
       def trigger(event_name, *args)
-        callbacks[callbacks_event_coerced(event_name)].each { |cb| cb.call(*args) }
+        callbacks[callbacks_event_coerced(event_name)].delete_if { |proc_hash| proc_hash[:trigger_proc].call(*args) }
       end
 
       # Remove all callbacks for event_name.
       #
       # If a block is provided, only callbacks matching that block signature will be removed.
       # If block is not provided, all callbacks matching the event_name will be removed.
-      def off(event_name, &block)
-        if block_given?
-          callbacks[callbacks_event_coerced(event_name)].delete(block)
-        else
-          callbacks[callbacks_event_coerced(event_name)].clear
+      #
+      # @param [Array<String>] event_names event name
+      #
+      # @return <void>
+      def off(*event_names, &block)
+        event_names.each do |event_name|
+          if block_given?
+            callbacks[callbacks_event_coerced(event_name)].delete_if { |proc_hash| proc_hash[:block] == block }
+          else
+            callbacks[callbacks_event_coerced(event_name)].clear
+          end
         end
       end
 
       private
       def self.included(klass)
         klass.extend ClassMethods
+      end
+
+      # Create a Hash with a proc that calls the provided block and returns true if option :delete_once_run is set to true.
+      # #trigger automatically deletes any blocks that return true thus allowing a block to be run once
+      def proc_for_block(block, options = {})
+        {
+          trigger_proc: Proc.new do |*args|
+            block.call *args
+            true if options[:delete_once_run]
+          end,
+          block: block
+        }
       end
 
       def callbacks
