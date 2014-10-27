@@ -40,7 +40,7 @@ module Ably
         :detached,
         :failed
       )
-      include Ably::Modules::State
+      include Ably::Modules::StateEmitter
 
       # Max number of messages to bundle in a single ProtocolMessage
       MAX_PROTOCOL_MESSAGE_BATCH_SIZE = 50
@@ -232,7 +232,7 @@ module Ably
         client.rest_client.channel(name)
       end
 
-      # Used by {Ably::Modules::State} to debug state changes
+      # Used by {Ably::Modules::StateEmitter} to debug state changes
       def logger
         client.logger
       end

@@ -43,7 +43,7 @@ module Ably
         :closed,
         :failed
       )
-      include Ably::Modules::State
+      include Ably::Modules::StateEmitter
 
       attr_reader :id, :error_reason, :client
 

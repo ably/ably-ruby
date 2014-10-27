@@ -1,7 +1,7 @@
 module Ably::Modules
-  # State module adds a set of generic state related methods to a class on the assumption that
+  # StateEmitter module adds a set of generic state related methods to a class on the assumption that
   # the instance variable @state is used exclusively, the {Enum} STATE is defined prior to inclusion of this
-  # module, and the class is an {EventEmitter}
+  # module, and the class is an {EventEmitter}.  It then emits state changes.
   #
   # @example
   #   class Connection
@@ -12,7 +12,7 @@ module Ably::Modules
   #       :connecting,
   #       :connected
   #     )
-  #     include Ably::Modules::State
+  #     include Ably::Modules::StateEmitter
   #   end
   #
   #   connection = Connection.new
@@ -24,7 +24,7 @@ module Ably::Modules
   #   connection.trigger :invalid        # raises an Exception as only a valid state can be used for EventEmitter
   #   connection.change_state :connected # emits :connected event via EventEmitter, returns STATE.Connected
   #
-  module State
+  module StateEmitter
     # Current state {Ably::Modules::Enum}
     #
     # @return [Symbol] state
@@ -45,7 +45,7 @@ module Ably::Modules
     # @api private
     def state=(new_state, *args)
       if state != new_state
-        logger.debug("#{self.class}: State changed from #{state} => #{new_state}") if respond_to?(:logger, true)
+        logger.debug("#{self.class}: StateEmitter changed from #{state} => #{new_state}") if respond_to?(:logger, true)
         @state = STATE(new_state)
         trigger @state, *args
       end

@@ -4,7 +4,7 @@ module Ably::Realtime::Models
     include Ably::Modules::EventEmitter
     extend Ably::Modules::Enum
     STATE = ruby_enum('STATE', Ably::Realtime::Channel::STATE)
-    include Ably::Modules::State
+    include Ably::Modules::StateEmitter
 
     def initialize
       @state = STATE.Initialized
