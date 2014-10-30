@@ -55,6 +55,16 @@ channel = client.channel("test")
 channel.publish("greeting", "Hello World!")
 ```
 
+### Presence on a channel
+
+```ruby
+client = Ably::Realtime.new(api_key: "xxxxx")
+channel = client.channel("test")
+channel.presence.enter(client_data: 'john.doe') do |presence|
+  presence.get #=> [Array of members present]
+end
+```
+
 ## Using the REST API
 
 ### Publishing a message to a channel
@@ -78,7 +88,7 @@ channel.history #=> [{:name=>"test", :data=>"payload"}]
 ```ruby
 client = Ably::Rest.new(api_key: "xxxxx")
 client.auth.authorise # creates a token and will use token authentication moving forwards
-client.auth.current_token #=> #<Ably::Token>
+client.auth.current_token #=> #<Ably::Models::Token>
 channel.publish("myEvent", "Hello!") #=> true, sent using token authentication
 ```
 
