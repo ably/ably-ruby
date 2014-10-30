@@ -2,7 +2,7 @@ require 'spec_helper'
 require "support/protocol_msgbus_helper"
 
 describe Ably::Realtime::Channel do
-  let(:client) { instance_double('Ably::Realtime::Client') }
+  let(:client) { double('client').as_null_object }
   let(:channel_name) { 'test' }
 
   subject do
@@ -42,6 +42,60 @@ describe Ably::Realtime::Channel do
       expect { msgbus.subscribe(:invalid) }.to raise_error KeyError
       expect { msgbus.publish(:invalid) }.to raise_error KeyError
       expect { msgbus.unsubscribe(:invalid) }.to raise_error KeyError
+    end
+  end
+
+  context 'subscriptions' do
+    let(:message_history) { Hash.new { |hash, key| hash[key] = 0 } }
+    let(:event_name) { 'click' }
+    let(:message) { instance_double('Ably::Realtime::Models::Message', name: event_name) }
+
+    context '#subscribe' do
+      specify 'to all events' do
+        subject.subscribe { |message| message_history[:received] += 1}
+        subject.__incoming_msgbus__.publish(:message, message)
+        expect(message_history[:received]).to eql(1)
+      end
+
+      specify 'to specific events' do
+        subject.subscribe(event_name) { |message| message_history[:received] += 1 }
+        subject.subscribe('move')  { |message| message_history[:received] += 1 }
+        subject.__incoming_msgbus__.publish(:message, message)
+        expect(message_history[:received]).to eql(1)
+      end
+    end
+
+    context '#unsubscribe' do
+      let(:callback) do
+        Proc.new { |message| message_history[:received] += 1 }
+      end
+      before do
+        subject.subscribe(event_name, &callback)
+      end
+
+      specify 'to all events' do
+        subject.unsubscribe &callback
+        subject.__incoming_msgbus__.publish(:message, message)
+        expect(message_history[:received]).to eql(0)
+      end
+
+      specify 'to specific events' do
+        subject.unsubscribe event_name, &callback
+        subject.__incoming_msgbus__.publish(:message, message)
+        expect(message_history[:received]).to eql(0)
+      end
+
+      specify 'to specific non-matching events' do
+        subject.unsubscribe 'move', &callback
+        subject.__incoming_msgbus__.publish(:message, message)
+        expect(message_history[:received]).to eql(1)
+      end
+
+      specify 'all callbacks by not providing a callback' do
+        subject.unsubscribe event_name
+        subject.__incoming_msgbus__.publish(:message, message)
+        expect(message_history[:received]).to eql(0)
+      end
     end
   end
 end
