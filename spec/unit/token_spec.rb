@@ -1,20 +1,20 @@
 require "spec_helper"
 
-describe Ably::Token do
+describe Ably::Models::Token do
   context 'defaults' do
     let(:one_hour)          { 60 * 60 }
     let(:all_capabilities)  { { "*" => ["*"] } }
 
     it 'should default TTL to 1 hour' do
-      expect(Ably::Token::DEFAULTS[:ttl]).to eql(one_hour)
+      expect(Ably::Models::Token::DEFAULTS[:ttl]).to eql(one_hour)
     end
 
     it 'should default capability to all' do
-      expect(Ably::Token::DEFAULTS[:capability]).to eql(all_capabilities)
+      expect(Ably::Models::Token::DEFAULTS[:capability]).to eql(all_capabilities)
     end
 
     it 'should only have defaults for :ttl and :capability' do
-      expect(Ably::Token::DEFAULTS.keys).to contain_exactly(:ttl, :capability)
+      expect(Ably::Models::Token::DEFAULTS.keys).to contain_exactly(:ttl, :capability)
     end
   end
 
@@ -23,7 +23,7 @@ describe Ably::Token do
 
     %w(id capability client_id nonce).each do |attribute|
       context "##{attribute}" do
-        subject { Ably::Token.new({ attribute.to_sym => unique_value }) }
+        subject { Ably::Models::Token.new({ attribute.to_sym => unique_value }) }
 
         it "retrieves attribute :#{attribute}" do
           expect(subject.public_send(attribute)).to eql(unique_value)
@@ -32,7 +32,7 @@ describe Ably::Token do
     end
 
     context '#key_id' do
-      subject { Ably::Token.new({ key: unique_value }) }
+      subject { Ably::Models::Token.new({ key: unique_value }) }
       it 'retrieves attribute :key' do
         expect(subject.key_id).to eql(unique_value)
       end
@@ -41,7 +41,7 @@ describe Ably::Token do
     { :issued_at => :issued_at, :expires_at => :expires }.each do |method_name, attribute|
       let(:time) { Time.now }
       context "##{method_name}" do
-        subject { Ably::Token.new({ attribute.to_sym => time.to_i }) }
+        subject { Ably::Models::Token.new({ attribute.to_sym => time.to_i }) }
 
         it "retrieves attribute :#{attribute} as Time" do
           expect(subject.public_send(method_name)).to be_a(Time)
@@ -51,10 +51,10 @@ describe Ably::Token do
     end
 
     context '#expired?' do
-      let(:expire_time) { Time.now + Ably::Token::TOKEN_EXPIRY_BUFFER }
+      let(:expire_time) { Time.now + Ably::Models::Token::TOKEN_EXPIRY_BUFFER }
 
       context 'once grace period buffer has passed' do
-        subject { Ably::Token.new(expires: expire_time - 1) }
+        subject { Ably::Models::Token.new(expires: expire_time - 1) }
 
         it 'is true' do
           expect(subject.expired?).to eql(true)
@@ -62,7 +62,7 @@ describe Ably::Token do
       end
 
       context 'within grace period buffer' do
-        subject { Ably::Token.new(expires: expire_time + 1) }
+        subject { Ably::Models::Token.new(expires: expire_time + 1) }
 
         it 'is false' do
           expect(subject.expired?).to eql(false)
@@ -75,16 +75,16 @@ describe Ably::Token do
     let(:token_attributes) { { id: 'unique' } }
 
     it 'is true when attributes are the same' do
-      new_token = -> { Ably::Token.new(token_attributes) }
+      new_token = -> { Ably::Models::Token.new(token_attributes) }
       expect(new_token[]).to eq(new_token[])
     end
 
     it 'is false when attributes are not the same' do
-      expect(Ably::Token.new(id: 1)).to_not eq(Ably::Token.new(id: 2))
+      expect(Ably::Models::Token.new(id: 1)).to_not eq(Ably::Models::Token.new(id: 2))
     end
 
     it 'is false when class type differs' do
-      expect(Ably::Token.new(id: 1)).to_not eq(nil)
+      expect(Ably::Models::Token.new(id: 1)).to_not eq(nil)
     end
   end
 end

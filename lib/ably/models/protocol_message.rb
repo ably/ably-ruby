@@ -164,7 +164,7 @@ module Ably::Models
 
     def to_json_object
       raise TypeError, ":action is missing, cannot generate valid JSON for ProtocolMessage" unless action
-      raise TypeError, ":msg_serial or :connection_seiral is missing, cannot generate valid JSON for ProtocolMessage" if ack_required? && !has_serial?
+      raise TypeError, ":msg_serial or :connection_serial is missing, cannot generate valid JSON for ProtocolMessage" if ack_required? && !has_serial?
 
       json.dup.tap do |json_object|
         json_object[:messages] = messages.map(&:to_json_object) unless messages.empty?

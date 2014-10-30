@@ -185,7 +185,7 @@ describe "REST" do
       let(:token_request_2) { client.auth.create_token_request(token_request_options.merge(client_id: SecureRandom.hex)) }
 
       context 'when expired' do
-        let(:token_request_options) { { key_id: key_id, key_secret: key_secret, ttl: Ably::Token::TOKEN_EXPIRY_BUFFER } }
+        let(:token_request_options) { { key_id: key_id, key_secret: key_secret, ttl: Ably::Models::Token::TOKEN_EXPIRY_BUFFER } }
 
         it 'creates a new token automatically when the old token expires' do
           expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token }

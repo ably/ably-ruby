@@ -1,4 +1,4 @@
-module Ably
+module Ably::Models
   # Authentication token issued by Ably in response to an token request
   class Token
     include Ably::Modules::Conversions
