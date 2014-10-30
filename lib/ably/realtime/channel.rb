@@ -88,7 +88,7 @@ module Ably
         end
       end
 
-      # Subscribe to messages matching providing event name, or all messages if not event provided
+      # Subscribe to messages matching providing event name, or all messages if event name not provided
       #
       # @param name [String] The event name of the message to subscribe to if provided.  Defaults to all events.
       # @yield [Ably::Realtime::Models::Message] For each message received, the block is called
@@ -98,14 +98,20 @@ module Ably
         subscriptions[message_name_key(name)] << blk
       end
 
-      # Unsubscribe the matching block for messages matching providing event name, or all messages if not event provided.
-      # If not block is provided, all subscriptions will be unsubscribed
+      # Unsubscribe the matching block for messages matching providing event name, or all messages if event name not provided.
+      # If a block is not provided, all subscriptions will be unsubscribed
       #
       # @param name [String] The event name of the message to subscribe to if provided.  Defaults to all events.
       #
       def unsubscribe(name = :all, &blk)
-        subscriptions[message_name_key(name)].delete_if do |block|
-          !block_given? || blk == block
+        if message_name_key(name) == :all
+          subscriptions.keys
+        else
+          Array(message_name_key(name))
+        end.each do |key|
+          subscriptions[key].delete_if do |block|
+            !block_given? || blk == block
+          end
         end
       end
 
