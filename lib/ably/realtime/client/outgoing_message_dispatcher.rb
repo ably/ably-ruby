@@ -36,6 +36,7 @@ module Ably::Realtime
 
       def deliver_queued_protocol_messages
         condition = -> { can_send_messages? && messages_in_outgoing_queue? }
+
         non_blocking_loop_while(condition) do
           protocol_message = outgoing_queue.shift
           pending_queue << protocol_message if protocol_message.ack_required?

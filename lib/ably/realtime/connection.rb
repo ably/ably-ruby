@@ -165,11 +165,20 @@ module Ably
       # @api private
       def send_protocol_message(protocol_message)
         add_message_serial_if_ack_required_to(protocol_message) do
-          protocol_message = Models::ProtocolMessage.new(protocol_message)
-          __outgoing_message_queue__ << protocol_message
-          logger.debug("Prot msg queued =>: #{protocol_message.action} #{protocol_message}")
-          __outgoing_protocol_msgbus__.publish :message, protocol_message
+          Models::ProtocolMessage.new(protocol_message).tap do |protocol_message|
+            add_message_to_outgoing_queue protocol_message
+            notify_message_dispatcher_of_new_message protocol_message
+            logger.debug("Prot msg queued =>: #{protocol_message.action} #{protocol_message}")
+          end
         end
+      end
+
+      def add_message_to_outgoing_queue(protocol_message)
+        __outgoing_message_queue__ << protocol_message
+      end
+
+      def notify_message_dispatcher_of_new_message(protocol_message)
+        __outgoing_protocol_msgbus__.publish :message, protocol_message
       end
 
       # Creates and sets up a new {WebSocketTransport} available on attribute #transport

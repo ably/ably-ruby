@@ -1,14 +1,14 @@
 require 'spec_helper'
 require 'support/model_helper'
 
-describe Ably::Realtime::Models::Message do
+describe Ably::Realtime::Models::PresenceMessage do
   include Ably::Modules::Conversions
 
-  subject { Ably::Realtime::Models::Message }
+  subject { Ably::Realtime::Models::PresenceMessage }
   let(:protocol_message_timestamp) { as_since_epoch(Time.now) }
   let(:protocol_message) { Ably::Realtime::Models::ProtocolMessage.new(action: 1, timestamp: protocol_message_timestamp) }
 
-  it_behaves_like 'a realtime model', with_simple_attributes: %w(name client_id data) do
+  it_behaves_like 'a realtime model', with_simple_attributes: %w(client_id member_id client_data) do
     let(:model_args) { [protocol_message] }
   end
 
@@ -28,11 +28,27 @@ describe Ably::Realtime::Models::Message do
     end
   end
 
+  context 'with state' do
+    let(:model) { subject.new({ state: 0 }, protocol_message) }
+
+    it 'provides state as an Enum' do
+      expect(model.state).to eq(:enter)
+    end
+  end
+
+  context 'without state' do
+    let(:model) { subject.new({}, protocol_message) }
+
+    it 'raises an exception when accessed' do
+      expect { model.state }.to raise_error KeyError
+    end
+  end
+
   context '#to_json' do
     let(:json_object) { JSON.parse(model.to_json) }
 
     context 'with valid data' do
-      let(:model) { subject.new({ name: 'test', clientId: 'joe' }, protocol_message) }
+      let(:model) { subject.new({ state: 'enter', clientId: 'joe' }, protocol_message) }
 
       it 'converts the attribute back to Java mixedCase notation using string keys' do
         expect(json_object["clientId"]).to eql('joe')
@@ -43,7 +59,7 @@ describe Ably::Realtime::Models::Message do
       let(:model) { subject.new({ clientId: 'joe' }, protocol_message) }
 
       it 'raises an exception' do
-        expect { model.to_json }.to raise_error RuntimeError, /cannot generate valid JSON/
+        expect { model.to_json }.to raise_error KeyError, /cannot generate valid JSON/
       end
     end
   end
@@ -53,25 +69,18 @@ describe Ably::Realtime::Models::Message do
     let(:message_serial) { SecureRandom.random_number(1_000_000) }
     let(:connection_id) { SecureRandom.hex }
 
-    let(:message_0_payload) do
+    let(:presence_0_payload) { SecureRandom.hex(8) }
+    let(:presence_0_json) do
       {
-        'string_key' => 'string_value',
-        1 => 2,
-        true => false
+        client_id: 'zero',
+        client_data: presence_0_payload
       }
     end
-
-    let(:message_0_json) do
+    let(:presence_1_payload) { SecureRandom.hex(8) }
+    let(:presence_1_json) do
       {
-        name: 'zero',
-        data: message_0_payload
-      }
-    end
-
-    let(:message_1_json) do
-      {
-        name: 'one',
-        data: 'simple string'
+        client_id: 'one',
+        client_data: presence_1_payload
       }
     end
 
@@ -81,47 +90,34 @@ describe Ably::Realtime::Models::Message do
         timestamp: ably_time.to_i,
         msg_serial: message_serial,
         connection_id: connection_id,
-        messages: [
-          message_0_json, message_1_json
+        presence: [
+          presence_0_json, presence_1_json
         ]
       })
     end
 
-    let(:message_0) { protocol_message.messages.first }
-    let(:message_1) { protocol_message.messages.last }
-
-    it 'should generate a message ID from the index, serial and connection id' do
-      expect(message_0.id).to eql("#{connection_id}:#{message_serial}:0")
-      expect(message_1.id).to eql("#{connection_id}:#{message_serial}:1")
-    end
+    let(:presence_0) { protocol_message.presence.first }
+    let(:presence_1) { protocol_message.presence.last }
 
     it 'should not modify the data payload' do
-      expect(message_0.data['string_key']).to eql('string_value')
-      expect(message_0.data[1]).to eql(2)
-      expect(message_0.data[true]).to eql(false)
-      expect(message_0.data).to eql(message_0_payload)
-
-      expect(message_1.data).to eql('simple string')
-    end
-
-    it 'should not allow changes to the payload' do
-      expect { message_0.data["test"] = true }.to raise_error RuntimeError, /can't modify frozen Hash/
+      expect(presence_0.client_data).to eql(presence_0_payload)
+      expect(presence_1.client_data).to eql(presence_1_payload)
     end
   end
 
-  context 'Message conversion method' do
-    let(:json) { { name: 'test', data: 'conversion' } }
+  context 'PresenceMessage conversion method' do
+    let(:json) { { client_id: 'test' } }
 
     context 'with JSON' do
       context 'without ProtocolMessage' do
-        subject { Ably::Realtime::Models.Message(json) }
+        subject { Ably::Realtime::Models.PresenceMessage(json) }
 
-        it 'returns a Message object' do
-          expect(subject).to be_a(Ably::Realtime::Models::Message)
+        it 'returns a PresenceMessage object' do
+          expect(subject).to be_a(Ably::Realtime::Models::PresenceMessage)
         end
 
         it 'initializes with the JSON' do
-          expect(subject.name).to eql('test')
+          expect(subject.client_id).to eql('test')
         end
 
         it 'raises an exception when accessing ProtocolMessage' do
@@ -134,14 +130,14 @@ describe Ably::Realtime::Models::Message do
       end
 
       context 'with ProtocolMessage' do
-        subject { Ably::Realtime::Models.Message(json, protocol_message) }
+        subject { Ably::Realtime::Models.PresenceMessage(json, protocol_message) }
 
-        it 'returns a Message object' do
-          expect(subject).to be_a(Ably::Realtime::Models::Message)
+        it 'returns a PresenceMessage object' do
+          expect(subject).to be_a(Ably::Realtime::Models::PresenceMessage)
         end
 
         it 'initializes with the JSON' do
-          expect(subject.name).to eql('test')
+          expect(subject.client_id).to eql('test')
         end
 
         it 'provides access to ProtocolMessage' do
@@ -154,18 +150,18 @@ describe Ably::Realtime::Models::Message do
       end
     end
 
-    context 'with another Message' do
-      let(:message) { Ably::Realtime::Models::Message.new(json) }
+    context 'with another PresenceMessage' do
+      let(:message) { Ably::Realtime::Models::PresenceMessage.new(json) }
 
       context 'without ProtocolMessage' do
-        subject { Ably::Realtime::Models.Message(message) }
+        subject { Ably::Realtime::Models.PresenceMessage(message) }
 
-        it 'returns a Message object' do
-          expect(subject).to be_a(Ably::Realtime::Models::Message)
+        it 'returns a PresenceMessage object' do
+          expect(subject).to be_a(Ably::Realtime::Models::PresenceMessage)
         end
 
         it 'initializes with the JSON' do
-          expect(subject.name).to eql('test')
+          expect(subject.client_id).to eql('test')
         end
 
         it 'raises an exception when accessing ProtocolMessage' do
@@ -178,14 +174,14 @@ describe Ably::Realtime::Models::Message do
       end
 
       context 'with ProtocolMessage' do
-        subject { Ably::Realtime::Models.Message(message, protocol_message) }
+        subject { Ably::Realtime::Models.PresenceMessage(message, protocol_message) }
 
-        it 'returns a Message object' do
-          expect(subject).to be_a(Ably::Realtime::Models::Message)
+        it 'returns a PresenceMessage object' do
+          expect(subject).to be_a(Ably::Realtime::Models::PresenceMessage)
         end
 
         it 'initializes with the JSON' do
-          expect(subject.name).to eql('test')
+          expect(subject.client_id).to eql('test')
         end
 
         it 'provides access to ProtocolMessage' do

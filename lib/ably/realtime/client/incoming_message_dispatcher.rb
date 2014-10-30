@@ -76,6 +76,10 @@ module Ably::Realtime
             get_channel(protocol_message.channel).change_state Ably::Realtime::Channel::STATE.Detached
 
           when ACTION.Presence
+            protocol_message.presence.each do |presence|
+              get_channel(protocol_message.channel).presence.__incoming_msgbus__.publish :presence, presence
+            end
+
           when ACTION.Message
             protocol_message.messages.each do |message|
               get_channel(protocol_message.channel).__incoming_msgbus__.publish :message, message
@@ -95,19 +99,29 @@ module Ably::Realtime
 
       def ack_pending_queue_for_message_serial(ack_protocol_message)
         drop_pending_queue_from_ack(ack_protocol_message) do |protocol_message|
-          protocol_message.messages.each do |message|
-            logger.debug "Calling ACK success callbacks for #{message.to_json}"
-            message.succeed message
-          end
+          ack_messages protocol_message.messages
+          ack_messages protocol_message.presence
         end
       end
 
       def nack_pending_queue_for_message_serial(nack_protocol_message)
         drop_pending_queue_from_ack(nack_protocol_message) do |protocol_message|
-          protocol_message.messages.each do |message|
-            logger.debug "Calling NACK failure callbacks for #{message.to_json}"
-            message.fail message, nack_protocol_message.error
-          end
+          nack_messages protocol_message.messages, nack_protocol_message
+          nack_messages protocol_message.presence, nack_protocol_message
+        end
+      end
+
+      def ack_messages(messages)
+        messages.each do |message|
+          logger.debug "Calling ACK success callbacks for #{message.class.name} - #{message.to_json}"
+          message.succeed message
+        end
+      end
+
+      def nack_messages(messages, protocol_message)
+        messages.each do |message|
+          logger.debug "Calling NACK failure callbacks for #{message.class.name} - #{message.to_json}, protocol message: #{protocol_message}"
+          message.fail message, protocol_message.error
         end
       end
 

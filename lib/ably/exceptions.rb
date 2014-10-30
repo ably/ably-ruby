@@ -1,6 +1,7 @@
 module Ably
   module Exceptions
-    # An invalid request was received by Ably
+    # Base Ably exception class that contains status and code values used by Ably
+    # Refer to https://github.com/ably/ably-common/blob/master/protocol/errors.json
     #
     # @!attribute [r] message
     #   @return [String] Error message from Ably
@@ -8,7 +9,7 @@ module Ably
     #   @return [String] HTTP status code of error
     # @!attribute [r] code
     #   @return [String] Ably specific error code
-    class InvalidRequest < StandardError
+    class Base < StandardError
       attr_reader :status, :code
       def initialize(message, status: nil, code: nil)
         super message
@@ -16,6 +17,9 @@ module Ably
         @code = code
       end
     end
+
+    # An invalid request was received by Ably
+    class InvalidRequest < Base; end
 
     # The HTTP request has returned a 500 error
     class ServerError < StandardError; end
@@ -33,9 +37,16 @@ module Ably
     class TokenRequestError < StandardError; end
 
     # The token is invalid
-    class InvalidToken < InvalidRequest; end
+    class InvalidToken < Base; end
 
     # Encryption or decryption related failures
     class EncryptionError < StandardError; end
+
+    # Ably Protocol message received that is invalid
+    class ProtocolError < Base; end
+
+    # A generic Ably exception taht supports a status & code.
+    # See https://github.com/ably/ably-common/blob/master/protocol/errors.json for a list of Ably errors
+    class Standard < Base; end
   end
 end

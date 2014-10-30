@@ -118,12 +118,12 @@ module Ably::Realtime
         end
 
         driver.on("message") do |event|
-          begin
-            message = Models::ProtocolMessage.new(JSON.parse(event.data).freeze)
-            logger.debug("Prot msg recv <=: #{message.action} #{event.data}")
-            connection.__incoming_protocol_msgbus__.publish :message, message
-          rescue KeyError
-            client.logger.error("Unsupported Protocol Message received, unrecognised 'action': #{event.data}\nNo action taken")
+          protocol_message = Models::ProtocolMessage.new(JSON.parse(event.data).freeze)
+          logger.debug("Prot msg recv <=: #{protocol_message.action} #{event.data}")
+          if protocol_message.invalid?
+            client.logger.error("Invalid Protocol Message received: #{event.data}\nNo action taken")
+          else
+            connection.__incoming_protocol_msgbus__.publish :message, protocol_message
           end
         end
       end
