@@ -9,11 +9,13 @@ require "ably/realtime/client"
 require "ably/realtime/connection"
 require "ably/realtime/connection/connection_state_machine"
 require "ably/realtime/connection/websocket_transport"
+require "ably/realtime/presence"
 
 require "ably/realtime/models/shared"
 require "ably/realtime/models/error_info"
 require "ably/realtime/models/message"
 require "ably/realtime/models/nil_channel"
+require "ably/realtime/models/presence_message"
 require "ably/realtime/models/protocol_message"
 
 require "ably/realtime/client/incoming_message_dispatcher"

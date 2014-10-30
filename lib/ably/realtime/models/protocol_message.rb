@@ -74,8 +74,7 @@ module Ably::Realtime::Models
       @json_object.freeze
     end
 
-    %w( channel channel_serial
-        connection_id connection_serial ).each do |attribute|
+    %w( channel channel_serial connection_id ).each do |attribute|
       define_method attribute do
         json[attribute.to_sym]
       end
@@ -101,6 +100,12 @@ module Ably::Realtime::Models
       raise TypeError, "msg_serial '#{json[:msg_serial]}' is invalid, a positive Integer is expected for a ProtocolMessage"
     end
 
+    def connection_serial
+      Integer(json[:connection_serial])
+    rescue TypeError
+      raise TypeError, "connection_serial '#{json[:connection_serial]}' is invalid, a positive Integer is expected for a ProtocolMessage"
+    end
+
     def count
       [1, json[:count].to_i].max
     end
@@ -109,6 +114,24 @@ module Ably::Realtime::Models
       message_serial && true
     rescue TypeError
       false
+    end
+
+    def has_connection_serial?
+      connection_serial && true
+    rescue TypeError
+      false
+    end
+
+    def serial
+      if has_connection_serial?
+        connection_serial
+      else
+        message_serial
+      end
+    end
+
+    def has_serial?
+      has_connection_serial? || has_message_serial?
     end
 
     def messages
@@ -125,7 +148,7 @@ module Ably::Realtime::Models
     def presence
       @presence ||=
         Array(json[:presence]).map do |message|
-          PresenceMessage(message, self)
+          Ably::Realtime::Models.PresenceMessage(message, self)
         end
     end
 
@@ -155,6 +178,14 @@ module Ably::Realtime::Models
 
     def to_s
       to_json
+    end
+
+    # True if the ProtocolMessage appears to be invalid, however this is not a guarantee
+    # @return [Boolean]
+    # @api private
+    def invalid?
+      action_enum = action rescue nil
+      !action_enum || (ack_required? && !has_message_serial?)
     end
   end
 end

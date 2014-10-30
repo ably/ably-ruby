@@ -149,6 +149,16 @@ module Ably
         end
       end
 
+      # Presence object for this Channel.  This controls this client's
+      # presence on the channel and may also be used to obtain presence information
+      # and change events for other members of the channel.
+      #
+      # @return {Ably::Realtime::Presence}
+      #
+      def presence
+        @presence ||= Presence.new(self)
+      end
+
       # Return the message history of the channel
       #
       # @param (see Ably::Rest::Channel#history)
@@ -157,6 +167,9 @@ module Ably
         rest_channel.history(options)
       end
 
+      # @!attribute [r] __incoming_msgbus__
+      # @return [Ably::Util::PubSub] Client library internal channel incoming message bus
+      # @api private
       def __incoming_msgbus__
         @__incoming_msgbus__ ||= Ably::Util::PubSub.new(
           coerce_into: Proc.new { |event| Models::ProtocolMessage::ACTION(event) }
@@ -174,6 +187,14 @@ module Ably
 
         on(STATE.Attached) do
           process_queue
+        end
+
+        connection.on(Connection::STATE.Closed) do
+          change_state STATE.Detached
+        end
+
+        connection.on(Connection::STATE.Failed) do
+          change_state STATE.Failed unless detached? || initialized?
         end
       end
 
@@ -210,11 +231,11 @@ module Ably
       end
 
       def send_attach_protocol_message
-        send_state_change_protocol_message(Models::ProtocolMessage::ACTION.Attach)
+        send_state_change_protocol_message Models::ProtocolMessage::ACTION.Attach
       end
 
       def send_detach_protocol_message
-        send_state_change_protocol_message(Models::ProtocolMessage::ACTION.Detach)
+        send_state_change_protocol_message Models::ProtocolMessage::ACTION.Detach
       end
 
       def send_state_change_protocol_message(state)
@@ -229,7 +250,7 @@ module Ably
           name: name,
           data: data
         }
-        model.merge!(client_id: client.client_id) if client.client_id
+        model.merge!(clientId: client.client_id) if client.client_id
 
         Models::Message.new(model, nil)
       end
@@ -241,6 +262,10 @@ module Ably
       # Used by {Ably::Modules::StateEmitter} to debug state changes
       def logger
         client.logger
+      end
+
+      def connection
+        client.connection
       end
 
       def message_name_key(name)

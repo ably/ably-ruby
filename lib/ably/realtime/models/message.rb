@@ -1,7 +1,7 @@
 module Ably::Realtime::Models
   def self.Message(message, protocol_message = nil)
     case message
-    when Ably::Realtime::Models::Message
+    when Message
       message.tap do
         message.assign_to_protocol_message protocol_message
       end
@@ -73,17 +73,28 @@ module Ably::Realtime::Models
       to_json_object.to_json
     end
 
+    # Assign this message to a ProtocolMessage before delivery to the Ably system
+    # @api private
     def assign_to_protocol_message(protocol_message)
       @protocol_message = protocol_message
     end
 
-    private
+    # True if this message is assigned to a ProtocolMessage for delivery to Ably, or received from Ably
+    # @return [Boolean]
+    # @api private
+    def assigned_to_protocol_message?
+      !!@protocol_message
+    end
 
+    # The optional ProtocolMessage this message is assigned to.  If ProtocolMessage is nil, an error will be raised.
+    # @return [Ably::Realtime::Models::ProtocolMessage]
+    # @api private
     def protocol_message
-      raise RuntimeError, "Message is not yet published with a ProtocolMessage.  ProtocolMessage is nil" if @protocol_message.nil?
+      raise RuntimeError, "Message is not yet published with a ProtocolMessage. ProtocolMessage is nil" if @protocol_message.nil?
       @protocol_message
     end
 
+    private
     def protocol_message_index
       protocol_message.messages.index(self)
     end
