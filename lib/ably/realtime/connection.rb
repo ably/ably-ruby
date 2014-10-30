@@ -28,7 +28,7 @@ module Ably
     # @!attribute [r] id
     #   @return {String} the assigned connection ID
     # @!attribute [r] error_reason
-    #   @return {Ably::Realtime::Models::ErrorInfo} error information associated with a connection failure
+    #   @return {Ably::Models::ErrorInfo} error information associated with a connection failure
     class Connection
       include Ably::Modules::EventEmitter
       extend Ably::Modules::Enum
@@ -160,7 +160,7 @@ module Ably
       # Add protocol message to the outgoing message queue and notify the dispatcher that a message is
       # ready to be sent
       #
-      # @param [Ably::Realtime::Models::ProtocolMessage] protocol_message
+      # @param [Ably::Models::ProtocolMessage] protocol_message
       # @return <void>
       # @api private
       def send_protocol_message(protocol_message)

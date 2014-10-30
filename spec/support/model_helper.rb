@@ -1,6 +1,6 @@
 require 'securerandom'
 
-shared_examples 'a realtime model' do |shared_options = {}|
+shared_examples 'a model' do |shared_options = {}|
   let(:base_model_options) { shared_options.fetch(:base_model_options, {}) }
   let(:args) { ([base_model_options.merge(model_options)] + model_args) }
   let(:model) { subject.new(*args) }

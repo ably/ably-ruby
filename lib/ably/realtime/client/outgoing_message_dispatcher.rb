@@ -1,12 +1,12 @@
 module Ably::Realtime
   class Client
     # OutgoingMessageDispatcher is a (private) class that is used to deliver
-    # outgoing {Ably::Realtime::Models::ProtocolMessage}s using the {Ably::Realtime::Connection}
+    # outgoing {Ably::Models::ProtocolMessage}s using the {Ably::Realtime::Connection}
     # when the connection state is capable of delivering messages
     class OutgoingMessageDispatcher
       include Ably::Modules::EventMachineHelpers
 
-      ACTION = Models::ProtocolMessage::ACTION
+      ACTION = Ably::Models::ProtocolMessage::ACTION
 
       def initialize(client, connection)
         @client     = client

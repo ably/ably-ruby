@@ -1,4 +1,4 @@
-module Ably::Realtime::Models
+module Ably::Models
   # Nil object for Channels, this object is only used within the internal API of this client library
   class NilChannel
     include Ably::Modules::EventEmitter

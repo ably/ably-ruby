@@ -1,14 +1,14 @@
 require 'spec_helper'
 require 'support/model_helper'
 
-describe Ably::Realtime::Models::PresenceMessage do
+describe Ably::Models::PresenceMessage do
   include Ably::Modules::Conversions
 
-  subject { Ably::Realtime::Models::PresenceMessage }
+  subject { Ably::Models::PresenceMessage }
   let(:protocol_message_timestamp) { as_since_epoch(Time.now) }
-  let(:protocol_message) { Ably::Realtime::Models::ProtocolMessage.new(action: 1, timestamp: protocol_message_timestamp) }
+  let(:protocol_message) { Ably::Models::ProtocolMessage.new(action: 1, timestamp: protocol_message_timestamp) }
 
-  it_behaves_like 'a realtime model', with_simple_attributes: %w(client_id member_id client_data) do
+  it_behaves_like 'a model', with_simple_attributes: %w(client_id member_id client_data) do
     let(:model_args) { [protocol_message] }
   end
 
@@ -64,6 +64,33 @@ describe Ably::Realtime::Models::PresenceMessage do
     end
   end
 
+  context 'from REST request with embedded fields' do
+    let(:id) { SecureRandom.hex }
+    let(:message_time) { Time.now + 60 }
+    let(:timestamp) { as_since_epoch(message_time) }
+    let(:model) { subject.new(id: id, timestamp: timestamp) }
+
+    context 'with protocol message' do
+      specify '#id prefers embedded ID' do
+        expect(model.id).to eql(id)
+      end
+
+      specify '#timestamp prefers embedded timestamp' do
+        expect(model.timestamp.to_i).to be_within(1).of(message_time.to_i)
+      end
+    end
+
+    context 'without protocol message' do
+      specify '#id uses embedded ID' do
+        expect(model.id).to eql(id)
+      end
+
+      specify '#timestamp uses embedded timestamp' do
+        expect(model.timestamp.to_i).to be_within(1).of(message_time.to_i)
+      end
+    end
+  end
+
   context 'part of ProtocolMessage' do
     let(:ably_time) { Time.now + 5 }
     let(:message_serial) { SecureRandom.random_number(1_000_000) }
@@ -85,7 +112,7 @@ describe Ably::Realtime::Models::PresenceMessage do
     end
 
     let(:protocol_message) do
-      Ably::Realtime::Models::ProtocolMessage.new({
+      Ably::Models::ProtocolMessage.new({
         action: :message,
         timestamp: ably_time.to_i,
         msg_serial: message_serial,
@@ -99,6 +126,11 @@ describe Ably::Realtime::Models::PresenceMessage do
     let(:presence_0) { protocol_message.presence.first }
     let(:presence_1) { protocol_message.presence.last }
 
+    it 'should generate a message ID from the index, serial and connection id' do
+      expect(presence_0.id).to eql("#{connection_id}:#{message_serial}:0")
+      expect(presence_1.id).to eql("#{connection_id}:#{message_serial}:1")
+    end
+
     it 'should not modify the data payload' do
       expect(presence_0.client_data).to eql(presence_0_payload)
       expect(presence_1.client_data).to eql(presence_1_payload)
@@ -110,10 +142,10 @@ describe Ably::Realtime::Models::PresenceMessage do
 
     context 'with JSON' do
       context 'without ProtocolMessage' do
-        subject { Ably::Realtime::Models.PresenceMessage(json) }
+        subject { Ably::Models.PresenceMessage(json) }
 
         it 'returns a PresenceMessage object' do
-          expect(subject).to be_a(Ably::Realtime::Models::PresenceMessage)
+          expect(subject).to be_a(Ably::Models::PresenceMessage)
         end
 
         it 'initializes with the JSON' do
@@ -130,10 +162,10 @@ describe Ably::Realtime::Models::PresenceMessage do
       end
 
       context 'with ProtocolMessage' do
-        subject { Ably::Realtime::Models.PresenceMessage(json, protocol_message) }
+        subject { Ably::Models.PresenceMessage(json, protocol_message) }
 
         it 'returns a PresenceMessage object' do
-          expect(subject).to be_a(Ably::Realtime::Models::PresenceMessage)
+          expect(subject).to be_a(Ably::Models::PresenceMessage)
         end
 
         it 'initializes with the JSON' do
@@ -151,13 +183,13 @@ describe Ably::Realtime::Models::PresenceMessage do
     end
 
     context 'with another PresenceMessage' do
-      let(:message) { Ably::Realtime::Models::PresenceMessage.new(json) }
+      let(:message) { Ably::Models::PresenceMessage.new(json) }
 
       context 'without ProtocolMessage' do
-        subject { Ably::Realtime::Models.PresenceMessage(message) }
+        subject { Ably::Models.PresenceMessage(message) }
 
         it 'returns a PresenceMessage object' do
-          expect(subject).to be_a(Ably::Realtime::Models::PresenceMessage)
+          expect(subject).to be_a(Ably::Models::PresenceMessage)
         end
 
         it 'initializes with the JSON' do
@@ -174,10 +206,10 @@ describe Ably::Realtime::Models::PresenceMessage do
       end
 
       context 'with ProtocolMessage' do
-        subject { Ably::Realtime::Models.PresenceMessage(message, protocol_message) }
+        subject { Ably::Models.PresenceMessage(message, protocol_message) }
 
         it 'returns a PresenceMessage object' do
-          expect(subject).to be_a(Ably::Realtime::Models::PresenceMessage)
+          expect(subject).to be_a(Ably::Models::PresenceMessage)
         end
 
         it 'initializes with the JSON' do

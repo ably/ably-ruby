@@ -1,4 +1,4 @@
-module Ably::Realtime::Models
+module Ably::Models
   def self.Message(message, protocol_message = nil)
     case message
     when Message
@@ -53,11 +53,15 @@ module Ably::Realtime::Models
     end
 
     def id
-      "#{connection_id}:#{message_serial}:#{protocol_message_index}"
+      json[:id] || "#{connection_id}:#{message_serial}:#{protocol_message_index}"
     end
 
     def timestamp
-      protocol_message.timestamp
+      if json[:timestamp]
+        as_time_from_epoch(json[:timestamp])
+      else
+        protocol_message.timestamp
+      end
     end
 
     def json
@@ -87,7 +91,7 @@ module Ably::Realtime::Models
     end
 
     # The optional ProtocolMessage this message is assigned to.  If ProtocolMessage is nil, an error will be raised.
-    # @return [Ably::Realtime::Models::ProtocolMessage]
+    # @return [Ably::Models::ProtocolMessage]
     # @api private
     def protocol_message
       raise RuntimeError, "Message is not yet published with a ProtocolMessage. ProtocolMessage is nil" if @protocol_message.nil?

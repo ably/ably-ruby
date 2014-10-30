@@ -118,7 +118,7 @@ module Ably::Realtime
         end
 
         driver.on("message") do |event|
-          protocol_message = Models::ProtocolMessage.new(JSON.parse(event.data).freeze)
+          protocol_message = Ably::Models::ProtocolMessage.new(JSON.parse(event.data).freeze)
           logger.debug("Prot msg recv <=: #{protocol_message.action} #{event.data}")
           if protocol_message.invalid?
             client.logger.error("Invalid Protocol Message received: #{event.data}\nNo action taken")

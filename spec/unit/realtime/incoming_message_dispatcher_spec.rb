@@ -30,7 +30,7 @@ describe Ably::Realtime::Client::IncomingMessageDispatcher do
     it 'should warn if a message is received for a non-existent channel' do
       allow(subject).to receive_message_chain(:logger, :debug)
       expect(subject).to receive_message_chain(:logger, :warn)
-      msgbus.publish :message, Ably::Realtime::Models::ProtocolMessage.new(:action => :attached, channel: 'unknown')
+      msgbus.publish :message, Ably::Models::ProtocolMessage.new(:action => :attached, channel: 'unknown')
     end
   end
 end

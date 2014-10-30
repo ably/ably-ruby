@@ -1,4 +1,4 @@
-module Ably::Realtime::Models
+module Ably::Models
   # A message sent and received over the Realtime protocol.
   # A ProtocolMessage always relates to a single channel only, but
   # can contain multiple individual Messages or PresenceMessages.
@@ -137,7 +137,7 @@ module Ably::Realtime::Models
     def messages
       @messages ||=
         Array(json[:messages]).map do |message|
-          Ably::Realtime::Models.Message(message, self)
+          Ably::Models.Message(message, self)
         end
     end
 
@@ -148,7 +148,7 @@ module Ably::Realtime::Models
     def presence
       @presence ||=
         Array(json[:presence]).map do |message|
-          Ably::Realtime::Models.PresenceMessage(message, self)
+          Ably::Models.PresenceMessage(message, self)
         end
     end
 
@@ -164,7 +164,7 @@ module Ably::Realtime::Models
 
     def to_json_object
       raise TypeError, ":action is missing, cannot generate valid JSON for ProtocolMessage" unless action
-      raise TypeError, ":msg_serial is missing, cannot generate valid JSON for ProtocolMessage" if ack_required? && !has_message_serial?
+      raise TypeError, ":msg_serial or :connection_seiral is missing, cannot generate valid JSON for ProtocolMessage" if ack_required? && !has_serial?
 
       json.dup.tap do |json_object|
         json_object[:messages] = messages.map(&:to_json_object) unless messages.empty?
@@ -185,7 +185,7 @@ module Ably::Realtime::Models
     # @api private
     def invalid?
       action_enum = action rescue nil
-      !action_enum || (ack_required? && !has_message_serial?)
+      !action_enum || (ack_required? && !has_serial?)
     end
   end
 end
