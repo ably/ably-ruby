@@ -122,12 +122,11 @@ module Ably
         end
       end
 
-      # Reconfigure the current connection ID and serial
+      # Reconfigure the current connection ID
       # @return <void>
       # @api private
-      def update_connection_serial(connection_id, serial = 0)
-        @id     = connection_id
-        @serial = serial if serial
+      def update_connection_id(connection_id)
+        @id = connection_id
       end
 
       # Send #transition_to to connection state machine
