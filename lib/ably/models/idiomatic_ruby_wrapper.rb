@@ -167,6 +167,10 @@ module Ably::Models
       json.freeze
     end
 
+    def to_s
+      json.to_s
+    end
+
     private
     def stop_at?(key)
       @stop_at.has_key?(key)

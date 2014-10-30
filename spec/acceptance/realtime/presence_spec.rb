@@ -29,6 +29,17 @@ describe 'Ably::Realtime::Presence Messages' do
     end
   end
 
+  it '#enter allows client_id to be set on enter for anonymous clients' do
+    run_reactor do
+      channel_anonymous_client.presence.enter client_id: "123"
+
+      channel_anonymous_client.presence.subscribe do |presence|
+        expect(presence.client_id).to eq("123")
+        stop_reactor
+      end
+    end
+  end
+
   it 'enters and then leaves' do
     leave_callback_called = false
     run_reactor do
@@ -189,9 +200,50 @@ describe 'Ably::Realtime::Presence Messages' do
     end
   end
 
+  specify 'expect :left event with no client data to retain original client_data in Leave event' do
+    run_reactor do
+      presence_client_one.subscribe(:leave) do |message|
+        expect(presence_client_one.get.count).to eq(0)
+        expect(message.client_data).to eq(client_data_payload)
+        stop_reactor
+      end
+      presence_client_one.enter(client_data: client_data_payload) do
+        presence_client_one.leave
+      end
+    end
+  end
+
+  specify '#update automatically connects' do
+    run_reactor do
+      presence_client_one.update(client_data: client_data_payload) do
+        expect(presence_client_one.state).to eq(:entered)
+        stop_reactor
+      end
+    end
+  end
+
+  specify '#update changes the client_data' do
+    run_reactor do
+      presence_client_one.enter(client_data: 'prior') do
+        presence_client_one.update(client_data: client_data_payload)
+      end
+      presence_client_one.subscribe(:update) do |message|
+        expect(message.client_data).to eql(client_data_payload)
+        stop_reactor
+      end
+    end
+  end
+
   it 'raises an exception if client_id is not set' do
     run_reactor do
       expect { channel_anonymous_client.presence.enter }.to raise_error(Ably::Exceptions::Standard, /without a client_id/)
+      stop_reactor
+    end
+  end
+
+  it '#leave raises an exception if not entered' do
+    run_reactor do
+      expect { channel_anonymous_client.presence.leave }.to raise_error(Ably::Exceptions::Standard, /Unable to leave presence channel that is not entered/)
       stop_reactor
     end
   end

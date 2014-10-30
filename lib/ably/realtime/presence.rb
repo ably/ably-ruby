@@ -22,6 +22,8 @@ module Ably::Realtime
       @state         = STATE.Initialized
       @members       = Hash.new
       @subscriptions = Hash.new { |hash, key| hash[key] = [] }
+      @client_id     = client.client_id
+      @client_data   = nil
 
       setup_event_handlers
     end
@@ -38,9 +40,10 @@ module Ably::Realtime
     # @return [Ably::Realtime::PresenceMessage] Deferrable {Ably::Realtime::PresenceMessage} that supports both success (callback) and failure (errback) callbacks
     #
     def enter(options = {}, &blk)
-      unless options[:client_id] || client.client_id
-        raise Ably::Exceptions::Standard.new('Unable to enter presence channel without a client_id', 400, 91000)
-      end
+      @client_id    = options.fetch(:client_id, client_id)
+      @client_data  = options.fetch(:client_data, client_data)
+
+      raise Ably::Exceptions::Standard.new('Unable to enter presence channel without a client_id', 400, 91000) unless client_id
 
       if state == STATE.Entered
         blk.call self if block_given?
@@ -52,7 +55,7 @@ module Ably::Realtime
 
         if !entering?
           change_state STATE.Entering
-          send_presence_protocol_message(Ably::Models::PresenceMessage::STATE.Enter, options).tap do |deferrable|
+          send_presence_protocol_message(Ably::Models::PresenceMessage::STATE.Enter).tap do |deferrable|
             deferrable.errback  { |message, error| change_state STATE.Failed, error }
             deferrable.callback { |message| change_state STATE.Entered }
           end
@@ -67,6 +70,10 @@ module Ably::Realtime
     # @return (see Presence#enter)
     #
     def leave(options = {}, &blk)
+      raise Ably::Exceptions::Standard.new('Unable to leave presence channel that is not entered', 400, 91002) unless ably_to_leave?
+
+      @client_data = options.fetch(:client_data, client_data)
+
       if state == STATE.Left
         blk.call self if block_given?
         return
@@ -77,9 +84,29 @@ module Ably::Realtime
 
         if !leaving?
           change_state STATE.Leaving
-          send_presence_protocol_message(Ably::Models::PresenceMessage::STATE.Leave, options).tap do |deferrable|
+          send_presence_protocol_message(Ably::Models::PresenceMessage::STATE.Leave).tap do |deferrable|
             deferrable.errback  { |message, error| change_state STATE.Failed, error }
             deferrable.callback { |message| change_state STATE.Left }
+          end
+        end
+      end
+    end
+
+    # Update the presence data for this client. If the client is not already a member of
+    # the presence set it will be added, and presence subscribers will see an enter or
+    # update message for this client.
+    # @param (see Presence#enter)
+    # @yield (see Presence#enter)
+    # @return (see Presence#enter)
+    #
+    def update(options = {}, &blk)
+      @client_data = options.fetch(:client_data, client_data)
+
+      ensure_channel_attached do
+        send_presence_protocol_message(Ably::Models::PresenceMessage::STATE.Update).tap do |deferrable|
+          deferrable.callback do |message|
+            change_state STATE.Entered unless entered?
+            blk.call self if block_given?
           end
         end
       end
@@ -130,13 +157,17 @@ module Ably::Realtime
     end
 
     private
-    attr_reader :members, :subscriptions
+    attr_reader :members, :subscriptions, :client_id, :client_data
+
+    def ably_to_leave?
+      entering? || entered?
+    end
 
     def setup_event_handlers
       __incoming_msgbus__.subscribe(:presence) do |presence|
+        update_members_from_presence_message presence
         subscriptions[:all].each           { |cb| cb.call(presence) }
         subscriptions[presence.state].each { |cb| cb.call(presence) }
-        update_members_from_presence_message presence
       end
 
       channel.on(Channel::STATE.Detaching) do
@@ -153,10 +184,10 @@ module Ably::Realtime
     end
 
     # @return [Ably::Models::PresenceMessage] presence message is returned allowing callbacks to be added
-    def send_presence_protocol_message(presence_state, options)
-      presence_message = create_presence_message(presence_state, options)
+    def send_presence_protocol_message(presence_state)
+      presence_message = create_presence_message(presence_state)
       unless presence_message.client_id
-        raise Ably::Exceptions::Standard.new('Unable to enter presence channel without a client_id', 400, 91000)
+        raise Ably::Exceptions::Standard.new('Unable to enter create presence message without a client_id', 400, 91000)
       end
 
       protocol_message = {
@@ -170,12 +201,12 @@ module Ably::Realtime
       presence_message
     end
 
-    def create_presence_message(state, options)
+    def create_presence_message(state)
       model = {
         state: Ably::Models::PresenceMessage.STATE(state).to_i,
-        clientId: options[:client_id] || client.client_id,
+        clientId: client_id,
       }
-      model.merge!(clientData: options[:client_data]) if options[:client_data]
+      model.merge!(clientData: client_data) if client_data
 
       Ably::Models::PresenceMessage.new(model, nil)
     end
