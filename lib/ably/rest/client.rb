@@ -183,7 +183,7 @@ module Ably
             auth.authorise force: true
             retry
           else
-            raise Ably::Exceptions::InvalidToken.new(e.message, status: e.status, code: e.code)
+            raise Ably::Exceptions::InvalidToken.new(e.message, e.status, e.code)
           end
         end
       end

@@ -7,14 +7,16 @@ describe 'Ably::Realtime::Presence Messages' do
   let(:default_options) { { api_key: api_key, environment: environment } }
   let(:channel_name) { "presence-#{SecureRandom.hex(2)}" }
 
-  let(:client_one) { Ably::Realtime::Client.new(default_options.merge(client_id: SecureRandom.hex(4))) }
-  let(:client_two) { Ably::Realtime::Client.new(default_options.merge(client_id: SecureRandom.hex(4))) }
+  let(:anonymous_client) { Ably::Realtime::Client.new(default_options) }
+  let(:client_one)       { Ably::Realtime::Client.new(default_options.merge(client_id: SecureRandom.hex(4))) }
+  let(:client_two)       { Ably::Realtime::Client.new(default_options.merge(client_id: SecureRandom.hex(4))) }
 
-  let(:channel_client_one)      { client_one.channel(channel_name) }
-  let(:channel_rest_client_one) { client_one.rest_client.channel(channel_name) }
-  let(:presence_client_one)     { channel_client_one.presence }
-  let(:channel_client_two)      { client_two.channel(channel_name) }
-  let(:presence_client_two)     { channel_client_two.presence }
+  let(:channel_anonymous_client) { anonymous_client.channel(channel_name) }
+  let(:channel_client_one)       { client_one.channel(channel_name) }
+  let(:channel_rest_client_one)  { client_one.rest_client.channel(channel_name) }
+  let(:presence_client_one)      { channel_client_one.presence }
+  let(:channel_client_two)       { client_two.channel(channel_name) }
+  let(:presence_client_two)      { channel_client_two.presence }
 
   let(:client_data_payload) { SecureRandom.hex(8) }
 
@@ -184,6 +186,13 @@ describe 'Ably::Realtime::Presence Messages' do
       presence_client_one.enter do
         client_one.close
       end
+    end
+  end
+
+  it 'raises an exception if client_id is not set' do
+    run_reactor do
+      expect { channel_anonymous_client.presence.enter }.to raise_error(Ably::Exceptions::Standard, /without a client_id/)
+      stop_reactor
     end
   end
 

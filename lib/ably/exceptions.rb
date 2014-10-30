@@ -11,7 +11,7 @@ module Ably
     #   @return [String] Ably specific error code
     class Base < StandardError
       attr_reader :status, :code
-      def initialize(message, status: nil, code: nil)
+      def initialize(message, status = nil, code = nil)
         super message
         @status = status
         @code = code

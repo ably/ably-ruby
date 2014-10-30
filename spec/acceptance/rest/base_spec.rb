@@ -112,7 +112,7 @@ describe "REST" do
         if [1, 3].include?(@publish_attempts)
           { status: 201, :body => '[]' }
         else
-          raise Ably::Exceptions::InvalidRequest.new('Authentication failure', status: 401, code: 40140)
+          raise Ably::Exceptions::InvalidRequest.new('Authentication failure', status, code)
         end
       end
     end

@@ -31,7 +31,7 @@ module Ably
               if env[:status] >= 500
                 raise Ably::Exceptions::ServerError, message
               else
-                raise Ably::Exceptions::InvalidRequest.new(message, status: error_status_code, code: error_code)
+                raise Ably::Exceptions::InvalidRequest.new(message, error_status_code, error_code)
               end
             end
           end
