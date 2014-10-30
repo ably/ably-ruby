@@ -5,6 +5,7 @@ require 'ably/rest/middleware/parse_json'
 require 'ably/rest/middleware/parse_message_pack'
 
 module Ably::Modules
+  # HttpHelpers provides common private methods to classes to simplify HTTP interactions with Ably
   module HttpHelpers
     protected
     def encode64(text)

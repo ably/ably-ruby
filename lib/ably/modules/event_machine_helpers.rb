@@ -1,4 +1,5 @@
 module Ably::Modules
+  # EventMachineHelpers module provides common private methods to classes simplifying interaction with EventMachine
   module EventMachineHelpers
     private
 

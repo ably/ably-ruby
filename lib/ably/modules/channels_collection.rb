@@ -1,4 +1,6 @@
 module Ably::Modules
+  # ChannelsCollection module provides common functionality to the Rest and Realtime Channels objects
+  # such as #get, #[], #fetch, and #release
   module ChannelsCollection
     # Initialize a new Channels object
     #
