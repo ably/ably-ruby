@@ -38,6 +38,10 @@ module Ably::Realtime
     # @return [Ably::Realtime::PresenceMessage] Deferrable {Ably::Realtime::PresenceMessage} that supports both success (callback) and failure (errback) callbacks
     #
     def enter(options = {}, &blk)
+      unless options[:client_id] || client.client_id
+        raise Ably::Exceptions::Standard.new('Unable to enter presence channel without a client_id', 400, 91000)
+      end
+
       if state == STATE.Entered
         blk.call self if block_given?
         return
