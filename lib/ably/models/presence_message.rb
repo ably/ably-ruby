@@ -1,4 +1,10 @@
 module Ably::Models
+  # Convert presence_messsage argument to a {PresenceMessage} object and associate with a protocol message if provided
+  #
+  # @param presence_message [PresenceMessage,Hash] A presence message object or Hash of presence message properties
+  # @param protocol_message [ProtocolMessage] An optional protocol message to assocate the presence message with
+  #
+  # @return [PresenceMessage]
   def self.PresenceMessage(presence_message, protocol_message = nil)
     case presence_message
     when PresenceMessage

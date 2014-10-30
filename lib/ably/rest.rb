@@ -9,6 +9,13 @@ Dir.glob(File.expand_path("ably/models/*.rb", File.dirname(__FILE__))).each do |
 end
 
 module Ably
+  # Rest provides the top-level class to be instanced for the Ably Rest library
+  #
+  # @example
+  #   client = Ably::Rest.new("xxxxx")
+  #   channel = client.channel("test")
+  #   channel.publish "greeting", "data"
+  #
   module Rest
     # Convenience method providing an alias to {Ably::Rest::Client} constructor.
     #
@@ -24,6 +31,9 @@ module Ably
     # @example
     #    # create a new client authenticating with basic auth
     #    client = Ably::Rest.new('key.id:secret')
+    #
+    #    # create a new client authenticating with basic auth and a client_id
+    #    client = Ably::Rest.new(api_key: 'key.id:secret', client_id: 'john')
     #
     def self.new(options, &auth_block)
       Ably::Rest::Client.new(options, &auth_block)

@@ -1,4 +1,6 @@
 module Ably::Modules
+  # Conversions module provides common timestamp and variable naming conversions to Ably classes.
+  # All methods are private
   module Conversions
     extend self
 

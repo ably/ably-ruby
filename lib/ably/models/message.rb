@@ -1,4 +1,10 @@
 module Ably::Models
+  # Convert messsage argument to a {Message} object and associate with a protocol message if provided
+  #
+  # @param message [Message,Hash] A message object or Hash of message properties
+  # @param protocol_message [ProtocolMessage] An optional protocol message to assocate the message with
+  #
+  # @return [Message]
   def self.Message(message, protocol_message = nil)
     case message
     when Message
