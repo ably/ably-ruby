@@ -8,7 +8,6 @@ require "ably/auth"
 require "ably/exceptions"
 require "ably/realtime"
 require "ably/rest"
-require "ably/token"
 require "ably/version"
 
 module Ably

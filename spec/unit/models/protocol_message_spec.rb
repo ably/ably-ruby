@@ -253,7 +253,7 @@ describe Ably::Models::ProtocolMessage do
       let(:model) { new_protocol_message({ :action => message_action }) }
 
       it 'it raises an exception' do
-        expect { model.to_json }.to raise_error TypeError, /msg_serial is missing/
+        expect { model.to_json }.to raise_error TypeError, /msg_serial.*missing/
       end
     end
 

@@ -211,7 +211,7 @@ describe "REST" do
       end
 
       it 'returns a valid token' do
-        expect(auth.authorise).to be_a(Ably::Token)
+        expect(auth.authorise).to be_a(Ably::Models::Token)
       end
 
       it 'issues a new token if option :force => true' do
@@ -253,11 +253,11 @@ describe "REST" do
     end
 
     it "uses the default TTL" do
-      expect(subject[:ttl]).to eql(Ably::Token::DEFAULTS[:ttl])
+      expect(subject[:ttl]).to eql(Ably::Models::Token::DEFAULTS[:ttl])
     end
 
     it "uses the default capability" do
-      expect(subject[:capability]).to eql(Ably::Token::DEFAULTS[:capability].to_json)
+      expect(subject[:capability]).to eql(Ably::Models::Token::DEFAULTS[:capability].to_json)
     end
 
     it "has a unique nonce" do
@@ -422,11 +422,11 @@ describe "REST" do
         it "with capability and TTL defaults" do
           client.channel("foo").publish("event", "data")
 
-          expect(token).to be_a(Ably::Token)
-          capability_with_str_key = Ably::Token::DEFAULTS[:capability]
+          expect(token).to be_a(Ably::Models::Token)
+          capability_with_str_key = Ably::Models::Token::DEFAULTS[:capability]
           capability = Hash[capability_with_str_key.keys.map(&:to_sym).zip(capability_with_str_key.values)]
           expect(token.capability).to eq(capability)
-          expect(token.expires_at.to_i).to be_within(2).of(Time.now.to_i + Ably::Token::DEFAULTS[:ttl])
+          expect(token.expires_at.to_i).to be_within(2).of(Time.now.to_i + Ably::Models::Token::DEFAULTS[:ttl])
           expect(token.client_id).to eq(client_id)
         end
       end

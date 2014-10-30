@@ -12,7 +12,7 @@ module Ably
   # @!attribute [r] client_id
   #   @return [String] The provided client ID, used for identifying this client for presence purposes
   # @!attribute [r] current_token
-  #   @return [Ably::Token] Current {Ably::Token} issued by this library or one of the provided callbacks used to authenticate requests
+  #   @return [Ably::Models::Token] Current {Ably::Models::Token} issued by this library or one of the provided callbacks used to authenticate requests
   # @!attribute [r] token_id
   #   @return [String] Token ID provided to the {Ably::Client} constructor that is used to authenticate all requests
   # @!attribute [r] api_key
@@ -81,7 +81,7 @@ module Ably
     # @option options [Hash]    :auth_headers a set of application-specific headers to be added to any request made to the authUrl
     # @option options [Hash]    :auth_params  a set of application-specific query params to be added to any request made to the authUrl
     # @option options [Symbol]  :auth_method  HTTP method to use with auth_url, must be either `:get` or `:post` (defaults to :get)
-    # @option options [Integer] :ttl          validity time in seconds for the requested {Ably::Token}.  Limits may apply, see {http://docs.ably.io/other/authentication/}
+    # @option options [Integer] :ttl          validity time in seconds for the requested {Ably::Models::Token}.  Limits may apply, see {http://docs.ably.io/other/authentication/}
     # @option options [Hash]    :capability   canonicalised representation of the resource paths and associated operations
     # @option options [Boolean] :query_time   when true will query the {https://ably.io Ably} system for the current time instead of using the local time
     # @option options [Time]    :timestamp    the time of the of the request
@@ -92,7 +92,7 @@ module Ably
     # @yieldparam [Hash] options options passed to request_token will be in turn sent to the block in this argument
     # @yieldreturn [Hash] valid token request object, see {Auth#create_token_request}
     #
-    # @return [Ably::Token]
+    # @return [Ably::Models::Token]
     #
     # @example
     #    # will issue a simple token request using basic auth
@@ -113,7 +113,7 @@ module Ably
       @current_token = request_token(options, &block)
     end
 
-    # Request a {Ably::Token} which can be used to make authenticated token based requests
+    # Request a {Ably::Models::Token} which can be used to make authenticated token based requests
     #
     # @param [Hash] options the options for the token request
     # @option options [String]  :key_id       key ID for the designated application (defaults to client key_id)
@@ -123,7 +123,7 @@ module Ably
     # @option options [Hash]    :auth_headers a set of application-specific headers to be added to any request made to the authUrl
     # @option options [Hash]    :auth_params  a set of application-specific query params to be added to any request made to the authUrl
     # @option options [Symbol]  :auth_method  HTTP method to use with auth_url, must be either `:get` or `:post` (defaults to :get)
-    # @option options [Integer] :ttl          validity time in seconds for the requested {Ably::Token}.  Limits may apply, see {http://docs.ably.io/other/authentication/}
+    # @option options [Integer] :ttl          validity time in seconds for the requested {Ably::Models::Token}.  Limits may apply, see {http://docs.ably.io/other/authentication/}
     # @option options [Hash]    :capability   canonicalised representation of the resource paths and associated operations
     # @option options [Boolean] :query_time   when true will query the {https://ably.io Ably} system for the current time instead of using the local time
     # @option options [Time]    :timestamp    the time of the of the request
@@ -133,7 +133,7 @@ module Ably
     # @yieldparam [Hash] options options passed to request_token will be in turn sent to the block in this argument
     # @yieldreturn [Hash] valid token request object, see {Auth#create_token_request}
     #
-    # @return [Ably::Token]
+    # @return [Ably::Models::Token]
     #
     # @example
     #    # simple token request using basic auth
@@ -165,7 +165,7 @@ module Ably
       response = client.post("/keys/#{token_request.fetch(:id)}/requestToken", token_request, send_auth_header: false)
       body = IdiomaticRubyWrapper(response.body)
 
-      Ably::Token.new(body.fetch(:access_token))
+      Ably::Models::Token.new(body.fetch(:access_token))
     end
 
     # Creates and signs a token request that can then subsequently be used by any client to request a token
@@ -174,7 +174,7 @@ module Ably
     # @option options [String]  :key_id     key ID for the designated application
     # @option options [String]  :key_secret key secret for the designated application used to sign token requests (defaults to client key_secret)
     # @option options [String]  :client_id  client ID identifying this connection to other clients
-    # @option options [Integer] :ttl        validity time in seconds for the requested {Ably::Token}.  Limits may apply, see {http://docs.ably.io/other/authentication/}
+    # @option options [Integer] :ttl        validity time in seconds for the requested {Ably::Models::Token}.  Limits may apply, see {http://docs.ably.io/other/authentication/}
     # @option options [Hash]    :capability canonicalised representation of the resource paths and associated operations
     # @option options [Boolean] :query_time when true will query the {https://ably.io Ably} system for the current time instead of using the local time
     # @option options [Time]    :timestamp  the time of the of the request
@@ -210,9 +210,9 @@ module Ably
       token_request = {
         id:         request_key_id,
         client_id:  client_id,
-        ttl:        Token::DEFAULTS[:ttl],
+        ttl:        Ably::Models::Token::DEFAULTS[:ttl],
         timestamp:  timestamp,
-        capability: Token::DEFAULTS[:capability],
+        capability: Ably::Models::Token::DEFAULTS[:capability],
         nonce:      SecureRandom.hex
       }.merge(token_options.select { |key, val| token_attributes.include?(key.to_s) })
 
