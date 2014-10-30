@@ -1,4 +1,4 @@
-module Ably::Rest::Models
+module Ably::Models
   # Wraps any Ably HTTP response that supports paging and automatically provides methdos to iterated through
   # the array of resources using {#first}, {#next}, {#last?} and {#first?}
   #

@@ -1,9 +1,9 @@
 module Ably::Realtime
   class Client
-    # IncomingMessageDispatcher is a (private) class that is used to dispatch {Ably::Realtime::Models::ProtocolMessage} that are
+    # IncomingMessageDispatcher is a (private) class that is used to dispatch {Ably::Models::ProtocolMessage} that are
     # received from Ably via the {Ably::Realtime::Connection}
     class IncomingMessageDispatcher
-      ACTION = Models::ProtocolMessage::ACTION
+      ACTION = Ably::Models::ProtocolMessage::ACTION
 
       def initialize(client, connection)
         @client     = client
@@ -21,7 +21,7 @@ module Ably::Realtime
       def get_channel(channel_name)
         channels.fetch(channel_name) do
           logger.warn "Received channel message for non-existent channel"
-          Models::NilChannel.new
+          Ably::Models::NilChannel.new
         end
       end
 
@@ -32,7 +32,7 @@ module Ably::Realtime
       def dispatch_protocol_message(*args)
         protocol_message = args.first
 
-        unless protocol_message.kind_of?(Models::ProtocolMessage)
+        unless protocol_message.kind_of?(Ably::Models::ProtocolMessage)
           raise ArgumentError, "Expected a ProtocolMessage. Received #{protocol_message}"
         end
 

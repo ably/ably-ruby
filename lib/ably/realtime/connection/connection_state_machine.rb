@@ -64,7 +64,7 @@ module Ably::Realtime
       end
 
       before_transition(to: [:closed], from: [:connecting, :connected, :disconnected, :suspended]) do |connection|
-        connection.send_protocol_message action: Models::ProtocolMessage::ACTION.Close
+        connection.send_protocol_message action: Ably::Models::ProtocolMessage::ACTION.Close
         connection.transport.disconnect
       end
 

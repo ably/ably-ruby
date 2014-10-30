@@ -1,7 +1,7 @@
 shared_examples 'a protocol message bus' do
   describe '__protocol_msgbus__ PubSub' do
     let(:message) do
-      Ably::Realtime::Models::ProtocolMessage.new(
+      Ably::Models::ProtocolMessage.new(
         action: 15,
         channel: 'channel',
         msg_serial: 0,

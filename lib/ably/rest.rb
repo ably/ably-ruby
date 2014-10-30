@@ -1,10 +1,12 @@
 require "ably/rest/channel"
 require "ably/rest/channels"
 require "ably/rest/client"
-require "ably/rest/models/message"
-require "ably/rest/models/paginated_resource"
-require "ably/rest/models/presence_message"
 require "ably/rest/presence"
+
+require "ably/models/shared"
+Dir.glob(File.expand_path("ably/models/*.rb", File.dirname(__FILE__))).each do |file|
+  require file
+end
 
 module Ably
   module Rest

@@ -22,8 +22,8 @@ describe "REST" do
       expect(presence.size).to eql(4)
 
       fixtures.each do |fixture|
-        presence_message = presence.find { |client| client[:client_id] == fixture[:client_id] }
-        expect(presence_message[:client_data]).to eq(fixture[:client_data])
+        presence_message = presence.find { |client| client.client_id == fixture[:client_id] }
+        expect(presence_message.client_data).to eq(fixture[:client_data])
       end
     end
   end
@@ -36,8 +36,8 @@ describe "REST" do
       expect(history.size).to eql(4)
 
       fixtures.each do |fixture|
-        presence_message = history.find { |client| client[:client_id] == fixture['clientId'] }
-        expect(presence_message[:client_data]).to eq(fixture[:client_data])
+        presence_message = history.find { |client| client.client_id == fixture['clientId'] }
+        expect(presence_message.client_data).to eq(fixture[:client_data])
       end
     end
   end

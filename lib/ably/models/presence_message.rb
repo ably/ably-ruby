@@ -1,4 +1,4 @@
-module Ably::Realtime::Models
+module Ably::Models
   def self.PresenceMessage(presence_message, protocol_message = nil)
     case presence_message
     when PresenceMessage
@@ -56,8 +56,16 @@ module Ably::Realtime::Models
       end
     end
 
+    def id
+      json[:id] || "#{connection_id}:#{message_serial}:#{protocol_message_index}"
+    end
+
     def timestamp
-      protocol_message.timestamp
+      if json[:timestamp]
+        as_time_from_epoch(json[:timestamp])
+      else
+        protocol_message.timestamp
+      end
     end
 
     def state
@@ -94,7 +102,7 @@ module Ably::Realtime::Models
     end
 
     # The optional ProtocolMessage this presence message is assigned to.  If ProtocolMessage is nil, an error will be raised.
-    # @return [Ably::Realtime::Models::ProtocolMessage]
+    # @return [Ably::Models::ProtocolMessage]
     # @api private
     def protocol_message
       raise RuntimeError, "Presence Message is not yet published with a ProtocolMessage. ProtocolMessage is nil" if @protocol_message.nil?

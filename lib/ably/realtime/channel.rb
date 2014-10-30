@@ -67,8 +67,8 @@ module Ably
       #
       # @param name [String] The event name of the message
       # @param data [String,ByteArray] payload for the message
-      # @yield [Ably::Realtime::Models::Message] On success, will call the block with the {Ably::Realtime::Models::Message}
-      # @return [Ably::Realtime::Models::Message] Deferrable {Ably::Realtime::Models::Message} that supports both success (callback) and failure (errback) callbacks
+      # @yield [Ably::Models::Message] On success, will call the block with the {Ably::Models::Message}
+      # @return [Ably::Models::Message] Deferrable {Ably::Models::Message} that supports both success (callback) and failure (errback) callbacks
       #
       # @example
       #   channel.publish('click', 'body')
@@ -91,7 +91,7 @@ module Ably
       # Subscribe to messages matching providing event name, or all messages if event name not provided
       #
       # @param name [String] The event name of the message to subscribe to if provided.  Defaults to all events.
-      # @yield [Ably::Realtime::Models::Message] For each message received, the block is called
+      # @yield [Ably::Models::Message] For each message received, the block is called
       #
       def subscribe(name = :all, &blk)
         attach unless attached? || attaching?

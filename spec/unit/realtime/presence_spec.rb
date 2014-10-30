@@ -24,10 +24,10 @@ describe Ably::Realtime::Presence do
 
   context 'msgbus' do
     let(:message) do
-      Ably::Realtime::Models::PresenceMessage.new({
+      Ably::Models::PresenceMessage.new({
         'state' => 0,
         'member_id' => SecureRandom.hex,
-      }, instance_double('Ably::Realtime::Models::ProtocolMessage'))
+      }, instance_double('Ably::Models::ProtocolMessage'))
     end
     let(:msgbus) { subject.__incoming_msgbus__ }
 
@@ -46,8 +46,8 @@ describe Ably::Realtime::Presence do
 
   context 'subscriptions' do
     let(:message_history) { Hash.new { |hash, key| hash[key] = 0 } }
-    let(:presence_state) { Ably::Realtime::Models::PresenceMessage::STATE.Enter }
-    let(:message) { instance_double('Ably::Realtime::Models::PresenceMessage', state: presence_state, member_id: SecureRandom.hex) }
+    let(:presence_state) { Ably::Models::PresenceMessage::STATE.Enter }
+    let(:message) { instance_double('Ably::Models::PresenceMessage', state: presence_state, member_id: SecureRandom.hex) }
 
     context '#subscribe' do
       specify 'to all states' do

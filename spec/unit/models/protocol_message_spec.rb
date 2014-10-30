@@ -1,15 +1,15 @@
 require 'spec_helper'
 require 'support/model_helper'
 
-describe Ably::Realtime::Models::ProtocolMessage do
+describe Ably::Models::ProtocolMessage do
   include Ably::Modules::Conversions
-  subject { Ably::Realtime::Models::ProtocolMessage }
+  subject { Ably::Models::ProtocolMessage }
 
   def new_protocol_message(options)
     subject.new({ action: 1 }.merge(options))
   end
 
-  it_behaves_like 'a realtime model',
+  it_behaves_like 'a model',
     with_simple_attributes: %w(channel channel_serial connection_id),
     base_model_options: { action: 1 } do
 
@@ -28,7 +28,7 @@ describe Ably::Realtime::Models::ProtocolMessage do
     end
 
     it 'converts actions to Integers if a ACTION' do
-      protocol_message = subject.new(action: Ably::Realtime::Models::ProtocolMessage::ACTION.Message)
+      protocol_message = subject.new(action: Ably::Models::ProtocolMessage::ACTION.Message)
       expect(protocol_message.json[:action]).to eql(15)
     end
 
@@ -64,7 +64,7 @@ describe Ably::Realtime::Models::ProtocolMessage do
       end
 
       it 'returns an Enum that matchdes the ACTION constant' do
-        expect(protocol_message.action).to eql(Ably::Realtime::Models::ProtocolMessage::ACTION.Presence)
+        expect(protocol_message.action).to eql(Ably::Models::ProtocolMessage::ACTION.Presence)
       end
     end
 
@@ -224,7 +224,7 @@ describe Ably::Realtime::Models::ProtocolMessage do
         let(:protocol_message) { new_protocol_message(error: { message: 'test_error' }) }
 
         it 'returns a valid ErrorInfo object' do
-          expect(protocol_message.error).to be_a(Ably::Realtime::Models::ErrorInfo)
+          expect(protocol_message.error).to be_a(Ably::Models::ErrorInfo)
           expect(protocol_message.error.message).to eql('test_error')
         end
       end
@@ -234,8 +234,8 @@ describe Ably::Realtime::Models::ProtocolMessage do
   context '#to_json' do
     let(:json_object) { JSON.parse(model.to_json) }
     let(:message) { { 'name' => 'event', 'clientId' => 'joe', 'timestamp' => as_since_epoch(Time.now) } }
-    let(:attached_action) { Ably::Realtime::Models::ProtocolMessage::ACTION.Attached }
-    let(:message_action) { Ably::Realtime::Models::ProtocolMessage::ACTION.Message }
+    let(:attached_action) { Ably::Models::ProtocolMessage::ACTION.Attached }
+    let(:message_action) { Ably::Models::ProtocolMessage::ACTION.Message }
 
     context 'with valid data' do
       let(:model) { new_protocol_message({ :action => attached_action, :channelSerial => 'unique', messages: [message] }) }

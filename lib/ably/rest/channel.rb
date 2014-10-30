@@ -43,7 +43,7 @@ module Ably
       # @option options [Integer]      :limit      Maximum number of messages to retrieve up to 10,000
       # @option options [Symbol]       :by         `:message`, `:bundle` or `:hour`. Defaults to `:message`
       #
-      # @return [Models::PaginatedResource<Models::Message>] An Array of hashes representing the message history that supports paging (next, first)
+      # @return [Ably::Models::PaginatedResource<Ably::Models::Message>] An Array of hashes representing the message history that supports paging (next, first)
       def history(options = {})
         url = "#{base_path}/messages"
 
@@ -52,7 +52,7 @@ module Ably
 
         response = client.get(url, options.merge(merge_options))
 
-        Models::PaginatedResource.new(response, url, client, coerce_into: 'Ably::Rest::Models::Message')
+        Ably::Models::PaginatedResource.new(response, url, client, coerce_into: 'Ably::Models::Message')
       end
 
       def presence

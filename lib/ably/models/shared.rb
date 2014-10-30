@@ -1,4 +1,4 @@
-module Ably::Realtime::Models
+module Ably::Models
   module Shared
     include Ably::Modules::Conversions
 

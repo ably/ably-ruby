@@ -48,7 +48,7 @@ module Ably::Realtime
 
         if !entering?
           change_state STATE.Entering
-          send_presence_protocol_message(Models::PresenceMessage::STATE.Enter, options).tap do |deferrable|
+          send_presence_protocol_message(Ably::Models::PresenceMessage::STATE.Enter, options).tap do |deferrable|
             deferrable.errback  { |message, error| change_state STATE.Failed, error }
             deferrable.callback { |message| change_state STATE.Entered }
           end
@@ -73,7 +73,7 @@ module Ably::Realtime
 
         if !leaving?
           change_state STATE.Leaving
-          send_presence_protocol_message(Models::PresenceMessage::STATE.Leave, options).tap do |deferrable|
+          send_presence_protocol_message(Ably::Models::PresenceMessage::STATE.Leave, options).tap do |deferrable|
             deferrable.errback  { |message, error| change_state STATE.Failed, error }
             deferrable.callback { |message| change_state STATE.Left }
           end
@@ -82,8 +82,8 @@ module Ably::Realtime
     end
 
     # Get the presence state for this Channel.
-    # Optionally get a member's {Ably::Realtime::Models::PresenceMessage} state by member_id
-    # @return [Array<Ably::Realtime::Models::PresenceMessage>, Ably::Realtime::Models::PresenceMessage] members on the channel
+    # Optionally get a member's {Ably::Models::PresenceMessage} state by member_id
+    # @return [Array<Ably::Models::PresenceMessage>, Ably::Models::PresenceMessage] members on the channel
     def get()
       members.map { |key, presence| presence }
     end
@@ -91,8 +91,8 @@ module Ably::Realtime
     # Subscribe to presence events on the associated Channel.
     # This implicitly attaches the Channel if it is not already attached.
     #
-    # @param state [Ably::Realtime::Models::PresenceMessage::State] Optional, the state change to subscribe to.  Defaults to all presence states.
-    # @yield [Ably::Realtime::Models::PresenceMessage] For each presence state change event, the block is called
+    # @param state [Ably::Models::PresenceMessage::State] Optional, the state change to subscribe to.  Defaults to all presence states.
+    # @yield [Ably::Models::PresenceMessage] For each presence state change event, the block is called
     #
     def subscribe(state = :all, &blk)
       enter unless entered? || entering?
@@ -102,7 +102,7 @@ module Ably::Realtime
     # Unsubscribe the matching block for presence events on the associated Channel.
     # If a block is not provided, all subscriptions will be unsubscribed
     #
-    # @param state [Ably::Realtime::Models::PresenceMessage::State] Optional, the state change to subscribe to.  Defaults to all presence states.
+    # @param state [Ably::Models::PresenceMessage::State] Optional, the state change to subscribe to.  Defaults to all presence states.
     #
     def unsubscribe(state = :all, &blk)
       if message_state_key(state) == :all
@@ -121,7 +121,7 @@ module Ably::Realtime
     # @api private
     def __incoming_msgbus__
       @__incoming_msgbus__ ||= Ably::Util::PubSub.new(
-        coerce_into: Proc.new { |event| Models::ProtocolMessage::ACTION(event) }
+        coerce_into: Proc.new { |event| Ably::Models::ProtocolMessage::ACTION(event) }
       )
     end
 
@@ -148,7 +148,7 @@ module Ably::Realtime
       end
     end
 
-    # @return [Ably::Realtime::Models::PresenceMessage] presence message is returned allowing callbacks to be added
+    # @return [Ably::Models::PresenceMessage] presence message is returned allowing callbacks to be added
     def send_presence_protocol_message(presence_state, options)
       presence_message = create_presence_message(presence_state, options)
       unless presence_message.client_id
@@ -156,7 +156,7 @@ module Ably::Realtime
       end
 
       protocol_message = {
-        action:  Models::ProtocolMessage::ACTION.Presence,
+        action:  Ably::Models::ProtocolMessage::ACTION.Presence,
         channel: channel.name,
         presence: [presence_message]
       }
@@ -168,12 +168,12 @@ module Ably::Realtime
 
     def create_presence_message(state, options)
       model = {
-        state: Models::PresenceMessage.STATE(state).to_i,
+        state: Ably::Models::PresenceMessage.STATE(state).to_i,
         clientId: options[:client_id] || client.client_id,
       }
       model.merge!(clientData: options[:client_data]) if options[:client_data]
 
-      Models::PresenceMessage.new(model, nil)
+      Ably::Models::PresenceMessage.new(model, nil)
     end
 
     def update_members_from_presence_message(presence_message)
@@ -182,13 +182,13 @@ module Ably::Realtime
       end
 
       case presence_message.state
-      when Models::PresenceMessage::STATE.Enter
+      when Ably::Models::PresenceMessage::STATE.Enter
         members[presence_message.member_id] = presence_message
 
-      when Models::PresenceMessage::STATE.Update
+      when Ably::Models::PresenceMessage::STATE.Update
         members[presence_message.member_id] = presence_message
 
-      when Models::PresenceMessage::STATE.Leave
+      when Ably::Models::PresenceMessage::STATE.Leave
         members.delete presence_message.member_id
 
       else
@@ -226,7 +226,7 @@ module Ably::Realtime
       if state == :all
         :all
       else
-        Ably::Realtime::Models::PresenceMessage.STATE(state)
+        Ably::Models::PresenceMessage.STATE(state)
       end
     end
   end

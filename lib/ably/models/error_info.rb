@@ -1,4 +1,4 @@
-module Ably::Realtime::Models
+module Ably::Models
   # An exception type encapsulating error information containing
   # an Ably-specific error code and generic status code.
   #

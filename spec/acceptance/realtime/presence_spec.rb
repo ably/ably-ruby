@@ -106,9 +106,9 @@ describe 'Ably::Realtime::Presence Messages' do
           member_client_one = members.find { |presence| presence.client_id == client_one.client_id }
           member_client_two = members.find { |presence| presence.client_id == client_two.client_id }
 
-          expect(member_client_one).to be_a(Ably::Realtime::Models::PresenceMessage)
+          expect(member_client_one).to be_a(Ably::Models::PresenceMessage)
           expect(member_client_one.client_data).to eql(client_data_payload)
-          expect(member_client_two).to be_a(Ably::Realtime::Models::PresenceMessage)
+          expect(member_client_two).to be_a(Ably::Models::PresenceMessage)
 
           stop_reactor
         end
@@ -132,13 +132,14 @@ describe 'Ably::Realtime::Presence Messages' do
       end
 
       subscribe_self_callback = Proc.new do |presence_message|
-        expect(presence_message.client_id).to eql(client_two.client_id)
-        expect(presence_message.state).to eq(:enter)
+        if presence_message.client_id == client_two.client_id
+          expect(presence_message.state).to eq(:enter)
 
-        presence_client_two.unsubscribe &subscribe_self_callback
-        presence_client_two.subscribe &subscribe_client_one_leaving_callback
+          presence_client_two.unsubscribe &subscribe_self_callback
+          presence_client_two.subscribe &subscribe_client_one_leaving_callback
 
-        presence_client_one.leave client_data: client_data_payload
+          presence_client_one.leave client_data: client_data_payload
+        end
       end
 
       presence_client_one.enter do
@@ -153,10 +154,9 @@ describe 'Ably::Realtime::Presence Messages' do
         members = channel_rest_client_one.presence.get
         this_member = members.first
 
-        # TODO: Do not use Hash accessor for PresenceMessage
-        expect(this_member).to be_a(Ably::Rest::Models::PresenceMessage)
-        expect(this_member[:client_id]).to eql(client_one.client_id)
-        expect(this_member[:client_data]).to eql(client_data_payload)
+        expect(this_member).to be_a(Ably::Models::PresenceMessage)
+        expect(this_member.client_id).to eql(client_one.client_id)
+        expect(this_member.client_data).to eql(client_data_payload)
 
         stop_reactor
       end

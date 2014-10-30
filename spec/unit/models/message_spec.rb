@@ -1,14 +1,14 @@
 require 'spec_helper'
 require 'support/model_helper'
 
-describe Ably::Realtime::Models::Message do
+describe Ably::Models::Message do
   include Ably::Modules::Conversions
 
-  subject { Ably::Realtime::Models::Message }
+  subject { Ably::Models::Message }
   let(:protocol_message_timestamp) { as_since_epoch(Time.now) }
-  let(:protocol_message) { Ably::Realtime::Models::ProtocolMessage.new(action: 1, timestamp: protocol_message_timestamp) }
+  let(:protocol_message) { Ably::Models::ProtocolMessage.new(action: 1, timestamp: protocol_message_timestamp) }
 
-  it_behaves_like 'a realtime model', with_simple_attributes: %w(name client_id data) do
+  it_behaves_like 'a model', with_simple_attributes: %w(name client_id data) do
     let(:model_args) { [protocol_message] }
   end
 
@@ -48,6 +48,33 @@ describe Ably::Realtime::Models::Message do
     end
   end
 
+  context 'from REST request with embedded fields' do
+    let(:id) { SecureRandom.hex }
+    let(:message_time) { Time.now + 60 }
+    let(:timestamp) { as_since_epoch(message_time) }
+    let(:model) { subject.new(id: id, timestamp: timestamp) }
+
+    context 'with protocol message' do
+      specify '#id prefers embedded ID' do
+        expect(model.id).to eql(id)
+      end
+
+      specify '#timestamp prefers embedded timestamp' do
+        expect(model.timestamp.to_i).to be_within(1).of(message_time.to_i)
+      end
+    end
+
+    context 'without protocol message' do
+      specify '#id uses embedded ID' do
+        expect(model.id).to eql(id)
+      end
+
+      specify '#timestamp uses embedded timestamp' do
+        expect(model.timestamp.to_i).to be_within(1).of(message_time.to_i)
+      end
+    end
+  end
+
   context 'part of ProtocolMessage' do
     let(:ably_time) { Time.now + 5 }
     let(:message_serial) { SecureRandom.random_number(1_000_000) }
@@ -76,7 +103,7 @@ describe Ably::Realtime::Models::Message do
     end
 
     let(:protocol_message) do
-      Ably::Realtime::Models::ProtocolMessage.new({
+      Ably::Models::ProtocolMessage.new({
         action: :message,
         timestamp: ably_time.to_i,
         msg_serial: message_serial,
@@ -114,10 +141,10 @@ describe Ably::Realtime::Models::Message do
 
     context 'with JSON' do
       context 'without ProtocolMessage' do
-        subject { Ably::Realtime::Models.Message(json) }
+        subject { Ably::Models.Message(json) }
 
         it 'returns a Message object' do
-          expect(subject).to be_a(Ably::Realtime::Models::Message)
+          expect(subject).to be_a(Ably::Models::Message)
         end
 
         it 'initializes with the JSON' do
@@ -134,10 +161,10 @@ describe Ably::Realtime::Models::Message do
       end
 
       context 'with ProtocolMessage' do
-        subject { Ably::Realtime::Models.Message(json, protocol_message) }
+        subject { Ably::Models.Message(json, protocol_message) }
 
         it 'returns a Message object' do
-          expect(subject).to be_a(Ably::Realtime::Models::Message)
+          expect(subject).to be_a(Ably::Models::Message)
         end
 
         it 'initializes with the JSON' do
@@ -155,13 +182,13 @@ describe Ably::Realtime::Models::Message do
     end
 
     context 'with another Message' do
-      let(:message) { Ably::Realtime::Models::Message.new(json) }
+      let(:message) { Ably::Models::Message.new(json) }
 
       context 'without ProtocolMessage' do
-        subject { Ably::Realtime::Models.Message(message) }
+        subject { Ably::Models.Message(message) }
 
         it 'returns a Message object' do
-          expect(subject).to be_a(Ably::Realtime::Models::Message)
+          expect(subject).to be_a(Ably::Models::Message)
         end
 
         it 'initializes with the JSON' do
@@ -178,10 +205,10 @@ describe Ably::Realtime::Models::Message do
       end
 
       context 'with ProtocolMessage' do
-        subject { Ably::Realtime::Models.Message(message, protocol_message) }
+        subject { Ably::Models.Message(message, protocol_message) }
 
         it 'returns a Message object' do
-          expect(subject).to be_a(Ably::Realtime::Models::Message)
+          expect(subject).to be_a(Ably::Models::Message)
         end
 
         it 'initializes with the JSON' do

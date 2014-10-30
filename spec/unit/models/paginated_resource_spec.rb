@@ -1,8 +1,8 @@
 require 'spec_helper'
 require 'ostruct'
 
-describe Ably::Rest::Models::PaginatedResource do
-  let(:paginated_resource_class) { Ably::Rest::Models::PaginatedResource }
+describe Ably::Models::PaginatedResource do
+  let(:paginated_resource_class) { Ably::Models::PaginatedResource }
   let(:headers) { Hash.new }
   let(:client) do
     instance_double('Ably::Rest::Client').tap do |client|

@@ -25,10 +25,10 @@ describe Ably::Realtime::Channel do
 
   context 'msgbus' do
     let(:message) do
-      Ably::Realtime::Models::Message.new({
+      Ably::Models::Message.new({
         'name' => 'test',
         'data' => 'payload'
-      }, instance_double('Ably::Realtime::Models::ProtocolMessage'))
+      }, instance_double('Ably::Models::ProtocolMessage'))
     end
     let(:msgbus) { subject.__incoming_msgbus__ }
 
@@ -48,7 +48,7 @@ describe Ably::Realtime::Channel do
   context 'subscriptions' do
     let(:message_history) { Hash.new { |hash, key| hash[key] = 0 } }
     let(:event_name) { 'click' }
-    let(:message) { instance_double('Ably::Realtime::Models::Message', name: event_name) }
+    let(:message) { instance_double('Ably::Models::Message', name: event_name) }
 
     context '#subscribe' do
       specify 'to all events' do
