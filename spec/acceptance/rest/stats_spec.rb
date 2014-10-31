@@ -49,9 +49,6 @@ describe "REST" do
 
               expect(stat[:inbound][:all][:messages][:count]).to eql(number_of_channels * number_of_messages_per_channel)
               expect(stat[:inbound][:rest][:messages][:count]).to eql(number_of_channels * number_of_messages_per_channel)
-
-              # TODO: Review number of Channels opened issue for intervals other than minute
-              expect(stat[:channels][:opened]).to eql(number_of_channels) if interval == :minute
             end
           end
         end
