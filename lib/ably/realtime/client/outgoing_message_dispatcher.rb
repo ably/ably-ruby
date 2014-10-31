@@ -40,8 +40,8 @@ module Ably::Realtime
         non_blocking_loop_while(condition) do
           protocol_message = outgoing_queue.shift
           pending_queue << protocol_message if protocol_message.ack_required?
-          connection.transport.send_text(protocol_message.to_json)
-          client.logger.debug("Prot msg sent =>: #{protocol_message.action} #{protocol_message}")
+          connection.transport.send_object protocol_message
+          client.logger.debug "Prot msg sent =>: #{protocol_message.action} #{protocol_message}"
         end
       end
 
