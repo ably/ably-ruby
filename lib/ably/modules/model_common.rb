@@ -1,6 +1,6 @@
-module Ably::Models
-  # Common model functionality across many {Ably::Models}
-  module Common
+module Ably::Modules
+  # Common model functionality shared across many {Ably::Models}
+  module ModelCommon
     include Ably::Modules::Conversions
     include Ably::Modules::MessagePack
 

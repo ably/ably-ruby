@@ -12,7 +12,7 @@ module Ably::Models
   #   @return [Hash] Access the protocol message Hash object ruby'fied to use symbolized keys
   #
   class ErrorInfo
-    include Common
+    include Ably::Modules::ModelCommon
 
     def initialize(hash_object)
       @raw_hash_object = hash_object

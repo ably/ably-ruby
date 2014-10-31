@@ -32,7 +32,7 @@ module Ably::Models
   #   @return [Hash] Access the protocol message Hash object ruby'fied to use symbolized keys
   #
   class ProtocolMessage
-    include Common
+    include Ably::Modules::ModelCommon
     extend Ably::Modules::Enum
 
     # Actions which are sent by the Ably Realtime API

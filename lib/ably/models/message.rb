@@ -33,7 +33,7 @@ module Ably::Models
   #   @return [Hash] Access the protocol message Hash object ruby'fied to use symbolized keys
   #
   class Message
-    include Common
+    include Ably::Modules::ModelCommon
     include EventMachine::Deferrable
 
     # {Message} initializer

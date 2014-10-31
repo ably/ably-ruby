@@ -3,7 +3,6 @@ require "ably/rest/channels"
 require "ably/rest/client"
 require "ably/rest/presence"
 
-require "ably/models/common"
 Dir.glob(File.expand_path("ably/models/*.rb", File.dirname(__FILE__))).each do |file|
   require file
 end
