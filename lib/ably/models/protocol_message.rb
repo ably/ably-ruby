@@ -74,10 +74,15 @@ module Ably::Models
       @json_object.freeze
     end
 
-    %w( channel channel_serial connection_id ).each do |attribute|
+    %w( id channel channel_serial connection_id ).each do |attribute|
       define_method attribute do
         json[attribute.to_sym]
       end
+    end
+
+    def id!
+      raise RuntimeError, "ProtocolMessage #id is nil" unless id
+      id
     end
 
     def action

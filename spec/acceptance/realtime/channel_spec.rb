@@ -78,14 +78,14 @@ describe Ably::Realtime::Channel do
     end
 
     # All 3 messages should be batched into a single Protocol Message by the client library
-    # message.id = "{connection_id}:{message_serial}:{protocol_message_index}"
+    # message.id = "{protocol_message.id}:{protocol_message_index}"
 
     # Check that all messages share the same message_serial
-    message_serials = messages.map { |msg| msg.id.split(':')[1] }
-    expect(message_serials.uniq).to eql(["0"])
+    message_id = messages.map { |msg| msg.id.split(':')[0] }
+    expect(message_id.uniq.count).to eql(1)
 
     # Check that all messages use message index 0,1,2
-    message_indexes = messages.map { |msg| msg.id.split(':')[2] }
+    message_indexes = messages.map { |msg| msg.id.split(':')[1] }
     expect(message_indexes).to include("0", "1", "2")
   end
 

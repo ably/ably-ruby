@@ -59,7 +59,7 @@ module Ably::Models
     end
 
     def id
-      json[:id] || "#{connection_id}:#{message_serial}:#{protocol_message_index}"
+      json[:id] || "#{protocol_message.id!}:#{protocol_message_index}"
     end
 
     def timestamp

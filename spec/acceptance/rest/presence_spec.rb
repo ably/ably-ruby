@@ -18,7 +18,7 @@ describe "REST" do
     let(:channel) { client.channel("persisted:presence_fixtures") }
     let(:presence) { channel.presence.get }
 
-    it "should return current members on the channel" do
+    it "returns current members on the channel" do
       expect(presence.size).to eql(4)
 
       fixtures.each do |fixture|
@@ -32,12 +32,27 @@ describe "REST" do
     let(:channel) { client.channel("persisted:presence_fixtures") }
     let(:history) { channel.presence.history }
 
-    it "should return recent presence activity" do
+    it "returns recent presence activity" do
       expect(history.size).to eql(4)
 
       fixtures.each do |fixture|
         presence_message = history.find { |client| client.client_id == fixture['clientId'] }
         expect(presence_message.client_data).to eq(fixture[:client_data])
+      end
+    end
+
+    context 'with options' do
+      let(:page_size) { 2 }
+      let(:paged_history_forward) { channel.presence.history(limit: page_size, direction: :forwards) }
+
+      it "returns recent presence activity with options passsed to Ably" do
+        expect(paged_history_forward).to be_a(Ably::Models::PaginatedResource)
+        expect(paged_history_forward.size).to eql(2)
+
+        next_page = paged_history_forward.next_page
+
+        expect(paged_history_forward.first.id).to eql(history.last.id)
+        expect(next_page.first.id).to eql(history[page_size].id)
       end
     end
   end
