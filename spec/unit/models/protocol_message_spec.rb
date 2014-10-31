@@ -265,4 +265,16 @@ describe Ably::Models::ProtocolMessage do
       end
     end
   end
+
+  context '#to_msgpack' do
+    let(:model)    { new_protocol_message({ :connectionSerial => 'unique', messages: [message] }) }
+    let(:message)  { { 'name' => 'event', 'clientId' => 'joe', 'timestamp' => as_since_epoch(Time.now) } }
+    let(:packed)   { model.to_msgpack }
+    let(:unpacked) { MessagePack.unpack(packed) }
+
+    it 'returns a unpackable msgpack object' do
+      expect(unpacked['connectionSerial']).to eq('unique')
+      expect(unpacked['messages'][0]['name']).to eq('event')
+    end
+  end
 end

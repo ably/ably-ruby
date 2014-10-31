@@ -1,7 +1,7 @@
 module Ably::Models
   # Authentication token issued by Ably in response to an token request
   class Token
-    include Ably::Modules::Conversions
+    include Common
 
     DEFAULTS = {
       capability: { "*" => ["*"] },
@@ -13,58 +13,49 @@ module Ably::Models
     TOKEN_EXPIRY_BUFFER = 5
 
     def initialize(attributes)
-      @attributes = IdiomaticRubyWrapper(attributes.clone.freeze)
+      @hash_object = IdiomaticRubyWrapper(attributes.clone.freeze)
     end
 
-    # Unique token ID used to authenticate requests
-    #
-    # @return [String]
+    # @!attribute [r] id
+    # @return [String] Unique token ID used to authenticate requests
     def id
-      attributes.fetch(:id)
+      hash.fetch(:id)
     end
 
-    # Key ID used to create this token
-    #
-    # @return [String]
+    # @!attribute [r] key_id
+    # @return [String] Key ID used to create this token
     def key_id
-      attributes.fetch(:key)
+      hash.fetch(:key)
     end
 
-    # Time the token was issued
-    #
-    # @return [Time]
+    # @!attribute [r] issued_at
+    # @return [Time] Time the token was issued
     def issued_at
-      as_time_from_epoch(attributes.fetch(:issued_at), granularity: :s)
+      as_time_from_epoch(hash.fetch(:issued_at), granularity: :s)
     end
 
-    # Time the token expires
-    #
-    # @return [Time]
+    # @!attribute [r] expires_at
+    # @return [Time] Time the token expires
     def expires_at
-      as_time_from_epoch(attributes.fetch(:expires), granularity: :s)
+      as_time_from_epoch(hash.fetch(:expires), granularity: :s)
     end
 
-    # Capabilities assigned to this token
-    #
-    # @return [Hash]
+    # @!attribute [r] capability
+    # @return [Hash] Capabilities assigned to this token
     def capability
-      attributes.fetch(:capability)
+      hash.fetch(:capability)
     end
 
-    # Optioanl client ID assigned to this token
-    #
-    # @return [String]
+    # @!attribute [r] client_id
+    # @return [String] Optional client ID assigned to this token
     def client_id
-      attributes.fetch(:client_id)
+      hash.fetch(:client_id)
     end
 
+    # @!attribute [r] nonce
+    # @return [String] unique nonce used to generate Token and ensure token generation cannot be replayed
     def nonce
-      attributes.fetch(:nonce)
-    end
-
-    def ==(other)
-      other.kind_of?(Token) &&
-        attributes == other.attributes
+      hash.fetch(:nonce)
     end
 
     # Returns true if token is expired or about to expire
@@ -74,7 +65,10 @@ module Ably::Models
       expires_at < Time.now + TOKEN_EXPIRY_BUFFER
     end
 
-    protected
-    attr_reader :attributes
+    # @!attribute [r] hash
+    # @return [Hash] Access the token Hash object ruby'fied to use symbolized keys
+    def hash
+      @hash_object
+    end
   end
 end

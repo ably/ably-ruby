@@ -41,6 +41,7 @@ module Ably::Models
   class IdiomaticRubyWrapper
     include Enumerable
     include Ably::Modules::Conversions
+    include Ably::Modules::MessagePack
 
     attr_reader :stop_at
 
@@ -142,16 +143,37 @@ module Ably::Models
       @hash
     end
 
-    # Converts the current wrapped mixedCase object to a Hash string
-    # using the provided mixedCase syntax
-    def to_json(*args)
-      hash.to_json
+    # Takes the underlying Hash object and returns it in as a JSON ready Hash object using snakeCase for compability with the Ably service.
+    # Note name clashes are ignored and will result in loss of one or more values
+    # @example
+    #   wrapper = IdiomaticRubyWrapper({ 'mixedCase': true, mixed_case: false, 'snake_case': 1 })
+    #   wrapper.as_json({ 'mixedCase': true, 'snakeCase': 1 })
+    def as_json(*args)
+      hash.each_with_object({}) do |key_val, new_hash|
+        key, val                 = key_val
+        mixed_case_key           = convert_to_mixed_case(key)
+        wrapped_val              = self[key]
+        wrapped_val              = wrapped_val.as_json(args) if wrapped_val.kind_of?(IdiomaticRubyWrapper)
+
+        new_hash[mixed_case_key] = wrapped_val
+      end
     end
 
-    # Generate a symbolized Hash object representing the underlying Hash in a Ruby friendly format
-    def to_hash
+    # Converts the current wrapped mixedCase object to JSON
+    # using mixedCase syntax as expected by the Realtime API
+    def to_json(*args)
+      as_json(args).to_json
+    end
+
+    # Generate a symbolized Hash object representing the underlying Hash in a Ruby friendly format.
+    # Note name clashes are ignored and will result in loss of one or more values
+    # @example
+    #   wrapper = IdiomaticRubyWrapper({ 'mixedCase': true, mixed_case: false, 'snake_case': 1 })
+    #   wrapper.to_hash({ mixed_case: true, snake_case: 1 })
+    def to_hash(*args)
       each_with_object({}) do |key_val, hash|
-        key, val = key_val
+        key, val  = key_val
+        val       = val.to_hash(args) if val.kind_of?(IdiomaticRubyWrapper)
         hash[key] = val
       end
     end

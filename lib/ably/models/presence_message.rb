@@ -33,8 +33,7 @@ module Ably::Models
   #   @return [Hash] Access the protocol message Hash object ruby'fied to use symbolized keys
   #
   class PresenceMessage
-    include Shared
-    include Ably::Modules::Conversions
+    include Common
     include EventMachine::Deferrable
     extend Ably::Modules::Enum
 
@@ -81,16 +80,13 @@ module Ably::Models
       @hash_object
     end
 
-    def to_hash_object
+    # Return a JSON ready object from the underlying #hash using Ably naming conventions for keys
+    def as_json(*args)
       hash.dup.tap do |hash|
         hash['action'] = action.to_i
-      end
+      end.as_json
     rescue KeyError
       raise KeyError, ":action is missing or invalid, cannot generate a valid Hash for ProtocolMessage"
-    end
-
-    def to_json(*args)
-      to_hash_object.to_json
     end
 
     # Assign this presence message to a ProtocolMessage before delivery to the Ably system

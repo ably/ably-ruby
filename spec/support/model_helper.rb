@@ -52,6 +52,24 @@ shared_examples 'a model' do |shared_options = {}|
     end
   end
 
+  context '#to_msgpack' do
+    let(:model_options) { { name: 'test', action: 0, channel_snake_case: 'unique' } }
+    let(:serialized)    { model.to_msgpack }
+
+    it 'returns a msgpack object with Ably payload naming' do
+      expect(MessagePack.unpack(serialized)).to include('channelSnakeCase' => 'unique')
+    end
+  end
+
+  context '#to_json' do
+    let(:model_options) { { name: 'test', action: 0, channel_snake_case: 'unique' } }
+    let(:serialized)    { model.to_json }
+
+    it 'returns a JSON string with Ably payload naming' do
+      expect(JSON.parse(serialized)).to include('channelSnakeCase' => 'unique')
+    end
+  end
+
   context 'is immutable' do
     let(:model_options) { { channel: 'name' } }
 

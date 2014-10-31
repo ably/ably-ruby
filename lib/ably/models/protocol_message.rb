@@ -32,9 +32,8 @@ module Ably::Models
   #   @return [Hash] Access the protocol message Hash object ruby'fied to use symbolized keys
   #
   class ProtocolMessage
-    include Shared
+    include Common
     extend Ably::Modules::Enum
-    include Ably::Modules::Conversions
 
     # Actions which are sent by the Ably Realtime API
     #
@@ -157,28 +156,25 @@ module Ably::Models
         end
     end
 
-    def hash
-      @hash_object
-    end
-
     # Indicates this protocol message will generate an ACK response when sent
     # Examples of protocol messages required ACK include :message and :presence
     def ack_required?
       self.class.ack_required?(action)
     end
 
-    def to_hash_object
+    def hash
+      @hash_object
+    end
+
+    # Return a JSON ready object from the underlying #hash using Ably naming conventions for keys
+    def as_json(*args)
       raise TypeError, ":action is missing, cannot generate a valid Hash for ProtocolMessage" unless action
       raise TypeError, ":msg_serial or :connection_serial is missing, cannot generate a valid Hash for ProtocolMessage" if ack_required? && !has_serial?
 
       hash.dup.tap do |hash_object|
-        hash_object[:messages] = messages.map(&:to_hash_object) unless messages.empty?
-        hash_object[:presence] = presence.map(&:to_hash_object) unless presence.empty?
-      end
-    end
-
-    def to_json(*args)
-      to_hash_object.to_json
+        hash_object['messages'] = messages.map(&:as_json) unless messages.empty?
+        hash_object['presence'] = presence.map(&:as_json) unless presence.empty?
+      end.as_json
     end
 
     def to_s

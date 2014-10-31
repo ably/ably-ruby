@@ -33,8 +33,7 @@ module Ably::Models
   #   @return [Hash] Access the protocol message Hash object ruby'fied to use symbolized keys
   #
   class Message
-    include Shared
-    include Ably::Modules::Conversions
+    include Common
     include EventMachine::Deferrable
 
     # {Message} initializer
@@ -74,13 +73,9 @@ module Ably::Models
       @hash_object
     end
 
-    def to_hash_object
+    def as_json(*args)
       raise RuntimeError, ":name is missing, cannot generate a valid Hash for Message" unless name
-      hash.dup
-    end
-
-    def to_json(*args)
-      to_hash_object.to_json
+      super
     end
 
     # Assign this message to a ProtocolMessage before delivery to the Ably system

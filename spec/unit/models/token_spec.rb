@@ -1,6 +1,12 @@
 require "spec_helper"
 
 describe Ably::Models::Token do
+  subject { Ably::Models::Token }
+
+  it_behaves_like 'a model', with_simple_attributes: %w(id capability client_id nonce) do
+    let(:model_args) { [] }
+  end
+
   context 'defaults' do
     let(:one_hour)          { 60 * 60 }
     let(:all_capabilities)  { { "*" => ["*"] } }
@@ -20,16 +26,6 @@ describe Ably::Models::Token do
 
   context 'attributes' do
     let(:unique_value) { 'unique_value' }
-
-    %w(id capability client_id nonce).each do |attribute|
-      context "##{attribute}" do
-        subject { Ably::Models::Token.new({ attribute.to_sym => unique_value }) }
-
-        it "retrieves attribute :#{attribute}" do
-          expect(subject.public_send(attribute)).to eql(unique_value)
-        end
-      end
-    end
 
     context '#key_id' do
       subject { Ably::Models::Token.new({ key: unique_value }) }

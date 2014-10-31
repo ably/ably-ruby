@@ -12,8 +12,7 @@ module Ably::Models
   #   @return [Hash] Access the protocol message Hash object ruby'fied to use symbolized keys
   #
   class ErrorInfo
-    include Shared
-    include Ably::Modules::Conversions
+    include Common
 
     def initialize(hash_object)
       @raw_hash_object = hash_object
@@ -30,7 +29,6 @@ module Ably::Models
     def hash
       @hash_object
     end
-    alias_method :to_json, :hash
 
     def to_s
       "Error: #{message} (code: #{code}, status_code: #{status_code})"
