@@ -15,7 +15,7 @@ describe Ably::Models::IdiomaticRubyWrapper do
         {
           'mixedCaseChild' => 'exists'
         }
-      ],
+      ]
     }
   end
   subject { Ably::Models::IdiomaticRubyWrapper.new(mixed_case_data) }
@@ -161,8 +161,20 @@ describe Ably::Models::IdiomaticRubyWrapper do
   end
 
   context 'acts like a duck' do
+    let(:parsed_json) { JSON.parse(subject.to_json) }
     specify '#to_json returns JSON stringified' do
       expect(subject.to_json).to eql(mixed_case_data.to_json)
+    end
+
+    specify '#to_json returns child JSON objects in the JSON stringified' do
+      expect(parsed_json['arrayObject']).to eql(mixed_case_data['arrayObject'])
+    end
+
+    context 'with snake case JSON' do
+      let(:subject) { Ably::Models::IdiomaticRubyWrapper.new('wrong_case' => 'will_be_corrected')}
+      specify '#to_json uses mixedCase for any non mixedCase keys' do
+        expect(parsed_json['wrongCase']).to eql('will_be_corrected')
+      end
     end
 
     context '#to_json with changes' do
@@ -263,12 +275,37 @@ describe Ably::Models::IdiomaticRubyWrapper do
     context '#to_hash' do
       let(:mixed_case_data) do
         {
-          'key' => 'value'
+          'key' => 'value',
+          'childObject' => {
+            'child' => true
+          }
         }
       end
 
       it 'returns a hash' do
         expect(subject.to_hash).to include(key: 'value')
+      end
+
+      it 'converts hashes within hashes' do
+        expect(subject.to_hash[:child_object]).to include(child: true)
+      end
+    end
+
+    context '#to_msgpack' do
+      let(:mixed_case_data) do
+        {
+          'key' => 'value',
+          'child' => {
+            'with_attributes' => true
+          }
+        }
+      end
+      let(:msg_packed) { subject.to_msgpack }
+      let(:unpacked)   { MessagePack.unpack(msg_packed) }
+
+      it 'returns a msgpack object' do
+        expect(unpacked).to include('key' => 'value')
+        expect(unpacked).to include('child' => { 'withAttributes' => true })
       end
     end
 

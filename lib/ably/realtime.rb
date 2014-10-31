@@ -11,7 +11,7 @@ require "ably/realtime/connection/connection_state_machine"
 require "ably/realtime/connection/websocket_transport"
 require "ably/realtime/presence"
 
-require "ably/models/shared"
+require "ably/models/common"
 Dir.glob(File.expand_path("models/*.rb", File.dirname(__FILE__))).each do |file|
   require file
 end
