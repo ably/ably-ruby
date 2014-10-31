@@ -1,6 +1,7 @@
 require 'base64'
 
 require 'ably/rest/middleware/external_exceptions'
+require 'ably/rest/middleware/fail_if_unsupported_mime_type'
 require 'ably/rest/middleware/parse_json'
 require 'ably/rest/middleware/parse_message_pack'
 
@@ -16,11 +17,16 @@ module Ably::Modules
       "Ably Ruby client #{Ably::VERSION} (https://ably.io)"
     end
 
-    def setup_middleware(builder)
+    def setup_outgoing_middleware(builder)
       # Convert request params to "www-form-urlencoded"
       builder.use Faraday::Request::UrlEncoded
+    end
 
-      # Parse JSON / MsgPack response bodies.  ParseJson must be first (default) parsing middleware
+    def setup_incoming_middleware(builder, options = {})
+      # Parse JSON / MsgPack response bodies. ParseJson must be first (default) parsing middleware
+      if options[:fail_if_unsupported_mime_type] == true
+        builder.use Ably::Rest::Middleware::FailIfUnsupportedMimeType
+      end
       builder.use Ably::Rest::Middleware::ParseJson
       builder.use Ably::Rest::Middleware::ParseMessagePack
     end

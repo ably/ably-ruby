@@ -31,7 +31,7 @@ module Ably
 
         response = client.post("#{base_path}/publish", payload)
 
-        response.status == 201
+        [201, 204].include?(response.status)
       end
 
       # Return the message history of the channel

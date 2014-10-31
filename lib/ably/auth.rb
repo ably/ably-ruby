@@ -354,11 +354,18 @@ module Ably
       connection = Faraday.new("#{uri.scheme}://#{uri.host}", connection_options)
       method = options[:auth_method] || :get
 
-      connection.send(method) do |request|
+      response = connection.send(method) do |request|
         request.url uri.path
         request.params = options[:auth_params] || {}
         request.headers = options[:auth_headers] || {}
-      end.body
+      end
+
+      unless response.body.kind_of?(Hash)
+        raise Ably::Exceptions::InvalidResponseBody,
+              "Content Type #{response.headers['Content-Type']} is not supported by this client library"
+      end
+
+      response.body
     end
 
     # Return a Hash of connection options to initiate the Faraday::Connection with
@@ -383,11 +390,12 @@ module Ably
     # @see http://mislav.uniqpath.com/2011/07/faraday-advanced-http/
     def middleware
       @middleware ||= Faraday::RackBuilder.new do |builder|
-        setup_middleware builder
+        setup_outgoing_middleware builder
 
         # Raise exceptions if response code is invalid
         builder.use Ably::Rest::Middleware::ExternalExceptions
 
+        setup_incoming_middleware builder
 
         # Log HTTP requests if log level is DEBUG option set
         builder.response :logger if client.log_level == Logger::DEBUG

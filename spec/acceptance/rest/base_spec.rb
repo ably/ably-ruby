@@ -14,8 +14,6 @@ describe "REST" do
       Ably::Rest::Client.new(client_options.merge(api_key: 'appid.keyuid:keysecret'))
     end
 
-    skip '#protocol should default to :msgpack'
-
     context 'transport' do
       let(:now) { Time.now - 1000 }
       let(:body_value) { [as_since_epoch(now)] }
@@ -26,22 +24,8 @@ describe "REST" do
           to_return(:status => 200, :body => request_body, :headers => { 'Content-Type' => mime })
       end
 
-      context 'when protocol is set as :json' do
-        let(:client_options) { { protocol: :json } }
-        let(:mime) { 'application/json' }
-        let(:request_body) { body_value.to_json }
-
-        it 'uses JSON', webmock: true do
-          expect(client.protocol).to eql(:json)
-          expect(client.time).to be_within(1).of(now)
-        end
-
-        skip 'uses JSON against Ably service for Auth'
-        skip 'uses JSON against Ably service for Messages'
-      end
-
-      context 'when protocol is set as :msgpack' do
-        let(:client_options) { { protocol: :msgpack } }
+      context 'when protocol is not defined it defaults to :msgpack' do
+        let(:client_options) { { } }
         let(:mime) { 'application/x-msgpack' }
         let(:request_body) { body_value.to_msgpack }
 
@@ -49,9 +33,40 @@ describe "REST" do
           expect(client.protocol).to eql(:msgpack)
           expect(client.time).to be_within(1).of(now)
         end
+      end
 
-        skip 'uses MsgPack against Ably service for Auth'
-        skip 'uses MsgPack against Ably service for Messages'
+      options = [
+          { protocol: :json },
+          { use_binary_protocol: false }
+        ].each do |client_option|
+
+        context "when option #{client_option} is used" do
+          let(:client_options) { client_option }
+          let(:mime) { 'application/json' }
+          let(:request_body) { body_value.to_json }
+
+          it 'uses JSON', webmock: true do
+            expect(client.protocol).to eql(:json)
+            expect(client.time).to be_within(1).of(now)
+          end
+        end
+      end
+
+      options = [
+          { protocol: :json },
+          { use_binary_protocol: false }
+        ].each do |client_option|
+
+        context "when option #{client_option} is used" do
+          let(:client_options) { { protocol: :msgpack } }
+          let(:mime) { 'application/x-msgpack' }
+          let(:request_body) { body_value.to_msgpack }
+
+          it 'uses MsgPack', webmock: true do
+            expect(client.protocol).to eql(:msgpack)
+            expect(client.time).to be_within(1).of(now)
+          end
+        end
       end
     end
   end
@@ -71,7 +86,8 @@ describe "REST" do
       let(:error_response) { '{ "error": { "statusCode": 500, "code": 50000, "message": "Internal error" } }' }
 
       before do
-        stub_request(:get, "#{client.endpoint}/time").to_return(:status => 500, :body => error_response, :headers => { 'Content-Type' => 'application/json' })
+        stub_request(:get, "#{client.endpoint}/time").
+          to_return(:status => 500, :body => error_response, :headers => { 'Content-Type' => 'application/json' })
       end
 
       it "should raise a ServerError exception" do
@@ -81,7 +97,8 @@ describe "REST" do
 
     describe "server error", webmock: true do
       before do
-        stub_request(:get, "#{client.endpoint}/time").to_return(:status => 500)
+        stub_request(:get, "#{client.endpoint}/time").
+        to_return(:status => 500, :headers => { 'Content-Type' => 'application/json' })
       end
 
       it "should raise a ServerError exception" do
@@ -110,7 +127,7 @@ describe "REST" do
       stub_request(:post, "#{client.endpoint}/channels/#{channel}/publish").to_return do
         @publish_attempts += 1
         if [1, 3].include?(@publish_attempts)
-          { status: 201, :body => '[]' }
+          { status: 201, :body => '[]', :headers => { 'Content-Type' => 'application/json' } }
         else
           raise Ably::Exceptions::InvalidRequest.new('Authentication failure', 401, 40140)
         end
