@@ -119,6 +119,8 @@ describe Ably::Realtime::Channel do
           end
         end
       end
+
+      skip 'ensure REST history message IDs match ProtocolMessage wrapped message IDs via Realtime'
     end
   end
 end

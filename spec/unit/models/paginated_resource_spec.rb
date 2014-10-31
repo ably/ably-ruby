@@ -50,6 +50,14 @@ describe Ably::Models::PaginatedResource do
     expect(subject[2]).to be_nil
   end
 
+  specify '#first gets the first item in page' do
+    expect(subject.first[:id]).to eql(body[0][:id])
+  end
+
+  specify '#last gets the last item in page' do
+    expect(subject.last[:id]).to eql(body[1][:id])
+  end
+
   context 'with coercion' do
     let(:paginated_resource_options) { { coerce_into: 'OpenStruct' } }
 

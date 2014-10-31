@@ -139,14 +139,14 @@ describe 'Ably::Realtime::Presence Messages' do
       subscribe_client_one_leaving_callback = Proc.new do |presence_message|
         expect(presence_message.client_id).to eql(client_one.client_id)
         expect(presence_message.client_data).to eql(client_data_payload)
-        expect(presence_message.state).to eq(:leave)
+        expect(presence_message.action).to eq(:leave)
 
         stop_reactor
       end
 
       subscribe_self_callback = Proc.new do |presence_message|
         if presence_message.client_id == client_two.client_id
-          expect(presence_message.state).to eq(:enter)
+          expect(presence_message.action).to eq(:enter)
 
           presence_client_two.unsubscribe &subscribe_self_callback
           presence_client_two.subscribe &subscribe_client_one_leaving_callback
@@ -249,5 +249,5 @@ describe 'Ably::Realtime::Presence Messages' do
   end
 
   skip 'stop a call to get when the channel has not been entered'
-  skip 'stop a call to get when the channel has been entered'
+  skip 'stop a call to get when the channel has been entered but the list is not up to date'
 end

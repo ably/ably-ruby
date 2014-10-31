@@ -28,19 +28,19 @@ describe Ably::Models::PresenceMessage do
     end
   end
 
-  context 'with state' do
-    let(:model) { subject.new({ state: 0 }, protocol_message) }
+  context 'with action' do
+    let(:model) { subject.new({ action: 0 }, protocol_message) }
 
-    it 'provides state as an Enum' do
-      expect(model.state).to eq(:enter)
+    it 'provides action as an Enum' do
+      expect(model.action).to eq(:enter)
     end
   end
 
-  context 'without state' do
+  context 'without action' do
     let(:model) { subject.new({}, protocol_message) }
 
     it 'raises an exception when accessed' do
-      expect { model.state }.to raise_error KeyError
+      expect { model.action }.to raise_error KeyError
     end
   end
 
@@ -48,7 +48,7 @@ describe Ably::Models::PresenceMessage do
     let(:json_object) { JSON.parse(model.to_json) }
 
     context 'with valid data' do
-      let(:model) { subject.new({ state: 'enter', clientId: 'joe' }, protocol_message) }
+      let(:model) { subject.new({ action: 'enter', clientId: 'joe' }, protocol_message) }
 
       it 'converts the attribute back to Java mixedCase notation using string keys' do
         expect(json_object["clientId"]).to eql('joe')
@@ -111,12 +111,13 @@ describe Ably::Models::PresenceMessage do
       }
     end
 
+    let(:protocol_message_id) { SecureRandom.hex }
     let(:protocol_message) do
       Ably::Models::ProtocolMessage.new({
         action: :message,
         timestamp: ably_time.to_i,
         msg_serial: message_serial,
-        connection_id: connection_id,
+        id: protocol_message_id,
         presence: [
           presence_0_json, presence_1_json
         ]
@@ -127,8 +128,8 @@ describe Ably::Models::PresenceMessage do
     let(:presence_1) { protocol_message.presence.last }
 
     it 'should generate a message ID from the index, serial and connection id' do
-      expect(presence_0.id).to eql("#{connection_id}:#{message_serial}:0")
-      expect(presence_1.id).to eql("#{connection_id}:#{message_serial}:1")
+      expect(presence_0.id).to eql("#{protocol_message_id}:0")
+      expect(presence_1.id).to eql("#{protocol_message_id}:1")
     end
 
     it 'should not modify the data payload' do

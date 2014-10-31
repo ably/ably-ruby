@@ -19,8 +19,8 @@ module Ably::Models
   # A class representing an individual presence message to be sent or received
   # via the Ably Realtime service.
   #
-  # @!attribute [r] state
-  #   @return [STATE] the event signified by a PresenceMessage
+  # @!attribute [r] action
+  #   @return [STATE] the state change event signified by a PresenceMessage
   # @!attribute [r] client_id
   #   @return [String] The client_id associated with this presence state
   # @!attribute [r] member_id
@@ -38,8 +38,7 @@ module Ably::Models
     include EventMachine::Deferrable
     extend Ably::Modules::Enum
 
-    # TODO: Change to ACTION
-    STATE = ruby_enum('STATE',
+    ACTION = ruby_enum('ACTION',
       :enter,
       :leave,
       :update
@@ -63,7 +62,7 @@ module Ably::Models
     end
 
     def id
-      json[:id] || "#{connection_id}:#{message_serial}:#{protocol_message_index}"
+      json[:id] || "#{protocol_message.id!}:#{protocol_message_index}"
     end
 
     def timestamp
@@ -74,8 +73,8 @@ module Ably::Models
       end
     end
 
-    def state
-      STATE(json[:state])
+    def action
+      ACTION(json[:action])
     end
 
     def json
@@ -84,10 +83,10 @@ module Ably::Models
 
     def to_json_object
       json.dup.tap do |json|
-        json['state'] = state.to_i
+        json['action'] = action.to_i
       end
     rescue KeyError
-      raise KeyError, ":state is missing or invalid, cannot generate valid JSON for ProtocolMessage"
+      raise KeyError, ":action is missing or invalid, cannot generate valid JSON for ProtocolMessage"
     end
 
     def to_json(*args)

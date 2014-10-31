@@ -10,7 +10,7 @@ describe Ably::Models::ProtocolMessage do
   end
 
   it_behaves_like 'a model',
-    with_simple_attributes: %w(channel channel_serial connection_id),
+    with_simple_attributes: %w(id channel channel_serial connection_id),
     base_model_options: { action: 1 } do
 
     let(:model_args) { [] }

@@ -18,6 +18,7 @@ module Ably::Models
       @client        = client
       @base_url      = "#{base_url.gsub(%r{/[^/]*$}, '')}/"
       @coerce_into   = options[:coerce_into]
+      @raw_body      = http_response.body
 
       @body = if @coerce_into
         http_response.body.map do |item|
@@ -89,8 +90,18 @@ module Ably::Models
       end
     end
 
+    # Last item in this page
+    def first
+      body.first
+    end
+
+    # Last item in this page
+    def last
+      body.last
+    end
+
     private
-    attr_reader :body, :http_response, :base_url, :client, :coerce_into
+    attr_reader :body, :http_response, :base_url, :client, :coerce_into, :raw_body
 
     def pagination_headers
       link_regex = %r{<(?<url>[^>]+)>; rel="(?<rel>[^"]+)"}

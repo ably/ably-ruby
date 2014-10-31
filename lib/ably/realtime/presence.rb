@@ -55,7 +55,7 @@ module Ably::Realtime
 
         if !entering?
           change_state STATE.Entering
-          send_presence_protocol_message(Ably::Models::PresenceMessage::STATE.Enter).tap do |deferrable|
+          send_presence_protocol_message(Ably::Models::PresenceMessage::ACTION.Enter).tap do |deferrable|
             deferrable.errback  { |message, error| change_state STATE.Failed, error }
             deferrable.callback { |message| change_state STATE.Entered }
           end
@@ -84,7 +84,7 @@ module Ably::Realtime
 
         if !leaving?
           change_state STATE.Leaving
-          send_presence_protocol_message(Ably::Models::PresenceMessage::STATE.Leave).tap do |deferrable|
+          send_presence_protocol_message(Ably::Models::PresenceMessage::ACTION.Leave).tap do |deferrable|
             deferrable.errback  { |message, error| change_state STATE.Failed, error }
             deferrable.callback { |message| change_state STATE.Left }
           end
@@ -103,7 +103,7 @@ module Ably::Realtime
       @client_data = options.fetch(:client_data, client_data)
 
       ensure_channel_attached do
-        send_presence_protocol_message(Ably::Models::PresenceMessage::STATE.Update).tap do |deferrable|
+        send_presence_protocol_message(Ably::Models::PresenceMessage::ACTION.Update).tap do |deferrable|
           deferrable.callback do |message|
             change_state STATE.Entered unless entered?
             blk.call self if block_given?
@@ -122,24 +122,24 @@ module Ably::Realtime
     # Subscribe to presence events on the associated Channel.
     # This implicitly attaches the Channel if it is not already attached.
     #
-    # @param state [Ably::Models::PresenceMessage::State] Optional, the state change to subscribe to.  Defaults to all presence states.
+    # @param action [Ably::Models::PresenceMessage::ACTION] Optional, the state change action to subscribe to. Defaults to all presence actions
     # @yield [Ably::Models::PresenceMessage] For each presence state change event, the block is called
     #
-    def subscribe(state = :all, &blk)
+    def subscribe(action = :all, &blk)
       enter unless entered? || entering?
-      subscriptions[message_state_key(state)] << blk
+      subscriptions[message_action_key(action)] << blk
     end
 
     # Unsubscribe the matching block for presence events on the associated Channel.
     # If a block is not provided, all subscriptions will be unsubscribed
     #
-    # @param state [Ably::Models::PresenceMessage::State] Optional, the state change to subscribe to.  Defaults to all presence states.
+    # @param action [Ably::Models::PresenceMessage::ACTION] Optional, the state change action to subscribe to. Defaults to all presence actions
     #
-    def unsubscribe(state = :all, &blk)
-      if message_state_key(state) == :all
+    def unsubscribe(action = :all, &blk)
+      if message_action_key(action) == :all
         subscriptions.keys
       else
-        Array(message_state_key(state))
+        Array(message_action_key(action))
       end.each do |key|
         subscriptions[key].delete_if do |block|
           !block_given? || blk == block
@@ -166,8 +166,8 @@ module Ably::Realtime
     def setup_event_handlers
       __incoming_msgbus__.subscribe(:presence) do |presence|
         update_members_from_presence_message presence
-        subscriptions[:all].each           { |cb| cb.call(presence) }
-        subscriptions[presence.state].each { |cb| cb.call(presence) }
+        subscriptions[:all].each            { |cb| cb.call(presence) }
+        subscriptions[presence.action].each { |cb| cb.call(presence) }
       end
 
       channel.on(Channel::STATE.Detaching) do
@@ -184,8 +184,8 @@ module Ably::Realtime
     end
 
     # @return [Ably::Models::PresenceMessage] presence message is returned allowing callbacks to be added
-    def send_presence_protocol_message(presence_state)
-      presence_message = create_presence_message(presence_state)
+    def send_presence_protocol_message(presence_action)
+      presence_message = create_presence_message(presence_action)
       unless presence_message.client_id
         raise Ably::Exceptions::Standard.new('Unable to enter create presence message without a client_id', 400, 91000)
       end
@@ -201,9 +201,9 @@ module Ably::Realtime
       presence_message
     end
 
-    def create_presence_message(state)
+    def create_presence_message(action)
       model = {
-        state: Ably::Models::PresenceMessage.STATE(state).to_i,
+        action:   Ably::Models::PresenceMessage.ACTION(action).to_i,
         clientId: client_id,
       }
       model.merge!(clientData: client_data) if client_data
@@ -216,18 +216,18 @@ module Ably::Realtime
         new Ably::Exceptions::ProtocolError.new("Protocol error, presence message is missing memberId", 400, 80013)
       end
 
-      case presence_message.state
-      when Ably::Models::PresenceMessage::STATE.Enter
+      case presence_message.action
+      when Ably::Models::PresenceMessage::ACTION.Enter
         members[presence_message.member_id] = presence_message
 
-      when Ably::Models::PresenceMessage::STATE.Update
+      when Ably::Models::PresenceMessage::ACTION.Update
         members[presence_message.member_id] = presence_message
 
-      when Ably::Models::PresenceMessage::STATE.Leave
+      when Ably::Models::PresenceMessage::ACTION.Leave
         members.delete presence_message.member_id
 
       else
-        new Ably::Exceptions::ProtocolError.new("Protocol error, unknown presence state #{presence.state}", 400, 80013)
+        new Ably::Exceptions::ProtocolError.new("Protocol error, unknown presence action #{presence.action}", 400, 80013)
       end
     end
 
@@ -253,15 +253,16 @@ module Ably::Realtime
     end
 
     # Used by {Ably::Modules::StateEmitter} to debug state changes
+    # Used by {Ably::Modules::StateEmitter} to debug action changes
     def logger
       client.logger
     end
 
-    def message_state_key(state)
-      if state == :all
+    def message_action_key(action)
+      if action == :all
         :all
       else
-        Ably::Models::PresenceMessage.STATE(state)
+        Ably::Models::PresenceMessage.ACTION(action)
       end
     end
   end

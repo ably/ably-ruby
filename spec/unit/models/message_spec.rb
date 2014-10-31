@@ -102,12 +102,13 @@ describe Ably::Models::Message do
       }
     end
 
+    let(:protocol_message_id) { SecureRandom.hex }
     let(:protocol_message) do
       Ably::Models::ProtocolMessage.new({
         action: :message,
         timestamp: ably_time.to_i,
         msg_serial: message_serial,
-        connection_id: connection_id,
+        id: protocol_message_id,
         messages: [
           message_0_json, message_1_json
         ]
@@ -118,8 +119,8 @@ describe Ably::Models::Message do
     let(:message_1) { protocol_message.messages.last }
 
     it 'should generate a message ID from the index, serial and connection id' do
-      expect(message_0.id).to eql("#{connection_id}:#{message_serial}:0")
-      expect(message_1.id).to eql("#{connection_id}:#{message_serial}:1")
+      expect(message_0.id).to eql("#{protocol_message_id}:0")
+      expect(message_1.id).to eql("#{protocol_message_id}:1")
     end
 
     it 'should not modify the data payload' do
