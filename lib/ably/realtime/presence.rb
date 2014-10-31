@@ -126,8 +126,9 @@ module Ably::Realtime
     # @yield [Ably::Models::PresenceMessage] For each presence state change event, the block is called
     #
     def subscribe(action = :all, &blk)
-      enter unless entered? || entering?
-      subscriptions[message_action_key(action)] << blk
+      ensure_channel_attached do
+        subscriptions[message_action_key(action)] << blk
+      end
     end
 
     # Unsubscribe the matching block for presence events on the associated Channel.
@@ -241,7 +242,7 @@ module Ably::Realtime
 
     def attach_channel_then
       if channel.detached? || channel.failed?
-        raise Ably::Exceptions::Standard.new('Unable to enter presence channel in detached or failed state', 400, 91001)
+        raise Ably::Exceptions::Standard.new('Unable to enter presence channel in detached or failed action', 400, 91001)
       else
         channel.once(Channel::STATE.Attached) { yield }
         channel.attach
