@@ -35,6 +35,12 @@ RSpec.configure do |config|
   end
 
   config.before(:example, :webmock => true) do
+    allow(TestApp).to receive(:instance).and_return(instance_double('TestApp',
+      app_id: 'app_id',
+      key_id: 'app_id.key_id',
+      api_key: 'app_id.key_id:secret',
+      environment: 'sandbox'
+    ))
     WebMock.enable!
   end
 end
