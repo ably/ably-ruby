@@ -172,6 +172,7 @@ module Ably::Models
       raise TypeError, ":msg_serial or :connection_serial is missing, cannot generate a valid Hash for ProtocolMessage" if ack_required? && !has_serial?
 
       hash.dup.tap do |hash_object|
+        hash_object['action']   = action.to_i
         hash_object['messages'] = messages.map(&:as_json) unless messages.empty?
         hash_object['presence'] = presence.map(&:as_json) unless presence.empty?
       end.as_json

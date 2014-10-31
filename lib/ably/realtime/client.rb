@@ -23,7 +23,8 @@ module Ably
 
       attr_reader :channels, :auth, :rest_client, :echo_messages
       def_delegators :auth, :client_id, :auth_options
-      def_delegators :@rest_client, :environment, :use_tls?, :logger, :log_level
+      def_delegators :@rest_client, :environment, :use_tls?, :protocol
+      def_delegators :@rest_client, :logger, :log_level
       def_delegators :@rest_client, :time, :stats
 
       # Creates a {Ably::Realtime::Client Realtime Client} and configures the {Ably::Auth} object for the connection.

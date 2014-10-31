@@ -22,11 +22,18 @@ module Ably::Realtime
         @state      = STATE.Initialized
       end
 
-      # Send text down the WebSocket driver connection
-      # @param [String] text bytes to to send to the WebSocket driver
+      # Send object down the WebSocket driver connection as a serialized string/byte array based on protocol
+      # @param [Object] object to serialize and send to the WebSocket driver
       # @api public
-      def send_text(text)
-        driver.text(text)
+      def send_object(object)
+        case client.protocol
+        when :json
+          driver.text(object.to_json)
+        when :msgpack
+          driver.binary(object.to_msgpack.unpack('c*'))
+        else
+          client.logger.error "Unsupported protocol '#{client.protocol}' for serialization, object cannot be serialized and sent to Ably over this WebSocket"
+        end
       end
 
       # Disconnect the socket transport connection and write all pending text.
@@ -77,8 +84,8 @@ module Ably::Realtime
         URI(client.endpoint).tap do |endpoint|
           endpoint.query = URI.encode_www_form(client.auth.auth_params.merge(
             timestamp: as_since_epoch(Time.now),
-            binary: false,
-            echo: client.echo_messages
+            format:    client.protocol,
+            echo:      client.echo_messages
           ))
         end.to_s
       end
@@ -114,14 +121,15 @@ module Ably::Realtime
         @driver = WebSocket::Driver.client(self)
 
         driver.on("open") do
-          logger.debug("WebSocket connection opened to #{url}, waiting for Connected protocol message")
+          logger.debug "WebSocket connection opened to #{url}, waiting for Connected protocol message"
         end
 
         driver.on("message") do |event|
-          protocol_message = Ably::Models::ProtocolMessage.new(JSON.parse(event.data).freeze)
-          logger.debug("Prot msg recv <=: #{protocol_message.action} #{event.data}")
+          event_data = parse_event_data(event.data).freeze
+          protocol_message = Ably::Models::ProtocolMessage.new(event_data)
+          logger.debug "Prot msg recv <=: #{protocol_message.action} #{event_data}"
           if protocol_message.invalid?
-            client.logger.error("Invalid Protocol Message received: #{event.data}\nNo action taken")
+            logger.error "Invalid Protocol Message received: #{event_data}\nNo action taken"
           else
             connection.__incoming_protocol_msgbus__.publish :message, protocol_message
           end
@@ -135,6 +143,18 @@ module Ably::Realtime
       # Used to log transport messages
       def logger
         connection.logger
+      end
+
+      def parse_event_data(data)
+        case client.protocol
+        when :json
+          JSON.parse(data)
+        when :msgpack
+          MessagePack.unpack(data.pack('c*'))
+        else
+          client.logger.error "Unsupported Protocol Message format #{client.protocol}"
+          data
+        end
       end
     end
   end
