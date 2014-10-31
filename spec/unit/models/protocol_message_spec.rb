@@ -19,17 +19,17 @@ describe Ably::Models::ProtocolMessage do
   context 'initializer action coercion' do
     it 'ignores actions that are Integers' do
       protocol_message = subject.new(action: 14)
-      expect(protocol_message.json[:action]).to eql(14)
+      expect(protocol_message.hash[:action]).to eql(14)
     end
 
     it 'converts actions to Integers if a symbol' do
       protocol_message = subject.new(action: :message)
-      expect(protocol_message.json[:action]).to eql(15)
+      expect(protocol_message.hash[:action]).to eql(15)
     end
 
     it 'converts actions to Integers if a ACTION' do
       protocol_message = subject.new(action: Ably::Models::ProtocolMessage::ACTION.Message)
-      expect(protocol_message.json[:action]).to eql(15)
+      expect(protocol_message.hash[:action]).to eql(15)
     end
 
     it 'raises an argument error if nil' do

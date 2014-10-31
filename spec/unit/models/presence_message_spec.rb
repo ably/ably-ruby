@@ -59,7 +59,7 @@ describe Ably::Models::PresenceMessage do
       let(:model) { subject.new({ clientId: 'joe' }, protocol_message) }
 
       it 'raises an exception' do
-        expect { model.to_json }.to raise_error KeyError, /cannot generate valid JSON/
+        expect { model.to_json }.to raise_error KeyError, /cannot generate a valid Hash/
       end
     end
   end

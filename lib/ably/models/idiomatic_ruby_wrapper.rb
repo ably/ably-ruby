@@ -18,7 +18,7 @@ module Ably::Modules
 end
 
 module Ably::Models
-  # Wraps JSON objects returned by Ably service to appear as Idiomatic Ruby Hashes with symbol keys
+  # Wraps Hash objects returned by Ably service to appear as Idiomatic Ruby Hashes with symbol keys
   # It recursively wraps containing Hashes, but will stop wrapping at arrays, any other non Hash object, or any key matching the `:stops_at` options
   # It also provides methods matching the symbolic keys for convenience
   #
@@ -36,7 +36,7 @@ module Ably::Models
   #   ruby_hash.none # => nil
   #
   # @!attribute [r] stop_at
-  #   @return [Array<Symbol,String>] array of keys that this wrapper should stop wrapping at to preserve the underlying JSON hash as is
+  #   @return [Array<Symbol,String>] array of keys that this wrapper should stop wrapping at to preserve the underlying Hash as is
   #
   class IdiomaticRubyWrapper
     include Enumerable
@@ -44,24 +44,24 @@ module Ably::Models
 
     attr_reader :stop_at
 
-    # Creates an IdiomaticRubyWrapper around the mixed case JSON object
+    # Creates an IdiomaticRubyWrapper around the mixed case Hash object
     #
-    # @attribute [Hash] mixedCaseJsonObject mixed case JSON object
-    # @attribute [Array<Symbol,String>] stop_at array of keys that this wrapper should stop wrapping at to preserve the underlying JSON hash as is
+    # @attribute [Hash] mixedCaseHashObject mixed case Hash object
+    # @attribute [Array<Symbol,String>] stop_at array of keys that this wrapper should stop wrapping at to preserve the underlying Hash as is
     #
-    def initialize(mixedCaseJsonObject, stop_at: [])
-      if mixedCaseJsonObject.kind_of?(IdiomaticRubyWrapper)
+    def initialize(mixedCaseHashObject, stop_at: [])
+      if mixedCaseHashObject.kind_of?(IdiomaticRubyWrapper)
         $stderr.puts "<IdiomaticRubyWrapper#initialize> WARNING: Wrapping a IdiomaticRubyWrapper with another IdiomaticRubyWrapper"
       end
 
-      @json = mixedCaseJsonObject
+      @hash = mixedCaseHashObject
       @stop_at = Array(stop_at).each_with_object({}) do |key, hash|
         hash[convert_to_snake_case_symbol(key)] = true
       end.freeze
     end
 
     def [](key)
-      value = json[source_key_for(key)]
+      value = hash[source_key_for(key)]
       if stop_at?(key) || !value.kind_of?(Hash)
         value
       else
@@ -70,7 +70,7 @@ module Ably::Models
     end
 
     def []=(key, value)
-      json[source_key_for(key)] = value
+      hash[source_key_for(key)] = value
     end
 
     def fetch(key, default = nil, &missing_block)
@@ -88,7 +88,7 @@ module Ably::Models
     end
 
     def size
-      json.size
+      hash.size
     end
 
     def keys
@@ -100,12 +100,12 @@ module Ably::Models
     end
 
     def has_key?(key)
-      json.has_key?(source_key_for(key))
+      hash.has_key?(source_key_for(key))
     end
 
     # Method ensuring this {IdiomaticRubyWrapper} is {http://ruby-doc.org/core-2.1.3/Enumerable.html Enumerable}
     def each(&block)
-      json.each do |key, value|
+      hash.each do |key, value|
         key = convert_to_snake_case_symbol(key)
         value = self[key]
         if block_given?
@@ -137,18 +137,18 @@ module Ably::Models
       end
     end
 
-    # Access to the raw JSON object provided to the constructer of this wrapper
-    def json
-      @json
+    # Access to the raw Hash object provided to the constructer of this wrapper
+    def hash
+      @hash
     end
 
-    # Converts the current wrapped mixedCase object to a JSON string
+    # Converts the current wrapped mixedCase object to a Hash string
     # using the provided mixedCase syntax
     def to_json(*args)
-      json.to_json
+      hash.to_json
     end
 
-    # Generate a symbolized Hash object representing the underlying JSON in a Ruby friendly format
+    # Generate a symbolized Hash object representing the underlying Hash in a Ruby friendly format
     def to_hash
       each_with_object({}) do |key_val, hash|
         key, val = key_val
@@ -156,19 +156,19 @@ module Ably::Models
       end
     end
 
-    # Method to create a duplicate of the underlying JSON object
-    # Useful when underlying JSON is frozen
+    # Method to create a duplicate of the underlying Hash object
+    # Useful when underlying Hash is frozen
     def dup
-      Ably::Models::IdiomaticRubyWrapper.new(json.dup)
+      Ably::Models::IdiomaticRubyWrapper.new(hash.dup)
     end
 
     # Freeze the underlying data
     def freeze
-      json.freeze
+      hash.freeze
     end
 
     def to_s
-      json.to_s
+      hash.to_s
     end
 
     private
@@ -192,7 +192,7 @@ module Ably::Models
       ]
 
       preferred_format = format_preferences.detect do |format|
-        json.has_key?(format.call(symbolized_key))
+        hash.has_key?(format.call(symbolized_key))
       end || format_preferences.first
 
       preferred_format.call(symbolized_key)

@@ -29,7 +29,7 @@ module Ably::Models
   #   @return [Time] Timestamp when the message was received by the Ably the real-time service
   # @!attribute [r] id
   #   @return [String] A globally unique message ID
-  # @!attribute [r] json
+  # @!attribute [r] hash
   #   @return [Hash] Access the protocol message Hash object ruby'fied to use symbolized keys
   #
   class Message
@@ -39,48 +39,48 @@ module Ably::Models
 
     # {Message} initializer
     #
-    # @param json_object [Hash] JSON like object with the underlying message details
+    # @param hash_object      [Hash]            object with the underlying message details
     # @param protocol_message [ProtocolMessage] if this message has been published, then it is associated with a {ProtocolMessage}
     #
-    def initialize(json_object, protocol_message = nil)
+    def initialize(hash_object, protocol_message = nil)
       @protocol_message = protocol_message
-      @raw_json_object  = json_object
-      @json_object      = IdiomaticRubyWrapper(json_object.clone.freeze, stop_at: [:data])
+      @raw_hash_object  = hash_object
+      @hash_object      = IdiomaticRubyWrapper(hash_object.clone.freeze, stop_at: [:data])
     end
 
     %w( name client_id ).each do |attribute|
       define_method attribute do
-        json[attribute.to_sym]
+        hash[attribute.to_sym]
       end
     end
 
     def data
-      @data ||= json[:data].freeze
+      @data ||= hash[:data].freeze
     end
 
     def id
-      json[:id] || "#{protocol_message.id!}:#{protocol_message_index}"
+      hash[:id] || "#{protocol_message.id!}:#{protocol_message_index}"
     end
 
     def timestamp
-      if json[:timestamp]
-        as_time_from_epoch(json[:timestamp])
+      if hash[:timestamp]
+        as_time_from_epoch(hash[:timestamp])
       else
         protocol_message.timestamp
       end
     end
 
-    def json
-      @json_object
+    def hash
+      @hash_object
     end
 
-    def to_json_object
-      raise RuntimeError, ":name is missing, cannot generate valid JSON for Message" unless name
-      json.dup
+    def to_hash_object
+      raise RuntimeError, ":name is missing, cannot generate a valid Hash for Message" unless name
+      hash.dup
     end
 
     def to_json(*args)
-      to_json_object.to_json
+      to_hash_object.to_json
     end
 
     # Assign this message to a ProtocolMessage before delivery to the Ably system
