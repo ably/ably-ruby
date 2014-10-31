@@ -8,29 +8,29 @@ module Ably::Models
   #   @return [Integer] Ably error code (see ably-common/protocol/errors.json)
   # @!attribute [r] status
   #   @return [Integer] HTTP Status Code corresponding to this error, where applicable
-  # @!attribute [r] json
+  # @!attribute [r] hash
   #   @return [Hash] Access the protocol message Hash object ruby'fied to use symbolized keys
   #
   class ErrorInfo
     include Shared
     include Ably::Modules::Conversions
 
-    def initialize(json_object)
-      @raw_json_object = json_object
-      @json_object     = IdiomaticRubyWrapper(@raw_json_object.clone.freeze)
+    def initialize(hash_object)
+      @raw_hash_object = hash_object
+      @hash_object     = IdiomaticRubyWrapper(hash_object.clone.freeze)
     end
 
     %w( message code status_code ).each do |attribute|
       define_method attribute do
-        json[attribute.to_sym]
+        hash[attribute.to_sym]
       end
     end
     alias_method :status, :status_code
 
-    def json
-      @json_object
+    def hash
+      @hash_object
     end
-    alias_method :to_json, :json
+    alias_method :to_json, :hash
 
     def to_s
       "Error: #{message} (code: #{code}, status_code: #{status_code})"

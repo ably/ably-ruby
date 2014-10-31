@@ -58,8 +58,8 @@ describe Ably::Models::IdiomaticRubyWrapper do
     expect { subject.no_key_exists_for_this }.to raise_error NoMethodError
   end
 
-  specify '#json returns raw JSON object' do
-    expect(subject.json).to eql(mixed_case_data)
+  specify '#hash returns raw Hash object' do
+    expect(subject.hash).to eql(mixed_case_data)
   end
 
   context 'recursively wrapping child objects' do
@@ -154,7 +154,7 @@ describe Ably::Models::IdiomaticRubyWrapper do
       end
 
       it 'uses mixedCase' do
-        expect(subject.json['newKey']).to eql('new_value')
+        expect(subject.hash['newKey']).to eql('new_value')
         expect(subject.new_key).to eql('new_value')
       end
     end
@@ -281,14 +281,14 @@ describe Ably::Models::IdiomaticRubyWrapper do
       let(:dupe) { subject.dup }
 
       it 'returns a new object with the underlying JSON duped' do
-        expect(subject.json).to be_frozen
-        expect(dupe.json).to_not be_frozen
+        expect(subject.hash).to be_frozen
+        expect(dupe.hash).to_not be_frozen
       end
 
       it 'returns a new IdiomaticRubyWrapper with the same underlying Hash object' do
         expect(dupe).to be_a(Ably::Models::IdiomaticRubyWrapper)
-        expect(dupe.json).to be_a(Hash)
-        expect(dupe.json).to eql(mixed_case_data)
+        expect(dupe.hash).to be_a(Hash)
+        expect(dupe.hash).to eql(mixed_case_data)
       end
     end
   end

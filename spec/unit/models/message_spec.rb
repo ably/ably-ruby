@@ -43,7 +43,7 @@ describe Ably::Models::Message do
       let(:model) { subject.new({ clientId: 'joe' }, protocol_message) }
 
       it 'raises an exception' do
-        expect { model.to_json }.to raise_error RuntimeError, /cannot generate valid JSON/
+        expect { model.to_json }.to raise_error RuntimeError, /cannot generate a valid Hash/
       end
     end
   end

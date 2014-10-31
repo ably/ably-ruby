@@ -6,12 +6,12 @@ module Ably::Models
     #
     # @return [Object]
     def [](key)
-      json[key]
+      hash[key]
     end
 
     def ==(other)
       other.kind_of?(self.class) &&
-        json == other.json
+        hash == other.hash
     end
   end
 end
