@@ -39,11 +39,12 @@ module Ably
       #
       # @param [Hash,String] options an options Hash used to configure the client and the authentication, or String with an API key
       # @option options (see Ably::Auth#authorise)
-      # @option options [Boolean]                 :tls          TLS is used by default, providing a value of false disbles TLS.  Please note Basic Auth is disallowed without TLS as secrets cannot be transmitted over unsecured connections.
-      # @option options [String]                  :api_key      API key comprising the key ID and key secret in a single string
-      # @option options [String]                  :environment  Specify 'sandbox' when testing the client library against an alternate Ably environment
-      # @option options [Symbol]                  :protocol     Protocol used to communicate with Ably, :json and :msgpack currently supported. Defaults to :msgpack.
-      # @option options [Logger::Severity,Symbol] :log_level    Log level for the standard Logger that outputs to STDOUT.  Defaults to Logger::ERROR, can be set to :fatal (Logger::FATAL), :error (Logger::ERROR), :warn (Logger::WARN), :info (Logger::INFO), :debug (Logger::DEBUG)
+      # @option options [Boolean]                 :tls                 TLS is used by default, providing a value of false disbles TLS.  Please note Basic Auth is disallowed without TLS as secrets cannot be transmitted over unsecured connections.
+      # @option options [String]                  :api_key             API key comprising the key ID and key secret in a single string
+      # @option options [String]                  :environment         Specify 'sandbox' when testing the client library against an alternate Ably environment
+      # @option options [Symbol]                  :protocol            Protocol used to communicate with Ably, :json and :msgpack currently supported. Defaults to :msgpack
+      # @option options [Boolean]                 :use_binary_protocol Protocol used to communicate with Ably, defaults to true and uses MessagePack protocol.  This option will overide :protocol option
+      # @option options [Logger::Severity,Symbol] :log_level           Log level for the standard Logger that outputs to STDOUT.  Defaults to Logger::ERROR, can be set to :fatal (Logger::FATAL), :error (Logger::ERROR), :warn (Logger::WARN), :info (Logger::INFO), :debug (Logger::DEBUG)
       #
       # @yield (see Ably::Auth#authorise)
       # @yieldparam (see Ably::Auth#authorise)
@@ -66,15 +67,22 @@ module Ably
 
         @tls                 = options.delete(:tls) == false ? false : true
         @environment         = options.delete(:environment) # nil is production
-        @protocol            = options.delete(:protocol) || :json # TODO: Default to :msgpack when protocol MsgPack support added
+        @protocol            = options.delete(:protocol) || :msgpack
         @debug_http          = options.delete(:debug_http)
         @log_level           = options.delete(:log_level) || Logger::ERROR
-        @options             = options.freeze
 
         @log_level = Logger.const_get(log_level.to_s.upcase) if log_level.kind_of?(Symbol) || log_level.kind_of?(String)
 
+        options.delete(:use_binary_protocol).tap do |use_binary_protocol|
+          if use_binary_protocol == true
+            @protocol = :msgpack
+          elsif use_binary_protocol == false
+            @protocol = :json
+          end
+        end
         raise ArgumentError, 'Protocol is invalid.  Must be either :msgpack or :json' unless [:msgpack, :json].include?(@protocol)
 
+        @options  = options.freeze
         @auth     = Auth.new(self, options, &auth_block)
         @channels = Ably::Rest::Channels.new(self)
       end
@@ -217,15 +225,15 @@ module Ably
       # @see http://mislav.uniqpath.com/2011/07/faraday-advanced-http/
       def middleware
         @middleware ||= Faraday::RackBuilder.new do |builder|
-          setup_middleware builder
+          setup_outgoing_middleware builder
 
           # Raise exceptions if response code is invalid
           builder.use Ably::Rest::Middleware::Exceptions
 
+          setup_incoming_middleware builder, fail_if_unsupported_mime_type: true
 
           # Log HTTP requests if log level is DEBUG option set
           builder.response :logger if log_level == Logger::DEBUG
-
 
           # Set Faraday's HTTP adapter
           builder.adapter Faraday.default_adapter
