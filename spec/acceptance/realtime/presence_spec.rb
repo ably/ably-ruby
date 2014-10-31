@@ -14,20 +14,37 @@ describe 'Ably::Realtime::Presence Messages' do
       let(:client_one)       { Ably::Realtime::Client.new(default_options.merge(client_id: SecureRandom.hex(4))) }
       let(:client_two)       { Ably::Realtime::Client.new(default_options.merge(client_id: SecureRandom.hex(4))) }
 
-      let(:channel_anonymous_client) { anonymous_client.channel(channel_name) }
-      let(:channel_client_one)       { client_one.channel(channel_name) }
-      let(:channel_rest_client_one)  { client_one.rest_client.channel(channel_name) }
-      let(:presence_client_one)      { channel_client_one.presence }
-      let(:channel_client_two)       { client_two.channel(channel_name) }
-      let(:presence_client_two)      { channel_client_two.presence }
+      let(:channel_anonymous_client)  { anonymous_client.channel(channel_name) }
+      let(:presence_anonymous_client) { channel_anonymous_client.presence }
+      let(:channel_client_one)        { client_one.channel(channel_name) }
+      let(:channel_rest_client_one)   { client_one.rest_client.channel(channel_name) }
+      let(:presence_client_one)       { channel_client_one.presence }
+      let(:channel_client_two)        { client_two.channel(channel_name) }
+      let(:presence_client_two)       { channel_client_two.presence }
 
       let(:client_data_payload) { SecureRandom.hex(8) }
 
-      it 'enters the :entered state without channel#attach or client#connect' do
+      specify 'an attached channel that is not presence maintains presence state' do
         run_reactor do
+          channel_anonymous_client.attach do
+            presence_anonymous_client.subscribe(:enter) do |presence_message|
+              expect(presence_message.client_id).to eql(client_one.client_id)
+              members = presence_anonymous_client.get
+              expect(members.first.client_id).to eql(client_one.client_id)
+              expect(members.first.action).to eq(:enter)
+
+              presence_anonymous_client.subscribe(:leave) do |presence_message|
+                expect(presence_message.client_id).to eql(client_one.client_id)
+                members = presence_anonymous_client.get
+                expect(members.count).to eql(0)
+
+                stop_reactor
+              end
+            end
+          end
+
           presence_client_one.enter do
-            expect(presence_client_one.state).to eq(:entered)
-            stop_reactor
+            presence_client_one.leave
           end
         end
       end
@@ -159,6 +176,7 @@ describe 'Ably::Realtime::Presence Messages' do
           end
 
           presence_client_one.enter do
+            presence_client_two.enter
             presence_client_two.subscribe &subscribe_self_callback
           end
         end
