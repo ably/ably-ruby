@@ -172,7 +172,7 @@ module Ably
       # @api private
       def __incoming_msgbus__
         @__incoming_msgbus__ ||= Ably::Util::PubSub.new(
-          coerce_into: Proc.new { |event| Models::ProtocolMessage::ACTION(event) }
+          coerce_into: Proc.new { |event| Ably::Models::ProtocolMessage::ACTION(event) }
         )
       end
 
@@ -224,18 +224,18 @@ module Ably
 
       def send_messages_within_protocol_message(messages)
         client.connection.send_protocol_message(
-          action:   Models::ProtocolMessage::ACTION.Message.to_i,
+          action:   Ably::Models::ProtocolMessage::ACTION.Message.to_i,
           channel:  name,
           messages: messages
         )
       end
 
       def send_attach_protocol_message
-        send_state_change_protocol_message Models::ProtocolMessage::ACTION.Attach
+        send_state_change_protocol_message Ably::Models::ProtocolMessage::ACTION.Attach
       end
 
       def send_detach_protocol_message
-        send_state_change_protocol_message Models::ProtocolMessage::ACTION.Detach
+        send_state_change_protocol_message Ably::Models::ProtocolMessage::ACTION.Detach
       end
 
       def send_state_change_protocol_message(state)
@@ -252,7 +252,7 @@ module Ably
         }
         model.merge!(clientId: client.client_id) if client.client_id
 
-        Models::Message.new(model, nil)
+        Ably::Models::Message.new(model, nil)
       end
 
       def rest_channel
