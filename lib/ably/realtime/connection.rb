@@ -165,7 +165,7 @@ module Ably
       # @api private
       def send_protocol_message(protocol_message)
         add_message_serial_if_ack_required_to(protocol_message) do
-          Models::ProtocolMessage.new(protocol_message).tap do |protocol_message|
+          Ably::Models::ProtocolMessage.new(protocol_message).tap do |protocol_message|
             add_message_to_outgoing_queue protocol_message
             notify_message_dispatcher_of_new_message protocol_message
             logger.debug("Prot msg queued =>: #{protocol_message.action} #{protocol_message}")
@@ -216,12 +216,12 @@ module Ably
 
       def create_pub_sub_message_bus
         Ably::Util::PubSub.new(
-          coerce_into: Proc.new { |event| Models::ProtocolMessage::ACTION(event) }
+          coerce_into: Proc.new { |event| Ably::Models::ProtocolMessage::ACTION(event) }
         )
       end
 
       def add_message_serial_if_ack_required_to(protocol_message)
-        if Models::ProtocolMessage.ack_required?(protocol_message[:action])
+        if Ably::Models::ProtocolMessage.ack_required?(protocol_message[:action])
           add_message_serial_to(protocol_message) { yield }
         else
           yield

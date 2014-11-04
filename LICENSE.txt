@@ -1,4 +1,4 @@
-Copyright (c) 2013 Lewis Marshall
+Copyright (c) 2014 Ably
 
 MIT License
 

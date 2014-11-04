@@ -21,7 +21,7 @@ module Ably::Realtime
       def get_channel(channel_name)
         channels.fetch(channel_name) do
           logger.warn "Received channel message for non-existent channel"
-          Ably::Models::NilChannel.new
+          Ably::Realtime::Models::NilChannel.new
         end
       end
 
