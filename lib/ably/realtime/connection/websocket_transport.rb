@@ -20,20 +20,8 @@ module Ably::Realtime
       def initialize(connection)
         @connection = connection
         @state      = STATE.Initialized
-      end
 
-      # Send object down the WebSocket driver connection as a serialized string/byte array based on protocol
-      # @param [Object] object to serialize and send to the WebSocket driver
-      # @api public
-      def send_object(object)
-        case client.protocol
-        when :json
-          driver.text(object.to_json)
-        when :msgpack
-          driver.binary(object.to_msgpack.unpack('c*'))
-        else
-          client.logger.error "Unsupported protocol '#{client.protocol}' for serialization, object cannot be serialized and sent to Ably over this WebSocket"
-        end
+        setup_event_handlers
       end
 
       # Disconnect the socket transport connection and write all pending text.
@@ -101,8 +89,43 @@ module Ably::Realtime
         !connecting? && !connected?
       end
 
+      # @!attribute [r] __incoming_protocol_msgbus__
+      # @return [Ably::Util::PubSub] Websocket Transport internal incoming protocol message bus
+      # @api private
+      def __incoming_protocol_msgbus__
+        @__incoming_protocol_msgbus__ ||= create_pub_sub_message_bus
+      end
+
+      # @!attribute [r] __outgoing_protocol_msgbus__
+      # @return [Ably::Util::PubSub] Websocket Transport internal outgoing protocol message bus
+      # @api private
+      def __outgoing_protocol_msgbus__
+        @__outgoing_protocol_msgbus__ ||= create_pub_sub_message_bus
+      end
+
       private
       attr_reader :connection, :driver
+
+      # Send object down the WebSocket driver connection as a serialized string/byte array based on protocol
+      # @param [Object] object to serialize and send to the WebSocket driver
+      # @api public
+      def send_object(object)
+        case client.protocol
+        when :json
+          driver.text(object.to_json)
+        when :msgpack
+          driver.binary(object.to_msgpack.unpack('c*'))
+        else
+          client.logger.fatal "WebsocketTransport: Unsupported protocol '#{client.protocol}' for serialization, object cannot be serialized and sent to Ably over this WebSocket"
+        end
+      end
+
+      def setup_event_handlers
+        __outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+          send_object protocol_message
+          client.logger.debug "WebsocketTransport: Prot msg sent =>: #{protocol_message.action} #{protocol_message}"
+        end
+      end
 
       def clear_timer
         if @timer
@@ -121,17 +144,18 @@ module Ably::Realtime
         @driver = WebSocket::Driver.client(self)
 
         driver.on("open") do
-          logger.debug "WebSocket connection opened to #{url}, waiting for Connected protocol message"
+          logger.debug "WebsocketTransport: socket opened to #{url}, waiting for Connected protocol message"
         end
 
         driver.on("message") do |event|
           event_data = parse_event_data(event.data).freeze
           protocol_message = Ably::Models::ProtocolMessage.new(event_data)
-          logger.debug "Prot msg recv <=: #{protocol_message.action} #{event_data}"
+          logger.debug "WebsocketTransport: Prot msg recv <=: #{protocol_message.action} #{event_data}"
+
           if protocol_message.invalid?
-            logger.error "Invalid Protocol Message received: #{event_data}\nNo action taken"
+            logger.fatal "WebsocketTransport: Invalid Protocol Message received: #{event_data}\nNo action taken"
           else
-            connection.__incoming_protocol_msgbus__.publish :message, protocol_message
+            __incoming_protocol_msgbus__.publish :protocol_message, protocol_message
           end
         end
       end
@@ -152,9 +176,18 @@ module Ably::Realtime
         when :msgpack
           MessagePack.unpack(data.pack('c*'))
         else
-          client.logger.error "Unsupported Protocol Message format #{client.protocol}"
+          client.logger.fatal "WebsocketTransport: Unsupported Protocol Message format #{client.protocol}"
           data
         end
+      end
+
+      def create_pub_sub_message_bus
+        Ably::Util::PubSub.new(
+          coerce_into: Proc.new do |event|
+            raise KeyError, "Expected :protocol_message, :#{event} is disallowed" unless event == :protocol_message
+            :protocol_message
+          end
+        )
       end
     end
   end

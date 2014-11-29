@@ -49,10 +49,11 @@ module Ably
       #    client = Ably::Realtime::Client.new(api_key: 'key.id:secret', client_id: 'john')
       #
       def initialize(options, &auth_block)
-        @rest_client    = Ably::Rest::Client.new(options, &auth_block)
-        @auth           = @rest_client.auth
-        @channels       = Ably::Realtime::Channels.new(self)
-        @echo_messages  = @rest_client.options.fetch(:echo_messages, true) == false ? false : true
+        @rest_client        = Ably::Rest::Client.new(options, &auth_block)
+        @auth               = @rest_client.auth
+        @channels           = Ably::Realtime::Channels.new(self)
+        @echo_messages      = @rest_client.options.fetch(:echo_messages, true) == false ? false : true
+        @custom_socket_host = @rest_client.options[:ws_host]
       end
 
       # Return a {Ably::Realtime::Channel Realtime Channel} for the given name
@@ -84,7 +85,7 @@ module Ably
       def endpoint
         URI::Generic.build(
           scheme: use_tls? ? "wss" : "ws",
-          host:   [environment, DOMAIN].compact.join('-')
+          host:   custom_socket_host || [environment, DOMAIN].compact.join('-')
         )
       end
 
@@ -92,6 +93,12 @@ module Ably
       # @return [Aby::Realtime::Connection] The underlying connection for this client
       def connection
         @connection ||= Connection.new(self)
+      end
+
+      # @!attribute [r] custom_socket_host
+      # @return [String,nil] Returns the custom socket host that is being used if it was provided with the option :ws_host when the {Client} was created
+      def custom_socket_host
+        @custom_socket_host
       end
     end
   end

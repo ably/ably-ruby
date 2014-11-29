@@ -15,7 +15,7 @@ describe Ably::Realtime::Client::IncomingMessageDispatcher do
 
   context '#initialize' do
     it 'should subscribe to protocol messages from the connection' do
-      expect(msgbus).to receive(:subscribe).with(:message).and_call_original
+      expect(msgbus).to receive(:subscribe).with(:protocol_message).and_call_original
       subject
     end
   end
@@ -24,13 +24,13 @@ describe Ably::Realtime::Client::IncomingMessageDispatcher do
     before { subject }
 
     it 'should raise an exception if a message is sent that is not a ProtocolMessage' do
-      expect { msgbus.publish :message, nil }.to raise_error ArgumentError
+      expect { msgbus.publish :protocol_message, nil }.to raise_error ArgumentError
     end
 
     it 'should warn if a message is received for a non-existent channel' do
       allow(subject).to receive_message_chain(:logger, :debug)
       expect(subject).to receive_message_chain(:logger, :warn)
-      msgbus.publish :message, Ably::Models::ProtocolMessage.new(:action => :attached, channel: 'unknown')
+      msgbus.publish :protocol_message, Ably::Models::ProtocolMessage.new(:action => :attached, channel: 'unknown')
     end
   end
 end
