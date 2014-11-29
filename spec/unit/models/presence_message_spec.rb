@@ -8,7 +8,7 @@ describe Ably::Models::PresenceMessage do
   let(:protocol_message_timestamp) { as_since_epoch(Time.now) }
   let(:protocol_message) { Ably::Models::ProtocolMessage.new(action: 1, timestamp: protocol_message_timestamp) }
 
-  it_behaves_like 'a model', with_simple_attributes: %w(client_id member_id client_data) do
+  it_behaves_like 'a model', with_simple_attributes: %w(client_id member_id data) do
     let(:model_args) { [protocol_message] }
   end
 
@@ -100,14 +100,14 @@ describe Ably::Models::PresenceMessage do
     let(:presence_0_json) do
       {
         client_id: 'zero',
-        client_data: presence_0_payload
+        data: presence_0_payload
       }
     end
     let(:presence_1_payload) { SecureRandom.hex(8) }
     let(:presence_1_json) do
       {
         client_id: 'one',
-        client_data: presence_1_payload
+        data: presence_1_payload
       }
     end
 
@@ -133,8 +133,8 @@ describe Ably::Models::PresenceMessage do
     end
 
     it 'should not modify the data payload' do
-      expect(presence_0.client_data).to eql(presence_0_payload)
-      expect(presence_1.client_data).to eql(presence_1_payload)
+      expect(presence_0.data).to eql(presence_0_payload)
+      expect(presence_1.data).to eql(presence_1_payload)
     end
   end
 
