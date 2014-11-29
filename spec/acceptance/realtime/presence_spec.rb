@@ -22,7 +22,7 @@ describe 'Ably::Realtime::Presence Messages' do
       let(:channel_client_two)        { client_two.channel(channel_name) }
       let(:presence_client_two)       { channel_client_two.presence }
 
-      let(:client_data_payload) { SecureRandom.hex(8) }
+      let(:data_payload) { SecureRandom.hex(8) }
 
       specify 'an attached channel that is not presence maintains presence state' do
         run_reactor do
@@ -126,7 +126,7 @@ describe 'Ably::Realtime::Presence Messages' do
 
       specify 'verify two clients appear in members from #get' do
         run_reactor do
-          presence_client_one.enter(client_data: client_data_payload)
+          presence_client_one.enter(data: data_payload)
           presence_client_two.enter
 
           entered_callback = Proc.new do
@@ -140,7 +140,7 @@ describe 'Ably::Realtime::Presence Messages' do
               member_client_two = members.find { |presence| presence.client_id == client_two.client_id }
 
               expect(member_client_one).to be_a(Ably::Models::PresenceMessage)
-              expect(member_client_one.client_data).to eql(client_data_payload)
+              expect(member_client_one.data).to eql(data_payload)
               expect(member_client_two).to be_a(Ably::Models::PresenceMessage)
 
               stop_reactor
@@ -158,7 +158,7 @@ describe 'Ably::Realtime::Presence Messages' do
 
           subscribe_client_one_leaving_callback = Proc.new do |presence_message|
             expect(presence_message.client_id).to eql(client_one.client_id)
-            expect(presence_message.client_data).to eql(client_data_payload)
+            expect(presence_message.data).to eql(data_payload)
             expect(presence_message.action).to eq(:leave)
 
             stop_reactor
@@ -171,7 +171,7 @@ describe 'Ably::Realtime::Presence Messages' do
               presence_client_two.unsubscribe &subscribe_self_callback
               presence_client_two.subscribe &subscribe_client_one_leaving_callback
 
-              presence_client_one.leave client_data: client_data_payload
+              presence_client_one.leave data: data_payload
             end
           end
 
@@ -184,13 +184,13 @@ describe 'Ably::Realtime::Presence Messages' do
 
       specify 'verify REST #get returns current members' do
         run_reactor do
-          presence_client_one.enter(client_data: client_data_payload) do
+          presence_client_one.enter(data: data_payload) do
             members = channel_rest_client_one.presence.get
             this_member = members.first
 
             expect(this_member).to be_a(Ably::Models::PresenceMessage)
             expect(this_member.client_id).to eql(client_one.client_id)
-            expect(this_member.client_data).to eql(client_data_payload)
+            expect(this_member.data).to eql(data_payload)
 
             stop_reactor
           end
@@ -199,7 +199,7 @@ describe 'Ably::Realtime::Presence Messages' do
 
       specify 'verify REST #get returns no members once left' do
         run_reactor do
-          presence_client_one.enter(client_data: client_data_payload) do
+          presence_client_one.enter(data: data_payload) do
             presence_client_one.leave do
               members = channel_rest_client_one.presence.get
               expect(members.count).to eql(0)
@@ -221,14 +221,14 @@ describe 'Ably::Realtime::Presence Messages' do
         end
       end
 
-      specify 'expect :left event with no client data to retain original client_data in Leave event' do
+      specify 'expect :left event with no client data to retain original data in Leave event' do
         run_reactor do
           presence_client_one.subscribe(:leave) do |message|
             expect(presence_client_one.get.count).to eq(0)
-            expect(message.client_data).to eq(client_data_payload)
+            expect(message.data).to eq(data_payload)
             stop_reactor
           end
-          presence_client_one.enter(client_data: client_data_payload) do
+          presence_client_one.enter(data: data_payload) do
             presence_client_one.leave
           end
         end
@@ -236,20 +236,20 @@ describe 'Ably::Realtime::Presence Messages' do
 
       specify '#update automatically connects' do
         run_reactor do
-          presence_client_one.update(client_data: client_data_payload) do
+          presence_client_one.update(data: data_payload) do
             expect(presence_client_one.state).to eq(:entered)
             stop_reactor
           end
         end
       end
 
-      specify '#update changes the client_data' do
+      specify '#update changes the data' do
         run_reactor do
-          presence_client_one.enter(client_data: 'prior') do
-            presence_client_one.update(client_data: client_data_payload)
+          presence_client_one.enter(data: 'prior') do
+            presence_client_one.update(data: data_payload)
           end
           presence_client_one.subscribe(:update) do |message|
-            expect(message.client_data).to eql(client_data_payload)
+            expect(message.data).to eql(data_payload)
             stop_reactor
           end
         end

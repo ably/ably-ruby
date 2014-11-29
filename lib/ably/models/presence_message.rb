@@ -25,7 +25,7 @@ module Ably::Models
   #   @return [String] The client_id associated with this presence state
   # @!attribute [r] member_id
   #   @return [String] A unique member identifier, disambiguating situations where a given client_id is present on multiple connections simultaneously
-  # @!attribute [r] client_data
+  # @!attribute [r] data
   #   @return [Object] Optional client-defined status or other event payload associated with this state
   # @!attribute [r] timestamp
   #   @return [Time] Timestamp when the message was received by the Ably the real-time service
@@ -54,7 +54,7 @@ module Ably::Models
       @hash_object      = IdiomaticRubyWrapper(hash_object.clone.freeze, stop_at: [:data])
     end
 
-    %w( client_id member_id client_data ).each do |attribute|
+    %w( client_id member_id data ).each do |attribute|
       define_method attribute do
         hash[attribute.to_sym]
       end

@@ -60,7 +60,7 @@ channel.publish("greeting", "Hello World!")
 ```ruby
 client = Ably::Realtime.new(api_key: "xxxxx")
 channel = client.channel("test")
-channel.presence.enter(client_data: 'john.doe') do |presence|
+channel.presence.enter(data: 'john.doe') do |presence|
   presence.get #=> [Array of members present]
 end
 ```

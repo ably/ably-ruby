@@ -12,7 +12,7 @@ describe 'REST' do
 
       let(:fixtures) do
         TestApp::APP_SPEC['channels'].first['presence'].map do |fixture|
-          IdiomaticRubyWrapper(fixture, stop_at: [:client_data])
+          IdiomaticRubyWrapper(fixture, stop_at: [:data])
         end
       end
 
@@ -25,7 +25,7 @@ describe 'REST' do
 
           fixtures.each do |fixture|
             presence_message = presence.find { |client| client.client_id == fixture[:client_id] }
-            expect(presence_message.client_data).to eq(fixture[:client_data])
+            expect(presence_message.data).to eq(fixture[:data])
           end
         end
       end
@@ -39,7 +39,7 @@ describe 'REST' do
 
           fixtures.each do |fixture|
             presence_message = history.find { |client| client.client_id == fixture['clientId'] }
-            expect(presence_message.client_data).to eq(fixture[:client_data])
+            expect(presence_message.data).to eq(fixture[:data])
           end
         end
 
