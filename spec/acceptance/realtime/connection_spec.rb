@@ -57,20 +57,16 @@ describe Ably::Realtime::Connection do
         end
       end
 
-      it 'receives a heart beat' do
-        run_reactor(20) do
+      it 'echoes a heart beat' do
+        run_reactor do
           connection.on(:connected) do
-            connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
-              if protocol_message.action == :heartbeat
-                expect(protocol_message.action).to eq(:heartbeat)
-                stop_reactor
-              end
+            connection.heartbeat do |time_elapsed|
+              expect(time_elapsed).to be > 0
+              stop_reactor
             end
           end
         end
       end
-
-      skip 'echos a heart beat'
 
       skip 'connects, closes gracefully and reconnects on #connect'
 
