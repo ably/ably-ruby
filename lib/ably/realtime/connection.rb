@@ -120,6 +120,38 @@ module Ably
         end
       end
 
+      # Sends a heartbeat to Ably and yields the provided block when a heartbeat is echoed from the server.
+      # This can be useful for measuring true roundtrip client to Ably server latency for a simple message, or checking that an underlying transport is responding currently.
+      # The elapsed milliseconds is passed as an argument to the block and represents the time taken to echo a heartbeat once the connection is in the `:connected` state.
+      #
+      # @yield [Integer] if a block is passed to this method, then this block will be called once the heartbeat is received with the time elapsed in milliseconds
+      #
+      # @example
+      #    client = Ably::Rest::Client.new(api_key: 'key.id:secret')
+      #    client.connection.heartbeat do |ms_elapsed|
+      #      puts "Heartbeat took #{ms_elapsed}ms"
+      #    end
+      #
+      def heartbeat(&block)
+        raise RuntimeError, 'Cannot send a heartbeat when connection is in a closed or failed state' if closed? || failed?
+
+        started = nil
+
+        wait_for_heart_beat = Proc.new do |protocol_message|
+          if protocol_message.action == Ably::Models::ProtocolMessage::ACTION.Heartbeat
+            __incoming_protocol_msgbus__.unsubscribe(:protocol_message, &wait_for_heart_beat)
+            time_passed = (Time.now.to_f * 1000 - started.to_f * 1000).to_i
+            block.call time_passed if block_given?
+          end
+        end
+
+        once(STATE.Connected) do
+          started = Time.now
+          send_protocol_message action: Ably::Models::ProtocolMessage::ACTION.Heartbeat.to_i
+          __incoming_protocol_msgbus__.subscribe :protocol_message, &wait_for_heart_beat
+        end
+      end
+
       # Reconfigure the current connection ID
       # @return <void>
       # @api private
