@@ -2,6 +2,7 @@ require 'base64'
 
 require 'ably/rest/middleware/external_exceptions'
 require 'ably/rest/middleware/fail_if_unsupported_mime_type'
+require 'ably/rest/middleware/logger'
 require 'ably/rest/middleware/parse_json'
 require 'ably/rest/middleware/parse_message_pack'
 
@@ -23,10 +24,15 @@ module Ably::Modules
     end
 
     def setup_incoming_middleware(builder, options = {})
+      if options[:logger]
+        builder.use Ably::Rest::Middleware::Logger
+      end
+
       # Parse JSON / MsgPack response bodies. ParseJson must be first (default) parsing middleware
       if options[:fail_if_unsupported_mime_type] == true
         builder.use Ably::Rest::Middleware::FailIfUnsupportedMimeType
       end
+
       builder.use Ably::Rest::Middleware::ParseJson
       builder.use Ably::Rest::Middleware::ParseMessagePack
     end
