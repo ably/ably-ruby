@@ -146,7 +146,7 @@ describe Ably::Realtime::Channel do
             restricted_channel.attach
             restricted_channel.on(:failed) do |error|
               expect(restricted_channel.state).to eq(:failed)
-              expect(error.status_code).to eq(401)
+              expect(error.status).to eq(401)
               stop_reactor
             end
           end

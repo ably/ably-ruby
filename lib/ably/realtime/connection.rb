@@ -53,6 +53,11 @@ module Ably
       attr_reader :transport
 
       # @api private
+      # The connection manager responsible for creating, maintaining and closing the connection and underlying transport
+      # @return {Ably::Realtime::Connection::ConnectionManager}
+      attr_reader :manager
+
+      # @api private
       # An internal queue used to manage unsent outgoing messages.  You should never interface with this array directly
       # @return [Array]
       attr_reader :__outgoing_message_queue__
@@ -62,11 +67,6 @@ module Ably
       # @return [Array]
       attr_reader :__pending_message_queue__
 
-      # @api private
-      # Timers used to manage connection state, for internal use by the client library
-      # @return [Hash]
-      attr_reader :timers
-
       # @api public
       def initialize(client)
         @client                     = client
@@ -74,9 +74,6 @@ module Ably
         @serial                     = -1
         @__outgoing_message_queue__ = []
         @__pending_message_queue__  = []
-
-        @timers                     = Hash.new { |hash, key| hash[key] = [] }
-        @timers[:initializer]       << EventMachine::Timer.new(0.001) { connect }
 
         Client::IncomingMessageDispatcher.new client, self
         Client::OutgoingMessageDispatcher.new client, self
@@ -86,6 +83,7 @@ module Ably
         end
 
         @state_machine              = ConnectionStateMachine.new(self)
+        @manager                    = ConnectionManager.new(self)
         @state                      = STATE(state_machine.current_state)
       end
 
@@ -101,7 +99,7 @@ module Ably
           block.call self
         else
           EventMachine.next_tick do
-            state_machine.transition_to(:closed)
+            transition_state_machine(:closed)
           end
           once(STATE.Closed) { block.call self } if block_given?
         end
@@ -117,7 +115,7 @@ module Ably
         if connected?
           block.call self
         else
-          state_machine.transition_to(:connecting)
+          transition_state_machine(:connecting) unless connecting?
           once(STATE.Connected) { block.call self } if block_given?
         end
       end
@@ -129,25 +127,54 @@ module Ably
         @id = connection_id
       end
 
-      # Send #transition_to to connection state machine
-      # @return [Boolean] true if new_state can be transitioned_to by state machine
+      # Call #transition_to on {Ably::Realtime::Connection::ConnectionStateMachine}
+      #
+      # @return [Boolean] true if new_state can be transitioned to by state machine
       # @api private
-      def transition_state_machine(new_state)
-        state_machine.transition_to(new_state)
+      def transition_state_machine(new_state, emit_object = nil)
+        state_machine.transition_to(new_state, emit_object)
+      end
+
+      # Call #transition_to! on {Ably::Realtime::Connection::ConnectionStateMachine}.
+      # An exception wil be raised if new_state cannot be transitioned to by state machine
+      #
+      # @return <void>
+      # @api private
+      def transition_state_machine!(new_state, emit_object = nil)
+        state_machine.transition_to!(new_state, emit_object)
+      end
+
+      # Provides an internal method for the {Ably::Realtime::Connection} state to match the {Ably::Realtime::Connection::ConnectionStateMachine}'s state
+      # @api private
+      def synchronize_state_with_statemachine(*args)
+        log_state_machine_state_change
+        change_state state_machine.current_state, state_machine.last_transition.metadata
       end
 
       # @!attribute [r] __outgoing_protocol_msgbus__
-      # @return [Ably::Util::PubSub] Client library internal outgoing message bus
+      # @return [Ably::Util::PubSub] Client library internal outgoing protocol message bus
       # @api private
       def __outgoing_protocol_msgbus__
         @__outgoing_protocol_msgbus__ ||= create_pub_sub_message_bus
       end
 
       # @!attribute [r] __incoming_protocol_msgbus__
-      # @return [Ably::Util::PubSub] Client library internal incoming message bus
+      # @return [Ably::Util::PubSub] Client library internal incoming protocol message bus
       # @api private
       def __incoming_protocol_msgbus__
         @__incoming_protocol_msgbus__ ||= create_pub_sub_message_bus
+      end
+
+      # @!attribute [r] host
+      # @return [String] The default host name used for this connection
+      def host
+        client.endpoint.host
+      end
+
+      # @!attribute [r] port
+      # @return [Integer] The default port used for this connection
+      def port
+        client.use_tls? ? 443 : 80
       end
 
       # @!attribute [r] logger
@@ -168,55 +195,68 @@ module Ably
           Ably::Models::ProtocolMessage.new(protocol_message).tap do |protocol_message|
             add_message_to_outgoing_queue protocol_message
             notify_message_dispatcher_of_new_message protocol_message
-            logger.debug("Prot msg queued =>: #{protocol_message.action} #{protocol_message}")
+            logger.debug("Connection: Prot msg queued =>: #{protocol_message.action} #{protocol_message}")
           end
         end
       end
 
+      # @api private
       def add_message_to_outgoing_queue(protocol_message)
         __outgoing_message_queue__ << protocol_message
       end
 
+      # @api private
       def notify_message_dispatcher_of_new_message(protocol_message)
-        __outgoing_protocol_msgbus__.publish :message, protocol_message
+        __outgoing_protocol_msgbus__.publish :protocol_message, protocol_message
       end
 
-      # Creates and sets up a new {WebSocketTransport} available on attribute #transport
-      # @yield [Ably::Realtime::Connection::WebsocketTransport] block is called with new websocket transport
+      # @!attribute [r] previous_state
+      # @return [Ably::Realtime::Connection::STATE,nil] The previous state for this connection
       # @api private
-      def setup_transport(&block)
-        if transport && !transport.ready_for_release?
-          raise RuntimeError, "Existing WebsocketTransport is connected, and must be closed first"
-        end
-
-        @transport = EventMachine.connect(connection_host, connection_port, WebsocketTransport, self) do |websocket|
-          yield websocket
+      def previous_state
+        if state_machine.previous_state
+          STATE(state_machine.previous_state)
         end
       end
 
-      # Reconnect the {Ably::Realtime::Connection::WebsocketTransport} following a disconnection
+      # @!attribute [r] state_history
+      # @return [Array<Hash>] All previous states including the current state in date ascending order with Hash properties :state, :metadata, :transitioned_at
       # @api private
-      def reconnect_transport
-        raise RuntimeError, "WebsocketTransport is not set up" if !transport
-        raise RuntimeError, "WebsocketTransport is not disconnected so cannot be reconnected" if !transport.disconnected?
-
-        transport.reconnect(connection_host, connection_port)
+      def state_history
+        state_machine.history.map do |transition|
+          {
+            state:           STATE(transition.to_state),
+            metadata:        transition.metadata,
+            transitioned_at: transition.created_at
+          }
+        end
       end
+
+      # @api private
+      def create_websocket_transport(&block)
+        @transport = EventMachine.connect(host, port, WebsocketTransport, self) do |websocket_transport|
+          yield websocket_transport if block_given?
+        end
+      end
+
+      # @api private
+      def release_websocket_transport
+        @transport = nil
+      end
+
+      # As we are using a state machine, do not allow change_state to be used
+      # #transition_state_machine must be used instead
+      private :change_state
 
       private
-      attr_reader :manager, :serial, :state_machine
-
-      def connection_host
-        client.endpoint.host
-      end
-
-      def connection_port
-        client.use_tls? ? 443 : 80
-      end
+      attr_reader :serial, :state_machine
 
       def create_pub_sub_message_bus
         Ably::Util::PubSub.new(
-          coerce_into: Proc.new { |event| Ably::Models::ProtocolMessage::ACTION(event) }
+          coerce_into: Proc.new do |event|
+            raise KeyError, "Expected :protocol_message, :#{event} is disallowed" unless event == :protocol_message
+            :protocol_message
+          end
         )
       end
 
@@ -235,6 +275,14 @@ module Ably
       rescue StandardError => e
         @serial -= 1
         raise e
+      end
+
+      def log_state_machine_state_change
+        if state_machine.previous_state
+          logger.debug "ConnectionStateMachine: Transitioned from #{state_machine.previous_state} => #{state_machine.current_state}"
+        else
+          logger.debug "ConnectionStateMachine: Transitioned to #{state_machine.current_state}"
+        end
       end
     end
   end

@@ -31,7 +31,7 @@ module Ably::Models
     end
 
     def to_s
-      "Error: #{message} (code: #{code}, status_code: #{status_code})"
+      "Error: #{message} (code: #{code}, http status: #{status})"
     end
   end
 end

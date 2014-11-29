@@ -8,6 +8,7 @@ module Ably::Realtime
       def initialize(client, connection)
         @client     = client
         @connection = connection
+
         subscribe_to_incoming_protocol_messages
       end
 
@@ -64,7 +65,9 @@ module Ably::Realtime
           when ACTION.Error
             logger.error "Error received: #{protocol_message.error}"
             if protocol_message.channel && !protocol_message.has_message_serial?
-              get_channel(protocol_message.channel).change_state Ably::Realtime::Channel::STATE.Failed, protocol_message.error
+              dispatch_channel_error protocol_message
+            else
+              connection.transition_state_machine :failed, protocol_message.error
             end
 
           when ACTION.Attach
@@ -87,6 +90,14 @@ module Ably::Realtime
 
           else
             raise ArgumentError, "Protocol Message Action #{protocol_message.action} is unsupported by this MessageDispatcher"
+        end
+      end
+
+      def dispatch_channel_error(protocol_message)
+        if !protocol_message.has_message_serial?
+          get_channel(protocol_message.channel).change_state Ably::Realtime::Channel::STATE.Failed, protocol_message.error
+        else
+          logger.fatal "Cannot process ProtocolMessage as not yet implemented: #{protocol_message}"
         end
       end
 
@@ -136,7 +147,7 @@ module Ably::Realtime
       end
 
       def subscribe_to_incoming_protocol_messages
-        connection.__incoming_protocol_msgbus__.subscribe(:message) do |*args|
+        connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |*args|
           dispatch_protocol_message *args
         end
       end

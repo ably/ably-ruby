@@ -17,6 +17,11 @@ module Ably::Realtime
     # {Ably::Realtime::Channel} this Presence object is assoicated with
     attr_reader :channel
 
+    # A unique member identifier for this channel client, disambiguating situations where a given
+    # client_id is present on multiple connections simultaneously.
+    # TODO: This does not work at present as no ACK is sent from the server with a memberId
+    attr_reader :member_id
+
     def initialize(channel)
       @channel       = channel
       @state         = STATE.Initialized
@@ -24,6 +29,7 @@ module Ably::Realtime
       @subscriptions = Hash.new { |hash, key| hash[key] = [] }
       @client_id     = client.client_id
       @client_data   = nil
+      @member_id     = nil
 
       setup_event_handlers
     end
@@ -57,7 +63,7 @@ module Ably::Realtime
           change_state STATE.Entering
           send_presence_protocol_message(Ably::Models::PresenceMessage::ACTION.Enter).tap do |deferrable|
             deferrable.errback  { |message, error| change_state STATE.Failed, error }
-            deferrable.callback { |message| change_state STATE.Entered }
+            deferrable.callback { |message| change_state STATE.Entered, message }
           end
         end
       end
@@ -105,7 +111,7 @@ module Ably::Realtime
       ensure_channel_attached do
         send_presence_protocol_message(Ably::Models::PresenceMessage::ACTION.Update).tap do |deferrable|
           deferrable.callback do |message|
-            change_state STATE.Entered unless entered?
+            change_state STATE.Entered, message unless entered?
             blk.call self if block_given?
           end
         end
@@ -148,6 +154,14 @@ module Ably::Realtime
       end
     end
 
+    # Return the presence messages history for the channel
+    #
+    # @param (see Ably::Rest::Presence#history)
+    # @option options (see Ably::Rest::Presence#history)
+    def history(options = {})
+      rest_presence.history(options)
+    end
+
     # @!attribute [r] __incoming_msgbus__
     # @return [Ably::Util::PubSub] Client library internal channel incoming message bus
     # @api private
@@ -181,6 +195,10 @@ module Ably::Realtime
 
       channel.on(Channel::STATE.Failed) do
         change_state STATE.Failed unless left? || initialized?
+      end
+
+      on(STATE.Entered) do |message|
+        @member_id = message.member_id
       end
     end
 
@@ -253,7 +271,10 @@ module Ably::Realtime
       channel.client
     end
 
-    # Used by {Ably::Modules::StateEmitter} to debug state changes
+    def rest_presence
+      client.rest_client.channel(channel.name).presence
+    end
+
     # Used by {Ably::Modules::StateEmitter} to debug action changes
     def logger
       client.logger

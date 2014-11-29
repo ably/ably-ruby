@@ -5,13 +5,28 @@ module Ably::Realtime
     module StatesmanMonkeyPatch
       # Override Statesman's #before_transition to support :from arrays
       # This can be removed once https://github.com/gocardless/statesman/issues/95 is solved
-      def before_transition(options, &block)
-        if options.fetch(:from, nil).kind_of?(Array)
+      def before_transition(options = nil, &block)
+        arrayify_transition(options) do |options_without_from_array|
+          super *options_without_from_array, &block
+        end
+      end
+
+      def after_transition(options = nil, &block)
+        arrayify_transition(options) do |options_without_from_array|
+          super *options_without_from_array, &block
+        end
+      end
+
+      private
+      def arrayify_transition(options, &block)
+        if options.nil?
+          yield []
+        elsif options.fetch(:from, nil).kind_of?(Array)
           options[:from].each do |from_state|
-            super(options.merge(from: from_state), &block)
+            yield [options.merge(from: from_state)]
           end
         else
-          super
+          yield [options]
         end
       end
     end
@@ -34,59 +49,63 @@ module Ably::Realtime
       end
 
       transition :from => :initialized,  :to => [:connecting, :closed]
-      transition :from => :connecting,   :to => [:connected, :failed, :closed]
+      transition :from => :connecting,   :to => [:connected, :failed, :closed, :disconnected]
       transition :from => :connected,    :to => [:disconnected, :suspended, :closed, :failed]
-      transition :from => :disconnected, :to => [:connecting, :closed]
-      transition :from => :suspended,    :to => [:connecting, :closed]
+      transition :from => :disconnected, :to => [:connecting, :closed, :failed]
+      transition :from => :suspended,    :to => [:connecting, :closed, :failed]
       transition :from => :closed,       :to => [:connecting]
       transition :from => :failed,       :to => [:connecting]
 
-      before_transition(to: [:connecting], from: [:initialized, :closed, :failed]) do |connection|
-        connection.setup_transport do |transport|
-          # Transition this StateMachine once the transport is connected or disconnected
-          # Invalid state changes are simply ignored and logged
-          transport.on(:disconnected) do
-            connection.transition_state_machine :disconnected
-          end
-        end
+      after_transition do |connection, transition|
+        connection.synchronize_state_with_statemachine
       end
 
-      before_transition(to: [:connecting], from: [:disconnected, :suspended]) do |connection|
-        connection.reconnect_transport
+      after_transition(to: [:connecting], from: [:initialized, :closed, :failed]) do |connection|
+        connection.manager.setup_transport
+      end
+
+      after_transition(to: [:connecting], from: [:disconnected, :suspended]) do |connection|
+        connection.manager.reconnect_transport
+      end
+
+      before_transition(to: [:connected]) do |connection|
+        connection.manager.cancel_connection_retry_timers
+      end
+
+      after_transition(to: [:disconnected], from: [:connecting]) do |connection, current_transition|
+        connection.manager.respond_to_transport_disconnected current_transition
       end
 
       after_transition(to: [:failed]) do |connection|
-        connection.transport.disconnect
+        connection.manager.destroy_transport
       end
 
       before_transition(to: [:closed], from: [:initialized]) do |connection|
-        connection.timers.fetch(:initializer, []).each(&:cancel)
+        connection.manager.cancel_initialized_timers
       end
 
       before_transition(to: [:closed], from: [:connecting, :connected, :disconnected, :suspended]) do |connection|
-        connection.send_protocol_message action: Ably::Models::ProtocolMessage::ACTION.Close
-        connection.transport.disconnect
+        connection.manager.close_connection
       end
 
-      after_transition do |connection, transition|
-        connection.change_state transition.to_state
-      end
-
-      def initialize(connection)
-        @connection = connection
-        super(connection)
-      end
-
-      # Override Statesman's #transition_to to simply log state change failures
-      def transition_to(*args)
-        unless super(*args)
-          logger.debug "Unable to transition to #{args[0]} from #{current_state}"
+      # Override Statesman's #transition_to so that:
+      # * log state change failures to {Logger}
+      def transition_to(state, *args)
+        unless result = super(state, *args)
+          logger.fatal "ConnectionStateMachine: Unable to transition from #{current_state} => #{state}"
         end
+        result
+      end
+
+      def previous_transition
+        history[-2]
+      end
+
+      def previous_state
+        previous_transition.to_state if previous_transition
       end
 
       private
-      attr_reader :connection
-
       # TODO: Implement once CLOSED ProtocolMessage is sent back from Ably in response to a CLOSE message
       #
       # FORCE_CONNECTION_CLOSED_TIMEOUT = 5
@@ -102,6 +121,10 @@ module Ably::Realtime
       #     timeout.cancel
       #   end.clear
       # end
+
+      def connection
+        object
+      end
 
       def logger
         connection.logger
