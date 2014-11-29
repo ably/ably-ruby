@@ -100,6 +100,18 @@ module Ably::Models
       body.last
     end
 
+    def inspect
+      <<-EOF.gsub(/^        /, '')
+        #<{self.class.name}:#{self.object_id}
+         @base_url="#{base_url}",
+         @first_page?=#{!!first_page?},
+         @last_page?=#{!!first_page?},
+         @body=
+           #{body.map { |item| item.inspect }.join(",\n           ") }
+        >
+      EOF
+    end
+
     private
     attr_reader :body, :http_response, :base_url, :client, :coerce_into, :raw_body
 
