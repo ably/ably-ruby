@@ -1,7 +1,7 @@
-require "spec_helper"
-require "securerandom"
+require 'spec_helper'
+require 'securerandom'
 
-describe "REST" do
+describe 'REST' do
   include Ably::Modules::Conversions
 
   [:msgpack, :json].each do |protocol|
@@ -29,6 +29,7 @@ describe "REST" do
             { :name => 'test3', :data => 'baz' }
           ]
         end
+        let!(:before_published) { client.time }
 
         before(:each) do
           expected_history.each do |message|
@@ -42,9 +43,24 @@ describe "REST" do
           expect(actual_history.size).to eql(3)
 
           expected_history.each do |message|
-            expect(actual_history).to include(Ably::Models::Message.new(message))
-            expect(actual_history.map(&:hash)).to include(message)
+            message_name, message_data = message[:name], message[:data]
+            matching_message = actual_history.find { |message| message.name == message_name && message.data == message_data }
+            expect(matching_message).to be_a(Ably::Models::Message)
           end
+        end
+
+        context 'timestamps' do
+          it 'should be greater than the time before the messages were published' do
+            channel.history.each do |message|
+              expect(before_published.to_f).to be < message.timestamp.to_f
+            end
+          end
+        end
+
+        it 'should return messages with unique IDs' do
+          message_ids = channel.history.map(&:id).compact
+          expect(message_ids.count).to eql(3)
+          expect(message_ids.uniq.count).to eql(3)
         end
 
         it 'should return paged history' do
