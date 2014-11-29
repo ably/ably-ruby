@@ -74,7 +74,7 @@ module Ably::Models
     end
 
     def as_json(*args)
-      raise RuntimeError, ":name is missing, cannot generate a valid Hash for Message" unless name
+      raise RuntimeError, ':name is missing, cannot generate a valid Hash for Message' unless name
       super
     end
 
@@ -95,7 +95,7 @@ module Ably::Models
     # @return [Ably::Models::ProtocolMessage]
     # @api private
     def protocol_message
-      raise RuntimeError, "Message is not yet published with a ProtocolMessage. ProtocolMessage is nil" if @protocol_message.nil?
+      raise RuntimeError, 'Message is not yet published with a ProtocolMessage. ProtocolMessage is nil' if @protocol_message.nil?
       @protocol_message
     end
 

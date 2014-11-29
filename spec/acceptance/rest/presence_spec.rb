@@ -1,7 +1,7 @@
-require "spec_helper"
-require "securerandom"
+require 'spec_helper'
+require 'securerandom'
 
-describe "REST" do
+describe 'REST' do
   include Ably::Modules::Conversions
 
   [:msgpack, :json].each do |protocol|
@@ -16,11 +16,11 @@ describe "REST" do
         end
       end
 
-      describe "fetching presence" do
-        let(:channel) { client.channel("persisted:presence_fixtures") }
+      describe 'fetching presence' do
+        let(:channel) { client.channel('persisted:presence_fixtures') }
         let(:presence) { channel.presence.get }
 
-        it "returns current members on the channel" do
+        it 'returns current members on the channel' do
           expect(presence.size).to eql(4)
 
           fixtures.each do |fixture|
@@ -30,11 +30,11 @@ describe "REST" do
         end
       end
 
-      describe "presence history" do
-        let(:channel) { client.channel("persisted:presence_fixtures") }
+      describe 'presence history' do
+        let(:channel) { client.channel('persisted:presence_fixtures') }
         let(:history) { channel.presence.history }
 
-        it "returns recent presence activity" do
+        it 'returns recent presence activity' do
           expect(history.size).to eql(4)
 
           fixtures.each do |fixture|
@@ -47,7 +47,7 @@ describe "REST" do
           let(:page_size) { 2 }
           let(:paged_history_forward) { channel.presence.history(limit: page_size, direction: :forwards) }
 
-          it "returns recent presence activity with options passsed to Ably" do
+          it 'returns recent presence activity with options passsed to Ably' do
             expect(paged_history_forward).to be_a(Ably::Models::PaginatedResource)
             expect(paged_history_forward.size).to eql(2)
 
@@ -59,7 +59,7 @@ describe "REST" do
         end
       end
 
-      describe "options" do
+      describe 'options' do
         let(:channel_name) { "persisted:#{SecureRandom.hex(4)}" }
         let(:presence) { client.channel(channel_name).presence }
         let(:user) { 'appid.keyuid' }

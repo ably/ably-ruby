@@ -1,4 +1,4 @@
-require "singleton"
+require 'singleton'
 
 class TestApp
   APP_SPEC = {
@@ -81,8 +81,8 @@ class TestApp
     url = "#{sandbox_client.endpoint}/apps"
 
     headers = {
-      "Accept"       => "application/json",
-      "Content-Type" => "application/json"
+      'Accept'       => 'application/json',
+      'Content-Type' => 'application/json'
     }
 
     response = Faraday.post(url, APP_SPEC.to_json, headers)

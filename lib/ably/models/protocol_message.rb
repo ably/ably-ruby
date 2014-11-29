@@ -67,7 +67,7 @@ module Ably::Models
       @raw_hash_object = hash_object
       @hash_object     = IdiomaticRubyWrapper(@raw_hash_object.clone)
 
-      raise ArgumentError, "Invalid ProtocolMessage, action cannot be nil" if @hash_object[:action].nil?
+      raise ArgumentError, 'Invalid ProtocolMessage, action cannot be nil' if @hash_object[:action].nil?
       @hash_object[:action] = ACTION(@hash_object[:action]).to_i unless @hash_object[:action].kind_of?(Integer)
 
       @hash_object.freeze
@@ -80,7 +80,7 @@ module Ably::Models
     end
 
     def id!
-      raise RuntimeError, "ProtocolMessage #id is nil" unless id
+      raise RuntimeError, 'ProtocolMessage #id is nil' unless id
       id
     end
 
@@ -168,8 +168,8 @@ module Ably::Models
 
     # Return a JSON ready object from the underlying #hash using Ably naming conventions for keys
     def as_json(*args)
-      raise TypeError, ":action is missing, cannot generate a valid Hash for ProtocolMessage" unless action
-      raise TypeError, ":msg_serial or :connection_serial is missing, cannot generate a valid Hash for ProtocolMessage" if ack_required? && !has_serial?
+      raise TypeError, ':action is missing, cannot generate a valid Hash for ProtocolMessage' unless action
+      raise TypeError, ':msg_serial or :connection_serial is missing, cannot generate a valid Hash for ProtocolMessage' if ack_required? && !has_serial?
 
       hash.dup.tap do |hash_object|
         hash_object['action']   = action.to_i

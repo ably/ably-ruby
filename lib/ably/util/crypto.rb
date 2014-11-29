@@ -13,7 +13,7 @@ module Ably::Util
     attr_reader :options
 
     def initialize(options = {})
-      raise ArgumentError, ":secret is required" unless options.has_key?(:secret)
+      raise ArgumentError, ':secret is required' unless options.has_key?(:secret)
       @options = DEFAULTS.merge(options).freeze
     end
 
@@ -28,7 +28,7 @@ module Ably::Util
     end
 
     def decrypt(encrypted_payload_with_iv)
-      raise Ably::Exceptions::EncryptionError, "iv is missing" unless encrypted_payload_with_iv.length >= block_length*2
+      raise Ably::Exceptions::EncryptionError, 'iv is missing' unless encrypted_payload_with_iv.length >= block_length*2
 
       iv = encrypted_payload_with_iv.slice(0..15)
       encrypted_payload = encrypted_payload_with_iv.slice(16..-1)

@@ -10,33 +10,33 @@ describe "REST" do
         Ably::Rest::Client.new(api_key: api_key, environment: environment, protocol: protocol)
       end
 
-      describe "publishing messages" do
-        let(:channel) { client.channel("test") }
-        let(:event)   { "foo" }
-        let(:message) { "woop!" }
+      describe 'publishing messages' do
+        let(:channel) { client.channel('test') }
+        let(:event)   { 'foo' }
+        let(:message) { 'woop!' }
 
-        it "should publish the message ok" do
+        it 'should publish the message ok' do
           expect(channel.publish(event, message)).to eql(true)
         end
       end
 
-      describe "fetching channel history" do
+      describe 'fetching channel history' do
         let(:channel) { client.channel("persisted:#{SecureRandom.hex(4)}") }
         let(:expected_history) do
           [
-            { :name => "test1", :data => "foo" },
-            { :name => "test2", :data => "bar" },
-            { :name => "test3", :data => "baz" }
+            { :name => 'test1', :data => 'foo' },
+            { :name => 'test2', :data => 'bar' },
+            { :name => 'test3', :data => 'baz' }
           ]
         end
 
         before(:each) do
           expected_history.each do |message|
-            channel.publish(message[:name], message[:data]) || raise("Unable to publish message")
+            channel.publish(message[:name], message[:data]) || raise('Unable to publish message')
           end
         end
 
-        it "should return all the history for the channel" do
+        it 'should return all the history for the channel' do
           actual_history = channel.history
 
           expect(actual_history.size).to eql(3)
@@ -47,7 +47,7 @@ describe "REST" do
           end
         end
 
-        it "should return paged history" do
+        it 'should return paged history' do
           page_1 = channel.history(limit: 1)
           page_2 = page_1.next_page
           page_3 = page_2.next_page
@@ -71,7 +71,7 @@ describe "REST" do
         end
       end
 
-      describe "options" do
+      describe 'options' do
         let(:channel_name) { "persisted:#{SecureRandom.hex(4)}" }
         let(:channel) { client.channel(channel_name) }
         let(:endpoint) do

@@ -12,7 +12,7 @@ module Ably::Modules
       when Numeric
         time
       else
-        raise ArgumentError, "time argument must be a Numeric or Time object"
+        raise ArgumentError, 'time argument must be a Numeric or Time object'
       end.to_i
     end
 
@@ -23,7 +23,7 @@ module Ably::Modules
       when Time
         time
       else
-        raise ArgumentError, "time argument must be a Numeric or Time object"
+        raise ArgumentError, 'time argument must be a Numeric or Time object'
       end
     end
 
@@ -34,7 +34,7 @@ module Ably::Modules
       when :s # seconds
         1.0
       else
-        raise ArgumentError, "invalid granularity"
+        raise ArgumentError, 'invalid granularity'
       end
     end
 

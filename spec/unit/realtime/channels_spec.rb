@@ -1,4 +1,4 @@
-require "spec_helper"
+require 'spec_helper'
 
 describe Ably::Realtime::Channels do
   let(:connection) { instance_double('Ably::Realtime::Connection', on: true) }

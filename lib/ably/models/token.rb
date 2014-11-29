@@ -4,7 +4,7 @@ module Ably::Models
     include Ably::Modules::ModelCommon
 
     DEFAULTS = {
-      capability: { "*" => ["*"] },
+      capability: { '*' => ['*'] },
       ttl:        60 * 60 # 1 hour
     }
 

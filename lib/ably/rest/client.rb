@@ -25,7 +25,7 @@ module Ably
       include Ably::Modules::HttpHelpers
       extend Forwardable
 
-      DOMAIN = "rest.ably.io"
+      DOMAIN = 'rest.ably.io'
 
       attr_reader :environment, :protocol, :auth, :channels, :log_level
       def_delegators :auth, :client_id, :auth_options

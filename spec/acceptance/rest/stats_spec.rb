@@ -1,10 +1,10 @@
-require "spec_helper"
-require "securerandom"
+require 'spec_helper'
+require 'securerandom'
 
-describe "REST" do
+describe 'REST' do
   [:json, :msgpack].each do |protocol|
     context "over #{protocol}" do
-      describe "fetching application stats" do
+      describe 'fetching application stats' do
         before(:context) do
           reload_test_app
         end
@@ -40,7 +40,7 @@ describe "REST" do
 
         [:minute, :hour, :day, :month].each do |interval|
           context "by #{interval}" do
-            it "should return all the stats for the application" do
+            it 'should return all the stats for the application' do
               stats = @context_client.stats(start: @interval_start * 1000, by: interval.to_s, direction: 'forwards')
 
               expect(stats.size).to eql(1)

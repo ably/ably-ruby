@@ -1,12 +1,12 @@
-require "spec_helper"
-require "securerandom"
+require 'spec_helper'
+require 'securerandom'
 
-describe "REST" do
+describe 'REST' do
   let(:client) do
     Ably::Rest::Client.new(api_key: api_key, environment: environment)
   end
 
-  describe "protocol" do
+  describe 'protocol' do
     include Ably::Modules::Conversions
 
     let(:client_options) { {} }
@@ -71,8 +71,8 @@ describe "REST" do
     end
   end
 
-  describe "invalid requests in middleware" do
-    it "should raise an InvalidRequest exception with a valid message" do
+  describe 'invalid requests in middleware' do
+    it 'should raise an InvalidRequest exception with a valid message' do
       invalid_client = Ably::Rest::Client.new(api_key: 'appid.keyuid:keysecret', environment: environment)
       expect { invalid_client.channel('test').publish('foo', 'choo') }.to raise_error do |error|
         expect(error).to be_a(Ably::Exceptions::InvalidToken)
@@ -82,7 +82,7 @@ describe "REST" do
       end
     end
 
-    describe "server error with JSON response", webmock: true do
+    describe 'server error with JSON response', webmock: true do
       let(:error_response) { '{ "error": { "statusCode": 500, "code": 50000, "message": "Internal error" } }' }
 
       before do
@@ -90,18 +90,18 @@ describe "REST" do
           to_return(:status => 500, :body => error_response, :headers => { 'Content-Type' => 'application/json' })
       end
 
-      it "should raise a ServerError exception" do
+      it 'should raise a ServerError exception' do
         expect { client.time }.to raise_error(Ably::Exceptions::ServerError, /Internal error/)
       end
     end
 
-    describe "server error", webmock: true do
+    describe 'server error', webmock: true do
       before do
         stub_request(:get, "#{client.endpoint}/time").
         to_return(:status => 500, :headers => { 'Content-Type' => 'application/json' })
       end
 
-      it "should raise a ServerError exception" do
+      it 'should raise a ServerError exception' do
         expect { client.time }.to raise_error(Ably::Exceptions::ServerError, /Unknown/)
       end
     end

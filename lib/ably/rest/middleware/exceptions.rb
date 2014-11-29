@@ -1,4 +1,4 @@
-require "json"
+require 'json'
 
 module Ably
   module Rest
@@ -25,7 +25,7 @@ module Ably
               message = env.body
             end
 
-            message = "Unknown server error" if message.to_s.strip == ''
+            message = 'Unknown server error' if message.to_s.strip == ''
 
             if env.status >= 500
               raise Ably::Exceptions::ServerError, message
