@@ -1,5 +1,5 @@
 require 'spec_helper'
-require "support/protocol_msgbus_helper"
+require 'support/protocol_msgbus_helper'
 
 describe Ably::Realtime::Channel do
   let(:client) { double('client').as_null_object }

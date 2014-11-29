@@ -1,5 +1,5 @@
 require 'spec_helper'
-require "support/protocol_msgbus_helper"
+require 'support/protocol_msgbus_helper'
 
 describe Ably::Realtime::Client do
   let(:client_options) { 'appid.keyuid:keysecret' }

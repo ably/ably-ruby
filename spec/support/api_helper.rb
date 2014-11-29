@@ -1,4 +1,4 @@
-require "support/test_app"
+require 'support/test_app'
 
 module ApiHelper
   def app_id

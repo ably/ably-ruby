@@ -1,4 +1,4 @@
-require "spec_helper"
+require 'spec_helper'
 
 describe Ably::Models::Token do
   subject { Ably::Models::Token }

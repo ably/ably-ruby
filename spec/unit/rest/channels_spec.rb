@@ -1,4 +1,4 @@
-require "spec_helper"
+require 'spec_helper'
 
 describe Ably::Rest::Channels do
   let(:client) { instance_double('Ably::Rest::Client') }

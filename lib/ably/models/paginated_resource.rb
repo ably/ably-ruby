@@ -40,7 +40,7 @@ module Ably::Models
     #
     # @return [PaginatedResource]
     def next_page
-      raise Ably::Exceptions::InvalidPageError, "There are no more pages" if supports_pagination? && last_page?
+      raise Ably::Exceptions::InvalidPageError, 'There are no more pages' if supports_pagination? && last_page?
       PaginatedResource.new(client.get(pagination_url('next')), base_url, client, coerce_into: coerce_into)
     end
 

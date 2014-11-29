@@ -1,15 +1,16 @@
-require "eventmachine"
-require "websocket/driver"
+require 'eventmachine'
+require 'websocket/driver'
 
-require "ably/modules/event_emitter"
+require 'ably/modules/event_emitter'
 
-require "ably/realtime/channel"
-require "ably/realtime/channels"
-require "ably/realtime/client"
-require "ably/realtime/connection"
-require "ably/realtime/connection/connection_state_machine"
-require "ably/realtime/connection/websocket_transport"
-require "ably/realtime/presence"
+require 'ably/realtime/channel'
+require 'ably/realtime/channels'
+require 'ably/realtime/client'
+require 'ably/realtime/connection'
+require 'ably/realtime/connection/connection_manager'
+require 'ably/realtime/connection/connection_state_machine'
+require 'ably/realtime/connection/websocket_transport'
+require 'ably/realtime/presence'
 
 Dir.glob(File.expand_path("models/*.rb", File.dirname(__FILE__))).each do |file|
   require file
@@ -19,8 +20,8 @@ Dir.glob(File.expand_path("realtime/models/*.rb", File.dirname(__FILE__))).each 
   require file
 end
 
-require "ably/realtime/client/incoming_message_dispatcher"
-require "ably/realtime/client/outgoing_message_dispatcher"
+require 'ably/realtime/client/incoming_message_dispatcher'
+require 'ably/realtime/client/outgoing_message_dispatcher'
 
 module Ably
   # Realtime provides the top-level class to be instanced for the Ably Realtime library

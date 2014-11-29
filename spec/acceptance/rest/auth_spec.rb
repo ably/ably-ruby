@@ -1,7 +1,7 @@
-require "spec_helper"
-require "securerandom"
+require 'spec_helper'
+require 'securerandom'
 
-describe "REST" do
+describe 'REST' do
   [:msgpack, :json].each do |protocol|
     context "over #{protocol}" do
       let(:client) do
@@ -11,9 +11,9 @@ describe "REST" do
 
       describe "#request_token" do
         let(:ttl)        { 30 * 60 }
-        let(:capability) { { :foo => ["publish"] } }
+        let(:capability) { { :foo => ['publish'] } }
 
-        it "returns the requested token" do
+        it 'returns the requested token' do
           actual_token = auth.request_token(
             ttl:        ttl,
             capability: capability
@@ -69,7 +69,7 @@ describe "REST" do
           end
         end
 
-        context "with :query_time option" do
+        context 'with :query_time option' do
           let(:options) { { query_time: true } }
 
           it 'queries the server for the time' do
@@ -78,7 +78,7 @@ describe "REST" do
           end
         end
 
-        context "without :query_time option" do
+        context 'without :query_time option' do
           let(:options) { { query_time: false } }
 
           it 'queries the server for the time' do
@@ -244,30 +244,30 @@ describe "REST" do
         end
       end
 
-      describe "#create_token_request" do
+      describe '#create_token_request' do
         let(:ttl)           { 60 * 60 }
         let(:capability)    { { :foo => ["publish"] } }
         let(:options)       { Hash.new }
         subject { auth.create_token_request(options) }
 
-        it "uses the key ID from the client" do
+        it 'uses the key ID from the client' do
           expect(subject[:id]).to eql(key_id)
         end
 
-        it "uses the default TTL" do
+        it 'uses the default TTL' do
           expect(subject[:ttl]).to eql(Ably::Models::Token::DEFAULTS[:ttl])
         end
 
-        it "uses the default capability" do
+        it 'uses the default capability' do
           expect(subject[:capability]).to eql(Ably::Models::Token::DEFAULTS[:capability].to_json)
         end
 
-        it "has a unique nonce" do
+        it 'has a unique nonce' do
           unique_nonces = 100.times.map { auth.create_token_request[:nonce] }
           expect(unique_nonces.uniq.length).to eql(100)
         end
 
-        it "has a nonce of at least 16 characters" do
+        it 'has a nonce of at least 16 characters' do
           expect(subject[:nonce].length).to be >= 16
         end
 
@@ -283,7 +283,7 @@ describe "REST" do
           end
         end
 
-        context "invalid attributes" do
+        context 'invalid attributes' do
           let(:options) { { nonce: 'valid', is_not_used_by_token_request: 'invalid' } }
           specify 'are ignored' do
             expect(subject.keys).to_not include(:is_not_used_by_token_request)
@@ -292,19 +292,19 @@ describe "REST" do
           end
         end
 
-        context "missing key ID and/or secret" do
+        context 'missing key ID and/or secret' do
           let(:client) { Ably::Rest::Client.new(auth_url: 'http://example.com', protocol: protocol) }
 
-          it "should raise an exception if key secret is missing" do
+          it 'should raise an exception if key secret is missing' do
             expect { auth.create_token_request(key_id: 'id') }.to raise_error Ably::Exceptions::TokenRequestError
           end
 
-          it "should raise an exception if key id is missing" do
+          it 'should raise an exception if key id is missing' do
             expect { auth.create_token_request(key_secret: 'secret') }.to raise_error Ably::Exceptions::TokenRequestError
           end
         end
 
-        context "with :query_time option" do
+        context 'with :query_time option' do
           let(:time)    { Time.now - 30 }
           let(:options) { { query_time: true } }
 
@@ -314,7 +314,7 @@ describe "REST" do
           end
         end
 
-        context "with :timestamp option" do
+        context 'with :timestamp option' do
           let(:token_request_time) { Time.now + 5 }
           let(:options) { { timestamp: token_request_time } }
 
@@ -323,7 +323,7 @@ describe "REST" do
           end
         end
 
-        context "signing" do
+        context 'signing' do
           let(:options) do
             {
               id: SecureRandom.hex,
@@ -342,7 +342,7 @@ describe "REST" do
         end
       end
 
-      context "client with token authentication" do
+      context 'client with token authentication' do
         let(:capability) { { :foo => ["publish"] } }
 
         describe "with token_id argument" do
@@ -358,19 +358,19 @@ describe "REST" do
             Ably::Rest::Client.new(token_id: token_id, environment: environment, protocol: protocol)
           end
 
-          it "authenticates successfully" do
-            expect(token_auth_client.channel("foo").publish("event", "data")).to be_truthy
+          it 'authenticates successfully' do
+            expect(token_auth_client.channel('foo').publish('event', 'data')).to be_truthy
           end
 
-          it "disallows publishing on unspecified capability channels" do
-            expect { token_auth_client.channel("bar").publish("event", "data") }.to raise_error do |error|
+          it 'disallows publishing on unspecified capability channels' do
+            expect { token_auth_client.channel('bar').publish('event', 'data') }.to raise_error do |error|
               expect(error).to be_a(Ably::Exceptions::InvalidToken)
               expect(error.status).to eql(401)
               expect(error.code).to eql(40160)
             end
           end
 
-          it "fails if timestamp is invalid" do
+          it 'fails if timestamp is invalid' do
             expect { auth.request_token(timestamp: Time.now - 180) }.to raise_error do |error|
               expect(error).to be_a(Ably::Exceptions::InvalidToken)
               expect(error.status).to eql(401)
@@ -379,7 +379,7 @@ describe "REST" do
           end
         end
 
-        describe "implicit through client id" do
+        describe 'implicit through client id' do
           let(:client_id) { '999' }
           let(:client) do
             Ably::Rest::Client.new(api_key: api_key, client_id: client_id, environment: environment, protocol: protocol)
@@ -404,25 +404,25 @@ describe "REST" do
                 to_return(status: 201, body: '{}', headers: { 'Content-Type' => 'application/json' })
             end
 
-            it "will create a token request" do
-              client.channel("foo").publish("event", "data")
+            it 'will create a token request' do
+              client.channel('foo').publish('event', 'data')
               expect(request_token_stub).to have_been_requested
             end
           end
 
-          context "will create a token" do
+          context 'will create a token' do
             let(:token) { client.auth.current_token }
 
-            it "before a request is made" do
+            it 'before a request is made' do
               expect(token).to be_nil
             end
 
-            it "when a message is published" do
-              expect(client.channel("foo").publish("event", "data")).to be_truthy
+            it 'when a message is published' do
+              expect(client.channel('foo').publish('event', 'data')).to be_truthy
             end
 
-            it "with capability and TTL defaults" do
-              client.channel("foo").publish("event", "data")
+            it 'with capability and TTL defaults' do
+              client.channel('foo').publish('event', 'data')
 
               expect(token).to be_a(Ably::Models::Token)
               capability_with_str_key = Ably::Models::Token::DEFAULTS[:capability]

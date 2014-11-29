@@ -1,5 +1,5 @@
-require "spec_helper"
-require "securerandom"
+require 'spec_helper'
+require 'securerandom'
 
 describe Ably::Rest::Channels do
   [:msgpack, :json].each do |protocol|
@@ -10,30 +10,30 @@ describe Ably::Rest::Channels do
       let(:channel_name) { SecureRandom.hex }
       let(:options) { { key: 'value' } }
 
-      shared_examples "a channel" do
-        it "should access a channel" do
+      shared_examples 'a channel' do
+        it 'should access a channel' do
           expect(channel).to be_a Ably::Rest::Channel
           expect(channel.name).to eql(channel_name)
         end
 
-        it "should allow options to be set on a channel" do
+        it 'should allow options to be set on a channel' do
           expect(channel_with_options.options).to eql(options)
         end
       end
 
-      describe "using shortcut method on client" do
+      describe 'using shortcut method on client' do
         let(:channel) { client.channel(channel_name) }
         let(:channel_with_options) { client.channel(channel_name, options) }
         it_behaves_like 'a channel'
       end
 
-      describe "using documented .get method on client.channels" do
+      describe 'using documented .get method on client.channels' do
         let(:channel) { client.channels.get(channel_name) }
         let(:channel_with_options) { client.channels.get(channel_name, options) }
         it_behaves_like 'a channel'
       end
 
-      describe "using undocumented [] method on client.channels" do
+      describe 'using undocumented [] method on client.channels' do
         let(:channel) { client.channels[channel_name] }
         let(:channel_with_options) { client.channels[channel_name, options] }
         it_behaves_like 'a channel'

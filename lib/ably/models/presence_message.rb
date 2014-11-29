@@ -86,7 +86,7 @@ module Ably::Models
         hash['action'] = action.to_i
       end.as_json
     rescue KeyError
-      raise KeyError, ":action is missing or invalid, cannot generate a valid Hash for ProtocolMessage"
+      raise KeyError, ':action is missing or invalid, cannot generate a valid Hash for ProtocolMessage'
     end
 
     # Assign this presence message to a ProtocolMessage before delivery to the Ably system
@@ -106,7 +106,7 @@ module Ably::Models
     # @return [Ably::Models::ProtocolMessage]
     # @api private
     def protocol_message
-      raise RuntimeError, "Presence Message is not yet published with a ProtocolMessage. ProtocolMessage is nil" if @protocol_message.nil?
+      raise RuntimeError, 'Presence Message is not yet published with a ProtocolMessage. ProtocolMessage is nil' if @protocol_message.nil?
       @protocol_message
     end
 

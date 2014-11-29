@@ -4,11 +4,11 @@
   end
 end
 
-require "ably/auth"
-require "ably/exceptions"
-require "ably/realtime"
-require "ably/rest"
-require "ably/version"
+require 'ably/auth'
+require 'ably/exceptions'
+require 'ably/realtime'
+require 'ably/rest'
+require 'ably/version'
 
 # Ably is the base namespace for the Ably {Ably::Realtime Realtime} & {Ably::Rest Rest} client libraries.
 #

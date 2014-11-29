@@ -2,7 +2,7 @@ require 'json'
 require 'faraday'
 require 'securerandom'
 
-require "ably/rest/middleware/external_exceptions"
+require 'ably/rest/middleware/external_exceptions'
 
 module Ably
   # Auth is responsible for authentication with {https://ably.io Ably} using basic or token authentication
@@ -44,26 +44,26 @@ module Ably
       @auth_callback = auth_block if block_given?
 
       unless auth_options.kind_of?(Hash)
-        raise ArgumentError, "Expected auth_options to be a Hash"
+        raise ArgumentError, 'Expected auth_options to be a Hash'
       end
 
       if auth_options[:api_key] && (auth_options[:key_secret] || auth_options[:key_id])
-        raise ArgumentError, "api_key and key_id or key_secret are mutually exclusive. Provider either an api_key or key_id & key_secret"
+        raise ArgumentError, 'api_key and key_id or key_secret are mutually exclusive. Provider either an api_key or key_id & key_secret'
       end
 
       if auth_options[:api_key]
         api_key_parts = auth_options[:api_key].to_s.match(/(?<id>[\w_-]+\.[\w_-]+):(?<secret>[\w_-]+)/)
-        raise ArgumentError, "api_key is invalid" unless api_key_parts
+        raise ArgumentError, 'api_key is invalid' unless api_key_parts
         auth_options[:key_id] = api_key_parts[:id]
         auth_options[:key_secret] = api_key_parts[:secret]
       end
 
       if using_basic_auth? && !api_key_present?
-        raise ArgumentError, "api_key is missing. Either an API key, token, or token auth method must be provided"
+        raise ArgumentError, 'api_key is missing. Either an API key, token, or token auth method must be provided'
       end
 
       if has_client_id? && !api_key_present?
-        raise ArgumentError, "client_id cannot be provided without a complete API key. Key ID & Secret is needed to authenticate with Ably and obtain a token"
+        raise ArgumentError, 'client_id cannot be provided without a complete API key. Key ID & Secret is needed to authenticate with Ably and obtain a token'
       end
 
       @options.freeze
@@ -199,7 +199,7 @@ module Ably
       request_key_id     = token_options.delete(:key_id) || key_id
       request_key_secret = token_options.delete(:key_secret) || key_secret
 
-      raise Ably::Exceptions::TokenRequestError, "Key ID and Key Secret are required to generate a new token request" unless request_key_id && request_key_secret
+      raise Ably::Exceptions::TokenRequestError, 'Key ID and Key Secret are required to generate a new token request' unless request_key_id && request_key_secret
 
       timestamp = if token_options[:query_time]
         client.time
@@ -294,7 +294,7 @@ module Ably
 
     # Basic Auth HTTP Authorization header value
     def basic_auth_header
-      raise Ably::Exceptions::InsecureRequestError, "Cannot use Basic Auth over non-TLS connections" unless client.use_tls?
+      raise Ably::Exceptions::InsecureRequestError, 'Cannot use Basic Auth over non-TLS connections' unless client.use_tls?
       "Basic #{encode64("#{api_key}")}"
     end
 
@@ -313,7 +313,7 @@ module Ably
 
     # Basic Auth params to authenticate the Realtime connection
     def basic_auth_params
-      raise Ably::Exceptions::InsecureRequestError, "Cannot use Basic Auth over non-TLS connections" unless client.use_tls?
+      raise Ably::Exceptions::InsecureRequestError, 'Cannot use Basic Auth over non-TLS connections' unless client.use_tls?
       # TODO: Change to key_secret when API is updated
       {
         key_id: key_id,

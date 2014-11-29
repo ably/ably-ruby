@@ -1,5 +1,5 @@
 require 'spec_helper'
-require "support/protocol_msgbus_helper"
+require 'support/protocol_msgbus_helper'
 
 describe Ably::Realtime::Presence do
   let(:channel) { double('Ably::Realtime::Channel').as_null_object }
