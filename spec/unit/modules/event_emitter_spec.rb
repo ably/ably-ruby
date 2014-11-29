@@ -95,19 +95,33 @@ describe Ably::Modules::EventEmitter do
       subject.trigger :message, msg
     end
 
-    it 'deletes matching callbacks' do
-      expect(obj).to_not receive(:received_message).with(msg)
-      subject.off(:message, &callback)
+    context 'with event names as arguments' do
+      it 'deletes matching callbacks' do
+        expect(obj).to_not receive(:received_message).with(msg)
+        subject.off(:message, &callback)
+      end
+
+      it 'deletes all callbacks if not block given' do
+        expect(obj).to_not receive(:received_message).with(msg)
+        subject.off(:message)
+      end
+
+      it 'continues if the block does not exist' do
+        expect(obj).to receive(:received_message).with(msg)
+        subject.off(:message) { true }
+      end
     end
 
-    it 'deletes all callbacks if not block given' do
-      expect(obj).to_not receive(:received_message).with(msg)
-      subject.off(:message)
-    end
+    context 'without any event names' do
+      it 'deletes all matching callbacks' do
+        expect(obj).to_not receive(:received_message).with(msg)
+        subject.off(&callback)
+      end
 
-    it 'continues if the block does not exist' do
-      expect(obj).to receive(:received_message).with(msg)
-      subject.off(:message) { true }
+      it 'deletes all callbacks if not block given' do
+        expect(obj).to_not receive(:received_message).with(msg)
+        subject.off
+      end
     end
   end
 end
