@@ -8,7 +8,7 @@ describe Ably::Util::PubSub do
   subject { Ably::Util::PubSub.new(options) }
 
   context 'event fan out' do
-    specify do
+    specify 'allows publishing to more than on subscriber' do
       expect(obj).to receive(:received_message).with(msg).twice
       2.times do
         subject.subscribe(:message) { |msg| obj.received_message msg }
@@ -33,6 +33,18 @@ describe Ably::Util::PubSub do
         expect(obj).to receive(:received_message).with(msg).once
         subject.subscribe('valid') { |msg| obj.received_message msg }
         subject.publish :valid, msg
+      end
+
+      context 'and two different configurations but sharing the same class' do
+        let!(:exception_pubsub) { Ably::Util::PubSub.new(coerce_into: Proc.new { raise KeyError }) }
+
+        it 'does not share state' do
+          expect(obj).to receive(:received_message).with(msg).once
+          subject.subscribe('valid') { |msg| obj.received_message msg }
+          subject.publish :valid, msg
+
+          expect { exception_pubsub.publish :fail }.to raise_error KeyError
+        end
       end
     end
 
