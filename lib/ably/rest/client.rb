@@ -173,6 +173,7 @@ module Ably
       private
       def request(method, path, params = {}, options = {})
         reauthorise_on_authorisation_failure do
+          logger.debug "About to send request #{method} #{path}\nParams: #{params}"
           connection.send(method, path, params) do |request|
             unless options[:send_auth_header] == false
               request.headers[:authorization] = auth.auth_header
@@ -230,7 +231,7 @@ module Ably
           # Raise exceptions if response code is invalid
           builder.use Ably::Rest::Middleware::Exceptions
 
-          setup_incoming_middleware builder, fail_if_unsupported_mime_type: true
+          setup_incoming_middleware builder, fail_if_unsupported_mime_type: true, logger: log_level == Logger::DEBUG
 
           # Log HTTP requests if log level is DEBUG option set
           builder.response :logger if log_level == Logger::DEBUG
