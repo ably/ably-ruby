@@ -16,7 +16,7 @@ module Ably::Realtime
         @timers[:initializer] << EventMachine::Timer.new(0.01) { connection.connect }
       end
 
-      # Creates and sets up a new {WebSocketTransport} available on attribute #transport
+      # Creates and sets up a new {Ably::Realtime::Connection::WebsocketTransport} available on attribute #transport
       #
       # @yield [Ably::Realtime::Connection::WebsocketTransport] block is called with new websocket transport
       # @api private

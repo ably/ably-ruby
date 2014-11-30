@@ -2,9 +2,6 @@ module Ably::Modules
   # ChannelsCollection module provides common functionality to the Rest and Realtime Channels objects
   # such as #get, #[], #fetch, and #release
   module ChannelsCollection
-    # Initialize a new Channels object
-    #
-    # {self} provides simple accessor methods to access a Channel object
     def initialize(client, channel_klass)
       @client         = client
       @channel_klass  = channel_klass
