@@ -6,11 +6,6 @@ module RSpec
       Timeout::timeout(timeout + 0.5) do
         EM.run do
           yield
-
-          EM.add_timer(timeout) do
-            EM.stop
-            raise RuntimeError, "EventMachine test did not complete in #{timeout} seconds"
-          end
         end
       end
     end
