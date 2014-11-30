@@ -108,6 +108,41 @@ describe Ably::Rest do
           expect(subject.auth_options).to eql({ option: 1 })
         end
       end
+
+      context 'logger' do
+        context 'defaults' do
+          subject { Ably::Rest::Client.new(options) }
+
+          it 'uses default Ruby Logger by default' do
+            expect(subject.logger.logger).to be_a(::Logger)
+          end
+
+          it 'defaults to Logger::ERROR log level' do
+            expect(subject.logger.log_level).to eql(::Logger::ERROR)
+          end
+        end
+
+        context 'with custom logger and log_level' do
+          let(:custom_logger) do
+            Class.new do
+              extend Forwardable
+              def initialize
+                @logger = Logger.new(STDOUT)
+              end
+              def_delegators :@logger, :fatal, :error, :warn, :info, :debug, :level, :level=
+            end
+          end
+          subject { Ably::Rest::Client.new(options.merge(logger: custom_logger.new, log_level: :debug)) }
+
+          it 'uses the custom logger' do
+            expect(subject.logger.logger.class).to eql(custom_logger)
+          end
+
+          it 'sets the custom log level' do
+            expect(subject.logger.log_level).to eql(Logger::DEBUG)
+          end
+        end
+      end
     end
   end
 end

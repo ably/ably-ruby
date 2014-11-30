@@ -152,7 +152,7 @@ module Ably::Realtime
       def unsubscribe_from_transport_events(transport)
         transport.__incoming_protocol_msgbus__.unsubscribe
         transport.off
-        logger.debug 'Connection: Unsubscribed from all events from current transport'
+        logger.debug "ConnectionManager: Unsubscribed from all events from current transport"
       end
 
       def logger

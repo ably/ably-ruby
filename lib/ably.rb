@@ -6,6 +6,7 @@ end
 
 require 'ably/auth'
 require 'ably/exceptions'
+require 'ably/logger'
 require 'ably/realtime'
 require 'ably/rest'
 require 'ably/version'

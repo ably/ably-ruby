@@ -210,7 +210,7 @@ module Ably
       end
 
       # @!attribute [r] logger
-      # @return [Logger] The Logger configured for this client when the client was instantiated.
+      # @return [Logger] The {Ably::Logger} for this client.
       #                  Configure the log_level with the `:log_level` option, refer to {Ably::Realtime::Client#initialize}
       def logger
         client.logger

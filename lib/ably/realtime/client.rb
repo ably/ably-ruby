@@ -24,7 +24,7 @@ module Ably
       attr_reader :channels, :auth, :rest_client, :echo_messages
       def_delegators :auth, :client_id, :auth_options
       def_delegators :@rest_client, :environment, :use_tls?, :protocol
-      def_delegators :@rest_client, :logger, :log_level
+      def_delegators :@rest_client, :log_level
       def_delegators :@rest_client, :time, :stats
 
       # Creates a {Ably::Realtime::Client Realtime Client} and configures the {Ably::Auth} object for the connection.
@@ -99,6 +99,11 @@ module Ably
       # @return [String,nil] Returns the custom socket host that is being used if it was provided with the option :ws_host when the {Client} was created
       def custom_socket_host
         @custom_socket_host
+      end
+
+      # (see Ably::Rest::Client#logger)
+      def logger
+        @logger ||= Ably::Logger.new(self, log_level, rest_client.logger.custom_logger)
       end
     end
   end

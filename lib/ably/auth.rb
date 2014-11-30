@@ -395,10 +395,7 @@ module Ably
         # Raise exceptions if response code is invalid
         builder.use Ably::Rest::Middleware::ExternalExceptions
 
-        setup_incoming_middleware builder, logger: client.log_level == Logger::DEBUG
-
-        # Log HTTP requests if log level is DEBUG option set
-        builder.response :logger if client.log_level == Logger::DEBUG
+        setup_incoming_middleware builder, client.logger
 
         # Set Faraday's HTTP adapter
         builder.adapter Faraday.default_adapter
