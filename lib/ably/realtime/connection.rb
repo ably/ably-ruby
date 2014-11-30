@@ -23,6 +23,12 @@ module Ably
     #   Connection::STATE.Closed
     #   Connection::STATE.Failed
     #
+    # @example
+    #    client = Ably::Realtime::Client.new('key.id:secret')
+    #    client.connection.on(:connected) do
+    #      puts "Connected with connection ID: #{client.connection.id}"
+    #    end
+    #
     # @!attribute [r] state
     #   @return {Ably::Realtime::Connection::STATE} connection state
     # @!attribute [r] id

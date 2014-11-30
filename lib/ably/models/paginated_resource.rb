@@ -1,6 +1,6 @@
 module Ably::Models
   # Wraps any Ably HTTP response that supports paging and automatically provides methdos to iterated through
-  # the array of resources using {#first}, {#next}, {#last?} and {#first?}
+  # the array of resources using {#first_page}, {#next_page}, {#first_page?} and {#last_page?}
   #
   # Paging information is provided by Ably in the LINK HTTP headers
   class PaginatedResource

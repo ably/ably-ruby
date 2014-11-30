@@ -43,7 +43,7 @@ module Ably::Realtime
     #                                     multiple client_ids. In order to be able to enter the channel with this method, the client
     #                                     library must have been instanced either with a key, or with a token bound to the wildcard clientId.
     # @yield [Ably::Realtime::Presence] On success, will call the block with the {Ably::Realtime::Presence}
-    # @return [Ably::Realtime::PresenceMessage] Deferrable {Ably::Realtime::PresenceMessage} that supports both success (callback) and failure (errback) callbacks
+    # @return [Ably::Models::PresenceMessage] Deferrable {Ably::Models::PresenceMessage} that supports both success (callback) and failure (errback) callbacks
     #
     def enter(options = {}, &blk)
       @client_id = options.fetch(:client_id, client_id)
