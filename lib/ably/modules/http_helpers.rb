@@ -1,5 +1,6 @@
 require 'base64'
 
+require 'ably/rest/middleware/encoder'
 require 'ably/rest/middleware/external_exceptions'
 require 'ably/rest/middleware/fail_if_unsupported_mime_type'
 require 'ably/rest/middleware/logger'
@@ -20,7 +21,7 @@ module Ably::Modules
 
     def setup_outgoing_middleware(builder)
       # Convert request params to "www-form-urlencoded"
-      builder.use Faraday::Request::UrlEncoded
+      builder.use Ably::Rest::Middleware::Encoder
     end
 
     def setup_incoming_middleware(builder, logger, options = {})

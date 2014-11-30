@@ -210,8 +210,9 @@ module Ably
         @connection_options ||= {
           builder: middleware,
           headers: {
-            accept:     mime_type,
-            user_agent: user_agent
+            content_type: mime_type,
+            accept:       mime_type,
+            user_agent:   user_agent
           },
           request: {
             open_timeout: 5,
