@@ -135,6 +135,66 @@ describe Ably::Realtime::Channel do
         end
       end
 
+      it 'opens many connections and then many channels simultaneously' do
+        run_reactor(15) do
+          count, connected_ids = 25, []
+
+          clients = count.times.map do
+            Ably::Realtime::Client.new(default_options)
+          end
+
+          channels_opened = 0
+          open_channels_on_clients = Proc.new do
+            5.times.each do |channel|
+              clients.each do |client|
+                client.channel("channel-#{channel}").attach do
+                  channels_opened += 1
+                  if channels_opened == clients.count * 5
+                    expect(channels_opened).to eql(clients.count * 5)
+                    stop_reactor
+                  end
+                end
+              end
+            end
+          end
+
+          clients.each do |client|
+            client.connection.on(:connected) do
+              connected_ids << client.connection.id
+
+              if connected_ids.count == 25
+                expect(connected_ids.uniq.count).to eql(25)
+                open_channels_on_clients.call
+              end
+            end
+          end
+        end
+      end
+
+      it 'opens many connections and attaches to channels before connected' do
+        run_reactor(15) do
+          count, connected_ids = 25, []
+
+          clients = count.times.map do
+            Ably::Realtime::Client.new(default_options)
+          end
+
+          channels_opened = 0
+
+          clients.each do |client|
+            5.times.each do |channel|
+              client.channel("channel-#{channel}").attach do
+                channels_opened += 1
+                if channels_opened == clients.count * 5
+                  expect(channels_opened).to eql(clients.count * 5)
+                  stop_reactor
+                end
+              end
+            end
+          end
+        end
+      end
+
       context 'attach failure' do
         let(:restricted_client) do
           Ably::Realtime::Client.new(default_options.merge(api_key: restricted_api_key))

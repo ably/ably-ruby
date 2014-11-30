@@ -52,7 +52,7 @@ describe 'Ably::Realtime::Channel Messages' do
         let(:no_echo_channel) { no_echo_client.channel(channel_name) }
 
         it 'sends a single message without a reply yet the messages is echoed on another normal connection' do
-          run_reactor do
+          run_reactor(10) do
             channel.attach do |echo_channel|
               no_echo_channel.attach do
                 no_echo_channel.publish 'test_event', payload
@@ -63,7 +63,9 @@ describe 'Ably::Realtime::Channel Messages' do
 
                 echo_channel.subscribe('test_event') do |message|
                   expect(message.data).to eql(payload)
-                  EventMachine.add_timer(1.5) { stop_reactor }
+                  EventMachine.add_timer(1) do
+                    stop_reactor
+                  end
                 end
               end
             end
@@ -82,37 +84,28 @@ describe 'Ably::Realtime::Channel Messages' do
           { client: 0, other: 0 }
         end
 
-        def expect_messages_to_be_echoed_on_both_connections
-          {
-            channel              => :client,
-            other_client_channel => :other
-          }.each do |target_channel, echo_key|
-            EventMachine.defer do
-              target_channel.subscribe('test_event') do |message|
-                echos[echo_key] += 1
+        it 'sends and receives the messages on both opened connections and calls the callbacks (expects twice number of messages due to local echos)' do
+          run_reactor(8) do
+            check_message_and_callback_counts = Proc.new do
+              if echos[:client] == expected_echos && echos[:other] == expected_echos
+                # Wait for message backlog to clear
+                EventMachine.add_timer(0.5) do
+                  expect(echos[:client]).to eql(expected_echos)
+                  expect(echos[:other]).to eql(expected_echos)
 
-                if echos[:client] == expected_echos && echos[:other] == expected_echos
-                  # Wait briefly before doing the final check in case additional messages received
-                  EventMachine.add_timer(0.5) do
-                    expect(echos[:client]).to eql(expected_echos)
-                    expect(echos[:other]).to eql(expected_echos)
-                    expect(callbacks[:client]).to eql(send_count)
-                    expect(callbacks[:other]).to eql(send_count)
-                    stop_reactor
-                  end
+                  expect(callbacks[:client]).to eql(send_count)
+                  expect(callbacks[:other]).to eql(send_count)
+
+                  EventMachine.stop
                 end
               end
             end
-          end
-        end
 
-        it 'sends and receives the messages on both opened connections (4 x send count due to local echos) and calls the callbacks' do
-          run_reactor(10) do
-            channel.attach
-            other_client_channel.attach
+            published = false
+            attach_callback = Proc.new do
+              next if published
 
-            channel.on(:attached) do
-              other_client_channel.on(:attached) do
+              if channel.attached? && other_client_channel.attached?
                 send_count.times do |index|
                   channel.publish('test_event', "#{index}: #{payload}") do
                     callbacks[:client] += 1
@@ -121,9 +114,22 @@ describe 'Ably::Realtime::Channel Messages' do
                     callbacks[:other] += 1
                   end
                 end
-                expect_messages_to_be_echoed_on_both_connections
+
+                published = true
               end
             end
+
+            channel.subscribe('test_event') do |message|
+              echos[:client] += 1
+              check_message_and_callback_counts.call
+            end
+            other_client_channel.subscribe('test_event') do |message|
+              echos[:other] += 1
+              check_message_and_callback_counts.call
+            end
+
+            channel.attach &attach_callback
+            other_client_channel.attach &attach_callback
           end
         end
       end
