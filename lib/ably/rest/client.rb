@@ -45,6 +45,7 @@ module Ably
       # @option options [Symbol]                  :protocol            Protocol used to communicate with Ably, :json and :msgpack currently supported. Defaults to :msgpack
       # @option options [Boolean]                 :use_binary_protocol Protocol used to communicate with Ably, defaults to true and uses MessagePack protocol.  This option will overide :protocol option
       # @option options [Logger::Severity,Symbol] :log_level           Log level for the standard Logger that outputs to STDOUT.  Defaults to Logger::ERROR, can be set to :fatal (Logger::FATAL), :error (Logger::ERROR), :warn (Logger::WARN), :info (Logger::INFO), :debug (Logger::DEBUG)
+      # @option options [Logger]                  :logger              A custom logger can be used however it must adhere to the Ruby Logger interface, see http://www.ruby-doc.org/stdlib-1.9.3/libdoc/logger/rdoc/Logger.html
       #
       # @yield (see Ably::Auth#authorise)
       # @yieldparam (see Ably::Auth#authorise)
@@ -65,13 +66,14 @@ module Ably
           options = { api_key: options }
         end
 
-        @tls                 = options.delete(:tls) == false ? false : true
-        @environment         = options.delete(:environment) # nil is production
-        @protocol            = options.delete(:protocol) || :msgpack
-        @debug_http          = options.delete(:debug_http)
-        @log_level           = options.delete(:log_level) || Logger::ERROR
+        @tls           = options.delete(:tls) == false ? false : true
+        @environment   = options.delete(:environment) # nil is production
+        @protocol      = options.delete(:protocol) || :msgpack
+        @debug_http    = options.delete(:debug_http)
+        @log_level     = options.delete(:log_level) || ::Logger::ERROR
+        @custom_logger = options.delete(:logger)
 
-        @log_level = Logger.const_get(log_level.to_s.upcase) if log_level.kind_of?(Symbol) || log_level.kind_of?(String)
+        @log_level     = ::Logger.const_get(log_level.to_s.upcase) if log_level.kind_of?(Symbol) || log_level.kind_of?(String)
 
         options.delete(:use_binary_protocol).tap do |use_binary_protocol|
           if use_binary_protocol == true
@@ -151,12 +153,10 @@ module Ably
       end
 
       # @!attribute [r] logger
-      # @return [Logger] The Logger configured for this client when the client was instantiated.
+      # @return [Logger] The {Ably::Logger} for this client.
       #                  Configure the log_level with the `:log_level` option, refer to {Client#initialize}
       def logger
-        @logger ||= Logger.new(STDOUT).tap do |logger|
-          logger.level = log_level
-        end
+        @logger ||= Ably::Logger.new(self, log_level, @custom_logger)
       end
 
       # @!attribute [r] mime_type
@@ -173,7 +173,6 @@ module Ably
       private
       def request(method, path, params = {}, options = {})
         reauthorise_on_authorisation_failure do
-          logger.debug "About to send request #{method} #{path}\nParams: #{params}"
           connection.send(method, path, params) do |request|
             unless options[:send_auth_header] == false
               request.headers[:authorization] = auth.auth_header
@@ -231,10 +230,7 @@ module Ably
           # Raise exceptions if response code is invalid
           builder.use Ably::Rest::Middleware::Exceptions
 
-          setup_incoming_middleware builder, fail_if_unsupported_mime_type: true, logger: log_level == Logger::DEBUG
-
-          # Log HTTP requests if log level is DEBUG option set
-          builder.response :logger if log_level == Logger::DEBUG
+          setup_incoming_middleware builder, logger, fail_if_unsupported_mime_type: true
 
           # Set Faraday's HTTP adapter
           builder.adapter Faraday.default_adapter

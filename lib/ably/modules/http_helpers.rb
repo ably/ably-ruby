@@ -23,10 +23,8 @@ module Ably::Modules
       builder.use Faraday::Request::UrlEncoded
     end
 
-    def setup_incoming_middleware(builder, options = {})
-      if options[:logger]
-        builder.use Ably::Rest::Middleware::Logger
-      end
+    def setup_incoming_middleware(builder, logger, options = {})
+      builder.use Ably::Rest::Middleware::Logger, logger
 
       # Parse JSON / MsgPack response bodies. ParseJson must be first (default) parsing middleware
       if options[:fail_if_unsupported_mime_type] == true
