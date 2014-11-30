@@ -10,11 +10,13 @@ module Ably::Modules
     #   non_blocking_loop_while(less_than_3) do
     #     x += 1
     #   end
-    def non_blocking_loop_while(lambda, &execution_block)
-      if lambda.call
-        yield
+    def non_blocking_loop_while(lambda_condition, &execution_block)
+      if lambda_condition.call
         EventMachine.next_tick do
-          non_blocking_loop_while(lambda, &execution_block)
+          if lambda_condition.call # ensure condition is still met following #next_tick
+            yield
+            non_blocking_loop_while(lambda_condition, &execution_block)
+          end
         end
       end
     end
