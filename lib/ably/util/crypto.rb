@@ -7,38 +7,60 @@ module Ably::Util
       algorithm: 'AES',
       mode: 'CBC',
       key_length: 128,
-      block_length: 16
     }
+
+    BLOCK_LENGTH = 16
 
     attr_reader :options
 
-    def initialize(options = {})
+    # Creates a {Ably::Util::Crypto} object
+    #
+    # @param [Hash] options an options Hash used to configure the Crypto library
+    # @option options [String]  :secret              Required secret used for encrypting and decrypting
+    # @option options [String]  :algorithm           optional (default AES), specify the encryption algorithm supported by {http://ruby-doc.org/stdlib-2.0/libdoc/openssl/rdoc/OpenSSL/Cipher.html OpenSSL::Cipher}
+    # @option options [String]  :mode                optional (default CBC), specify the cipher mode supported by {http://ruby-doc.org/stdlib-2.0/libdoc/openssl/rdoc/OpenSSL/Cipher.html OpenSSL::Cipher}
+    # @option options [Integer] :key_length          optional (default 128), specify the key length of the cipher supported by {http://ruby-doc.org/stdlib-2.0/libdoc/openssl/rdoc/OpenSSL/Cipher.html OpenSSL::Cipher}
+    #
+    # @return [Ably::Util::Crypto]
+    #
+    # @example
+    #    crypto = Ably::Util::Crypto.new(secret: 'mysecret')
+    #    encrypted = crypto.encrypt('secret text')
+    #    crypto.decrypt(decrypted) # => 'secret text'
+    #
+    def initialize(options)
       raise ArgumentError, ':secret is required' unless options.has_key?(:secret)
       @options = DEFAULTS.merge(options).freeze
     end
 
-    def encrypt(payload)
+    # Encrypt payload using configured Cipher
+    #
+    # @param [String] payload           the payload to be encrypted
+    # @param [Hash]   encrypt_options   an options Hash to configure the encrypt action
+    # @option encrypt_options [String]  :iv optionally use the provided Initialization Vector instead of a randomly generated IV
+    #
+    def encrypt(payload, encrypt_options = {})
       cipher = openssl_cipher
       cipher.encrypt
       cipher.key = secret
-      iv = cipher.random_iv
+      iv = encrypt_options[:iv] || cipher.random_iv
       cipher.iv = iv
 
-      iv << cipher.update(pack(payload)) << cipher.final
+      iv << cipher.update(payload) << cipher.final
     end
 
     def decrypt(encrypted_payload_with_iv)
-      raise Ably::Exceptions::EncryptionError, 'iv is missing' unless encrypted_payload_with_iv.length >= block_length*2
+      raise Ably::Exceptions::EncryptionError, 'iv is missing or not long enough' unless encrypted_payload_with_iv.length >= BLOCK_LENGTH*2
 
-      iv = encrypted_payload_with_iv.slice(0..15)
-      encrypted_payload = encrypted_payload_with_iv.slice(16..-1)
+      iv = encrypted_payload_with_iv.slice(0...BLOCK_LENGTH)
+      encrypted_payload = encrypted_payload_with_iv.slice(BLOCK_LENGTH..-1)
 
       decipher = openssl_cipher
       decipher.decrypt
       decipher.key = secret
       decipher.iv = iv
 
-      unpack(decipher.update(encrypted_payload) << decipher.final)
+      decipher.update(encrypted_payload) << decipher.final
     end
 
     def random_key
@@ -50,20 +72,8 @@ module Ably::Util
     end
 
     private
-    def pack(object)
-      object.to_msgpack
-    end
-
-    def unpack(msgpack_binary)
-      MessagePack.unpack(msgpack_binary)
-    end
-
     def secret
       options[:secret]
-    end
-
-    def block_length
-      options[:block_length]
     end
 
     def cipher_type
