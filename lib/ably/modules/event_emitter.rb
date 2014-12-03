@@ -42,7 +42,7 @@ module Ably
       #
       # @param [Array<String>] event_names event name
       #
-      # @return <void>
+      # @return [void]
       def on(*event_names, &block)
         event_names.each do |event_name|
           callbacks[callbacks_event_coerced(event_name)] << proc_for_block(block)
@@ -53,7 +53,7 @@ module Ably
       #
       # @param [Array<String>] event_names event name
       #
-      # @return <void>
+      # @return [void]
       def once(*event_names, &block)
         event_names.each do |event_name|
           callbacks[callbacks_event_coerced(event_name)] << proc_for_block(block, delete_once_run: true)
@@ -72,7 +72,7 @@ module Ably
       #
       # @param [Array<String>] event_names event name
       #
-      # @return <void>
+      # @return [void]
       def off(*event_names, &block)
         keys = if event_names.empty?
           callbacks.keys
