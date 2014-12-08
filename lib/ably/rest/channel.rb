@@ -66,8 +66,8 @@ module Ably
 
         response = client.get(url, options.merge(merge_options))
 
-        Ably::Models::PaginatedResource.new(response, url, client, coerce_into: 'Ably::Models::Message').tap do |resources|
-          resources.each do |message|
+        Ably::Models::PaginatedResource.new(response, url, client, coerce_into: 'Ably::Models::Message') do |message|
+          message.tap do |message|
             message.decode self
           end
         end
