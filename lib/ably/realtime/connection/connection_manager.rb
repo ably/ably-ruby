@@ -91,7 +91,7 @@ module Ably::Realtime
       #
       # @api private
       def respond_to_transport_disconnected(current_transition)
-        error_code = current_transition && current_transition.metadata.code
+        error_code = current_transition && current_transition.metadata && current_transition.metadata.code
 
         if connection.previous_state == :connecting && error_code == CONNECTION_FAILED[:code]
           return if retry_connection_failed
@@ -129,7 +129,7 @@ module Ably::Realtime
         end
       end
 
-      def retries_for_state(state, ignore_states:)
+      def retries_for_state(state, ignore_states: [])
         allowed_states = Array(state) + Array(ignore_states)
 
         connection.state_history.reverse.take_while do |transition|

@@ -3,6 +3,9 @@ module Ably::Modules
   # the instance variable @state is used exclusively, the {Enum} STATE is defined prior to inclusion of this
   # module, and the class is an {EventEmitter}.  It then emits state changes.
   #
+  # It also ensures the EventEmitter is configured to retrict permitted events to the
+  # the available STATEs and :error.
+  #
   # @example
   #   class Connection
   #     include Ably::Modules::EventEmitter
@@ -54,7 +57,13 @@ module Ably::Modules
 
     private
     def self.included(klass)
-      klass.configure_event_emitter coerce_into: Proc.new { |event| klass::STATE(event) }
+      klass.configure_event_emitter coerce_into: Proc.new { |event|
+        if event == :error
+          :error
+        else
+          klass::STATE(event)
+        end
+      }
 
       klass::STATE.each do |state_predicate|
         klass.instance_eval do

@@ -25,6 +25,12 @@ module Ably
     #
     # @!attribute [r] state
     #   @return {Ably::Realtime::Connection::STATE} channel state
+    # @!attribute [r] client
+    #   @return {Ably::Realtime::Client} Ably client associated with this channel
+    # @!attribute [r] name
+    #   @return {String} channel name
+    # @!attribute [r] options
+    #   @return {Hash} channel options configured for this channel, see {#initialize} for channel_options
     #
     class Channel
       include Ably::Modules::Conversions
@@ -49,9 +55,12 @@ module Ably
 
       # Initialize a new Channel object
       #
-      # @param client [Ably::Rest::Client]
-      # @param name [String] The name of the channel
-      # @param channel_options [Hash] Channel options, currently reserved for future Encryption options
+      # @param  client [Ably::Rest::Client]
+      # @param  name [String] The name of the channel
+      # @param  channel_options [Hash]     Channel options, currently reserved for Encryption options
+      # @option channel_options [Boolean]  :encrypted       setting this to true for this channel will encrypt & decrypt all messages automatically
+      # @option channel_options [Hash]     :cipher_params   A hash of options to configure the encryption. *:key* is required, all other options are optional.  See {Ably::Util::Crypto#initialize} for a list of `cipher_params` options
+      #
       def initialize(client, name, channel_options = {})
         @client        = client
         @name          = name
@@ -120,6 +129,7 @@ module Ably
       # to need to call attach explicitly.
       #
       # @yield [Ably::Realtime::Channel] Block is called as soon as this channel is in the Attached state
+      # @return [void]
       #
       def attach(&block)
         if attached?
@@ -136,6 +146,7 @@ module Ably
       # Detach this channel, and call the block if provided when in a Detached or Failed state
       #
       # @yield [Ably::Realtime::Channel] Block is called as soon as this channel is in the Detached or Failed state
+      # @return [void]
       #
       def detach(&block)
         if detached? || failed?
@@ -181,6 +192,8 @@ module Ably
 
       def setup_event_handlers
         __incoming_msgbus__.subscribe(:message) do |message|
+          message.decode self
+
           subscriptions[:all].each         { |cb| cb.call(message) }
           subscriptions[message.name].each { |cb| cb.call(message) }
         end
@@ -246,13 +259,13 @@ module Ably
       end
 
       def create_message(name, data)
-        model = {
-          name: name,
-          data: data
-        }
-        model.merge!(clientId: client.client_id) if client.client_id
+        message = { name: name }
+        message.merge!(data: data) unless data.nil?
+        message.merge!(clientId: client.client_id) if client.client_id
 
-        Ably::Models::Message.new(model, nil)
+        Ably::Models::Message.new(message, nil).tap do |message|
+          message.encode self
+        end
       end
 
       def rest_channel

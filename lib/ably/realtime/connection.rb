@@ -99,7 +99,7 @@ module Ably
       #
       # @yield [Ably::Realtime::Connection] block is called as soon as this connection is in the Closed state
       #
-      # @return <void>
+      # @return [void]
       def close(&block)
         if closed?
           block.call self
@@ -116,7 +116,7 @@ module Ably
       #
       # @yield [Ably::Realtime::Connection] block is called as soon as this connection is in the Connected state
       #
-      # @return <void>
+      # @return [void]
       def connect(&block)
         if connected?
           block.call self
@@ -159,7 +159,7 @@ module Ably
       end
 
       # Reconfigure the current connection ID
-      # @return <void>
+      # @return [void]
       # @api private
       def update_connection_id(connection_id)
         @id = connection_id
@@ -176,7 +176,7 @@ module Ably
       # Call #transition_to! on {Ably::Realtime::Connection::ConnectionStateMachine}.
       # An exception wil be raised if new_state cannot be transitioned to by state machine
       #
-      # @return <void>
+      # @return [void]
       # @api private
       def transition_state_machine!(new_state, emit_object = nil)
         state_machine.transition_to!(new_state, emit_object)
@@ -226,7 +226,7 @@ module Ably
       # ready to be sent
       #
       # @param [Ably::Models::ProtocolMessage] protocol_message
-      # @return <void>
+      # @return [void]
       # @api private
       def send_protocol_message(protocol_message)
         add_message_serial_if_ack_required_to(protocol_message) do

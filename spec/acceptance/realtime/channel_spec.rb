@@ -8,13 +8,11 @@ describe Ably::Realtime::Channel do
     context "over #{protocol}" do
       let(:default_options) { { api_key: api_key, environment: environment, protocol: protocol } }
 
-      let(:client) do
-        Ably::Realtime::Client.new(default_options)
-      end
+      let(:client)       { Ably::Realtime::Client.new(default_options) }
       let(:channel_name) { SecureRandom.hex(2) }
-      let(:payload) { SecureRandom.hex(4) }
-      let(:channel) { client.channel(channel_name) }
-      let(:messages) { [] }
+      let(:payload)      { SecureRandom.hex(4) }
+      let(:channel)      { client.channel(channel_name) }
+      let(:messages)     { [] }
 
       it 'attaches to a channel' do
         run_reactor do

@@ -102,7 +102,7 @@ module Ably::Models
 
     def inspect
       <<-EOF.gsub(/^        /, '')
-        #<{self.class.name}:#{self.object_id}
+        #<#{self.class.name}:#{self.object_id}
          @base_url="#{base_url}",
          @first_page?=#{!!first_page?},
          @last_page?=#{!!first_page?},

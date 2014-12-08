@@ -2,6 +2,13 @@ module Ably
   module Rest
     # The Ably Realtime service organises the traffic within any application into named channels.
     # Channels are the "unit" of message distribution; clients attach to channels to subscribe to messages, and every message broadcast by the service is associated with a unique channel.
+    #
+    # @!attribute [r] client
+    #   @return {Ably::Realtime::Client} Ably client associated with this channel
+    # @!attribute [r] name
+    #   @return {String} channel name
+    # @!attribute [r] options
+    #   @return {Hash} channel options configured for this channel, see {#initialize} for channel_options
     class Channel
       include Ably::Modules::Conversions
 
@@ -11,7 +18,10 @@ module Ably
       #
       # @param client [Ably::Rest::Client]
       # @param name [String] The name of the channel
-      # @param channel_options [Hash] Channel options, currently reserved for future Encryption options
+      # @param channel_options [Hash] Channel options, currently reserved for Encryption options
+      # @option channel_options [Boolean]  :encrypted       setting this to true for this channel will encrypt & decrypt all messages automatically
+      # @option channel_options [Hash]     :cipher_params   A hash of options to configure the encryption. *:key* is required, all other options are optional.  See {Ably::Util::Crypto#initialize} for a list of `cipher_params` options
+      #
       def initialize(client, name, channel_options = {})
         @client  = client
         @name    = name
@@ -29,7 +39,11 @@ module Ably
           data: data
         }
 
-        response = client.post("#{base_path}/publish", payload)
+        message = Ably::Models::Message.new(payload, nil).tap do |message|
+          message.encode self
+        end
+
+        response = client.post("#{base_path}/publish", message)
 
         [201, 204].include?(response.status)
       end
@@ -52,9 +66,16 @@ module Ably
 
         response = client.get(url, options.merge(merge_options))
 
-        Ably::Models::PaginatedResource.new(response, url, client, coerce_into: 'Ably::Models::Message')
+        Ably::Models::PaginatedResource.new(response, url, client, coerce_into: 'Ably::Models::Message').tap do |resources|
+          resources.each do |message|
+            message.decode self
+          end
+        end
       end
 
+      # Return the {Ably::Rest::Presence} object
+      #
+      # @return [Ably::Rest::Presence]
       def presence
         @presence ||= Presence.new(client, self)
       end

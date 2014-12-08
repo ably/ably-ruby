@@ -1,7 +1,7 @@
 require 'spec_helper'
 require 'securerandom'
 
-describe 'REST' do
+describe 'Ably::Rest Stats' do
   [:json, :msgpack].each do |protocol|
     context "over #{protocol}" do
       describe 'fetching application stats' do

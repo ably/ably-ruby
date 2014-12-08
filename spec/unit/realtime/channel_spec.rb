@@ -2,7 +2,7 @@ require 'spec_helper'
 require 'support/protocol_msgbus_helper'
 
 describe Ably::Realtime::Channel do
-  let(:client) { double('client').as_null_object }
+  let(:client)       { double('client').as_null_object }
   let(:channel_name) { 'test' }
 
   subject do
@@ -48,7 +48,7 @@ describe Ably::Realtime::Channel do
   context 'subscriptions' do
     let(:message_history) { Hash.new { |hash, key| hash[key] = 0 } }
     let(:event_name) { 'click' }
-    let(:message) { instance_double('Ably::Models::Message', name: event_name) }
+    let(:message) { instance_double('Ably::Models::Message', name: event_name, encode: nil, decode: nil) }
 
     context '#subscribe' do
       specify 'to all events' do

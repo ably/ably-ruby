@@ -1,7 +1,7 @@
 require 'spec_helper'
 require 'securerandom'
 
-describe 'REST' do
+describe Ably::Rest::Channel do
   include Ably::Modules::Conversions
 
   [:msgpack, :json].each do |protocol|
@@ -87,7 +87,7 @@ describe 'REST' do
         end
       end
 
-      describe 'options' do
+      describe 'history options' do
         let(:channel_name) { "persisted:#{SecureRandom.hex(4)}" }
         let(:channel) { client.channel(channel_name) }
         let(:endpoint) do

@@ -19,7 +19,7 @@ module Ably
         def call(env)
           debug "=> URL: #{env.method} #{env.url}, Headers: #{dump_headers env.request_headers}"
           debug "=> Body: #{env.body}"
-          super
+          @app.call env
         end
 
         def on_complete(env)
