@@ -20,6 +20,8 @@ Dir.glob(File.expand_path("realtime/models/*.rb", File.dirname(__FILE__))).each 
   require file
 end
 
+require 'ably/models/message_encoders/base'
+
 require 'ably/realtime/client/incoming_message_dispatcher'
 require 'ably/realtime/client/outgoing_message_dispatcher'
 

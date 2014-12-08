@@ -1,5 +1,7 @@
 require 'spec_helper'
 require 'support/model_helper'
+require 'base64'
+require 'msgpack'
 
 describe Ably::Models::Message do
   include Ably::Modules::Conversions
@@ -8,7 +10,7 @@ describe Ably::Models::Message do
   let(:protocol_message_timestamp) { as_since_epoch(Time.now) }
   let(:protocol_message) { Ably::Models::ProtocolMessage.new(action: 1, timestamp: protocol_message_timestamp) }
 
-  it_behaves_like 'a model', with_simple_attributes: %w(name client_id data) do
+  it_behaves_like 'a model', with_simple_attributes: %w(name client_id data encoding) do
     let(:model_args) { [protocol_message] }
   end
 
@@ -44,6 +46,19 @@ describe Ably::Models::Message do
 
       it 'raises an exception' do
         expect { model.to_json }.to raise_error RuntimeError, /cannot generate a valid Hash/
+      end
+    end
+
+    context 'with binary data' do
+      let(:data) { MessagePack.pack(SecureRandom.hex(32)) }
+      let(:model) { subject.new({ name: 'test', data: data }, protocol_message) }
+
+      it 'encodes as Base64 so that it can be converted to UTF-8 automatically by JSON#dump' do
+        expect(json_object["data"]).to eql(::Base64.encode64(data))
+      end
+
+      it 'adds Base64 encoding' do
+        expect(json_object["encoding"]).to eql('base64')
       end
     end
   end

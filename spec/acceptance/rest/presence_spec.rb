@@ -1,7 +1,7 @@
 require 'spec_helper'
 require 'securerandom'
 
-describe 'REST' do
+describe Ably::Rest::Presence do
   include Ably::Modules::Conversions
 
   [:msgpack, :json].each do |protocol|
@@ -32,13 +32,13 @@ describe 'REST' do
 
       describe 'presence history' do
         let(:channel) { client.channel('persisted:presence_fixtures') }
-        let(:history) { channel.presence.history }
+        let(:presence_history) { channel.presence.history }
 
         it 'returns recent presence activity' do
-          expect(history.size).to eql(4)
+          expect(presence_history.size).to eql(4)
 
           fixtures.each do |fixture|
-            presence_message = history.find { |client| client.client_id == fixture['clientId'] }
+            presence_message = presence_history.find { |client| client.client_id == fixture['clientId'] }
             expect(presence_message.data).to eq(fixture[:data])
           end
         end
@@ -53,8 +53,9 @@ describe 'REST' do
 
             next_page = paged_history_forward.next_page
 
-            expect(paged_history_forward.first.id).to eql(history.last.id)
-            expect(next_page.first.id).to eql(history[page_size].id)
+            expect(paged_history_forward.first.id).to eql(presence_history.last.id)
+
+            expect(next_page.first.id).to eql(presence_history[page_size].id)
           end
         end
       end

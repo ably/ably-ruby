@@ -26,7 +26,7 @@ module Ably::Realtime
 
       # Disconnect the socket transport connection and write all pending text.
       # If Disconnected state is not automatically triggered, it will be triggered automatically
-      # @return <void>
+      # @return [void]
       # @api public
       def disconnect
         close_connection_after_writing
@@ -114,7 +114,7 @@ module Ably::Realtime
         when :json
           driver.text(object.to_json)
         when :msgpack
-          driver.binary(object.to_msgpack.unpack('c*'))
+          driver.binary(object.to_msgpack.unpack('C*'))
         else
           client.logger.fatal "WebsocketTransport: Unsupported protocol '#{client.protocol}' for serialization, object cannot be serialized and sent to Ably over this WebSocket"
         end
@@ -174,7 +174,7 @@ module Ably::Realtime
         when :json
           JSON.parse(data)
         when :msgpack
-          MessagePack.unpack(data.pack('c*'))
+          MessagePack.unpack(data.pack('C*'))
         else
           client.logger.fatal "WebsocketTransport: Unsupported Protocol Message format #{client.protocol}"
           data

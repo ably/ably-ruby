@@ -1,13 +1,39 @@
 require 'spec_helper'
 require 'securerandom'
 
-describe 'REST' do
+describe Ably::Auth do
+  include Ably::Modules::Conversions
+
   [:msgpack, :json].each do |protocol|
     context "over #{protocol}" do
       let(:client) do
         Ably::Rest::Client.new(api_key: api_key, environment: environment, protocol: protocol)
       end
       let(:auth) { client.auth }
+      let(:content_type) do
+        if protocol == :msgpack
+          'application/x-msgpack'
+        else
+          'application/json'
+        end
+      end
+
+      def request_body_includes(request, protocol, key, val)
+        body = if protocol == :msgpack
+          MessagePack.unpack(request.body)
+        else
+          JSON.parse(request.body)
+        end
+        body[key.to_s].to_s == val.to_s
+      end
+
+      def serialize(object, protocol)
+        if protocol == :msgpack
+          MessagePack.pack(token_response)
+        else
+          JSON.dump(token_response)
+        end
+      end
 
       describe "#request_token" do
         let(:ttl)        { 30 * 60 }
@@ -25,16 +51,21 @@ describe 'REST' do
           expect(actual_token.expires_at).to be_within(2).of(Time.now + ttl)
         end
 
-        %w(client_id ttl timestamp capability nonce).each do |option|
+        %w(client_id capability nonce timestamp ttl).each do |option|
           context "option :#{option}", webmock: true do
             let(:random)         { SecureRandom.random_number(1_000_000_000).to_s }
             let(:options)        { { option.to_sym => random } }
 
-            let(:token_response) { { access_token: {} }.to_json }
+            let(:token_response) { { access_token: {} } }
             let!(:request_token_stub) do
               stub_request(:post, "#{client.endpoint}/keys/#{key_id}/requestToken").
-                with(:body => hash_including({ option => random })).
-                to_return(:status => 201, :body => token_response, :headers => { 'Content-Type' => 'application/json' })
+                with do |request|
+                  request_body_includes(request, protocol, option, random)
+                end.to_return(
+                  :status => 201,
+                  :body => serialize(token_response, protocol),
+                  :headers => { 'Content-Type' => content_type }
+                )
             end
 
             before { auth.request_token options }
@@ -55,11 +86,15 @@ describe 'REST' do
             hmac_for(token_request, key_secret)
           end
 
-          let(:token_response) { { access_token: {} }.to_json }
+          let(:token_response) { { access_token: {} } }
           let!(:request_token_stub) do
             stub_request(:post, "#{client.endpoint}/keys/#{key_id}/requestToken").
-              with(:body => hash_including({ 'mac' => mac })).
-              to_return(:status => 201, :body => token_response, :headers => { 'Content-Type' => 'application/json' })
+              with do |request|
+                request_body_includes(request, protocol, 'mac', mac)
+              end.to_return(
+                :status => 201,
+                :body => serialize(token_response, protocol),
+                :headers => { 'Content-Type' => content_type })
           end
 
           let!(:token) { auth.request_token(token_options) }
@@ -89,8 +124,8 @@ describe 'REST' do
 
         context 'with :auth_url option', webmock: true do
           let(:auth_url)          { 'https://www.fictitious.com/get_token' }
-          let(:token_request)     { { id: key_id }.to_json }
-          let(:token_response)    { { access_token: { } }.to_json }
+          let(:token_request)     { { id: key_id } }
+          let(:token_response)    { { access_token: { } } }
           let(:query_params)      { nil }
           let(:headers)           { nil }
           let(:auth_method)       { :get }
@@ -105,15 +140,24 @@ describe 'REST' do
 
           let!(:auth_url_request_stub) do
             stub = stub_request(auth_method, auth_url)
-            stub.with(:query => hash_including(query_params)) unless query_params.nil?
-            stub.with(:header => hash_including(headers)) unless headers.nil?
-            stub.to_return(:status => 201, :body => token_request, :headers => { 'Content-Type' => 'application/json' })
+            stub.with(:query => query_params) unless query_params.nil?
+            stub.with(:headers => headers) unless headers.nil?
+            stub.to_return(
+              :status => 201,
+              :body => token_request.to_json,
+              :headers => { 'Content-Type' => 'application/json' }
+            )
           end
 
           let!(:request_token_stub) do
             stub_request(:post, "#{client.endpoint}/keys/#{key_id}/requestToken").
-              with(:body => hash_including({ 'id' => key_id })).
-              to_return(:status => 201, :body => token_response, :headers => { 'Content-Type' => 'application/json' })
+              with do |request|
+                request_body_includes(request, protocol, 'id', key_id)
+              end.to_return(
+                :status => 201,
+                :body => serialize(token_response, protocol),
+                :headers => { 'Content-Type' => content_type }
+              )
           end
 
           context 'valid' do

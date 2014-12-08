@@ -2,8 +2,8 @@ require 'spec_helper'
 require 'msgpack'
 
 describe Ably::Util::Crypto do
-  let(:secret)  { SecureRandom.hex }
-  let(:cipher_options) { { secret: secret } }
+  let(:seret_key)  { SecureRandom.hex }
+  let(:cipher_options) { { key: seret_key } }
   subject { Ably::Util::Crypto.new(cipher_options) }
 
   context 'defaults' do
@@ -23,11 +23,19 @@ describe Ably::Util::Crypto do
 
   context 'encrypts & decrypt' do
     let(:string) { SecureRandom.hex }
-    let(:byte_array) { SecureRandom.hex.to_msgpack.unpack('c*') }
+    let(:byte_array) { SecureRandom.hex.to_msgpack.unpack('C*') }
 
     specify 'a string' do
       encrypted = subject.encrypt(string)
       expect(subject.decrypt(encrypted)).to eql(string)
+    end
+  end
+
+  context 'encrypting an empty string' do
+    let(:empty_string) { '' }
+
+    it 'raises an ErgumentError' do
+      expect { subject.encrypt(empty_string) }.to raise_error ArgumentError, /data must not be empty/
     end
   end
 
@@ -40,10 +48,10 @@ describe Ably::Util::Crypto do
       let(:algorithm)      { data['algorithm'].upcase }
       let(:mode)           { data['mode'].upcase }
       let(:key_length)     { data['keylength'] }
-      let(:secret)         { Base64.decode64(data['key']) }
+      let(:secret_key)     { Base64.decode64(data['key']) }
       let(:iv)             { Base64.decode64(data['iv']) }
 
-      let(:cipher_options) { { secret: secret, iv: iv, algorithm: algorithm, mode: mode, key_length: key_length } }
+      let(:cipher_options) { { key: secret_key, algorithm: algorithm, mode: mode, key_length: key_length } }
 
       context 'text payload' do
         let(:payload)        { data['items'].first['encoded']['data'] }

@@ -1,7 +1,7 @@
 require 'spec_helper'
 require 'securerandom'
 
-describe 'REST' do
+describe 'Ably::REST time' do
   [:msgpack, :json].each do |protocol|
     context "over #{protocol}" do
       let(:client) do

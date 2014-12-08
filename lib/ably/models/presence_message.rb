@@ -27,6 +27,9 @@ module Ably::Models
   #   @return [String] A unique member identifier, disambiguating situations where a given client_id is present on multiple connections simultaneously
   # @!attribute [r] data
   #   @return [Object] Optional client-defined status or other event payload associated with this state
+  # @!attribute [r] encoding
+  #   @return [Object] The encoding for the message data. Encoding and decoding of messages is handled automatically by the client library.
+  #                    Therefore, the `encoding` attribute should always be nil unless an Ably library decoding error has occurred.
   # @!attribute [r] timestamp
   #   @return [Time] Timestamp when the message was received by the Ably the real-time service
   # @!attribute [r] hash
@@ -54,7 +57,7 @@ module Ably::Models
       @hash_object      = IdiomaticRubyWrapper(hash_object.clone.freeze, stop_at: [:data])
     end
 
-    %w( client_id member_id data ).each do |attribute|
+    %w( client_id member_id data encoding ).each do |attribute|
       define_method attribute do
         hash[attribute.to_sym]
       end
@@ -82,8 +85,9 @@ module Ably::Models
 
     # Return a JSON ready object from the underlying #hash using Ably naming conventions for keys
     def as_json(*args)
-      hash.dup.tap do |hash|
-        hash['action'] = action.to_i
+      hash.dup.tap do |presence_message|
+        presence_message['action'] = action.to_i
+        decode_binary_data_before_to_json presence_message
       end.as_json
     rescue KeyError
       raise KeyError, ':action is missing or invalid, cannot generate a valid Hash for ProtocolMessage'

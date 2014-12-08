@@ -16,6 +16,12 @@ module Ably
     #   @return [Ably::Rest::Client] The {Ably::Rest::Client REST client} instantiated with the same credentials and configuration that is used for all REST operations such as authentication
     # @!attribute [r] echo_messages
     #   @return [Boolean] If false, suppresses messages originating from this connection being echoed back on the same connection.  Defaults to true
+    # @!attribute [r] encoders
+    #   (see Ably::Rest::Client#encoders)
+    # @!attribute [r] protocol
+    #   (see Ably::Rest::Client#protocol)
+    # @!attribute [r] protocol_binary?
+    #   (see Ably::Rest::Client#protocol_binary?)
     class Client
       extend Forwardable
 
@@ -23,7 +29,8 @@ module Ably
 
       attr_reader :channels, :auth, :rest_client, :echo_messages
       def_delegators :auth, :client_id, :auth_options
-      def_delegators :@rest_client, :environment, :use_tls?, :protocol
+      def_delegators :@rest_client, :encoders
+      def_delegators :@rest_client, :environment, :use_tls?, :protocol, :protocol_binary?
       def_delegators :@rest_client, :log_level
       def_delegators :@rest_client, :time, :stats
 
@@ -99,6 +106,11 @@ module Ably
       # @return [String,nil] Returns the custom socket host that is being used if it was provided with the option :ws_host when the {Client} was created
       def custom_socket_host
         @custom_socket_host
+      end
+
+      # (see Ably::Rest::Client#register_encoder)
+      def register_encoder(encoder)
+        rest_client.register_encoder encoder
       end
 
       # (see Ably::Rest::Client#logger)

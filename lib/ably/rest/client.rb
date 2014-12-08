@@ -20,6 +20,9 @@ module Ably
     #   @return [Logger::Severity] Log level configured for this {Client}
     # @!attribute [r] channels
     #   @return [Aby::Rest::Channels] The collection of {Ably::Rest::Channel}s that have been created
+    # @!attribute [r] protocol
+    #   @return [Symbol] The protocol configured for this client, either binary `:msgpack` or text based `:json`
+    #
     class Client
       include Ably::Modules::Conversions
       include Ably::Modules::HttpHelpers
@@ -29,6 +32,11 @@ module Ably
 
       attr_reader :environment, :protocol, :auth, :channels, :log_level
       def_delegators :auth, :client_id, :auth_options
+
+      # @api private
+      # The registered encoders that are used to encode and decode message payloads
+      # @return [Array<Ably::Models::MessageEncoder::Base>]
+      attr_reader :encoders
 
       # The additional options passed to this Client's #initialize method not available as attributes of this class
       # @return [Hash]
@@ -87,6 +95,9 @@ module Ably
         @options  = options.freeze
         @auth     = Auth.new(self, options, &auth_block)
         @channels = Ably::Rest::Channels.new(self)
+        @encoders = []
+
+        initialize_default_encoders
       end
 
       # Return a REST {Ably::Rest::Channel} for the given name
@@ -170,6 +181,32 @@ module Ably
         end
       end
 
+      # Register a message encoder and decoder that implements Ably::Models::MessageEncoders::Base interface.
+      # Message encoders are used to encode and decode message payloads automatically.
+      # @note Encoders and decoders are processed in the order they are added so the first encoder will be given priority when encoding and decoding
+      #
+      # @param [Ably::Models::MessageEncoders::Base] encoder
+      # @return [void]
+      #
+      # @api private
+      def register_encoder(encoder)
+        encoder_klass = if encoder.kind_of?(String)
+          Object.const_get(encoder)
+        else
+          encoder
+        end
+
+        raise "Encoder must inherit from `Ably::Models::MessageEncoders::Base`" unless encoder_klass.ancestors.include?(Ably::Models::MessageEncoders::Base)
+
+        encoders << encoder_klass.new(self)
+      end
+
+      # @!attribute [r] protocol_binary?
+      # @return [Boolean] True of the transport #protocol communicates with Ably with a binary protocol
+      def protocol_binary?
+        protocol == :msgpack
+      end
+
       private
       def request(method, path, params = {}, options = {})
         reauthorise_on_authorisation_failure do
@@ -236,6 +273,10 @@ module Ably
           # Set Faraday's HTTP adapter
           builder.adapter Faraday.default_adapter
         end
+      end
+
+      def initialize_default_encoders
+        Ably::Models::MessageEncoders.register_default_encoders self
       end
     end
   end

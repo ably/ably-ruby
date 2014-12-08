@@ -49,7 +49,7 @@ module Ably::Models
     # @!attribute [r] client_id
     # @return [String] Optional client ID assigned to this token
     def client_id
-      hash.fetch(:client_id)
+      hash[:client_id]
     end
 
     # @!attribute [r] nonce
