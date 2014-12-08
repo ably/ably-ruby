@@ -180,7 +180,9 @@ module Ably::Realtime
 
     def setup_event_handlers
       __incoming_msgbus__.subscribe(:presence) do |presence|
+        presence.decode self.channel
         update_members_from_presence_message presence
+
         subscriptions[:all].each            { |cb| cb.call(presence) }
         subscriptions[presence.action].each { |cb| cb.call(presence) }
       end
@@ -227,7 +229,9 @@ module Ably::Realtime
       }
       model.merge!(data: data) if data
 
-      Ably::Models::PresenceMessage.new(model, nil)
+      Ably::Models::PresenceMessage.new(model, nil).tap do |presence_message|
+        presence_message.encode self.channel
+      end
     end
 
     def update_members_from_presence_message(presence_message)

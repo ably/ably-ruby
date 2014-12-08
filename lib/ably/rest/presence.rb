@@ -20,7 +20,11 @@ module Ably
       #
       def get(options = {})
         response = client.get(base_path, options)
-        Ably::Models::PaginatedResource.new(response, base_path, client, coerce_into: 'Ably::Models::PresenceMessage')
+        Ably::Models::PaginatedResource.new(response, base_path, client, coerce_into: 'Ably::Models::PresenceMessage') do |presence_message|
+          presence_message.tap do |message|
+            message.decode self.channel
+          end
+        end
       end
 
       # Return the presence messages history for the channel
@@ -41,7 +45,11 @@ module Ably
 
         response = client.get(url, options.merge(merge_options))
 
-        Ably::Models::PaginatedResource.new(response, url, client, coerce_into: 'Ably::Models::PresenceMessage')
+        Ably::Models::PaginatedResource.new(response, url, client, coerce_into: 'Ably::Models::PresenceMessage') do |presence_message|
+          presence_message.tap do |message|
+            message.decode self.channel
+          end
+        end
       end
 
       private

@@ -182,7 +182,7 @@ describe 'Ably::Realtime::Presence Messages' do
         end
       end
 
-      specify 'verify REST #get returns current members' do
+      specify 'REST #get returns current members' do
         run_reactor do
           presence_client_one.enter(data: data_payload) do
             members = channel_rest_client_one.presence.get
@@ -197,13 +197,155 @@ describe 'Ably::Realtime::Presence Messages' do
         end
       end
 
-      specify 'verify REST #get returns no members once left' do
+      specify 'REST #get returns no members once left' do
         run_reactor do
           presence_client_one.enter(data: data_payload) do
             presence_client_one.leave do
               members = channel_rest_client_one.presence.get
               expect(members.count).to eql(0)
               stop_reactor
+            end
+          end
+        end
+      end
+
+      context 'encoding and decoding of presence message data' do
+        let(:secret_key)              { SecureRandom.hex(32) }
+        let(:cipher_options)          { { key: secret_key, algorithm: 'aes', mode: 'cbc', key_length: 256 } }
+        let(:channel_name)            { SecureRandom.hex(32) }
+        let(:encrypted_channel)       { client_one.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
+        let(:channel_rest_client_one) { client_one.rest_client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
+
+        let(:crypto)                  { Ably::Util::Crypto.new(cipher_options) }
+
+        let(:data)                    { { 'key' => SecureRandom.hex(64) } }
+        let(:data_as_json)            { data.to_json }
+        let(:data_as_cipher)          { crypto.encrypt(data.to_json) }
+
+        it 'encrypts presence message data' do
+          run_reactor do
+            encrypted_channel.attach do
+              encrypted_channel.presence.enter data: data
+            end
+
+            encrypted_channel.presence.__incoming_msgbus__.unsubscribe(:presence) # remove all subscribe callbacks that could decrypt the message
+            encrypted_channel.presence.__incoming_msgbus__.subscribe(:presence) do |presence|
+              if protocol == :json
+                expect(presence['encoding']).to eql('json/utf-8/cipher+aes-256-cbc/base64')
+                expect(crypto.decrypt(Base64.decode64(presence['data']))).to eql(data_as_json)
+              else
+                expect(presence['encoding']).to eql('json/utf-8/cipher+aes-256-cbc')
+                expect(crypto.decrypt(presence['data'])).to eql(data_as_json)
+              end
+              stop_reactor
+            end
+          end
+        end
+
+        it '#subscribe emits decrypted enter events' do
+          run_reactor do
+            encrypted_channel.attach do
+              encrypted_channel.presence.enter data: data
+            end
+
+            encrypted_channel.presence.subscribe(:enter) do |presence_message|
+              expect(presence_message.encoding).to be_nil
+              expect(presence_message.data).to eql(data)
+              stop_reactor
+            end
+          end
+        end
+
+        it '#subscribe emits decrypted update events' do
+          run_reactor do
+            encrypted_channel.attach do
+              encrypted_channel.presence.enter(data: 'to be updated') do
+                encrypted_channel.presence.update data: data
+              end
+            end
+
+            encrypted_channel.presence.subscribe(:update) do |presence_message|
+              expect(presence_message.encoding).to be_nil
+              expect(presence_message.data).to eql(data)
+              stop_reactor
+            end
+          end
+        end
+
+        it '#subscribe emits decrypted leave events' do
+          run_reactor do
+            encrypted_channel.attach do
+              encrypted_channel.presence.enter(data: 'to be updated') do
+                encrypted_channel.presence.leave data: data
+              end
+            end
+
+            encrypted_channel.presence.subscribe(:leave) do |presence_message|
+              expect(presence_message.encoding).to be_nil
+              expect(presence_message.data).to eql(data)
+              stop_reactor
+            end
+          end
+        end
+
+        it '#get returns a list of members with decrypted data' do
+          run_reactor do
+            encrypted_channel.attach do
+              encrypted_channel.presence.enter(data: data) do
+                member = encrypted_channel.presence.get.first
+                expect(member.encoding).to be_nil
+                expect(member.data).to eql(data)
+                stop_reactor
+              end
+            end
+          end
+        end
+
+        it 'REST #get returns a list of members with decrypted data' do
+          run_reactor do
+            encrypted_channel.attach do
+              encrypted_channel.presence.enter(data: data) do
+                member = channel_rest_client_one.presence.get.first
+                expect(member.encoding).to be_nil
+                expect(member.data).to eql(data)
+                stop_reactor
+              end
+            end
+          end
+        end
+
+        context 'when cipher settings do not match publisher' do
+          let(:incompatible_cipher_options)    { { key: secret_key, algorithm: 'aes', mode: 'cbc', key_length: 128 } }
+          let(:incompatible_encrypted_channel) { client_two.channel(channel_name, encrypted: true, cipher_params: incompatible_cipher_options) }
+
+          it 'delivers an unencoded presence message left with encoding value' do
+            run_reactor do
+              incompatible_encrypted_channel.attach do
+                encrypted_channel.attach do
+                  encrypted_channel.presence.enter(data: data) do
+                    member = incompatible_encrypted_channel.presence.get.first
+                    expect(member.encoding).to match(/cipher\+aes-256-cbc/)
+                    expect(member.data).to_not eql(data)
+                    stop_reactor
+                  end
+                end
+              end
+            end
+          end
+
+          it 'emits an error when cipher does not match and presence data cannot be decoded' do
+            run_reactor do
+              incompatible_encrypted_channel.attach do
+                incompatible_encrypted_channel.on(:error) do |error|
+                  expect(error).to be_a(Ably::Exceptions::CipherError)
+                  expect(error.message).to match(/Cipher algorithm AES-128-CBC does not match/)
+                  stop_reactor
+                end
+
+                encrypted_channel.attach do
+                  encrypted_channel.presence.enter data: data
+                end
+              end
             end
           end
         end
