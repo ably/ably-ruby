@@ -37,6 +37,7 @@ module Ably::Models
   #
   class PresenceMessage
     include Ably::Modules::ModelCommon
+    include Ably::Modules::Encodeable
     include EventMachine::Deferrable
     extend Ably::Modules::Enum
 
@@ -54,7 +55,8 @@ module Ably::Models
     def initialize(hash_object, protocol_message = nil)
       @protocol_message = protocol_message
       @raw_hash_object  = hash_object
-      @hash_object      = IdiomaticRubyWrapper(hash_object.clone.freeze, stop_at: [:data])
+
+      set_hash_object hash_object
     end
 
     %w( client_id member_id data encoding ).each do |attribute|
@@ -115,6 +117,8 @@ module Ably::Models
     end
 
     private
+    attr_reader :raw_hash_object
+
     def protocol_message_index
       protocol_message.presence.index(self)
     end
@@ -125,6 +129,10 @@ module Ably::Models
 
     def message_serial
       protocol_message.message_serial
+    end
+
+    def set_hash_object(hash)
+      @hash_object = IdiomaticRubyWrapper(hash.clone.freeze, stop_at: [:data])
     end
   end
 end

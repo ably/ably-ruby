@@ -1,0 +1,58 @@
+require 'spec_helper'
+require 'securerandom'
+
+describe 'Ably::Realtime::Presence Messages' do
+  include RSpec::EventMachine
+
+  [:msgpack, :json].each do |protocol|
+    context "over #{protocol}" do
+      let(:default_options) { { api_key: api_key, environment: environment, protocol: protocol } }
+
+      let(:channel_name)        { "persisted:#{SecureRandom.hex(2)}" }
+
+      let(:client_one)          { Ably::Realtime::Client.new(default_options.merge(client_id: SecureRandom.hex(4))) }
+      let(:channel_client_one)  { client_one.channel(channel_name) }
+      let(:presence_client_one) { channel_client_one.presence }
+
+      let(:client_two)          { Ably::Realtime::Client.new(default_options.merge(client_id: SecureRandom.hex(4))) }
+      let(:channel_client_two)  { client_two.channel(channel_name) }
+      let(:presence_client_two) { channel_client_two.presence }
+
+      let(:data)         { SecureRandom.hex(8) }
+
+      it 'provides up to the moment presence history' do
+        run_reactor do
+          presence_client_one.enter(data: data) do
+            presence_client_one.leave do
+              history = presence_client_one.history
+              expect(history.count).to eql(2)
+
+              expect(history[1].action).to eq(:enter)
+              expect(history[1].client_id).to eq(client_one.client_id)
+
+              expect(history[0].action).to eq(:leave)
+              expect(history[0].client_id).to eq(client_one.client_id)
+              expect(history[0].data).to eql(data)
+
+              stop_reactor
+            end
+          end
+        end
+      end
+
+      it 'ensures REST presence history message IDs match ProtocolMessage wrapped message IDs via Realtime' do
+        run_reactor do
+          presence_client_one.subscribe(:enter) do |message|
+            history = presence_client_one.history
+            expect(history.count).to eql(1)
+
+            expect(history[0].id).to eql(message.id)
+            stop_reactor
+          end
+
+          presence_client_one.enter(data: data)
+        end
+      end
+    end
+  end
+end

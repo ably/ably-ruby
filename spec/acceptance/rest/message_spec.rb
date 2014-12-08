@@ -115,8 +115,8 @@ describe 'Ably::Rest Message' do
           end
 
           context "sending using protocol #{protocol} and retrieving with a different protocol" do
-            let(:other_protocol) { protocol == :msgpack ? :json : :msgpack }
-            let(:other_client)   { Ably::Rest::Client.new(default_client_options.merge(protocol: other_protocol)) }
+            let(:other_protocol)       { protocol == :msgpack ? :json : :msgpack }
+            let(:other_client)         { Ably::Rest::Client.new(default_client_options.merge(protocol: other_protocol)) }
             let(:other_client_channel) {  other_client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
 
             before do
@@ -137,7 +137,7 @@ describe 'Ably::Rest Message' do
           end
 
           context 'publishing on an unencrypted channel and retrieving on an encrypted channel' do
-            let(:unencrypted_channel) { client.channel(channel_name) }
+            let(:unencrypted_channel)            { client.channel(channel_name) }
             let(:other_client_encrypted_channel) { other_client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
 
             let(:payload) { MessagePack.pack({ 'key' => SecureRandom.hex }) }
@@ -152,7 +152,7 @@ describe 'Ably::Rest Message' do
           end
 
           context 'publishing on an encrypted channel and retrieving on an unencrypted channel' do
-            let(:encrypted_channel) { client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
+            let(:encrypted_channel)                { client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
             let(:other_client_unencrypted_channel) { other_client.channel(channel_name) }
 
             let(:payload) { MessagePack.pack({ 'key' => SecureRandom.hex }) }
