@@ -13,12 +13,13 @@ module Ably::Models
     # @option options [Symbol,String] :coerce_into symbol or string representing class that should be used to create each item in the PaginatedResource
     #
     # @return [PaginatedResource]
-    def initialize(http_response, base_url, client, options = {})
+    def initialize(http_response, base_url, client, options = {}, &each_block)
       @http_response = http_response
       @client        = client
       @base_url      = "#{base_url.gsub(%r{/[^/]*$}, '')}/"
       @coerce_into   = options[:coerce_into]
       @raw_body      = http_response.body
+      @each_block    = each_block
 
       @body = if @coerce_into
         http_response.body.map do |item|
@@ -27,13 +28,17 @@ module Ably::Models
       else
         http_response.body
       end
+
+      @body = @body.map do |resource|
+        each_block.call(resource)
+      end if block_given?
     end
 
     # Retrieve the first page of results
     #
     # @return [PaginatedResource]
     def first_page
-      PaginatedResource.new(client.get(pagination_url('first')), base_url, client, coerce_into: coerce_into)
+      PaginatedResource.new(client.get(pagination_url('first')), base_url, client, coerce_into: coerce_into, &each_block)
     end
 
     # Retrieve the next page of results
@@ -41,7 +46,7 @@ module Ably::Models
     # @return [PaginatedResource]
     def next_page
       raise Ably::Exceptions::InvalidPageError, 'There are no more pages' if supports_pagination? && last_page?
-      PaginatedResource.new(client.get(pagination_url('next')), base_url, client, coerce_into: coerce_into)
+      PaginatedResource.new(client.get(pagination_url('next')), base_url, client, coerce_into: coerce_into, &each_block)
     end
 
     # True if this is the last page in the paged resource set
@@ -113,7 +118,7 @@ module Ably::Models
     end
 
     private
-    attr_reader :body, :http_response, :base_url, :client, :coerce_into, :raw_body
+    attr_reader :body, :http_response, :base_url, :client, :coerce_into, :raw_body, :each_block
 
     def pagination_headers
       link_regex = %r{<(?<url>[^>]+)>; rel="(?<rel>[^"]+)"}

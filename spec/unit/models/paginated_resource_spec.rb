@@ -67,6 +67,52 @@ describe Ably::Models::PaginatedResource do
     end
   end
 
+  context 'with each block' do
+    let(:headers) do
+      {
+        'link' => [
+          '<./history?index=1>; rel="next"'
+        ].join(', ')
+      }
+    end
+    let(:paged_client) do
+      instance_double('Ably::Rest::Client').tap do |client|
+        allow(client).to receive(:get).and_return(http_response_page2)
+      end
+    end
+    let(:body_page2) do
+      [
+        { id: 2 },
+        { id: 3 }
+      ]
+    end
+    let(:http_response_page2) do
+      instance_double('Faraday::Response', {
+        body: body_page2,
+        headers: headers
+      })
+    end
+
+    subject do
+      paginated_resource_class.new(http_response, full_url, paged_client, paginated_resource_options) do |resource|
+        resource[:added_attribute_from_block] = "id:#{resource[:id]}"
+        resource
+      end
+    end
+
+    it 'calls the block for each resource after retrieving the resources' do
+      expect(subject[0][:added_attribute_from_block]).to eql("id:#{body[0][:id]}")
+    end
+
+    it 'calls the block for each resource on second page after retrieving the resources' do
+      page_1_first_id = subject[0][:id]
+      next_page = subject.next_page
+
+      expect(next_page[0][:added_attribute_from_block]).to eql("id:#{body_page2[0][:id]}")
+      expect(next_page[0][:id]).to_not eql(page_1_first_id)
+    end
+  end
+
   context 'with non paged http response' do
     it 'is the first page' do
       expect(subject).to be_first_page
