@@ -1,5 +1,8 @@
 # [Ably](https://ably.io)
 
+[![Build Status](https://travis-ci.org/ably/ably-ruby.png)](https://travis-ci.org/ably/ably-ruby)
+[![Gem Version](https://badge.fury.io/rb/ably.svg)](http://badge.fury.io/rb/ably)
+
 A Ruby client library for [ably.io](https://ably.io), the real-time messaging service.
 
 ## Installation
