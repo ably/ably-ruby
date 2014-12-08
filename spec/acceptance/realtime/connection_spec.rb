@@ -57,10 +57,10 @@ describe Ably::Realtime::Connection do
         end
       end
 
-      it 'echoes a heart beat' do
+      it 'echoes a heart beat with #ping' do
         run_reactor do
           connection.on(:connected) do
-            connection.heartbeat do |time_elapsed|
+            connection.ping do |time_elapsed|
               expect(time_elapsed).to be > 0
               stop_reactor
             end
