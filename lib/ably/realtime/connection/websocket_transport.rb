@@ -4,7 +4,6 @@ module Ably::Realtime
     # @api private
     class WebsocketTransport < EventMachine::Connection
       include Ably::Modules::EventEmitter
-      include Ably::Modules::Conversions
       extend Ably::Modules::Enum
 
       # Valid WebSocket connection states
@@ -17,9 +16,10 @@ module Ably::Realtime
       )
       include Ably::Modules::StateEmitter
 
-      def initialize(connection)
+      def initialize(connection, url)
         @connection = connection
         @state      = STATE.Initialized
+        @url        = url
 
         setup_event_handlers
       end
@@ -69,13 +69,7 @@ module Ably::Realtime
       # URL end point including initialization configuration
       # {http://www.rubydoc.info/gems/websocket-driver/0.3.5/WebSocket/Driver WebSocket::Driver} interface
       def url
-        URI(client.endpoint).tap do |endpoint|
-          endpoint.query = URI.encode_www_form(client.auth.auth_params.merge(
-            timestamp: as_since_epoch(Time.now),
-            format:    client.protocol,
-            echo:      client.echo_messages
-          ))
-        end.to_s
+        @url
       end
 
       # {http://www.rubydoc.info/gems/websocket-driver/0.3.5/WebSocket/Driver WebSocket::Driver} interface

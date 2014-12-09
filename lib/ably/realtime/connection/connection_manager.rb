@@ -31,9 +31,14 @@ module Ably::Realtime
           subscribe_to_transport_events websocket_transport
           yield websocket_transport if block_given?
         end
-      rescue EventMachine::ConnectionError => e
-        logger.info "ConnectionManager: Connection to #{connection.host}:#{connection.port} failed; #{e.message}"
-        connection.transition_state_machine :disconnected, Ably::Models::ErrorInfo.new(message: "Connection failed; #{e.message}", code: 80000)
+      end
+
+      # Called by the transport when a connection attempt fails
+      #
+      # @api private
+      def connection_failed(error)
+        logger.info "ConnectionManager: Connection to #{connection.host}:#{connection.port} failed; #{error.message}"
+        connection.transition_state_machine :disconnected, Ably::Models::ErrorInfo.new(message: "Connection failed; #{error.message}", code: 80000)
       end
 
       # Ensures the underlying transport has been disconnected and all event emitter callbacks removed

@@ -15,11 +15,31 @@ describe Ably::Realtime::Connection do
         Ably::Realtime::Client.new(default_options)
       end
 
-      it 'connects automatically' do
-        run_reactor do
-          connection.on(:connected) do
-            expect(connection.state).to eq(:connected)
-            stop_reactor
+      context 'with API key' do
+        it 'connects automatically' do
+          run_reactor do
+            connection.on(:connected) do
+              expect(connection.state).to eq(:connected)
+              expect(client.auth.auth_params[:key_id]).to_not be_nil
+              expect(client.auth.auth_params[:access_token]).to be_nil
+              stop_reactor
+            end
+          end
+        end
+      end
+
+      context 'with client_id resulting in token auth' do
+        let(:default_options) do
+          { api_key: api_key, environment: environment, protocol: protocol, client_id: SecureRandom.hex, log_level: :debug }
+        end
+        it 'connects automatically' do
+          run_reactor do
+            connection.on(:connected) do
+              expect(connection.state).to eq(:connected)
+              expect(client.auth.auth_params[:access_token]).to_not be_nil
+              expect(client.auth.auth_params[:key_id]).to be_nil
+              stop_reactor
+            end
           end
         end
       end
