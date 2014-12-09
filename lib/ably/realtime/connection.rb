@@ -37,6 +37,7 @@ module Ably
     #   @return {Ably::Models::ErrorInfo} error information associated with a connection failure
     class Connection
       include Ably::Modules::EventEmitter
+      include Ably::Modules::Conversions
       extend Ably::Modules::Enum
 
       # Valid Connection states
@@ -272,9 +273,28 @@ module Ably
 
       # @api private
       def create_websocket_transport(&block)
-        @transport = EventMachine.connect(host, port, WebsocketTransport, self) do |websocket_transport|
-          yield websocket_transport if block_given?
+        operation = proc do
+          URI(client.endpoint).tap do |endpoint|
+            endpoint.query = URI.encode_www_form(client.auth.auth_params.merge(
+              timestamp: as_since_epoch(Time.now),
+              format:    client.protocol,
+              echo:      client.echo_messages
+            ))
+          end.to_s
         end
+
+        callback = proc do |url|
+          begin
+            @transport = EventMachine.connect(host, port, WebsocketTransport, self, url) do |websocket_transport|
+              yield websocket_transport if block_given?
+            end
+          rescue EventMachine::ConnectionError => error
+            manager.connection_failed error
+          end
+        end
+
+        # client.auth.auth_params is a blocking call, so defer this into a thread
+        EventMachine.defer operation, callback
       end
 
       # @api private
