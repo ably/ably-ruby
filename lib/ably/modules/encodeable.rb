@@ -51,7 +51,6 @@ module Ably::Modules
 
         previous_encoding = message_hash[:encoding]
         channel.client.encoders.each do |encoder|
-          # binding.pry if method == :decode
           encoder.send method, message_hash, channel.options
         end
       end until previous_encoding == message_hash[:encoding]
