@@ -28,6 +28,8 @@ describe Ably::Rest::Presence do
             expect(presence_message.data).to eq(fixture[:data])
           end
         end
+
+        skip 'with options'
       end
 
       describe 'presence #history' do

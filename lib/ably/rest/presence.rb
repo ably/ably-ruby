@@ -3,7 +3,13 @@ module Ably
     class Presence
       include Ably::Modules::Conversions
 
-      attr_reader :client, :channel
+      # {Ably::Rest::Client} for this Presence object
+      # @return {Ably::Rest::Client}
+      attr_reader :client
+
+      # {Ably::Rest::Channel} this Presence object is associated with
+      # @return {Ably::Rest::Channel}
+      attr_reader :channel
 
       # Initialize a new Presence object
       #
@@ -16,11 +22,25 @@ module Ably
 
       # Obtain the set of members currently present for a channel
       #
-      # @return [Ably::Models::PaginatedResource<Ably::Models::PresenceMessage>] An Array of presence-message Hash objects that supports paging (next, first)
+      # @param [Hash] options the options for the set of members present
+      # @option options [Integer,Time] :start      Time or millisecond since epoch
+      # @option options [Integer,Time] :end        Time or millisecond since epoch
+      # @option options [Symbol]       :direction  `:forwards` or `:backwards`
+      # @option options [Integer]      :limit      Maximum number of members to retrieve up to 10,000
+      #
+      # @return [Ably::Models::PaginatedResource<Ably::Models::PresenceMessage>] An Array of {Ably::Models::PresenceMessage} objects that supports paging (#next_page, #first_page)
       #
       def get(options = {})
+        options = options.dup
+
+        paginated_options = {
+          coerce_into: 'Ably::Models::PresenceMessage',
+          async_blocking_operations: options.delete(:async_blocking_operations),
+        }
+
         response = client.get(base_path, options)
-        Ably::Models::PaginatedResource.new(response, base_path, client, coerce_into: 'Ably::Models::PresenceMessage') do |presence_message|
+
+        Ably::Models::PaginatedResource.new(response, base_path, client, paginated_options) do |presence_message|
           presence_message.tap do |message|
             message.decode self.channel
           end
@@ -35,17 +55,23 @@ module Ably
       # @option options [Symbol]       :direction  `:forwards` or `:backwards`
       # @option options [Integer]      :limit      Maximum number of presence messages to retrieve up to 10,000
       #
-      # @return [Ably::Models::PaginatedResource<Ably::Models::PresenceMessage>] An Array of presence-message Hash objects that supports paging (next, first)
+      # @return [Ably::Models::PaginatedResource<Ably::Models::PresenceMessage>] An Array of {Ably::Models::PresenceMessage} objects that supports paging (#next_page, #first_page)
       #
       def history(options = {})
         url = "#{base_path}/history"
+        options = options.dup
 
         merge_options = { live: true }  # TODO: Remove live param as all history should be live
         [:start, :end].each { |option| merge_options[option] = as_since_epoch(options[option]) if options.has_key?(option) }
 
+        paginated_options = {
+          coerce_into: 'Ably::Models::PresenceMessage',
+          async_blocking_operations: options.delete(:async_blocking_operations),
+        }
+
         response = client.get(url, options.merge(merge_options))
 
-        Ably::Models::PaginatedResource.new(response, url, client, coerce_into: 'Ably::Models::PresenceMessage') do |presence_message|
+        Ably::Models::PaginatedResource.new(response, url, client, paginated_options) do |presence_message|
           presence_message.tap do |message|
             message.decode self.channel
           end

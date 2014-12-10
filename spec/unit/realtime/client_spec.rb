@@ -16,16 +16,6 @@ describe Ably::Realtime::Client do
       subject
     end
 
-    specify '#time' do
-      expect(subject.rest_client).to receive(:time)
-      subject.time
-    end
-
-    specify '#stats' do
-      expect(subject.rest_client).to receive(:stats).with(options)
-      subject.stats options
-    end
-
     context 'for attribute' do
       [:environment, :use_tls?, :log_level].each do |attribute|
         specify "##{attribute}" do

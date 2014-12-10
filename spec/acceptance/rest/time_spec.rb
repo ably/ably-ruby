@@ -1,7 +1,6 @@
 require 'spec_helper'
-require 'securerandom'
 
-describe 'Ably::REST time' do
+describe 'Ably::REST::Client time' do
   [:msgpack, :json].each do |protocol|
     context "over #{protocol}" do
       let(:client) do
@@ -9,7 +8,7 @@ describe 'Ably::REST time' do
       end
 
       describe 'fetching the service time' do
-        it "should return the service time as a Time object" do
+        it 'should return the service time as a Time object' do
           expect(client.time).to be_within(2).of(Time.now)
         end
       end

@@ -1,16 +1,19 @@
 module Ably::Models
-  # Wraps any Ably HTTP response that supports paging and automatically provides methdos to iterated through
+  # Wraps any Ably HTTP response that supports paging and automatically provides methods to iterate through
   # the array of resources using {#first_page}, {#next_page}, {#first_page?} and {#last_page?}
   #
   # Paging information is provided by Ably in the LINK HTTP headers
   class PaginatedResource
     include Enumerable
+    include Ably::Modules::AsyncWrapper
 
     # @param [Faraday::Response] http_response Initial HTTP response from an Ably request to a paged resource
     # @param [String] base_url Base URL for request that generated the http_response so that subsequent paged requests can be made
     # @param [Client] client {Ably::Client} used to make the request to Ably
     # @param [Hash] options Options for this paged resource
     # @option options [Symbol,String] :coerce_into symbol or string representing class that should be used to create each item in the PaginatedResource
+    #
+    # @yield [Object] block will be called for each resource object for the current page.  This is a useful way to apply a transformation to any page resources after they are retrieved
     #
     # @return [PaginatedResource]
     def initialize(http_response, base_url, client, options = {}, &each_block)
@@ -20,6 +23,7 @@ module Ably::Models
       @coerce_into   = options[:coerce_into]
       @raw_body      = http_response.body
       @each_block    = each_block
+      @make_async    = options.fetch(:async_blocking_operations, false)
 
       @body = if @coerce_into
         http_response.body.map do |item|
@@ -34,19 +38,27 @@ module Ably::Models
       end if block_given?
     end
 
-    # Retrieve the first page of results
+    # Retrieve the first page of results.
+    # When used as part of the {Ably::Realtime} library, it will return a {EventMachine::Deferrable} object,
+    #   and allows an optional success callback block to be provided.
     #
-    # @return [PaginatedResource]
-    def first_page
-      PaginatedResource.new(client.get(pagination_url('first')), base_url, client, coerce_into: coerce_into, &each_block)
+    # @return [PaginatedResource,EventMachine::Deferrable]
+    def first_page(&success_callback)
+      async_wrap_if(make_async, success_callback) do
+        PaginatedResource.new(client.get(pagination_url('first')), base_url, client, pagination_options, &each_block)
+      end
     end
 
-    # Retrieve the next page of results
+    # Retrieve the next page of results.
+    # When used as part of the {Ably::Realtime} library, it will return a {EventMachine::Deferrable} object,
+    #   and allows an optional success callback block to be provided.
     #
-    # @return [PaginatedResource]
-    def next_page
-      raise Ably::Exceptions::InvalidPageError, 'There are no more pages' if supports_pagination? && last_page?
-      PaginatedResource.new(client.get(pagination_url('next')), base_url, client, coerce_into: coerce_into, &each_block)
+    # @return [PaginatedResource,EventMachine::Deferrable]
+    def next_page(&success_callback)
+      async_wrap_if(make_async, success_callback) do
+        raise Ably::Exceptions::InvalidPageError, 'There are no more pages' if supports_pagination? && last_page?
+        PaginatedResource.new(client.get(pagination_url('next')), base_url, client, pagination_options, &each_block)
+      end
     end
 
     # True if this is the last page in the paged resource set
@@ -84,7 +96,7 @@ module Ably::Models
     alias_method :count, :length
     alias_method :size,  :length
 
-    # Method ensuring this {PaginatedResource} is {http://ruby-doc.org/core-2.1.3/Enumerable.html Enumerable}
+    # Method to allow {PaginatedResource} to be {http://ruby-doc.org/core-2.1.3/Enumerable.html Enumerable}
     def each(&block)
       body.each do |item|
         if block_given?
@@ -95,7 +107,7 @@ module Ably::Models
       end
     end
 
-    # Last item in this page
+    # First item in this page
     def first
       body.first
     end
@@ -118,7 +130,7 @@ module Ably::Models
     end
 
     private
-    attr_reader :body, :http_response, :base_url, :client, :coerce_into, :raw_body, :each_block
+    attr_reader :body, :http_response, :base_url, :client, :coerce_into, :raw_body, :each_block, :make_async
 
     def pagination_headers
       link_regex = %r{<(?<url>[^>]+)>; rel="(?<rel>[^"]+)"}
@@ -144,6 +156,21 @@ module Ably::Models
         "#{base_url}#{pagination_header(id)[2..-1]}"
       else
         pagination_header[id]
+      end
+    end
+
+    def pagination_options
+      {
+        coerce_into: coerce_into,
+        async_blocking_operations: make_async
+      }
+    end
+
+    def async_wrap_if(is_realtime, success_callback, &operation)
+      if is_realtime
+        async_wrap success_callback, &operation
+      else
+        yield
       end
     end
   end
