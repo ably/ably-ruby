@@ -46,3 +46,14 @@ RSpec.configure do |config|
     TestApp.instance.delete if TestApp.instance_variable_get('@singleton__instance__')
   end
 end
+
+module ApiPreloader
+  def self.included(mod)
+    WebMock.disable!
+    TestApp.instance.api_key
+  end
+
+  RSpec.configure do |config|
+    config.include self, :file_path => %r(spec/acceptance)
+  end
+end
