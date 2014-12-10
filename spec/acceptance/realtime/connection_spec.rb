@@ -30,7 +30,7 @@ describe Ably::Realtime::Connection do
 
       context 'with client_id resulting in token auth' do
         let(:default_options) do
-          { api_key: api_key, environment: environment, protocol: protocol, client_id: SecureRandom.hex, log_level: :debug }
+          { api_key: api_key, environment: environment, protocol: protocol, client_id: SecureRandom.hex }
         end
         it 'connects automatically' do
           run_reactor do
