@@ -62,7 +62,7 @@ describe Ably::Logger do
       it 'formats logs with a client ID' do
         formatted = subject.logger.formatter.call(Logger::DEBUG, Time.now, 'progid', 'unique_message')
         formatted = uncolorize(formatted)
-        expect(formatted).to match(/\[0000]/)
+        expect(formatted).to match(/\[0000\]/)
         expect(formatted).to match(%r{unique_message$})
         expect(formatted).to match(%r{DEBUG})
       end
