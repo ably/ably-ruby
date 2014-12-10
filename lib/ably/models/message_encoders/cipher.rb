@@ -1,3 +1,7 @@
+require 'ably/exceptions'
+require 'ably/models/message_encoders/base'
+require 'ably/util/crypto'
+
 module Ably::Models::MessageEncoders
   # Cipher Encoder & Decoder that automatically encrypts & decrypts messages using Ably::Util::Crypto
   # when a channel has option encrypted: true.

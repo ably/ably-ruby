@@ -1,3 +1,5 @@
+require 'eventmachine'
+
 module Ably::Modules
   # Provides methods to convert synchronous operations into async operations through the use of
   # {EventMachine#defer http://www.rubydoc.info/github/eventmachine/eventmachine/EventMachine#defer-class_method}.

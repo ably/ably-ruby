@@ -1,3 +1,5 @@
+require 'ably/modules/conversions'
+
 # MessageEncoders are registered with the Ably client library and are responsible
 # for encoding & decoding messages.
 #
@@ -93,11 +95,6 @@ module Ably::Models::MessageEncoders
   end
 
   def self.register_default_encoders(client)
-    Dir.glob(File.expand_path("*.rb", File.dirname(__FILE__))).each do |file|
-      next if __FILE__ == file
-      require file
-    end
-
     client.register_encoder Ably::Models::MessageEncoders::Utf8
     client.register_encoder Ably::Models::MessageEncoders::Json
     client.register_encoder Ably::Models::MessageEncoders::Cipher
@@ -105,3 +102,7 @@ module Ably::Models::MessageEncoders
   end
 end
 
+require 'ably/models/message_encoders/base64'
+require 'ably/models/message_encoders/cipher'
+require 'ably/models/message_encoders/json'
+require 'ably/models/message_encoders/utf8'

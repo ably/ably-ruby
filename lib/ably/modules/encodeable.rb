@@ -1,4 +1,5 @@
 require 'base64'
+require 'ably/exceptions'
 
 module Ably::Modules
   # Provides methods to allow this model's `data` property to be encoded and decoded based on the `encoding` property.

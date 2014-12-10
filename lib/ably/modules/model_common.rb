@@ -1,10 +1,12 @@
 require 'base64'
+require 'ably/modules/conversions'
+require 'ably/modules/message_pack'
 
 module Ably::Modules
   # Common model functionality shared across many {Ably::Models}
   module ModelCommon
-    include Ably::Modules::Conversions
-    include Ably::Modules::MessagePack
+    include Conversions
+    include MessagePack
 
     # Provide a normal Hash accessor to the underlying raw message object
     #
