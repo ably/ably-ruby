@@ -1,3 +1,5 @@
+# encoding: utf-8
+
 require 'spec_helper'
 require 'securerandom'
 
@@ -123,7 +125,7 @@ describe 'Ably::Rest Message' do
               expect(other_client.protocol_binary?).to_not eql(client.protocol_binary?)
             end
 
-            [MessagePack.pack({ 'key' => SecureRandom.hex }), '€ unicode', { 'key' => SecureRandom.hex }].each do |payload|
+            [MessagePack.pack({ 'key' => SecureRandom.hex }), 'ã unicode', { 'key' => SecureRandom.hex }].each do |payload|
               payload_description = "#{payload.class}#{" #{payload.encoding}" if payload.kind_of?(String)}"
 
               specify "delivers a #{payload_description} payload to the receiver" do

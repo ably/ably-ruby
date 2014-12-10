@@ -7,7 +7,7 @@ describe Ably::Models::MessageEncoders::Cipher do
   let(:crypto_options)      { { key: secret_key, algorithm: 'AES', mode: 'CBC', key_length: 128 } }
   let(:crypto)              { Ably::Util::Crypto.new(cipher_params) }
 
-  let(:decoded_data)        { SecureRandom.hex(32) }
+  let(:decoded_data)        { SecureRandom.hex(32).force_encoding(Encoding::UTF_8) }
   let(:cipher_data)         { crypto.encrypt(decoded_data) }
 
   let(:binary_data)         { MessagePack.pack(decoded_data) }

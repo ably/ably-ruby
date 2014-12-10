@@ -109,7 +109,7 @@ describe Ably::Realtime::Channel do
 
       it 'subscribes and unsubscribes from multiple channels' do
         run_reactor do
-          click_callback = -> (message) { messages << message }
+          click_callback = proc { |message| messages << message }
 
           channel.subscribe('click', &click_callback)
           channel.subscribe('move', &click_callback)

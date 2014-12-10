@@ -5,7 +5,7 @@ require 'msgpack'
 require 'ably/models/message_encoders/base64'
 
 describe Ably::Models::MessageEncoders::Base64 do
-  let(:decoded_data)        { SecureRandom.hex(32) }
+  let(:decoded_data)        { SecureRandom.hex(32).force_encoding(Encoding::UTF_8) }
   let(:base64_data)         { Base64.encode64(decoded_data) }
   let(:binary_data)         { MessagePack.pack(decoded_data) }
   let(:base64_binary_data)  { Base64.encode64(binary_data) }
