@@ -67,7 +67,7 @@ describe Ably::Models::PaginatedResource do
     end
   end
 
-  context 'with each block' do
+  context 'paged transformations' do
     let(:headers) do
       {
         'link' => [
@@ -93,23 +93,65 @@ describe Ably::Models::PaginatedResource do
       })
     end
 
-    subject do
-      paginated_resource_class.new(http_response, full_url, paged_client, paginated_resource_options) do |resource|
-        resource[:added_attribute_from_block] = "id:#{resource[:id]}"
-        resource
+    context 'with each block' do
+      subject do
+        paginated_resource_class.new(http_response, full_url, paged_client, paginated_resource_options) do |resource|
+          resource[:added_attribute_from_block] = "id:#{resource[:id]}"
+          resource
+        end
+      end
+
+      it 'calls the block for each resource after retrieving the resources' do
+        expect(subject[0][:added_attribute_from_block]).to eql("id:#{body[0][:id]}")
+      end
+
+      it 'calls the block for each resource on second page after retrieving the resources' do
+        page_1_first_id = subject[0][:id]
+        next_page = subject.next_page
+
+        expect(next_page[0][:added_attribute_from_block]).to eql("id:#{body_page2[0][:id]}")
+        expect(next_page[0][:id]).to_not eql(page_1_first_id)
       end
     end
 
-    it 'calls the block for each resource after retrieving the resources' do
-      expect(subject[0][:added_attribute_from_block]).to eql("id:#{body[0][:id]}")
-    end
+    context 'with option async_blocking_operations: true' do
+      include RSpec::EventMachine
 
-    it 'calls the block for each resource on second page after retrieving the resources' do
-      page_1_first_id = subject[0][:id]
-      next_page = subject.next_page
+      subject do
+        paginated_resource_class.new(http_response, full_url, paged_client, async_blocking_operations: true)
+      end
 
-      expect(next_page[0][:added_attribute_from_block]).to eql("id:#{body_page2[0][:id]}")
-      expect(next_page[0][:id]).to_not eql(page_1_first_id)
+      context '#next_page' do
+        it 'returns a deferrable object' do
+          run_reactor do
+            expect(subject.next_page).to be_a(EventMachine::Deferrable)
+            stop_reactor
+          end
+        end
+
+        it 'allows a success callback block to be added' do
+          run_reactor do
+            subject.next_page do |paginated_resource|
+              expect(paginated_resource).to be_a(Ably::Models::PaginatedResource)
+              stop_reactor
+            end
+          end
+        end
+      end
+
+      context '#first_page' do
+        it 'calls the errback callback when first page headers are missing' do
+          run_reactor do
+            subject.next_page do |paginated_resource|
+              deferrable = subject.first_page
+              deferrable.errback do |error|
+                expect(error).to be_a(Ably::Exceptions::InvalidPageError)
+                stop_reactor
+              end
+            end
+          end
+        end
+      end
     end
   end
 

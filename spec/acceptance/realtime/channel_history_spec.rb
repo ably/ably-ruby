@@ -4,7 +4,7 @@ require 'securerandom'
 describe Ably::Realtime::Channel do
   include RSpec::EventMachine
 
-  [:msgpack, :json].each do |protocol|
+  [:json].each do |protocol| # :msgpack,
     context "over #{protocol}" do
       let(:default_options) { options.merge(api_key: api_key, environment: environment, protocol: protocol) }
 
@@ -24,13 +24,23 @@ describe Ably::Realtime::Channel do
 
       let(:options) { { :protocol => :json } }
 
+      it 'returns a Deferrable' do
+        run_reactor do
+          channel.publish('event', payload) do |message|
+            expect(channel.history).to be_a(EventMachine::Deferrable)
+            stop_reactor
+          end
+        end
+      end
+
       it 'retrieves real-time history' do
         run_reactor do
           channel.publish('event', payload) do |message|
-            history = channel.history
-            expect(history.length).to eql(1)
-            expect(history[0].data).to eql(payload)
-            stop_reactor
+            channel.history do |history|
+              expect(history.length).to eql(1)
+              expect(history[0].data).to eql(payload)
+              stop_reactor
+            end
           end
         end
       end
@@ -39,10 +49,11 @@ describe Ably::Realtime::Channel do
         run_reactor do
           channel.publish('event', payload) do |message|
             channel2.publish('event', payload) do |message|
-              history = channel2.history
-              expect(history.length).to eql(2)
-              expect(history.map(&:data).uniq).to eql([payload])
-              stop_reactor
+              channel2.history do |history|
+                expect(history.length).to eql(2)
+                expect(history.map(&:data).uniq).to eql([payload])
+                stop_reactor
+              end
             end
           end
         end
@@ -53,21 +64,22 @@ describe Ably::Realtime::Channel do
         let(:limit) { 10 }
 
         def check_limited_history(direction)
-          history = channel.history(direction: direction, limit: limit)
-          expect(history.length).to eql(limit)
-          limit.times do |index|
-            expect(history[index].data).to eql("history#{index}")
+          channel.history(direction: direction, limit: limit) do |history|
+            expect(history.length).to eql(limit)
+            limit.times do |index|
+              expect(history[index].data).to eql("history#{index}")
+            end
+
+            history.next_page do |history|
+              expect(history.length).to eql(limit)
+              limit.times do |index|
+                expect(history[index].data).to eql("history#{index + limit}")
+              end
+              expect(history.last_page?).to eql(true)
+
+              stop_reactor
+            end
           end
-
-          history = history.next_page
-
-          expect(history.length).to eql(limit)
-          limit.times do |index|
-            expect(history[index].data).to eql("history#{index + limit}")
-          end
-          expect(history.last_page?).to eql(true)
-
-          stop_reactor
         end
 
         context 'as one ProtocolMessage' do

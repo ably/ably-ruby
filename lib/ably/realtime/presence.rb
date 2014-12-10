@@ -2,6 +2,7 @@ module Ably::Realtime
   # Presence provides access to presence operations and state for the associated Channel
   class Presence
     include Ably::Modules::EventEmitter
+    include Ably::Modules::AsyncWrapper
     extend Ably::Modules::Enum
 
     STATE = ruby_enum('STATE',
@@ -14,12 +15,15 @@ module Ably::Realtime
     )
     include Ably::Modules::StateEmitter
 
-    # {Ably::Realtime::Channel} this Presence object is assoicated with
+    # {Ably::Realtime::Channel} this Presence object is associated with
+    # @return {Ably::Realtime::Channel}
     attr_reader :channel
 
     # A unique member identifier for this channel client, disambiguating situations where a given
     # client_id is present on multiple connections simultaneously.
-    # TODO: This does not work at present as no ACK is sent from the server with a memberId
+    #
+    # @note TODO: This does not work at present as no ACK is sent from the server with a memberId
+    # @return {String}
     attr_reader :member_id
 
     def initialize(channel)
@@ -36,13 +40,16 @@ module Ably::Realtime
 
     # Enter this client into this channel. This client will be added to the presence set
     # and presence subscribers will see an enter message for this client.
+    #
     # @param [Hash,String] options an options Hash to specify client data and/or client ID, or a String with the client data
     # @option options [String] :data      optional data (eg a status message) for this member
     # @option options [String] :client_id the optional id of the client.
     #                                     This option is provided to support connections from server instances that act on behalf of
     #                                     multiple client_ids. In order to be able to enter the channel with this method, the client
     #                                     library must have been instanced either with a key, or with a token bound to the wildcard clientId.
+    #
     # @yield [Ably::Realtime::Presence] On success, will call the block with the {Ably::Realtime::Presence}
+    #
     # @return [Ably::Models::PresenceMessage] Deferrable {Ably::Models::PresenceMessage} that supports both success (callback) and failure (errback) callbacks
     #
     def enter(options = {}, &blk)
@@ -71,6 +78,7 @@ module Ably::Realtime
 
     # Leave this client from this channel. This client will be removed from the presence
     # set and presence subscribers will see a leave message for this client.
+    #
     # @param (see Presence#enter)
     # @yield (see Presence#enter)
     # @return (see Presence#enter)
@@ -101,6 +109,7 @@ module Ably::Realtime
     # Update the presence data for this client. If the client is not already a member of
     # the presence set it will be added, and presence subscribers will see an enter or
     # update message for this client.
+    #
     # @param (see Presence#enter)
     # @yield (see Presence#enter)
     # @return (see Presence#enter)
@@ -120,9 +129,15 @@ module Ably::Realtime
 
     # Get the presence state for this Channel.
     # Optionally get a member's {Ably::Models::PresenceMessage} state by member_id
+    #
     # @return [Array<Ably::Models::PresenceMessage>, Ably::Models::PresenceMessage] members on the channel
-    def get()
-      members.map { |key, presence| presence }
+    #
+    def get(member_id = nil)
+      if member_id
+        members.find { |key, presence| presence.member_id == member_id }
+      else
+        members.map { |key, presence| presence }
+      end
     end
 
     # Subscribe to presence events on the associated Channel.
@@ -130,6 +145,8 @@ module Ably::Realtime
     #
     # @param action [Ably::Models::PresenceMessage::ACTION] Optional, the state change action to subscribe to. Defaults to all presence actions
     # @yield [Ably::Models::PresenceMessage] For each presence state change event, the block is called
+    #
+    # @return [void]
     #
     def subscribe(action = :all, &blk)
       ensure_channel_attached do
@@ -141,6 +158,8 @@ module Ably::Realtime
     # If a block is not provided, all subscriptions will be unsubscribed
     #
     # @param action [Ably::Models::PresenceMessage::ACTION] Optional, the state change action to subscribe to. Defaults to all presence actions
+    #
+    # @return [void]
     #
     def unsubscribe(action = :all, &blk)
       if message_action_key(action) == :all
@@ -158,8 +177,15 @@ module Ably::Realtime
     #
     # @param (see Ably::Rest::Presence#history)
     # @option options (see Ably::Rest::Presence#history)
-    def history(options = {})
-      rest_presence.history(options)
+    #
+    # @yield [Ably::Models::PaginatedResource<Ably::Models::PresenceMessage>] An Array of {Ably::Models::PresenceMessage} objects that supports paging (#next_page, #first_page)
+    #
+    # @return [EventMachine::Deferrable]
+    #
+    def history(options = {}, &callback)
+      async_wrap(callback) do
+        rest_presence.history(options.merge(async_blocking_operations: true))
+      end
     end
 
     # @!attribute [r] __incoming_msgbus__

@@ -57,16 +57,22 @@ module Ably
       # @option options [Integer]      :limit      Maximum number of messages to retrieve up to 10,000
       # @option options [Symbol]       :by         `:message`, `:bundle` or `:hour`. Defaults to `:message`
       #
-      # @return [Ably::Models::PaginatedResource<Ably::Models::Message>] An Array of hashes representing the message history that supports paging (next, first)
+      # @return [Ably::Models::PaginatedResource<Ably::Models::Message>] An Array of {Ably::Models::Message} objects that supports paging (#next_page, #first_page)
       def history(options = {})
         url = "#{base_path}/messages"
+        options = options.dup
 
         merge_options = { live: true }  # TODO: Remove live param as all history should be live
         [:start, :end].each { |option| merge_options[option] = as_since_epoch(options[option]) if options.has_key?(option) }
 
+        paginated_options = {
+          coerce_into: 'Ably::Models::Message',
+          async_blocking_operations: options.delete(:async_blocking_operations),
+        }
+
         response = client.get(url, options.merge(merge_options))
 
-        Ably::Models::PaginatedResource.new(response, url, client, coerce_into: 'Ably::Models::Message') do |message|
+        Ably::Models::PaginatedResource.new(response, url, client, paginated_options) do |message|
           message.tap do |message|
             message.decode self
           end

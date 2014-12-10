@@ -47,7 +47,9 @@ describe Ably::Realtime::Presence do
   context 'subscriptions' do
     let(:message_history) { Hash.new { |hash, key| hash[key] = 0 } }
     let(:presence_action) { Ably::Models::PresenceMessage::ACTION.Enter }
-    let(:message) { instance_double('Ably::Models::PresenceMessage', action: presence_action, member_id: SecureRandom.hex) }
+    let(:message) do
+      instance_double('Ably::Models::PresenceMessage', action: presence_action, member_id: SecureRandom.hex, decode: true)
+    end
 
     context '#subscribe' do
       specify 'to all presence state actions' do

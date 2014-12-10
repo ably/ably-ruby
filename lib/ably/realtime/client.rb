@@ -23,6 +23,7 @@ module Ably
     # @!attribute [r] protocol_binary?
     #   (see Ably::Rest::Client#protocol_binary?)
     class Client
+      include Ably::Modules::AsyncWrapper
       extend Forwardable
 
       DOMAIN = 'realtime.ably.io'
@@ -66,20 +67,32 @@ module Ably
       # Return a {Ably::Realtime::Channel Realtime Channel} for the given name
       #
       # @param (see Ably::Realtime::Channels#get)
-      #
       # @return (see Ably::Realtime::Channels#get)
+      #
       def channel(name, channel_options = {})
         channels.get(name, channel_options)
       end
 
-      # (see Ably::Rest::Client#time)
-      def time
-        rest_client.time
+      # Retrieve the Ably service time
+      #
+      # @yield [Time] The time as reported by the Ably service
+      # @return [EventMachine::Deferrable]
+      #
+      def time(&success_callback)
+        async_wrap(success_callback) do
+          rest_client.time
+        end
       end
 
-      # (see Ably::Rest::Client#stats)
-      def stats(params = {})
-        rest_client.stats(params)
+      # Retrieve the stats for the application
+      #
+      # @yield [Array] An Array of hashes representing the stats
+      # @return [EventMachine::Deferrable]
+      #
+      def stats(params = {}, &success_callback)
+        async_wrap(success_callback) do
+          rest_client.stats(params)
+        end
       end
 
       # (see Ably::Realtime::Connection#close)
@@ -103,7 +116,7 @@ module Ably
       end
 
       # @!attribute [r] custom_socket_host
-      # @return [String,nil] Returns the custom socket host that is being used if it was provided with the option :ws_host when the {Client} was created
+      # @return [String,NilClass] Returns the custom socket host that is being used if it was provided with the option :ws_host when the {Client} was created
       def custom_socket_host
         @custom_socket_host
       end

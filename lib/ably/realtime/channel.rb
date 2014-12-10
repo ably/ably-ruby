@@ -36,6 +36,7 @@ module Ably
       include Ably::Modules::Conversions
       include Ably::Modules::EventEmitter
       include Ably::Modules::EventMachineHelpers
+      include Ably::Modules::AsyncWrapper
       extend Ably::Modules::Enum
 
       STATE = ruby_enum('STATE',
@@ -102,6 +103,8 @@ module Ably
       # @param name [String] The event name of the message to subscribe to if provided.  Defaults to all events.
       # @yield [Ably::Models::Message] For each message received, the block is called
       #
+      # @return [void]
+      #
       def subscribe(name = :all, &blk)
         attach unless attached? || attaching?
         subscriptions[message_name_key(name)] << blk
@@ -111,6 +114,8 @@ module Ably
       # If a block is not provided, all subscriptions will be unsubscribed
       #
       # @param name [String] The event name of the message to subscribe to if provided.  Defaults to all events.
+      #
+      # @return [void]
       #
       def unsubscribe(name = :all, &blk)
         if message_name_key(name) == :all
@@ -174,8 +179,14 @@ module Ably
       #
       # @param (see Ably::Rest::Channel#history)
       # @option options (see Ably::Rest::Channel#history)
-      def history(options = {})
-        rest_channel.history(options)
+      #
+      # @yield [Ably::Models::PaginatedResource<Ably::Models::Message>] An Array of {Ably::Models::Message} objects that supports paging (#next_page, #first_page)
+      #
+      # @return [EventMachine::Deferrable]
+      def history(options = {}, &callback)
+        async_wrap(callback) do
+          rest_channel.history(options.merge(async_blocking_operations: true))
+        end
       end
 
       # @!attribute [r] __incoming_msgbus__
