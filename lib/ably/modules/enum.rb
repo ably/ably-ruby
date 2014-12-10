@@ -1,3 +1,5 @@
+require 'ably/modules/conversions'
+
 module Ably::Modules
   # Enum brings Enum like functionality used in other languages to Ruby
   #

@@ -1,4 +1,5 @@
 require 'json'
+require 'ably/models/message_encoders/base'
 
 module Ably::Models::MessageEncoders
   # JSON Encoder and Decoder

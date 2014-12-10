@@ -1,4 +1,5 @@
 require 'base64'
+require 'ably/models/message_encoders/base'
 
 module Ably::Models::MessageEncoders
   # Base64 binary Encoder and Decoder

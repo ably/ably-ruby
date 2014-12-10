@@ -1,5 +1,7 @@
 require 'base64'
 
+require 'ably/version'
+
 require 'ably/rest/middleware/encoder'
 require 'ably/rest/middleware/external_exceptions'
 require 'ably/rest/middleware/fail_if_unsupported_mime_type'
