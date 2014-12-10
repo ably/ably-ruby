@@ -5,7 +5,9 @@ module Ably::Modules
     extend self
 
     private
-    def as_since_epoch(time, granularity: :ms)
+    def as_since_epoch(time, options = {})
+      granularity = options.fetch(:granularity, :ms)
+
       case time
       when Time
         time.to_f * multiplier_from_granularity(granularity)
@@ -16,7 +18,9 @@ module Ably::Modules
       end.to_i
     end
 
-    def as_time_from_epoch(time, granularity: :ms)
+    def as_time_from_epoch(time, options = {})
+      granularity = options.fetch(:granularity, :ms)
+
       case time
       when Numeric
         Time.at(time / multiplier_from_granularity(granularity))
@@ -39,7 +43,9 @@ module Ably::Modules
     end
 
     # Convert key to mixedCase from mixed_case
-    def convert_to_mixed_case(key, force_camel: false)
+    def convert_to_mixed_case(key, options = {})
+      force_camel = options.fetch(:force_camel, false)
+
       key.to_s.
         split('_').
         each_with_index.map do |str, index|

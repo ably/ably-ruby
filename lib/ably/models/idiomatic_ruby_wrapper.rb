@@ -50,7 +50,9 @@ module Ably::Models
     # @attribute [Hash] mixedCaseHashObject mixed case Hash object
     # @attribute [Array<Symbol,String>] stop_at array of keys that this wrapper should stop wrapping at to preserve the underlying Hash as is
     #
-    def initialize(mixedCaseHashObject, stop_at: [])
+    def initialize(mixedCaseHashObject, options = {})
+      stop_at = options.fetch(:stop_at, [])
+
       if mixedCaseHashObject.kind_of?(IdiomaticRubyWrapper)
         $stderr.puts "<IdiomaticRubyWrapper#initialize> WARNING: Wrapping a IdiomaticRubyWrapper with another IdiomaticRubyWrapper"
       end
@@ -203,14 +205,14 @@ module Ably::Models
     # key is not found in mixedCase.
     def source_key_for(symbolized_key)
       format_preferences = [
-        -> (key_sym) { convert_to_mixed_case(key_sym) },
-        -> (key_sym) { key_sym.to_sym },
-        -> (key_sym) { key_sym.to_s },
-        -> (key_sym) { convert_to_mixed_case(key_sym).to_sym },
-        -> (key_sym) { convert_to_lower_case(key_sym) },
-        -> (key_sym) { convert_to_lower_case(key_sym).to_sym },
-        -> (key_sym) { convert_to_mixed_case(key_sym, force_camel: true) },
-        -> (key_sym) { convert_to_mixed_case(key_sym, force_camel: true).to_sym }
+        proc { |key_sym| convert_to_mixed_case(key_sym) },
+        proc { |key_sym| key_sym.to_sym },
+        proc { |key_sym| key_sym.to_s },
+        proc { |key_sym| convert_to_mixed_case(key_sym).to_sym },
+        proc { |key_sym| convert_to_lower_case(key_sym) },
+        proc { |key_sym| convert_to_lower_case(key_sym).to_sym },
+        proc { |key_sym| convert_to_mixed_case(key_sym, force_camel: true) },
+        proc { |key_sym| convert_to_mixed_case(key_sym, force_camel: true).to_sym }
       ]
 
       preferred_format = format_preferences.detect do |format|

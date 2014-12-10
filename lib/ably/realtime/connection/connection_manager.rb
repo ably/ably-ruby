@@ -134,7 +134,8 @@ module Ably::Realtime
         end
       end
 
-      def retries_for_state(state, ignore_states: [])
+      def retries_for_state(state, options = {})
+        ignore_states = options.fetch(:ignore_states, [])
         allowed_states = Array(state) + Array(ignore_states)
 
         connection.state_history.reverse.take_while do |transition|

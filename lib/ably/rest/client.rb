@@ -191,7 +191,9 @@ module Ably
       # @api private
       def register_encoder(encoder)
         encoder_klass = if encoder.kind_of?(String)
-          Object.const_get(encoder)
+          encoder.split('::').inject(Kernel) do |base, klass_name|
+            base.public_send(:const_get, klass_name)
+          end
         else
           encoder
         end

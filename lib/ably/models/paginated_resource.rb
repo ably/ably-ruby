@@ -27,7 +27,9 @@ module Ably::Models
 
       @body = if @coerce_into
         http_response.body.map do |item|
-          Kernel.const_get(@coerce_into).new(item)
+          @coerce_into.split('::').inject(Kernel) do |base, klass_name|
+            base.public_send(:const_get, klass_name)
+          end.new(item)
         end
       else
         http_response.body
