@@ -1,3 +1,3 @@
 module Ably
-  VERSION = '0.2.0'
+  VERSION = '0.6.2'
 end
