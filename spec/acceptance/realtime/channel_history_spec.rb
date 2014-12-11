@@ -4,7 +4,7 @@ require 'spec_helper'
 describe Ably::Realtime::Channel do
   include RSpec::EventMachine
 
-  [:json].each do |protocol| # :msgpack,
+  [:json, :msgpack].each do |protocol|
     context "over #{protocol}" do
       let(:default_options) { options.merge(api_key: api_key, environment: environment, protocol: protocol) }
 
@@ -130,7 +130,30 @@ describe Ably::Realtime::Channel do
           end
         end
 
-        skip 'ensure REST history message IDs match ProtocolMessage wrapped message IDs via Realtime'
+        context 'message IDs for messages with identical event name & data' do
+          let(:batches) { 3 }
+          let(:messages_per_batch) { 10 }
+
+          specify 'are unqiue and match between Rest & Real-time' do
+            run_reactor(5) do
+              batches.times do |batch|
+                EventMachine.add_timer(batch.to_f / batches.to_f) do
+                  messages_per_batch.times { channel.publish('event', 'data') }
+                end
+              end
+
+              channel.subscribe('event') do |message|
+                messages << message
+                if messages.count == batches * messages_per_batch
+                  channel.history do |history|
+                    expect(history.map(&:id).sort).to eql(messages.map(&:id).sort)
+                    stop_reactor
+                  end
+                end
+              end
+            end
+          end
+        end
       end
     end
   end

@@ -114,7 +114,7 @@ module Ably::Models
     attr_reader :raw_hash_object
 
     def protocol_message_index
-      protocol_message.messages.index(self)
+      protocol_message.messages.map(&:object_id).index(self.object_id)
     end
 
     def connection_id

@@ -193,6 +193,29 @@ describe Ably::Models::Message do
     it 'should not allow changes to the payload' do
       expect { message_0.data["test"] = true }.to raise_error RuntimeError, /can't modify frozen Hash/
     end
+
+    context 'with identical message objects' do
+      let(:protocol_message) do
+        Ably::Models::ProtocolMessage.new({
+          action: :message,
+          timestamp: ably_time.to_i,
+          msg_serial: message_serial,
+          id: protocol_message_id,
+          messages: [
+            message_0_json, message_0_json, message_0_json
+          ]
+        })
+      end
+
+      it 'provide a unique ID:index' do
+        expect(protocol_message.messages.map(&:id).uniq.count).to eql(3)
+      end
+
+      it 'recognises the index based on the object ID as opposed to message payload' do
+        expect(protocol_message.messages.first.id).to match(/0$/)
+        expect(protocol_message.messages.last.id).to match(/2$/)
+      end
+    end
   end
 
   context 'Message conversion method' do
