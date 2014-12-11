@@ -2,7 +2,7 @@ require 'timeout'
 
 module RSpec
   module EventMachine
-    def run_reactor(timeout = 3)
+    def run_reactor(timeout = 5)
       Timeout::timeout(timeout + 0.5) do
         EM.run do
           yield
