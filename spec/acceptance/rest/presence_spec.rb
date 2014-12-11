@@ -1,6 +1,5 @@
 # encoding: utf-8
 require 'spec_helper'
-require 'securerandom'
 
 describe Ably::Rest::Presence do
   include Ably::Modules::Conversions
@@ -82,10 +81,10 @@ describe Ably::Rest::Presence do
       end
 
       describe 'options' do
-        let(:channel_name) { "persisted:#{SecureRandom.hex(4)}".force_encoding(Encoding::UTF_8) }
+        let(:channel_name) { "persisted:#{random_str(4)}" }
         let(:presence) { client.channel(channel_name).presence }
         let(:user) { 'appid.keyuid' }
-        let(:secret) { SecureRandom.hex(8) }
+        let(:secret) { random_str(8) }
         let(:endpoint) do
           client.endpoint.tap do |client_end_point|
             client_end_point.user = user
@@ -131,7 +130,7 @@ describe Ably::Rest::Presence do
 
       describe 'decoding', webmock: true do
         let(:user) { 'appid.keyuid' }
-        let(:secret) { SecureRandom.hex(8) }
+        let(:secret) { random_str(8) }
         let(:endpoint) do
           client.endpoint.tap do |client_end_point|
             client_end_point.user = user
@@ -142,9 +141,9 @@ describe Ably::Rest::Presence do
           Ably::Rest::Client.new(api_key: "#{user}:#{secret}", environment: environment, protocol: protocol)
         end
 
-        let(:data)            { SecureRandom.hex(32) }
-        let(:channel_name)    { "persisted:#{SecureRandom.hex(4)}".force_encoding(Encoding::UTF_8) }
-        let(:cipher_options)  { { key: SecureRandom.hex(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
+        let(:data)            { random_str(32) }
+        let(:channel_name)    { "persisted:#{random_str(4)}" }
+        let(:cipher_options)  { { key: random_str(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
         let(:presence)        { client.channel(channel_name, encrypted: true, cipher_params: cipher_options).presence }
 
         let(:crypto)          { Ably::Util::Crypto.new(cipher_options) }

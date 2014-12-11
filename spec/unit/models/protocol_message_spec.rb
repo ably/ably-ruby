@@ -39,7 +39,7 @@ describe Ably::Models::ProtocolMessage do
   end
 
   context 'attributes' do
-    let(:unique_value) { SecureRandom.hex }
+    let(:unique_value) { random_str }
 
     context 'Java naming' do
       let(:protocol_message) { new_protocol_message(channelSerial: unique_value) }

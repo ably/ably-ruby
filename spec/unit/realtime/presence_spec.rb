@@ -27,7 +27,7 @@ describe Ably::Realtime::Presence do
     let(:message) do
       Ably::Models::PresenceMessage.new({
         'action' => 0,
-        'member_id' => SecureRandom.hex.force_encoding(Encoding::UTF_8),
+        'member_id' => random_str,
       }, instance_double('Ably::Models::ProtocolMessage'))
     end
     let(:msgbus) { subject.__incoming_msgbus__ }
@@ -49,7 +49,7 @@ describe Ably::Realtime::Presence do
     let(:message_history) { Hash.new { |hash, key| hash[key] = 0 } }
     let(:presence_action) { Ably::Models::PresenceMessage::ACTION.Enter }
     let(:message) do
-      instance_double('Ably::Models::PresenceMessage', action: presence_action, member_id: SecureRandom.hex, decode: true)
+      instance_double('Ably::Models::PresenceMessage', action: presence_action, member_id: random_str, decode: true)
     end
 
     context '#subscribe' do

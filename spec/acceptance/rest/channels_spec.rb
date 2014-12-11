@@ -1,6 +1,5 @@
 # encoding: utf-8
 require 'spec_helper'
-require 'securerandom'
 
 describe Ably::Rest::Channels do
   [:msgpack, :json].each do |protocol|
@@ -8,7 +7,7 @@ describe Ably::Rest::Channels do
       let(:client) do
         Ably::Rest::Client.new(api_key: api_key, environment: environment, protocol: protocol)
       end
-      let(:channel_name) { SecureRandom.hex.force_encoding(Encoding::UTF_8) }
+      let(:channel_name) { random_str }
       let(:options)      { { key: 'value' } }
 
       shared_examples 'a channel' do

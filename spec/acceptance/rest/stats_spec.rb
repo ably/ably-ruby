@@ -1,6 +1,5 @@
 # encoding: utf-8
 require 'spec_helper'
-require 'securerandom'
 
 describe 'Ably::Rest::Client Stats' do
   [:json, :msgpack].each do |protocol|

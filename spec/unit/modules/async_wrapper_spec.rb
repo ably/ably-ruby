@@ -1,5 +1,4 @@
 require 'spec_helper'
-require 'securerandom'
 
 describe Ably::Modules::AsyncWrapper do
   include RSpec::EventMachine
@@ -18,7 +17,7 @@ describe Ably::Modules::AsyncWrapper do
     end
   end
   let(:subject)    { class_with_module.new }
-  let(:result)     { SecureRandom.hex }
+  let(:result)     { random_str }
   let(:sleep_time) { 0.1 }
 
   before do

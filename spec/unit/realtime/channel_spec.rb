@@ -12,7 +12,7 @@ describe Ably::Realtime::Channel do
 
   describe '#initializer' do
     context 'as UTF_8 string' do
-      let(:channel_name) { SecureRandom.hex.force_encoding(Encoding::UTF_8) }
+      let(:channel_name) { random_str.force_encoding(Encoding::UTF_8) }
 
       it 'is permitted' do
         expect(subject.name).to eql(channel_name)
@@ -20,7 +20,7 @@ describe Ably::Realtime::Channel do
     end
 
     context 'as SHIFT_JIS string' do
-      let(:channel_name) { SecureRandom.hex.force_encoding(Encoding::SHIFT_JIS) }
+      let(:channel_name) { random_str.force_encoding(Encoding::SHIFT_JIS) }
 
       it 'raises an argument error' do
         expect { subject }.to raise_error ArgumentError
@@ -28,7 +28,7 @@ describe Ably::Realtime::Channel do
     end
 
     context 'as ASCII_8BIT string' do
-      let(:channel_name) { SecureRandom.hex.force_encoding(Encoding::ASCII_8BIT) }
+      let(:channel_name) { random_str.force_encoding(Encoding::ASCII_8BIT) }
 
       it 'raises an argument error' do
         expect { subject }.to raise_error ArgumentError
@@ -53,7 +53,7 @@ describe Ably::Realtime::Channel do
   end
 
   describe '#publish name argument' do
-    let(:value) { SecureRandom.hex }
+    let(:value) { random_str }
 
     before do
       allow(subject).to receive(:create_message).and_return('message_stubbed')

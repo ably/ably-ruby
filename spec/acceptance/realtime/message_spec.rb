@@ -1,9 +1,8 @@
 # encoding: utf-8
-
 require 'spec_helper'
-require 'securerandom'
-require 'json'
 require 'base64'
+require 'json'
+require 'securerandom'
 
 describe 'Ably::Realtime::Channel Messages' do
   include RSpec::EventMachine
@@ -80,7 +79,7 @@ describe 'Ably::Realtime::Channel Messages' do
       context 'with multiple messages' do
         let(:send_count)     { 15 }
         let(:expected_echos) { send_count * 2 }
-        let(:channel_name)   { SecureRandom.hex.force_encoding(Encoding::UTF_8) }
+        let(:channel_name)   { random_str }
         let(:echos) do
           { client: 0, other: 0 }
         end
@@ -255,11 +254,11 @@ describe 'Ably::Realtime::Channel Messages' do
         end
 
         context 'multiple sends from one client to another' do
-          let(:cipher_options)            { { key: SecureRandom.hex(32) } }
+          let(:cipher_options)            { { key: random_str(32) } }
           let(:encrypted_channel_client1) { client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
           let(:encrypted_channel_client2) { other_client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
 
-          let(:data) { MessagePack.pack({ 'key' => SecureRandom.hex }) }
+          let(:data) { MessagePack.pack({ 'key' => random_str }) }
           let(:message_count) { 50 }
 
           it 'encrypt and decrypt messages' do
@@ -296,7 +295,7 @@ describe 'Ably::Realtime::Channel Messages' do
             Ably::Realtime::Client.new(default_options.merge(protocol: other_protocol))
           end
 
-          let(:cipher_options)            { { key: SecureRandom.hex(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
+          let(:cipher_options)            { { key: random_str(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
           let(:encrypted_channel_client1) { client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
           let(:encrypted_channel_client2) { other_client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
 
@@ -321,11 +320,11 @@ describe 'Ably::Realtime::Channel Messages' do
         end
 
         context 'publishing on an unencrypted channel and subscribing on an encrypted channel with another client' do
-          let(:cipher_options)              { { key: SecureRandom.hex(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
+          let(:cipher_options)              { { key: random_str(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
           let(:unencrypted_channel_client1) { client.channel(channel_name) }
           let(:encrypted_channel_client2)   { other_client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
 
-          let(:payload) { MessagePack.pack({ 'key' => SecureRandom.hex }) }
+          let(:payload) { MessagePack.pack({ 'key' => random_str }) }
 
           it 'does not attempt to decrypt the message' do
             run_reactor do
@@ -340,11 +339,11 @@ describe 'Ably::Realtime::Channel Messages' do
         end
 
         context 'publishing on an encrypted channel and subscribing on an unencrypted channel with another client' do
-          let(:cipher_options)              { { key: SecureRandom.hex(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
+          let(:cipher_options)              { { key: random_str(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
           let(:encrypted_channel_client1)   { client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
           let(:unencrypted_channel_client2) { other_client.channel(channel_name) }
 
-          let(:payload) { MessagePack.pack({ 'key' => SecureRandom.hex }) }
+          let(:payload) { MessagePack.pack({ 'key' => random_str }) }
 
           it 'delivers the message but still encrypted' do
             run_reactor do
@@ -373,12 +372,12 @@ describe 'Ably::Realtime::Channel Messages' do
         end
 
         context 'publishing on an encrypted channel and subscribing with a different algorithm on another client' do
-          let(:cipher_options_client1)    { { key: SecureRandom.hex(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
+          let(:cipher_options_client1)    { { key: random_str(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
           let(:encrypted_channel_client1) { client.channel(channel_name, encrypted: true, cipher_params: cipher_options_client1) }
-          let(:cipher_options_client2)    { { key: SecureRandom.hex(32), algorithm: 'aes', mode: 'cbc', key_length: 128 } }
+          let(:cipher_options_client2)    { { key: random_str(32), algorithm: 'aes', mode: 'cbc', key_length: 128 } }
           let(:encrypted_channel_client2) { other_client.channel(channel_name, encrypted: true, cipher_params: cipher_options_client2) }
 
-          let(:payload) { MessagePack.pack({ 'key' => SecureRandom.hex }) }
+          let(:payload) { MessagePack.pack({ 'key' => random_str }) }
 
           it 'delivers the message but still encrypted' do
             run_reactor do
@@ -407,12 +406,12 @@ describe 'Ably::Realtime::Channel Messages' do
         end
 
         context 'publishing on an encrypted channel and subscribing with a different key on another client' do
-          let(:cipher_options_client1)    { { key: SecureRandom.hex(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
+          let(:cipher_options_client1)    { { key: random_str(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
           let(:encrypted_channel_client1) { client.channel(channel_name, encrypted: true, cipher_params: cipher_options_client1) }
-          let(:cipher_options_client2)    { { key: SecureRandom.hex(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
+          let(:cipher_options_client2)    { { key: random_str(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
           let(:encrypted_channel_client2) { other_client.channel(channel_name, encrypted: true, cipher_params: cipher_options_client2) }
 
-          let(:payload) { MessagePack.pack({ 'key' => SecureRandom.hex }) }
+          let(:payload) { MessagePack.pack({ 'key' => random_str }) }
 
           it 'delivers the message but still encrypted' do
             run_reactor do

@@ -1,5 +1,4 @@
 require 'spec_helper'
-require 'securerandom'
 
 describe Ably::Models::IdiomaticRubyWrapper do
   include Ably::Modules::Conversions
@@ -107,7 +106,7 @@ describe Ably::Models::IdiomaticRubyWrapper do
         'lowercasestring'   => 'lowercasestringValue'
       }
     end
-    let(:unique_value) { SecureRandom.hex }
+    let(:unique_value) { random_str }
 
     subject { Ably::Models::IdiomaticRubyWrapper.new(data) }
 
