@@ -129,12 +129,24 @@ describe Ably::Models::Message do
   end
 
   context 'from REST request with embedded fields' do
-    let(:id) { random_str }
-    let(:message_time) { Time.now + 60 }
-    let(:timestamp) { as_since_epoch(message_time) }
-    let(:model) { subject.new(id: id, timestamp: timestamp) }
+    let(:id)                  { random_str }
+    let(:protocol_message_id) { random_str }
+    let(:message_time)        { Time.now + 60 }
+    let(:message_timestamp)   { as_since_epoch(message_time) }
+    let(:protocol_time)       { Time.now }
+    let(:protocol_timestamp)  { as_since_epoch(protocol_time) }
+
+    let(:protocol_message) do
+      Ably::Models::ProtocolMessage.new({
+        action: :message,
+        timestamp: protocol_timestamp,
+        id: protocol_message_id
+      })
+    end
 
     context 'with protocol message' do
+      let(:model) { subject.new({ id: id, timestamp: message_timestamp }, protocol_message) }
+
       specify '#id prefers embedded ID' do
         expect(model.id).to eql(id)
       end
@@ -145,6 +157,8 @@ describe Ably::Models::Message do
     end
 
     context 'without protocol message' do
+      let(:model) { subject.new(id: id, timestamp: message_timestamp) }
+
       specify '#id uses embedded ID' do
         expect(model.id).to eql(id)
       end
