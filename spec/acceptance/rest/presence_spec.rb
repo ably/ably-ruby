@@ -98,7 +98,7 @@ describe Ably::Rest::Presence do
         [:start, :end].each do |option|
           describe ":{option}", webmock: true do
             let!(:history_stub) {
-              stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence/history?live=true&#{option}=#{milliseconds}").
+              stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence/history?#{option}=#{milliseconds}").
                 to_return(:body => '{}', :headers => { 'Content-Type' => 'application/json' })
             }
 
@@ -186,7 +186,7 @@ describe Ably::Rest::Presence do
 
           context '#history' do
             let!(:history_stub)   {
-              stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence/history?live=true").
+              stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence/history").
                 to_return(:body => serialized_encoded_message, :headers => { 'Content-Type' => content_type })
             }
 
@@ -230,7 +230,7 @@ describe Ably::Rest::Presence do
 
           context '#history' do
             let!(:history_stub)   {
-              stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence/history?live=true").
+              stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence/history").
                 to_return(:body => serialized_encoded_message_with_invalid_encoding, :headers => { 'Content-Type' => content_type })
             }
 
