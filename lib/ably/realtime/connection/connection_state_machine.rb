@@ -42,17 +42,19 @@ module Ably::Realtime
       #   :connected
       #   :disconnected
       #   :suspended
+      #   :closing
       #   :closed
       #   :failed
       Connection::STATE.each_with_index do |state_enum, index|
         state state_enum.to_sym, initial: index == 0
       end
 
-      transition :from => :initialized,  :to => [:connecting, :closed]
-      transition :from => :connecting,   :to => [:connected, :failed, :closed, :disconnected]
-      transition :from => :connected,    :to => [:disconnected, :suspended, :closed, :failed]
-      transition :from => :disconnected, :to => [:connecting, :closed, :failed]
-      transition :from => :suspended,    :to => [:connecting, :closed, :failed]
+      transition :from => :initialized,  :to => [:connecting, :closing]
+      transition :from => :connecting,   :to => [:connected, :failed, :closing, :disconnected]
+      transition :from => :connected,    :to => [:disconnected, :suspended, :closing, :failed]
+      transition :from => :disconnected, :to => [:connecting, :closing, :failed]
+      transition :from => :suspended,    :to => [:connecting, :closing, :failed]
+      transition :from => :closing,      :to => [:closed]
       transition :from => :closed,       :to => [:connecting]
       transition :from => :failed,       :to => [:connecting]
 
@@ -80,11 +82,12 @@ module Ably::Realtime
         connection.manager.destroy_transport
       end
 
-      before_transition(to: [:closed], from: [:initialized]) do |connection|
+      after_transition(to: [:closing], from: [:initialized]) do |connection|
         connection.manager.cancel_initialized_timers
+        connection.manager.force_close_connection
       end
 
-      before_transition(to: [:closed], from: [:connecting, :connected, :disconnected, :suspended]) do |connection|
+      after_transition(to: [:closing], from: [:connecting, :connected, :disconnected, :suspended]) do |connection|
         connection.manager.close_connection
       end
 

@@ -20,7 +20,7 @@ module Ably::Realtime
       attr_reader :client, :connection
 
       def can_send_messages?
-        connection.connected?
+        connection.connected? || connection.closing?
       end
 
       def messages_in_outgoing_queue?
