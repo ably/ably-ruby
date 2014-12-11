@@ -47,6 +47,7 @@ module Ably
         :connected,
         :disconnected,
         :suspended,
+        :closing,
         :closed,
         :failed
       )
@@ -106,7 +107,7 @@ module Ably
           block.call self
         else
           EventMachine.next_tick do
-            transition_state_machine(:closed)
+            transition_state_machine(:closing)
           end
           once(STATE.Closed) { block.call self } if block_given?
         end

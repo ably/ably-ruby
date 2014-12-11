@@ -67,13 +67,17 @@ module Ably::Realtime
       #
       # @api private
       def close_connection
-        protocol_message = connection.send_protocol_message(action: Ably::Models::ProtocolMessage::ACTION.Close)
-
-        unsubscribe_from_transport_events transport
-
-        protocol_message.callback do
-          destroy_transport
+        connection.send_protocol_message(action: Ably::Models::ProtocolMessage::ACTION.Close) do
+          force_close_connection
         end
+      end
+
+      # Close the underlying transport immediately and set the connection state to closed
+      #
+      # @api private
+      def force_close_connection
+        destroy_transport
+        connection.transition_state_machine :closed
       end
 
       # Remove all timers set up as part of the initialize process.
@@ -151,7 +155,11 @@ module Ably::Realtime
         end
 
         transport.on(:disconnected) do
-          connection.transition_state_machine :disconnected
+          if connection.closing?
+            connection.transition_state_machine :closed
+          else
+            connection.transition_state_machine :disconnected
+          end
         end
       end
 
