@@ -48,31 +48,45 @@ describe Ably::Models::PresenceMessage do
   context 'initialized with' do
     %w(client_id member_id encoding).each do |attribute|
       context ":#{attribute}" do
-        let(:value)   { random_str }
-        let(:options) { { attribute.to_sym => encoded_value, action: 0 } }
-        let(:model)   { subject.new(options, protocol_message) }
+        let(:encoded_value)   { value.encode(encoding) }
+        let(:value)           { random_str }
+        let(:options)         { { attribute.to_sym => encoded_value } }
+        let(:model)           { subject.new(options, protocol_message) }
+        let(:model_attribute) { model.public_send(attribute) }
 
         context 'as UTF_8 string' do
-          let(:encoded_value) { value.force_encoding(Encoding::UTF_8) }
+          let(:encoding) { Encoding::UTF_8 }
 
           it 'is permitted' do
-            expect(model.public_send(attribute)).to eql(encoded_value)
+            expect(model_attribute).to eql(encoded_value)
+          end
+
+          it 'remains as UTF-8' do
+            expect(model_attribute.encoding).to eql(Encoding::UTF_8)
           end
         end
 
         context 'as SHIFT_JIS string' do
-          let(:encoded_value) { value.force_encoding(Encoding::SHIFT_JIS) }
+          let(:encoding) { Encoding::SHIFT_JIS }
 
-          it 'raises an argument error' do
-            expect { model }.to raise_error ArgumentError
+          it 'gets converted to UTF-8' do
+            expect(model_attribute.encoding).to eql(Encoding::UTF_8)
+          end
+
+          it 'is compatible with original encoding' do
+            expect(model_attribute.encode(encoding)).to eql(encoded_value)
           end
         end
 
         context 'as ASCII_8BIT string' do
-          let(:encoded_value) { value.force_encoding(Encoding::ASCII_8BIT) }
+          let(:encoding) { Encoding::ASCII_8BIT }
 
-          it 'raises an argument error' do
-            expect { model }.to raise_error ArgumentError
+          it 'gets converted to UTF-8' do
+            expect(model_attribute.encoding).to eql(Encoding::UTF_8)
+          end
+
+          it 'is compatible with original encoding' do
+            expect(model_attribute.encode(encoding)).to eql(encoded_value)
           end
         end
 
@@ -80,7 +94,15 @@ describe Ably::Models::PresenceMessage do
           let(:encoded_value) { 1 }
 
           it 'raises an argument error' do
-            expect { model }.to raise_error ArgumentError
+            expect { model_attribute }.to raise_error ArgumentError, /must be a String/
+          end
+        end
+
+        context 'as Nil' do
+          let(:encoded_value) { nil }
+
+          it 'is permitted' do
+            expect(model_attribute).to be_nil
           end
         end
       end

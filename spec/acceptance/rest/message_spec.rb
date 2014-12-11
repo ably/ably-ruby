@@ -10,6 +10,17 @@ describe 'Ably::Rest Message' do
       let(:default_client_options) { { api_key: api_key, environment: environment, protocol: protocol } }
       let(:client)                 { Ably::Rest::Client.new(default_client_options) }
       let(:other_client)           { Ably::Rest::Client.new(default_client_options) }
+      let(:channel)                { client.channel('test') }
+
+      context 'with ASCII_8BIT message name' do
+        let(:message_name) { random_str.encode(Encoding::ASCII_8BIT) }
+        it 'is converted into UTF_8' do
+          channel.publish message_name, 'example'
+          message = channel.history.first
+          expect(message.name.encoding).to eql(Encoding::UTF_8)
+          expect(message.name.encode(Encoding::ASCII_8BIT)).to eql(message_name)
+        end
+      end
 
       describe 'encryption and encoding' do
         let(:channel_name)      { "persisted:#{random_str}" }
@@ -102,7 +113,7 @@ describe 'Ably::Rest Message' do
 
             it 'encrypt and decrypt messages' do
               message_count.times do |index|
-                encrypted_channel.publish index.to_s.force_encoding(Encoding::UTF_8), "#{index}-#{data}"
+                encrypted_channel.publish index.to_s, "#{index}-#{data}"
               end
 
               messages = encrypted_channel.history

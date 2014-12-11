@@ -54,8 +54,8 @@ module Ably
       if auth_options[:api_key]
         api_key_parts = auth_options[:api_key].to_s.match(/(?<id>[\w_-]+\.[\w_-]+):(?<secret>[\w_-]+)/)
         raise ArgumentError, 'api_key is invalid' unless api_key_parts
-        auth_options[:key_id] = api_key_parts[:id].force_encoding(Encoding::UTF_8)
-        auth_options[:key_secret] = api_key_parts[:secret].force_encoding(Encoding::UTF_8)
+        auth_options[:key_id] = api_key_parts[:id].encode(Encoding::UTF_8)
+        auth_options[:key_secret] = api_key_parts[:secret].encode(Encoding::UTF_8)
       end
 
       if using_basic_auth? && !api_key_present?
@@ -64,8 +64,7 @@ module Ably
 
       if has_client_id?
         raise ArgumentError, 'client_id cannot be provided without a complete API key. Key ID & Secret is needed to authenticate with Ably and obtain a token' unless api_key_present?
-        raise ArgumentError, 'client_id must be a UTF_8 encoded String' unless client_id.kind_of?(String)
-        raise ArgumentError, 'client_id must be a UTF_8 encoded String' unless client_id.encoding == Encoding::UTF_8
+        ensure_utf_8 :client_id, client_id
       end
 
       @options.freeze
@@ -222,9 +221,7 @@ module Ably
         token_request[:capability] = token_request[:capability].to_json
       end
 
-      if token_request[:nonce] && token_request[:nonce].encoding != Encoding::UTF_8
-        token_request[:nonce] = token_request[:nonce].force_encoding(Encoding::UTF_8)
-      end
+      ensure_utf_8 :nonce, token_request[:nonce], allow_nil: true
 
       token_request[:mac] = sign_params(token_request, request_key_secret)
       token_request

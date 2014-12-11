@@ -111,7 +111,7 @@ describe Ably::Models::MessageEncoders::Base64 do
       end
 
       context 'message with empty binary string payload' do
-        let(:message) { { data: ''.force_encoding(Encoding::ASCII_8BIT), encoding: nil } }
+        let(:message) { { data: ''.encode(Encoding::ASCII_8BIT), encoding: nil } }
 
         it 'leaves the message data intact' do
           expect(message[:data]).to eql('')
