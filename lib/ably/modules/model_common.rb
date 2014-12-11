@@ -29,5 +29,13 @@ module Ably::Modules
     def to_json(*args)
       as_json.to_json(*args)
     end
+
+    private
+    def ensure_utf8_string_for(attribute, value)
+      if value
+        raise ArgumentError, "#{attribute} must be a String" unless value.kind_of?(String)
+        raise ArgumentError, "#{attribute} cannot use ASCII_8BIT encoding, please use UTF_8 encoding" unless value.encoding == Encoding::UTF_8
+      end
+    end
   end
 end

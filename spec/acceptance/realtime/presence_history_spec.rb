@@ -1,3 +1,4 @@
+# encoding: utf-8
 require 'spec_helper'
 require 'securerandom'
 
@@ -8,13 +9,13 @@ describe 'Ably::Realtime::Presence Messages' do
     context "over #{protocol}" do
       let(:default_options) { { api_key: api_key, environment: environment, protocol: protocol } }
 
-      let(:channel_name)        { "persisted:#{SecureRandom.hex(2)}" }
+      let(:channel_name)        { "persisted:#{SecureRandom.hex(2)}".force_encoding(Encoding::UTF_8) }
 
-      let(:client_one)          { Ably::Realtime::Client.new(default_options.merge(client_id: SecureRandom.hex(4))) }
+      let(:client_one)          { Ably::Realtime::Client.new(default_options.merge(client_id: SecureRandom.hex(4).force_encoding(Encoding::UTF_8))) }
       let(:channel_client_one)  { client_one.channel(channel_name) }
       let(:presence_client_one) { channel_client_one.presence }
 
-      let(:client_two)          { Ably::Realtime::Client.new(default_options.merge(client_id: SecureRandom.hex(4))) }
+      let(:client_two)          { Ably::Realtime::Client.new(default_options.merge(client_id: SecureRandom.hex(4).force_encoding(Encoding::UTF_8))) }
       let(:channel_client_two)  { client_two.channel(channel_name) }
       let(:presence_client_two) { channel_client_two.presence }
 

@@ -1,76 +1,77 @@
+# encoding: utf-8
 require 'spec_helper'
 require 'securerandom'
 
 describe 'REST' do
+  describe 'protocol' do
+    include Ably::Modules::Conversions
+
+    let(:client_options) { {} }
+    let(:client) do
+      Ably::Rest::Client.new(client_options.merge(api_key: 'appid.keyuid:keysecret'))
+    end
+
+    context 'transport' do
+      let(:now) { Time.now - 1000 }
+      let(:body_value) { [as_since_epoch(now)] }
+
+      before do
+        stub_request(:get, "#{client.endpoint}/time").
+          with(:headers => { 'Accept' => mime }).
+          to_return(:status => 200, :body => request_body, :headers => { 'Content-Type' => mime })
+      end
+
+      context 'when protocol is not defined it defaults to :msgpack' do
+        let(:client_options) { { } }
+        let(:mime) { 'application/x-msgpack' }
+        let(:request_body) { body_value.to_msgpack }
+
+        it 'uses MsgPack', webmock: true do
+          expect(client.protocol).to eql(:msgpack)
+          expect(client.time).to be_within(1).of(now)
+        end
+      end
+
+      options = [
+          { protocol: :json },
+          { use_binary_protocol: false }
+        ].each do |client_option|
+
+        context "when option #{client_option} is used" do
+          let(:client_options) { client_option }
+          let(:mime) { 'application/json' }
+          let(:request_body) { body_value.to_json }
+
+          it 'uses JSON', webmock: true do
+            expect(client.protocol).to eql(:json)
+            expect(client.time).to be_within(1).of(now)
+          end
+        end
+      end
+
+      options = [
+          { protocol: :json },
+          { use_binary_protocol: false }
+        ].each do |client_option|
+
+        context "when option #{client_option} is used" do
+          let(:client_options) { { protocol: :msgpack } }
+          let(:mime) { 'application/x-msgpack' }
+          let(:request_body) { body_value.to_msgpack }
+
+          it 'uses MsgPack', webmock: true do
+            expect(client.protocol).to eql(:msgpack)
+            expect(client.time).to be_within(1).of(now)
+          end
+        end
+      end
+    end
+  end
+
   [:msgpack, :json].each do |protocol|
     context "over #{protocol}" do
       let(:client) do
         Ably::Rest::Client.new(api_key: api_key, environment: environment, protocol: protocol)
-      end
-
-      describe 'protocol' do
-        include Ably::Modules::Conversions
-
-        let(:client_options) { {} }
-        let(:client) do
-          Ably::Rest::Client.new(client_options.merge(api_key: 'appid.keyuid:keysecret', protocol: protocol))
-        end
-
-        context 'transport' do
-          let(:now) { Time.now - 1000 }
-          let(:body_value) { [as_since_epoch(now)] }
-
-          before do
-            stub_request(:get, "#{client.endpoint}/time").
-              with(:headers => { 'Accept' => mime }).
-              to_return(:status => 200, :body => request_body, :headers => { 'Content-Type' => mime })
-          end
-
-          context 'when protocol is not defined it defaults to :msgpack' do
-            let(:client_options) { { } }
-            let(:mime) { 'application/x-msgpack' }
-            let(:request_body) { body_value.to_msgpack }
-
-            it 'uses MsgPack', webmock: true do
-              expect(client.protocol).to eql(:msgpack)
-              expect(client.time).to be_within(1).of(now)
-            end
-          end
-
-          options = [
-              { protocol: :json },
-              { use_binary_protocol: false }
-            ].each do |client_option|
-
-            context "when option #{client_option} is used" do
-              let(:client_options) { client_option }
-              let(:mime) { 'application/json' }
-              let(:request_body) { body_value.to_json }
-
-              it 'uses JSON', webmock: true do
-                expect(client.protocol).to eql(:json)
-                expect(client.time).to be_within(1).of(now)
-              end
-            end
-          end
-
-          options = [
-              { protocol: :json },
-              { use_binary_protocol: false }
-            ].each do |client_option|
-
-            context "when option #{client_option} is used" do
-              let(:client_options) { { protocol: :msgpack } }
-              let(:mime) { 'application/x-msgpack' }
-              let(:request_body) { body_value.to_msgpack }
-
-              it 'uses MsgPack', webmock: true do
-                expect(client.protocol).to eql(:msgpack)
-                expect(client.time).to be_within(1).of(now)
-              end
-            end
-          end
-        end
       end
 
       describe 'invalid requests in middleware' do
@@ -200,8 +201,8 @@ describe 'REST' do
               send("token_request_#{@request_index}")
             end
           end
-          let(:token_request_1) { client.auth.create_token_request(token_request_options.merge(client_id: SecureRandom.hex)) }
-          let(:token_request_2) { client.auth.create_token_request(token_request_options.merge(client_id: SecureRandom.hex)) }
+          let(:token_request_1) { client.auth.create_token_request(token_request_options.merge(client_id: SecureRandom.hex.force_encoding(Encoding::UTF_8))) }
+          let(:token_request_2) { client.auth.create_token_request(token_request_options.merge(client_id: SecureRandom.hex.force_encoding(Encoding::UTF_8))) }
 
           context 'when expired' do
             let(:token_request_options) { { key_id: key_id, key_secret: key_secret, ttl: Ably::Models::Token::TOKEN_EXPIRY_BUFFER } }

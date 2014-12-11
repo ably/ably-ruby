@@ -1,3 +1,4 @@
+# encoding: utf-8
 require 'spec_helper'
 require 'securerandom'
 
@@ -11,8 +12,8 @@ describe 'Ably::Realtime::Presence Messages' do
       let(:channel_name) { "presence-#{SecureRandom.hex(2)}" }
 
       let(:anonymous_client) { Ably::Realtime::Client.new(default_options) }
-      let(:client_one)       { Ably::Realtime::Client.new(default_options.merge(client_id: SecureRandom.hex(4))) }
-      let(:client_two)       { Ably::Realtime::Client.new(default_options.merge(client_id: SecureRandom.hex(4))) }
+      let(:client_one)       { Ably::Realtime::Client.new(default_options.merge(client_id: SecureRandom.hex(4).force_encoding(Encoding::UTF_8))) }
+      let(:client_two)       { Ably::Realtime::Client.new(default_options.merge(client_id: SecureRandom.hex(4).force_encoding(Encoding::UTF_8))) }
 
       let(:channel_anonymous_client)  { anonymous_client.channel(channel_name) }
       let(:presence_anonymous_client) { channel_anonymous_client.presence }
@@ -212,7 +213,7 @@ describe 'Ably::Realtime::Presence Messages' do
       context 'encoding and decoding of presence message data' do
         let(:secret_key)              { SecureRandom.hex(32) }
         let(:cipher_options)          { { key: secret_key, algorithm: 'aes', mode: 'cbc', key_length: 256 } }
-        let(:channel_name)            { SecureRandom.hex(32) }
+        let(:channel_name)            { SecureRandom.hex(32).force_encoding(Encoding::UTF_8) }
         let(:encrypted_channel)       { client_one.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
         let(:channel_rest_client_one) { client_one.rest_client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
 

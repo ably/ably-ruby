@@ -1,9 +1,10 @@
+# encoding: utf-8
 require 'spec_helper'
 
 describe Ably::Rest::Channels do
-  let(:client) { instance_double('Ably::Rest::Client') }
-  let(:channel_name) { 'unique' }
-  let(:options) { { 'bizarre' => 'value' } }
+  let(:client)       { instance_double('Ably::Rest::Client') }
+  let(:channel_name) { 'unique'.force_encoding(Encoding::UTF_8) }
+  let(:options)      { { 'bizarre' => 'value' } }
 
   subject { Ably::Rest::Channels.new(client) }
 

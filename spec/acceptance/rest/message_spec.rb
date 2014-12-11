@@ -13,7 +13,7 @@ describe 'Ably::Rest Message' do
       let(:other_client)           { Ably::Rest::Client.new(default_client_options) }
 
       describe 'encryption and encoding' do
-        let(:channel_name)      { "persisted:#{SecureRandom.hex(4)}" }
+        let(:channel_name)      { "persisted:#{SecureRandom.hex(4)}".force_encoding(Encoding::UTF_8) }
         let(:cipher_options)    { { key: SecureRandom.hex(32) } }
         let(:encrypted_channel) { client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
 
@@ -103,7 +103,7 @@ describe 'Ably::Rest Message' do
 
             it 'encrypt and decrypt messages' do
               message_count.times do |index|
-                encrypted_channel.publish index.to_s, "#{index}-#{data}"
+                encrypted_channel.publish index.to_s.force_encoding(Encoding::UTF_8), "#{index}-#{data}"
               end
 
               messages = encrypted_channel.history

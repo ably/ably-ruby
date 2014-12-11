@@ -1,3 +1,4 @@
+# encoding: utf-8
 require 'spec_helper'
 require 'support/model_helper'
 require 'base64'
@@ -27,6 +28,48 @@ describe Ably::Models::Message do
 
     it 'converts the attribute to ruby symbol naming convention' do
       expect(model.client_id).to eql('joe')
+    end
+  end
+
+  context 'initialized with' do
+    %w(client_id encoding).each do |attribute|
+      context ":#{attribute}" do
+        let(:value)   { SecureRandom.hex }
+        let(:options) { { attribute.to_sym => encoded_value, action: 0 } }
+        let(:model)   { subject.new(options, protocol_message) }
+
+        context 'as UTF_8 string' do
+          let(:encoded_value) { value.force_encoding(Encoding::UTF_8) }
+
+          it 'is permitted' do
+            expect(model.public_send(attribute)).to eql(encoded_value)
+          end
+        end
+
+        context 'as SHIFT_JIS string' do
+          let(:encoded_value) { value.force_encoding(Encoding::SHIFT_JIS) }
+
+          it 'raises an argument error' do
+            expect { model }.to raise_error ArgumentError
+          end
+        end
+
+        context 'as ASCII_8BIT string' do
+          let(:encoded_value) { value.force_encoding(Encoding::ASCII_8BIT) }
+
+          it 'raises an argument error' do
+            expect { model }.to raise_error ArgumentError
+          end
+        end
+
+        context 'as Integer' do
+          let(:encoded_value) { 1 }
+
+          it 'raises an argument error' do
+            expect { model }.to raise_error ArgumentError
+          end
+        end
+      end
     end
   end
 

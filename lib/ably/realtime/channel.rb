@@ -63,6 +63,9 @@ module Ably
       # @option channel_options [Hash]     :cipher_params   A hash of options to configure the encryption. *:key* is required, all other options are optional.  See {Ably::Util::Crypto#initialize} for a list of `cipher_params` options
       #
       def initialize(client, name, channel_options = {})
+        raise ArgumentError, 'name must be a String' unless name.kind_of?(String)
+        raise ArgumentError, 'name must be UTF_8 encoded ' unless name.encoding == Encoding::UTF_8
+
         @client        = client
         @name          = name
         @options       = channel_options.clone.freeze
@@ -92,6 +95,9 @@ module Ably
       #   end
       #
       def publish(name, data, &callback)
+        raise ArgumentError, 'name must be a String' unless name.kind_of?(String)
+        raise ArgumentError, 'name must be UTF_8 encoded ' unless name.encoding == Encoding::UTF_8
+
         create_message(name, data).tap do |message|
           message.callback(&callback) if block_given?
           queue_message message

@@ -80,7 +80,7 @@ describe 'Ably::Realtime::Channel Messages' do
       context 'with multiple messages' do
         let(:send_count)     { 15 }
         let(:expected_echos) { send_count * 2 }
-        let(:channel_name)   { SecureRandom.hex }
+        let(:channel_name)   { SecureRandom.hex.force_encoding(Encoding::UTF_8) }
         let(:echos) do
           { client: 0, other: 0 }
         end
@@ -284,7 +284,7 @@ describe 'Ably::Realtime::Channel Messages' do
               end
 
               message_count.times do |index|
-                encrypted_channel_client2.publish index.to_s, "#{index}-#{data}"
+                encrypted_channel_client2.publish index.to_s.force_encoding(Encoding::UTF_8), "#{index}-#{data}"
               end
             end
           end

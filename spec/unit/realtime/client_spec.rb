@@ -55,7 +55,7 @@ describe Ably::Realtime::Client do
             def_delegators :@logger, :fatal, :error, :warn, :info, :debug, :level, :level=
           end
         end
-        subject { Ably::Realtime::Client.new(api_key: 'appid.keyuid:keysecret', logger: custom_logger.new, log_level: :debug) }
+        subject { Ably::Realtime::Client.new(api_key: 'appid.keyuid:keysecret', logger: custom_logger.new) }
 
         it 'uses the custom logger' do
           expect(subject.logger.logger.class).to eql(custom_logger)
