@@ -53,48 +53,4 @@ describe Ably::Models::MessageEncoders::Utf8 do
       end
     end
   end
-
-  context '#encode' do
-    before do
-      subject.encode message, {}
-    end
-
-    context 'message with json payload' do
-      let(:message) { { data: string_ascii, encoding: 'json' } }
-
-      it 'sets the cencoding' do
-        expect(message[:data]).to eql(string_utf8)
-        expect(message[:data].encoding).to eql(Encoding::UTF_8)
-      end
-
-      it 'adds the encoding' do
-        expect(message[:encoding]).to eql('json/utf-8')
-      end
-    end
-
-
-    context 'message with string payload and no encoding' do
-      let(:message) { { data: string_ascii, encoding: nil } }
-
-      it 'leaves the message data intact' do
-        expect(message[:data]).to eql(string_ascii)
-      end
-
-      it 'leaves the encoding intact' do
-        expect(message[:encoding]).to eql(nil)
-      end
-    end
-
-    context 'message with string payload and UTF-8 encoding' do
-      let(:message) { { data: string_ascii, encoding: 'utf-8' } }
-
-      it 'leaves the message data intact' do
-        expect(message[:data]).to eql(string_ascii)
-      end
-
-      it 'leaves the encoding intact' do
-        expect(message[:encoding]).to eql('utf-8')
-      end
-    end
-  end
 end
