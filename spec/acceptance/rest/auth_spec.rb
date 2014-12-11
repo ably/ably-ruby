@@ -1,3 +1,4 @@
+# encoding: utf-8
 require 'spec_helper'
 require 'securerandom'
 
@@ -53,7 +54,7 @@ describe Ably::Auth do
 
         %w(client_id capability nonce timestamp ttl).each do |option|
           context "option :#{option}", webmock: true do
-            let(:random)         { SecureRandom.random_number(1_000_000_000).to_s }
+            let(:random)         { SecureRandom.random_number(1_000_000_000).to_s.force_encoding(Encoding::UTF_8) }
             let(:options)        { { option.to_sym => random } }
 
             let(:token_response) { { access_token: {} } }
@@ -220,7 +221,7 @@ describe Ably::Auth do
         end
 
         context 'with auth_block' do
-          let(:client_id) { SecureRandom.hex }
+          let(:client_id) { SecureRandom.hex.force_encoding(Encoding::UTF_8) }
           let(:options) { { client_id: client_id } }
           let!(:token) do
             auth.request_token(options) do |block_options|
@@ -317,12 +318,12 @@ describe Ably::Auth do
 
         %w(ttl capability nonce timestamp client_id).each do |attribute|
           context "with option :#{attribute}" do
-            let(:option_value) { SecureRandom.random_number(1_000_000_000) }
+            let(:option_value) { SecureRandom.random_number(1_000_000_000).to_s.force_encoding(Encoding::UTF_8) }
             before do
               options[attribute.to_sym] = option_value
             end
             it "overrides default" do
-              expect(subject[attribute.to_sym]).to eql(option_value)
+              expect(subject[attribute.to_sym].to_s).to eql(option_value.to_s)
             end
           end
         end
@@ -373,7 +374,7 @@ describe Ably::Auth do
               id: SecureRandom.hex,
               ttl: SecureRandom.hex,
               capability: SecureRandom.hex,
-              client_id: SecureRandom.hex,
+              client_id: SecureRandom.hex.force_encoding(Encoding::UTF_8),
               timestamp: SecureRandom.random_number(1_000_000_000),
               nonce: SecureRandom.hex
             }

@@ -1,3 +1,4 @@
+# encoding: utf-8
 require 'securerandom'
 
 shared_examples 'a model' do |shared_options = {}|
@@ -6,7 +7,7 @@ shared_examples 'a model' do |shared_options = {}|
   let(:model) { subject.new(*args) }
 
   context 'attributes' do
-    let(:unique_value) { SecureRandom.hex }
+    let(:unique_value) { SecureRandom.hex.force_encoding(Encoding::UTF_8) }
 
     Array(shared_options[:with_simple_attributes]).each do |attribute|
       context "##{attribute}" do

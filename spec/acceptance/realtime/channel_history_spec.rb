@@ -1,3 +1,4 @@
+# encoding: utf-8
 require 'spec_helper'
 require 'securerandom'
 
@@ -18,7 +19,7 @@ describe Ably::Realtime::Channel do
       end
       let(:channel2) { client2.channel(channel_name) }
 
-      let(:channel_name) { "persisted:#{SecureRandom.hex(2)}" }
+      let(:channel_name) { "persisted:#{SecureRandom.hex(2)}".force_encoding(Encoding::UTF_8) }
       let(:payload) { SecureRandom.hex(4) }
       let(:messages) { [] }
 

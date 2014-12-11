@@ -1,3 +1,4 @@
+# encoding: utf-8
 require 'spec_helper'
 require 'securerandom'
 
@@ -21,7 +22,7 @@ describe Ably::Rest::Channel do
       end
 
       describe 'fetching channel history' do
-        let(:channel) { client.channel("persisted:#{SecureRandom.hex(4)}") }
+        let(:channel) { client.channel("persisted:#{SecureRandom.hex(4)}".force_encoding(Encoding::UTF_8)) }
         let(:expected_history) do
           [
             { :name => 'test1', :data => 'foo' },
@@ -88,7 +89,7 @@ describe Ably::Rest::Channel do
       end
 
       describe 'history options' do
-        let(:channel_name) { "persisted:#{SecureRandom.hex(4)}" }
+        let(:channel_name) { "persisted:#{SecureRandom.hex(4)}".force_encoding(Encoding::UTF_8) }
         let(:channel) { client.channel(channel_name) }
         let(:endpoint) do
           client.endpoint.tap do |client_end_point|

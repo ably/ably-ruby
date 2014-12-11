@@ -50,6 +50,9 @@ module Ably::Models
       @raw_hash_object  = hash_object
 
       set_hash_object hash_object
+
+      ensure_utf8_string_for :client_id, client_id
+      ensure_utf8_string_for :encoding,  encoding
     end
 
     %w( name client_id encoding ).each do |attribute|

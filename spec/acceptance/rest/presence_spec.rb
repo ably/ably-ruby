@@ -1,3 +1,4 @@
+# encoding: utf-8
 require 'spec_helper'
 require 'securerandom'
 
@@ -81,7 +82,7 @@ describe Ably::Rest::Presence do
       end
 
       describe 'options' do
-        let(:channel_name) { "persisted:#{SecureRandom.hex(4)}" }
+        let(:channel_name) { "persisted:#{SecureRandom.hex(4)}".force_encoding(Encoding::UTF_8) }
         let(:presence) { client.channel(channel_name).presence }
         let(:user) { 'appid.keyuid' }
         let(:secret) { SecureRandom.hex(8) }
@@ -142,7 +143,7 @@ describe Ably::Rest::Presence do
         end
 
         let(:data)            { SecureRandom.hex(32) }
-        let(:channel_name)    { "persisted:#{SecureRandom.hex(4)}" }
+        let(:channel_name)    { "persisted:#{SecureRandom.hex(4)}".force_encoding(Encoding::UTF_8) }
         let(:cipher_options)  { { key: SecureRandom.hex(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
         let(:presence)        { client.channel(channel_name, encrypted: true, cipher_params: cipher_options).presence }
 

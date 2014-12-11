@@ -1,3 +1,4 @@
+# encoding: utf-8
 require 'spec_helper'
 require 'support/protocol_msgbus_helper'
 
@@ -26,7 +27,7 @@ describe Ably::Realtime::Presence do
     let(:message) do
       Ably::Models::PresenceMessage.new({
         'action' => 0,
-        'member_id' => SecureRandom.hex,
+        'member_id' => SecureRandom.hex.force_encoding(Encoding::UTF_8),
       }, instance_double('Ably::Models::ProtocolMessage'))
     end
     let(:msgbus) { subject.__incoming_msgbus__ }
