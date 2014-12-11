@@ -68,15 +68,14 @@ module Ably
         url = "#{base_path}/messages"
         options = options.dup
 
-        merge_options = { live: true }  # TODO: Remove live param as all history should be live
-        [:start, :end].each { |option| merge_options[option] = as_since_epoch(options[option]) if options.has_key?(option) }
+        [:start, :end].each { |option| options[option] = as_since_epoch(options[option]) if options.has_key?(option) }
 
         paginated_options = {
           coerce_into: 'Ably::Models::Message',
           async_blocking_operations: options.delete(:async_blocking_operations),
         }
 
-        response = client.get(url, options.merge(merge_options))
+        response = client.get(url, options)
 
         Ably::Models::PaginatedResource.new(response, url, client, paginated_options) do |message|
           message.tap do |message|

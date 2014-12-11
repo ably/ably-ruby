@@ -100,7 +100,7 @@ describe Ably::Rest::Channel do
         [:start, :end].each do |option|
           describe ":#{option}", webmock: true do
             let!(:history_stub) {
-              stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/messages?live=true&#{option}=#{milliseconds}").
+              stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/messages?#{option}=#{milliseconds}").
                 to_return(:body => '{}', :headers => { 'Content-Type' => 'application/json' })
             }
 
