@@ -36,8 +36,9 @@ module Ably::Models
   #   @return [Hash] Access the protocol message Hash object ruby'fied to use symbolized keys
   #
   class PresenceMessage
-    include Ably::Modules::ModelCommon
+    include Ably::Modules::Conversions
     include Ably::Modules::Encodeable
+    include Ably::Modules::ModelCommon
     include EventMachine::Deferrable
     extend Ably::Modules::Enum
 
@@ -58,9 +59,9 @@ module Ably::Models
 
       set_hash_object hash_object
 
-      ensure_utf8_string_for :client_id, client_id
-      ensure_utf8_string_for :member_id, member_id
-      ensure_utf8_string_for :encoding,  encoding
+      ensure_utf_8 :client_id, client_id, allow_nil: true
+      ensure_utf_8 :member_id, member_id, allow_nil: true
+      ensure_utf_8 :encoding,  encoding,  allow_nil: true
     end
 
     %w( client_id member_id data encoding ).each do |attribute|

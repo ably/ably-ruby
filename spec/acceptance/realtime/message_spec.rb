@@ -36,6 +36,22 @@ describe 'Ably::Realtime::Channel Messages' do
         end
       end
 
+      context 'with ASCII_8BIT message name' do
+        let(:message_name) { random_str.encode(Encoding::ASCII_8BIT) }
+        it 'is converted into UTF_8' do
+          run_reactor do
+            channel.attach do
+              channel.publish message_name, payload
+            end
+            channel.subscribe do |message|
+              expect(message.name.encoding).to eql(Encoding::UTF_8)
+              expect(message.name.encode(Encoding::ASCII_8BIT)).to eql(message_name)
+              stop_reactor
+            end
+          end
+        end
+      end
+
       it 'sends a single message with an echo on another connection' do
         run_reactor do
           other_client_channel.attach do
@@ -283,7 +299,7 @@ describe 'Ably::Realtime::Channel Messages' do
               end
 
               message_count.times do |index|
-                encrypted_channel_client2.publish index.to_s.force_encoding(Encoding::UTF_8), "#{index}-#{data}"
+                encrypted_channel_client2.publish index.to_s, "#{index}-#{data}"
               end
             end
           end

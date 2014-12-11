@@ -72,5 +72,19 @@ module Ably::Modules
     def convert_to_lower_case(key)
       key.to_s.gsub('_', '')
     end
+
+    # Ensures that the string value is converted to UTF-8 encoding
+    # Unless option allow_nil: true, an {ArgumentError} is raised if the string_value is not a string
+    #
+    # @return <void>
+    #
+    def ensure_utf_8(field_name, string_value, options = {})
+      unless options[:allow_nil] && string_value.nil?
+        raise ArgumentError, "#{field_name} must be a String" unless string_value.kind_of?(String)
+      end
+      string_value.encode!(Encoding::UTF_8) if string_value
+    rescue Encoding::UndefinedConversionError, Encoding::InvalidByteSequenceError => e
+      raise ArgumentError, "#{field_name} could not be converted to UTF-8: #{e.message}"
+    end
   end
 end

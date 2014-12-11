@@ -3,8 +3,8 @@ require 'spec_helper'
 require 'ably/models/message_encoders/utf8'
 
 describe Ably::Models::MessageEncoders::Utf8 do
-  let(:string_ascii)        { 'string'.force_encoding(Encoding::ASCII_8BIT) }
-  let(:string_utf8)         { 'string'.force_encoding(Encoding::UTF_8) }
+  let(:string_ascii)        { 'string'.encode(Encoding::ASCII_8BIT) }
+  let(:string_utf8)         { 'string'.encode(Encoding::UTF_8) }
 
   let(:client)              { instance_double('Ably::Realtime::Client') }
 

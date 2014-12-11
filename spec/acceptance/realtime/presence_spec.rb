@@ -209,6 +209,40 @@ describe 'Ably::Realtime::Presence Messages' do
         end
       end
 
+      context 'with ASCII_8BIT client_id' do
+        let(:client_id)   { random_str.encode(Encoding::ASCII_8BIT) }
+
+        context 'in connection set up' do
+          let(:client_one)  { Ably::Realtime::Client.new(default_options.merge(client_id: client_id)) }
+
+          it 'is converted into UTF_8' do
+            run_reactor do
+              presence_client_one.enter
+              presence_client_one.on(:entered) do |presence|
+                expect(presence.client_id.encoding).to eql(Encoding::UTF_8)
+                expect(presence.client_id.encode(Encoding::ASCII_8BIT)).to eql(client_id)
+                stop_reactor
+              end
+            end
+          end
+        end
+
+        context 'in channel options' do
+          let(:client_one)  { Ably::Realtime::Client.new(default_options) }
+
+          it 'is converted into UTF_8' do
+            run_reactor do
+              presence_client_one.enter(client_id: client_id)
+              presence_client_one.on(:entered) do |presence|
+                expect(presence.client_id.encoding).to eql(Encoding::UTF_8)
+                expect(presence.client_id.encode(Encoding::ASCII_8BIT)).to eql(client_id)
+                stop_reactor
+              end
+            end
+          end
+        end
+      end
+
       context 'encoding and decoding of presence message data' do
         let(:secret_key)              { random_str }
         let(:cipher_options)          { { key: secret_key, algorithm: 'aes', mode: 'cbc', key_length: 256 } }

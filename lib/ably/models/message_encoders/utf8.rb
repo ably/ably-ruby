@@ -9,7 +9,7 @@ module Ably::Models::MessageEncoders
 
     def encode(message, channel_options)
       if is_json_encoded?(message)
-        message[:data] = message[:data].force_encoding(Encoding::UTF_8)
+        message[:data] = message[:data].encode(Encoding::UTF_8)
         add_encoding_to_message ENCODING_ID, message
       end
     end

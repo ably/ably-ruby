@@ -45,7 +45,6 @@ module Ably::Models::MessageEncoders
         end
 
         message[:data] = crypto.decrypt(message[:data])
-        message[:data].force_encoding(Encoding::ASCII_8BIT) if is_binary?(message)
         strip_current_encoding_part message
       end
     rescue OpenSSL::Cipher::CipherError => e

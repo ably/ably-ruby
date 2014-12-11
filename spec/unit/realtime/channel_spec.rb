@@ -11,27 +11,41 @@ describe Ably::Realtime::Channel do
   end
 
   describe '#initializer' do
+    let(:channel_name) { random_str.encode(encoding) }
+
     context 'as UTF_8 string' do
-      let(:channel_name) { random_str.force_encoding(Encoding::UTF_8) }
+      let(:encoding) { Encoding::UTF_8 }
 
       it 'is permitted' do
         expect(subject.name).to eql(channel_name)
       end
+
+      it 'remains as UTF-8' do
+        expect(subject.name.encoding).to eql(encoding)
+      end
     end
 
     context 'as SHIFT_JIS string' do
-      let(:channel_name) { random_str.force_encoding(Encoding::SHIFT_JIS) }
+      let(:encoding) { Encoding::SHIFT_JIS }
 
-      it 'raises an argument error' do
-        expect { subject }.to raise_error ArgumentError
+      it 'gets converted to UTF-8' do
+        expect(subject.name.encoding).to eql(Encoding::UTF_8)
+      end
+
+      it 'is compatible with original encoding' do
+        expect(subject.name.encode(encoding)).to eql(channel_name)
       end
     end
 
     context 'as ASCII_8BIT string' do
-      let(:channel_name) { random_str.force_encoding(Encoding::ASCII_8BIT) }
+      let(:encoding) { Encoding::ASCII_8BIT }
 
-      it 'raises an argument error' do
-        expect { subject }.to raise_error ArgumentError
+      it 'gets converted to UTF-8' do
+        expect(subject.name.encoding).to eql(Encoding::UTF_8)
+      end
+
+      it 'is compatible with original encoding' do
+        expect(subject.name.encode(encoding)).to eql(channel_name)
       end
     end
 
@@ -39,28 +53,28 @@ describe Ably::Realtime::Channel do
       let(:channel_name) { 1 }
 
       it 'raises an argument error' do
-        expect { subject }.to raise_error ArgumentError
+        expect { subject }.to raise_error ArgumentError, /must be a String/
       end
     end
 
-    context 'as Integer' do
+    context 'as Nil' do
       let(:channel_name) { nil }
 
       it 'raises an argument error' do
-        expect { subject }.to raise_error ArgumentError
+        expect { subject }.to raise_error ArgumentError, /must be a String/
       end
     end
   end
 
   describe '#publish name argument' do
-    let(:value) { random_str }
+    let(:encoded_value) { random_str.encode(encoding) }
 
     before do
       allow(subject).to receive(:create_message).and_return('message_stubbed')
     end
 
     context 'as UTF_8 string' do
-      let(:encoded_value) { value.force_encoding(Encoding::UTF_8) }
+      let(:encoding) { Encoding::UTF_8 }
 
       it 'is permitted' do
         expect(subject.publish(encoded_value, 'data')).to eql('message_stubbed')
@@ -68,18 +82,18 @@ describe Ably::Realtime::Channel do
     end
 
     context 'as SHIFT_JIS string' do
-      let(:encoded_value) { value.force_encoding(Encoding::SHIFT_JIS) }
+      let(:encoding) { Encoding::SHIFT_JIS }
 
-      it 'raises an argument error' do
-        expect { subject.publish(encoded_value, 'data') }.to raise_error ArgumentError
+      it 'is permitted' do
+        expect(subject.publish(encoded_value, 'data')).to eql('message_stubbed')
       end
     end
 
     context 'as ASCII_8BIT string' do
-      let(:encoded_value) { value.force_encoding(Encoding::ASCII_8BIT) }
+      let(:encoding) { Encoding::ASCII_8BIT }
 
-      it 'raises an argument error' do
-        expect { subject.publish(encoded_value, 'data') }.to raise_error ArgumentError
+      it 'is permitted' do
+        expect(subject.publish(encoded_value, 'data')).to eql('message_stubbed')
       end
     end
 
@@ -87,7 +101,15 @@ describe Ably::Realtime::Channel do
       let(:encoded_value) { 1 }
 
       it 'raises an argument error' do
-        expect { subject.publish(encoded_value, 'data') }.to raise_error ArgumentError
+        expect { subject.publish(encoded_value, 'data') }.to raise_error ArgumentError, /must be a String/
+      end
+    end
+
+    context 'as Nil' do
+      let(:encoded_value) { nil }
+
+      it 'raises an argument error' do
+        expect { subject.publish(encoded_value, 'data') }.to raise_error ArgumentError, /must be a String/
       end
     end
   end
