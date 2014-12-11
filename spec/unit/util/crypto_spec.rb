@@ -2,7 +2,7 @@ require 'spec_helper'
 require 'msgpack'
 
 describe Ably::Util::Crypto do
-  let(:seret_key)  { SecureRandom.hex }
+  let(:seret_key)  { random_str }
   let(:cipher_options) { { key: seret_key } }
   subject { Ably::Util::Crypto.new(cipher_options) }
 
@@ -22,8 +22,8 @@ describe Ably::Util::Crypto do
   end
 
   context 'encrypts & decrypt' do
-    let(:string) { SecureRandom.hex }
-    let(:byte_array) { SecureRandom.hex.to_msgpack.unpack('C*') }
+    let(:string) { random_str }
+    let(:byte_array) { random_str.to_msgpack.unpack('C*') }
 
     specify 'a string' do
       encrypted = subject.encrypt(string)

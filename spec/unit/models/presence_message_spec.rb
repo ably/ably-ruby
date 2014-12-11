@@ -48,7 +48,7 @@ describe Ably::Models::PresenceMessage do
   context 'initialized with' do
     %w(client_id member_id encoding).each do |attribute|
       context ":#{attribute}" do
-        let(:value)   { SecureRandom.hex }
+        let(:value)   { random_str }
         let(:options) { { attribute.to_sym => encoded_value, action: 0 } }
         let(:model)   { subject.new(options, protocol_message) }
 
@@ -107,7 +107,7 @@ describe Ably::Models::PresenceMessage do
     end
 
     context 'with binary data' do
-      let(:data) { MessagePack.pack(SecureRandom.hex(32)) }
+      let(:data) { MessagePack.pack(random_str(32)) }
       let(:model) { subject.new({ action: 'enter', data: data }, protocol_message) }
 
       it 'encodes as Base64 so that it can be converted to UTF-8 automatically by JSON#dump' do
@@ -121,7 +121,7 @@ describe Ably::Models::PresenceMessage do
   end
 
   context 'from REST request with embedded fields' do
-    let(:id) { SecureRandom.hex }
+    let(:id) { random_str }
     let(:message_time) { Time.now + 60 }
     let(:timestamp) { as_since_epoch(message_time) }
     let(:model) { subject.new(id: id, timestamp: timestamp) }
@@ -149,17 +149,17 @@ describe Ably::Models::PresenceMessage do
 
   context 'part of ProtocolMessage' do
     let(:ably_time) { Time.now + 5 }
-    let(:message_serial) { SecureRandom.random_number(1_000_000) }
-    let(:connection_id) { SecureRandom.hex }
+    let(:message_serial) { random_int_str(1_000_000) }
+    let(:connection_id) { random_str }
 
-    let(:presence_0_payload) { SecureRandom.hex(8) }
+    let(:presence_0_payload) { random_str(8) }
     let(:presence_0_json) do
       {
         client_id: 'zero',
         data: presence_0_payload
       }
     end
-    let(:presence_1_payload) { SecureRandom.hex(8) }
+    let(:presence_1_payload) { random_str(8) }
     let(:presence_1_json) do
       {
         client_id: 'one',
@@ -167,7 +167,7 @@ describe Ably::Models::PresenceMessage do
       }
     end
 
-    let(:protocol_message_id) { SecureRandom.hex }
+    let(:protocol_message_id) { random_str }
     let(:protocol_message) do
       Ably::Models::ProtocolMessage.new({
         action: :message,

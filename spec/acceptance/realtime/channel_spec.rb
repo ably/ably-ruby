@@ -1,6 +1,5 @@
 # encoding: utf-8
 require 'spec_helper'
-require 'securerandom'
 
 describe Ably::Realtime::Channel do
   include RSpec::EventMachine
@@ -10,8 +9,8 @@ describe Ably::Realtime::Channel do
       let(:default_options) { { api_key: api_key, environment: environment, protocol: protocol } }
 
       let(:client)       { Ably::Realtime::Client.new(default_options) }
-      let(:channel_name) { SecureRandom.hex(2).force_encoding(Encoding::UTF_8) }
-      let(:payload)      { SecureRandom.hex(4).force_encoding(Encoding::UTF_8) }
+      let(:channel_name) { random_str }
+      let(:payload)      { random_str }
       let(:channel)      { client.channel(channel_name) }
       let(:messages)     { [] }
 
@@ -61,7 +60,7 @@ describe Ably::Realtime::Channel do
 
       it 'publishes 3 messages from queue before attached' do
         run_reactor do
-          3.times { channel.publish('event', SecureRandom.hex) }
+          3.times { channel.publish('event', random_str) }
           channel.subscribe do |message|
             messages << message if message.name == 'event'
             stop_reactor if messages.length == 3
@@ -73,7 +72,7 @@ describe Ably::Realtime::Channel do
 
       it 'publishes 3 messages from queue before attached in a single protocol message' do
         run_reactor do
-          3.times { channel.publish('event', SecureRandom.hex) }
+          3.times { channel.publish('event', random_str) }
           channel.subscribe do |message|
             messages << message if message.name == 'event'
             stop_reactor if messages.length == 3

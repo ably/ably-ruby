@@ -1,6 +1,5 @@
 # encoding: utf-8
 require 'spec_helper'
-require 'securerandom'
 
 describe 'Ably::Realtime::Presence Messages' do
   include RSpec::EventMachine
@@ -9,11 +8,11 @@ describe 'Ably::Realtime::Presence Messages' do
     context "over #{protocol}" do
       let(:default_options) { { api_key: api_key, environment: environment, protocol: protocol } }
 
-      let(:channel_name) { "presence-#{SecureRandom.hex(2)}" }
+      let(:channel_name) { "presence-#{random_str(2)}" }
 
       let(:anonymous_client) { Ably::Realtime::Client.new(default_options) }
-      let(:client_one)       { Ably::Realtime::Client.new(default_options.merge(client_id: SecureRandom.hex(4).force_encoding(Encoding::UTF_8))) }
-      let(:client_two)       { Ably::Realtime::Client.new(default_options.merge(client_id: SecureRandom.hex(4).force_encoding(Encoding::UTF_8))) }
+      let(:client_one)       { Ably::Realtime::Client.new(default_options.merge(client_id: random_str)) }
+      let(:client_two)       { Ably::Realtime::Client.new(default_options.merge(client_id: random_str)) }
 
       let(:channel_anonymous_client)  { anonymous_client.channel(channel_name) }
       let(:presence_anonymous_client) { channel_anonymous_client.presence }
@@ -23,7 +22,7 @@ describe 'Ably::Realtime::Presence Messages' do
       let(:channel_client_two)        { client_two.channel(channel_name) }
       let(:presence_client_two)       { channel_client_two.presence }
 
-      let(:data_payload) { SecureRandom.hex(8) }
+      let(:data_payload) { random_str }
 
       specify 'an attached channel that is not presence maintains presence state' do
         run_reactor do
@@ -211,15 +210,15 @@ describe 'Ably::Realtime::Presence Messages' do
       end
 
       context 'encoding and decoding of presence message data' do
-        let(:secret_key)              { SecureRandom.hex(32) }
+        let(:secret_key)              { random_str }
         let(:cipher_options)          { { key: secret_key, algorithm: 'aes', mode: 'cbc', key_length: 256 } }
-        let(:channel_name)            { SecureRandom.hex(32).force_encoding(Encoding::UTF_8) }
+        let(:channel_name)            { random_str }
         let(:encrypted_channel)       { client_one.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
         let(:channel_rest_client_one) { client_one.rest_client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
 
         let(:crypto)                  { Ably::Util::Crypto.new(cipher_options) }
 
-        let(:data)                    { { 'key' => SecureRandom.hex(64) } }
+        let(:data)                    { { 'key' => random_str } }
         let(:data_as_json)            { data.to_json }
         let(:data_as_cipher)          { crypto.encrypt(data.to_json) }
 

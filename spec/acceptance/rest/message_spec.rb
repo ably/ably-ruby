@@ -1,5 +1,4 @@
 # encoding: utf-8
-
 require 'spec_helper'
 require 'securerandom'
 
@@ -13,8 +12,8 @@ describe 'Ably::Rest Message' do
       let(:other_client)           { Ably::Rest::Client.new(default_client_options) }
 
       describe 'encryption and encoding' do
-        let(:channel_name)      { "persisted:#{SecureRandom.hex(4)}".force_encoding(Encoding::UTF_8) }
-        let(:cipher_options)    { { key: SecureRandom.hex(32) } }
+        let(:channel_name)      { "persisted:#{random_str}" }
+        let(:cipher_options)    { { key: random_str(32) } }
         let(:encrypted_channel) { client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
 
         context 'encoding and decoding encrypted messages' do
@@ -98,7 +97,7 @@ describe 'Ably::Rest Message' do
           end
 
           context 'multiple messages' do
-            let(:data) { MessagePack.pack({ 'key' => SecureRandom.hex }) }
+            let(:data) { MessagePack.pack({ 'key' => random_str }) }
             let(:message_count) { 20 }
 
             it 'encrypt and decrypt messages' do
@@ -142,7 +141,7 @@ describe 'Ably::Rest Message' do
             let(:unencrypted_channel)            { client.channel(channel_name) }
             let(:other_client_encrypted_channel) { other_client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
 
-            let(:payload) { MessagePack.pack({ 'key' => SecureRandom.hex }) }
+            let(:payload) { MessagePack.pack({ 'key' => random_str }) }
 
             it 'does not attempt to decrypt the message' do
               unencrypted_channel.publish 'example', payload
@@ -157,7 +156,7 @@ describe 'Ably::Rest Message' do
             let(:encrypted_channel)                { client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
             let(:other_client_unencrypted_channel) { other_client.channel(channel_name) }
 
-            let(:payload) { MessagePack.pack({ 'key' => SecureRandom.hex }) }
+            let(:payload) { MessagePack.pack({ 'key' => random_str }) }
 
             skip 'delivers the message but still encrypted' do
               # TODO: Decide if we should raise an exception or allow the message through
@@ -175,12 +174,12 @@ describe 'Ably::Rest Message' do
           end
 
           context 'publishing on an encrypted channel and subscribing with a different algorithm on another client' do
-            let(:cipher_options_client1)    { { key: SecureRandom.hex(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
+            let(:cipher_options_client1)    { { key: random_str(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
             let(:encrypted_channel_client1) { client.channel(channel_name, encrypted: true, cipher_params: cipher_options_client1) }
-            let(:cipher_options_client2)    { { key: SecureRandom.hex(32), algorithm: 'aes', mode: 'cbc', key_length: 128 } }
+            let(:cipher_options_client2)    { { key: random_str(32), algorithm: 'aes', mode: 'cbc', key_length: 128 } }
             let(:encrypted_channel_client2) { other_client.channel(channel_name, encrypted: true, cipher_params: cipher_options_client2) }
 
-            let(:payload) { MessagePack.pack({ 'key' => SecureRandom.hex }) }
+            let(:payload) { MessagePack.pack({ 'key' => random_str }) }
 
             skip 'delivers the message but still encrypted' do
               # TODO: Decide if we should raise an exception or allow the message through
@@ -198,12 +197,12 @@ describe 'Ably::Rest Message' do
           end
 
           context 'publishing on an encrypted channel and subscribing with a different key on another client' do
-            let(:cipher_options_client1)    { { key: SecureRandom.hex(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
+            let(:cipher_options_client1)    { { key: random_str(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
             let(:encrypted_channel_client1) { client.channel(channel_name, encrypted: true, cipher_params: cipher_options_client1) }
-            let(:cipher_options_client2)    { { key: SecureRandom.hex(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
+            let(:cipher_options_client2)    { { key: random_str(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
             let(:encrypted_channel_client2) { other_client.channel(channel_name, encrypted: true, cipher_params: cipher_options_client2) }
 
-            let(:payload) { MessagePack.pack({ 'key' => SecureRandom.hex }) }
+            let(:payload) { MessagePack.pack({ 'key' => random_str }) }
 
             skip 'delivers the message but still encrypted' do
               # TODO: Decide if we should raise an exception or allow the message through

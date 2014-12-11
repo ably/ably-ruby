@@ -1,5 +1,4 @@
 require 'spec_helper'
-require 'securerandom'
 
 describe Ably::Modules::Enum do
   class ExampleClassWithEnum
@@ -92,7 +91,7 @@ describe Ably::Modules::Enum do
     end
 
     context '#[]' do
-      let(:argument) { SecureRandom.hex }
+      let(:argument) { random_str }
       before do
         expect(subject).to receive(:get).with(argument).once.and_return(true)
       end

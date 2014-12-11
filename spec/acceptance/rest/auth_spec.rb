@@ -1,6 +1,5 @@
 # encoding: utf-8
 require 'spec_helper'
-require 'securerandom'
 
 describe Ably::Auth do
   include Ably::Modules::Conversions
@@ -54,7 +53,7 @@ describe Ably::Auth do
 
         %w(client_id capability nonce timestamp ttl).each do |option|
           context "option :#{option}", webmock: true do
-            let(:random)         { SecureRandom.random_number(1_000_000_000).to_s.force_encoding(Encoding::UTF_8) }
+            let(:random)         { random_int_str }
             let(:options)        { { option.to_sym => random } }
 
             let(:token_response) { { access_token: {} } }
@@ -78,9 +77,9 @@ describe Ably::Auth do
         end
 
         context 'with :key_id & :key_secret options', webmock: true do
-          let(:key_id)        { SecureRandom.hex }
-          let(:key_secret)    { SecureRandom.hex }
-          let(:nonce)         { SecureRandom.hex }
+          let(:key_id)        { random_str }
+          let(:key_secret)    { random_str }
+          let(:nonce)         { random_str }
           let(:token_options) { { key_id: key_id, key_secret: key_secret, nonce: nonce, timestamp: Time.now } }
           let(:token_request) { auth.create_token_request(token_options) }
           let(:mac) do
@@ -172,7 +171,7 @@ describe Ably::Auth do
             end
 
             context 'with params' do
-              let(:query_params) { { 'key' => SecureRandom.hex } }
+              let(:query_params) { { 'key' => random_str } }
               it 'requests a token from :auth_url' do
                 expect(request_token_stub).to have_been_requested
                 expect(auth_url_request_stub).to have_been_requested
@@ -180,7 +179,7 @@ describe Ably::Auth do
             end
 
             context 'with headers' do
-              let(:headers) { { 'key' => SecureRandom.hex } }
+              let(:headers) { { 'key' => random_str } }
               it 'requests a token from :auth_url' do
                 expect(request_token_stub).to have_been_requested
                 expect(auth_url_request_stub).to have_been_requested
@@ -221,7 +220,7 @@ describe Ably::Auth do
         end
 
         context 'with auth_block' do
-          let(:client_id) { SecureRandom.hex.force_encoding(Encoding::UTF_8) }
+          let(:client_id) { random_str }
           let(:options) { { client_id: client_id } }
           let!(:token) do
             auth.request_token(options) do |block_options|
@@ -318,7 +317,7 @@ describe Ably::Auth do
 
         %w(ttl capability nonce timestamp client_id).each do |attribute|
           context "with option :#{attribute}" do
-            let(:option_value) { SecureRandom.random_number(1_000_000_000).to_s.force_encoding(Encoding::UTF_8) }
+            let(:option_value) { random_int_str(1_000_000_000) }
             before do
               options[attribute.to_sym] = option_value
             end
@@ -371,12 +370,12 @@ describe Ably::Auth do
         context 'signing' do
           let(:options) do
             {
-              id: SecureRandom.hex,
-              ttl: SecureRandom.hex,
-              capability: SecureRandom.hex,
-              client_id: SecureRandom.hex.force_encoding(Encoding::UTF_8),
-              timestamp: SecureRandom.random_number(1_000_000_000),
-              nonce: SecureRandom.hex
+              id:         random_str,
+              ttl:        random_str,
+              capability: random_str,
+              client_id:  random_str,
+              timestamp:  random_int_str,
+              nonce:      random_str
             }
           end
 

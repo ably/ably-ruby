@@ -133,7 +133,7 @@ describe Ably::Rest do
               def_delegators :@logger, :fatal, :error, :warn, :info, :debug, :level, :level=
             end
           end
-          subject { Ably::Rest::Client.new(options.merge(logger: custom_logger.new)) }
+          subject { Ably::Rest::Client.new(options.merge(logger: custom_logger.new, log_level: Logger::DEBUG)) }
 
           it 'uses the custom logger' do
             expect(subject.logger.logger.class).to eql(custom_logger)

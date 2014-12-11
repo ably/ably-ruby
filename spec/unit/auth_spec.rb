@@ -11,7 +11,7 @@ describe Ably::Auth do
   end
 
   describe 'client_id option' do
-    let(:value)   { SecureRandom.hex }
+    let(:value)   { random_str }
 
     context 'with nil value' do
       let(:client_id) { nil }

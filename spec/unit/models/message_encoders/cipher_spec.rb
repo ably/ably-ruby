@@ -3,11 +3,11 @@ require 'ably/models/message_encoders/cipher'
 require 'msgpack'
 
 describe Ably::Models::MessageEncoders::Cipher do
-  let(:secret_key)          { SecureRandom.hex(64) }
+  let(:secret_key)          { random_str(64) }
   let(:crypto_options)      { { key: secret_key, algorithm: 'AES', mode: 'CBC', key_length: 128 } }
   let(:crypto)              { Ably::Util::Crypto.new(cipher_params) }
 
-  let(:decoded_data)        { SecureRandom.hex(32).force_encoding(Encoding::UTF_8) }
+  let(:decoded_data)        { random_str(32) }
   let(:cipher_data)         { crypto.encrypt(decoded_data) }
 
   let(:binary_data)         { MessagePack.pack(decoded_data) }

@@ -1,6 +1,5 @@
 # encoding: utf-8
 require 'spec_helper'
-require 'securerandom'
 
 describe 'REST' do
   describe 'protocol' do
@@ -111,8 +110,8 @@ describe 'REST' do
       end
 
       describe 'authentication failure', webmock: true do
-        let(:token_1) { { id: SecureRandom.hex } }
-        let(:token_2) { { id: SecureRandom.hex } }
+        let(:token_1) { { id: random_str } }
+        let(:token_2) { { id: random_str } }
         let(:channel) { 'channelname' }
 
         before do
@@ -201,8 +200,8 @@ describe 'REST' do
               send("token_request_#{@request_index}")
             end
           end
-          let(:token_request_1) { client.auth.create_token_request(token_request_options.merge(client_id: SecureRandom.hex.force_encoding(Encoding::UTF_8))) }
-          let(:token_request_2) { client.auth.create_token_request(token_request_options.merge(client_id: SecureRandom.hex.force_encoding(Encoding::UTF_8))) }
+          let(:token_request_1) { client.auth.create_token_request(token_request_options.merge(client_id: random_str)) }
+          let(:token_request_2) { client.auth.create_token_request(token_request_options.merge(client_id: random_str)) }
 
           context 'when expired' do
             let(:token_request_options) { { key_id: key_id, key_secret: key_secret, ttl: Ably::Models::Token::TOKEN_EXPIRY_BUFFER } }
