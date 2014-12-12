@@ -164,23 +164,27 @@ describe 'Ably::Rest Message' do
           end
 
           context 'publishing on an encrypted channel and retrieving on an unencrypted channel' do
+            let(:cipher_options)                   { { key: random_str(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
             let(:encrypted_channel)                { client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
             let(:other_client_unencrypted_channel) { other_client.channel(channel_name) }
 
             let(:payload) { MessagePack.pack({ 'key' => random_str }) }
 
-            skip 'delivers the message but still encrypted' do
-              # TODO: Decide if we should raise an exception or allow the message through
+            before do
               encrypted_channel.publish 'example', payload
+            end
 
+            it 'delivers the message with encrypted encoding remaining' do
               message = other_client_unencrypted_channel.history.first
               expect(message.data).to_not eql(payload)
               expect(message.encoding).to match(/^cipher\+aes-256-cbc/)
             end
 
-            it 'triggers a Cipher exception' do
-              encrypted_channel.publish 'example', payload
-              expect { other_client_unencrypted_channel.history }.to raise_error Ably::Exceptions::CipherError, /Message cannot be decrypted/
+            it 'logs a Cipher exception' do
+              expect(other_client.logger).to receive(:error) do |message|
+                expect(message).to match(/Message cannot be decrypted/)
+              end
+              other_client_unencrypted_channel.history
             end
           end
 
@@ -192,18 +196,21 @@ describe 'Ably::Rest Message' do
 
             let(:payload) { MessagePack.pack({ 'key' => random_str }) }
 
-            skip 'delivers the message but still encrypted' do
-              # TODO: Decide if we should raise an exception or allow the message through
-              encrypted_channel.publish 'example', payload
+            before do
+              encrypted_channel_client1.publish 'example', payload
+            end
 
-              message = other_client_unencrypted_channel.history.first
+            it 'delivers the message with encrypted encoding remaining' do
+              message = encrypted_channel_client2.history.first
               expect(message.data).to_not eql(payload)
               expect(message.encoding).to match(/^cipher\+aes-256-cbc/)
             end
 
-            it 'triggers a Cipher exception' do
-              encrypted_channel_client1.publish 'example', payload
-              expect { encrypted_channel_client2.history }.to raise_error Ably::Exceptions::CipherError, /Cipher algorithm [\w\d-]+ does not match/
+            it 'logs a Cipher exception' do
+              expect(other_client.logger).to receive(:error) do |message|
+                expect(message).to match(/Cipher algorithm [\w\d-]+ does not match/)
+              end
+              encrypted_channel_client2.history
             end
           end
 
@@ -215,18 +222,21 @@ describe 'Ably::Rest Message' do
 
             let(:payload) { MessagePack.pack({ 'key' => random_str }) }
 
-            skip 'delivers the message but still encrypted' do
-              # TODO: Decide if we should raise an exception or allow the message through
-              encrypted_channel.publish 'example', payload
+            before do
+              encrypted_channel_client1.publish 'example', payload
+            end
 
-              message = other_client_unencrypted_channel.history.first
+            it 'delivers the message with encrypted encoding remaining' do
+              message = encrypted_channel_client2.history.first
               expect(message.data).to_not eql(payload)
               expect(message.encoding).to match(/^cipher\+aes-256-cbc/)
             end
 
-            it 'triggers a Cipher exception' do
-              encrypted_channel_client1.publish 'example', payload
-              expect { encrypted_channel_client2.history }.to raise_error Ably::Exceptions::CipherError, /CipherError decrypting data/
+            it 'logs a Cipher exception' do
+              expect(other_client.logger).to receive(:error) do |message|
+                expect(message).to match(/CipherError decrypting data/)
+              end
+              encrypted_channel_client2.history
             end
           end
         end

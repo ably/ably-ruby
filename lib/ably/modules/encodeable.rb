@@ -58,8 +58,8 @@ module Ably::Modules
 
       set_hash_object message_hash
     rescue Ably::Exceptions::CipherError => cipher_error
-      channel.client.logger.error "Encoder error #{cipher_error.code} trying to #{method} message: #{cipher_error.message}"
       if channel.respond_to?(:trigger)
+        channel.client.logger.error "Encoder error #{cipher_error.code} trying to #{method} message: #{cipher_error.message}"
         channel.trigger :error, cipher_error
       else
         raise cipher_error

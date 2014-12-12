@@ -77,7 +77,7 @@ module Ably
 
         Ably::Models::PaginatedResource.new(response, url, client, paginated_options) do |message|
           message.tap do |message|
-            message.decode self
+            decode_message message
           end
         end
       end
@@ -92,6 +92,12 @@ module Ably
       private
       def base_path
         "/channels/#{CGI.escape(name)}"
+      end
+
+      def decode_message(message)
+        message.decode self
+      rescue Ably::Exceptions::CipherError, Ably::Exceptions::EncoderError => e
+        client.logger.error "Decoding Error on channel '#{name}', message event name '#{message.name}'. #{e.class.name}: #{e.message}"
       end
     end
   end
