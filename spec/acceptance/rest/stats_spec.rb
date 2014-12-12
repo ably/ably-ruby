@@ -6,6 +6,7 @@ describe 'Ably::Rest::Client Stats' do
     context "over #{protocol}" do
       describe 'fetching application stats' do
         before(:context) do
+          WebMock.disable! # ensure previous test's WebMock does not have side effects
           reload_test_app
         end
 

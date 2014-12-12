@@ -41,8 +41,8 @@ module Ably
         response = client.get(base_path, options)
 
         Ably::Models::PaginatedResource.new(response, base_path, client, paginated_options) do |presence_message|
-          presence_message.tap do |message|
-            message.decode self.channel
+          presence_message.tap do |presence_message|
+            decode_message presence_message
           end
         end
       end
@@ -71,8 +71,8 @@ module Ably
         response = client.get(url, options)
 
         Ably::Models::PaginatedResource.new(response, url, client, paginated_options) do |presence_message|
-          presence_message.tap do |message|
-            message.decode self.channel
+          presence_message.tap do |presence_message|
+            decode_message presence_message
           end
         end
       end
@@ -80,6 +80,12 @@ module Ably
       private
       def base_path
         "/channels/#{CGI.escape(channel.name)}/presence"
+      end
+
+      def decode_message(presence_message)
+        presence_message.decode self.channel
+      rescue Ably::Exceptions::CipherError, Ably::Exceptions::EncoderError => e
+        client.logger.error "Decoding Error on presence channel '#{channel.name}', presence message client_id '#{presence_message.client_id}'. #{e.class.name}: #{e.message}"
       end
     end
   end

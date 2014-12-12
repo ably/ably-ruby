@@ -218,13 +218,21 @@ describe Ably::Rest::Presence do
               stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence").
                 to_return(:body => serialized_encoded_message_with_invalid_encoding, :headers => { 'Content-Type' => content_type })
             }
+            let(:presence_message) { presence.get.first }
 
             after do
               expect(get_stub).to have_been_requested
             end
 
-            it 'raises a cipher error' do
-              expect { presence.get }.to raise_error Ably::Exceptions::CipherError
+            it 'returns the messages still encoded' do
+              expect(presence_message.encoding).to match(/cipher\+aes-128-cbc/)
+            end
+
+            it 'logs a cipher error' do
+              expect(client.logger).to receive(:error) do |message|
+                expect(message).to match(/Cipher algorithm [\w\d-]+ does not match/)
+              end
+              presence.get
             end
           end
 
@@ -233,13 +241,21 @@ describe Ably::Rest::Presence do
               stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence/history").
                 to_return(:body => serialized_encoded_message_with_invalid_encoding, :headers => { 'Content-Type' => content_type })
             }
+            let(:presence_message) { presence.history.first }
 
             after do
               expect(history_stub).to have_been_requested
             end
 
-            it 'raises a cipher error' do
-              expect { presence.history }.to raise_error Ably::Exceptions::CipherError
+            it 'returns the messages still encoded' do
+              expect(presence_message.encoding).to match(/cipher\+aes-128-cbc/)
+            end
+
+            it 'logs a cipher error' do
+              expect(client.logger).to receive(:error) do |message|
+                expect(message).to match(/Cipher algorithm [\w\d-]+ does not match/)
+              end
+              presence.history
             end
           end
         end
