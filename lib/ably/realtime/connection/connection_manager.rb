@@ -157,7 +157,7 @@ module Ably::Realtime
         transport.on(:disconnected) do
           if connection.closing?
             connection.transition_state_machine :closed
-          else
+          elsif !connection.closed?
             connection.transition_state_machine :disconnected
           end
         end

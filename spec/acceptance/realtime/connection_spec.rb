@@ -66,14 +66,54 @@ describe Ably::Realtime::Connection do
         end
       end
 
-      skip '#close disconnects, closes the connection immediately and changes the connection state to closed'
+      context 'connection closing' do
+        def log_connection_changes
+          connection.on(:closing) do
+            @closing_state_emitted = true
+          end
 
-      specify '#close(graceful: true) gracefully waits for the server to close the connection' do
-        run_reactor(8) do
-          connection.close
-          connection.on(:closed) do
-            expect(connection.state).to eq(:closed)
-            stop_reactor
+          connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+            @closed_message_from_server_received = true if protocol_message.action == :closed
+          end
+
+          connection.on(:error) do
+            @error_emitted = true
+          end
+        end
+
+        specify '#close before connection is opened closes the connection immediately and changes the connection state to closing & then immediately closed' do
+          run_reactor(8) do
+            connection.close
+            log_connection_changes
+
+            connection.on(:closed) do
+              EventMachine.add_timer(0.1) do # allow for all subscribers on incoming message bes
+                expect(connection.state).to eq(:closed)
+                expect(@error_emitted).to_not eql(true)
+                expect(@closed_message_from_server_received).to_not eql(true)
+                expect(@closing_state_emitted).to eql(true)
+                stop_reactor
+              end
+            end
+          end
+        end
+
+        specify '#close changes state to closing and waits for the server to confirm connection is closed with a ProtocolMessage' do
+          run_reactor(8) do
+            connection.on(:connected) do
+              connection.close
+              log_connection_changes
+
+              connection.on(:closed) do
+                EventMachine.add_timer(0.1) do # allow for all subscribers on incoming message bes
+                  expect(connection.state).to eq(:closed)
+                  expect(@error_emitted).to_not eql(true)
+                  expect(@closed_message_from_server_received).to eql(true)
+                  expect(@closing_state_emitted).to eql(true)
+                  stop_reactor
+                end
+              end
+            end
           end
         end
       end
@@ -88,8 +128,6 @@ describe Ably::Realtime::Connection do
           end
         end
       end
-
-      skip 'connects, closes gracefully and reconnects on #connect'
 
       it 'connects, closes the connection, and then reconnects with a new connection ID' do
         run_reactor(15) do
@@ -175,6 +213,19 @@ describe Ably::Realtime::Connection do
                 stop_reactor
               end
             end
+          end
+        end
+      end
+
+      it 'emits a ConnectionError if a state transition is unsupported' do
+        run_reactor do
+          connection.connect do
+            connection.transition_state_machine(:initialized)
+          end
+
+          connection.on(:error) do |error|
+            expect(error).to be_a(Ably::Exceptions::ConnectionError)
+            stop_reactor
           end
         end
       end
