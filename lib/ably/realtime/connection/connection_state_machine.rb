@@ -91,11 +91,18 @@ module Ably::Realtime
         connection.manager.close_connection
       end
 
+      before_transition(to: [:closed], from: [:closing]) do |connection|
+        connection.manager.destroy_transport
+      end
+
       # Override Statesman's #transition_to so that:
       # * log state change failures to {Logger}
+      # * raise an exception on the {Ably::Realtime::Connection}
       def transition_to(state, *args)
         unless result = super(state, *args)
-          logger.fatal "ConnectionStateMachine: Unable to transition from #{current_state} => #{state}"
+          error_message = "ConnectionStateMachine: Unable to transition from #{current_state} => #{state}"
+          connection.trigger :error, Ably::Exceptions::ConnectionError.new(error_message, nil, 80020)
+          logger.fatal error_message
         end
         result
       end
