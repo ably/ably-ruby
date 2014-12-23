@@ -42,7 +42,15 @@ module Ably
           end
 
         rescue StandardError
-          "Error displaying body: (as hex) '#{env.body.unpack('H*')}'"
+          "Error displaying body: (as hex) '#{readable_body(env.body)}'"
+        end
+
+        def readable_body(body)
+          if body.respond_to?(:encoding) && body.encoding == Encoding::ASCII_8BIT
+            body.unpack('H*')
+          else
+            body
+          end
         end
       end
     end
