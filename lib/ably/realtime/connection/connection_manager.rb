@@ -7,7 +7,11 @@ module Ably::Realtime
     #
     # @api private
     class ConnectionManager
+      # Configuration for recovery of failed connection attempts
       CONNECTION_FAILED = { retry_after: 0.5, max_retries: 2, code: 80000 }.freeze
+
+      # Time to wait for a CLOSED ProtocolMessage response from the server in response to a CLOSE request
+      FORCE_CONNECTION_CLOSED_TIMEOUT = 5
 
       def initialize(connection)
         @connection = connection
@@ -67,8 +71,14 @@ module Ably::Realtime
       #
       # @api private
       def close_connection
-        connection.send_protocol_message(action: Ably::Models::ProtocolMessage::ACTION.Close) do
-          force_close_connection
+        connection.send_protocol_message(action: Ably::Models::ProtocolMessage::ACTION.Close)
+
+        timer = EventMachine::Timer.new(FORCE_CONNECTION_CLOSED_TIMEOUT) do
+          force_close_connection if connection.closing?
+        end
+
+        connection.once(:closed) do
+          timer.cancel
         end
       end
 

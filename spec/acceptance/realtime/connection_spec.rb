@@ -116,6 +116,29 @@ describe Ably::Realtime::Connection do
             end
           end
         end
+
+        specify '#close changes state to closing and will force close the connection within FORCE_CONNECTION_CLOSED_TIMEOUT if CLOSED is not received' do
+          run_reactor(8) do
+            connection.on(:connected) do
+              # Stop all incoming & outgoing ProtocolMessages from being processed
+              connection.__outgoing_protocol_msgbus__.unsubscribe
+              connection.__incoming_protocol_msgbus__.unsubscribe
+
+              close_requested_at = Time.now
+              connection.close
+              log_connection_changes
+
+              connection.on(:closed) do
+                expect(Time.now - close_requested_at).to be >= Ably::Realtime::Connection::ConnectionManager::FORCE_CONNECTION_CLOSED_TIMEOUT
+                expect(connection.state).to eq(:closed)
+                expect(@error_emitted).to_not eql(true)
+                expect(@closed_message_from_server_received).to_not eql(true)
+                expect(@closing_state_emitted).to eql(true)
+                stop_reactor
+              end
+            end
+          end
+        end
       end
 
       it 'echoes a heart beat with #ping' do
