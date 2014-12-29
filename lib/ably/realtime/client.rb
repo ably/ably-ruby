@@ -22,13 +22,25 @@ module Ably
     #   (see Ably::Rest::Client#protocol)
     # @!attribute [r] protocol_binary?
     #   (see Ably::Rest::Client#protocol_binary?)
+    # @!attribute [r] custom_socket_host
+    #   @return [String,NilClass] the custom socket host that is being used if it was provided with the option :ws_host when the {Client} was created
+    # @!attribute [r] connect_automatically
+    #   @return [Boolean] when true, as soon as the client library is instantiated it will connect to Ably.  If this attribute is false, a connection must be opened explicitly
+    #
     class Client
       include Ably::Modules::AsyncWrapper
       extend Forwardable
 
       DOMAIN = 'realtime.ably.io'
 
-      attr_reader :channels, :auth, :rest_client, :echo_messages
+      attr_reader :channels
+      attr_reader :auth
+      attr_reader :rest_client
+
+      attr_reader :echo_messages
+      attr_reader :custom_socket_host
+      attr_reader :connect_automatically
+
       def_delegators :auth, :client_id, :auth_options
       def_delegators :@rest_client, :encoders
       def_delegators :@rest_client, :environment, :use_tls?, :protocol, :protocol_binary?
@@ -42,6 +54,7 @@ module Ably
       # @option options [Boolean] :queue_messages If false, this disables the default behaviour whereby the library queues messages on a connection in the disconnected or connecting states
       # @option options [Boolean] :echo_messages  If false, prevents messages originating from this connection being echoed back on the same connection
       # @option options [String]  :recover        This option allows a connection to inherit the state of a previous connection that may have existed under an different instance of the Realtime library.
+      # @option options [Boolean] :connect_automatically  By default as soon as the client library is instantiated it will connect to Ably. You can optionally set this to false and explicitly connect.
       #
       # @yield (see Ably::Rest::Client#initialize)
       # @yieldparam (see Ably::Rest::Client#initialize)
@@ -57,11 +70,12 @@ module Ably
       #    client = Ably::Realtime::Client.new(api_key: 'key.id:secret', client_id: 'john')
       #
       def initialize(options, &auth_block)
-        @rest_client        = Ably::Rest::Client.new(options, &auth_block)
-        @auth               = @rest_client.auth
-        @channels           = Ably::Realtime::Channels.new(self)
-        @echo_messages      = @rest_client.options.fetch(:echo_messages, true) == false ? false : true
-        @custom_socket_host = @rest_client.options[:ws_host]
+        @rest_client           = Ably::Rest::Client.new(options, &auth_block)
+        @auth                  = @rest_client.auth
+        @channels              = Ably::Realtime::Channels.new(self)
+        @echo_messages         = @rest_client.options.fetch(:echo_messages, true) == false ? false : true
+        @custom_socket_host    = @rest_client.options[:ws_host]
+        @connect_automatically = @rest_client.options.fetch(:connect_automatically, true) == false ? false : true
       end
 
       # Return a {Ably::Realtime::Channel Realtime Channel} for the given name
@@ -113,12 +127,6 @@ module Ably
       # @return [Aby::Realtime::Connection] The underlying connection for this client
       def connection
         @connection ||= Connection.new(self)
-      end
-
-      # @!attribute [r] custom_socket_host
-      # @return [String,NilClass] Returns the custom socket host that is being used if it was provided with the option :ws_host when the {Client} was created
-      def custom_socket_host
-        @custom_socket_host
       end
 
       # (see Ably::Rest::Client#register_encoder)

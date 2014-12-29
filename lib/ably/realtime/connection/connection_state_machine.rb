@@ -41,10 +41,6 @@ module Ably::Realtime
         connection.manager.reconnect_transport
       end
 
-      before_transition(to: [:connected]) do |connection|
-        connection.manager.cancel_connection_retry_timers
-      end
-
       after_transition(to: [:disconnected, :suspended], from: [:connecting]) do |connection, current_transition|
         connection.manager.respond_to_transport_disconnected current_transition
       end
@@ -54,7 +50,6 @@ module Ably::Realtime
       end
 
       after_transition(to: [:closing], from: [:initialized, :disconnected, :suspended]) do |connection|
-        connection.manager.cancel_initialized_timers
         connection.manager.force_close_connection
       end
 

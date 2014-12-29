@@ -14,14 +14,21 @@ module Ably::Realtime
         suspended:    { retry_every: 5,   max_time_in_state: 60 }
       }.freeze
 
-      # Time to wait for a CLOSED ProtocolMessage response from the server in response to a CLOSE request
-      FORCE_CONNECTION_CLOSED_TIMEOUT = 5
+      # Time to wait following a connection state request before it's considered a failure
+      TIMEOUTS = {
+        open:  15,
+        close: 10
+      }
 
       def initialize(connection)
         @connection = connection
+        @timers     = Hash.new { |hash, key| hash[key] = [] }
 
-        @timers               = Hash.new { |hash, key| hash[key] = [] }
-        @timers[:initializer] << EventMachine::Timer.new(0.01) { connection.connect }
+        connection.on(:initialized) do
+          connection.connect
+        end if client.connect_automatically
+
+        emit_initialized
       end
 
       # Creates and sets up a new {Ably::Realtime::Connection::WebsocketTransport} available on attribute #transport
@@ -38,6 +45,10 @@ module Ably::Realtime
         connection.create_websocket_transport do |websocket_transport|
           subscribe_to_transport_events websocket_transport
           yield websocket_transport if block_given?
+        end
+
+        create_timeout_timer_whilst_in_state(:connect, TIMEOUTS.fetch(:open)) do
+          connection_opening_failed Ably::Models::ErrorInfo.new(message: "Connection to Ably timed out after #{TIMEOUTS.fetch(:open)}s")
         end
       end
 
@@ -77,12 +88,8 @@ module Ably::Realtime
       def close_connection
         connection.send_protocol_message(action: Ably::Models::ProtocolMessage::ACTION.Close)
 
-        timer = EventMachine::Timer.new(FORCE_CONNECTION_CLOSED_TIMEOUT) do
+        create_timeout_timer_whilst_in_state(:close, TIMEOUTS.fetch(:close)) do
           force_close_connection if connection.closing?
-        end
-
-        connection.once(:closed) do
-          timer.cancel
         end
       end
 
@@ -94,31 +101,15 @@ module Ably::Realtime
         connection.transition_state_machine :closed
       end
 
-      # Remove all timers set up as part of the initialize process.
-      # Typically called by StateMachine when connection is closed and can no longer process the timers
-      #
-      # @api private
-      def cancel_initialized_timers
-        clear_timers :initializer
-      end
-
-      # Remove all timers related to connection attempt retries following a disconnect or suspended connection state.
-      # Typically called by StateMachine when connection is opened to ensure no further connection attempts are made
-      #
-      # @api private
-      def cancel_connection_retry_timers
-        clear_timers :connection_retry_timers
-      end
-
       # When a connection is disconnected try and reconnect or set the connection state to :suspended or :failed
       #
       # @api private
       def respond_to_transport_disconnected(current_transition)
         unless connection_retry_from_suspended_state?
-          return if connection_retried_for(:disconnected, ignore_states: [:connecting])
+          return if connection_retry_for(:disconnected, ignore_states: [:connecting])
         end
 
-        return if connection_retried_for(:suspended, ignore_states: [:connecting])
+        return if connection_retry_for(:suspended, ignore_states: [:connecting])
 
         # Fallback if no other criteria met
         connection.transition_state_machine :failed, current_transition.metadata
@@ -137,6 +128,20 @@ module Ably::Realtime
 
       def client
         connection.client
+      end
+
+      # Create a timer that will execute in timeout_in seconds.
+      # If the connection state changes however, cancel the timer
+      def create_timeout_timer_whilst_in_state(timer_id, timeout_in, &block)
+        raise 'Block required for timer' unless block_given?
+
+        # Wait until next tick to ensure {Connection#once_state_changed} has completed
+        EventMachine.next_tick do
+          timers[timer_id] << EventMachine::Timer.new(timeout_in) do
+            block.call
+          end
+          connection.once_state_changed { clear_timers timer_id }
+        end
       end
 
       def clear_timers(key)
@@ -159,14 +164,19 @@ module Ably::Realtime
         time_spent_attempting_state(:disconnected, ignore_states: [:connecting])
       end
 
-      def connection_retried_for(from_state, options = {})
+      # Reattempt a connection with a delay based on the CONNECT_RETRY_CONFIG for `from_state`
+      #
+      # @return [Boolean] True if a connection attempt has been set up, false if no further connection attempts can be made for this state
+      #
+      def connection_retry_for(from_state, options = {})
         retry_params = CONNECT_RETRY_CONFIG.fetch(from_state)
 
         if time_spent_attempting_state(from_state, options) <= retry_params.fetch(:max_time_in_state)
           logger.debug "ConnectionManager: Pausing for #{retry_params.fetch(:retry_every)}s before attempting to reconnect"
-          @timers[:connection_retry_timers] << EventMachine::Timer.new(retry_params.fetch(:retry_every)) do
+          create_timeout_timer_whilst_in_state(:reconnect, retry_params.fetch(:retry_every)) do
             connection.connect
           end
+          true
         end
       end
 
@@ -223,6 +233,14 @@ module Ably::Realtime
         transport.__incoming_protocol_msgbus__.unsubscribe
         transport.off
         logger.debug "ConnectionManager: Unsubscribed from all events from current transport"
+      end
+
+      # As connection is created in state :initialized, an :initialized event is not emitted by default.
+      # This ensures developers can attach a block e.g. on(:initialized) { do_something }
+      def emit_initialized
+        EventMachine.next_tick do
+          connection.trigger STATE.Initialized
+        end
       end
 
       def logger

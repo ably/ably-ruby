@@ -141,6 +141,7 @@ module Ably
       # @return [void]
       #
       def attach(&block)
+        connect_if_connection_initialized
         if attached?
           block.call self if block_given?
         else
@@ -176,6 +177,7 @@ module Ably
       # @return {Ably::Realtime::Presence}
       #
       def presence
+        attach
         @presence ||= Presence.new(self)
       end
 
@@ -294,6 +296,11 @@ module Ably
 
       def connection
         client.connection
+      end
+
+      # If the connection has not previously connected, connect now
+      def connect_if_connection_initialized
+        connection.connect if connection.initialized?
       end
 
       def message_name_key(name)

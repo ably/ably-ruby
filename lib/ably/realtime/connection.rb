@@ -86,10 +86,6 @@ module Ably
         Client::IncomingMessageDispatcher.new client, self
         Client::OutgoingMessageDispatcher.new client, self
 
-        EventMachine.next_tick do
-          trigger STATE.Initialized
-        end
-
         @state_machine              = ConnectionStateMachine.new(self)
         @manager                    = ConnectionManager.new(self)
         @state                      = STATE(state_machine.current_state)
@@ -103,11 +99,11 @@ module Ably
       #
       # @return [void]
       def close(&block)
-        raise state_machine.exception_for_state_change_to(:closing) unless state_machine.can_transition_to?(:closing)
-
         if closed?
-          block.call self
+          block.call self if block_given?
         else
+          raise state_machine.exception_for_state_change_to(:closing) unless state_machine.can_transition_to?(:closing)
+
           EventMachine.next_tick do
             transition_state_machine! :closing
           end
@@ -115,17 +111,21 @@ module Ably
         end
       end
 
-      # Causes the library to re-attempt connection, if it was previously explicitly
-      # closed by the user, or was closed as a result of an unrecoverable error.
+      # Causes the library to attempt connection.  If it was previously explicitly
+      # closed by the user, or was closed as a result of an unrecoverable error, a new connection will be opened.
       #
       # @yield [Ably::Realtime::Connection] block is called as soon as this connection is in the Connected state
       #
       # @return [void]
       def connect(&block)
         if connected?
-          block.call self
+          block.call self if block_given?
         else
-          transition_state_machine! :connecting unless connecting?
+          raise state_machine.exception_for_state_change_to(:connecting) unless state_machine.can_transition_to?(:connecting)
+
+          EventMachine.next_tick do
+            transition_state_machine! :connecting unless connecting?
+          end
           once(STATE.Connected) { block.call self } if block_given?
         end
       end
@@ -143,6 +143,7 @@ module Ably
       #    end
       #
       def ping(&block)
+        raise RuntimeError, 'Cannot send a ping when connection is not open' if initialized?
         raise RuntimeError, 'Cannot send a ping when connection is in a closed or failed state' if closed? || failed?
 
         started = nil
@@ -303,6 +304,20 @@ module Ably
       # @api private
       def release_websocket_transport
         @transport = nil
+      end
+
+      # Yields to given block for any state change of this connection
+      # @api private
+      def once_state_changed
+        once_block = proc do
+          # Ensure #off is called in next tick so as not to affect the callback array currently being iterated by the #once callback
+          EventMachine.next_tick do
+            off *STATE.map, &once_block
+            yield
+          end
+        end
+
+        once *STATE.map, &once_block
       end
 
       # As we are using a state machine, do not allow change_state to be used
