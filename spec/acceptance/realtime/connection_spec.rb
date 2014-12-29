@@ -99,13 +99,13 @@ describe Ably::Realtime::Connection do
         end
 
         specify '#close changes state to closing and waits for the server to confirm connection is closed with a ProtocolMessage' do
-          run_reactor(8) do
+          run_reactor do
             connection.on(:connected) do
               connection.close
               log_connection_changes
 
               connection.on(:closed) do
-                EventMachine.add_timer(0.1) do # allow for all subscribers on incoming message bes
+                EventMachine.add_timer(0.1) do # allow for all subscribers on incoming message bus
                   expect(connection.state).to eq(:closed)
                   expect(@error_emitted).to_not eql(true)
                   expect(@closed_message_from_server_received).to eql(true)
@@ -119,6 +119,8 @@ describe Ably::Realtime::Connection do
 
         specify '#close changes state to closing and will force close the connection within FORCE_CONNECTION_CLOSED_TIMEOUT if CLOSED is not received' do
           run_reactor(8) do
+            stub_const 'Ably::Realtime::Connection::ConnectionManager::FORCE_CONNECTION_CLOSED_TIMEOUT', 2
+
             connection.on(:connected) do
               # Stop all incoming & outgoing ProtocolMessages from being processed
               connection.__outgoing_protocol_msgbus__.unsubscribe
@@ -202,16 +204,119 @@ describe Ably::Realtime::Connection do
         end
 
         context 'with invalid WebSocket host' do
+          let(:retry_every_for_tests)       { 0.2 }
+          let(:max_time_in_state_for_tests) { 0.6 }
+
+          before do
+            stub_const 'Ably::Realtime::Connection::ConnectionManager::CONNECT_RETRY_CONFIG',
+                        Ably::Realtime::Connection::ConnectionManager::CONNECT_RETRY_CONFIG.merge(
+                          disconnected: { retry_every: retry_every_for_tests, max_time_in_state: max_time_in_state_for_tests },
+                          suspended:    { retry_every: retry_every_for_tests, max_time_in_state: max_time_in_state_for_tests },
+                        )
+          end
+
+          let(:expected_retry_attempts) { (max_time_in_state_for_tests / retry_every_for_tests).round }
+          let(:state_changes)           { Hash.new { |hash, key| hash[key] = 0 } }
+          let(:timer)                   { Hash.new }
+
           let(:client) do
             Ably::Realtime::Client.new(default_options.merge(ws_host: 'non.existent.host'))
           end
 
-          it 'enters the failed state and returns an authorization error' do
+          def count_state_changes
+            EventMachine.next_tick do
+              %w(connecting disconnected failed suspended).each do |state|
+                connection.on(state.to_sym) { state_changes[state.to_sym] += 1 }
+              end
+            end
+          end
+
+          def start_timer
+            timer[:start] = Time.now
+          end
+
+          def time_passed
+            Time.now.to_f - timer[:start].to_f
+          end
+
+          it 'enters the disconnected state and then transitions to closed when requested' do
             run_reactor do
-              connection.on(:failed) do |error|
+              connection.on(:connected) { raise 'Connection should not have reached :connected state' }
+              connection.on(:failed)    { raise 'Connection should not have reached :failed state yet' }
+
+              connection.once(:disconnected) do
+                expect(connection.state).to eq(:disconnected)
+                connection.close
+
+                connection.on(:closed) do
+                  expect(connection.state).to eq(:closed)
+                  stop_reactor
+                end
+              end
+            end
+          end
+
+          it 'enters the suspended state after multiple attempts to connect' do
+            run_reactor do
+              connection.on(:failed) { raise 'Connection should not have reached :failed state yet' }
+              count_state_changes && start_timer
+
+              connection.once(:suspended) do
+                expect(connection.state).to eq(:suspended)
+
+                expect(state_changes[:connecting]).to   eql(expected_retry_attempts + 1) # add one to account for initial connect
+                expect(state_changes[:disconnected]).to eql(expected_retry_attempts)
+
+                expect(time_passed).to be > max_time_in_state_for_tests
+                stop_reactor
+              end
+            end
+          end
+
+          it 'enters the suspended state and transitions to closed when requested' do
+            run_reactor do
+              connection.on(:connected) { raise 'Connection should not have reached :connected state' }
+
+              connection.once(:suspended) do
+                expect(connection.state).to eq(:suspended)
+                connection.close
+
+                connection.on(:closed) do
+                  expect(connection.state).to eq(:closed)
+                  stop_reactor
+                end
+              end
+            end
+          end
+
+          it 'enters the failed state after multiple attempts when in the suspended state' do
+            run_reactor do
+              connection.on(:connected) { raise 'Connection should not have reached :connected state' }
+
+              connection.once(:suspended) do
+                count_state_changes && start_timer
+
+                connection.on(:failed) do
+                  expect(connection.state).to eq(:failed)
+
+                  expect(state_changes[:connecting]).to   eql(expected_retry_attempts)
+                  expect(state_changes[:suspended]).to    eql(expected_retry_attempts)
+                  expect(state_changes[:disconnected]).to eql(0)
+
+                  expect(time_passed).to be > max_time_in_state_for_tests
+                  stop_reactor
+                end
+              end
+            end
+          end
+
+          it 'enters the failed state and should not transition to closed when requested' do
+            run_reactor do
+              connection.on(:connected) { raise 'Connection should not have reached :connected state' }
+
+              connection.once(:failed) do
                 expect(connection.state).to eq(:failed)
-                expect(error.code).to eq(80000)
-                expect(error.status).to be_nil
+                expect { connection.close }.to raise_error Ably::Exceptions::ConnectionStateChangeError, /Unable to transition from failed => closing/
                 stop_reactor
               end
             end
@@ -240,14 +345,14 @@ describe Ably::Realtime::Connection do
         end
       end
 
-      it 'emits a ConnectionError if a state transition is unsupported' do
+      it 'emits a ConnectionStateChangeError if a state transition is unsupported' do
         run_reactor do
           connection.connect do
             connection.transition_state_machine(:initialized)
           end
 
           connection.on(:error) do |error|
-            expect(error).to be_a(Ably::Exceptions::ConnectionError)
+            expect(error).to be_a(Ably::Exceptions::ConnectionStateChangeError)
             stop_reactor
           end
         end

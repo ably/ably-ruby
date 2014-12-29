@@ -103,11 +103,13 @@ module Ably
       #
       # @return [void]
       def close(&block)
+        raise state_machine.exception_for_state_change_to(:closing) unless state_machine.can_transition_to?(:closing)
+
         if closed?
           block.call self
         else
           EventMachine.next_tick do
-            transition_state_machine(:closing)
+            transition_state_machine! :closing
           end
           once(STATE.Closed) { block.call self } if block_given?
         end
@@ -123,7 +125,7 @@ module Ably
         if connected?
           block.call self
         else
-          transition_state_machine(:connecting) unless connecting?
+          transition_state_machine! :connecting unless connecting?
           once(STATE.Connected) { block.call self } if block_given?
         end
       end
@@ -290,7 +292,7 @@ module Ably
               yield websocket_transport if block_given?
             end
           rescue EventMachine::ConnectionError => error
-            manager.connection_failed error
+            manager.connection_opening_failed error
           end
         end
 
