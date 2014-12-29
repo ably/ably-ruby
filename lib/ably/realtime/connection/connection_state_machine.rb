@@ -21,9 +21,9 @@ module Ably::Realtime
       end
 
       transition :from => :initialized,  :to => [:connecting, :closing]
-      transition :from => :connecting,   :to => [:connected, :failed, :closing, :disconnected]
+      transition :from => :connecting,   :to => [:connected, :failed, :closing, :disconnected, :suspended]
       transition :from => :connected,    :to => [:disconnected, :suspended, :closing, :failed]
-      transition :from => :disconnected, :to => [:connecting, :closing, :failed]
+      transition :from => :disconnected, :to => [:connecting, :closing, :suspended]
       transition :from => :suspended,    :to => [:connecting, :closing, :failed]
       transition :from => :closing,      :to => [:closed]
       transition :from => :closed,       :to => [:connecting]
@@ -45,7 +45,7 @@ module Ably::Realtime
         connection.manager.cancel_connection_retry_timers
       end
 
-      after_transition(to: [:disconnected], from: [:connecting]) do |connection, current_transition|
+      after_transition(to: [:disconnected, :suspended], from: [:connecting]) do |connection, current_transition|
         connection.manager.respond_to_transport_disconnected current_transition
       end
 
@@ -53,12 +53,12 @@ module Ably::Realtime
         connection.manager.destroy_transport
       end
 
-      after_transition(to: [:closing], from: [:initialized]) do |connection|
+      after_transition(to: [:closing], from: [:initialized, :disconnected, :suspended]) do |connection|
         connection.manager.cancel_initialized_timers
         connection.manager.force_close_connection
       end
 
-      after_transition(to: [:closing], from: [:connecting, :connected, :disconnected, :suspended]) do |connection|
+      after_transition(to: [:closing], from: [:connecting, :connected]) do |connection|
         connection.manager.close_connection
       end
 
@@ -73,9 +73,9 @@ module Ably::Realtime
       # @return [void]
       def transition_to(state, *args)
         unless result = super(state, *args)
-          error_message = "ConnectionStateMachine: Unable to transition from #{current_state} => #{state}"
-          connection.trigger :error, Ably::Exceptions::ConnectionError.new(error_message, nil, 80020)
-          logger.fatal error_message
+          exception = exception_for_state_change_to(state)
+          connection.trigger :error, exception
+          logger.fatal exception.message
         end
         result
       end
@@ -88,6 +88,12 @@ module Ably::Realtime
       # @return [Symbol]
       def previous_state
         previous_transition.to_state if previous_transition
+      end
+
+      # @return [Ably::Exceptions::ConnectionStateChangeError]
+      def exception_for_state_change_to(state)
+        error_message = "ConnectionStateMachine: Unable to transition from #{current_state} => #{state}"
+        Ably::Exceptions::ConnectionStateChangeError.new(error_message, nil, 80020)
       end
 
       private

@@ -36,6 +36,9 @@ module Ably
     # Connection error
     class ConnectionError < BaseAblyException; end
 
+    # Invalid Connection State Change error
+    class ConnectionStateChangeError < BaseAblyException; end
+
     # A generic Ably exception taht supports a status & code.
     # See https://github.com/ably/ably-common/blob/master/protocol/errors.json for a list of Ably errors
     class Standard < BaseAblyException; end

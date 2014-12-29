@@ -2,13 +2,17 @@ module Ably::Realtime
   class Connection
     # ConnectionManager is responsible for all actions relating to underlying connection and transports,
     # such as opening, closing, attempting reconnects etc.
+    # Connection state changes are performed by this class and executed from {ConnectionStateMachine}
     #
     # This is a private class and should never be used directly by developers as the API is likely to change in future.
     #
     # @api private
     class ConnectionManager
-      # Configuration for recovery of failed connection attempts
-      CONNECTION_FAILED = { retry_after: 0.5, max_retries: 2, code: 80000 }.freeze
+      # Configuration for automatic recovery of failed connection attempts
+      CONNECT_RETRY_CONFIG = {
+        disconnected: { retry_every: 0.5, max_time_in_state: 10 },
+        suspended:    { retry_every: 5,   max_time_in_state: 60 }
+      }.freeze
 
       # Time to wait for a CLOSED ProtocolMessage response from the server in response to a CLOSE request
       FORCE_CONNECTION_CLOSED_TIMEOUT = 5
@@ -40,9 +44,9 @@ module Ably::Realtime
       # Called by the transport when a connection attempt fails
       #
       # @api private
-      def connection_failed(error)
-        logger.info "ConnectionManager: Connection to #{connection.host}:#{connection.port} failed; #{error.message}"
-        connection.transition_state_machine :disconnected, Ably::Models::ErrorInfo.new(message: "Connection failed; #{error.message}", code: 80000)
+      def connection_opening_failed(error)
+        logger.error "ConnectionManager: Connection to #{connection.host}:#{connection.port} failed; #{error.message}"
+        connection.transition_state_machine next_retry_state, Ably::Models::ErrorInfo.new(message: "Connection failed; #{error.message}", code: 80000)
       end
 
       # Ensures the underlying transport has been disconnected and all event emitter callbacks removed
@@ -106,15 +110,15 @@ module Ably::Realtime
         clear_timers :connection_retry_timers
       end
 
-      # When a connection is disconnected try and reconnect or set the connection state to :failed
+      # When a connection is disconnected try and reconnect or set the connection state to :suspended or :failed
       #
       # @api private
       def respond_to_transport_disconnected(current_transition)
-        error_code = current_transition && current_transition.metadata && current_transition.metadata.code
-
-        if connection.previous_state == :connecting && error_code == CONNECTION_FAILED[:code]
-          return if retry_connection_failed
+        unless connection_retry_from_suspended_state?
+          return if connection_retried_for(:disconnected, ignore_states: [:connecting])
         end
+
+        return if connection_retried_for(:suspended, ignore_states: [:connecting])
 
         # Fallback if no other criteria met
         connection.transition_state_machine :failed, current_transition.metadata
@@ -139,16 +143,58 @@ module Ably::Realtime
         timers.fetch(key, []).each(&:cancel)
       end
 
-      def retry_connection_failed
-        if retries_for_state(:disconnected, ignore_states: [:connecting]).count < CONNECTION_FAILED[:max_retries]
-          logger.debug "ConnectionManager: Pausing for #{CONNECTION_FAILED[:retry_after]}s before attempting to reconnect"
-          @timers[:connection_retry_timers] << EventMachine::Timer.new(CONNECTION_FAILED[:retry_after]) do
+      def next_retry_state
+        if connection_retry_from_suspended_state? || time_passed_since_disconnected > CONNECT_RETRY_CONFIG.fetch(:disconnected).fetch(:max_time_in_state)
+          :suspended
+        else
+          :disconnected
+        end
+      end
+
+      def connection_retry_from_suspended_state?
+        !retries_for_state(:suspended, ignore_states: [:connecting]).empty?
+      end
+
+      def time_passed_since_disconnected
+        time_spent_attempting_state(:disconnected, ignore_states: [:connecting])
+      end
+
+      def connection_retried_for(from_state, options = {})
+        retry_params = CONNECT_RETRY_CONFIG.fetch(from_state)
+
+        if time_spent_attempting_state(from_state, options) <= retry_params.fetch(:max_time_in_state)
+          logger.debug "ConnectionManager: Pausing for #{retry_params.fetch(:retry_every)}s before attempting to reconnect"
+          @timers[:connection_retry_timers] << EventMachine::Timer.new(retry_params.fetch(:retry_every)) do
             connection.connect
           end
         end
       end
 
-      def retries_for_state(state, options = {})
+      # Returns a float representing the amount of time passed since the first consecutive attempt of this state
+      #
+      # @param (see #retries_for_state)
+      # @return [Float] time passed in seconds
+      #
+      def time_spent_attempting_state(state, options)
+        states = retries_for_state(state, options)
+        if states.empty?
+          0
+        else
+          Time.now.to_f - states.last[:transitioned_at].to_f
+        end.to_f
+      end
+
+      # Checks the state change history for the current connection and returns all matching consecutive states.
+      # This is useful to determine the number of retries of a particular state on a connection.
+      #
+      # @param  state   [Symbol]
+      # @param  options [Hash]
+      # @option options [Array<Symbol>] :ignore_states states that should be ignored when determining consecutive historical retries for `state`.
+      #                                 For example, when working out :connecting attempts, :disconnect state changes should be ignored as they are a side effect of a failed :connecting
+      #
+      # @return [Array<Hash>] Array of consecutive state attempts matching `state` in order of transitioned_at desc
+      #
+      def retries_for_state(state, options)
         ignore_states = options.fetch(:ignore_states, [])
         allowed_states = Array(state) + Array(ignore_states)
 
