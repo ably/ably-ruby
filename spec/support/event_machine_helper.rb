@@ -1,17 +1,20 @@
+require 'eventmachine'
 require 'timeout'
 
 module RSpec
   module EventMachine
     def run_reactor(timeout = 5)
       Timeout::timeout(timeout + 0.5) do
-        EM.run do
+        ::EventMachine.run do
           yield
         end
       end
     end
 
     def stop_reactor
-      EM.stop
+      ::EventMachine.next_tick do
+        ::EventMachine.stop
+      end
     end
   end
 end
