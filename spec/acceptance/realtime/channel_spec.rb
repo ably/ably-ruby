@@ -14,6 +14,43 @@ describe Ably::Realtime::Channel do
       let(:channel)      { client.channel(channel_name) }
       let(:messages)     { [] }
 
+      context 'connection with connect_automatically option set to false' do
+        let(:client) do
+          Ably::Realtime::Client.new(default_options.merge(connect_automatically: false))
+        end
+
+        it 'remains initialized when accessing a channel' do
+          run_reactor do
+            client.channel('test')
+            EventMachine.add_timer(2) do
+              expect(client.connection).to be_initialized
+              stop_reactor
+            end
+          end
+        end
+
+        it 'opens implicitly if attaching to a channel' do
+          run_reactor do
+            client.channel('test').attach do
+              expect(client.connection).to be_connected
+              stop_reactor
+            end
+          end
+        end
+
+        it 'opens implicitly if accessing the presence object' do
+          run_reactor do
+            client.channel('test').tap do |channel|
+              channel.on(:attached) do
+                expect(client.connection).to be_connected
+                stop_reactor
+              end
+              channel.presence
+            end
+          end
+        end
+      end
+
       it 'attaches to a channel' do
         run_reactor do
           channel.attach

@@ -66,6 +66,57 @@ describe Ably::Realtime::Connection do
         end
       end
 
+      context 'with connect_automatically option set to false' do
+        let(:client) do
+          Ably::Realtime::Client.new(default_options.merge(connect_automatically: false))
+        end
+
+        it 'does not connect automatically' do
+          run_reactor do
+            EventMachine.add_timer(1) do
+              expect(connection).to be_initialized
+              stop_reactor
+            end
+            client
+          end
+        end
+
+        it 'connects on #connect' do
+          run_reactor do
+            connection.connect do
+              expect(connection).to be_connected
+              stop_reactor
+            end
+          end
+        end
+      end
+
+      context '#connect' do
+        it 'ignores subsequent connect requests' do
+          run_reactor do
+            connection.on(:connected) do
+              3.times { connection.connect }
+              expect(connection).to be_connected
+              stop_reactor
+            end
+          end
+        end
+      end
+
+      context '#close' do
+        it 'ignores subsequent close requests' do
+          run_reactor do
+            connection.on(:connected) do
+              connection.close do
+                3.times { connection.close }
+                expect(connection).to be_closed
+                stop_reactor
+              end
+            end
+          end
+        end
+      end
+
       context 'connection closing' do
         def log_connection_changes
           connection.on(:closing) do
@@ -87,8 +138,9 @@ describe Ably::Realtime::Connection do
             log_connection_changes
 
             connection.on(:closed) do
+              expect(connection.state).to eq(:closed)
+
               EventMachine.add_timer(0.1) do # allow for all subscribers on incoming message bes
-                expect(connection.state).to eq(:closed)
                 expect(@error_emitted).to_not eql(true)
                 expect(@closed_message_from_server_received).to_not eql(true)
                 expect(@closing_state_emitted).to eql(true)
@@ -105,8 +157,9 @@ describe Ably::Realtime::Connection do
               log_connection_changes
 
               connection.on(:closed) do
+                expect(connection.state).to eq(:closed)
+
                 EventMachine.add_timer(0.1) do # allow for all subscribers on incoming message bus
-                  expect(connection.state).to eq(:closed)
                   expect(@error_emitted).to_not eql(true)
                   expect(@closed_message_from_server_received).to eql(true)
                   expect(@closing_state_emitted).to eql(true)
@@ -117,9 +170,10 @@ describe Ably::Realtime::Connection do
           end
         end
 
-        specify '#close changes state to closing and will force close the connection within FORCE_CONNECTION_CLOSED_TIMEOUT if CLOSED is not received' do
+        specify '#close changes state to closing and will force close the connection within TIMEOUTS[:close] if CLOSED is not received' do
           run_reactor(8) do
-            stub_const 'Ably::Realtime::Connection::ConnectionManager::FORCE_CONNECTION_CLOSED_TIMEOUT', 2
+            stub_const 'Ably::Realtime::Connection::ConnectionManager::TIMEOUTS',
+                        Ably::Realtime::Connection::ConnectionManager::TIMEOUTS.merge(close: 2)
 
             connection.on(:connected) do
               # Stop all incoming & outgoing ProtocolMessages from being processed
@@ -131,7 +185,7 @@ describe Ably::Realtime::Connection do
               log_connection_changes
 
               connection.on(:closed) do
-                expect(Time.now - close_requested_at).to be >= Ably::Realtime::Connection::ConnectionManager::FORCE_CONNECTION_CLOSED_TIMEOUT
+                expect(Time.now - close_requested_at).to be >= Ably::Realtime::Connection::ConnectionManager::TIMEOUTS.fetch(:close)
                 expect(connection.state).to eq(:closed)
                 expect(@error_emitted).to_not eql(true)
                 expect(@closed_message_from_server_received).to_not eql(true)
@@ -151,6 +205,13 @@ describe Ably::Realtime::Connection do
               stop_reactor
             end
           end
+        end
+      end
+
+      it 'when not connected, it raises an exception with #ping' do
+        run_reactor do
+          expect { connection.ping }.to raise_error RuntimeError, /Cannot send a ping when connection/
+          stop_reactor
         end
       end
 
@@ -310,13 +371,35 @@ describe Ably::Realtime::Connection do
             end
           end
 
-          it 'enters the failed state and should not transition to closed when requested' do
+          it 'enters the failed state and should disallow a transition to closed when requested' do
             run_reactor do
               connection.on(:connected) { raise 'Connection should not have reached :connected state' }
 
               connection.once(:failed) do
                 expect(connection.state).to eq(:failed)
                 expect { connection.close }.to raise_error Ably::Exceptions::ConnectionStateChangeError, /Unable to transition from failed => closing/
+                stop_reactor
+              end
+            end
+          end
+        end
+
+        specify 'connection#open times out automatically and attempts a reconnect' do
+          run_reactor do
+            stub_const 'Ably::Realtime::Connection::ConnectionManager::TIMEOUTS',
+                        Ably::Realtime::Connection::ConnectionManager::TIMEOUTS.merge(open: 2)
+
+            connection.on(:connected) { raise "Connection should not open in this test as CONNECTED ProtocolMessage is never received" }
+
+            started_at = Time.now
+
+            connection.on(:connecting) do
+              connection.__incoming_protocol_msgbus__.unsubscribe
+            end
+
+            connection.on(:disconnected) do
+              expect(Time.now.to_f - started_at.to_f).to be > 2
+              connection.on(:connecting) do
                 stop_reactor
               end
             end
