@@ -108,4 +108,28 @@ describe Ably::Modules::StateEmitter do
       expect(block_calls.count).to eql(1)
     end
   end
+
+  context '#once_state_changed' do
+    let(:block_calls) { [] }
+    let(:block) do
+      proc do
+        block_calls << Time.now
+      end
+    end
+
+    it 'is not called if the state does not change' do
+      subject.once_state_changed &block
+      subject.change_state initial_state
+      expect(block_calls.count).to eql(0)
+    end
+
+    it 'calls the block for any state change once' do
+      subject.once_state_changed &block
+      3.times do
+        subject.change_state :connected
+        subject.change_state :connecting
+      end
+      expect(block_calls.count).to eql(1)
+    end
+  end
 end

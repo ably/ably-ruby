@@ -71,6 +71,21 @@ module Ably::Modules
       end
     end
 
+    # Calls the block once when the state changes
+    #
+    # @yield block is called once the state changes
+    # @return [void]
+    #
+    # @api private
+    def once_state_changed(&block)
+      once_block = proc do
+        off *self.class::STATE.map, &once_block
+        yield
+      end
+
+      once *self.class::STATE.map, &once_block
+    end
+
     private
     def self.included(klass)
       klass.configure_event_emitter coerce_into: Proc.new { |event|
