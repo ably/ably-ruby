@@ -77,4 +77,35 @@ describe Ably::Modules::StateEmitter do
       expect { subject.state = :invalid }.to raise_error KeyError
     end
   end
+
+  context '#once_or_if' do
+    let(:block_calls) { [] }
+    let(:block) do
+      proc do
+        block_calls << Time.now
+      end
+    end
+
+    it 'calls the block if in the provided state' do
+      subject.once_or_if initial_state, &block
+      expect(block_calls.count).to eql(1)
+    end
+
+    it 'calls the block when the state is reached' do
+      subject.once_or_if :connected, &block
+      expect(block_calls.count).to eql(0)
+
+      subject.change_state :connected
+      expect(block_calls.count).to eql(1)
+    end
+
+    it 'calls the block only once' do
+      subject.once_or_if :connected, &block
+      3.times do
+        subject.change_state :connected
+        subject.change_state :connecting
+      end
+      expect(block_calls.count).to eql(1)
+    end
+  end
 end
