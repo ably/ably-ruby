@@ -65,6 +65,63 @@ describe Ably::Modules::EventEmitter do
         subject.trigger :hover, msg
       end
     end
+
+    context 'event callback changes within the callback block' do
+      context 'when new event callbacks are added' do
+        before do
+          2.times do
+            subject.on(:message) do |msg|
+              obj.received_message msg
+              subject.on(:message) do |msg|
+                obj.received_message_from_new_callbacks msg
+              end
+            end
+          end
+          allow(obj).to receive(:received_message)
+        end
+
+        it 'is unaffected and processes the prior event callbacks once' do
+          expect(obj).to receive(:received_message).with(msg).twice
+          expect(obj).to_not receive(:received_message_from_new_callbacks).with(msg)
+          subject.trigger :message, msg
+        end
+
+        it 'adds them for the next emitted event' do
+          expect(obj).to receive(:received_message_from_new_callbacks).with(msg).twice
+
+          # New callbacks are added in this trigger
+          subject.trigger :message, msg
+
+          # New callbacks are now called with second event emitted
+          subject.trigger :message, msg
+        end
+      end
+
+      context 'when callbacks are removed' do
+        before do
+          2.times do
+            subject.once(:message) do |msg|
+              obj.received_message msg
+              subject.off
+            end
+          end
+        end
+
+        it 'is unaffected and processes the prior event callbacks once' do
+          expect(obj).to receive(:received_message).with(msg).twice
+          subject.trigger :message, msg
+        end
+
+        it 'removes them for the next emitted event' do
+          expect(obj).to receive(:received_message).with(msg).twice
+
+          # Callbacks are removed in this trigger
+          subject.trigger :message, msg
+          # No callbacks should exist now
+          subject.trigger :message, msg
+        end
+      end
+    end
   end
 
   context '#once' do

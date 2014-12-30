@@ -62,7 +62,13 @@ module Ably
 
       # Trigger an event with event_name that will in turn call all matching callbacks setup with `on`
       def trigger(event_name, *args)
-        callbacks[callbacks_event_coerced(event_name)].delete_if { |proc_hash| proc_hash[:trigger_proc].call(*args) }
+        callbacks[callbacks_event_coerced(event_name)].
+          clone.
+          select do |proc_hash|
+            proc_hash[:trigger_proc].call(*args)
+          end.each do |callback|
+            callbacks[callbacks_event_coerced(event_name)].delete callback
+          end
       end
 
       # Remove all callbacks for event_name.
