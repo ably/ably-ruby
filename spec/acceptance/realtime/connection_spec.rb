@@ -16,30 +16,57 @@ describe Ably::Realtime::Connection do
         Ably::Realtime::Client.new(default_options)
       end
 
-      context 'with API key' do
-        it 'connects automatically' do
-          run_reactor do
-            connection.on(:connected) do
-              expect(connection.state).to eq(:connected)
-              expect(client.auth.auth_params[:key_id]).to_not be_nil
-              expect(client.auth.auth_params[:access_token]).to be_nil
-              stop_reactor
+      context 'new connection' do
+        context 'with API key' do
+          it 'connects automatically' do
+            run_reactor do
+              connection.on(:connected) do
+                expect(connection.state).to eq(:connected)
+                expect(client.auth.auth_params[:key_id]).to_not be_nil
+                expect(client.auth.auth_params[:access_token]).to be_nil
+                stop_reactor
+              end
             end
           end
         end
-      end
 
-      context 'with client_id resulting in token auth' do
-        let(:default_options) do
-          { api_key: api_key, environment: environment, protocol: protocol, client_id: random_str }
+        context 'with client_id resulting in token auth' do
+          let(:default_options) do
+            { api_key: api_key, environment: environment, protocol: protocol, client_id: random_str }
+          end
+          it 'connects automatically' do
+            run_reactor do
+              connection.on(:connected) do
+                expect(connection.state).to eq(:connected)
+                expect(client.auth.auth_params[:access_token]).to_not be_nil
+                expect(client.auth.auth_params[:key_id]).to be_nil
+                stop_reactor
+              end
+            end
+          end
         end
-        it 'connects automatically' do
-          run_reactor do
-            connection.on(:connected) do
-              expect(connection.state).to eq(:connected)
-              expect(client.auth.auth_params[:access_token]).to_not be_nil
-              expect(client.auth.auth_params[:key_id]).to be_nil
-              stop_reactor
+
+        context 'with connect_automatically option set to false' do
+          let(:client) do
+            Ably::Realtime::Client.new(default_options.merge(connect_automatically: false))
+          end
+
+          it 'does not connect automatically' do
+            run_reactor do
+              EventMachine.add_timer(1) do
+                expect(connection).to be_initialized
+                stop_reactor
+              end
+              client
+            end
+          end
+
+          it 'connects on #connect' do
+            run_reactor do
+              connection.connect do
+                expect(connection).to be_connected
+                stop_reactor
+              end
             end
           end
         end
@@ -66,73 +93,56 @@ describe Ably::Realtime::Connection do
         end
       end
 
-      context 'with connect_automatically option set to false' do
-        let(:client) do
-          Ably::Realtime::Client.new(default_options.merge(connect_automatically: false))
-        end
-
-        it 'does not connect automatically' do
-          run_reactor do
-            EventMachine.add_timer(1) do
-              expect(connection).to be_initialized
-              stop_reactor
-            end
-            client
+      context 'repeated requests to' do
+        def fail_if_state_changes
+          connection.once(:connected, :closing, :connecting) do
+            puts connection.state
+            raise 'State should not have changed'
           end
         end
 
-        it 'connects on #connect' do
-          run_reactor do
-            connection.connect do
-              expect(connection).to be_connected
-              stop_reactor
-            end
-          end
-        end
-      end
-
-      context '#connect' do
-        it 'ignores subsequent connect requests' do
-          run_reactor do
-            connection.on(:connected) do
-              3.times { connection.connect }
-              expect(connection).to be_connected
-              stop_reactor
-            end
-          end
-        end
-      end
-
-      context '#close' do
-        it 'ignores subsequent close requests' do
-          run_reactor do
-            connection.on(:connected) do
-              connection.close do
-                3.times { connection.close }
-                expect(connection).to be_closed
+        context '#connect' do
+          it 'are ignored and no further state changes are emitted' do
+            run_reactor do
+              connection.once(:connected) do
+                fail_if_state_changes
+                3.times { connection.connect }
+                expect(connection).to be_connected
                 stop_reactor
+              end
+            end
+          end
+        end
+
+        context '#close' do
+          it 'are ignored and no further state changes are emitted' do
+            run_reactor do
+              connection.once(:connected) do
+                connection.close do
+                  fail_if_state_changes
+                  3.times { connection.close }
+                  expect(connection).to be_closed
+                  stop_reactor
+                end
               end
             end
           end
         end
       end
 
-      context 'connection closing' do
+      context '#close' do
+        let(:events) { Hash.new }
+
         def log_connection_changes
-          connection.on(:closing) do
-            @closing_state_emitted = true
-          end
+          connection.on(:closing) { events[:closing_emitted] = true }
+          connection.on(:error)   { events[:error_emitted] = true }
 
           connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
-            @closed_message_from_server_received = true if protocol_message.action == :closed
-          end
-
-          connection.on(:error) do
-            @error_emitted = true
+            events[:closed_message_from_server_received] = true if protocol_message.action == :closed
           end
         end
 
-        specify '#close before connection is opened closes the connection immediately and changes the connection state to closing & then immediately closed' do
+        specify 'before connection is opened closes the connection immediately and changes the connection state to closing & then immediately closed' do
           run_reactor(8) do
             connection.close
             log_connection_changes
@@ -141,16 +151,16 @@ describe Ably::Realtime::Connection do
               expect(connection.state).to eq(:closed)
 
               EventMachine.add_timer(0.1) do # allow for all subscribers on incoming message bes
-                expect(@error_emitted).to_not eql(true)
-                expect(@closed_message_from_server_received).to_not eql(true)
-                expect(@closing_state_emitted).to eql(true)
+                expect(events[:error_emitted]).to_not eql(true)
+                expect(events[:closed_message_from_server_received]).to_not eql(true)
+                expect(events[:closing_emitted]).to eql(true)
                 stop_reactor
               end
             end
           end
         end
 
-        specify '#close changes state to closing and waits for the server to confirm connection is closed with a ProtocolMessage' do
+        specify 'changes state to closing and waits for the server to confirm connection is closed with a ProtocolMessage' do
           run_reactor do
             connection.on(:connected) do
               connection.close
@@ -160,9 +170,9 @@ describe Ably::Realtime::Connection do
                 expect(connection.state).to eq(:closed)
 
                 EventMachine.add_timer(0.1) do # allow for all subscribers on incoming message bus
-                  expect(@error_emitted).to_not eql(true)
-                  expect(@closed_message_from_server_received).to eql(true)
-                  expect(@closing_state_emitted).to eql(true)
+                  expect(events[:error_emitted]).to_not eql(true)
+                  expect(events[:closed_message_from_server_received]).to eql(true)
+                  expect(events[:closing_emitted]).to eql(true)
                   stop_reactor
                 end
               end
@@ -176,7 +186,7 @@ describe Ably::Realtime::Connection do
                         Ably::Realtime::Connection::ConnectionManager::TIMEOUTS.merge(close: 2)
 
             connection.on(:connected) do
-              # Stop all incoming & outgoing ProtocolMessages from being processed
+              # Prevent all incoming & outgoing ProtocolMessages from being processed by the client library
               connection.__outgoing_protocol_msgbus__.unsubscribe
               connection.__incoming_protocol_msgbus__.unsubscribe
 
@@ -187,9 +197,9 @@ describe Ably::Realtime::Connection do
               connection.on(:closed) do
                 expect(Time.now - close_requested_at).to be >= Ably::Realtime::Connection::ConnectionManager::TIMEOUTS.fetch(:close)
                 expect(connection.state).to eq(:closed)
-                expect(@error_emitted).to_not eql(true)
-                expect(@closed_message_from_server_received).to_not eql(true)
-                expect(@closing_state_emitted).to eql(true)
+                expect(events[:error_emitted]).to_not eql(true)
+                expect(events[:closed_message_from_server_received]).to_not eql(true)
+                expect(events[:closing_emitted]).to eql(true)
                 stop_reactor
               end
             end
@@ -197,21 +207,23 @@ describe Ably::Realtime::Connection do
         end
       end
 
-      it 'echoes a heart beat with #ping' do
-        run_reactor do
-          connection.on(:connected) do
-            connection.ping do |time_elapsed|
-              expect(time_elapsed).to be > 0
-              stop_reactor
+      context '#ping' do
+        it 'echoes a heart beat' do
+          run_reactor do
+            connection.on(:connected) do
+              connection.ping do |time_elapsed|
+                expect(time_elapsed).to be > 0
+                stop_reactor
+              end
             end
           end
         end
-      end
 
-      it 'when not connected, it raises an exception with #ping' do
-        run_reactor do
-          expect { connection.ping }.to raise_error RuntimeError, /Cannot send a ping when connection/
-          stop_reactor
+        it 'when not connected, it raises an exception' do
+          run_reactor do
+            expect { connection.ping }.to raise_error RuntimeError, /Cannot send a ping when connection/
+            stop_reactor
+          end
         end
       end
 
@@ -269,6 +281,7 @@ describe Ably::Realtime::Connection do
           let(:max_time_in_state_for_tests) { 0.6 }
 
           before do
+            # Reconfigure client library retry periods and timeouts so that tests run quickly
             stub_const 'Ably::Realtime::Connection::ConnectionManager::CONNECT_RETRY_CONFIG',
                         Ably::Realtime::Connection::ConnectionManager::CONNECT_RETRY_CONFIG.merge(
                           disconnected: { retry_every: retry_every_for_tests, max_time_in_state: max_time_in_state_for_tests },
@@ -384,7 +397,7 @@ describe Ably::Realtime::Connection do
           end
         end
 
-        specify 'connection#open times out automatically and attempts a reconnect' do
+        specify '#open times out automatically and attempts a reconnect' do
           run_reactor do
             stub_const 'Ably::Realtime::Connection::ConnectionManager::TIMEOUTS',
                         Ably::Realtime::Connection::ConnectionManager::TIMEOUTS.merge(open: 2)
