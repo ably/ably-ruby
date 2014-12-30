@@ -115,7 +115,7 @@ describe 'Ably::Realtime::Channel Messages' do
                   expect(callbacks[:client]).to eql(send_count)
                   expect(callbacks[:other]).to eql(send_count)
 
-                  EventMachine.stop
+                  stop_reactor
                 end
               end
             end
