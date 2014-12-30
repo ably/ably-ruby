@@ -135,13 +135,10 @@ module Ably::Realtime
       def create_timeout_timer_whilst_in_state(timer_id, timeout_in, &block)
         raise 'Block required for timer' unless block_given?
 
-        # Wait until next tick to ensure {Connection#once_state_changed} has completed
-        EventMachine.next_tick do
-          timers[timer_id] << EventMachine::Timer.new(timeout_in) do
-            block.call
-          end
-          connection.once_state_changed { clear_timers timer_id }
+        timers[timer_id] << EventMachine::Timer.new(timeout_in) do
+          block.call
         end
+        connection.once_state_changed { clear_timers timer_id }
       end
 
       def clear_timers(key)

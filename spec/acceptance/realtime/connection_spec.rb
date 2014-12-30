@@ -75,19 +75,35 @@ describe Ably::Realtime::Connection do
       context 'initialization phases' do
         let(:phases) { [:initialized, :connecting, :connected] }
         let(:events_triggered) { [] }
-
-        it 'are triggered in order' do
-          test_expectation = Proc.new do
+        let(:test_expectation) do
+          Proc.new do
             expect(events_triggered).to eq(phases)
             stop_reactor
           end
+        end
 
-          run_reactor do
-            phases.each do |phase|
-              connection.on(phase) do
-                events_triggered << phase
-                test_expectation.call if events_triggered.length == phases.length
-              end
+        def expect_ordered_phases
+          phases.each do |phase|
+            connection.on(phase) do
+              events_triggered << phase
+              test_expectation.call if events_triggered.length == phases.length
+            end
+          end
+        end
+
+        context 'with implicit #connect' do
+          it 'are triggered in order' do
+            run_reactor do
+              expect_ordered_phases
+            end
+          end
+        end
+
+        context 'with explicit #connect' do
+          it 'are triggered in order' do
+            run_reactor do
+              connection.connect
+              expect_ordered_phases
             end
           end
         end

@@ -99,16 +99,12 @@ module Ably
       #
       # @return [void]
       def close(&block)
-        if closed?
-          block.call self if block_given?
-        else
+        unless closing? || closed?
           raise state_machine.exception_for_state_change_to(:closing) unless state_machine.can_transition_to?(:closing)
-
-          EventMachine.next_tick do
-            transition_state_machine! :closing
-          end
-          once(STATE.Closed) { block.call self } if block_given?
+          when_initialized { transition_state_machine :closing }
         end
+
+        once_or_if(STATE.Closed) { block.call self } if block_given?
       end
 
       # Causes the library to attempt connection.  If it was previously explicitly
@@ -118,16 +114,12 @@ module Ably
       #
       # @return [void]
       def connect(&block)
-        if connected?
-          block.call self if block_given?
-        else
+        unless connecting? || connected?
           raise state_machine.exception_for_state_change_to(:connecting) unless state_machine.can_transition_to?(:connecting)
-
-          EventMachine.next_tick do
-            transition_state_machine! :connecting unless connecting?
-          end
-          once(STATE.Connected) { block.call self } if block_given?
+          when_initialized { transition_state_machine :connecting }
         end
+
+        once_or_if(STATE.Connected) { block.call self } if block_given?
       end
 
       # Sends a ping to Ably and yields the provided block when a heartbeat ping request is echoed from the server.
@@ -345,6 +337,11 @@ module Ably
         else
           logger.debug "ConnectionStateMachine: Transitioned to #{state_machine.current_state}"
         end
+      end
+
+      # Simply wait until the next EventMachine tick to ensure Connection initialization is complete
+      def when_initialized(&block)
+        EventMachine.next_tick { yield }
       end
     end
   end
