@@ -306,20 +306,6 @@ module Ably
         @transport = nil
       end
 
-      # Yields to given block for any state change of this connection
-      # @api private
-      def once_state_changed
-        once_block = proc do
-          # Ensure #off is called in next tick so as not to affect the callback array currently being iterated by the #once callback
-          EventMachine.next_tick do
-            off *STATE.map, &once_block
-            yield
-          end
-        end
-
-        once *STATE.map, &once_block
-      end
-
       # As we are using a state machine, do not allow change_state to be used
       # #transition_state_machine must be used instead
       private :change_state
