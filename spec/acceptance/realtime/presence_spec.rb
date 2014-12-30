@@ -49,6 +49,34 @@ describe 'Ably::Realtime::Presence Messages' do
         end
       end
 
+      context 'automatic channel attach on access to presence object' do
+        it 'is implicit if presence state is initalized' do
+          run_reactor do
+            channel_client_one.presence
+            channel_client_one.on(:attached) do
+              expect(channel_client_one.state).to eq(:attached)
+              stop_reactor
+            end
+          end
+        end
+
+        it 'is disabled if presence state is not initalized' do
+          run_reactor do
+            channel_client_one.presence
+            channel_client_one.on(:attached) do
+              channel_client_one.detach do
+                expect(channel_client_one.state).to eq(:detached)
+                channel_client_one.presence # access the presence object
+                EventMachine.add_timer(1) do
+                  expect(channel_client_one.state).to eq(:detached)
+                  stop_reactor
+                end
+              end
+            end
+          end
+        end
+      end
+
       it '#enter allows client_id to be set on enter for anonymous clients' do
         run_reactor do
           channel_anonymous_client.presence.enter client_id: "123"
