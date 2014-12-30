@@ -156,7 +156,7 @@ module Ably
           end
         end
 
-        once(STATE.Connected) do
+        once_or_if(STATE.Connected) do
           started = Time.now
           send_protocol_message action: Ably::Models::ProtocolMessage::ACTION.Heartbeat.to_i
           __incoming_protocol_msgbus__.subscribe :protocol_message, &wait_for_ping

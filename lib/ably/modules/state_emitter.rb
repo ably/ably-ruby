@@ -26,6 +26,7 @@ module Ably::Modules
   #   connection.state = :invalid        # raises an Exception as only a valid state can be defined
   #   connection.trigger :invalid        # raises an Exception as only a valid state can be used for EventEmitter
   #   connection.change_state :connected # emits :connected event via EventEmitter, returns STATE.Connected
+  #   connection.once_or_if(:connected) { puts 'block called once when state is connected or becomes connected' }
   #
   module StateEmitter
     # Current state {Ably::Modules::Enum}
@@ -54,6 +55,21 @@ module Ably::Modules
       end
     end
     alias_method :change_state, :state=
+
+    # If the current state matches the new_state argument the block is called immediately.
+    # Else the block is called once when the new_state is reached.
+    #
+    # @param [Symbol,Ably::Modules::Enum] new_state
+    # @yield block is called if the state is matched immediately or once when the state is reached
+    #
+    # @return [void]
+    def once_or_if(new_state, &block)
+      if state == new_state
+        block.call
+      else
+        once new_state, &block
+      end
+    end
 
     private
     def self.included(klass)
