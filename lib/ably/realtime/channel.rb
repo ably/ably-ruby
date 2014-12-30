@@ -177,7 +177,7 @@ module Ably
       # @return {Ably::Realtime::Presence}
       #
       def presence
-        attach
+        attach if initialized?
         @presence ||= Presence.new(self)
       end
 
