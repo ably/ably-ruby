@@ -76,6 +76,8 @@ module Ably
         @echo_messages         = @rest_client.options.fetch(:echo_messages, true) == false ? false : true
         @custom_socket_host    = @rest_client.options[:ws_host]
         @connect_automatically = @rest_client.options.fetch(:connect_automatically, true) == false ? false : true
+
+        close_connection_when_reactor_is_stopped
       end
 
       # Return a {Ably::Realtime::Channel Realtime Channel} for the given name
@@ -137,6 +139,13 @@ module Ably
       # (see Ably::Rest::Client#logger)
       def logger
         @logger ||= Ably::Logger.new(self, log_level, rest_client.logger.custom_logger)
+      end
+
+      private
+      def close_connection_when_reactor_is_stopped
+        EventMachine.add_shutdown_hook do
+          connection.close unless connection.closed? || connection.failed?
+        end
       end
     end
   end
