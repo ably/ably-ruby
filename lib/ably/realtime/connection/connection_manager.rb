@@ -24,11 +24,14 @@ module Ably::Realtime
         @connection = connection
         @timers     = Hash.new { |hash, key| hash[key] = [] }
 
-        connection.on(:initialized) do
-          connection.connect
-        end if client.connect_automatically
+        connection.on(:closed) do
+          connection.reset_resume_info
+        end
 
-        emit_initialized
+        EventMachine.next_tick do
+          # Connect once Connection object is initialised
+          connection.connect if client.connect_automatically
+        end
       end
 
       # Creates and sets up a new {Ably::Realtime::Connection::WebsocketTransport} available on attribute #transport
@@ -56,7 +59,7 @@ module Ably::Realtime
       #
       # @api private
       def connection_opening_failed(error)
-        logger.error "ConnectionManager: Connection to #{connection.host}:#{connection.port} failed; #{error.message}"
+        logger.warn "ConnectionManager: Connection to #{connection.host}:#{connection.port} failed; #{error.message}"
         connection.transition_state_machine next_retry_state, Ably::Models::ErrorInfo.new(message: "Connection failed; #{error.message}", code: 80000)
       end
 
@@ -101,10 +104,12 @@ module Ably::Realtime
         connection.transition_state_machine :closed
       end
 
-      # When a connection is disconnected try and reconnect or set the connection state to :suspended or :failed
+      # When a connection is disconnected whilst connecting, attempt reconnect and/or set state to :suspended or :failed
       #
       # @api private
-      def respond_to_transport_disconnected(current_transition)
+      def respond_to_transport_disconnected_when_connecting(current_transition)
+        return unless connection.disconnected? || connection.suspended? # do nothing if state has changed through an explicit request
+
         unless connection_retry_from_suspended_state?
           return if connection_retry_for(:disconnected, ignore_states: [:connecting])
         end
@@ -113,6 +118,15 @@ module Ably::Realtime
 
         # Fallback if no other criteria met
         connection.transition_state_machine :failed, current_transition.metadata
+      end
+
+      # When a connection is disconnected after connecting, attempt reconnect and/or set state to :suspended or :failed
+      #
+      # @api private
+      def respond_to_transport_disconnected_whilst_connected(current_transition)
+        logger.warn "ConnectionManager: Connection to #{connection.host}:#{connection.port} was disconnected unexpectedly"
+        destroy_transport
+        respond_to_transport_disconnected_when_connecting current_transition
       end
 
       private
@@ -171,7 +185,7 @@ module Ably::Realtime
         if time_spent_attempting_state(from_state, options) <= retry_params.fetch(:max_time_in_state)
           logger.debug "ConnectionManager: Pausing for #{retry_params.fetch(:retry_every)}s before attempting to reconnect"
           create_timeout_timer_whilst_in_state(:reconnect, retry_params.fetch(:retry_every)) do
-            connection.connect
+            connection.connect if connection.state == from_state
           end
           true
         end
@@ -220,7 +234,7 @@ module Ably::Realtime
         transport.on(:disconnected) do
           if connection.closing?
             connection.transition_state_machine :closed
-          elsif !connection.closed?
+          elsif !connection.closed? && !connection.disconnected?
             connection.transition_state_machine :disconnected
           end
         end
@@ -230,14 +244,6 @@ module Ably::Realtime
         transport.__incoming_protocol_msgbus__.unsubscribe
         transport.off
         logger.debug "ConnectionManager: Unsubscribed from all events from current transport"
-      end
-
-      # As connection is created in state :initialized, an :initialized event is not emitted by default.
-      # This ensures developers can attach a block e.g. on(:initialized) { do_something }
-      def emit_initialized
-        EventMachine.next_tick do
-          connection.trigger STATE.Initialized
-        end
       end
 
       def logger

@@ -31,10 +31,7 @@ module Ably
     #
     # @!attribute [r] state
     #   @return {Ably::Realtime::Connection::STATE} connection state
-    # @!attribute [r] id
-    #   @return {String} the assigned connection ID
-    # @!attribute [r] error_reason
-    #   @return {Ably::Models::ErrorInfo} error information associated with a connection failure
+    #
     class Connection
       include Ably::Modules::EventEmitter
       include Ably::Modules::Conversions
@@ -53,32 +50,48 @@ module Ably
       )
       include Ably::Modules::StateEmitter
 
-      attr_reader :id, :error_reason, :client
+      # Expected format for a connection recover key
+      RECOVER_REGEX = /^(?<recover>\w+):(?<connection_serial>\-?\w+)$/
 
-      # @api private
+      # Unique connection ID for assigned to this connection by Ably
+      # @return {String}
+      attr_reader :id
+
+      # The serial number of the last message to be received on this connection, used to recover or resume a connection
+      # @return {Integer}
+      attr_reader :serial
+
+      # When a connection failure occurs this attribute contains the Ably Exception
+      # @return {Ably::Models::ErrorInfo}
+      attr_reader :error_reason
+
+      # {Ably::Realtime::Client} associated with this connection
+      # @return {Ably::Realtime::Client}
+      attr_reader :client
+
       # Underlying socket transport used for this connection, for internal use by the client library
       # @return {Ably::Realtime::Connection::WebsocketTransport}
+      # @api private
       attr_reader :transport
 
-      # @api private
       # The connection manager responsible for creating, maintaining and closing the connection and underlying transport
       # @return {Ably::Realtime::Connection::ConnectionManager}
+      # @api private
       attr_reader :manager
 
-      # @api private
       # An internal queue used to manage unsent outgoing messages.  You should never interface with this array directly
       # @return [Array]
+      # @api private
       attr_reader :__outgoing_message_queue__
 
-      # @api private
       # An internal queue used to manage sent messages.  You should never interface with this array directly
       # @return [Array]
+      # @api private
       attr_reader :__pending_message_queue__
 
       # @api public
       def initialize(client)
         @client                     = client
-
         @serial                     = -1
         @__outgoing_message_queue__ = []
         @__pending_message_queue__  = []
@@ -86,9 +99,9 @@ module Ably
         Client::IncomingMessageDispatcher.new client, self
         Client::OutgoingMessageDispatcher.new client, self
 
-        @state_machine              = ConnectionStateMachine.new(self)
-        @manager                    = ConnectionManager.new(self)
-        @state                      = STATE(state_machine.current_state)
+        @state_machine = ConnectionStateMachine.new(self)
+        @state         = STATE(state_machine.current_state)
+        @manager       = ConnectionManager.new(self)
       end
 
       # Causes the connection to close, entering the closed state, from any state except
@@ -101,7 +114,7 @@ module Ably
       def close(&block)
         unless closing? || closed?
           raise state_machine.exception_for_state_change_to(:closing) unless state_machine.can_transition_to?(:closing)
-          when_initialized { transition_state_machine :closing }
+          transition_state_machine :closing
         end
 
         once_or_if(STATE.Closed) { block.call self } if block_given?
@@ -116,7 +129,7 @@ module Ably
       def connect(&block)
         unless connecting? || connected?
           raise state_machine.exception_for_state_change_to(:connecting) unless state_machine.can_transition_to?(:connecting)
-          when_initialized { transition_state_machine :connecting }
+          transition_state_machine :connecting
         end
 
         once_or_if(STATE.Connected) { block.call self } if block_given?
@@ -155,11 +168,32 @@ module Ably
         end
       end
 
+      # @!attribute [r] recovery_key
+      #   @return [String] recovery key that can be used by another client to recover this connection
+      def recovery_key
+        "#{id}:#{serial}" if connection_resumable?
+      end
+
       # Reconfigure the current connection ID
       # @return [void]
       # @api private
       def update_connection_id(connection_id)
         @id = connection_id
+      end
+
+      # Store last received connection serial so that the connection can be resumed from the last known point-in-time
+      # @return [void]
+      # @api private
+      def update_connection_serial(connection_serial)
+        @serial = connection_serial
+      end
+
+      # Disable automatic resume of a connection
+      # @return [void]
+      # @api private
+      def reset_resume_info
+        @id     = nil
+        @serial = nil
       end
 
       # Call #transition_to on {Ably::Realtime::Connection::ConnectionStateMachine}
@@ -271,11 +305,24 @@ module Ably
       def create_websocket_transport(&block)
         operation = proc do
           URI(client.endpoint).tap do |endpoint|
-            endpoint.query = URI.encode_www_form(client.auth.auth_params.merge(
+            url_params = client.auth.auth_params.merge(
               timestamp: as_since_epoch(Time.now),
               format:    client.protocol,
               echo:      client.echo_messages
-            ))
+            )
+
+            if connection_resumable?
+              url_params.merge! resume: id, connection_serial: serial
+              logger.debug "Resuming connection id #{id} with serial #{serial}"
+            elsif connection_recoverable?
+              url_params.merge! recover: connection_recover_parts[:recover], connection_serial: connection_recover_parts[:connection_serial]
+              logger.debug "Recovering connection with key #{client.recover}"
+              once(:connected, :closed, :failed) do
+                client.disable_automatic_connection_recovery
+              end
+            end
+
+            endpoint.query = URI.encode_www_form(url_params)
           end.to_s
         end
 
@@ -303,7 +350,7 @@ module Ably
       private :change_state
 
       private
-      attr_reader :serial, :state_machine
+      attr_reader :state_machine
 
       def create_pub_sub_message_bus
         Ably::Util::PubSub.new(
@@ -342,6 +389,18 @@ module Ably
       # Simply wait until the next EventMachine tick to ensure Connection initialization is complete
       def when_initialized(&block)
         EventMachine.next_tick { yield }
+      end
+
+      def connection_resumable?
+        !id.nil? && !serial.nil?
+      end
+
+      def connection_recoverable?
+        connection_recover_parts
+      end
+
+      def connection_recover_parts
+        client.recover.to_s.match(RECOVER_REGEX)
       end
     end
   end

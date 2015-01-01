@@ -42,7 +42,11 @@ module Ably::Realtime
       end
 
       after_transition(to: [:disconnected, :suspended], from: [:connecting]) do |connection, current_transition|
-        connection.manager.respond_to_transport_disconnected current_transition
+        connection.manager.respond_to_transport_disconnected_when_connecting current_transition
+      end
+
+      after_transition(to: [:disconnected], from: [:connected]) do |connection, current_transition|
+        connection.manager.respond_to_transport_disconnected_whilst_connected current_transition
       end
 
       after_transition(to: [:failed]) do |connection|

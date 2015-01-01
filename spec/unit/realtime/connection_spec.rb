@@ -10,7 +10,6 @@ describe Ably::Realtime::Connection do
   end
 
   before do
-    expect(EventMachine::Timer).to receive(:new) # Connection Manager #initializer
     expect(EventMachine).to receive(:next_tick)  # non_blocking_loop_while for delivery of messages async
   end
 
