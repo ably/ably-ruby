@@ -2,8 +2,6 @@ module Ably
   module Realtime
     # Client for the Ably Realtime API
     #
-    # @!attribute [r] auth
-    #   (see Ably::Rest::Client#auth)
     # @!attribute [r] client_id
     #   (see Ably::Rest::Client#client_id)
     # @!attribute [r] auth_options
@@ -12,20 +10,12 @@ module Ably
     #   (see Ably::Rest::Client#environment)
     # @!attribute [r] channels
     #   @return [Aby::Realtime::Channels] The collection of {Ably::Realtime::Channel}s that have been created
-    # @!attribute [r] rest_client
-    #   @return [Ably::Rest::Client] The {Ably::Rest::Client REST client} instantiated with the same credentials and configuration that is used for all REST operations such as authentication
-    # @!attribute [r] echo_messages
-    #   @return [Boolean] If false, suppresses messages originating from this connection being echoed back on the same connection.  Defaults to true
     # @!attribute [r] encoders
     #   (see Ably::Rest::Client#encoders)
     # @!attribute [r] protocol
     #   (see Ably::Rest::Client#protocol)
     # @!attribute [r] protocol_binary?
     #   (see Ably::Rest::Client#protocol_binary?)
-    # @!attribute [r] custom_socket_host
-    #   @return [String,NilClass] the custom socket host that is being used if it was provided with the option :ws_host when the {Client} was created
-    # @!attribute [r] connect_automatically
-    #   @return [Boolean] when true, as soon as the client library is instantiated it will connect to Ably.  If this attribute is false, a connection must be opened explicitly
     #
     class Client
       include Ably::Modules::AsyncWrapper
@@ -33,13 +23,32 @@ module Ably
 
       DOMAIN = 'realtime.ably.io'
 
+      # The collection of {Ably::Realtime::Channel}s that have been created
+      # @return [Aby::Realtime::Channels]
       attr_reader :channels
+
+      # (see Ably::Rest::Client#auth)
       attr_reader :auth
+
+      # The {Ably::Rest::Client REST client} instantiated with the same credentials and configuration that is used for all REST operations such as authentication
+      # @return [Ably::Rest::Client]
       attr_reader :rest_client
 
+      # When false the client suppresses messages originating from this connection being echoed back on the same connection.  Defaults to true
+      # @return [Boolean]
       attr_reader :echo_messages
+
+      # The custom socket host that is being used if it was provided with the option `:ws_host` when the {Client} was created
+      # @return [String,Nil]
       attr_reader :custom_socket_host
+
+      # When true, as soon as the client library is instantiated it will connect to Ably.  If this attribute is false, a connection must be opened explicitly
+      # @return [Boolean]
       attr_reader :connect_automatically
+
+      # When a recover option is specifeid a connection inherits the state of a previous connection that may have existed under a different instance of the Realtime library, please refer to the API documentation for further information on connection state recovery
+      # @return [String,Nil]
+      attr_reader :recover
 
       def_delegators :auth, :client_id, :auth_options
       def_delegators :@rest_client, :encoders
@@ -53,7 +62,7 @@ module Ably
       # @option options (see Ably::Rest::Client#initialize)
       # @option options [Boolean] :queue_messages If false, this disables the default behaviour whereby the library queues messages on a connection in the disconnected or connecting states
       # @option options [Boolean] :echo_messages  If false, prevents messages originating from this connection being echoed back on the same connection
-      # @option options [String]  :recover        This option allows a connection to inherit the state of a previous connection that may have existed under an different instance of the Realtime library.
+      # @option options [String]  :recover        When a recover option is specifeid a connection inherits the state of a previous connection that may have existed under a different instance of the Realtime library, please refer to the API documentation for further information on connection state recovery
       # @option options [Boolean] :connect_automatically  By default as soon as the client library is instantiated it will connect to Ably. You can optionally set this to false and explicitly connect.
       #
       # @yield (see Ably::Rest::Client#initialize)
@@ -76,6 +85,9 @@ module Ably
         @echo_messages         = @rest_client.options.fetch(:echo_messages, true) == false ? false : true
         @custom_socket_host    = @rest_client.options[:ws_host]
         @connect_automatically = @rest_client.options.fetch(:connect_automatically, true) == false ? false : true
+        @recover               = @rest_client.options[:recover]
+
+        raise ArgumentError, "Recovery key is invalid" if @recover && !@recover.match(Connection::RECOVER_REGEX)
 
         close_connection_when_reactor_is_stopped
       end
@@ -120,7 +132,7 @@ module Ably
       # @return [URI::Generic] Default Ably Realtime endpoint used for all requests
       def endpoint
         URI::Generic.build(
-          scheme: use_tls? ? "wss" : "ws",
+          scheme: use_tls? ? 'wss' : 'ws',
           host:   custom_socket_host || [environment, DOMAIN].compact.join('-')
         )
       end
@@ -139,6 +151,13 @@ module Ably
       # (see Ably::Rest::Client#logger)
       def logger
         @logger ||= Ably::Logger.new(self, log_level, rest_client.logger.custom_logger)
+      end
+
+      # Disable connection recovery, typically used after a connection has been recovered
+      # @return [void]
+      # @api private
+      def disable_automatic_connection_recovery
+        @recover = nil
       end
 
       private

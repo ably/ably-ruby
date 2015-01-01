@@ -7,12 +7,13 @@ describe 'Ably::Realtime::Presence Messages' do
   [:msgpack, :json].each do |protocol|
     context "over #{protocol}" do
       let(:default_options) { { api_key: api_key, environment: environment, protocol: protocol } }
+      let(:client_options)  { default_options }
 
       let(:channel_name) { "presence-#{random_str(2)}" }
 
-      let(:anonymous_client) { Ably::Realtime::Client.new(default_options) }
-      let(:client_one)       { Ably::Realtime::Client.new(default_options.merge(client_id: random_str)) }
-      let(:client_two)       { Ably::Realtime::Client.new(default_options.merge(client_id: random_str)) }
+      let(:anonymous_client) { Ably::Realtime::Client.new(client_options) }
+      let(:client_one)       { Ably::Realtime::Client.new(client_options.merge(client_id: random_str)) }
+      let(:client_two)       { Ably::Realtime::Client.new(client_options.merge(client_id: random_str)) }
 
       let(:channel_anonymous_client)  { anonymous_client.channel(channel_name) }
       let(:presence_anonymous_client) { channel_anonymous_client.presence }
@@ -377,6 +378,7 @@ describe 'Ably::Realtime::Presence Messages' do
         end
 
         context 'when cipher settings do not match publisher' do
+          let(:client_options)                 { default_options.merge(log_level: :fatal) }
           let(:incompatible_cipher_options)    { { key: secret_key, algorithm: 'aes', mode: 'cbc', key_length: 128 } }
           let(:incompatible_encrypted_channel) { client_two.channel(channel_name, encrypted: true, cipher_params: incompatible_cipher_options) }
 

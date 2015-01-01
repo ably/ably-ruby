@@ -232,7 +232,7 @@ describe Ably::Realtime::Channel do
 
       context 'attach failure' do
         let(:restricted_client) do
-          Ably::Realtime::Client.new(default_options.merge(api_key: restricted_api_key))
+          Ably::Realtime::Client.new(default_options.merge(api_key: restricted_api_key, log_level: :fatal))
         end
         let(:restricted_channel) { restricted_client.channel("cannot_subscribe") }
 

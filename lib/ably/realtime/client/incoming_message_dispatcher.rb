@@ -41,7 +41,7 @@ module Ably::Realtime
           logger.debug "#{protocol_message.action} received: #{protocol_message}"
         end
 
-        update_connection_id protocol_message
+        update_connection_recovery_info protocol_message
 
         case protocol_message.action
           when ACTION.Heartbeat
@@ -57,6 +57,7 @@ module Ably::Realtime
             connection.transition_state_machine :connected
 
           when ACTION.Disconnect, ACTION.Disconnected
+            connection.transition_state_machine :disconnected
 
           when ACTION.Close
           when ACTION.Closed
@@ -101,10 +102,14 @@ module Ably::Realtime
         end
       end
 
-      def update_connection_id(protocol_message)
+      def update_connection_recovery_info(protocol_message)
         if protocol_message.connection_id && (protocol_message.connection_id != connection.id)
           logger.debug "New connection ID set to #{protocol_message.connection_id}"
           connection.update_connection_id protocol_message.connection_id
+        end
+
+        if protocol_message.has_connection_serial?
+          connection.update_connection_serial protocol_message.connection_serial
         end
       end
 
