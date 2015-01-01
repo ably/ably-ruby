@@ -36,4 +36,11 @@ RSpec.configure do |config|
     ))
     WebMock.enable!
   end
+
+  if defined?(EventMachine)
+    config.before(:example) do
+      # Ensure EventMachine shutdown hooks are deregistered for every test
+      EventMachine.instance_variable_set '@tails', []
+    end
+  end
 end
