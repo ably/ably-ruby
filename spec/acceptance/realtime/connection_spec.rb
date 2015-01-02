@@ -301,7 +301,7 @@ describe Ably::Realtime::Connection do
           let(:timer)                   { Hash.new }
 
           let(:client_options) do
-            client_failure_options.merge(ws_host: 'non.existent.host')
+            client_failure_options.merge(realtime_host: 'non.existent.host')
           end
 
           def count_state_changes

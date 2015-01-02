@@ -33,8 +33,16 @@ module Ably
     # Encoding or decoding failure
     class EncoderError < BaseAblyException; end
 
-    # Connection error
-    class ConnectionError < BaseAblyException; end
+    # Connection error from Realtime or REST service
+    class ConnectionError < BaseAblyException
+      def initialize(message, status = nil, code = nil, base_error = nil)
+        super message, status, code
+        @base_error = base_error
+      end
+    end
+
+    # Connection Timeout accessing REST service
+    class ConnectionTimeoutError < ConnectionError; end
 
     # Invalid Connection State Change error
     class ConnectionStateChangeError < BaseAblyException; end

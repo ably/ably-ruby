@@ -8,20 +8,10 @@ module Ably
   module Rest
     # Client for the Ably REST API
     #
-    # @!attribute [r] auth
-    #   @return {Ably::Auth} authentication object configured for this connection
     # @!attribute [r] client_id
     #   @return [String] A client ID, used for identifying this client for presence purposes
     # @!attribute [r] auth_options
     #   @return [Hash] {Ably::Auth} options configured for this client
-    # @!attribute [r] environment
-    #   @return [String] May contain 'sandbox' when testing the client library against an alternate Ably environment
-    # @!attribute [r] log_level
-    #   @return [Logger::Severity] Log level configured for this {Client}
-    # @!attribute [r] channels
-    #   @return [Aby::Rest::Channels] The collection of {Ably::Rest::Channel}s that have been created
-    # @!attribute [r] protocol
-    #   @return [Symbol] The protocol configured for this client, either binary `:msgpack` or text based `:json`
     #
     class Client
       include Ably::Modules::Conversions
@@ -30,12 +20,35 @@ module Ably
 
       DOMAIN = 'rest.ably.io'
 
-      attr_reader :environment, :protocol, :auth, :channels, :log_level
       def_delegators :auth, :client_id, :auth_options
 
-      # @api private
+      # Custom environment to use such as 'sandbox' when testing the client library against an alternate Ably environment
+      # @return [String]
+      attr_reader :environment
+
+      # The protocol configured for this client, either binary `:msgpack` or text based `:json`
+      # @return [Symbol]
+      attr_reader :protocol
+
+      # {Ably::Auth} authentication object configured for this connection
+      # @return [Ably::Auth]
+      attr_reader :auth
+
+      # The collection of {Ably::Rest::Channel}s that have been created
+      # @return [Aby::Rest::Channels]
+      attr_reader :channels
+
+      # Log level configured for this {Client}
+      # @return [Logger::Severity]
+      attr_reader :log_level
+
+      # The custom host that is being used if it was provided with the option `:rest_host` when the {Client} was created
+      # @return [String,Nil]
+      attr_reader :custom_host
+
       # The registered encoders that are used to encode and decode message payloads
       # @return [Array<Ably::Models::MessageEncoder::Base>]
+      # @api private
       attr_reader :encoders
 
       # The additional options passed to this Client's #initialize method not available as attributes of this class
@@ -82,6 +95,7 @@ module Ably
         @debug_http    = options.delete(:debug_http)
         @log_level     = options.delete(:log_level) || ::Logger::ERROR
         @custom_logger = options.delete(:logger)
+        @custom_host   = options.delete(:rest_host)
 
         if @log_level == :none
           @custom_logger = Ably::Models::NilLogger.new
@@ -165,7 +179,7 @@ module Ably
       def endpoint
         URI::Generic.build(
           scheme: use_tls? ? "https" : "http",
-          host:   [@environment, DOMAIN].compact.join('-')
+          host:   custom_host || [@environment, DOMAIN].compact.join('-')
         )
       end
 
@@ -224,6 +238,10 @@ module Ably
             end
           end
         end
+      rescue Faraday::TimeoutError => error
+        raise Ably::Exceptions::ConnectionTimeoutError.new(error.message, nil, 80014, error)
+      rescue Faraday::ClientError => error
+        raise Ably::Exceptions::ConnectionError.new(error.message, nil, 80000, error)
       end
 
       def reauthorise_on_authorisation_failure
