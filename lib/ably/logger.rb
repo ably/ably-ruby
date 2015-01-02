@@ -66,7 +66,7 @@ module Ably
     end
 
     def realtime?
-      client.respond_to?(:connection)
+      client.kind_of?(Ably::Realtime::Client)
     end
 
     def default_logger

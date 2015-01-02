@@ -52,7 +52,7 @@ module Ably
       # @option options [String]                  :environment         Specify 'sandbox' when testing the client library against an alternate Ably environment
       # @option options [Symbol]                  :protocol            Protocol used to communicate with Ably, :json and :msgpack currently supported. Defaults to :msgpack
       # @option options [Boolean]                 :use_binary_protocol Protocol used to communicate with Ably, defaults to true and uses MessagePack protocol.  This option will overide :protocol option
-      # @option options [Logger::Severity,Symbol] :log_level           Log level for the standard Logger that outputs to STDOUT.  Defaults to Logger::ERROR, can be set to :fatal (Logger::FATAL), :error (Logger::ERROR), :warn (Logger::WARN), :info (Logger::INFO), :debug (Logger::DEBUG)
+      # @option options [Logger::Severity,Symbol] :log_level           Log level for the standard Logger that outputs to STDOUT.  Defaults to Logger::ERROR, can be set to :fatal (Logger::FATAL), :error (Logger::ERROR), :warn (Logger::WARN), :info (Logger::INFO), :debug (Logger::DEBUG) or :none
       # @option options [Logger]                  :logger              A custom logger can be used however it must adhere to the Ruby Logger interface, see http://www.ruby-doc.org/stdlib-1.9.3/libdoc/logger/rdoc/Logger.html
       #
       # @yield (see Ably::Auth#authorise)
@@ -69,6 +69,8 @@ module Ably
       #    client = Ably::Rest::Client.new(api_key: 'key.id:secret', client_id: 'john')
       #
       def initialize(options, &auth_block)
+        raise ArgumentError, 'Options Hash is expected' if options.nil?
+
         options = options.clone
         if options.kind_of?(String)
           options = { api_key: options }
@@ -81,7 +83,11 @@ module Ably
         @log_level     = options.delete(:log_level) || ::Logger::ERROR
         @custom_logger = options.delete(:logger)
 
-        @log_level     = ::Logger.const_get(log_level.to_s.upcase) if log_level.kind_of?(Symbol) || log_level.kind_of?(String)
+        if @log_level == :none
+          @custom_logger = Ably::Models::NilLogger.new
+        else
+          @log_level = ::Logger.const_get(log_level.to_s.upcase) if log_level.kind_of?(Symbol) || log_level.kind_of?(String)
+        end
 
         options.delete(:use_binary_protocol).tap do |use_binary_protocol|
           if use_binary_protocol == true
