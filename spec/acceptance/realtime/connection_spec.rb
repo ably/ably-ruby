@@ -22,31 +22,11 @@ describe Ably::Realtime::Connection do
       end
 
       context 'new connection' do
-        context 'with API key' do
-          it 'connects automatically' do
-            run_reactor do
-              connection.on(:connected) do
-                expect(connection.state).to eq(:connected)
-                expect(client.auth.auth_params[:key_id]).to_not be_nil
-                expect(client.auth.auth_params[:access_token]).to be_nil
-                stop_reactor
-              end
-            end
-          end
-        end
-
-        context 'with client_id resulting in token auth' do
-          let(:client_options) do
-            default_options.merge(client_id: random_str)
-          end
-          it 'connects automatically' do
-            run_reactor do
-              connection.on(:connected) do
-                expect(connection.state).to eq(:connected)
-                expect(client.auth.auth_params[:access_token]).to_not be_nil
-                expect(client.auth.auth_params[:key_id]).to be_nil
-                stop_reactor
-              end
+        it 'connects automatically' do
+          run_reactor do
+            connection.on(:connected) do
+              expect(connection.state).to eq(:connected)
+              stop_reactor
             end
           end
         end
@@ -684,6 +664,22 @@ describe Ably::Realtime::Connection do
                 end
               end
             end
+          end
+        end
+      end
+
+      context 'token auth' do
+        context 'for renewable tokens' do
+          context 'that expire' do
+            skip 'when connecting, the token is renewed'
+            skip 'when connected, it automatically renews the token and reconnects'
+          end
+        end
+
+        context 'for non-renewable tokens' do
+          context 'that expire' do
+            skip 'when connecting the connection transitions to failed'
+            skip 'when connected, the connection transitions to failed'
           end
         end
       end

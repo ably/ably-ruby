@@ -291,12 +291,24 @@ module Ably
       token_creatable_externally? || api_key_present?
     end
 
+    # Returns false when attempting to send an API Key over a non-secure connection
+    # Token auth must be used for non-secure connections
+    #
+    # @return [Boolean]
+    def authentication_security_requirements_met?
+      client.use_tls? || using_token_auth?
+    end
+
     private
     attr_reader :auth_callback
 
+    def ensure_api_key_sent_over_secure_connection
+      raise Ably::Exceptions::InsecureRequestError, 'Cannot use Basic Auth over non-TLS connections' unless authentication_security_requirements_met?
+    end
+
     # Basic Auth HTTP Authorization header value
     def basic_auth_header
-      raise Ably::Exceptions::InsecureRequestError, 'Cannot use Basic Auth over non-TLS connections' unless client.use_tls?
+      ensure_api_key_sent_over_secure_connection
       "Basic #{encode64("#{api_key}")}"
     end
 
@@ -315,7 +327,7 @@ module Ably
 
     # Basic Auth params to authenticate the Realtime connection
     def basic_auth_params
-      raise Ably::Exceptions::InsecureRequestError, 'Cannot use Basic Auth over non-TLS connections' unless client.use_tls?
+      ensure_api_key_sent_over_secure_connection
       # TODO: Change to key_secret when API is updated
       {
         key_id: key_id,
