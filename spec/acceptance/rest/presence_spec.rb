@@ -6,8 +6,10 @@ describe Ably::Rest::Presence do
 
   [:msgpack, :json].each do |protocol|
     context "over #{protocol}" do
+      let(:default_options) { { api_key: api_key, environment: environment, protocol: protocol } }
+      let(:client_options) { default_options }
       let(:client) do
-        Ably::Rest::Client.new(api_key: api_key, environment: environment, protocol: protocol)
+        Ably::Rest::Client.new(client_options)
       end
 
       let(:fixtures) do
@@ -138,7 +140,7 @@ describe Ably::Rest::Presence do
           end
         end
         let(:client) do
-          Ably::Rest::Client.new(api_key: "#{user}:#{secret}", environment: environment, protocol: protocol)
+          Ably::Rest::Client.new(client_options.merge(api_key: "#{user}:#{secret}"))
         end
 
         let(:data)            { random_str(32) }
@@ -214,6 +216,7 @@ describe Ably::Rest::Presence do
           end
 
           context '#get' do
+            let(:client_options) { default_options.merge(log_level: :fatal) }
             let!(:get_stub)   {
               stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence").
                 to_return(:body => serialized_encoded_message_with_invalid_encoding, :headers => { 'Content-Type' => content_type })
@@ -237,6 +240,7 @@ describe Ably::Rest::Presence do
           end
 
           context '#history' do
+            let(:client_options) { default_options.merge(log_level: :fatal) }
             let!(:history_stub)   {
               stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence/history").
                 to_return(:body => serialized_encoded_message_with_invalid_encoding, :headers => { 'Content-Type' => content_type })
