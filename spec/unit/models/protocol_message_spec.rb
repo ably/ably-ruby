@@ -1,6 +1,6 @@
 # encoding: utf-8
 require 'spec_helper'
-require 'support/model_helper'
+require 'shared/model_behaviour'
 
 describe Ably::Models::ProtocolMessage do
   include Ably::Modules::Conversions

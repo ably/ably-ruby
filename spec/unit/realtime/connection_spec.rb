@@ -1,5 +1,5 @@
 require 'spec_helper'
-require 'support/protocol_msgbus_helper'
+require 'shared/protocol_msgbus_behaviour'
 require 'support/event_machine_helper'
 
 describe Ably::Realtime::Connection do
