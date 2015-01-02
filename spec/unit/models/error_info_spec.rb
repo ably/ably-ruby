@@ -1,5 +1,5 @@
 require 'spec_helper'
-require 'support/model_helper'
+require 'shared/model_behaviour'
 
 describe Ably::Models::ErrorInfo do
   subject { Ably::Models::ErrorInfo }

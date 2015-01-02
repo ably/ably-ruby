@@ -1,6 +1,6 @@
 # encoding: utf-8
 require 'spec_helper'
-require 'support/protocol_msgbus_helper'
+require 'shared/protocol_msgbus_behaviour'
 
 describe Ably::Realtime::Presence do
   let(:channel) { double('Ably::Realtime::Channel').as_null_object }

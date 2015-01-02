@@ -1,5 +1,5 @@
 require 'spec_helper'
-require 'support/protocol_msgbus_helper'
+require 'shared/protocol_msgbus_behaviour'
 
 describe Ably::Auth do
   let(:client)    { double('client').as_null_object }

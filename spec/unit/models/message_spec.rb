@@ -1,6 +1,6 @@
 # encoding: utf-8
 require 'spec_helper'
-require 'support/model_helper'
+require 'shared/model_behaviour'
 require 'base64'
 require 'msgpack'
 
