@@ -38,9 +38,9 @@ module Ably
       # @return [Boolean]
       attr_reader :echo_messages
 
-      # The custom socket host that is being used if it was provided with the option `:ws_host` when the {Client} was created
+      # The custom realtime websocket host that is being used if it was provided with the option `:ws_host` when the {Client} was created
       # @return [String,Nil]
-      attr_reader :custom_socket_host
+      attr_reader :custom_realtime_host
 
       # When true, as soon as the client library is instantiated it will connect to Ably.  If this attribute is false, a connection must be opened explicitly
       # @return [Boolean]
@@ -83,7 +83,7 @@ module Ably
         @auth                  = @rest_client.auth
         @channels              = Ably::Realtime::Channels.new(self)
         @echo_messages         = @rest_client.options.fetch(:echo_messages, true) == false ? false : true
-        @custom_socket_host    = @rest_client.options[:ws_host]
+        @custom_realtime_host  = @rest_client.options[:realtime_host] || @rest_client.options[:ws_host]
         @connect_automatically = @rest_client.options.fetch(:connect_automatically, true) == false ? false : true
         @recover               = @rest_client.options[:recover]
 
@@ -131,7 +131,7 @@ module Ably
       def endpoint
         URI::Generic.build(
           scheme: use_tls? ? 'wss' : 'ws',
-          host:   custom_socket_host || [environment, DOMAIN].compact.join('-')
+          host:   custom_realtime_host || [environment, DOMAIN].compact.join('-')
         )
       end
 
