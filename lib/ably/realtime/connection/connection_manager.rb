@@ -28,6 +28,10 @@ module Ably::Realtime
           connection.reset_resume_info
         end
 
+        connection.once(:connecting) do
+          close_connection_when_reactor_is_stopped
+        end
+
         EventMachine.next_tick do
           # Connect once Connection object is initialised
           connection.connect if client.connect_automatically
@@ -244,6 +248,12 @@ module Ably::Realtime
         transport.__incoming_protocol_msgbus__.unsubscribe
         transport.off
         logger.debug "ConnectionManager: Unsubscribed from all events from current transport"
+      end
+
+      def close_connection_when_reactor_is_stopped
+        EventMachine.add_shutdown_hook do
+          connection.close unless connection.closed? || connection.failed?
+        end
       end
 
       def logger

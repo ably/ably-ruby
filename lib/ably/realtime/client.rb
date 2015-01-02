@@ -88,8 +88,6 @@ module Ably
         @recover               = @rest_client.options[:recover]
 
         raise ArgumentError, "Recovery key is invalid" if @recover && !@recover.match(Connection::RECOVER_REGEX)
-
-        close_connection_when_reactor_is_stopped
       end
 
       # Return a {Ably::Realtime::Channel Realtime Channel} for the given name
@@ -158,13 +156,6 @@ module Ably
       # @api private
       def disable_automatic_connection_recovery
         @recover = nil
-      end
-
-      private
-      def close_connection_when_reactor_is_stopped
-        EventMachine.add_shutdown_hook do
-          connection.close unless connection.closed? || connection.failed?
-        end
       end
     end
   end
