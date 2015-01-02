@@ -47,6 +47,10 @@ module Ably::Realtime
           raise RuntimeError, 'Existing WebsocketTransport is connected, and must be closed first'
         end
 
+        unless client.auth.authentication_security_requirements_met?
+          connection.transition_state_machine :failed, Ably::Exceptions::InsecureRequestError.new('Cannot use Basic Auth over non-TLS connections')
+        end
+
         logger.debug "ConnectionManager: Opening connection to #{connection.host}:#{connection.port}"
 
         connection.create_websocket_transport do |websocket_transport|

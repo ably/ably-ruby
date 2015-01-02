@@ -35,6 +35,10 @@ describe Ably::Auth do
         end
       end
 
+      it 'has immutable options' do
+        expect { auth.options['key_id'] = 'new_id' }.to raise_error RuntimeError, /can't modify frozen Hash/
+      end
+
       describe "#request_token" do
         let(:ttl)        { 30 * 60 }
         let(:capability) { { :foo => ['publish'] } }
