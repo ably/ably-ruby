@@ -7,6 +7,10 @@ describe Ably::Logger do
   let(:connected_client) do
     instance_double('Ably::Realtime::Client', connection: instance_double('Ably::Realtime::Connection', id: '0000'))
   end
+  before do
+    allow(new_client).to receive(:kind_of?).with(Ably::Realtime::Client).and_return(true)
+    allow(connected_client).to receive(:kind_of?).with(Ably::Realtime::Client).and_return(true)
+  end
   let(:rest_client) do
     instance_double('Ably::Rest::Client')
   end

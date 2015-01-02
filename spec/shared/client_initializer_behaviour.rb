@@ -164,6 +164,15 @@ shared_examples 'a client initializer' do
         end
       end
 
+      context 'with log_level :none' do
+        let(:client_options) { default_options.merge(log_level: :none) }
+
+        it 'silences all logging with a NilLogger' do
+          expect(subject.logger.logger.class).to eql(Ably::Models::NilLogger)
+          expect(subject.logger.log_level).to eql(:none)
+        end
+      end
+
       context 'with custom logger and log_level' do
         let(:custom_logger) do
           Class.new do
