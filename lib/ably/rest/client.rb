@@ -18,7 +18,16 @@ module Ably
       include Ably::Modules::HttpHelpers
       extend Forwardable
 
+      # Default Ably domain for REST
       DOMAIN = 'rest.ably.io'
+
+      # Configuration for connection retry attempts
+      CONNECTION_RETRY = {
+        single_request_open_timeout: 4,
+        single_request_timeout: 15,
+        cumulative_request_open_timeout: 10,
+        max_retry_attempts: 3
+      }.freeze
 
       def_delegators :auth, :client_id, :auth_options
 
@@ -177,10 +186,7 @@ module Ably
       # @!attribute [r] endpoint
       # @return [URI::Generic] Default Ably REST endpoint used for all requests
       def endpoint
-        URI::Generic.build(
-          scheme: use_tls? ? "https" : "http",
-          host:   custom_host || [@environment, DOMAIN].compact.join('-')
-        )
+        endpoint_for_host(custom_host || [@environment, DOMAIN].compact.join('-'))
       end
 
       # @!attribute [r] logger
@@ -229,41 +235,104 @@ module Ably
         protocol == :msgpack
       end
 
+      # Connection used to make HTTP requests
+      #
+      # @param [Hash] options
+      # @option options [Boolean] :use_fallback when true, one of the fallback connections is used randomly, see {Ably::FALLBACK_HOSTS}
+      #
+      # @return [Faraday::Connection]
+      #
+      # @api private
+      def connection(options = {})
+        if options[:use_fallback]
+          fallback_connection
+        else
+          @connection ||= Faraday.new(endpoint.to_s, connection_options)
+        end
+      end
+
+      # Fallback connection used to make HTTP requests.
+      # Note, each request uses a random and then subsequent random {Ably::FALLBACK_HOSTS fallback host}
+      #
+      # @return [Faraday::Connection]
+      #
+      # @api private
+      def fallback_connection
+        unless @fallback_connections
+          @fallback_connections = Ably::FALLBACK_HOSTS.shuffle.map { |host| Faraday.new(endpoint_for_host(host).to_s, connection_options) }
+        end
+        @fallback_index ||= 0
+
+        @fallback_connections[@fallback_index % @fallback_connections.count].tap do
+          @fallback_index += 1
+        end
+      end
+
       private
       def request(method, path, params = {}, options = {})
-        reauthorise_on_authorisation_failure do
-          connection.send(method, path, params) do |request|
+        options = options.clone
+        if options.delete(:disable_automatic_reauthorise) == true
+          send_request(method, path, params, options)
+        else
+          reauthorise_on_authorisation_failure do
+            send_request(method, path, params, options)
+          end
+        end
+      end
+
+      # Sends HTTP request to connection end point
+      # Connection failures will automatically be reattempted until thresholds are met
+      def send_request(method, path, params, options)
+        max_retry_attempts = CONNECTION_RETRY.fetch(:max_retry_attempts)
+        cumulative_timeout = CONNECTION_RETRY.fetch(:cumulative_request_open_timeout)
+        requested_at       = Time.now
+        retry_count        = 0
+
+        begin
+          use_fallback = can_fallback_to_alternate_ably_host? && retry_count > 0
+
+          connection(use_fallback: use_fallback).send(method, path, params) do |request|
             unless options[:send_auth_header] == false
               request.headers[:authorization] = auth.auth_header
             end
           end
-        end
-      rescue Faraday::TimeoutError => error
-        raise Ably::Exceptions::ConnectionTimeoutError.new(error.message, nil, 80014, error)
-      rescue Faraday::ClientError => error
-        raise Ably::Exceptions::ConnectionError.new(error.message, nil, 80000, error)
-      end
 
-      def reauthorise_on_authorisation_failure
-        attempts = 0
-        begin
-          yield
-        rescue Ably::Exceptions::InvalidRequest => e
-          attempts += 1
-          if attempts == 1 && e.code == 40140 && auth.token_renewable?
-            auth.authorise force: true
+        rescue Faraday::TimeoutError, Faraday::ClientError => error
+          time_passed = Time.now - requested_at
+          if can_fallback_to_alternate_ably_host? && retry_count < max_retry_attempts && time_passed <= cumulative_timeout
+            retry_count += 1
             retry
-          else
-            raise Ably::Exceptions::InvalidToken.new(e.message, e.status, e.code)
+          end
+
+          case error
+            when Faraday::TimeoutError
+              raise Ably::Exceptions::ConnectionTimeoutError.new(error.message, nil, 80014, error)
+            when Faraday::ClientError
+              raise Ably::Exceptions::ConnectionError.new(error.message, nil, 80000, error)
           end
         end
       end
 
-      # Return a Faraday::Connection to use to make HTTP requests
-      #
-      # @return [Faraday::Connection]
-      def connection
-        @connection ||= Faraday.new(endpoint.to_s, connection_options)
+      def reauthorise_on_authorisation_failure
+        yield
+      rescue Ably::Exceptions::InvalidRequest => e
+        if e.code == 40140
+          if auth.token_renewable?
+            auth.authorise force: true
+            yield
+          else
+            raise Ably::Exceptions::InvalidToken.new(e.message, e.status, e.code)
+          end
+        else
+          raise e
+        end
+      end
+
+      def endpoint_for_host(host)
+        URI::Generic.build(
+          scheme: use_tls? ? "https" : "http",
+          host:   host
+        )
       end
 
       # Return a Hash of connection options to initiate the Faraday::Connection with
@@ -278,8 +347,8 @@ module Ably
             user_agent:   user_agent
           },
           request: {
-            open_timeout: 5,
-            timeout:      10
+            open_timeout: CONNECTION_RETRY.fetch(:single_request_open_timeout),
+            timeout:      CONNECTION_RETRY.fetch(:single_request_timeout)
           }
         }
       end
@@ -299,6 +368,10 @@ module Ably
           # Set Faraday's HTTP adapter
           builder.adapter Faraday.default_adapter
         end
+      end
+
+      def can_fallback_to_alternate_ably_host?
+        !custom_host && !environment
       end
 
       def initialize_default_encoders

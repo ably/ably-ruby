@@ -163,7 +163,7 @@ module Ably
 
       token_request = IdiomaticRubyWrapper(token_request)
 
-      response = client.post("/keys/#{token_request.fetch(:id)}/requestToken", token_request.hash, send_auth_header: false)
+      response = client.post("/keys/#{token_request.fetch(:id)}/requestToken", token_request.hash, send_auth_header: false, disable_automatic_reauthorise: true)
       body = IdiomaticRubyWrapper(response.body)
 
       Ably::Models::Token.new(body.fetch(:access_token))

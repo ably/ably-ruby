@@ -412,7 +412,7 @@ describe Ably::Auth do
 
           it 'disallows publishing on unspecified capability channels' do
             expect { token_auth_client.channel('bar').publish('event', 'data') }.to raise_error do |error|
-              expect(error).to be_a(Ably::Exceptions::InvalidToken)
+              expect(error).to be_a(Ably::Exceptions::InvalidRequest)
               expect(error.status).to eql(401)
               expect(error.code).to eql(40160)
             end
@@ -420,7 +420,7 @@ describe Ably::Auth do
 
           it 'fails if timestamp is invalid' do
             expect { auth.request_token(timestamp: Time.now - 180) }.to raise_error do |error|
-              expect(error).to be_a(Ably::Exceptions::InvalidToken)
+              expect(error).to be_a(Ably::Exceptions::InvalidRequest)
               expect(error.status).to eql(401)
               expect(error.code).to eql(40101)
             end
