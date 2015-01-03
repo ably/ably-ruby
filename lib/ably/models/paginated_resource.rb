@@ -5,7 +5,7 @@ module Ably::Models
   # Paging information is provided by Ably in the LINK HTTP headers
   class PaginatedResource
     include Enumerable
-    include Ably::Modules::AsyncWrapper
+    include Ably::Modules::AsyncWrapper if defined?(EventMachine)
 
     # @param [Faraday::Response] http_response Initial HTTP response from an Ably request to a paged resource
     # @param [String] base_url Base URL for request that generated the http_response so that subsequent paged requests can be made
@@ -170,6 +170,7 @@ module Ably::Models
 
     def async_wrap_if(is_realtime, success_callback, &operation)
       if is_realtime
+        raise 'EventMachine is required for asynchronous operations' unless defined?(EventMachine)
         async_wrap success_callback, &operation
       else
         yield
