@@ -114,39 +114,41 @@ describe Ably::Models::PaginatedResource do
       end
     end
 
-    context 'with option async_blocking_operations: true' do
-      include RSpec::EventMachine
+    if defined?(EventMachine)
+      context 'with option async_blocking_operations: true' do
+        include RSpec::EventMachine
 
-      subject do
-        paginated_resource_class.new(http_response, full_url, paged_client, async_blocking_operations: true)
-      end
-
-      context '#next_page' do
-        it 'returns a deferrable object' do
-          run_reactor do
-            expect(subject.next_page).to be_a(EventMachine::Deferrable)
-            stop_reactor
-          end
+        subject do
+          paginated_resource_class.new(http_response, full_url, paged_client, async_blocking_operations: true)
         end
 
-        it 'allows a success callback block to be added' do
-          run_reactor do
-            subject.next_page do |paginated_resource|
-              expect(paginated_resource).to be_a(Ably::Models::PaginatedResource)
+        context '#next_page' do
+          it 'returns a deferrable object' do
+            run_reactor do
+              expect(subject.next_page).to be_a(EventMachine::Deferrable)
               stop_reactor
             end
           end
-        end
-      end
 
-      context '#first_page' do
-        it 'calls the errback callback when first page headers are missing' do
-          run_reactor do
-            subject.next_page do |paginated_resource|
-              deferrable = subject.first_page
-              deferrable.errback do |error|
-                expect(error).to be_a(Ably::Exceptions::InvalidPageError)
+          it 'allows a success callback block to be added' do
+            run_reactor do
+              subject.next_page do |paginated_resource|
+                expect(paginated_resource).to be_a(Ably::Models::PaginatedResource)
                 stop_reactor
+              end
+            end
+          end
+        end
+
+        context '#first_page' do
+          it 'calls the errback callback when first page headers are missing' do
+            run_reactor do
+              subject.next_page do |paginated_resource|
+                deferrable = subject.first_page
+                deferrable.errback do |error|
+                  expect(error).to be_a(Ably::Exceptions::InvalidPageError)
+                  stop_reactor
+                end
               end
             end
           end
