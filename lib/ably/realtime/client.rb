@@ -46,7 +46,7 @@ module Ably
       # @return [Boolean]
       attr_reader :connect_automatically
 
-      # When a recover option is specifeid a connection inherits the state of a previous connection that may have existed under a different instance of the Realtime library, please refer to the API documentation for further information on connection state recovery
+      # When a recover option is specified a connection inherits the state of a previous connection that may have existed under a different instance of the Realtime library, please refer to the API documentation for further information on connection state recovery
       # @return [String,Nil]
       attr_reader :recover
 
@@ -62,7 +62,7 @@ module Ably
       # @option options (see Ably::Rest::Client#initialize)
       # @option options [Boolean] :queue_messages If false, this disables the default behaviour whereby the library queues messages on a connection in the disconnected or connecting states
       # @option options [Boolean] :echo_messages  If false, prevents messages originating from this connection being echoed back on the same connection
-      # @option options [String]  :recover        When a recover option is specifeid a connection inherits the state of a previous connection that may have existed under a different instance of the Realtime library, please refer to the API documentation for further information on connection state recovery
+      # @option options [String]  :recover        When a recover option is specified a connection inherits the state of a previous connection that may have existed under a different instance of the Realtime library, please refer to the API documentation for further information on connection state recovery
       # @option options [Boolean] :connect_automatically  By default as soon as the client library is instantiated it will connect to Ably. You can optionally set this to false and explicitly connect.
       #
       # @yield (see Ably::Rest::Client#initialize)
@@ -129,10 +129,7 @@ module Ably
       # @!attribute [r] endpoint
       # @return [URI::Generic] Default Ably Realtime endpoint used for all requests
       def endpoint
-        URI::Generic.build(
-          scheme: use_tls? ? 'wss' : 'ws',
-          host:   custom_realtime_host || [environment, DOMAIN].compact.join('-')
-        )
+        endpoint_for_host(custom_realtime_host || [environment, DOMAIN].compact.join('-'))
       end
 
       # @!attribute [r] connection
@@ -156,6 +153,27 @@ module Ably
       # @api private
       def disable_automatic_connection_recovery
         @recover = nil
+      end
+
+      # @!attribute [r] fallback_endpoint
+      # @return [URI::Generic] Fallback endpoint used to connect to the realtime Ably service. Note, after each connection attempt, a new random {Ably::FALLBACK_HOSTS fallback host} is used
+      # @api private
+      def fallback_endpoint
+        unless @fallback_endpoints
+          @fallback_endpoints = Ably::FALLBACK_HOSTS.shuffle.map { |fallback_host| endpoint_for_host(fallback_host) }
+        end
+
+        fallback_endpoint_index = connection.manager.retry_count_for_state(:disconnected) + connection.manager.retry_count_for_state(:suspended)
+
+        @fallback_endpoints[fallback_endpoint_index % @fallback_endpoints.count]
+      end
+
+      private
+      def endpoint_for_host(host)
+        URI::Generic.build(
+          scheme: use_tls? ? 'wss' : 'ws',
+          host:   host
+        )
       end
     end
   end

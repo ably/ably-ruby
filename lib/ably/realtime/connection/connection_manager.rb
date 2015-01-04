@@ -132,9 +132,16 @@ module Ably::Realtime
       #
       # @api private
       def respond_to_transport_disconnected_whilst_connected(current_transition)
-        logger.warn "ConnectionManager: Connection to #{connection.host}:#{connection.port} was disconnected unexpectedly"
+        logger.warn "ConnectionManager: Connection to #{connection.transport.url} was disconnected unexpectedly"
         destroy_transport
         respond_to_transport_disconnected_when_connecting current_transition
+      end
+
+      # Number of consecutive attempts for provided state
+      # @return [Integer]
+      # @api private
+      def retry_count_for_state(state)
+        retries_for_state(state, ignore_states: [:connecting]).count
       end
 
       private
