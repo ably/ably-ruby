@@ -306,6 +306,115 @@ describe Ably::Realtime::Connection do
           end
         end
       end
+
+      context 'fallback hosts' do
+        let(:retry_every_for_tests)       { 0.1 }
+        let(:max_time_in_state_for_tests) { 0.3 }
+
+        before do
+          # Reconfigure client library retry periods and timeouts so that tests run quickly
+          stub_const 'Ably::Realtime::Connection::ConnectionManager::CONNECT_RETRY_CONFIG',
+                      Ably::Realtime::Connection::ConnectionManager::CONNECT_RETRY_CONFIG.merge(
+                        disconnected: { retry_every: retry_every_for_tests, max_time_in_state: max_time_in_state_for_tests },
+                        suspended:    { retry_every: retry_every_for_tests, max_time_in_state: max_time_in_state_for_tests },
+                      )
+        end
+
+        let(:expected_retry_attempts) { (max_time_in_state_for_tests / retry_every_for_tests).round }
+        let(:retry_count_for_one_state)  { 1 + expected_retry_attempts } # initial connect then disconnected
+        let(:retry_count_for_all_states) { 1 + expected_retry_attempts * 2 } # initial connection, disconnected & then suspended
+
+        context 'with custom realtime websocket host' do
+          let(:expected_host) { 'this.host.doesn.not.exist' }
+          let(:client_options) { default_options.merge(realtime_host: expected_host) }
+
+          it 'never uses a fallback host' do
+            run_reactor do
+              expect(EventMachine).to receive(:connect).exactly(retry_count_for_all_states).times do |host|
+                expect(host).to eql(expected_host)
+                raise EventMachine::ConnectionError
+              end
+
+              connection.on(:failed) do
+                stop_reactor
+              end
+            end
+          end
+        end
+
+        context 'with non-production environment' do
+          let(:environment)    { 'sandbox' }
+          let(:expected_host)  { "#{environment}-#{Ably::Realtime::Client::DOMAIN}" }
+          let(:client_options) { default_options.merge(environment: environment) }
+
+          it 'never uses a fallback host' do
+            run_reactor do
+              expect(EventMachine).to receive(:connect).exactly(retry_count_for_all_states).times do |host|
+                expect(host).to eql(expected_host)
+                raise EventMachine::ConnectionError
+              end
+
+              connection.on(:failed) do
+                stop_reactor
+              end
+            end
+          end
+        end
+
+        context 'with production environment' do
+          let(:custom_hosts)   { %w(A.ably-realtime.com B.ably-realtime.com) }
+          before do
+            stub_const 'Ably::FALLBACK_HOSTS', custom_hosts
+          end
+
+          let(:expected_host)  { Ably::Realtime::Client::DOMAIN }
+          let(:client_options) { default_options.merge(environment: nil) }
+
+          let(:fallback_hosts_used) { Array.new }
+
+          it 'uses a fallback host on every subsequent disconnected attempt until suspended' do
+            run_reactor do
+              request = 0
+              expect(EventMachine).to receive(:connect).exactly(retry_count_for_one_state).times do |host|
+                if request == 0
+                  expect(host).to eql(expected_host)
+                else
+                  expect(custom_hosts).to include(host)
+                  fallback_hosts_used << host
+                end
+                request += 1
+                raise EventMachine::ConnectionError
+              end
+
+              connection.on(:suspended) do
+                expect(fallback_hosts_used.uniq).to match_array(custom_hosts)
+                stop_reactor
+              end
+            end
+          end
+
+          it 'uses the primary host when suspended, and a fallback host on every subsequent suspended attempt' do
+            run_reactor do
+              request = 0
+              expect(EventMachine).to receive(:connect).exactly(retry_count_for_all_states).times do |host|
+                if request == 0 || request == expected_retry_attempts + 1
+                  expect(host).to eql(expected_host)
+                else
+                  expect(custom_hosts).to include(host)
+                  fallback_hosts_used << host
+                end
+                request += 1
+                raise EventMachine::ConnectionError
+              end
+
+              connection.on(:failed) do
+                expect(fallback_hosts_used.uniq).to match_array(custom_hosts)
+                stop_reactor
+              end
+            end
+          end
+        end
+      end
     end
   end
 end

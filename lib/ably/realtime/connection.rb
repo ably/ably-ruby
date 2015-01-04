@@ -235,9 +235,13 @@ module Ably
       end
 
       # @!attribute [r] host
-      # @return [String] The default host name used for this connection
+      # @return [String] The host name used for this connection, for network connection failures a {Ably::FALLBACK_HOSTS fallback host} is used to route around networking or intermittent problems
       def host
-        client.endpoint.host
+        if can_use_fallback_hosts?
+          client.fallback_endpoint.host
+        else
+          client.endpoint.host
+        end
       end
 
       # @!attribute [r] port
@@ -401,6 +405,26 @@ module Ably
 
       def connection_recover_parts
         client.recover.to_s.match(RECOVER_REGEX)
+      end
+
+      def can_use_fallback_hosts?
+        if client.environment.nil? && client.custom_realtime_host.nil?
+          if connecting? && previous_state
+            use_fallback_if_disconnected? || use_fallback_if_suspended?
+          end
+        end
+      end
+
+      def use_fallback_if_disconnected?
+        second_reconnect_attempt_for(:disconnected, 1)
+      end
+
+      def use_fallback_if_suspended?
+        second_reconnect_attempt_for(:suspended, 2) # on first suspended state use default Ably host again
+      end
+
+      def second_reconnect_attempt_for(state, first_attempt_count)
+        previous_state == state && manager.retry_count_for_state(state) >= first_attempt_count
       end
     end
   end

@@ -330,7 +330,7 @@ module Ably
 
       def endpoint_for_host(host)
         URI::Generic.build(
-          scheme: use_tls? ? "https" : "http",
+          scheme: use_tls? ? 'https' : 'http',
           host:   host
         )
       end

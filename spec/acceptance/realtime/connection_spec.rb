@@ -315,7 +315,7 @@ describe Ably::Realtime::Connection do
               end
 
               connection.once(:failed) do
-                expect(states.keys).to contain_exactly(*available_states)
+                expect(states.keys).to match_array(available_states)
                 stop_reactor
               end
             end
