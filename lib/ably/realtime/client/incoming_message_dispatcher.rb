@@ -94,9 +94,9 @@ module Ably::Realtime
       end
 
       def dispatch_channel_error(protocol_message)
-        logger.error "Channel Error message received: #{protocol_message.error}"
+        logger.warn "Channel Error message received: #{protocol_message.error}"
         if !protocol_message.has_message_serial?
-          get_channel(protocol_message.channel).change_state Ably::Realtime::Channel::STATE.Failed, protocol_message.error
+          get_channel(protocol_message.channel).fail protocol_message.error
         else
           logger.fatal "Cannot process ProtocolMessage as not yet implemented: #{protocol_message}"
         end

@@ -7,8 +7,9 @@ describe Ably::Realtime::Channel do
   [:msgpack, :json].each do |protocol|
     context "over #{protocol}" do
       let(:default_options) { { api_key: api_key, environment: environment, protocol: protocol } }
+      let(:client_options)  { default_options }
 
-      let(:client)       { Ably::Realtime::Client.new(default_options) }
+      let(:client)       { Ably::Realtime::Client.new(client_options) }
       let(:channel_name) { random_str }
       let(:payload)      { random_str }
       let(:channel)      { client.channel(channel_name) }
@@ -243,6 +244,71 @@ describe Ably::Realtime::Channel do
               expect(restricted_channel.state).to eq(:failed)
               expect(error.status).to eq(401)
               stop_reactor
+            end
+          end
+        end
+
+        it 'triggers an error event' do
+          run_reactor do
+            restricted_channel.attach
+            restricted_channel.on(:error) do |error|
+              expect(restricted_channel.state).to eq(:failed)
+              expect(error.status).to eq(401)
+              stop_reactor
+            end
+          end
+        end
+
+        it 'updates the error_reason' do
+          run_reactor do
+            restricted_channel.attach
+            restricted_channel.on(:failed) do
+              expect(restricted_channel.error_reason.status).to eq(401)
+              stop_reactor
+            end
+          end
+        end
+      end
+
+      context 'connection failure' do
+        let(:connection_error) { Ably::Exceptions::ConnectionError.new('forced failure', 500, 50000) }
+        let(:client_options)   { default_options.merge(log_level: :none) }
+
+        it 'triggers a failed state for the channel' do
+          run_reactor do
+            channel.attach do
+              channel.on(:failed) do |error|
+                expect(error).to eql(connection_error)
+                stop_reactor
+              end
+
+              client.connection.manager.error_received_from_server connection_error
+            end
+          end
+        end
+
+        it 'triggers an error event for the channel' do
+          run_reactor do
+            channel.attach do
+              channel.on(:error) do |error|
+                expect(error).to eql(connection_error)
+                stop_reactor
+              end
+
+              client.connection.manager.error_received_from_server connection_error
+            end
+          end
+        end
+
+        it 'updates the error_reason' do
+          run_reactor do
+            channel.attach do
+              channel.on(:failed) do |error|
+                expect(channel.error_reason).to eql(connection_error)
+                stop_reactor
+              end
+
+              client.connection.manager.error_received_from_server connection_error
             end
           end
         end
