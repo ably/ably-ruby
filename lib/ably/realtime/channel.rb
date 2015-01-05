@@ -23,6 +23,8 @@ module Ably
     #   Channel::STATE.Detached
     #   Channel::STATE.Failed
     #
+    # Channels emit errors - use `on(:error)` to subscribe to errors
+    #
     # @!attribute [r] state
     #   @return {Ably::Realtime::Connection::STATE} channel state
     #
@@ -209,6 +211,15 @@ module Ably
         )
       end
 
+      # Set connection state to Failed
+      # @api private
+      def fail(error)
+        logger.error "Channel #{name} error: #{error}"
+        set_failed_channel_error_reason error
+        change_state STATE.Failed, error
+        trigger :error, error
+      end
+
       private
       attr_reader :queue, :subscriptions
 
@@ -225,12 +236,20 @@ module Ably
         end
 
         connection.on(Connection::STATE.Closed) do
-          change_state STATE.Detached
+          change_state STATE.Detached if attached? || attaching?
         end
 
-        connection.on(Connection::STATE.Failed) do
-          change_state STATE.Failed unless detached? || initialized?
+        connection.on(Connection::STATE.Failed) do |error|
+          fail error unless detached? || initialized?
         end
+
+        on(:attached, :detached) do
+          set_failed_channel_error_reason nil
+        end
+      end
+
+      def set_failed_channel_error_reason(error)
+        @error_reason = error
       end
 
       # Queue message and process queue if channel is attached.
