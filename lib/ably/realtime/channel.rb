@@ -150,14 +150,10 @@ module Ably
       #
       def attach(&block)
         connect_if_connection_initialized
-        if attached?
-          block.call self if block_given?
-        else
-          once(STATE.Attached) { block.call self } if block_given?
-          if !attaching?
-            change_state STATE.Attaching
-            send_attach_protocol_message
-          end
+        once_or_if(STATE.Attached) { block.call self } if block_given?
+        if !attaching?
+          change_state STATE.Attaching
+          send_attach_protocol_message
         end
       end
 
@@ -167,14 +163,15 @@ module Ably
       # @return [void]
       #
       def detach(&block)
-        if detached? || failed?
-          block.call self if block_given?
-        else
-          once(STATE.Detached, STATE.Failed) { block.call self } if block_given?
-          if !detaching?
-            change_state STATE.Detaching
-            send_detach_protocol_message
-          end
+        detached_block = proc do
+          off(&detached_block)
+          block.call self
+        end
+        [STATE.Detached, STATE.Failed].each { |state| once_or_if(state, &detached_block) } if block_given?
+
+        if attaching? || attached?
+          change_state STATE.Detaching
+          send_detach_protocol_message
         end
       end
 
