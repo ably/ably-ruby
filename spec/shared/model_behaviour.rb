@@ -18,7 +18,7 @@ shared_examples 'a model' do |shared_options = {}|
       end
     end
 
-    context '#hash' do
+    context '#hash', :api_private do
       let(:model_options) { { action: 5 } }
 
       it 'provides access to #hash' do
@@ -26,7 +26,7 @@ shared_examples 'a model' do |shared_options = {}|
       end
     end
 
-    context '#[]' do
+    context '#[]', :api_private do
       let(:model_options) { { unusual: 'attribute' } }
 
       it 'provides accessor method to #hash' do
@@ -52,7 +52,7 @@ shared_examples 'a model' do |shared_options = {}|
     end
   end
 
-  context '#to_msgpack' do
+  context '#to_msgpack', :api_private do
     let(:model_options) { { name: 'test', action: 0, channel_snake_case: 'unique' } }
     let(:serialized)    { model.to_msgpack }
 
@@ -61,7 +61,7 @@ shared_examples 'a model' do |shared_options = {}|
     end
   end
 
-  context '#to_json' do
+  context '#to_json', :api_private do
     let(:model_options) { { name: 'test', action: 0, channel_snake_case: 'unique' } }
     let(:serialized)    { model.to_json }
 

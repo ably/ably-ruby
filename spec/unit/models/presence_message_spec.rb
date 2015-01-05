@@ -15,13 +15,13 @@ describe Ably::Models::PresenceMessage do
 
   context '#timestamp' do
     let(:model) { subject.new({}, protocol_message) }
-    it 'retrieves attribute :timestamp from ProtocolMessage' do
+    it 'retrieves attribute :timestamp as a Time object from ProtocolMessage' do
       expect(model.timestamp).to be_a(Time)
       expect(model.timestamp.to_i).to be_within(1).of(Time.now.to_i)
     end
   end
 
-  context 'Java naming' do
+  context 'Java naming', :api_private do
     let(:model) { subject.new({ clientId: 'joe' }, protocol_message) }
 
     it 'converts the attribute to ruby symbol naming convention' do
@@ -29,7 +29,7 @@ describe Ably::Models::PresenceMessage do
     end
   end
 
-  context 'with action' do
+  context 'with action', :api_private do
     let(:model) { subject.new({ action: 0 }, protocol_message) }
 
     it 'provides action as an Enum' do
@@ -37,7 +37,7 @@ describe Ably::Models::PresenceMessage do
     end
   end
 
-  context 'without action' do
+  context 'without action', :api_private do
     let(:model) { subject.new({}, protocol_message) }
 
     it 'raises an exception when accessed' do
@@ -109,7 +109,7 @@ describe Ably::Models::PresenceMessage do
     end
   end
 
-  context '#to_json' do
+  context '#to_json', :api_private do
     let(:json_object) { JSON.parse(model.to_json) }
 
     context 'with valid data' do
@@ -142,7 +142,7 @@ describe Ably::Models::PresenceMessage do
     end
   end
 
-  context 'from REST request with embedded fields' do
+  context 'from REST request with embedded fields', :api_private do
     let(:id) { random_str }
     let(:message_time) { Time.now + 60 }
     let(:timestamp) { as_since_epoch(message_time) }
@@ -169,7 +169,7 @@ describe Ably::Models::PresenceMessage do
     end
   end
 
-  context 'part of ProtocolMessage' do
+  context 'part of ProtocolMessage', :api_private do
     let(:ably_time) { Time.now + 5 }
     let(:message_serial) { random_int_str(1_000_000) }
     let(:connection_id) { random_str }
@@ -216,7 +216,7 @@ describe Ably::Models::PresenceMessage do
     end
   end
 
-  context 'PresenceMessage conversion method' do
+  context 'PresenceMessage conversion method', :api_private do
     let(:json) { { client_id: 'test' } }
 
     context 'with JSON' do

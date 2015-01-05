@@ -9,7 +9,7 @@ describe Ably::Realtime::Client do
 
   it_behaves_like 'a client initializer'
 
-  context 'delegation to the Rest Client' do
+  context 'delegation to the REST Client' do
     let(:client_options) { { api_key: 'appid.keyuid:keysecret' } }
 
     it 'passes on the options to the initializer' do
@@ -19,7 +19,7 @@ describe Ably::Realtime::Client do
     end
 
     context 'for attribute' do
-      [:environment, :use_tls?, :log_level].each do |attribute|
+      [:environment, :use_tls?, :log_level, :custom_host].each do |attribute|
         specify "##{attribute}" do
           expect(subject.rest_client).to receive(attribute)
           subject.public_send attribute

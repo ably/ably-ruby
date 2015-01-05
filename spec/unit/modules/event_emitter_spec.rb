@@ -14,7 +14,7 @@ describe Ably::Modules::EventEmitter do
 
   subject { klass.new }
 
-  context 'event fan out' do
+  context '#trigger event fan out' do
     specify do
       2.times do
         subject.on(:message) { |msg| obj.received_message msg }
@@ -24,7 +24,7 @@ describe Ably::Modules::EventEmitter do
       subject.trigger :message, msg
     end
 
-    it 'sends only messages to matching event names' do
+    it '#trigger sends only messages to matching event names' do
       subject.on(:valid) { |msg| obj.received_message msg }
 
       expect(obj).to receive(:received_message).with(msg).once
@@ -33,7 +33,7 @@ describe Ably::Modules::EventEmitter do
       subject.trigger 'valid', msg
     end
 
-    context 'with coercion' do
+    context 'with coercion', :api_private do
       let(:options) do
         { coerce_into: Proc.new { |event| String(event) } }
       end
@@ -46,7 +46,7 @@ describe Ably::Modules::EventEmitter do
       end
     end
 
-    context 'without coercion' do
+    context 'without coercion', :api_private do
       it 'only matches event names on type matches' do
         subject.on('valid') { |msg| obj.received_message msg }
 
@@ -55,7 +55,7 @@ describe Ably::Modules::EventEmitter do
       end
     end
 
-    context 'subscribe to multiple events' do
+    context '#on subscribe to multiple events' do
       it 'with the same block' do
         subject.on(:click, :hover) { |msg| obj.received_message msg }
 

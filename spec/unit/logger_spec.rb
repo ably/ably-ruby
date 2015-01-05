@@ -22,79 +22,81 @@ describe Ably::Logger do
     string.gsub(regex_pattern, '\1')
   end
 
-  it 'uses the Ruby Logger by default' do
+  it 'uses the language provided Logger by default' do
     expect(subject.logger).to be_a(Logger)
   end
 
-  it 'delegates to the logger object' do
-    expect(subject.logger).to receive(:warn).with('message')
-    subject.warn 'message'
-  end
-
-  context 'formatter' do
-    context 'when debugging' do
-      it 'uses short time format' do
-        formatted = subject.logger.formatter.call(Logger::DEBUG, Time.now, 'progid', 'unique_message')
-        formatted = uncolorize(formatted)
-        expect(formatted).to match(/^\d+:\d+:\d+.\d{3} DEBUG/)
-      end
+  context 'internals', :api_private do
+    it 'delegates to the logger object' do
+      expect(subject.logger).to receive(:warn).with('message')
+      subject.warn 'message'
     end
 
-    context 'when info -> fatal' do
-      it 'uses long time format' do
-        formatted = subject.logger.formatter.call(Logger::INFO, Time.now, 'progid', 'unique_message')
-        formatted = uncolorize(formatted)
-        expect(formatted).to match(/^\d+-\d+-\d+ \d+:\d+:\d+.\d{3} INFO/)
-      end
-    end
-
-    context 'with Realtime disconnected client' do
-      subject { Ably::Logger.new(new_client, Logger::INFO) }
-
-      it 'formats logs with an empty client ID' do
-        formatted = subject.logger.formatter.call(Logger::DEBUG, Time.now, 'progid', 'unique_message')
-        formatted = uncolorize(formatted)
-        expect(formatted).to match(/\[ \-\- \]/)
-        expect(formatted).to match(%r{unique_message$})
-        expect(formatted).to match(%r{DEBUG})
-      end
-    end
-
-    context 'with Realtime connected client' do
-      subject { Ably::Logger.new(connected_client, Logger::INFO) }
-
-      it 'formats logs with a client ID' do
-        formatted = subject.logger.formatter.call(Logger::DEBUG, Time.now, 'progid', 'unique_message')
-        formatted = uncolorize(formatted)
-        expect(formatted).to match(/\[0000\]/)
-        expect(formatted).to match(%r{unique_message$})
-        expect(formatted).to match(%r{DEBUG})
-      end
-    end
-
-    context 'with REST client' do
-      subject { Ably::Logger.new(rest_client, Logger::INFO) }
-
-      it 'formats logs without a client ID' do
-        formatted = subject.logger.formatter.call(Logger::FATAL, Time.now, 'progid', 'unique_message')
-        formatted = uncolorize(formatted)
-        expect(formatted).to_not match(/\[.*\]/)
-        expect(formatted).to match(%r{unique_message$})
-        expect(formatted).to match(%r{FATAL})
-      end
-    end
-
-    context 'severity argument' do
-      it 'can be an Integer' do
-        formatted = subject.logger.formatter.call(Logger::INFO, Time.now, 'progid', 'unique_message')
-        formatted = uncolorize(formatted)
-        expect(formatted).to match(/^\d+-\d+-\d+ \d+:\d+:\d+.\d{3} INFO/)
+    context 'formatter' do
+      context 'when debugging' do
+        it 'uses short time format' do
+          formatted = subject.logger.formatter.call(Logger::DEBUG, Time.now, 'progid', 'unique_message')
+          formatted = uncolorize(formatted)
+          expect(formatted).to match(/^\d+:\d+:\d+.\d{3} DEBUG/)
+        end
       end
 
-      it 'can be a string' do
-        formatted = subject.logger.formatter.call('INFO', Time.now, 'progid', 'unique_message')
-        formatted = uncolorize(formatted)
-        expect(formatted).to match(/^\d+-\d+-\d+ \d+:\d+:\d+.\d{3} INFO/)
+      context 'when info -> fatal' do
+        it 'uses long time format' do
+          formatted = subject.logger.formatter.call(Logger::INFO, Time.now, 'progid', 'unique_message')
+          formatted = uncolorize(formatted)
+          expect(formatted).to match(/^\d+-\d+-\d+ \d+:\d+:\d+.\d{3} INFO/)
+        end
+      end
+
+      context 'with Realtime disconnected client' do
+        subject { Ably::Logger.new(new_client, Logger::INFO) }
+
+        it 'formats logs with an empty client ID' do
+          formatted = subject.logger.formatter.call(Logger::DEBUG, Time.now, 'progid', 'unique_message')
+          formatted = uncolorize(formatted)
+          expect(formatted).to match(/\[ \-\- \]/)
+          expect(formatted).to match(%r{unique_message$})
+          expect(formatted).to match(%r{DEBUG})
+        end
+      end
+
+      context 'with Realtime connected client' do
+        subject { Ably::Logger.new(connected_client, Logger::INFO) }
+
+        it 'formats logs with a client ID' do
+          formatted = subject.logger.formatter.call(Logger::DEBUG, Time.now, 'progid', 'unique_message')
+          formatted = uncolorize(formatted)
+          expect(formatted).to match(/\[0000\]/)
+          expect(formatted).to match(%r{unique_message$})
+          expect(formatted).to match(%r{DEBUG})
+        end
+      end
+
+      context 'with REST client' do
+        subject { Ably::Logger.new(rest_client, Logger::INFO) }
+
+        it 'formats logs without a client ID' do
+          formatted = subject.logger.formatter.call(Logger::FATAL, Time.now, 'progid', 'unique_message')
+          formatted = uncolorize(formatted)
+          expect(formatted).to_not match(/\[.*\]/)
+          expect(formatted).to match(%r{unique_message$})
+          expect(formatted).to match(%r{FATAL})
+        end
+      end
+
+      context 'severity argument' do
+        it 'can be an Integer' do
+          formatted = subject.logger.formatter.call(Logger::INFO, Time.now, 'progid', 'unique_message')
+          formatted = uncolorize(formatted)
+          expect(formatted).to match(/^\d+-\d+-\d+ \d+:\d+:\d+.\d{3} INFO/)
+        end
+
+        it 'can be a string' do
+          formatted = subject.logger.formatter.call('INFO', Time.now, 'progid', 'unique_message')
+          formatted = uncolorize(formatted)
+          expect(formatted).to match(/^\d+-\d+-\d+ \d+:\d+:\d+.\d{3} INFO/)
+        end
       end
     end
   end
@@ -130,7 +132,7 @@ describe Ably::Logger do
         expect(subject.logger.class).to eql(custom_logger)
       end
 
-      it 'delegates log messages to logger' do
+      it 'delegates log messages to logger', :api_private do
         expect(custom_logger_object).to receive(:fatal).with('message')
         subject.fatal 'message'
       end

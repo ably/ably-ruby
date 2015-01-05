@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe Ably::Realtime::Client::IncomingMessageDispatcher do
+describe Ably::Realtime::Client::IncomingMessageDispatcher, :api_private do
   let(:msgbus) do
     Ably::Util::PubSub.new
   end

@@ -73,7 +73,7 @@ shared_examples 'a client initializer' do
     context 'client_id as only option' do
       let(:client_options) { { client_id: 'valid' } }
 
-      it 'should require a valid key' do
+      it 'requires a valid key' do
         expect { subject }.to raise_error(ArgumentError, /client_id cannot be provided without a complete API key/)
       end
     end
@@ -199,12 +199,12 @@ shared_examples 'a client initializer' do
   context 'delegators' do
     let(:client_options) { 'app.key:secret' }
 
-    it 'should delegate :client_id to .auth' do
+    it 'delegates :client_id to .auth' do
       expect(subject.auth).to receive(:client_id).and_return('john')
       expect(subject.client_id).to eql('john')
     end
 
-    it 'should delegate :auth_options to .auth' do
+    it 'delegates :auth_options to .auth' do
       expect(subject.auth).to receive(:auth_options).and_return({ option: 1 })
       expect(subject.auth_options).to eql({ option: 1 })
     end

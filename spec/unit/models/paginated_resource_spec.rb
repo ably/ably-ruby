@@ -58,7 +58,7 @@ describe Ably::Models::PaginatedResource do
     expect(subject.last[:id]).to eql(body[1][:id])
   end
 
-  context 'with coercion' do
+  context 'with coercion', :api_private do
     let(:paginated_resource_options) { { coerce_into: 'OpenStruct' } }
 
     it 'returns coerced objects' do
@@ -67,7 +67,7 @@ describe Ably::Models::PaginatedResource do
     end
   end
 
-  context 'paged transformations' do
+  context 'paged transformations', :api_private do
     let(:headers) do
       {
         'link' => [

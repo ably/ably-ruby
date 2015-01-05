@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe Ably::Models::IdiomaticRubyWrapper do
+describe Ably::Models::IdiomaticRubyWrapper, :api_private do
   include Ably::Modules::Conversions
 
   let(:mixed_case_data) do

@@ -98,7 +98,7 @@ describe Ably::Rest::Presence do
         end
 
         [:start, :end].each do |option|
-          describe ":{option}", webmock: true do
+          describe ":{option}", :webmock do
             let!(:history_stub) {
               stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence/history?#{option}=#{milliseconds}").
                 to_return(:body => '{}', :headers => { 'Content-Type' => 'application/json' })
@@ -130,7 +130,7 @@ describe Ably::Rest::Presence do
         end
       end
 
-      describe 'decoding', webmock: true do
+      describe 'decoding', :webmock do
         let(:user) { 'appid.keyuid' }
         let(:secret) { random_str(8) }
         let(:endpoint) do

@@ -25,7 +25,7 @@ describe 'REST' do
         let(:mime) { 'application/x-msgpack' }
         let(:request_body) { body_value.to_msgpack }
 
-        it 'uses MsgPack', webmock: true do
+        it 'uses MsgPack', :webmock do
           expect(client.protocol).to eql(:msgpack)
           expect(client.time).to be_within(1).of(now)
         end
@@ -41,7 +41,7 @@ describe 'REST' do
           let(:mime) { 'application/json' }
           let(:request_body) { body_value.to_json }
 
-          it 'uses JSON', webmock: true do
+          it 'uses JSON', :webmock do
             expect(client.protocol).to eql(:json)
             expect(client.time).to be_within(1).of(now)
           end
@@ -58,7 +58,7 @@ describe 'REST' do
           let(:mime) { 'application/x-msgpack' }
           let(:request_body) { body_value.to_msgpack }
 
-          it 'uses MsgPack', webmock: true do
+          it 'uses MsgPack', :webmock do
             expect(client.protocol).to eql(:msgpack)
             expect(client.time).to be_within(1).of(now)
           end
@@ -84,7 +84,7 @@ describe 'REST' do
           end
         end
 
-        describe 'server error with JSON response', webmock: true do
+        describe 'server error with JSON response', :webmock do
           let(:error_response) { '{ "error": { "statusCode": 500, "code": 50000, "message": "Internal error" } }' }
 
           before do
@@ -97,7 +97,7 @@ describe 'REST' do
           end
         end
 
-        describe 'server error', webmock: true do
+        describe 'server error', :webmock do
           before do
             stub_request(:get, "#{client.endpoint}/time").
             to_return(:status => 500, :headers => { 'Content-Type' => 'application/json' })
@@ -109,7 +109,7 @@ describe 'REST' do
         end
       end
 
-      describe 'authentication failure', webmock: true do
+      describe 'authentication failure', :webmock do
         let(:token_1) { { id: random_str } }
         let(:token_2) { { id: random_str } }
         let(:channel) { 'channelname' }

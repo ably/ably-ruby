@@ -17,13 +17,13 @@ describe Ably::Models::Message do
 
   context '#timestamp' do
     let(:model) { subject.new({}, protocol_message) }
-    it 'retrieves attribute :timestamp from ProtocolMessage' do
+    it 'retrieves attribute :timestamp as Time object from ProtocolMessage' do
       expect(model.timestamp).to be_a(Time)
       expect(model.timestamp.to_i).to be_within(1).of(Time.now.to_i)
     end
   end
 
-  context 'Java naming' do
+  context 'Java naming', :api_private do
     let(:model) { subject.new({ clientId: 'joe' }, protocol_message) }
 
     it 'converts the attribute to ruby symbol naming convention' do
@@ -95,7 +95,7 @@ describe Ably::Models::Message do
     end
   end
 
-  context '#to_json' do
+  context '#to_json', :api_private do
     let(:json_object) { JSON.parse(model.to_json) }
 
     context 'with valid data' do
@@ -128,7 +128,7 @@ describe Ably::Models::Message do
     end
   end
 
-  context 'from REST request with embedded fields' do
+  context 'from REST request with embedded fields', :api_private do
     let(:id)                  { random_str }
     let(:protocol_message_id) { random_str }
     let(:message_time)        { Time.now + 60 }
@@ -169,7 +169,7 @@ describe Ably::Models::Message do
     end
   end
 
-  context 'part of ProtocolMessage' do
+  context 'part of ProtocolMessage', :api_private do
     let(:ably_time) { Time.now + 5 }
     let(:message_serial) { random_int_str(1_000_000) }
     let(:connection_id) { random_str }
@@ -254,7 +254,7 @@ describe Ably::Models::Message do
     end
   end
 
-  context 'Message conversion method' do
+  context 'Message conversion method', :api_private do
     let(:json) { { name: 'test', data: 'conversion' } }
 
     context 'with JSON' do

@@ -8,7 +8,7 @@ describe Ably::Util::PubSub do
   subject { Ably::Util::PubSub.new(options) }
 
   context 'event fan out' do
-    specify 'allows publishing to more than on subscriber' do
+    specify '#publish allows publishing to more than on subscriber' do
       expect(obj).to receive(:received_message).with(msg).twice
       2.times do
         subject.subscribe(:message) { |msg| obj.received_message msg }
@@ -16,7 +16,7 @@ describe Ably::Util::PubSub do
       subject.publish :message, msg
     end
 
-    it 'sends only messages to matching event names' do
+    it '#publish sends only messages to #subscribe callbacks matching event names' do
       expect(obj).to receive(:received_message).with(msg).once
       subject.subscribe(:valid) { |msg| obj.received_message msg }
       subject.publish :valid, msg
@@ -24,7 +24,7 @@ describe Ably::Util::PubSub do
       subject.publish 'valid', msg
     end
 
-    context 'with coercion' do
+    context 'with coercion', api_private: true do
       let(:options) do
         { coerce_into: Proc.new { |event| String(event) } }
       end
@@ -48,7 +48,7 @@ describe Ably::Util::PubSub do
       end
     end
 
-    context 'without coercion' do
+    context 'without coercion', api_private: true do
       it 'only matches event names on type matches' do
         expect(obj).to_not receive(:received_message).with(msg)
         subject.subscribe('valid') { |msg| obj.received_message msg }
@@ -57,7 +57,7 @@ describe Ably::Util::PubSub do
     end
   end
 
-  context '#off' do
+  context '#unsubscribe' do
     let(:callback) { Proc.new { |msg| obj.received_message msg } }
 
     before do

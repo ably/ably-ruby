@@ -128,7 +128,7 @@ describe Ably::Realtime::Channel do
     end
   end
 
-  context 'msgbus' do
+  context 'msgbus', :api_private do
     let(:message) do
       Ably::Models::Message.new({
         'name' => 'test',

@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe Ably::Modules::Enum do
+describe Ably::Modules::Enum, :api_private do
   class ExampleClassWithEnum
     extend Ably::Modules::Enum
     ENUMEXAMPLE = ruby_enum('ENUMEXAMPLE', :value_zero, 'value_1', :value_snake_case_2, :SentenceCase)

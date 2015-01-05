@@ -102,7 +102,7 @@ describe Ably::Rest::Client do
         end
       end
 
-      context 'fallback hosts', webmock: true do
+      context 'fallback hosts', :webmock do
         let(:custom_hosts)       { %w(A.ably-realtime.com B.ably-realtime.com) }
         let(:max_attempts)       { 2 }
         let(:cumulative_timeout) { 0.5 }
@@ -206,7 +206,7 @@ describe Ably::Rest::Client do
             expect { client.channel('test').publish('event', 'data') }.to raise_error Ably::Exceptions::ConnectionError
           end
 
-          context 'and fallback hosts', webmock: true do
+          context 'and fallback hosts', :webmock do
             let(:path) { '/channels/test/publish' }
 
             let!(:custom_host_request_stub) do
@@ -230,7 +230,7 @@ describe Ably::Rest::Client do
           end
         end
 
-        context 'that times out', webmock: true do
+        context 'that times out', :webmock do
           let(:path) { '/keys/app_id.key_id/requestToken' }
           let!(:custom_host_request_stub) do
             stub_request(:post, "https://#{custom_host}#{path}").to_return do
