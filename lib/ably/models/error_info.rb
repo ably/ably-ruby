@@ -19,7 +19,7 @@ module Ably::Models
       @hash_object     = IdiomaticRubyWrapper(hash_object.clone.freeze)
     end
 
-    %w( message code status_code ).each do |attribute|
+    %w(message code status_code).each do |attribute|
       define_method attribute do
         hash[attribute.to_sym]
       end
