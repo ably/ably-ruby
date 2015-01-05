@@ -562,14 +562,14 @@ describe Ably::Realtime::Connection do
       context 'when state transition is unsupported' do
         let(:client_options) { default_options.merge(log_level: :none) } # silence FATAL errors
 
-        it 'emits a ConnectionStateChangeError if a state transition is unsupported' do
+        it 'emits a StateChangeError if a state transition is unsupported' do
           run_reactor do
             connection.connect do
-              connection.transition_state_machine(:initialized)
+              connection.transition_state_machine :initialized
             end
 
             connection.on(:error) do |error|
-              expect(error).to be_a(Ably::Exceptions::ConnectionStateChangeError)
+              expect(error).to be_a(Ably::Exceptions::StateChangeError)
               stop_reactor
             end
           end

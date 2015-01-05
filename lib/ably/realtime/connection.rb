@@ -51,6 +51,7 @@ module Ably
         :failed
       )
       include Ably::Modules::StateEmitter
+      include Ably::Modules::UsesStateMachine
 
       # Expected format for a connection recover key
       RECOVER_REGEX = /^(?<recover>\w+):(?<connection_serial>\-?\w+)$/
@@ -76,7 +77,7 @@ module Ably
       # @api private
       attr_reader :transport
 
-      # The connection manager responsible for creating, maintaining and closing the connection and underlying transport
+      # The Connection manager responsible for creating, maintaining and closing the connection and underlying transport
       # @return [Ably::Realtime::Connection::ConnectionManager]
       # @api private
       attr_reader :manager
@@ -115,7 +116,7 @@ module Ably
       # @return [void]
       def close(&block)
         unless closing? || closed?
-          raise state_machine.exception_for_state_change_to(:closing) unless state_machine.can_transition_to?(:closing)
+          raise exception_for_state_change_to(:closing) unless can_transition_to?(:closing)
           transition_state_machine :closing
         end
 
@@ -130,7 +131,7 @@ module Ably
       # @return [void]
       def connect(&block)
         unless connecting? || connected?
-          raise state_machine.exception_for_state_change_to(:connecting) unless state_machine.can_transition_to?(:connecting)
+          raise exception_for_state_change_to(:connecting) unless can_transition_to?(:connecting)
           transition_state_machine :connecting
         end
 
@@ -198,30 +199,6 @@ module Ably
         @serial = nil
       end
 
-      # Call #transition_to on {Ably::Realtime::Connection::ConnectionStateMachine}
-      #
-      # @return [Boolean] true if new_state can be transitioned to by state machine
-      # @api private
-      def transition_state_machine(new_state, emit_object = nil)
-        state_machine.transition_to(new_state, emit_object)
-      end
-
-      # Call #transition_to! on {Ably::Realtime::Connection::ConnectionStateMachine}.
-      # An exception wil be raised if new_state cannot be transitioned to by state machine
-      #
-      # @return [void]
-      # @api private
-      def transition_state_machine!(new_state, emit_object = nil)
-        state_machine.transition_to!(new_state, emit_object)
-      end
-
-      # Provides an internal method for the {Ably::Realtime::Connection} state to match the {Ably::Realtime::Connection::ConnectionStateMachine}'s state
-      # @api private
-      def synchronize_state_with_statemachine(*args)
-        log_state_machine_state_change
-        change_state state_machine.current_state, state_machine.last_transition.metadata
-      end
-
       # @!attribute [r] __outgoing_protocol_msgbus__
       # @return [Ably::Util::PubSub] Client library internal outgoing protocol message bus
       # @api private
@@ -285,28 +262,6 @@ module Ably
         __outgoing_protocol_msgbus__.publish :protocol_message, protocol_message
       end
 
-      # @!attribute [r] previous_state
-      # @return [Ably::Realtime::Connection::STATE,nil] The previous state for this connection
-      # @api private
-      def previous_state
-        if state_machine.previous_state
-          STATE(state_machine.previous_state)
-        end
-      end
-
-      # @!attribute [r] state_history
-      # @return [Array<Hash>] All previous states including the current state in date ascending order with Hash properties :state, :metadata, :transitioned_at
-      # @api private
-      def state_history
-        state_machine.history.map do |transition|
-          {
-            state:           STATE(transition.to_state),
-            metadata:        transition.metadata,
-            transitioned_at: transition.created_at
-          }
-        end
-      end
-
       # @api private
       def create_websocket_transport(&block)
         operation = proc do
@@ -361,8 +316,6 @@ module Ably
       private :change_state
 
       private
-      attr_reader :state_machine
-
       def create_pub_sub_message_bus
         Ably::Util::PubSub.new(
           coerce_into: Proc.new do |event|
@@ -387,14 +340,6 @@ module Ably
       rescue StandardError => e
         @serial -= 1
         raise e
-      end
-
-      def log_state_machine_state_change
-        if state_machine.previous_state
-          logger.debug "ConnectionStateMachine: Transitioned from #{state_machine.previous_state} => #{state_machine.current_state}"
-        else
-          logger.debug "ConnectionStateMachine: Transitioned to #{state_machine.current_state}"
-        end
       end
 
       # Simply wait until the next EventMachine tick to ensure Connection initialization is complete

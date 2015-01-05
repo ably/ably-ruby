@@ -1,11 +1,10 @@
-require 'statesman'
+require 'ably/modules/state_machine'
 
 module Ably::Realtime
   class Connection
-    # Internal class to manage connection state, recovery and state transitions for an {Ably::Realtime::Connection}
+    # Internal class to manage connection state, recovery and state transitions for {Ably::Realtime::Connection}
     class ConnectionStateMachine
-      include Statesman::Machine
-      extend Ably::Modules::StatesmanMonkeyPatch
+      include Ably::Modules::StateMachine
 
       # States supported by this StateMachine match #{Connection::STATE}s
       #   :initialized
@@ -68,48 +67,14 @@ module Ably::Realtime
 
       # Transitions responsible for updating connection#error_reason
       before_transition(to: [:disconnected, :suspended, :failed]) do |connection, current_transition|
-        connection.set_failed_connection_error_reason current_transition.metadata if is_error_type?(current_transition.metadata)
+        connection.set_failed_connection_error_reason current_transition.metadata
       end
 
       before_transition(to: [:connected, :closed]) do |connection, current_transition|
         connection.set_failed_connection_error_reason nil
       end
 
-      # Override Statesman's #transition_to so that:
-      # * log state change failures to {Logger}
-      # * raise an exception on the {Ably::Realtime::Connection}
-      #
-      # @return [void]
-      def transition_to(state, *args)
-        unless result = super(state, *args)
-          exception = exception_for_state_change_to(state)
-          connection.trigger :error, exception
-          logger.fatal "ConnectionStateMachine: #{exception.message}"
-        end
-        result
-      end
-
-      # @return [Statesman History Object]
-      def previous_transition
-        history[-2]
-      end
-
-      # @return [Symbol]
-      def previous_state
-        previous_transition.to_state if previous_transition
-      end
-
-      # @return [Ably::Exceptions::ConnectionStateChangeError]
-      def exception_for_state_change_to(state)
-        error_message = "ConnectionStateMachine: Unable to transition from #{current_state} => #{state}"
-        Ably::Exceptions::ConnectionStateChangeError.new(error_message, nil, 80020)
-      end
-
       private
-      def self.is_error_type?(error)
-        error.kind_of?(Ably::Models::ErrorInfo) || error.kind_of?(StandardError)
-      end
-
       def connection
         object
       end

@@ -4,7 +4,7 @@ require 'spec_helper'
 describe Ably::Realtime::Channel do
   include RSpec::EventMachine
 
-  [:msgpack, :json].each do |protocol|
+  [:json].each do |protocol| #:msgpack,
     context "over #{protocol}" do
       let(:default_options) { { api_key: api_key, environment: environment, protocol: protocol } }
       let(:client_options)  { default_options }
@@ -47,6 +47,135 @@ describe Ably::Realtime::Channel do
                 stop_reactor
               end
               channel.presence
+            end
+          end
+        end
+      end
+
+      context 'when :failed' do
+        let(:client_options) { default_options.merge(log_level: :fatal) }
+
+        specify '#attach reattaches' do
+          run_reactor do
+            channel.attach do
+              channel.transition_state_machine :failed, RuntimeError.new
+              expect(channel).to be_failed
+              channel.attach do
+                expect(channel).to be_attached
+                stop_reactor
+              end
+            end
+          end
+        end
+
+        specify '#detach raises an exception' do
+          run_reactor do
+            channel.attach do
+              channel.transition_state_machine :failed, RuntimeError.new
+              expect(channel).to be_failed
+              expect { channel.detach }.to raise_error Ably::Exceptions::StateChangeError
+              stop_reactor
+            end
+          end
+        end
+      end
+
+      context 'when :attaching' do
+        it 'emits attaching then attached events' do
+          run_reactor do
+            channel.once(:attaching) do
+              channel.once(:attached) do
+                stop_reactor
+              end
+            end
+
+            channel.attach
+          end
+        end
+
+        specify '#detach moves straight to detaching and skips attached' do
+          run_reactor do
+            channel.once(:attaching) do
+              channel.once(:attached) { raise 'Attached should never be reached' }
+
+              channel.once(:detaching) do
+                channel.once(:detached) do
+                  stop_reactor
+                end
+              end
+
+              channel.detach
+            end
+
+            channel.attach
+          end
+        end
+
+        it 'ignores subsequent #attach calls but calls the callback if provided' do
+          run_reactor do
+            channel.once(:attaching) do
+              channel.attach
+              channel.once(:attached) do
+                channel.attach do
+                  stop_reactor
+                end
+              end
+            end
+
+            channel.attach
+          end
+        end
+      end
+
+      context 'when :detaching' do
+        it 'emits detaching then detached events' do
+          run_reactor do
+            channel.once(:detaching) do
+              channel.once(:detached) do
+                stop_reactor
+              end
+            end
+
+            channel.attach do
+              channel.detach
+            end
+          end
+        end
+
+        specify '#attach moves straight to attaching and skips detached' do
+          run_reactor do
+            channel.once(:detaching) do
+              channel.once(:detached) { raise 'Detach should not have been reached' }
+
+              channel.once(:attaching) do
+                channel.once(:attached) do
+                  channel.off
+                  stop_reactor
+                end
+              end
+
+              channel.attach
+            end
+
+            channel.attach do
+              channel.detach
+            end
+          end
+        end
+
+        it 'ignores subsequent #detach calls but calls the callback if provided' do
+          run_reactor do
+            channel.once(:detaching) do
+              channel.detach
+              channel.once(:detached) do
+                channel.detach do
+                  stop_reactor
+                end
+              end
+            end
+
+            channel.attach do
+              channel.detach
             end
           end
         end
@@ -270,45 +399,156 @@ describe Ably::Realtime::Channel do
         end
       end
 
-      context 'connection failure' do
-        let(:connection_error) { Ably::Exceptions::ConnectionError.new('forced failure', 500, 50000) }
-        let(:client_options)   { default_options.merge(log_level: :none) }
+      describe 'when connection' do
+        context 'fails' do
+          let(:connection_error) { Ably::Exceptions::ConnectionError.new('forced failure', 500, 50000) }
+          let(:client_options)   { default_options.merge(log_level: :none) }
 
-        it 'triggers a failed state for the channel' do
-          run_reactor do
-            channel.attach do
-              channel.on(:failed) do |error|
-                expect(error).to eql(connection_error)
-                stop_reactor
+          context 'a attached channel' do
+            it 'transitions state to :failed' do
+              run_reactor do
+                channel.attach do
+                  channel.on(:failed) do |error|
+                    expect(error).to eql(connection_error)
+                    stop_reactor
+                  end
+
+                  client.connection.manager.error_received_from_server connection_error
+                end
               end
+            end
 
-              client.connection.manager.error_received_from_server connection_error
+            it 'triggers an error event for the channel' do
+              run_reactor do
+                channel.attach do
+                  channel.on(:error) do |error|
+                    expect(error).to eql(connection_error)
+                    stop_reactor
+                  end
+
+                  client.connection.manager.error_received_from_server connection_error
+                end
+              end
+            end
+
+            it 'updates the error_reason' do
+              run_reactor do
+                channel.attach do
+                  channel.on(:failed) do |error|
+                    expect(channel.error_reason).to eql(connection_error)
+                    stop_reactor
+                  end
+
+                  client.connection.manager.error_received_from_server connection_error
+                end
+              end
+            end
+          end
+
+          context 'a detached channel' do
+            it 'remains in the same state' do
+              run_reactor do
+                channel.attach do
+                  channel.on(:failed) { raise 'Failed state should not have been reached' }
+                  channel.on(:error)  { raise 'Error should not have been emitted' }
+
+                  channel.detach do
+                    EventMachine.add_timer(1) do
+                      expect(channel).to be_detached
+                      stop_reactor
+                    end
+
+                    client.connection.manager.error_received_from_server connection_error
+                  end
+                end
+              end
+            end
+          end
+
+          context 'a failed channel' do
+            let(:original_error) { RuntimeError.new }
+
+            it 'remains in the same state' do
+              run_reactor do
+                channel.attach do
+                  channel.on(:error) do
+                    channel.on(:failed) { raise 'Failed state should not have been reached' }
+                    channel.on(:error)  { raise 'Error should not have been emitted' }
+
+                    EventMachine.add_timer(1) do
+                      expect(channel).to be_failed
+                      expect(channel.error_reason).to eql(original_error)
+                      stop_reactor
+                    end
+
+                    client.connection.manager.error_received_from_server connection_error
+                  end
+
+                  channel.transition_state_machine :failed, original_error
+                end
+              end
             end
           end
         end
 
-        it 'triggers an error event for the channel' do
-          run_reactor do
-            channel.attach do
-              channel.on(:error) do |error|
-                expect(error).to eql(connection_error)
-                stop_reactor
-              end
+        context 'closes' do
+          context 'a attached channel' do
+            it 'transitions state to :detached' do
+              run_reactor do
+                channel.attach do
+                  channel.on(:detached) do
+                    stop_reactor
+                  end
 
-              client.connection.manager.error_received_from_server connection_error
+                  client.connection.close
+                end
+              end
             end
           end
-        end
 
-        it 'updates the error_reason' do
-          run_reactor do
-            channel.attach do
-              channel.on(:failed) do |error|
-                expect(channel.error_reason).to eql(connection_error)
-                stop_reactor
+          context 'a detached channel' do
+            it 'remains in the same state' do
+              run_reactor do
+                channel.attach do
+                  channel.detach do
+                    channel.on(:detached) { raise 'Detached state should not have been reached' }
+                    channel.on(:error)    { raise 'Error should not have been emitted' }
+
+                    EventMachine.add_timer(1) do
+                      expect(channel).to be_detached
+                      stop_reactor
+                    end
+
+                    client.connection.close
+                  end
+                end
               end
+            end
+          end
 
-              client.connection.manager.error_received_from_server connection_error
+          context 'failed channel' do
+            let(:original_error) { RuntimeError.new }
+            let(:client_options)   { default_options.merge(log_level: :fatal) }
+
+            it 'remains in the same state' do
+              run_reactor do
+                channel.attach do
+                  channel.once(:error) do
+                    channel.on(:detached) { raise 'Detached state should not have been reached' }
+                    channel.on(:error)    { raise 'Error should not have been emitted' }
+
+                    EventMachine.add_timer(1) do
+                      expect(channel).to be_failed
+                      expect(channel.error_reason).to eql(original_error)
+                      stop_reactor
+                    end
+
+                    client.connection.close
+                  end
+
+                  channel.transition_state_machine :failed, original_error
+                end
+              end
             end
           end
         end

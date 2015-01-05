@@ -72,11 +72,11 @@ module Ably::Realtime
 
           when ACTION.Attach
           when ACTION.Attached
-            get_channel(protocol_message.channel).change_state Ably::Realtime::Channel::STATE.Attached
+            get_channel(protocol_message.channel).transition_state_machine :attached
 
           when ACTION.Detach
           when ACTION.Detached
-            get_channel(protocol_message.channel).change_state Ably::Realtime::Channel::STATE.Detached
+            get_channel(protocol_message.channel).transition_state_machine :detached
 
           when ACTION.Presence
             protocol_message.presence.each do |presence|
@@ -96,7 +96,7 @@ module Ably::Realtime
       def dispatch_channel_error(protocol_message)
         logger.warn "Channel Error message received: #{protocol_message.error}"
         if !protocol_message.has_message_serial?
-          get_channel(protocol_message.channel).fail protocol_message.error
+          get_channel(protocol_message.channel).transition_state_machine :failed, protocol_message.error
         else
           logger.fatal "Cannot process ProtocolMessage as not yet implemented: #{protocol_message}"
         end

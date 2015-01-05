@@ -230,7 +230,7 @@ describe Ably::Realtime::Connection do
 
                 connection.once(:failed) do
                   expect(connection.state).to eq(:failed)
-                  expect { connection.close }.to raise_error Ably::Exceptions::ConnectionStateChangeError, /Unable to transition from failed => closing/
+                  expect { connection.close }.to raise_error Ably::Exceptions::StateChangeError, /Unable to transition from failed => closing/
                   stop_reactor
                 end
               end
