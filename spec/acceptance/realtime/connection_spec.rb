@@ -293,7 +293,7 @@ describe Ably::Realtime::Connection do
           end
           let(:available_states) { self.class.available_states}
           let(:states)           { Hash.new }
-          let(:client_options)   { default_options.merge(log_level: :fatal) }
+          let(:client_options)   { default_options.merge(log_level: :none) }
 
           it "is available for #{available_states.join(', ')} states" do
             run_reactor do
@@ -418,7 +418,7 @@ describe Ably::Realtime::Connection do
       end
 
       context 'when state transition is unsupported' do
-        let(:client_options) { default_options.merge(logger: Logger.new(StringIO.new)) } # silence FATAL errors
+        let(:client_options) { default_options.merge(log_level: :none) } # silence FATAL errors
 
         it 'emits a ConnectionStateChangeError if a state transition is unsupported' do
           run_reactor do

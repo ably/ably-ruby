@@ -349,6 +349,11 @@ module Ably
         @transport = nil
       end
 
+      # @api private
+      def set_failed_connection_error_reason(error)
+        @error_reason = error
+      end
+
       # As we are using a state machine, do not allow change_state to be used
       # #transition_state_machine must be used instead
       private :change_state

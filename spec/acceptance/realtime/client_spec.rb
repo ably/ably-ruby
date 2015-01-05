@@ -29,7 +29,7 @@ describe Ably::Realtime::Client do
         end
 
         context 'with TLS disabled' do
-          let(:client_options) { default_options.merge(tls: false) }
+          let(:client_options) { default_options.merge(tls: false, log_level: :none) }
 
           it 'fails to connect because the key cannot be sent over a non-secure connection' do
             run_reactor do
