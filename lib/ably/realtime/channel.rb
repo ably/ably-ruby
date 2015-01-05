@@ -44,6 +44,7 @@ module Ably
         :failed
       )
       include Ably::Modules::StateEmitter
+      include Ably::Modules::UsesStateMachine
 
       # Max number of messages to bundle in a single ProtocolMessage
       MAX_PROTOCOL_MESSAGE_BATCH_SIZE = 50
@@ -64,6 +65,11 @@ module Ably
       # @return [Ably::Models::ErrorInfo,Ably::Exceptions::BaseAblyException]
       attr_reader :error_reason
 
+      # The Channel manager responsible for attaching, detaching and handling failures for this channel
+      # @return [Ably::Realtime::Channel::ChannelManager]
+      # @api private
+      attr_reader :manager
+
       # Initialize a new Channel object
       #
       # @param  client [Ably::Rest::Client]
@@ -80,7 +86,10 @@ module Ably
         @options       = channel_options.clone.freeze
         @subscriptions = Hash.new { |hash, key| hash[key] = [] }
         @queue         = []
-        @state         = STATE.Initialized
+
+        @state_machine = ChannelStateMachine.new(self)
+        @state         = STATE(state_machine.current_state)
+        @manager       = ChannelManager.new(self, client.connection)
 
         setup_event_handlers
       end
@@ -151,12 +160,8 @@ module Ably
       # @return [void]
       #
       def attach(&block)
-        connect_if_connection_initialized
+        transition_state_machine :attaching if can_transition_to?(:attaching)
         once_or_if(STATE.Attached) { block.call self } if block_given?
-        if !attaching?
-          change_state STATE.Attaching
-          send_attach_protocol_message
-        end
       end
 
       # Detach this channel, and call the block if provided when in a Detached or Failed state
@@ -165,16 +170,9 @@ module Ably
       # @return [void]
       #
       def detach(&block)
-        detached_block = proc do
-          off(&detached_block)
-          block.call self
-        end
-        [STATE.Detached, STATE.Failed].each { |state| once_or_if(state, &detached_block) } if block_given?
-
-        if attaching? || attached?
-          change_state STATE.Detaching
-          send_detach_protocol_message
-        end
+        raise exception_for_state_change_to(:detaching) if failed? || initialized?
+        transition_state_machine :detaching if can_transition_to?(:detaching)
+        once_or_if(STATE.Detached) { block.call self } if block_given?
       end
 
       # Presence object for this Channel.  This controls this client's
@@ -211,13 +209,9 @@ module Ably
         )
       end
 
-      # Set connection state to Failed
       # @api private
-      def fail(error)
-        logger.error "Channel #{name} error: #{error}"
-        set_failed_channel_error_reason error
-        change_state STATE.Failed, error
-        trigger :error, error
+      def set_failed_channel_error_reason(error)
+        @error_reason = error
       end
 
       private
@@ -234,22 +228,6 @@ module Ably
         on(STATE.Attached) do
           process_queue
         end
-
-        connection.on(Connection::STATE.Closed) do
-          change_state STATE.Detached if attached? || attaching?
-        end
-
-        connection.on(Connection::STATE.Failed) do |error|
-          fail error unless detached? || initialized?
-        end
-
-        on(:attached, :detached) do
-          set_failed_channel_error_reason nil
-        end
-      end
-
-      def set_failed_channel_error_reason(error)
-        @error_reason = error
       end
 
       # Queue message and process queue if channel is attached.
@@ -284,21 +262,6 @@ module Ably
         )
       end
 
-      def send_attach_protocol_message
-        send_state_change_protocol_message Ably::Models::ProtocolMessage::ACTION.Attach
-      end
-
-      def send_detach_protocol_message
-        send_state_change_protocol_message Ably::Models::ProtocolMessage::ACTION.Detach
-      end
-
-      def send_state_change_protocol_message(state)
-        client.connection.send_protocol_message(
-          action:  state.to_i,
-          channel: name
-        )
-      end
-
       def create_message(name, data)
         message = { name: name }
         message.merge!(data: data) unless data.nil?
@@ -320,11 +283,6 @@ module Ably
 
       def connection
         client.connection
-      end
-
-      # If the connection has not previously connected, connect now
-      def connect_if_connection_initialized
-        connection.connect if connection.initialized?
       end
 
       def message_name_key(name)

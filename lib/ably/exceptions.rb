@@ -44,8 +44,8 @@ module Ably
     # Connection Timeout accessing Realtime or REST service
     class ConnectionTimeoutError < ConnectionError; end
 
-    # Invalid Connection State Change error
-    class ConnectionStateChangeError < BaseAblyException; end
+    # Invalid State Change error on a {https://github.com/gocardless/statesman Statesman State Machine}
+    class StateChangeError < BaseAblyException; end
 
     # A generic Ably exception taht supports a status & code.
     # See https://github.com/ably/ably-common/blob/master/protocol/errors.json for a list of Ably errors
