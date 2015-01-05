@@ -23,6 +23,8 @@ module Ably
     #   Connection::STATE.Closed
     #   Connection::STATE.Failed
     #
+    # Connection emit errors - use `on(:error)` to subscribe to errors
+    #
     # @example
     #    client = Ably::Realtime::Client.new('key.id:secret')
     #    client.connection.on(:connected) do
@@ -30,7 +32,7 @@ module Ably
     #    end
     #
     # @!attribute [r] state
-    #   @return {Ably::Realtime::Connection::STATE} connection state
+    #   @return [Ably::Realtime::Connection::STATE] connection state
     #
     class Connection
       include Ably::Modules::EventEmitter
@@ -54,28 +56,28 @@ module Ably
       RECOVER_REGEX = /^(?<recover>\w+):(?<connection_serial>\-?\w+)$/
 
       # Unique connection ID for assigned to this connection by Ably
-      # @return {String}
+      # @return [String]
       attr_reader :id
 
       # The serial number of the last message to be received on this connection, used to recover or resume a connection
-      # @return {Integer}
+      # @return [Integer]
       attr_reader :serial
 
       # When a connection failure occurs this attribute contains the Ably Exception
-      # @return {Ably::Models::ErrorInfo}
+      # @return [Ably::Models::ErrorInfo,Ably::Exceptions::BaseAblyException]
       attr_reader :error_reason
 
       # {Ably::Realtime::Client} associated with this connection
-      # @return {Ably::Realtime::Client}
+      # @return [Ably::Realtime::Client]
       attr_reader :client
 
       # Underlying socket transport used for this connection, for internal use by the client library
-      # @return {Ably::Realtime::Connection::WebsocketTransport}
+      # @return [Ably::Realtime::Connection::WebsocketTransport]
       # @api private
       attr_reader :transport
 
       # The connection manager responsible for creating, maintaining and closing the connection and underlying transport
-      # @return {Ably::Realtime::Connection::ConnectionManager}
+      # @return [Ably::Realtime::Connection::ConnectionManager]
       # @api private
       attr_reader :manager
 

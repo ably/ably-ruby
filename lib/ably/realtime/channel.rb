@@ -25,12 +25,6 @@ module Ably
     #
     # @!attribute [r] state
     #   @return {Ably::Realtime::Connection::STATE} channel state
-    # @!attribute [r] client
-    #   @return {Ably::Realtime::Client} Ably client associated with this channel
-    # @!attribute [r] name
-    #   @return {String} channel name
-    # @!attribute [r] options
-    #   @return {Hash} channel options configured for this channel, see {#initialize} for channel_options
     #
     class Channel
       include Ably::Modules::Conversions
@@ -52,7 +46,21 @@ module Ably
       # Max number of messages to bundle in a single ProtocolMessage
       MAX_PROTOCOL_MESSAGE_BATCH_SIZE = 50
 
-      attr_reader :client, :name, :options
+      # {Ably::Realtime::Client} associated with this channel
+      # @return [Ably::Realtime::Client]
+      attr_reader :client
+
+      # Channel name
+      # @return [String]
+      attr_reader :name
+
+      # Channel options configured for this channel, see {#initialize} for channel_options
+      # @return [Hash]
+      attr_reader :options
+
+      # When a channel failure occurs this attribute contains the Ably Exception
+      # @return [Ably::Models::ErrorInfo,Ably::Exceptions::BaseAblyException]
+      attr_reader :error_reason
 
       # Initialize a new Channel object
       #
