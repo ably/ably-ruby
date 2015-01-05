@@ -111,6 +111,8 @@ module Ably
         return current_token unless current_token.expired?
       end
 
+      @options = @options.merge(options)
+
       @current_token = request_token(options, &block)
     end
 
@@ -282,13 +284,13 @@ module Ably
     # True if prerequisites for creating a new token request are present
     #
     # One of the following criterion must be met:
-    # * Valid key id and secret
+    # * Valid key id and secret and token_id option not provided as token options cannot be determined
     # * Authentication callback for new token requests
     # * Authentication URL for new token requests
     #
     # @return [Boolean]
     def token_renewable?
-      token_creatable_externally? || api_key_present?
+      token_creatable_externally? || (api_key_present? && !token_id)
     end
 
     # Returns false when attempting to send an API Key over a non-secure connection
@@ -313,7 +315,7 @@ module Ably
     end
 
     def token_auth_id
-      current_token_id = if token_id
+      if token_id
         token_id
       else
         authorise.id

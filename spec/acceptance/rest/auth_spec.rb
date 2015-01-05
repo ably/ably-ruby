@@ -290,6 +290,12 @@ describe Ably::Auth do
             expect { auth.authorise(force: true) }.to change { auth.current_token }
           end
         end
+
+        it 'updates auth options for subsequent authorise requests such as automatic token renewal' do
+          expect(auth.options[:ttl]).to_not eql(26)
+          auth.authorise(ttl: 26)
+          expect(auth.options[:ttl]).to eql(26)
+        end
       end
 
       describe '#create_token_request' do
