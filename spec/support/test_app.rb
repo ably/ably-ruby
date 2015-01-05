@@ -90,6 +90,10 @@ class TestApp
     @attributes = JSON.parse(response.body)
   end
 
+  def host
+    sandbox_client.endpoint.host
+  end
+
   private
   def sandbox_client
     @sandbox_client ||= Ably::Rest::Client.new(api_key: 'app.key:secret', tls: true, environment: environment)

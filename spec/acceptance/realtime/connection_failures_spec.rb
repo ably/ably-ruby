@@ -17,8 +17,28 @@ describe Ably::Realtime::Connection do
         Ably::Realtime::Client.new(client_options)
       end
 
+      context 'authentication failure' do
+        let(:missing_key) { 'not_an_app.invalid_key_id:invalid_key_value' }
+        let(:client_options) do
+          default_options.merge(api_key: missing_key, log_level: :none)
+        end
+
+        context 'when API key is invalid' do
+          it 'sets the #error_reason to the failed reason' do
+            run_reactor do
+              connection.on(:failed) do |error|
+                expect(connection.state).to eq(:failed)
+                expect(error.status).to eq(404)
+                expect(error.code).to eq(40400) # not found
+                stop_reactor
+              end
+            end
+          end
+        end
+      end
+
       context 'retrying new connections' do
-        let(:client_failure_options) { default_options.merge(log_level: :fatal) }
+        let(:client_failure_options) { default_options.merge(log_level: :none) }
 
         context 'with invalid app part of the key' do
           let(:missing_key) { 'not_an_app.invalid_key_id:invalid_key_value' }
@@ -89,6 +109,44 @@ describe Ably::Realtime::Connection do
 
           def time_passed
             Time.now.to_f - timer[:start].to_f
+          end
+
+          context '#error_reason' do
+            [:disconnected, :suspended, :failed].each do |state|
+              it "contains the error when state is #{state}" do
+                run_reactor do
+                  connection.on(state) do |error|
+                    expect(connection.error_reason).to eq(error)
+                    expect(connection.error_reason.code).to eql(80000)
+                    stop_reactor
+                  end
+                end
+              end
+            end
+
+            it 'resets the error state when :connected' do
+              run_reactor do
+                connection.once(:disconnected) do |error|
+                  # fix the host so that the connection connects
+                  allow(connection).to receive(:host).and_return(TestApp.instance.host)
+                  connection.once(:connected) do
+                    expect(connection.error_reason).to be_nil
+                    stop_reactor
+                  end
+                end
+              end
+            end
+
+            it 'resets the error state when :closed' do
+              run_reactor do
+                connection.once(:disconnected) do |error|
+                  connection.close do
+                    expect(connection.error_reason).to be_nil
+                    stop_reactor
+                  end
+                end
+              end
+            end
           end
 
           it 'enters the disconnected state and then transitions to closed when requested' do
@@ -210,7 +268,7 @@ describe Ably::Realtime::Connection do
           Ably::Realtime::Client.new(client_options)
         end
         let(:publishing_client_channel) { publishing_client.channel(channel_name) }
-        let(:client_options) { default_options.merge(log_level: :fatal) }
+        let(:client_options) { default_options.merge(log_level: :none) }
 
         it 'reconnects automatically when disconnected message received from the server' do
           run_reactor do
@@ -326,7 +384,7 @@ describe Ably::Realtime::Connection do
 
         context 'with custom realtime websocket host' do
           let(:expected_host) { 'this.host.doesn.not.exist' }
-          let(:client_options) { default_options.merge(realtime_host: expected_host) }
+          let(:client_options) { default_options.merge(realtime_host: expected_host, log_level: :none) }
 
           it 'never uses a fallback host' do
             run_reactor do
@@ -345,7 +403,7 @@ describe Ably::Realtime::Connection do
         context 'with non-production environment' do
           let(:environment)    { 'sandbox' }
           let(:expected_host)  { "#{environment}-#{Ably::Realtime::Client::DOMAIN}" }
-          let(:client_options) { default_options.merge(environment: environment) }
+          let(:client_options) { default_options.merge(environment: environment, log_level: :none) }
 
           it 'never uses a fallback host' do
             run_reactor do
@@ -368,7 +426,7 @@ describe Ably::Realtime::Connection do
           end
 
           let(:expected_host)  { Ably::Realtime::Client::DOMAIN }
-          let(:client_options) { default_options.merge(environment: nil) }
+          let(:client_options) { default_options.merge(environment: nil, log_level: :none) }
 
           let(:fallback_hosts_used) { Array.new }
 

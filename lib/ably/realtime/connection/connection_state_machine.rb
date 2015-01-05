@@ -49,7 +49,8 @@ module Ably::Realtime
         connection.manager.respond_to_transport_disconnected_whilst_connected current_transition
       end
 
-      after_transition(to: [:failed]) do |connection|
+      after_transition(to: [:failed]) do |connection, current_transition|
+        connection.logger.fatal "ConnectionStateMachine: Connection failed #{current_transition.metadata}"
         connection.manager.destroy_transport
       end
 
@@ -65,6 +66,15 @@ module Ably::Realtime
         connection.manager.destroy_transport
       end
 
+      # Transitions responsible for updating connection#error_reason
+      before_transition(to: [:disconnected, :suspended, :failed]) do |connection, current_transition|
+        connection.set_failed_connection_error_reason current_transition.metadata if is_error_type?(current_transition.metadata)
+      end
+
+      before_transition(to: [:connected, :closed]) do |connection, current_transition|
+        connection.set_failed_connection_error_reason nil
+      end
+
       # Override Statesman's #transition_to so that:
       # * log state change failures to {Logger}
       # * raise an exception on the {Ably::Realtime::Connection}
@@ -74,7 +84,7 @@ module Ably::Realtime
         unless result = super(state, *args)
           exception = exception_for_state_change_to(state)
           connection.trigger :error, exception
-          logger.fatal exception.message
+          logger.fatal "ConnectionStateMachine: #{exception.message}"
         end
         result
       end
@@ -96,6 +106,10 @@ module Ably::Realtime
       end
 
       private
+      def self.is_error_type?(error)
+        error.kind_of?(Ably::Models::ErrorInfo) || error.kind_of?(StandardError)
+      end
+
       def connection
         object
       end
