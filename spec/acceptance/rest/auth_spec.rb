@@ -267,6 +267,18 @@ describe Ably::Auth do
           it 'issues a new token if option :force => true' do
             expect { auth.authorise(force: true) }.to change { auth.current_token }
           end
+
+          context 'basic/token auth attributes' do
+            before { auth.authorise }
+
+            specify '#using_token_auth? is true' do
+              expect(auth).to be_using_token_auth
+            end
+
+            specify '#using_basic_auth? is false' do
+              expect(auth).to_not be_using_basic_auth
+            end
+          end
         end
 
         context 'with previous authorisation' do
@@ -431,6 +443,10 @@ describe Ably::Auth do
               expect(error.code).to eql(40101)
             end
           end
+
+          it 'cannot be renewed' do
+            expect(token_auth_client.auth).to_not be_token_renewable
+          end
         end
 
         describe 'implicit through client id' do
@@ -485,6 +501,18 @@ describe Ably::Auth do
               expect(token.expires_at.to_i).to be_within(2).of(Time.now.to_i + Ably::Models::Token::DEFAULTS[:ttl])
               expect(token.client_id).to eq(client_id)
             end
+          end
+        end
+      end
+
+      context 'with API_key and basic auth' do
+        context 'basic/token auth attributes' do
+          specify '#using_token_auth? is false' do
+            expect(auth).to_not be_using_token_auth
+          end
+
+          specify '#using_basic_auth? is true' do
+            expect(auth).to be_using_basic_auth
           end
         end
       end

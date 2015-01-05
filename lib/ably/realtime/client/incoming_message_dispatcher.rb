@@ -64,11 +64,10 @@ module Ably::Realtime
             connection.transition_state_machine :closed
 
           when ACTION.Error
-            logger.error "Error received: #{protocol_message.error}"
             if protocol_message.channel && !protocol_message.has_message_serial?
               dispatch_channel_error protocol_message
             else
-              connection.transition_state_machine :failed, protocol_message.error
+              process_connection_error protocol_message
             end
 
           when ACTION.Attach
@@ -95,11 +94,16 @@ module Ably::Realtime
       end
 
       def dispatch_channel_error(protocol_message)
+        logger.error "Channel Error message received: #{protocol_message.error}"
         if !protocol_message.has_message_serial?
           get_channel(protocol_message.channel).change_state Ably::Realtime::Channel::STATE.Failed, protocol_message.error
         else
           logger.fatal "Cannot process ProtocolMessage as not yet implemented: #{protocol_message}"
         end
+      end
+
+      def process_connection_error(protocol_message)
+        connection.manager.error_received_from_server protocol_message.error
       end
 
       def update_connection_recovery_info(protocol_message)

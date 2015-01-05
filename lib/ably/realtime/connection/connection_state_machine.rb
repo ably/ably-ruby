@@ -23,7 +23,7 @@ module Ably::Realtime
       transition :from => :initialized,  :to => [:connecting, :closing]
       transition :from => :connecting,   :to => [:connected, :failed, :closing, :disconnected, :suspended]
       transition :from => :connected,    :to => [:disconnected, :suspended, :closing, :failed]
-      transition :from => :disconnected, :to => [:connecting, :closing, :suspended]
+      transition :from => :disconnected, :to => [:connecting, :closing, :suspended, :failed]
       transition :from => :suspended,    :to => [:connecting, :closing, :failed]
       transition :from => :closing,      :to => [:closed]
       transition :from => :closed,       :to => [:connecting]

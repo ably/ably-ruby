@@ -331,19 +331,23 @@ describe Ably::Realtime::Connection do
           end
         end
 
-        it 'recovers server-side queued messages' do
-          run_reactor do
-            channel.attach do |message|
-              connection.transition_state_machine! :failed
-            end
+        context 'with messages sent whilst disconnected' do
+          let(:client_options)   { default_options.merge(log_level: :none) }
 
-            connection.on(:failed) do
-              publishing_client_channel.publish('event', 'message') do
-                recover_client = Ably::Realtime::Client.new(default_options.merge(recover: client.connection.recovery_key))
-                recover_client.channel(channel_name).attach do |recover_client_channel|
-                  recover_client_channel.subscribe('event') do |message|
-                    expect(message.data).to eql('message')
-                    stop_reactor
+          it 'recovers server-side queued messages' do
+            run_reactor do
+              channel.attach do |message|
+                connection.transition_state_machine! :failed
+              end
+
+              connection.on(:failed) do
+                publishing_client_channel.publish('event', 'message') do
+                  recover_client = Ably::Realtime::Client.new(default_options.merge(recover: client.connection.recovery_key))
+                  recover_client.channel(channel_name).attach do |recover_client_channel|
+                    recover_client_channel.subscribe('event') do |message|
+                      expect(message.data).to eql('message')
+                      stop_reactor
+                    end
                   end
                 end
               end
@@ -381,17 +385,155 @@ describe Ably::Realtime::Connection do
       end
 
       context 'token auth' do
+        before do
+          # Reduce token expiry buffer to zero so that a token expired? predicate is exact
+          # Normally there is a buffer so that a token expiring soon is considered expired
+          stub_const 'Ably::Models::Token::TOKEN_EXPIRY_BUFFER', 0
+        end
+
         context 'for renewable tokens' do
+          context 'that are valid for the duration of the test' do
+            context 'with valid pre authorised token expiring in the future' do
+              it 'uses the existing token created by Auth' do
+                run_reactor do
+                  client.auth.authorise(ttl: 300)
+                  expect(client.auth).to_not receive(:request_token)
+                  connection.once(:connected) do
+                    stop_reactor
+                  end
+                end
+              end
+            end
+
+            context 'with implicit authorisation' do
+              let(:client_options) { default_options.merge(client_id: 'force_token_auth') }
+              it 'uses the token created by the implicit authorisation' do
+                run_reactor do
+                  expect(client.auth).to receive(:request_token).once.and_call_original
+                  connection.once(:connected) do
+                    stop_reactor
+                  end
+                end
+              end
+            end
+          end
+
           context 'that expire' do
-            skip 'when connecting, the token is renewed'
-            skip 'when connected, it automatically renews the token and reconnects'
+            let(:client_options) { default_options.merge(log_level: :none) }
+
+            before do
+              client.auth.authorise(ttl: ttl)
+            end
+
+            context 'opening a new connection' do
+              context 'with recently expired token' do
+                let(:ttl) { 2 }
+
+                it 'renews the token on connect' do
+                  run_reactor do
+                    sleep ttl + 0.1
+                    expect(client.auth.current_token).to be_expired
+                    expect(client.auth).to receive(:authorise).once.and_call_original
+                    connection.once(:connected) do
+                      expect(client.auth.current_token).to_not be_expired
+                      stop_reactor
+                    end
+                  end
+                end
+              end
+
+              context 'with immediately expiring token' do
+                let(:ttl) { 0.01 }
+
+                it 'renews the token on connect, and only makes one subequent attempt to obtain a new token' do
+                  run_reactor do
+                    expect(client.auth).to receive(:authorise).twice.and_call_original
+                    connection.once(:disconnected) do
+                      connection.once(:failed) do |error|
+                        expect(error.code).to eql(40140) # token expired
+                        stop_reactor
+                      end
+                    end
+                  end
+                end
+
+                it 'uses the primary host for subsequent connection and auth requests' do
+                  run_reactor do
+                    sleep 1
+                    connection.once(:disconnected) do
+                      expect(client.rest_client.connection).to receive(:post).with(/requestToken$/, anything).and_call_original
+
+                      expect(client.rest_client).to_not receive(:fallback_connection)
+                      expect(client).to_not receive(:fallback_endpoint)
+
+                      connection.once(:failed) do
+                        stop_reactor
+                      end
+                    end
+                  end
+                end
+              end
+            end
+
+            context 'when connected' do
+              context 'with a new successful token request' do
+                let(:ttl)     { 3 }
+                let(:channel) { client.channel('test') }
+
+                skip 'changes state to disconnected, renews the token and then reconnects' do
+                  run_reactor(10) do
+                    expect(client.auth.current_token).to_not be_expired
+
+                    channel.attach
+                    connection.once(:connected) do
+                      sleep ttl
+                      expect(client.auth.current_token).to be_expired
+
+                      channel.publish('event', 'data') do
+                        connection.once(:disconnected) do |error|
+                          expect(Time.now - started_at >= ttl)
+                          expect(error.code).to eql(40140) # token expired
+                          connection.once(:connected) do
+                            stop_reactor
+                          end
+                        end
+                      end
+                    end
+                  end
+                end
+
+                skip 'retains connection state'
+                skip 'changes state to failed if a new token cannot be issued'
+              end
+            end
           end
         end
 
         context 'for non-renewable tokens' do
-          context 'that expire' do
-            skip 'when connecting the connection transitions to failed'
-            skip 'when connected, the connection transitions to failed'
+          context 'that are expired' do
+            let!(:expired_token) do
+              Ably::Realtime::Client.new(default_options).auth.request_token(ttl: 0.01)
+            end
+
+            context 'opening a new connection' do
+              let(:client_options) { default_options.merge(api_key: nil, token_id: expired_token.id, log_level: :none) }
+
+              it 'transitions state to failed' do
+                run_reactor(10) do
+                  sleep 0.5
+                  expect(expired_token).to be_expired
+                  connection.once(:connected) { raise 'Connection should never connect as token has expired' }
+                  connection.once(:failed) do
+                    expect(client.connection.error_reason.code).to eql(40140)
+                    stop_reactor
+                  end
+                end
+              end
+            end
+
+            context 'when connected' do
+              skip 'transitions state to failed'
+            end
           end
         end
       end

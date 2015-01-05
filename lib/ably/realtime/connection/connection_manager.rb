@@ -20,6 +20,11 @@ module Ably::Realtime
         close: 10
       }
 
+      # Error codes from the server that can potentially be resolved
+      RESOLVABLE_ERROR_CODES = {
+        token_expired: 40140
+      }
+
       def initialize(connection)
         @connection = connection
         @timers     = Hash.new { |hash, key| hash[key] = [] }
@@ -48,7 +53,8 @@ module Ably::Realtime
         end
 
         unless client.auth.authentication_security_requirements_met?
-          connection.transition_state_machine :failed, Ably::Exceptions::InsecureRequestError.new('Cannot use Basic Auth over non-TLS connections')
+          connection.transition_state_machine :failed, Ably::Exceptions::InsecureRequestError.new('Cannot use Basic Auth over non-TLS connections', 401, 40103)
+          return
         end
 
         logger.debug "ConnectionManager: Opening connection to #{connection.host}:#{connection.port}"
@@ -59,7 +65,7 @@ module Ably::Realtime
         end
 
         create_timeout_timer_whilst_in_state(:connect, TIMEOUTS.fetch(:open)) do
-          connection_opening_failed Ably::Models::ErrorInfo.new(message: "Connection to Ably timed out after #{TIMEOUTS.fetch(:open)}s")
+          connection_opening_failed Ably::Exceptions::ConnectionTimeoutError.new("Connection to Ably timed out after #{TIMEOUTS.fetch(:open)}s", nil, 80014)
         end
       end
 
@@ -68,7 +74,7 @@ module Ably::Realtime
       # @api private
       def connection_opening_failed(error)
         logger.warn "ConnectionManager: Connection to #{connection.host}:#{connection.port} failed; #{error.message}"
-        connection.transition_state_machine next_retry_state, Ably::Models::ErrorInfo.new(message: "Connection failed; #{error.message}", code: 80000)
+        connection.transition_state_machine next_retry_state, Ably::Exceptions::ConnectionError.new("Connection failed; #{error.message}", nil, 80000)
       end
 
       # Ensures the underlying transport has been disconnected and all event emitter callbacks removed
@@ -117,6 +123,7 @@ module Ably::Realtime
       # @api private
       def respond_to_transport_disconnected_when_connecting(current_transition)
         return unless connection.disconnected? || connection.suspended? # do nothing if state has changed through an explicit request
+        return unless retry_connection? # do not always reattempt connection or change state as client may be re-authorising
 
         unless connection_retry_from_suspended_state?
           return if connection_retry_for(:disconnected, ignore_states: [:connecting])
@@ -135,6 +142,23 @@ module Ably::Realtime
         logger.warn "ConnectionManager: Connection to #{connection.transport.url} was disconnected unexpectedly"
         destroy_transport
         respond_to_transport_disconnected_when_connecting current_transition
+      end
+
+      # {Ably::Models::ProtocolMessage ProtocolMessage Error} received from server.
+      # Some error states can be resolved by the client library.
+      #
+      # @api private
+      def error_received_from_server(error)
+        case error.code
+        when RESOLVABLE_ERROR_CODES.fetch(:token_expired)
+          connection.transition_state_machine :disconnected
+          connection.once_or_if(:disconnected) do
+            renew_token_and_reconnect error
+          end
+        else
+          logger.error "ConnectionManager: Error #{error.class.name} code #{error.code} received from server '#{error.message}', transitioning to failed state"
+          connection.transition_state_machine :failed, error
+        end
       end
 
       # Number of consecutive attempts for provided state
@@ -255,6 +279,47 @@ module Ably::Realtime
         end
       end
 
+      def renew_token_and_reconnect(error)
+        if client.auth.token_renewable?
+          if @renewing_token
+            connection.transition_state_machine :failed, error
+            return
+          end
+
+          @renewing_token = true
+          logger.warn "ConnectionManager: Token has expired and is renewable, renewing token now"
+
+          operation = proc do
+            begin
+              client.auth.authorise
+            rescue StandardError => auth_error
+              connection.transition_state_machine :failed, auth_error
+              nil
+            end
+          end
+
+          callback = proc do |token|
+            state_changed_callback = proc do
+              @renewing_token = false
+              connection.off &state_changed_callback
+            end
+
+            connection.once :connected, :closed, :failed, &state_changed_callback
+
+            if token && !token.expired?
+              reconnect_transport
+            else
+              connection.transition_state_machine :failed, error unless connection.failed?
+            end
+          end
+
+          EventMachine.defer operation, callback
+        else
+          logger.warn "ConnectionManager: Token has expired and is not renewable"
+          connection.transition_state_machine :failed, error
+        end
+      end
+
       def unsubscribe_from_transport_events(transport)
         transport.__incoming_protocol_msgbus__.unsubscribe
         transport.off
@@ -265,6 +330,10 @@ module Ably::Realtime
         EventMachine.add_shutdown_hook do
           connection.close unless connection.closed? || connection.failed?
         end
+      end
+
+      def retry_connection?
+        !@renewing_token
       end
 
       def logger
