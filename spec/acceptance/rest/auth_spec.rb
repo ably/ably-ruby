@@ -56,7 +56,7 @@ describe Ably::Auth do
         end
 
         %w(client_id capability nonce timestamp ttl).each do |option|
-          context "option :#{option}", webmock: true do
+          context "option :#{option}", :webmock do
             let(:random)         { random_int_str }
             let(:options)        { { option.to_sym => random } }
 
@@ -80,7 +80,7 @@ describe Ably::Auth do
           end
         end
 
-        context 'with :key_id & :key_secret options', webmock: true do
+        context 'with :key_id & :key_secret options', :webmock do
           let(:key_id)        { random_str }
           let(:key_secret)    { random_str }
           let(:nonce)         { random_str }
@@ -126,7 +126,7 @@ describe Ably::Auth do
           end
         end
 
-        context 'with :auth_url option', webmock: true do
+        context 'with :auth_url option', :webmock do
           let(:auth_url)          { 'https://www.fictitious.com/get_token' }
           let(:token_request)     { { id: key_id } }
           let(:token_response)    { { access_token: { } } }
@@ -463,7 +463,7 @@ describe Ably::Auth do
             }.to_json
           end
 
-          context 'stubbed', webmock: true do
+          context 'stubbed', :webmock do
             let!(:request_token_stub) do
               stub_request(:post, "#{client.endpoint}/keys/#{key_id}/requestToken").
                 to_return(:status => 201, :body => token_response, :headers => { 'Content-Type' => 'application/json' })

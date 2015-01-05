@@ -52,9 +52,8 @@ module Ably
 
       def_delegators :auth, :client_id, :auth_options
       def_delegators :@rest_client, :encoders
-      def_delegators :@rest_client, :environment, :use_tls?, :protocol, :protocol_binary?
+      def_delegators :@rest_client, :environment, :use_tls?, :protocol, :protocol_binary?, :custom_host
       def_delegators :@rest_client, :log_level
-      def_delegators :@rest_client, :time, :stats
 
       # Creates a {Ably::Realtime::Client Realtime Client} and configures the {Ably::Auth} object for the connection.
       #

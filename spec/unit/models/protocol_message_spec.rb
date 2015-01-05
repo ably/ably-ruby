@@ -17,7 +17,7 @@ describe Ably::Models::ProtocolMessage do
     let(:model_args) { [] }
   end
 
-  context 'initializer action coercion' do
+  context 'initializer action coercion', :api_private do
     it 'ignores actions that are Integers' do
       protocol_message = subject.new(action: 14)
       expect(protocol_message.hash[:action]).to eql(14)
@@ -41,7 +41,7 @@ describe Ably::Models::ProtocolMessage do
   context 'attributes' do
     let(:unique_value) { random_str }
 
-    context 'Java naming' do
+    context 'Java naming', :api_private do
       let(:protocol_message) { new_protocol_message(channelSerial: unique_value) }
 
       it 'converts the attribute to ruby symbol naming convention' do
@@ -49,7 +49,7 @@ describe Ably::Models::ProtocolMessage do
       end
     end
 
-    context '#action' do
+    context '#action', :api_private do
       let(:protocol_message) { new_protocol_message(action: 14) }
 
       it 'returns an Enum that behaves like a symbol' do
@@ -71,7 +71,7 @@ describe Ably::Models::ProtocolMessage do
 
     context '#timestamp' do
       let(:protocol_message) { new_protocol_message(timestamp: as_since_epoch(Time.now)) }
-      it 'retrieves attribute :timestamp' do
+      it 'retrieves attribute :timestamp as Time object' do
         expect(protocol_message.timestamp).to be_a(Time)
         expect(protocol_message.timestamp.to_i).to be_within(1).of(Time.now.to_i)
       end
@@ -232,7 +232,7 @@ describe Ably::Models::ProtocolMessage do
     end
   end
 
-  context '#to_json' do
+  context '#to_json', :api_private do
     let(:json_object) { JSON.parse(model.to_json) }
     let(:message) { { 'name' => 'event', 'clientId' => 'joe', 'timestamp' => as_since_epoch(Time.now) } }
     let(:attached_action) { Ably::Models::ProtocolMessage::ACTION.Attached }
@@ -267,7 +267,7 @@ describe Ably::Models::ProtocolMessage do
     end
   end
 
-  context '#to_msgpack' do
+  context '#to_msgpack', :api_private do
     let(:model)    { new_protocol_message({ :connectionSerial => 'unique', messages: [message] }) }
     let(:message)  { { 'name' => 'event', 'clientId' => 'joe', 'timestamp' => as_since_epoch(Time.now) } }
     let(:packed)   { model.to_msgpack }

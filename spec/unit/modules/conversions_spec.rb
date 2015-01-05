@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe Ably::Modules::Conversions do
+describe Ably::Modules::Conversions, :api_private do
   let(:class_with_module) { Class.new do; include Ably::Modules::Conversions; end }
   let(:subject) { class_with_module.new }
   before do

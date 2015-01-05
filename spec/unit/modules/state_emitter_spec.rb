@@ -58,17 +58,17 @@ describe Ably::Modules::StateEmitter do
     end
 
     context 'and convenience predicates for states' do
-      it 'returns true if state matches' do
+      it 'returns true for #initializing? if state matches' do
         expect(subject.initializing?).to eql(true)
       end
 
-      it 'returns false if state does not match' do
+      it 'returns false for #connecting? if state does not match' do
         expect(subject.connecting?).to eql(false)
       end
     end
   end
 
-  context '#state STATE coercion' do
+  context '#state STATE coercion', :api_private do
     it 'allows valid STATE values' do
       expect { subject.state = :connected }.to_not raise_error
     end
@@ -78,7 +78,7 @@ describe Ably::Modules::StateEmitter do
     end
   end
 
-  context '#once_or_if' do
+  context '#once_or_if', :api_private do
     let(:block_calls) { [] }
     let(:block) do
       proc do
@@ -109,7 +109,7 @@ describe Ably::Modules::StateEmitter do
     end
   end
 
-  context '#once_state_changed' do
+  context '#once_state_changed', :api_private do
     let(:block_calls) { [] }
     let(:block) do
       proc do

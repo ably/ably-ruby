@@ -1,5 +1,5 @@
 shared_examples 'a protocol message bus' do
-  describe '__protocol_msgbus__ PubSub' do
+  describe '__protocol_msgbus__ PubSub', :api_private do
     let(:protocol_message) do
       Ably::Models::ProtocolMessage.new(
         action: 15,

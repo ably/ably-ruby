@@ -3,6 +3,9 @@ require 'ably/modules/state_machine'
 module Ably::Realtime
   class Channel
     # Internal class to manage channel state for {Ably::Realtime::Channel}
+    #
+    # @api private
+    #
     class ChannelStateMachine
       include Ably::Modules::StateMachine
 

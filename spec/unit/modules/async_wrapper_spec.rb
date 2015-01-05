@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe Ably::Modules::AsyncWrapper do
+describe Ably::Modules::AsyncWrapper, :api_private do
   include RSpec::EventMachine
 
   let(:class_with_module) do

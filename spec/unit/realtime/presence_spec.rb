@@ -23,7 +23,7 @@ describe Ably::Realtime::Presence do
     end
   end
 
-  context 'msgbus' do
+  context 'msgbus', :api_private do
     let(:message) do
       Ably::Models::PresenceMessage.new({
         'action' => 0,
