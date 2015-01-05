@@ -41,7 +41,7 @@ module Ably
       end
     end
 
-    # Connection Timeout accessing REST service
+    # Connection Timeout accessing Realtime or REST service
     class ConnectionTimeoutError < ConnectionError; end
 
     # Invalid Connection State Change error
@@ -52,18 +52,18 @@ module Ably
     class Standard < BaseAblyException; end
 
     # The HTTP request has returned a 500 error
-    class ServerError < StandardError; end
+    class ServerError < BaseAblyException; end
 
     # PaginatedResource cannot retrieve the page
-    class InvalidPageError < StandardError; end
+    class InvalidPageError < BaseAblyException; end
 
     # The expected response from the server was invalid
-    class InvalidResponseBody < StandardError; end
+    class InvalidResponseBody < BaseAblyException; end
 
     # The request cannot be performed because it is insecure
-    class InsecureRequestError < StandardError; end
+    class InsecureRequestError < BaseAblyException; end
 
     # The token request could not be created
-    class TokenRequestError < StandardError; end
+    class TokenRequestError < BaseAblyException; end
   end
 end
