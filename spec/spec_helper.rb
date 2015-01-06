@@ -10,6 +10,7 @@ require 'ably'
 
 require 'support/api_helper'
 require 'support/event_machine_helper'
+require 'support/private_api_formatter'
 require 'support/protocol_helper'
 require 'support/random_helper'
 
