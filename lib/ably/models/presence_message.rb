@@ -128,14 +128,6 @@ module Ably::Models
       protocol_message.presence.index(self)
     end
 
-    def connection_id
-      protocol_message.connection_id
-    end
-
-    def message_serial
-      protocol_message.message_serial
-    end
-
     def set_hash_object(hash)
       @hash_object = IdiomaticRubyWrapper(hash.clone.freeze, stop_at: [:data])
     end

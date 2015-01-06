@@ -56,9 +56,13 @@ module Ably
       # Expected format for a connection recover key
       RECOVER_REGEX = /^(?<recover>\w+):(?<connection_serial>\-?\w+)$/
 
-      # Unique connection ID for assigned to this connection by Ably
+      # Unique connection ID key used to recover this connection, assigned by Ably
       # @return [String]
       attr_reader :id
+
+      # A public identifier for this connection, used to identify this member in presence events and messages.
+      # @return [String]
+      attr_reader :member_id
 
       # The serial number of the last message to be received on this connection, used to recover or resume a connection
       # @return [Integer]
@@ -177,11 +181,12 @@ module Ably
         "#{id}:#{serial}" if connection_resumable?
       end
 
-      # Reconfigure the current connection ID
+      # Configure the current connection and member ID
       # @return [void]
       # @api private
-      def update_connection_id(connection_id)
-        @id = connection_id
+      def update_connection_and_member_id(connection_id, member_id)
+        @id        = connection_id
+        @member_id = member_id
       end
 
       # Store last received connection serial so that the connection can be resumed from the last known point-in-time

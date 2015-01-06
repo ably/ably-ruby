@@ -232,13 +232,21 @@ describe Ably::Realtime::Connection do
         end
       end
 
-      it 'connects, closes the connection, and then reconnects with a new connection ID' do
+      it 'connects, closes the connection, and then reconnects with a new connection and member ID' do
         run_reactor(15) do
           connection.connect do
             connection_id = connection.id
+            expect(connection_id).to be_a(String)
+
+            member_id = connection.member_id
+            expect(member_id).to be_a(String)
+
+            expect(member_id).to_not eql(connection_id)
+
             connection.close do
               connection.connect do
                 expect(connection.id).to_not eql(connection_id)
+                expect(connection.member_id).to_not eql(member_id)
                 stop_reactor
               end
             end
@@ -326,6 +334,30 @@ describe Ably::Realtime::Connection do
               connection.close do
                 expect(connection.recovery_key).to be_nil
                 stop_reactor
+              end
+            end
+          end
+        end
+
+        context 'connection_id and member_id after recovery' do
+          let(:client_options)   { default_options.merge(log_level: :none) }
+          it 'remain identical' do
+            run_reactor do
+              previous_connection_id, previous_member_id = nil, nil
+
+              connection.once(:connected) do
+                previous_connection_id = connection.id
+                previous_member_id     = connection.member_id
+                connection.transition_state_machine! :failed
+              end
+
+              connection.once(:failed) do
+                recover_client = Ably::Realtime::Client.new(default_options.merge(recover: client.connection.recovery_key))
+                recover_client.connection.on(:connected) do
+                  expect(recover_client.connection.member_id).to eql(previous_member_id)
+                  expect(recover_client.connection.id).to eql(previous_connection_id)
+                  stop_reactor
+                end
               end
             end
           end

@@ -4,7 +4,7 @@ require 'base64'
 require 'json'
 require 'securerandom'
 
-describe 'Ably::Realtime::Channel Messages' do
+describe 'Ably::Realtime::Channel Message' do
   include RSpec::EventMachine
 
   [:msgpack, :json].each do |protocol|
@@ -48,6 +48,53 @@ describe 'Ably::Realtime::Channel Messages' do
               expect(message.name.encoding).to eql(Encoding::UTF_8)
               expect(message.name.encode(Encoding::ASCII_8BIT)).to eql(message_name)
               stop_reactor
+            end
+          end
+        end
+      end
+
+      context 'with a publisher having a client_id' do
+        let(:client_id) { SecureRandom.hex }
+        let(:client_options)  { default_options.merge(client_id: client_id) }
+
+        specify 'the message is published with the client_id' do
+          run_reactor do
+            channel.attach do
+              other_client_channel.attach do
+                other_client_channel.subscribe('event') do |message|
+                  expect(message.client_id).to eql(client_id)
+                  stop_reactor
+                end
+                channel.publish('event', payload)
+              end
+            end
+          end
+        end
+      end
+
+      context 'the message contains a member_id of the publisher' do
+        specify 'over realtime' do
+          run_reactor do
+            channel.attach do
+              other_client_channel.attach do
+                other_client_channel.subscribe('event') do |message|
+                  expect(message.member_id).to eql(client.connection.member_id)
+                  stop_reactor
+                end
+                channel.publish('event', payload)
+              end
+            end
+          end
+        end
+
+        specify 'over REST' do
+          run_reactor do
+            channel.publish('event', payload) do
+              channel.history do |messages|
+                expect(messages.first.data).to eql(payload)
+                expect(messages.first.member_id).to eql(client.connection.member_id)
+                stop_reactor
+              end
             end
           end
         end
