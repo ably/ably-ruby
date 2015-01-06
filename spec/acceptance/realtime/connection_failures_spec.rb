@@ -308,6 +308,24 @@ describe Ably::Realtime::Connection do
         end
 
         context 'resumes connection when disconnected' do
+          it 'retains connection_id and member_id' do
+            run_reactor do
+              previous_connection_id, previous_member_id = nil, nil
+
+              connection.once(:connected) do
+                previous_connection_id = connection.id
+                previous_member_id     = connection.member_id
+                connection.transport.close_connection_after_writing
+
+                connection.once(:connected) do
+                  expect(connection.member_id).to eql(previous_member_id)
+                  expect(connection.id).to eql(previous_connection_id)
+                  stop_reactor
+                end
+              end
+            end
+          end
+
           it 'retains channel subscription state' do
             run_reactor do
               messages_received = false

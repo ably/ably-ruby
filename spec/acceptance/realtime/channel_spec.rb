@@ -302,7 +302,9 @@ describe Ably::Realtime::Channel do
 
       it 'opens many connections and then many channels simultaneously' do
         run_reactor(15) do
-          count, connected_ids = 25, []
+          count         = 25
+          connected_ids = []
+          member_ids    = []
 
           clients = count.times.map do
             Ably::Realtime::Client.new(default_options)
@@ -326,9 +328,11 @@ describe Ably::Realtime::Channel do
           clients.each do |client|
             client.connection.on(:connected) do
               connected_ids << client.connection.id
+              member_ids    << client.connection.member_id
 
               if connected_ids.count == 25
                 expect(connected_ids.uniq.count).to eql(25)
+                expect(member_ids.uniq.count).to eql(25)
                 open_channels_on_clients.call
               end
             end

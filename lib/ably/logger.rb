@@ -55,10 +55,10 @@ module Ably
       color(36, string)
     end
 
-    def connection_id
+    def member_id
       if realtime?
-        if client.connection.id
-          "[#{cyan(client.connection.id)}] "
+        if client.connection.member_id
+          "[#{cyan(client.connection.member_id)}] "
         else
           "[ #{cyan('--')} ] "
         end
@@ -86,7 +86,7 @@ module Ably
             red(::Logger::SEV_LABEL[severity])
           end
 
-          "#{formatted_date} #{severity_label} #{connection_id}#{msg}\n"
+          "#{formatted_date} #{severity_label} #{member_id}#{msg}\n"
         end
       end
     end

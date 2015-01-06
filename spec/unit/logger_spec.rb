@@ -2,10 +2,10 @@ require 'spec_helper'
 
 describe Ably::Logger do
   let(:new_client) do
-    instance_double('Ably::Realtime::Client', connection: instance_double('Ably::Realtime::Connection', id: nil))
+    instance_double('Ably::Realtime::Client', connection: instance_double('Ably::Realtime::Connection', member_id: nil))
   end
   let(:connected_client) do
-    instance_double('Ably::Realtime::Client', connection: instance_double('Ably::Realtime::Connection', id: '0000'))
+    instance_double('Ably::Realtime::Client', connection: instance_double('Ably::Realtime::Connection', member_id: '0000'))
   end
   before do
     allow(new_client).to receive(:kind_of?).with(Ably::Realtime::Client).and_return(true)

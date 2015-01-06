@@ -32,6 +32,8 @@ module Ably::Models
   #   @return [Time] Timestamp when the message was received by the Ably the real-time service
   # @!attribute [r] id
   #   @return [String] A globally unique message ID
+  # @!attribute [r] member_id
+  #   @return [String] The member_id of the publisher of the message
   # @!attribute [r] hash
   #   @return [Hash] Access the protocol message Hash object ruby'fied to use symbolized keys
   #
@@ -69,6 +71,10 @@ module Ably::Models
 
     def id
       hash[:id] || "#{protocol_message.id!}:#{protocol_message_index}"
+    end
+
+    def member_id
+      id[/^(\w+)/, 1]
     end
 
     def timestamp
@@ -117,14 +123,6 @@ module Ably::Models
 
     def protocol_message_index
       protocol_message.messages.map(&:object_id).index(self.object_id)
-    end
-
-    def connection_id
-      protocol_message.connection_id
-    end
-
-    def message_serial
-      protocol_message.message_serial
     end
 
     def set_hash_object(hash)

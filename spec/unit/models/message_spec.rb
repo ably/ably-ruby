@@ -17,9 +17,18 @@ describe Ably::Models::Message do
 
   context '#timestamp' do
     let(:model) { subject.new({}, protocol_message) }
+
     it 'retrieves attribute :timestamp as Time object from ProtocolMessage' do
       expect(model.timestamp).to be_a(Time)
       expect(model.timestamp.to_i).to be_within(1).of(Time.now.to_i)
+    end
+  end
+
+  context '#member_id' do
+    let(:model) { subject.new({ id: '8mqVVw-0:0' }, protocol_message) }
+
+    it 'is derived from the first part of the unique message ID' do
+      expect(model.member_id).to eql('8mqVVw')
     end
   end
 
