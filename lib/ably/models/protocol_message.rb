@@ -7,7 +7,7 @@ module Ably::Models
   # for further details on the members of a ProtocolMessage
   #
   # @!attribute [r] action
-  #   @return [ACTION] Protocol Message action {Ably::Modules::Enum} from list of {ACTION}. Returns nil if action is unsupported by protocol.
+  #   @return [ACTION] Protocol Message action {Ably::Modules::Enum} from list of {ACTION}. Returns nil if action is unsupported by protocol
   # @!attribute [r] count
   #   @return [Integer] The count field is used for ACK and NACK actions. See {http://docs.ably.io/client-lib-development-guide/protocol/#message-acknowledgement message acknowledgement protocol}
   # @!attribute [r] error_info
@@ -27,9 +27,11 @@ module Ably::Models
   # @!attribute [r] timestamp
   #   @return [Time] An optional timestamp, applied by the service in messages sent to the client, to indicate the system time at which the message was sent (milliseconds past epoch)
   # @!attribute [r] messages
-  #   @return [Message] A {ProtocolMessage} with a `:message` action contains one or more messages belonging to a channel.
+  #   @return [Message] A {ProtocolMessage} with a `:message` action contains one or more messages belonging to a channel
   # @!attribute [r] presence
-  #   @return [PresenceMessage] A {ProtocolMessage} with a `:presence` action contains one or more presence updates belonging to a channel.
+  #   @return [PresenceMessage] A {ProtocolMessage} with a `:presence` action contains one or more presence updates belonging to a channel
+  # @!attribute [r] flags
+  #   @return [Integer] Flags inidicating special ProtocolMessage states
   # @!attribute [r] hash
   #   @return [Hash] Access the protocol message Hash object ruby'fied to use symbolized keys
   #
@@ -58,7 +60,8 @@ module Ably::Models
       detach:       12,
       detached:     13,
       presence:     14,
-      message:      15
+      message:      15,
+      sync:         16
     )
 
     # Indicates this protocol message action will generate an ACK response such as :message or :presence
@@ -76,7 +79,7 @@ module Ably::Models
       @hash_object.freeze
     end
 
-    %w( id channel channel_serial connection_id member_id ).each do |attribute|
+    %w(id channel channel_serial connection_id member_id).each do |attribute|
       define_method attribute do
         hash[attribute.to_sym]
       end
@@ -157,6 +160,17 @@ module Ably::Models
         Array(hash[:presence]).map do |message|
           Ably::Models.PresenceMessage(message, self)
         end
+    end
+
+    # Flags as bits
+    def flags
+      Integer(hash[:flags])
+    rescue TypeError
+      0
+    end
+
+    def has_presence_flag?
+      flags & 1 == 1
     end
 
     # Indicates this protocol message will generate an ACK response when sent

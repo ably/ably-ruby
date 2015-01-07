@@ -43,6 +43,15 @@ module Ably::Realtime
         end
       end
 
+      # Commence presence SYNC if applicable
+      def sync(attached_protocol_message)
+        if attached_protocol_message.has_presence_flag?
+          channel.presence.sync_started
+        else
+          channel.presence.sync_completed
+        end
+      end
+
       # Channel has failed
       def failed(error)
         logger.error "Channel #{channel.name} error: #{error}"

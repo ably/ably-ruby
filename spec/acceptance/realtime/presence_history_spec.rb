@@ -29,10 +29,11 @@ describe 'Ably::Realtime::Presence Messages' do
 
                 expect(history[1].action).to eq(:enter)
                 expect(history[1].client_id).to eq(client_one.client_id)
+                expect(history[1].data).to eql(data)
 
                 expect(history[0].action).to eq(:leave)
                 expect(history[0].client_id).to eq(client_one.client_id)
-                expect(history[0].data).to eql(data)
+                expect(history[0].data).to be_nil
 
                 stop_reactor
               end
@@ -41,13 +42,14 @@ describe 'Ably::Realtime::Presence Messages' do
         end
       end
 
-      it 'ensures REST presence history message IDs match ProtocolMessage wrapped message IDs via Realtime' do
+      it 'ensures REST presence history message IDs match ProtocolMessage wrapped message and member IDs via Realtime' do
         run_reactor do
           presence_client_one.subscribe(:enter) do |message|
             presence_client_one.history do |history|
               expect(history.count).to eql(1)
 
               expect(history[0].id).to eql(message.id)
+              expect(history[0].member_id).to eql(message.member_id)
               stop_reactor
             end
           end

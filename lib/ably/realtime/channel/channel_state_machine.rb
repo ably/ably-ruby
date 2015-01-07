@@ -34,6 +34,10 @@ module Ably::Realtime
         channel.manager.attach
       end
 
+      before_transition(to: [:attached]) do |channel, current_transition|
+        channel.manager.sync current_transition.metadata
+      end
+
       after_transition(to: [:detaching]) do |channel|
         channel.manager.detach
       end

@@ -13,6 +13,32 @@ describe Ably::Models::PresenceMessage do
     let(:model_args) { [protocol_message] }
   end
 
+  context '#member_key attribute' do
+    let(:model) { subject.new(client_id: 'client_id', member_id: 'member_id') }
+
+    it 'is string in format member_id:client_id' do
+      expect(model.member_key).to eql('member_id:client_id')
+    end
+
+    context 'with the same client id across multiple connections' do
+      let(:connection_1) { subject.new({ client_id: 'same', member_id: 'unique' }, protocol_message) }
+      let(:connection_2) { subject.new({ client_id: 'same', member_id: 'different' }, protocol_message) }
+
+      it 'is unique' do
+        expect(connection_1.member_key).to_not eql(connection_2.member_key)
+      end
+    end
+
+    context 'with a single connection and different client_ids' do
+      let(:client_1) { subject.new({ client_id: 'unique', member_id: 'same' }, protocol_message) }
+      let(:client_2) { subject.new({ client_id: 'different', member_id: 'same' }, protocol_message) }
+
+      it 'is unique' do
+        expect(client_1.member_key).to_not eql(client_2.member_key)
+      end
+    end
+  end
+
   context '#timestamp' do
     let(:model) { subject.new({}, protocol_message) }
     it 'retrieves attribute :timestamp as a Time object from ProtocolMessage' do
@@ -30,10 +56,20 @@ describe Ably::Models::PresenceMessage do
   end
 
   context 'with action', :api_private do
-    let(:model) { subject.new({ action: 0 }, protocol_message) }
+    context 'absent' do
+      let(:model) { subject.new({ action: 0 }, protocol_message) }
 
-    it 'provides action as an Enum' do
-      expect(model.action).to eq(:enter)
+      it 'provides action as an Enum' do
+        expect(model.action).to eq(:absent)
+      end
+    end
+
+    context 'enter' do
+      let(:model) { subject.new({ action: 2 }, protocol_message) }
+
+      it 'provides action as an Enum' do
+        expect(model.action).to eq(:enter)
+      end
     end
   end
 

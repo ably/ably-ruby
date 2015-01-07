@@ -49,10 +49,14 @@ describe Ably::Realtime::Presence do
     let(:message_history) { Hash.new { |hash, key| hash[key] = 0 } }
     let(:presence_action) { Ably::Models::PresenceMessage::ACTION.Enter }
     let(:message) do
-      instance_double('Ably::Models::PresenceMessage', action: presence_action, member_id: random_str, decode: true)
+      instance_double('Ably::Models::PresenceMessage', action: presence_action, member_id: random_str, decode: true, member_key: random_str)
     end
 
     context '#subscribe' do
+      before do
+        subject.sync_completed
+      end
+
       specify 'to all presence state actions' do
         subject.subscribe { |message| message_history[:received] += 1}
         subject.__incoming_msgbus__.publish(:presence, message)
@@ -68,6 +72,10 @@ describe Ably::Realtime::Presence do
     end
 
     context '#unsubscribe' do
+      before do
+        subject.sync_completed
+      end
+
       let(:callback) do
         Proc.new { |message| message_history[:received] += 1 }
       end
