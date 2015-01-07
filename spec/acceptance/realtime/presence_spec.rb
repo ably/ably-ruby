@@ -1,7 +1,7 @@
 # encoding: utf-8
 require 'spec_helper'
 
-describe 'Ably::Realtime::Presence Messages' do
+describe 'Ably::Realtime::Presence' do
   include RSpec::EventMachine
 
   [:msgpack, :json].each do |protocol|
@@ -9,7 +9,7 @@ describe 'Ably::Realtime::Presence Messages' do
       let(:default_options) { { api_key: api_key, environment: environment, protocol: protocol } }
       let(:client_options)  { default_options }
 
-      let(:channel_name) { "presence-#{random_str(2)}" }
+      let(:channel_name) { "presence-#{random_str(4)}" }
 
       let(:anonymous_client) { Ably::Realtime::Client.new(client_options) }
       let(:client_one)       { Ably::Realtime::Client.new(client_options.merge(client_id: random_str)) }
@@ -25,27 +25,102 @@ describe 'Ably::Realtime::Presence Messages' do
 
       let(:data_payload) { random_str }
 
-      specify 'an attached channel that is not presence maintains presence state' do
-        run_reactor do
-          channel_anonymous_client.attach do
-            presence_anonymous_client.subscribe(:enter) do |presence_message|
-              expect(presence_message.client_id).to eql(client_one.client_id)
-              members = presence_anonymous_client.get
-              expect(members.first.client_id).to eql(client_one.client_id)
-              expect(members.first.action).to eq(:enter)
-
-              presence_anonymous_client.subscribe(:leave) do |presence_message|
+      context 'when attached to channel but has not entered (not present)' do
+        it 'maintains state' do
+          run_reactor do
+            channel_anonymous_client.attach do
+              presence_anonymous_client.subscribe(:enter) do |presence_message|
                 expect(presence_message.client_id).to eql(client_one.client_id)
-                members = presence_anonymous_client.get
-                expect(members.count).to eql(0)
+                presence_anonymous_client.get do |members|
+                  expect(members.first.client_id).to eql(client_one.client_id)
+                  expect(members.first.action).to eq(:enter)
 
+                  presence_anonymous_client.subscribe(:leave) do |presence_message|
+                    expect(presence_message.client_id).to eql(client_one.client_id)
+                    presence_anonymous_client.get do |members|
+                      expect(members.count).to eql(0)
+                      stop_reactor
+                    end
+                  end
+                end
+              end
+            end
+
+            presence_client_one.enter do
+              presence_client_one.leave
+            end
+          end
+        end
+      end
+
+      context '#sync_complete?' do
+        context 'when attaching to a channel without any members present' do
+          it 'is true and the presence channel is considered synced immediately' do
+            run_reactor do
+              channel_anonymous_client.attach do
+                expect(channel_anonymous_client.presence).to be_sync_complete
                 stop_reactor
               end
             end
           end
+        end
 
-          presence_client_one.enter do
-            presence_client_one.leave
+        context 'when attaching to a channel with members present' do
+          it 'is false and the presence channel will subsequently be synced' do
+            run_reactor do
+              presence_client_one.enter do
+                channel_anonymous_client.attach do
+                  expect(channel_anonymous_client.presence).to_not be_sync_complete
+                  channel_anonymous_client.presence.get do
+                    expect(channel_anonymous_client.presence).to be_sync_complete
+                    stop_reactor
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+
+      context 'a channel with 250 existing (present) members' do
+        let(:enter_expected_count) { 250 }
+        let(:present) { [] }
+        let(:entered) { [] }
+
+        it 'emits :present for each member when attaching and subscribing to presence messages' do
+          run_reactor(15) do
+            enter_expected_count.times do |index|
+              presence_client_one.enter_client("client:#{index}") do |message|
+                entered << message
+                if entered.count == enter_expected_count
+                  presence_anonymous_client.subscribe(:present) do |present_message|
+                    expect(present_message.action).to eq(:present)
+                    present << present_message
+                    if present.count == enter_expected_count
+                      expect(present.map(&:client_id).uniq.count).to eql(enter_expected_count)
+                      stop_reactor
+                    end
+                  end
+                end
+              end
+            end
+          end
+        end
+
+        specify '#get waits until sync is complete' do
+          run_reactor(15) do
+            enter_expected_count.times do |index|
+              presence_client_one.enter_client("client:#{index}") do |message|
+                entered << message
+                if entered.count == enter_expected_count
+                  presence_anonymous_client.get do |members|
+                    expect(members.map(&:client_id).uniq.count).to eql(enter_expected_count)
+                    expect(members.count).to eql(enter_expected_count)
+                    stop_reactor
+                  end
+                end
+              end
+            end
           end
         end
       end
@@ -89,17 +164,27 @@ describe 'Ably::Realtime::Presence Messages' do
         end
       end
 
-      it 'enters and then leaves' do
-        leave_callback_called = false
-        run_reactor do
-          presence_client_one.enter do
-            presence_client_one.leave do |presence|
-              leave_callback_called = true
-            end
-            presence_client_one.on(:left) do
-              EventMachine.next_tick do
-                expect(leave_callback_called).to eql(true)
-                stop_reactor
+      context '#data attribute' do
+        context 'when provided as argument option to #enter' do
+          it 'remains intact following #leave' do
+            leave_callback_called = false
+
+            run_reactor do
+              presence_client_one.enter(data: 'stored') do
+                expect(presence_client_one.data).to eql('stored')
+
+                presence_client_one.leave do |presence|
+                  leave_callback_called = true
+                end
+
+                presence_client_one.on(:left) do
+                  expect(presence_client_one.data).to eql('stored')
+
+                  EventMachine.next_tick do
+                    expect(leave_callback_called).to eql(true)
+                    stop_reactor
+                  end
+                end
               end
             end
           end
@@ -126,58 +211,279 @@ describe 'Ably::Realtime::Presence Messages' do
         end
       end
 
-      specify '#get returns the current member on the channel' do
+      it 'emits no data for the :left event' do
         run_reactor do
-          presence_client_one.enter do
-            members = presence_client_one.get
-            expect(members.count).to eq(1)
-
-            expect(client_one.client_id).to_not be_nil
-
-            this_member = members.first
-            expect(this_member.client_id).to eql(client_one.client_id)
-
+          channel_client_one.presence.enter(data: 'data') do
+            channel_client_one.presence.leave
+          end
+          channel_client_two.presence.subscribe(:enter) do |message|
+            expect(message.data).to eql('data')
+          end
+          channel_client_two.presence.subscribe(:leave) do |message|
+            expect(message.data).to be_nil
             stop_reactor
           end
         end
       end
 
-      specify '#get returns no members on the channel following an enter and leave' do
-        run_reactor do
-          presence_client_one.enter do
-            presence_client_one.leave do
-              expect(presence_client_one.get).to eq([])
-              stop_reactor
+      context 'on behalf of multiple client_ids' do
+        let(:client_count) { 5 }
+        let(:clients) { [] }
+        let(:data) { SecureRandom.hex }
+
+        context '#enter_client' do
+          it "has no affect on the client's presence state and only enters on behalf of the provided client_id" do
+            run_reactor do
+              client_count.times do |client_id|
+                presence_client_one.enter_client("client:#{client_id}") do
+                  presence_client_one.on(:entered) { raise 'Should not have entered' }
+
+                  EventMachine.add_timer(0.5) do
+                    expect(presence_client_one.state).to eq(:initialized)
+                    stop_reactor
+                  end if client_id == client_count - 1
+                end
+              end
+            end
+          end
+
+          it 'enters a channel' do
+            run_reactor do
+              client_count.times do |client_id|
+                presence_client_one.enter_client("client:#{client_id}", data)
+              end
+
+              presence_anonymous_client.subscribe(:enter) do |presence|
+                expect(presence.data).to eql(data)
+                clients << presence
+                if clients.count == 5
+                  expect(clients.map(&:client_id).uniq.count).to eql(5)
+                  stop_reactor
+                end
+              end
+            end
+          end
+        end
+
+        context '#update_client' do
+          it 'updates the data attribute for the member' do
+            run_reactor do
+              updated_callback_count = 0
+
+              client_count.times do |client_id|
+                presence_client_one.enter_client("client:#{client_id}") do
+                  presence_client_one.update_client("client:#{client_id}", data) do
+                    updated_callback_count += 1
+                  end
+                end
+              end
+
+              presence_anonymous_client.subscribe(:update) do |presence|
+                expect(presence.data).to eql(data)
+                clients << presence
+                if clients.count == 5
+                  EventMachine.add_timer(0.5) do
+                    expect(clients.map(&:client_id).uniq.count).to eql(5)
+                    expect(updated_callback_count).to eql(5)
+                    stop_reactor
+                  end
+                end
+              end
+            end
+          end
+
+          # TODO: Wait until this is fixed in the server
+          skip 'enters if not already entered' do
+            run_reactor do
+              updated_callback_count = 0
+
+              client_count.times do |client_id|
+                presence_client_one.update_client("client:#{client_id}", data) do
+                  updated_callback_count += 1
+                end
+              end
+
+              presence_anonymous_client.subscribe(:enter) do |presence|
+                expect(presence.data).to eql(data)
+                clients << presence
+                if clients.count == 5
+                  EventMachine.add_timer(0.5) do
+                    expect(clients.map(&:client_id).uniq.count).to eql(5)
+                    expect(updated_callback_count).to eql(5)
+                    stop_reactor
+                  end
+                end
+              end
+            end
+          end
+        end
+
+        context '#leave_client' do
+          it 'leaves a channel and the data attribute is always empty' do
+            run_reactor do
+              left_callback_count = 0
+
+              client_count.times do |client_id|
+                presence_client_one.enter_client("client:#{client_id}", data) do
+                  presence_client_one.leave_client("client:#{client_id}") do
+                    left_callback_count += 1
+                  end
+                end
+              end
+
+              presence_anonymous_client.subscribe(:leave) do |presence|
+                expect(presence.data).to be_nil
+                clients << presence
+                if clients.count == 5
+                  EventMachine.add_timer(0.5) do
+                    expect(clients.map(&:client_id).uniq.count).to eql(5)
+                    expect(left_callback_count).to eql(5)
+                    stop_reactor
+                  end
+                end
+              end
+            end
+          end
+
+          it 'succeeds if client_id is not entered' do
+            run_reactor do
+              left_callback_count = 0
+
+              client_count.times do |client_id|
+                presence_client_one.leave_client("client:#{client_id}") do
+                  left_callback_count += 1
+                end
+              end
+
+              presence_anonymous_client.subscribe(:leave) do |presence|
+                expect(presence.data).to be_nil
+                clients << presence
+                if clients.count == 5
+                  EventMachine.add_timer(1) do
+                    expect(clients.map(&:client_id).uniq.count).to eql(5)
+                    expect(left_callback_count).to eql(5)
+                    stop_reactor
+                  end
+                end
+              end
             end
           end
         end
       end
 
-      specify 'verify two clients appear in members from #get' do
-        run_reactor do
-          presence_client_one.enter(data: data_payload)
-          presence_client_two.enter
+      context '#get' do
+        it 'returns the current members on the channel' do
+          run_reactor do
+            presence_client_one.enter do
+              presence_client_one.get do |members|
+                expect(members.count).to eq(1)
 
-          entered_callback = Proc.new do
-            next unless presence_client_one.state == :entered && presence_client_two.state == :entered
+                expect(client_one.client_id).to_not be_nil
 
-            EventMachine.add_timer(0.25) do
-              expect(presence_client_one.get.count).to eq(presence_client_two.get.count)
+                this_member = members.first
+                expect(this_member.client_id).to eql(client_one.client_id)
 
-              members = presence_client_one.get
-              member_client_one = members.find { |presence| presence.client_id == client_one.client_id }
-              member_client_two = members.find { |presence| presence.client_id == client_two.client_id }
-
-              expect(member_client_one).to be_a(Ably::Models::PresenceMessage)
-              expect(member_client_one.data).to eql(data_payload)
-              expect(member_client_two).to be_a(Ably::Models::PresenceMessage)
-
-              stop_reactor
+                stop_reactor
+              end
             end
           end
+        end
 
-          presence_client_one.on :entered, &entered_callback
-          presence_client_two.on :entered, &entered_callback
+        it 'filters by member_id option if provided' do
+          run_reactor do
+            presence_client_one.enter do
+              presence_client_two.enter do
+                presence_client_one.get(member_id: client_one.connection.member_id) do |members|
+                  expect(members.count).to eq(1)
+                  expect(members.first.member_id).to eql(client_one.connection.member_id)
+
+                  presence_client_one.get(member_id: client_two.connection.member_id) do |members|
+                    expect(members.count).to eq(1)
+                    expect(members.first.member_id).to eql(client_two.connection.member_id)
+                    stop_reactor
+                  end
+                end
+              end
+            end
+          end
+        end
+
+        it 'filters by client_id option if provided' do
+          run_reactor do
+            presence_client_one.enter(client_id: 'one') do
+              presence_client_two.enter(client_id: 'two') do
+                presence_client_one.get(client_id: 'one') do |members|
+                  expect(members.count).to eq(1)
+                  expect(members.first.client_id).to eql('one')
+                  expect(members.first.member_id).to eql(client_one.connection.member_id)
+
+                  presence_client_one.get(client_id: 'two') do |members|
+                    expect(members.count).to eq(1)
+                    expect(members.first.client_id).to eql('two')
+                    expect(members.first.member_id).to eql(client_two.connection.member_id)
+                    stop_reactor
+                  end
+                end
+              end
+            end
+          end
+        end
+
+        it 'does not wait for SYNC to complete if :wait_for_sync option is false' do
+          run_reactor do
+            presence_client_one.enter(client_id: 'one') do
+              presence_client_two.get(wait_for_sync: false) do |members|
+                expect(members.count).to eql(0)
+                stop_reactor
+              end
+            end
+          end
+        end
+
+        context 'when a member enters and then leaves' do
+          it 'has no members' do
+            run_reactor do
+              presence_client_one.enter do
+                presence_client_one.leave do
+                  presence_client_one.get do |members|
+                    expect(members.count).to eq(0)
+                    stop_reactor
+                  end
+                end
+              end
+            end
+          end
+        end
+
+        it 'returns both members on both simultaneously connected clients' do
+          run_reactor do
+            presence_client_one.enter(data: data_payload)
+            presence_client_two.enter
+
+            entered_callback = Proc.new do
+              next unless presence_client_one.state == :entered && presence_client_two.state == :entered
+
+              EventMachine.add_timer(0.25) do
+                presence_client_one.get do |client_one_members|
+                  presence_client_two.get do |client_two_members|
+                    expect(client_one_members.count).to eq(client_two_members.count)
+
+                    member_client_one = client_one_members.find { |presence| presence.client_id == client_one.client_id }
+                    member_client_two = client_one_members.find { |presence| presence.client_id == client_two.client_id }
+
+                    expect(member_client_one).to be_a(Ably::Models::PresenceMessage)
+                    expect(member_client_one.data).to eql(data_payload)
+                    expect(member_client_two).to be_a(Ably::Models::PresenceMessage)
+
+                    stop_reactor
+                  end
+                end
+              end
+            end
+
+            presence_client_one.on :entered, &entered_callback
+            presence_client_two.on :entered, &entered_callback
+          end
         end
       end
 
@@ -185,22 +491,22 @@ describe 'Ably::Realtime::Presence Messages' do
         run_reactor do
           client_two_subscribe_messages = []
 
-          subscribe_client_one_leaving_callback = Proc.new do |presence_message|
-            expect(presence_message.client_id).to eql(client_one.client_id)
-            expect(presence_message.data).to eql(data_payload)
-            expect(presence_message.action).to eq(:leave)
+          subscribe_client_one_leaving_callback = Proc.new do |presence_object|
+            expect(presence_object.client_id).to eql(client_one.client_id)
+            expect(presence_object.data).to be_nil
+            expect(presence_object.action).to eq(:leave)
 
             stop_reactor
           end
 
-          subscribe_self_callback = Proc.new do |presence_message|
-            if presence_message.client_id == client_two.client_id
-              expect(presence_message.action).to eq(:enter)
+          subscribe_self_callback = Proc.new do |presence_object|
+            if presence_object.client_id == client_two.client_id
+              expect(presence_object.action).to eq(:enter)
 
               presence_client_two.unsubscribe &subscribe_self_callback
               presence_client_two.subscribe &subscribe_client_one_leaving_callback
 
-              presence_client_one.leave data: data_payload
+              presence_client_one.leave
             end
           end
 
@@ -211,28 +517,30 @@ describe 'Ably::Realtime::Presence Messages' do
         end
       end
 
-      specify 'REST #get returns current members' do
-        run_reactor do
-          presence_client_one.enter(data: data_payload) do
-            members = channel_rest_client_one.presence.get
-            this_member = members.first
+      context 'REST #get' do
+        it 'returns current members' do
+          run_reactor do
+            presence_client_one.enter(data: data_payload) do
+              members = channel_rest_client_one.presence.get
+              this_member = members.first
 
-            expect(this_member).to be_a(Ably::Models::PresenceMessage)
-            expect(this_member.client_id).to eql(client_one.client_id)
-            expect(this_member.data).to eql(data_payload)
+              expect(this_member).to be_a(Ably::Models::PresenceMessage)
+              expect(this_member.client_id).to eql(client_one.client_id)
+              expect(this_member.data).to eql(data_payload)
 
-            stop_reactor
+              stop_reactor
+            end
           end
         end
-      end
 
-      specify 'REST #get returns no members once left' do
-        run_reactor do
-          presence_client_one.enter(data: data_payload) do
-            presence_client_one.leave do
-              members = channel_rest_client_one.presence.get
-              expect(members.count).to eql(0)
-              stop_reactor
+        it 'returns no members once left' do
+          run_reactor do
+            presence_client_one.enter(data: data_payload) do
+              presence_client_one.leave do
+                members = channel_rest_client_one.presence.get
+                expect(members.count).to eql(0)
+                stop_reactor
+              end
             end
           end
         end
@@ -335,17 +643,17 @@ describe 'Ably::Realtime::Presence Messages' do
           end
         end
 
-        it '#subscribe emits decrypted leave events' do
+        it '#subscribe emits nil data for leave events' do
           run_reactor do
             encrypted_channel.attach do
               encrypted_channel.presence.enter(data: 'to be updated') do
-                encrypted_channel.presence.leave data: data
+                encrypted_channel.presence.leave
               end
             end
 
             encrypted_channel.presence.subscribe(:leave) do |presence_message|
               expect(presence_message.encoding).to be_nil
-              expect(presence_message.data).to eql(data)
+              expect(presence_message.data).to be_nil
               stop_reactor
             end
           end
@@ -355,10 +663,12 @@ describe 'Ably::Realtime::Presence Messages' do
           run_reactor do
             encrypted_channel.attach do
               encrypted_channel.presence.enter(data: data) do
-                member = encrypted_channel.presence.get.first
-                expect(member.encoding).to be_nil
-                expect(member.data).to eql(data)
-                stop_reactor
+                encrypted_channel.presence.get do |members|
+                  member = members.first
+                  expect(member.encoding).to be_nil
+                  expect(member.data).to eql(data)
+                  stop_reactor
+                end
               end
             end
           end
@@ -387,10 +697,12 @@ describe 'Ably::Realtime::Presence Messages' do
               incompatible_encrypted_channel.attach do
                 encrypted_channel.attach do
                   encrypted_channel.presence.enter(data: data) do
-                    member = incompatible_encrypted_channel.presence.get.first
-                    expect(member.encoding).to match(/cipher\+aes-256-cbc/)
-                    expect(member.data).to_not eql(data)
-                    stop_reactor
+                    incompatible_encrypted_channel.presence.get do |members|
+                      member = members.first
+                      expect(member.encoding).to match(/cipher\+aes-256-cbc/)
+                      expect(member.data).to_not eql(data)
+                      stop_reactor
+                    end
                   end
                 end
               end
@@ -427,12 +739,14 @@ describe 'Ably::Realtime::Presence Messages' do
         end
       end
 
-      specify 'expect :left event with no client data to retain original data in Leave event' do
+      specify 'expect :left event with no client data to use nil for data in leave event' do
         run_reactor do
           presence_client_one.subscribe(:leave) do |message|
-            expect(presence_client_one.get.count).to eq(0)
-            expect(message.data).to eq(data_payload)
-            stop_reactor
+            presence_client_one.get do |members|
+              expect(members.count).to eq(0)
+              expect(message.data).to be_nil
+              stop_reactor
+            end
           end
           presence_client_one.enter(data: data_payload) do
             presence_client_one.leave
@@ -475,7 +789,7 @@ describe 'Ably::Realtime::Presence Messages' do
         end
       end
 
-      skip 'ensure member_id is unique an updated on ENTER'
+      skip 'ensure member_id is unique and updated on ENTER'
       skip 'stop a call to get when the channel has not been entered'
       skip 'stop a call to get when the channel has been entered but the list is not up to date'
     end

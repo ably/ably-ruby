@@ -11,6 +11,8 @@ describe Ably::Realtime::Connection do
 
   before do
     expect(EventMachine).to receive(:next_tick)  # non_blocking_loop_while for delivery of messages async
+    subject.__incoming_protocol_msgbus__.off
+    subject.__outgoing_protocol_msgbus__.off
   end
 
   describe 'callbacks' do

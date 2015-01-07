@@ -22,16 +22,27 @@ describe Ably::Rest::Presence do
         let(:channel) { client.channel('persisted:presence_fixtures') }
         let(:presence) { channel.presence.get }
 
-        it 'returns current members on the channel' do
+        it 'returns current members on the channel with :present action' do
           expect(presence.size).to eql(4)
 
           fixtures.each do |fixture|
             presence_message = presence.find { |client| client.client_id == fixture[:client_id] }
             expect(presence_message.data).to eq(fixture[:data])
+            expect(presence_message.action).to eq(:present)
           end
         end
 
-        skip 'with options'
+        context 'with limit option' do
+          let(:page_size) { 2 }
+          let(:presence)  { channel.presence.get(limit: page_size) }
+
+          it 'returns a paged response' do
+            expect(presence.size).to eql(2)
+            next_page = presence.next_page
+            expect(next_page.size).to eql(2)
+            expect(next_page).to be_last_page
+          end
+        end
       end
 
       describe 'presence #history' do
@@ -98,7 +109,7 @@ describe Ably::Rest::Presence do
         end
 
         [:start, :end].each do |option|
-          describe ":{option}", :webmock do
+          describe ":#{option}", :webmock do
             let!(:history_stub) {
               stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence/history?#{option}=#{milliseconds}").
                 to_return(:body => '{}', :headers => { 'Content-Type' => 'application/json' })

@@ -134,6 +134,40 @@ describe Ably::Models::ProtocolMessage do
       end
     end
 
+    context '#flags' do
+      context 'when nil' do
+        let(:protocol_message) { new_protocol_message({}) }
+
+        it 'is zero' do
+          expect(protocol_message.flags).to eql(0)
+        end
+      end
+
+      context 'when numeric' do
+        let(:protocol_message) { new_protocol_message(flags: '25') }
+
+        it 'is an Integer' do
+          expect(protocol_message.flags).to eql(25)
+        end
+      end
+
+      context 'when has_presence' do
+        let(:protocol_message) { new_protocol_message(flags: 1) }
+
+        it '#has_presence_flag? is true' do
+          expect(protocol_message.has_presence_flag?).to be_truthy
+        end
+      end
+
+      context 'when has another future flag' do
+        let(:protocol_message) { new_protocol_message(flags: 2) }
+
+        it '#has_presence_flag? is false' do
+          expect(protocol_message.has_presence_flag?).to be_falsey
+        end
+      end
+    end
+
     context '#has_connection_serial?' do
       context 'without connection_serial' do
         let(:protocol_message) { new_protocol_message({}) }

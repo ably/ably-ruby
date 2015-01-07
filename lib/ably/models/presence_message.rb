@@ -25,6 +25,8 @@ module Ably::Models
   #   @return [String] The client_id associated with this presence state
   # @!attribute [r] member_id
   #   @return [String] A unique member identifier, disambiguating situations where a given client_id is present on multiple connections simultaneously
+  # @!attribute [r] member_key
+  #   @return [String] A unique member and client_id identifier ensuring multiple connected clients with the same client_id are unique
   # @!attribute [r] data
   #   @return [Object] Optional client-defined status or other event payload associated with this state
   # @!attribute [r] encoding
@@ -43,6 +45,8 @@ module Ably::Models
     extend Ably::Modules::Enum
 
     ACTION = ruby_enum('ACTION',
+      :absent,
+      :present,
       :enter,
       :leave,
       :update
@@ -72,6 +76,10 @@ module Ably::Models
 
     def id
       hash[:id] || "#{protocol_message.id!}:#{protocol_message_index}"
+    end
+
+    def member_key
+      "#{member_id}:#{client_id}"
     end
 
     def timestamp

@@ -72,20 +72,29 @@ module Ably::Realtime
 
           when ACTION.Attach
           when ACTION.Attached
-            get_channel(protocol_message.channel).transition_state_machine :attached
+            get_channel(protocol_message.channel).transition_state_machine :attached, protocol_message
 
           when ACTION.Detach
           when ACTION.Detached
             get_channel(protocol_message.channel).transition_state_machine :detached
 
+          when ACTION.Sync
+            presence = get_channel(protocol_message.channel).presence
+            protocol_message.presence.each do |presence_message|
+              presence.__incoming_msgbus__.publish :sync, presence_message
+            end
+            presence.update_sync_serial protocol_message.channel_serial
+
           when ACTION.Presence
-            protocol_message.presence.each do |presence|
-              get_channel(protocol_message.channel).presence.__incoming_msgbus__.publish :presence, presence
+            presence = get_channel(protocol_message.channel).presence
+            protocol_message.presence.each do |presence_message|
+              presence.__incoming_msgbus__.publish :presence, presence_message
             end
 
           when ACTION.Message
+            channel = get_channel(protocol_message.channel)
             protocol_message.messages.each do |message|
-              get_channel(protocol_message.channel).__incoming_msgbus__.publish :message, message
+              channel.__incoming_msgbus__.publish :message, message
             end
 
           else
