@@ -9,7 +9,9 @@ module Ably::Modules
   # @api private
   module StateMachine
     def self.included(klass)
-      klass.include Statesman::Machine
+      klass.class_eval do
+        include Statesman::Machine
+      end
       klass.extend Ably::Modules::StatesmanMonkeyPatch
     end
 
