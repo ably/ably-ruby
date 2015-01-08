@@ -54,30 +54,33 @@ module Ably::Realtime
     #                                     multiple client_ids. In order to be able to enter the channel with this method, the client
     #                                     library must have been instanced either with a key, or with a token bound to the wildcard clientId.
     #
-    # @yield [Ably::Realtime::Presence] On success, will call the block with the {Ably::Realtime::Presence}
+    # @yield [Ably::Realtime::Presence] On success, will call the block with this {Ably::Realtime::Presence} object
+    # @return [EventMachine::Deferrable] Deferrable that supports both success (callback) and failure (errback) callbacks
     #
-    # @return [Ably::Models::PresenceMessage] Deferrable {Ably::Models::PresenceMessage} that supports both success (callback) and failure (errback) callbacks
-    #
-    def enter(options = {}, &blk)
+    def enter(options = {}, &success_block)
       @client_id = options.fetch(:client_id, client_id)
       @data      = options.fetch(:data, data)
+      deferrable = EventMachine::DefaultDeferrable.new
 
       raise Ably::Exceptions::Standard.new('Unable to enter presence channel without a client_id', 400, 91000) unless client_id
+      return deferrable_succeed(deferrable, &success_block) if state == STATE.Entered
 
-      if state == STATE.Entered
-        blk.call self if block_given?
-        return
-      end
-
-      ensure_channel_attached do
-        once(STATE.Entered) { blk.call self } if block_given?
-
-        if !entering?
-          change_state STATE.Entering
-          send_presence_protocol_message(Ably::Models::PresenceMessage::ACTION.Enter, client_id, data).tap do |deferrable|
-            deferrable.errback  { |message, error| change_state STATE.Failed, error }
-            deferrable.callback { |message| change_state STATE.Entered, message }
+      ensure_channel_attached(deferrable) do
+        if entering?
+          once_or_if(STATE.Entered, else: proc { |args| deferrable_fail deferrable, *args }) do
+            deferrable_succeed deferrable, &success_block
           end
+        else
+          change_state STATE.Entering
+          send_protocol_message_and_transition_state_to(
+            Ably::Models::PresenceMessage::ACTION.Enter,
+            deferrable:   deferrable,
+            target_state: STATE.Entered,
+            client_id:    client_id,
+            data:         data,
+            failed_state: STATE.Failed,
+            &success_block
+          )
         end
       end
     end
@@ -92,18 +95,13 @@ module Ably::Realtime
     # @param [String] client_id  id of the client
     # @param [String] data       optional data (eg a status message) for this member
     #
-    # @yield [Ably::Realtime::Presence] On success, will call the block with the {Ably::Realtime::Presence}
+    # @yield [Ably::Realtime::Presence] On success, will call the block with this {Ably::Realtime::Presence} object
+    # @return [EventMachine::Deferrable] Deferrable that supports both success (callback) and failure (errback) callbacks
     #
-    # @return [Ably::Models::PresenceMessage] Deferrable {Ably::Models::PresenceMessage} that supports both success (callback) and failure (errback) callbacks
-    #
-    def enter_client(client_id, data = nil, &blk)
+    def enter_client(client_id, data = nil, &success_block)
       raise Ably::Exceptions::Standard.new('Unable to enter presence channel without a client_id', 400, 91000) unless client_id
 
-      ensure_channel_attached do
-        send_presence_protocol_message(Ably::Models::PresenceMessage::ACTION.Enter, client_id, data).tap do |deferrable|
-          deferrable.callback { |message| blk.call self } if block_given?
-        end
-      end
+      send_presence_action_for_client(Ably::Models::PresenceMessage::ACTION.Enter, client_id, data, &success_block)
     end
 
     # Leave this client from this channel. This client will be removed from the presence
@@ -112,23 +110,28 @@ module Ably::Realtime
     # @yield (see Presence#enter)
     # @return (see Presence#enter)
     #
-    def leave(&blk)
+    def leave(&success_block)
+      deferrable = EventMachine::DefaultDeferrable.new
+
       raise Ably::Exceptions::Standard.new('Unable to leave presence channel that is not entered', 400, 91002) unless able_to_leave?
+      return deferrable_succeed(deferrable, &success_block) if state == STATE.Left
 
-      if state == STATE.Left
-        blk.call self if block_given?
-        return
-      end
-
-      ensure_channel_attached do
-        once(STATE.Left) { blk.call self } if block_given?
-
-        if !leaving?
-          change_state STATE.Leaving
-          send_presence_protocol_message(Ably::Models::PresenceMessage::ACTION.Leave, client_id, nil).tap do |deferrable|
-            deferrable.errback  { |message, error| change_state STATE.Failed, error }
-            deferrable.callback { |message| change_state STATE.Left }
+      ensure_channel_attached(deferrable) do
+        if leaving?
+          once_or_if(STATE.Left, else: proc { |error|deferrable_fail deferrable, *args }) do
+            deferrable_succeed deferrable, &success_block
           end
+        else
+          change_state STATE.Leaving
+          send_protocol_message_and_transition_state_to(
+            Ably::Models::PresenceMessage::ACTION.Leave,
+            deferrable:   deferrable,
+            target_state: STATE.Left,
+            client_id:    client_id,
+            data:         data,
+            failed_state: STATE.Failed,
+            &success_block
+          )
         end
       end
     end
@@ -138,18 +141,13 @@ module Ably::Realtime
     #
     # @param [String] client_id  id of the client
     #
-    # @yield [Ably::Realtime::Presence] On success, will call the block with the {Ably::Realtime::Presence}
+    # @yield (see Presence#enter_client)
+    # @return (see Presence#enter_client)
     #
-    # @return [Ably::Models::PresenceMessage] Deferrable {Ably::Models::PresenceMessage} that supports both success (callback) and failure (errback) callbacks
-    #
-    def leave_client(client_id, &blk)
+    def leave_client(client_id, &success_block)
       raise Ably::Exceptions::Standard.new('Unable to leave presence channel without a client_id', 400, 91000) unless client_id
 
-      ensure_channel_attached do
-        send_presence_protocol_message(Ably::Models::PresenceMessage::ACTION.Leave, client_id, data).tap do |deferrable|
-          deferrable.callback { |message| blk.call self } if block_given?
-        end
-      end
+      send_presence_action_for_client(Ably::Models::PresenceMessage::ACTION.Leave, client_id, data, &success_block)
     end
 
     # Update the presence data for this client. If the client is not already a member of
@@ -162,16 +160,18 @@ module Ably::Realtime
     # @yield (see Presence#enter)
     # @return (see Presence#enter)
     #
-    def update(options = {}, &blk)
-      @data = options.fetch(:data, data)
+    def update(options = {}, &success_block)
+      @data      = options.fetch(:data, data)
+      deferrable = EventMachine::DefaultDeferrable.new
 
-      ensure_channel_attached do
-        send_presence_protocol_message(Ably::Models::PresenceMessage::ACTION.Update, client_id, data).tap do |deferrable|
-          deferrable.callback do |message|
-            change_state STATE.Entered, message unless entered?
-            blk.call self if block_given?
-          end
-        end
+      ensure_channel_attached(deferrable) do
+        send_protocol_message_and_transition_state_to(
+          Ably::Models::PresenceMessage::ACTION.Update,
+          deferrable:   deferrable,
+          client_id:    client_id,
+          data:         data,
+          &success_block
+        )
       end
     end
 
@@ -184,18 +184,13 @@ module Ably::Realtime
     # @param [String] client_id  id of the client
     # @param [String] data       optional data (eg a status message) for this member
     #
-    # @yield [Ably::Realtime::Presence] On success, will call the block with the {Ably::Realtime::Presence}
+    # @yield (see Presence#enter_client)
+    # @return (see Presence#enter_client)
     #
-    # @return [Ably::Models::PresenceMessage] Deferrable {Ably::Models::PresenceMessage} that supports both success (callback) and failure (errback) callbacks
-    #
-    def update_client(client_id, data = nil, &blk)
+    def update_client(client_id, data = nil, &success_block)
       raise Ably::Exceptions::Standard.new('Unable to enter presence channel without a client_id', 400, 91000) unless client_id
 
-      ensure_channel_attached do
-        send_presence_protocol_message(Ably::Models::PresenceMessage::ACTION.Update, client_id, data).tap do |deferrable|
-          deferrable.callback { |message| blk.call self } if block_given?
-        end
-      end
+      send_presence_action_for_client(Ably::Models::PresenceMessage::ACTION.Update, client_id, data, &success_block)
     end
 
     # Get the presence state for this Channel.
@@ -211,8 +206,9 @@ module Ably::Realtime
     #
     def get(options = {}, &success_block)
       wait_for_sync = options.fetch(:wait_for_sync, true)
+      deferrable    = EventMachine::DefaultDeferrable.new
 
-      ensure_channel_attached do
+      ensure_channel_attached(deferrable) do
         result_block = proc do
           members.map { |key, presence| presence }.tap do |filtered_members|
             filtered_members.keep_if { |presence| presence.member_id == options[:member_id] } if options[:member_id]
@@ -220,21 +216,19 @@ module Ably::Realtime
           end
         end
 
-        EventMachine::DefaultDeferrable.new.tap do |deferrable|
-          if !wait_for_sync || sync_complete?
+        if !wait_for_sync || sync_complete?
+          result = result_block.call
+          success_block.call result if block_given?
+          deferrable.succeed result
+        else
+          sync_pubsub.once(:done) do
             result = result_block.call
             success_block.call result if block_given?
             deferrable.succeed result
-          else
-            sync_pubsub.once(:done) do
-              result = result_block.call
-              success_block.call result if block_given?
-              deferrable.succeed result
-            end
+          end
 
-            sync_pubsub.once(:failed) do |error|
-              deferrable.fail error
-            end
+          sync_pubsub.once(:failed) do |error|
+            deferrable.fail error
           end
         end
       end
@@ -248,9 +242,9 @@ module Ably::Realtime
     #
     # @return [void]
     #
-    def subscribe(action = :all, &blk)
+    def subscribe(action = :all, &callback)
       ensure_channel_attached do
-        subscriptions[message_action_key(action)] << blk
+        subscriptions[message_action_key(action)] << callback
       end
     end
 
@@ -261,14 +255,14 @@ module Ably::Realtime
     #
     # @return [void]
     #
-    def unsubscribe(action = :all, &blk)
+    def unsubscribe(action = :all, &callback)
       if message_action_key(action) == :all
         subscriptions.keys
       else
         Array(message_action_key(action))
       end.each do |key|
         subscriptions[key].delete_if do |block|
-          !block_given? || blk == block
+          !block_given? || callback == block
         end
       end
     end
@@ -314,14 +308,10 @@ module Ably::Realtime
         sync_pubsub.trigger :done
       end
 
-      fail_block = proc do |error|
+      channel.once_or_if [:detached, :failed] do |error|
         sync_completed
         sync_pubsub.trigger :failed, error
-        channel.off &fail_block
       end
-
-      channel.once_or_if :detached, &fail_block
-      channel.once_or_if :failed, &fail_block
     end
 
     # The server has indicated that no members are present on this channel and no SYNC is expected,
@@ -476,11 +466,55 @@ module Ably::Realtime
       subscriptions[presence_message.action].each { |cb| cb.call(presence_message) }
     end
 
-    def ensure_channel_attached
+    def ensure_channel_attached(deferrable = nil)
       if channel.attached?
         yield
       else
         attach_channel_then { yield }
+      end
+      deferrable
+    end
+
+    def send_protocol_message_and_transition_state_to(action, options = {}, &success_block)
+      deferrable   = options.fetch(:deferrable) { raise ArgumentError, 'option :deferrable is required' }
+      client_id    = options.fetch(:client_id) { raise ArgumentError, 'option :client_id is required' }
+      target_state = options.fetch(:target_state, nil)
+      failed_state = options.fetch(:failed_state, nil)
+      data         = options.fetch(:data, nil)
+
+      send_presence_protocol_message(action, client_id, data).tap do |protocol_message|
+        protocol_message.callback do |message|
+          change_state target_state, message if target_state
+          deferrable_succeed deferrable, &success_block
+        end
+
+        protocol_message.errback do |message, error|
+          change_state failed_state, error if failed_state
+          deferrable_fail deferrable, error
+        end
+      end
+    end
+
+    def deferrable_succeed(deferrable, *args, &block)
+      block.call self, *args if block_given?
+      EventMachine.next_tick { deferrable.succeed self, *args } # allow callback to be added to the returned Deferrable
+      deferrable
+    end
+
+    def deferrable_fail(deferrable, *args, &block)
+      block.call self, *args if block_given?
+      EventMachine.next_tick { deferrable.fail self, *args } # allow errback to be added to the returned Deferrable
+      deferrable
+    end
+
+    def send_presence_action_for_client(action, client_id, data, &success_block)
+      deferrable = EventMachine::DefaultDeferrable.new
+
+      ensure_channel_attached(deferrable) do
+        send_presence_protocol_message(action, client_id, data).tap do |protocol_message|
+          protocol_message.callback { |message| deferrable_succeed deferrable, &success_block }
+          protocol_message.errback  { |message| deferrable_fail    deferrable }
+        end
       end
     end
 

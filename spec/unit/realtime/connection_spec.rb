@@ -1,6 +1,5 @@
 require 'spec_helper'
 require 'shared/protocol_msgbus_behaviour'
-require 'support/event_machine_helper'
 
 describe Ably::Realtime::Connection do
   let(:client) { instance_double('Ably::Realtime::Client', logger: double('logger').as_null_object) }

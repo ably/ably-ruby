@@ -37,13 +37,6 @@ RSpec.configure do |config|
     WebMock.enable!
   end
 
-  if defined?(EventMachine)
-    config.before(:example) do
-      # Ensure EventMachine shutdown hooks are deregistered for every test
-      EventMachine.instance_variable_set '@tails', []
-    end
-  end
-
   # PrivateApiFormatter is an RSpec Formatter that prefixes all tests that are part of a Private API with '(private)'
   #
   # Private API methods are tested for this library, but every implementation of the Ably client library
