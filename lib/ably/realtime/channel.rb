@@ -112,11 +112,11 @@ module Ably
       #     puts "#{message.name} was not received, error #{error.message}"
       #   end
       #
-      def publish(name, data, &callback)
+      def publish(name, data, &success_block)
         ensure_utf_8 :name, name
 
         create_message(name, data).tap do |message|
-          message.callback(&callback) if block_given?
+          message.callback(&success_block) if block_given?
           queue_message message
         end
       end
@@ -128,9 +128,9 @@ module Ably
       #
       # @return [void]
       #
-      def subscribe(name = :all, &blk)
+      def subscribe(name = :all, &callback)
         attach unless attached? || attaching?
-        subscriptions[message_name_key(name)] << blk
+        subscriptions[message_name_key(name)] << callback
       end
 
       # Unsubscribe the matching block for messages matching providing event name, or all messages if event name not provided.
@@ -140,14 +140,14 @@ module Ably
       #
       # @return [void]
       #
-      def unsubscribe(name = :all, &blk)
+      def unsubscribe(name = :all, &callback)
         if message_name_key(name) == :all
           subscriptions.keys
         else
           Array(message_name_key(name))
         end.each do |key|
           subscriptions[key].delete_if do |block|
-            !block_given? || blk == block
+            !block_given? || callback == block
           end
         end
       end
@@ -157,11 +157,11 @@ module Ably
       # to need to call attach explicitly.
       #
       # @yield [Ably::Realtime::Channel] Block is called as soon as this channel is in the Attached state
-      # @return [void]
+      # @return [EventMachine::Deferrable] Deferrable that supports both success (callback) and failure (errback) callback
       #
-      def attach(&block)
+      def attach(&success_block)
         transition_state_machine :attaching if can_transition_to?(:attaching)
-        once_or_if(STATE.Attached) { block.call self } if block_given?
+        deferrable_and_callback_for(STATE.Attached, &success_block)
       end
 
       # Detach this channel, and call the block if provided when in a Detached or Failed state
@@ -169,10 +169,10 @@ module Ably
       # @yield [Ably::Realtime::Channel] Block is called as soon as this channel is in the Detached or Failed state
       # @return [void]
       #
-      def detach(&block)
+      def detach(&success_block)
         raise exception_for_state_change_to(:detaching) if failed? || initialized?
         transition_state_machine :detaching if can_transition_to?(:detaching)
-        once_or_if(STATE.Detached) { block.call self } if block_given?
+        deferrable_and_callback_for(STATE.Detached, &success_block)
       end
 
       # Presence object for this Channel.  This controls this client's
@@ -274,6 +274,15 @@ module Ably
 
       def rest_channel
         client.rest_client.channel(name)
+      end
+
+      def deferrable_and_callback_for(target_state, &block)
+        EventMachine::DefaultDeferrable.new.tap do |deferrable|
+          once_or_if(target_state, else: proc { |*args| deferrable.fail self, *args }) do
+            block.call self if block_given?
+            deferrable.succeed self
+          end
+        end
       end
 
       # Used by {Ably::Modules::StateEmitter} to debug state changes

@@ -255,7 +255,7 @@ describe Ably::Realtime::Connection do
       end
 
       context 'connection recovery' do
-        let(:channel_name) { SecureRandom.hex }
+        let(:channel_name) { random_str }
         let(:channel) { client.channel(channel_name) }
         let(:publishing_client) do
           Ably::Realtime::Client.new(client_options)

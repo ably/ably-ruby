@@ -54,7 +54,7 @@ describe 'Ably::Realtime::Channel Message' do
       end
 
       context 'with a publisher having a client_id' do
-        let(:client_id) { SecureRandom.hex }
+        let(:client_id) { random_str }
         let(:client_options)  { default_options.merge(client_id: client_id) }
 
         specify 'the message is published with the client_id' do
