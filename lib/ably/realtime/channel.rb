@@ -161,7 +161,7 @@ module Ably
       #
       def attach(&success_block)
         transition_state_machine :attaching if can_transition_to?(:attaching)
-        deferrable_and_callback_for(STATE.Attached, &success_block)
+        deferrable_for_state_change_to(STATE.Attached, &success_block)
       end
 
       # Detach this channel, and call the block if provided when in a Detached or Failed state
@@ -172,7 +172,7 @@ module Ably
       def detach(&success_block)
         raise exception_for_state_change_to(:detaching) if failed? || initialized?
         transition_state_machine :detaching if can_transition_to?(:detaching)
-        deferrable_and_callback_for(STATE.Detached, &success_block)
+        deferrable_for_state_change_to(STATE.Detached, &success_block)
       end
 
       # Presence object for this Channel.  This controls this client's
@@ -274,15 +274,6 @@ module Ably
 
       def rest_channel
         client.rest_client.channel(name)
-      end
-
-      def deferrable_and_callback_for(target_state, &block)
-        EventMachine::DefaultDeferrable.new.tap do |deferrable|
-          once_or_if(target_state, else: proc { |*args| deferrable.fail self, *args }) do
-            block.call self if block_given?
-            deferrable.succeed self
-          end
-        end
       end
 
       # Used by {Ably::Modules::StateEmitter} to debug state changes

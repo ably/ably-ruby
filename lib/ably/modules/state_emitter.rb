@@ -118,6 +118,20 @@ module Ably::Modules
     end
 
     private
+
+    # Returns an {EventMachine::Deferrable} and once the target state is reached, the
+    # success_block if provided and {EventMachine::Deferrable#callback} is called.
+    # If the state changes to any other state, the {EventMachine::Deferrable#errback} is called.
+    #
+    def deferrable_for_state_change_to(target_state, &success_block)
+      EventMachine::DefaultDeferrable.new.tap do |deferrable|
+        once_or_if(target_state, else: proc { |*args| deferrable.fail self, *args }) do
+          success_block.call self if block_given?
+          deferrable.succeed self
+        end
+      end
+    end
+
     def self.included(klass)
       klass.configure_event_emitter coerce_into: Proc.new { |event|
         if event == :error
