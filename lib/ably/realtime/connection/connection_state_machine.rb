@@ -49,7 +49,7 @@ module Ably::Realtime
       end
 
       after_transition(to: [:failed]) do |connection, current_transition|
-        connection.logger.fatal "ConnectionStateMachine: Connection failed #{current_transition.metadata}"
+        connection.logger.fatal "ConnectionStateMachine: Connection failed - #{current_transition.metadata}"
         connection.manager.destroy_transport
       end
 

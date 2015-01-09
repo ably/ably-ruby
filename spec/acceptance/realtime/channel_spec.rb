@@ -85,6 +85,19 @@ describe Ably::Realtime::Channel, :event_machine do
           end
         end
 
+        it 'returns a Deferrable' do
+          expect(channel.attach).to be_a(EventMachine::Deferrable)
+          stop_reactor
+        end
+
+        it 'calls the Deferrable callback on success' do
+          channel.attach.callback do |channel|
+            expect(channel).to be_a(Ably::Realtime::Channel)
+            expect(channel.state).to eq(:attached)
+            stop_reactor
+          end
+        end
+
         context 'when state is :failed' do
           let(:client_options) { default_options.merge(log_level: :fatal) }
 
@@ -215,6 +228,21 @@ describe Ably::Realtime::Channel, :event_machine do
 
           channel.attach do
             channel.detach
+          end
+        end
+
+        it 'returns a Deferrable' do
+          expect(channel.attach).to be_a(EventMachine::Deferrable)
+          stop_reactor
+        end
+
+        it 'calls the Deferrable callback on success' do
+          channel.attach do
+            channel.detach.callback do |channel|
+              expect(channel).to be_a(Ably::Realtime::Channel)
+              expect(channel.state).to eq(:detached)
+              stop_reactor
+            end
           end
         end
 

@@ -57,7 +57,7 @@ module Ably::Realtime
             connection.transition_state_machine :connected
 
           when ACTION.Disconnect, ACTION.Disconnected
-            connection.transition_state_machine :disconnected
+            connection.transition_state_machine :disconnected, protocol_message.error
 
           when ACTION.Close
           when ACTION.Closed
