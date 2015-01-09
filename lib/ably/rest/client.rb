@@ -69,7 +69,7 @@ module Ably
       #
       # @param [Hash,String] options an options Hash used to configure the client and the authentication, or String with an API key
       # @option options (see Ably::Auth#authorise)
-      # @option options [Boolean]                 :tls                 TLS is used by default, providing a value of false disbles TLS.  Please note Basic Auth is disallowed without TLS as secrets cannot be transmitted over unsecured connections.
+      # @option options [Boolean]                 :tls                 TLS is used by default, providing a value of false disables TLS.  Please note Basic Auth is disallowed without TLS as secrets cannot be transmitted over unsecured connections.
       # @option options [String]                  :api_key             API key comprising the key ID and key secret in a single string
       # @option options [String]                  :environment         Specify 'sandbox' when testing the client library against an alternate Ably environment
       # @option options [Symbol]                  :protocol            Protocol used to communicate with Ably, :json and :msgpack currently supported. Defaults to :msgpack
@@ -90,7 +90,7 @@ module Ably
       #    # create a new client and configure a client ID used for presence
       #    client = Ably::Rest::Client.new(api_key: 'key.id:secret', client_id: 'john')
       #
-      def initialize(options, &auth_block)
+      def initialize(options, &token_request_block)
         raise ArgumentError, 'Options Hash is expected' if options.nil?
 
         options = options.clone
@@ -122,7 +122,7 @@ module Ably
         raise ArgumentError, 'Protocol is invalid.  Must be either :msgpack or :json' unless [:msgpack, :json].include?(@protocol)
 
         @options  = options.freeze
-        @auth     = Auth.new(self, options, &auth_block)
+        @auth     = Auth.new(self, options, &token_request_block)
         @channels = Ably::Rest::Channels.new(self)
         @encoders = []
 

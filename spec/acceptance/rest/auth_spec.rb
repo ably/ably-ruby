@@ -223,7 +223,7 @@ describe Ably::Auth do
           end
         end
 
-        context 'with auth_block' do
+        context 'with token_request_block' do
           let(:client_id) { random_str }
           let(:options) { { client_id: client_id } }
           let!(:token) do
