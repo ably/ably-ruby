@@ -28,7 +28,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'bundler', '~> 1.3'
   spec.add_development_dependency 'rake'
   spec.add_development_dependency 'redcarpet'
-  spec.add_development_dependency 'rspec', '~> 3.0'
+  spec.add_development_dependency 'rspec', '~> 3.1.0' # version lock, see event_machine_helper.rb#patch_example_block_with_surrounding_eventmachine_reactor
   spec.add_development_dependency 'yard'
   spec.add_development_dependency 'webmock'
 end

@@ -92,18 +92,49 @@ RSpec.configure do |config|
     end
   end
 
-  config.around(:example) do |example|
-    next example.call unless example.metadata[:event_machine]
+  # Running a reactor block and then calling the example block with #call
+  # does not work as expected as the example completes immediately and the block
+  # calls after hooks before it returns the EventMachine loop.
+  #
+  # As there is no public API to inject around blocks correctly without calling the after blocks,
+  # we have to monkey patch the run_after_example method at https://github.com/rspec/rspec-core/blob/master/lib/rspec/core/example.rb#L376
+  # so that it does not run until we explicitly call it once the EventMachine reactor loop is finished.
+  #
+  def patch_example_block_with_surrounding_eventmachine_reactor(example)
+    example.example.class.class_eval do
+      alias_method :run_after_example_original, :run_after_example
+      public :run_after_example_original
 
+      # prevent after hooks being run for example until EventMachine reactor has finished
+      def run_after_example; end
+    end
+  end
+
+  def remove_patch_example_block(example)
+    example.example.class.class_eval do
+      remove_method :run_after_example
+      alias_method :run_after_example, :run_after_example_original
+      remove_method :run_after_example_original
+    end
+  end
+
+  config.around(:example, :event_machine) do |example|
     timeout = if example.metadata[:em_timeout].is_a?(Numeric)
       example.metadata[:em_timeout]
     else
       RSpec::EventMachine::DEFAULT_TIMEOUT
     end
 
-    RSpec::EventMachine.run_reactor(timeout) do
-      example.call
-      stop_reactor if example.exception
+    patch_example_block_with_surrounding_eventmachine_reactor example
+
+    begin
+      RSpec::EventMachine.run_reactor(timeout) do
+        example.call
+        raise example.exception if example.exception
+      end
+    ensure
+      example.example.run_after_example_original
+      remove_patch_example_block example
     end
   end
 
