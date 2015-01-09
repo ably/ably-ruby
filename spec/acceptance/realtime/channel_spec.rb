@@ -13,7 +13,7 @@ describe Ably::Realtime::Channel, :event_machine do
       let(:channel)      { client.channel(channel_name) }
       let(:messages)     { [] }
 
-      describe 'when initializing a channel' do
+      describe 'initialization' do
         context 'with :connect_automatically option set to false on connection' do
           let(:client) do
             Ably::Realtime::Client.new(default_options.merge(connect_automatically: false))

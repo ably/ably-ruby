@@ -239,6 +239,7 @@ module Ably
 
     # True when Token Auth is being used to authenticate with Ably
     def using_token_auth?
+      return options[:use_token_auth] if options.has_key?(:use_token_auth)
       token_id || current_token || has_client_id? || token_creatable_externally?
     end
 

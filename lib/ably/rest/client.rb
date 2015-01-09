@@ -71,6 +71,7 @@ module Ably
       # @option options (see Ably::Auth#authorise)
       # @option options [Boolean]                 :tls                 TLS is used by default, providing a value of false disables TLS.  Please note Basic Auth is disallowed without TLS as secrets cannot be transmitted over unsecured connections.
       # @option options [String]                  :api_key             API key comprising the key ID and key secret in a single string
+      # @option options [Boolean]                 :use_token_auth      Will force Basic Auth if set to false, and TOken auth if set to true
       # @option options [String]                  :environment         Specify 'sandbox' when testing the client library against an alternate Ably environment
       # @option options [Symbol]                  :protocol            Protocol used to communicate with Ably, :json and :msgpack currently supported. Defaults to :msgpack
       # @option options [Boolean]                 :use_binary_protocol Protocol used to communicate with Ably, defaults to true and uses MessagePack protocol.  This option will overide :protocol option

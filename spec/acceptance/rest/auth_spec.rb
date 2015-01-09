@@ -308,6 +308,42 @@ describe Ably::Auth do
           auth.authorise(ttl: 26)
           expect(auth.options[:ttl]).to eql(26)
         end
+
+        context 'with token_request_block' do
+          let(:client_id) { random_str }
+          let!(:token) do
+            auth.authorise do
+              @block_called ||= 0
+              @block_called += 1
+              auth.create_token_request(client_id: client_id)
+            end
+          end
+
+          it 'calls the block' do
+            expect(@block_called).to eql(1)
+          end
+
+          it 'uses the token request when requesting a new token' do
+            expect(token.client_id).to eql(client_id)
+          end
+
+          context 'for every subsequent #request_token' do
+            context 'without a block' do
+              it 'calls the block again' do
+                auth.request_token
+                expect(@block_called).to eql(2)
+              end
+            end
+
+            context 'with a block' do
+              it 'does not call the block and calls the #request_token block' do
+                auth.request_token { @request_block_called = true; auth.create_token_request }
+                expect(@block_called).to eql(1)
+                expect(@request_block_called).to eql(true)
+              end
+            end
+          end
+        end
       end
 
       describe '#create_token_request' do
