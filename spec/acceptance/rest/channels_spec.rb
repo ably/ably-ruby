@@ -3,12 +3,12 @@ require 'spec_helper'
 
 describe Ably::Rest::Channels do
   shared_examples 'a channel' do
-    it 'should access a channel' do
+    it 'returns a channel object' do
       expect(channel).to be_a Ably::Rest::Channel
       expect(channel.name).to eql(channel_name)
     end
 
-    it 'should allow options to be set on a channel' do
+    it 'returns channel object and passes the provided options' do
       expect(channel_with_options.options).to eql(options)
     end
   end
@@ -20,19 +20,19 @@ describe Ably::Rest::Channels do
     let(:channel_name) { random_str }
     let(:options)      { { key: 'value' } }
 
-    describe 'using shortcut method on client' do
+    describe 'using shortcut method #channel on the client object' do
       let(:channel) { client.channel(channel_name) }
       let(:channel_with_options) { client.channel(channel_name, options) }
       it_behaves_like 'a channel'
     end
 
-    describe 'using documented .get method on client.channels' do
+    describe 'using #get method on client#channels' do
       let(:channel) { client.channels.get(channel_name) }
       let(:channel_with_options) { client.channels.get(channel_name, options) }
       it_behaves_like 'a channel'
     end
 
-    describe 'using undocumented [] method on client.channels' do
+    describe 'using undocumented array accessor [] method on client#channels' do
       let(:channel) { client.channels[channel_name] }
       let(:channel_with_options) { client.channels[channel_name, options] }
       it_behaves_like 'a channel'
