@@ -1,4 +1,5 @@
 require 'bundler/gem_tasks'
+require 'json'
 
 require 'yard'
 YARD::Rake::YardocTask.new
@@ -13,6 +14,8 @@ begin
   namespace :doc do
     desc 'Generate Markdown Specification from the RSpec public API tests'
     task :spec do
+      ENV['TEST_LIMIT_PROTOCOLS'] = JSON.dump({ msgpack: 'JSON and MsgPack' })
+
       rspec_task.rspec_opts = %w(
         --require ./spec/support/markdown_spec_formatter
         --order defined
@@ -20,6 +23,7 @@ begin
         --format documentation
         --format Ably::RSpec::MarkdownSpecFormatter
       ).join(' ')
+
       Rake::Task[:spec].invoke
     end
   end

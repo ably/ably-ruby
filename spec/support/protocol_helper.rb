@@ -1,12 +1,16 @@
 module RSpec
   module ProtocolHelper
-    PROTOCOLS = {
-      :json    => 'JSON',
-      :msgpack => 'MsgPack'
-    }
+    PROTOCOLS = if ENV['TEST_LIMIT_PROTOCOLS']
+      JSON.parse(ENV['TEST_LIMIT_PROTOCOLS'])
+    else
+      {
+        json:    'JSON',
+        msgpack: 'MsgPack'
+      }
+    end
 
     def vary_by_protocol(&block)
-      PROTOCOLS.each do |protocol, description|
+      RSpec::ProtocolHelper::PROTOCOLS.each do |protocol, description|
         context("using #{description} protocol", protocol: protocol, &block)
       end
     end
