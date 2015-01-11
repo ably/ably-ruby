@@ -77,8 +77,8 @@ module Ably
       #    # create a new client and configure a client ID used for presence
       #    client = Ably::Realtime::Client.new(api_key: 'key.id:secret', client_id: 'john')
       #
-      def initialize(options, &auth_block)
-        @rest_client           = Ably::Rest::Client.new(options, &auth_block)
+      def initialize(options, &token_request_block)
+        @rest_client           = Ably::Rest::Client.new(options, &token_request_block)
         @auth                  = @rest_client.auth
         @channels              = Ably::Realtime::Channels.new(self)
         @echo_messages         = @rest_client.options.fetch(:echo_messages, true) == false ? false : true

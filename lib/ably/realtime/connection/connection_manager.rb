@@ -64,6 +64,7 @@ module Ably::Realtime
           yield websocket_transport if block_given?
         end
 
+        logger.debug 'ConnectionManager: Setting up automatic connection timeout timer for #{TIMEOUTS.fetch(:open)}s'
         create_timeout_timer_whilst_in_state(:connect, TIMEOUTS.fetch(:open)) do
           connection_opening_failed Ably::Exceptions::ConnectionTimeoutError.new("Connection to Ably timed out after #{TIMEOUTS.fetch(:open)}s", nil, 80014)
         end
@@ -140,6 +141,12 @@ module Ably::Realtime
       # @api private
       def respond_to_transport_disconnected_whilst_connected(current_transition)
         logger.warn "ConnectionManager: Connection to #{connection.transport.url} was disconnected unexpectedly"
+
+        if current_transition.metadata.kind_of?(Ably::Models::ErrorInfo)
+          connection.trigger :error, current_transition.metadata
+          logger.error "ConnectionManager: Error received when disconnected within ProtocolMessage - #{current_transition.metadata}"
+        end
+
         destroy_transport
         respond_to_transport_disconnected_when_connecting current_transition
       end

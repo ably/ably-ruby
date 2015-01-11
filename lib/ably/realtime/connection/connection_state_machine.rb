@@ -48,8 +48,12 @@ module Ably::Realtime
         connection.manager.respond_to_transport_disconnected_whilst_connected current_transition
       end
 
+      after_transition(to: [:disconnected, :suspended]) do |connection|
+        connection.manager.destroy_transport # never reuse a transport if the connection has failed
+      end
+
       after_transition(to: [:failed]) do |connection, current_transition|
-        connection.logger.fatal "ConnectionStateMachine: Connection failed #{current_transition.metadata}"
+        connection.logger.fatal "ConnectionStateMachine: Connection failed - #{current_transition.metadata}"
         connection.manager.destroy_transport
       end
 

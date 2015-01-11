@@ -56,18 +56,47 @@ module Ably::Modules
     end
     alias_method :change_state, :state=
 
-    # If the current state matches the new_state argument the block is called immediately.
-    # Else the block is called once when the new_state is reached.
+    # If the current state matches the target_state argument the block is called immediately.
+    # Else the block is called once when the target_state is reached.
     #
-    # @param [Symbol,Ably::Modules::Enum] new_state
+    # If the option block :else is provided then if any state other than target_state is reached, the :else block is called,
+    # however only one of the blocks will ever be called
+    #
+    # @param [Symbol,Ably::Modules::Enum,Array] target_states a single state or array of states that once met, will fire the success block only once
+    # @param [Hash] options
+    # @option options [Proc] :else block called once the state has changed to anything but target_state
+    #
     # @yield block is called if the state is matched immediately or once when the state is reached
     #
     # @return [void]
-    def once_or_if(new_state, &block)
-      if state == new_state
-        block.call
+    def once_or_if(target_states, options = {}, &success_block)
+      raise ArgumentError, 'Block is expected' unless block_given?
+
+      if Array(target_states).any? { |target_state| state == target_state }
+        success_block.call
       else
-        once new_state, &block
+        failure_block   = options.fetch(:else, nil)
+        failure_wrapper = nil
+
+        success_wrapper = Proc.new do
+          success_block.call
+          off &success_wrapper
+          off &failure_wrapper if failure_wrapper
+        end
+
+        failure_wrapper = proc do |*args|
+          failure_block.call *args
+          off &success_wrapper
+          off &failure_wrapper
+        end if failure_block
+
+        Array(target_states).each do |target_state|
+          once target_state, &success_wrapper
+
+          once_state_changed do |*args|
+            failure_wrapper.call *args unless state == target_state
+          end if failure_block
+        end
       end
     end
 
@@ -78,15 +107,31 @@ module Ably::Modules
     #
     # @api private
     def once_state_changed(&block)
-      once_block = proc do
+      raise ArgumentError, 'Block is expected' unless block_given?
+
+      once_block = proc do |*args|
         off *self.class::STATE.map, &once_block
-        yield
+        yield *args
       end
 
       once *self.class::STATE.map, &once_block
     end
 
     private
+
+    # Returns an {EventMachine::Deferrable} and once the target state is reached, the
+    # success_block if provided and {EventMachine::Deferrable#callback} is called.
+    # If the state changes to any other state, the {EventMachine::Deferrable#errback} is called.
+    #
+    def deferrable_for_state_change_to(target_state, &success_block)
+      EventMachine::DefaultDeferrable.new.tap do |deferrable|
+        once_or_if(target_state, else: proc { |*args| deferrable.fail self, *args }) do
+          success_block.call self if block_given?
+          deferrable.succeed self
+        end
+      end
+    end
+
     def self.included(klass)
       klass.configure_event_emitter coerce_into: Proc.new { |event|
         if event == :error
