@@ -117,14 +117,14 @@ module Ably
       #
       # @yield [Ably::Realtime::Connection] block is called as soon as this connection is in the Closed state
       #
-      # @return [void]
-      def close(&block)
+      # @return [EventMachine::Deferrable]
+      #
+      def close(&success_block)
         unless closing? || closed?
           raise exception_for_state_change_to(:closing) unless can_transition_to?(:closing)
           transition_state_machine :closing
         end
-
-        once_or_if(STATE.Closed) { block.call self } if block_given?
+        deferrable_for_state_change_to(STATE.Closed, &success_block)
       end
 
       # Causes the library to attempt connection.  If it was previously explicitly
@@ -132,14 +132,14 @@ module Ably
       #
       # @yield [Ably::Realtime::Connection] block is called as soon as this connection is in the Connected state
       #
-      # @return [void]
-      def connect(&block)
+      # @return [EventMachine::Deferrable]
+      #
+      def connect(&success_block)
         unless connecting? || connected?
           raise exception_for_state_change_to(:connecting) unless can_transition_to?(:connecting)
           transition_state_machine :connecting
         end
-
-        once_or_if(STATE.Connected) { block.call self } if block_given?
+        deferrable_for_state_change_to(STATE.Connected, &success_block)
       end
 
       # Sends a ping to Ably and yields the provided block when a heartbeat ping request is echoed from the server.
@@ -153,6 +153,8 @@ module Ably
       #    client.connection.ping do |ms_elapsed|
       #      puts "Ping took #{ms_elapsed}ms"
       #    end
+      #
+      # @return [void]
       #
       def ping(&block)
         raise RuntimeError, 'Cannot send a ping when connection is not open' if initialized?

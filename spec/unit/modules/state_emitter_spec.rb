@@ -79,41 +79,182 @@ describe Ably::Modules::StateEmitter do
   end
 
   context '#once_or_if', :api_private do
-    let(:block_calls) { [] }
-    let(:block) do
-      proc do
-        block_calls << Time.now
+    context 'without :else option block' do
+      let(:block_calls) { [] }
+      let(:block) do
+        proc do
+          block_calls << Time.now
+        end
       end
-    end
 
-    it 'calls the block if in the provided state' do
-      subject.once_or_if initial_state, &block
-      expect(block_calls.count).to eql(1)
-    end
+      it 'calls the block if in the provided state' do
+        subject.once_or_if initial_state, &block
+        expect(block_calls.count).to eql(1)
+      end
 
-    it 'calls the block when the state is reached' do
-      subject.once_or_if :connected, &block
-      expect(block_calls.count).to eql(0)
+      it 'calls the block when the state is reached' do
+        subject.once_or_if :connected, &block
+        expect(block_calls.count).to eql(0)
 
-      subject.change_state :connected
-      expect(block_calls.count).to eql(1)
-    end
-
-    it 'calls the block only once' do
-      subject.once_or_if :connected, &block
-      3.times do
         subject.change_state :connected
-        subject.change_state :connecting
+        expect(block_calls.count).to eql(1)
       end
-      expect(block_calls.count).to eql(1)
+
+      it 'calls the block only once' do
+        subject.once_or_if :connected, &block
+        3.times do
+          subject.change_state :connected
+          subject.change_state :connecting
+        end
+        expect(block_calls.count).to eql(1)
+      end
+    end
+
+    context 'with an array of targets' do
+      let(:block_calls) { [] }
+      let(:block) do
+        proc do
+          block_calls << Time.now
+        end
+      end
+
+      it 'calls the block if in the provided state' do
+        subject.once_or_if [initial_state, :connecting], &block
+        expect(block_calls.count).to eql(1)
+      end
+
+      it 'calls the block when one of the states is reached' do
+        subject.once_or_if [:connecting, :connected], &block
+        expect(block_calls.count).to eql(0)
+
+        subject.change_state :connected
+        expect(block_calls.count).to eql(1)
+      end
+
+      it 'calls the block only once' do
+        subject.once_or_if [:connecting, :connected], &block
+        expect(block_calls.count).to eql(0)
+
+        3.times do
+          subject.change_state :connected
+          subject.change_state :connecting
+        end
+        expect(block_calls.count).to eql(1)
+      end
+
+      it 'does not remove all blocks on success' do
+        allow(subject).to receive(:off) do |&block|
+          raise 'Should not receive a nil block' if block.nil?
+        end
+
+        subject.once_or_if(:connected) { }
+        subject.change_state :connected
+      end
+    end
+
+    context 'with :else option block', :api_private do
+      let(:success_calls) { [] }
+      let(:success_block) do
+        proc do
+          success_calls << Time.now
+        end
+      end
+
+      let(:failure_calls) { [] }
+      let(:failure_block) do
+        proc do |*args|
+          failure_calls << args
+        end
+      end
+
+      let(:target_state) { :connected }
+
+      before do
+        subject.once_or_if target_state, else: failure_block, &success_block
+      end
+
+      context 'blocks' do
+        specify 'are not called if the state does not change' do
+          subject.change_state initial_state
+          expect(success_calls.count).to eql(0)
+          expect(failure_calls.count).to eql(0)
+        end
+      end
+
+      context 'success block' do
+        it 'is called once target_state is reached' do
+          subject.change_state target_state
+          expect(success_calls.count).to eql(1)
+        end
+
+        it 'is never called again once target_state is reached' do
+          subject.change_state target_state
+          subject.change_state :connecting
+          subject.change_state target_state
+          expect(success_calls.count).to eql(1)
+        end
+
+        it 'is never called after failure block was called' do
+          subject.change_state :connecting
+          subject.change_state target_state
+          expect(success_calls.count).to eql(0)
+          expect(failure_calls.count).to eql(1)
+        end
+      end
+
+      context 'failure block' do
+        it 'is called once a state other than target_state is reached' do
+          subject.change_state :connecting
+          expect(failure_calls.count).to eql(1)
+        end
+
+        it 'is never called again once the block has been called previously' do
+          subject.change_state :connecting
+          subject.change_state target_state
+          subject.change_state :connecting
+          expect(failure_calls.count).to eql(1)
+        end
+
+        it 'is never called after success block was called' do
+          subject.change_state target_state
+          subject.change_state :connecting
+          expect(failure_calls.count).to eql(0)
+          expect(success_calls.count).to eql(1)
+        end
+
+        it 'has arguments from the error state' do
+          subject.change_state :disconnected, 1, 2
+          expect(failure_calls.count).to eql(1)
+          expect(failure_calls.first).to contain_exactly(1, 2)
+        end
+      end
+    end
+
+    context 'state change arguments' do
+      let(:arguments) { [1,2,3] }
+
+      specify 'are passed to success blocks' do
+        subject.once_or_if(:connected) do |*arguments|
+          expect(arguments).to eql(arguments)
+        end
+        subject.change_state :connected, *arguments
+      end
+
+      specify 'are passed to else blocks' do
+        else_block = proc { |arguments| expect(arguments).to eql(arguments) }
+        subject.once_or_if(:connected, else: else_block) do
+          raise 'Success should not be called'
+        end
+        subject.change_state :connecting, *arguments
+      end
     end
   end
 
   context '#once_state_changed', :api_private do
     let(:block_calls) { [] }
     let(:block) do
-      proc do
-        block_calls << Time.now
+      proc do |*args|
+        block_calls << args
       end
     end
 
@@ -130,6 +271,13 @@ describe Ably::Modules::StateEmitter do
         subject.change_state :connecting
       end
       expect(block_calls.count).to eql(1)
+    end
+
+    it 'emits arguments to the block' do
+      subject.once_state_changed &block
+      subject.change_state :connected, 1, 2
+      expect(block_calls.count).to eql(1)
+      expect(block_calls.first).to contain_exactly(1, 2)
     end
   end
 end

@@ -1,38 +1,36 @@
 # encoding: utf-8
 require 'spec_helper'
 
-describe Ably::Realtime::Client do
-  include RSpec::EventMachine
+describe Ably::Realtime::Client, :event_machine do
+  vary_by_protocol do
+    let(:default_options) do
+      { api_key: api_key, environment: environment, protocol: protocol }
+    end
 
-  [:msgpack, :json].each do |protocol|
-    context "over #{protocol}" do
-      let(:default_options) do
-        { api_key: api_key, environment: environment, protocol: protocol }
-      end
+    let(:client_options) { default_options }
+    let(:connection)     { subject.connection }
+    let(:auth_params)    { subject.auth.auth_params }
 
-      let(:client_options) { default_options }
-      let(:connection)     { subject.connection }
-      let(:auth_params)    { subject.auth.auth_params }
+    subject              { Ably::Realtime::Client.new(client_options) }
 
-      subject              { Ably::Realtime::Client.new(client_options) }
-
-      context 'with API key' do
-        it 'connects using basic auth by default' do
-          run_reactor do
-            connection.on(:connected) do
-              expect(connection.state).to eq(:connected)
-              expect(auth_params[:key_id]).to_not be_nil
-              expect(auth_params[:access_token]).to be_nil
-              stop_reactor
-            end
+    context 'initialization' do
+      context 'basic auth' do
+        it 'is enabled by default with a provided :api_key option' do
+          connection.on(:connected) do
+            expect(auth_params[:key_id]).to_not be_nil
+            expect(auth_params[:access_token]).to be_nil
+            expect(subject.auth.current_token).to be_nil
+            stop_reactor
           end
         end
 
-        context 'with TLS disabled' do
-          let(:client_options) { default_options.merge(tls: false, log_level: :none) }
+        context ':tls option' do
+          context 'set to false to forec a plain-text connection' do
+            let(:client_options) { default_options.merge(tls: false, log_level: :none) }
 
-          it 'fails to connect because the key cannot be sent over a non-secure connection' do
-            run_reactor do
+            it 'fails to connect because a private key cannot be sent over a non-secure connection' do
+              connection.on(:connected) { raise 'Should not have connected' }
+
               connection.on(:failed) do |error|
                 expect(error).to be_a(Ably::Exceptions::InsecureRequestError)
                 stop_reactor
@@ -42,44 +40,76 @@ describe Ably::Realtime::Client do
         end
       end
 
-      [true, false].each do |tls_enabled|
-        context "with TLS #{tls_enabled ? 'enabled' : 'disabled'}" do
-          context 'with token provided' do
-            let(:capability) { { :foo => ["publish"] } }
-            let(:token)      { Ably::Realtime::Client.new(default_options).auth.request_token(capability: capability) }
-            let(:client_options) do
-              { token_id: token.id, environment: environment, protocol: protocol, tls: tls_enabled }
-            end
+      context 'token auth' do
+        [true, false].each do |tls_enabled|
+          context "with TLS #{tls_enabled ? 'enabled' : 'disabled'}" do
+            let(:capability)      { { :foo => ["publish"] } }
+            let(:token)           { Ably::Realtime::Client.new(default_options).auth.request_token(capability: capability) }
+            let(:client_options)  { default_options.merge(token_id: token.id) }
 
-            it 'connects using token auth' do
-              run_reactor do
+            context 'and a pre-generated Token provided with the :token_id option' do
+              it 'connects using token auth' do
                 connection.on(:connected) do
-                  expect(connection.state).to eq(:connected)
                   expect(auth_params[:access_token]).to_not be_nil
                   expect(auth_params[:key_id]).to be_nil
+                  expect(subject.auth.current_token).to be_nil
                   stop_reactor
                 end
               end
             end
-          end
 
-          context 'with API key and token auth set to true' do
-            skip 'automatically generates a token and connects using token auth'
-          end
+            context 'with valid :api_key and :use_token_auth option set to true' do
+              let(:client_options)  { default_options.merge(use_token_auth: true) }
 
-          context 'with client_id' do
-            let(:client_options) do
-              default_options.merge(client_id: random_str)
-            end
-            it 'connects using token auth' do
-              run_reactor do
+              it 'automatically authorises on connect and generates a token' do
                 connection.on(:connected) do
-                  expect(connection.state).to eq(:connected)
+                  expect(subject.auth.current_token).to_not be_nil
                   expect(auth_params[:access_token]).to_not be_nil
-                  expect(auth_params[:key_id]).to be_nil
                   stop_reactor
                 end
               end
+            end
+
+            context 'with client_id' do
+              let(:client_options) do
+                default_options.merge(client_id: random_str)
+              end
+              it 'connects using token auth' do
+                run_reactor do
+                  connection.on(:connected) do
+                    expect(connection.state).to eq(:connected)
+                    expect(auth_params[:access_token]).to_not be_nil
+                    expect(auth_params[:key_id]).to be_nil
+                    stop_reactor
+                  end
+                end
+              end
+            end
+          end
+        end
+
+        context 'with token_request_block' do
+          let(:client_id) { random_str }
+          let(:auth)      { subject.auth }
+
+          subject do
+            Ably::Realtime::Client.new(client_options) do
+              @block_called = true
+              auth.create_token_request(client_id: client_id)
+            end
+          end
+
+          it 'calls the block' do
+            connection.on(:connected) do
+              expect(@block_called).to eql(true)
+              stop_reactor
+            end
+          end
+
+          it 'uses the token request when requesting a new token' do
+            connection.on(:connected) do
+              expect(auth.current_token.client_id).to eql(client_id)
+              stop_reactor
             end
           end
         end
