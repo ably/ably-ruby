@@ -9,17 +9,17 @@ describe Ably::Rest::Channel do
       Ably::Rest::Client.new(api_key: api_key, environment: environment, protocol: protocol)
     end
 
-    describe 'publishing messages' do
+    describe '#publish' do
       let(:channel) { client.channel('test') }
       let(:event)   { 'foo' }
       let(:message) { 'woop!' }
 
-      it 'should publish the message ok' do
+      it 'should publish the message adn return true indicating success' do
         expect(channel.publish(event, message)).to eql(true)
       end
     end
 
-    describe 'fetching channel history' do
+    describe '#history' do
       let(:channel) { client.channel("persisted:#{random_str(4)}") }
       let(:expected_history) do
         [
@@ -36,7 +36,7 @@ describe Ably::Rest::Channel do
         end
       end
 
-      it 'should return all the history for the channel' do
+      it 'should return the current message history for the channel' do
         actual_history = channel.history
 
         expect(actual_history.size).to eql(3)
@@ -48,21 +48,23 @@ describe Ably::Rest::Channel do
         end
       end
 
-      context 'timestamps' do
-        it 'should be greater than the time before the messages were published' do
+      context 'message timestamps' do
+        it 'should all be after the messages were published' do
           channel.history.each do |message|
             expect(before_published.to_f).to be < message.timestamp.to_f
           end
         end
       end
 
-      it 'should return messages with unique IDs' do
-        message_ids = channel.history.map(&:id).compact
-        expect(message_ids.count).to eql(3)
-        expect(message_ids.uniq.count).to eql(3)
+      context 'message IDs' do
+        it 'should be unique' do
+          message_ids = channel.history.map(&:id).compact
+          expect(message_ids.count).to eql(3)
+          expect(message_ids.uniq.count).to eql(3)
+        end
       end
 
-      it 'should return paged history' do
+      it 'should return paged history using the PaginatedResource model' do
         page_1 = channel.history(limit: 1)
         page_2 = page_1.next_page
         page_3 = page_2.next_page
@@ -86,7 +88,7 @@ describe Ably::Rest::Channel do
       end
     end
 
-    describe 'history options' do
+    describe '#history option' do
       let(:channel_name) { "persisted:#{random_str(4)}" }
       let(:channel) { client.channel(channel_name) }
       let(:endpoint) do
@@ -107,21 +109,21 @@ describe Ably::Rest::Channel do
             channel.history(options)
           end
 
-          context 'with milliseconds since epoch' do
+          context 'with milliseconds since epoch value' do
             let(:milliseconds) { as_since_epoch(Time.now) }
             let(:options) { { option => milliseconds } }
 
-            specify 'are left unchanged' do
+            it 'uses this value in the history request' do
               expect(history_stub).to have_been_requested
             end
           end
 
-          context 'with Time' do
+          context 'with a Time object value' do
             let(:time) { Time.now }
             let(:milliseconds) { as_since_epoch(time) }
             let(:options) { { option => time } }
 
-            specify 'are left unchanged' do
+            it 'converts the value to milliseconds since epoch in the hisotry request' do
               expect(history_stub).to have_been_requested
             end
           end

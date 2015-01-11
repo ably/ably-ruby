@@ -12,8 +12,9 @@ describe Ably::Rest::Channel, 'messages' do
     let(:other_client)           { Ably::Rest::Client.new(client_options) }
     let(:channel)                { client.channel('test') }
 
-    context 'with ASCII_8BIT message name' do
+    context 'publishing with an ASCII_8BIT message name' do
       let(:message_name) { random_str.encode(Encoding::ASCII_8BIT) }
+
       it 'is converted into UTF_8' do
         channel.publish message_name, 'example'
         message = channel.history.first
@@ -27,7 +28,7 @@ describe Ably::Rest::Channel, 'messages' do
       let(:cipher_options)    { { key: random_str(32) } }
       let(:encrypted_channel) { client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
 
-      context 'encoding and decoding encrypted messages' do
+      context 'with #publish and #history' do
         shared_examples 'an Ably encrypter and decrypter' do |item, data|
           let(:algorithm)      { data['algorithm'].upcase }
           let(:mode)           { data['mode'].upcase }
@@ -37,53 +38,51 @@ describe Ably::Rest::Channel, 'messages' do
 
           let(:cipher_options) { { key: secret_key, iv: iv, algorithm: algorithm, mode: mode, key_length: key_length } }
 
-          context 'publish & subscribe' do
-            let(:encoded)              { item['encoded'] }
-            let(:encoded_data)         { encoded['data'] }
-            let(:encoded_encoding)     { encoded['encoding'] }
-            let(:encoded_data_decoded) do
-              if encoded_encoding == 'json'
-                JSON.parse(encoded_data)
-              elsif encoded_encoding == 'base64'
-                Base64.decode64(encoded_data)
+          let(:encoded)              { item['encoded'] }
+          let(:encoded_data)         { encoded['data'] }
+          let(:encoded_encoding)     { encoded['encoding'] }
+          let(:encoded_data_decoded) do
+            if encoded_encoding == 'json'
+              JSON.parse(encoded_data)
+            elsif encoded_encoding == 'base64'
+              Base64.decode64(encoded_data)
+            else
+              encoded_data
+            end
+          end
+
+          let(:encrypted)              { item['encrypted'] }
+          let(:encrypted_data)         { encrypted['data'] }
+          let(:encrypted_encoding)     { encrypted['encoding'] }
+          let(:encrypted_data_decoded) do
+            if encrypted_encoding.match(%r{/base64$})
+              Base64.decode64(encrypted_data)
+            else
+              encrypted_data
+            end
+          end
+
+          it 'encrypts message automatically when published' do
+            expect(client).to receive(:post) do |path, message|
+              if protocol == :json
+                expect(message['encoding']).to eql(encrypted_encoding)
+                expect(Base64.decode64(message['data'])).to eql(encrypted_data_decoded)
               else
-                encoded_data
+                # Messages sent over binary protocol will not have Base64 encoded data
+                expect(message['encoding']).to eql(encrypted_encoding.gsub(%r{/base64$}, ''))
+                expect(message['data']).to eql(encrypted_data_decoded)
               end
-            end
+            end.and_return(double('Response', status: 201))
 
-            let(:encrypted)              { item['encrypted'] }
-            let(:encrypted_data)         { encrypted['data'] }
-            let(:encrypted_encoding)     { encrypted['encoding'] }
-            let(:encrypted_data_decoded) do
-              if encrypted_encoding.match(%r{/base64$})
-                Base64.decode64(encrypted_data)
-              else
-                encrypted_data
-              end
-            end
+            encrypted_channel.publish 'example', encoded_data_decoded
+          end
 
-            it 'encrypts message automatically when published' do
-              expect(client).to receive(:post) do |path, message|
-                if protocol == :json
-                  expect(message['encoding']).to eql(encrypted_encoding)
-                  expect(Base64.decode64(message['data'])).to eql(encrypted_data_decoded)
-                else
-                  # Messages sent over binary protocol will not have Base64 encoded data
-                  expect(message['encoding']).to eql(encrypted_encoding.gsub(%r{/base64$}, ''))
-                  expect(message['data']).to eql(encrypted_data_decoded)
-                end
-              end.and_return(double('Response', status: 201))
+          it 'sends and retrieves messages that are encrypted & decrypted by the Ably library' do
+            encrypted_channel.publish 'example', encoded_data_decoded
 
-              encrypted_channel.publish 'example', encoded_data_decoded
-            end
-
-            it 'sends and receives messages that are encrypted & decrypted by the Ably library' do
-              encrypted_channel.publish 'example', encoded_data_decoded
-
-              message = encrypted_channel.history.first
-              expect(message.data).to eql(encoded_data_decoded)
-              expect(message.encoding).to be_nil
-            end
+            message = encrypted_channel.history.first
+            expect(message.data).to eql(encoded_data_decoded)
+            expect(message.encoding).to be_nil
           end
         end
 
@@ -97,21 +96,21 @@ describe Ably::Rest::Channel, 'messages' do
           end
         end
 
-        context 'with AES-128-CBC' do
+        context 'with AES-128-CBC using crypto-data-128.json fixtures' do
           data = JSON.parse(File.read(File.join(resources_root, 'crypto-data-128.json')))
           add_tests_for_data data
         end
 
-        context 'with AES-256-CBC' do
+        context 'with AES-256-CBC using crypto-data-256.json fixtures' do
           data = JSON.parse(File.read(File.join(resources_root, 'crypto-data-256.json')))
           add_tests_for_data data
         end
 
-        context 'multiple messages' do
+        context 'when publishing lots of messages' do
           let(:data) { MessagePack.pack({ 'key' => random_str }) }
           let(:message_count) { 20 }
 
-          it 'encrypt and decrypt messages' do
+          it 'encrypts on #publish and decrypts on #history' do
             message_count.times do |index|
               encrypted_channel.publish index.to_s, "#{index}-#{data}"
             end
@@ -126,7 +125,7 @@ describe Ably::Rest::Channel, 'messages' do
           end
         end
 
-        context 'retrieving with a different protocol' do
+        context 'when retrieving #history with a different protocol' do
           let(:other_protocol)       { protocol == :msgpack ? :json : :msgpack }
           let(:other_client)         { Ably::Rest::Client.new(default_client_options.merge(protocol: other_protocol)) }
           let(:other_client_channel) {  other_client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
@@ -148,7 +147,7 @@ describe Ably::Rest::Channel, 'messages' do
           end
         end
 
-        context 'publishing on an unencrypted channel and retrieving on an encrypted channel' do
+        context 'when publishing on an unencrypted channel and retrieving with #history on an encrypted channel' do
           let(:unencrypted_channel)            { client.channel(channel_name) }
           let(:other_client_encrypted_channel) { other_client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
 
@@ -163,7 +162,7 @@ describe Ably::Rest::Channel, 'messages' do
           end
         end
 
-        context 'publishing on an encrypted channel and retrieving on an unencrypted channel' do
+        context 'when publishing on an encrypted channel and retrieving with #history on an unencrypted channel' do
           let(:client_options)                   { default_client_options.merge(log_level: :fatal) }
           let(:cipher_options)                   { { key: random_str(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
           let(:encrypted_channel)                { client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
@@ -175,7 +174,7 @@ describe Ably::Rest::Channel, 'messages' do
             encrypted_channel.publish 'example', payload
           end
 
-          it 'delivers the message with encrypted encoding remaining' do
+          it 'retrieves the message that remains encrypted with an encrypted encoding attribute' do
             message = other_client_unencrypted_channel.history.first
             expect(message.data).to_not eql(payload)
             expect(message.encoding).to match(/^cipher\+aes-256-cbc/)
@@ -189,7 +188,7 @@ describe Ably::Rest::Channel, 'messages' do
           end
         end
 
-        context 'publishing on an encrypted channel and subscribing with a different algorithm on another client' do
+        context 'publishing on an encrypted channel and retrieving #history with a different algorithm on another client' do
           let(:client_options)            { default_client_options.merge(log_level: :fatal) }
           let(:cipher_options_client1)    { { key: random_str(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
           let(:encrypted_channel_client1) { client.channel(channel_name, encrypted: true, cipher_params: cipher_options_client1) }
@@ -202,7 +201,7 @@ describe Ably::Rest::Channel, 'messages' do
             encrypted_channel_client1.publish 'example', payload
           end
 
-          it 'delivers the message with encrypted encoding remaining' do
+          it 'retrieves the message that remains encrypted with an encrypted encoding attribute' do
             message = encrypted_channel_client2.history.first
             expect(message.data).to_not eql(payload)
             expect(message.encoding).to match(/^cipher\+aes-256-cbc/)
@@ -229,7 +228,7 @@ describe Ably::Rest::Channel, 'messages' do
             encrypted_channel_client1.publish 'example', payload
           end
 
-          it 'delivers the message with encrypted encoding remaining' do
+          it 'retrieves the message that remains encrypted with an encrypted encoding attribute' do
             message = encrypted_channel_client2.history.first
             expect(message.data).to_not eql(payload)
             expect(message.encoding).to match(/^cipher\+aes-256-cbc/)

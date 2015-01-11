@@ -272,12 +272,12 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
         end
       end
 
-      context 'with AES-128-CBC' do
+      context 'with AES-128-CBC using crypto-data-128.json fixtures' do
         data = JSON.parse(File.read(File.join(resources_root, 'crypto-data-128.json')))
         add_tests_for_data data
       end
 
-      context 'with AES-256-CBC' do
+      context 'with AES-256-CBC using crypto-data-256.json fixtures' do
         data = JSON.parse(File.read(File.join(resources_root, 'crypto-data-256.json')))
         add_tests_for_data data
       end

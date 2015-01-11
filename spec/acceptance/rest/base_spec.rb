@@ -2,7 +2,7 @@
 require 'spec_helper'
 
 describe Ably::Rest do
-  describe 'protocol' do
+  describe 'transport protocol' do
     include Ably::Modules::Conversions
 
     let(:client_options) { {} }
@@ -10,58 +10,56 @@ describe Ably::Rest do
       Ably::Rest::Client.new(client_options.merge(api_key: 'appid.keyuid:keysecret'))
     end
 
-    context 'transport' do
-      let(:now) { Time.now - 1000 }
-      let(:body_value) { [as_since_epoch(now)] }
+    let(:now) { Time.now - 1000 }
+    let(:body_value) { [as_since_epoch(now)] }
 
-      before do
-        stub_request(:get, "#{client.endpoint}/time").
-          with(:headers => { 'Accept' => mime }).
-          to_return(:status => 200, :body => request_body, :headers => { 'Content-Type' => mime })
+    before do
+      stub_request(:get, "#{client.endpoint}/time").
+        with(:headers => { 'Accept' => mime }).
+        to_return(:status => 200, :body => request_body, :headers => { 'Content-Type' => mime })
+    end
+
+    context 'when protocol is not defined it defaults to :msgpack' do
+      let(:client_options) { { } }
+      let(:mime) { 'application/x-msgpack' }
+      let(:request_body) { body_value.to_msgpack }
+
+      it 'uses MsgPack', :webmock do
+        expect(client.protocol).to eql(:msgpack)
+        expect(client.time).to be_within(1).of(now)
       end
+    end
 
-      context 'when protocol is not defined it defaults to :msgpack' do
-        let(:client_options) { { } }
+    options = [
+        { protocol: :json },
+        { use_binary_protocol: false }
+      ].each do |client_option|
+
+      context "when option #{client_option} is used" do
+        let(:client_options) { client_option }
+        let(:mime) { 'application/json' }
+        let(:request_body) { body_value.to_json }
+
+        it 'uses JSON', :webmock do
+          expect(client.protocol).to eql(:json)
+          expect(client.time).to be_within(1).of(now)
+        end
+      end
+    end
+
+    options = [
+        { protocol: :msgpack },
+        { use_binary_protocol: true }
+      ].each do |client_option|
+
+      context "when option #{client_option} is used" do
+        let(:client_options) { client_option }
         let(:mime) { 'application/x-msgpack' }
         let(:request_body) { body_value.to_msgpack }
 
         it 'uses MsgPack', :webmock do
           expect(client.protocol).to eql(:msgpack)
           expect(client.time).to be_within(1).of(now)
-        end
-      end
-
-      options = [
-          { protocol: :json },
-          { use_binary_protocol: false }
-        ].each do |client_option|
-
-        context "when option #{client_option} is used" do
-          let(:client_options) { client_option }
-          let(:mime) { 'application/json' }
-          let(:request_body) { body_value.to_json }
-
-          it 'uses JSON', :webmock do
-            expect(client.protocol).to eql(:json)
-            expect(client.time).to be_within(1).of(now)
-          end
-        end
-      end
-
-      options = [
-          { protocol: :json },
-          { use_binary_protocol: false }
-        ].each do |client_option|
-
-        context "when option #{client_option} is used" do
-          let(:client_options) { { protocol: :msgpack } }
-          let(:mime) { 'application/x-msgpack' }
-          let(:request_body) { body_value.to_msgpack }
-
-          it 'uses MsgPack', :webmock do
-            expect(client.protocol).to eql(:msgpack)
-            expect(client.time).to be_within(1).of(now)
-          end
         end
       end
     end
@@ -72,18 +70,20 @@ describe Ably::Rest do
       Ably::Rest::Client.new(api_key: api_key, environment: environment, protocol: protocol)
     end
 
-    describe 'invalid requests in middleware' do
-      it 'should raise an InvalidRequest exception with a valid message' do
-        invalid_client = Ably::Rest::Client.new(api_key: 'appid.keyuid:keysecret', environment: environment)
-        expect { invalid_client.channel('test').publish('foo', 'choo') }.to raise_error do |error|
-          expect(error).to be_a(Ably::Exceptions::InvalidRequest)
-          expect(error.message).to match(/invalid credentials/)
-          expect(error.code).to eql(40100)
-          expect(error.status).to eql(401)
+    describe 'failed requests' do
+      context 'due to invalid Auth' do
+        it 'should raise an InvalidRequest exception with a valid error message and code' do
+          invalid_client = Ably::Rest::Client.new(api_key: 'appid.keyuid:keysecret', environment: environment)
+          expect { invalid_client.channel('test').publish('foo', 'choo') }.to raise_error do |error|
+            expect(error).to be_a(Ably::Exceptions::InvalidRequest)
+            expect(error.message).to match(/invalid credentials/)
+            expect(error.code).to eql(40100)
+            expect(error.status).to eql(401)
+          end
         end
       end
 
-      describe 'server error with JSON response', :webmock do
+      describe 'server error with JSON error response body', :webmock do
         let(:error_response) { '{ "error": { "statusCode": 500, "code": 50000, "message": "Internal error" } }' }
 
         before do
@@ -96,7 +96,7 @@ describe Ably::Rest do
         end
       end
 
-      describe 'server error', :webmock do
+      describe '500 server error without a valid JSON response body', :webmock do
         before do
           stub_request(:get, "#{client.endpoint}/time").
           to_return(:status => 500, :headers => { 'Content-Type' => 'application/json' })
@@ -108,7 +108,7 @@ describe Ably::Rest do
       end
     end
 
-    describe 'authentication failure', :webmock do
+    describe 'token authentication failures', :webmock do
       let(:token_1) { { id: random_str } }
       let(:token_2) { { id: random_str } }
       let(:channel) { 'channelname' }
@@ -152,7 +152,8 @@ describe Ably::Rest do
 
       context 'when NOT auth#token_renewable?' do
         let(:client) { Ably::Rest::Client.new(token_id: 'token ID cannot be used to create a new token', environment: environment, protocol: protocol) }
-        it 'should raise the exception' do
+
+        it 'should raise an InvalidToken exception' do
           client.channel(channel).publish('evt', 'msg')
           expect(@publish_attempts).to eql(1)
           expect { client.channel(channel).publish('evt', 'msg') }.to raise_error Ably::Exceptions::InvalidToken
