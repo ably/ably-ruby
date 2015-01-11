@@ -8,37 +8,6 @@ module RSpec
 
     DEFAULT_TIMEOUT = 5
 
-    # See https://github.com/igrigorik/em-http-request/blob/master/lib/em-http/multi.rb
-    class MultiRequest
-      include ::EventMachine::Deferrable
-
-      attr_reader :requests, :responses
-
-      def initialize
-        @requests  = {}
-        @responses = {:callback => {}, :errback => {}}
-      end
-
-      def add(name, conn)
-        raise 'Duplicate Multi key' if @requests.key? name
-
-        @requests[name] = conn
-
-        conn.callback { @responses[:callback][name] = conn; check_progress }
-        conn.errback  { @responses[:errback][name]  = conn; check_progress }
-      end
-
-      def finished?
-        (@responses[:callback].size + @responses[:errback].size) == @requests.size
-      end
-
-      protected
-      # invoke callback if all requests have completed
-      def check_progress
-        succeed(self) if finished?
-      end
-    end
-
     def run_reactor(timeout = DEFAULT_TIMEOUT)
       Timeout::timeout(timeout + 0.5) do
         ::EventMachine.run do
@@ -55,30 +24,31 @@ module RSpec
 
     # Allows multiple Deferrables to be passed in and calls the provided block when
     # all success callbacks have completed
-    def when_all(*callbacks, &block)
+    def when_all(*deferrables, &block)
       raise "Block expected" unless block_given?
 
-      options = if callbacks.last.kind_of?(Hash)
-        callbacks.pop
+      options = if deferrables.last.kind_of?(Hash)
+        deferrables.pop
       else
         {}
       end
 
-      RSpec::EventMachine::MultiRequest.new.tap do |multi|
-        callbacks.each_with_index do |callback, index|
-          multi.add index, callback
-        end
+      successful_deferrables = {}
 
-        multi.callback do
-          if options[:and_wait]
-            ::EventMachine.add_timer(options[:and_wait]) { block.call }
-          else
-            block.call
+      deferrables.each do |deferrable|
+        deferrable.callback do
+          successful_deferrables[deferrable.object_id] = true
+          if successful_deferrables.keys.sort == deferrables.map(&:object_id).sort
+            if options[:and_wait]
+              ::EventMachine.add_timer(options[:and_wait]) { block.call }
+            else
+              block.call
+            end
           end
         end
 
-        multi.errback do |error|
-          raise RuntimeError, "Callbacks failed: #{error.message}"
+        deferrable.errback do |error|
+          raise RuntimeError, "Deferrable failed: #{error.message}"
         end
       end
     end
