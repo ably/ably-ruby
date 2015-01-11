@@ -781,16 +781,14 @@ describe Ably::Realtime::Presence, :event_machine do
         let(:incompatible_encrypted_channel) { client_two.channel(channel_name, encrypted: true, cipher_params: incompatible_cipher_options) }
 
         it 'delivers an unencoded presence message left with encoding value' do
-          when_all(incompatible_encrypted_channel.attach, encrypted_channel.attach) do
-            encrypted_channel.presence.enter(data: data) do
-              incompatible_encrypted_channel.presence.subscribe(:enter) do
-                incompatible_encrypted_channel.presence.get do |members|
-                  member = members.first
-                  expect(member.encoding).to match(/cipher\+aes-256-cbc/)
-                  expect(member.data).to_not eql(data)
-                  stop_reactor
-                end
-              end
+          encrypted_channel.presence.enter data: data
+
+          incompatible_encrypted_channel.presence.subscribe(:enter) do
+            incompatible_encrypted_channel.presence.get do |members|
+              member = members.first
+              expect(member.encoding).to match(/cipher\+aes-256-cbc/)
+              expect(member.data).to_not eql(data)
+              stop_reactor
             end
           end
         end
