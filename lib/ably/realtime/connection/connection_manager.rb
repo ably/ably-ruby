@@ -64,6 +64,7 @@ module Ably::Realtime
           yield websocket_transport if block_given?
         end
 
+        logger.debug 'ConnectionManager: Setting up automatic connection timeout timer for #{TIMEOUTS.fetch(:open)}s'
         create_timeout_timer_whilst_in_state(:connect, TIMEOUTS.fetch(:open)) do
           connection_opening_failed Ably::Exceptions::ConnectionTimeoutError.new("Connection to Ably timed out after #{TIMEOUTS.fetch(:open)}s", nil, 80014)
         end
