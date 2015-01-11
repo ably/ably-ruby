@@ -4,9 +4,7 @@ require 'base64'
 require 'json'
 require 'securerandom'
 
-describe 'Ably::Realtime::Channel Message' do
-  include RSpec::EventMachine
-
+describe 'Ably::Realtime::Channel Message', :event_machine do
   vary_by_protocol do
     let(:default_options) { options.merge(api_key: api_key, environment: environment, protocol: protocol) }
     let(:client_options)  { default_options }
@@ -20,18 +18,16 @@ describe 'Ably::Realtime::Channel Message' do
     end
     let(:other_client_channel) { other_client.channel(channel_name) }
 
-    let(:channel_name) { 'subscribe_send_text' }
+    let(:channel_name) { "subscribe_send_text-#{random_str}" }
     let(:options)      { { :protocol => :json } }
     let(:payload)      { 'Test message (subscribe_send_text)' }
 
-    it 'sends a string message' do
-      run_reactor do
-        channel.attach
-        channel.on(:attached) do
-          channel.publish('test_event', payload) do |message|
-            expect(message.data).to eql(payload)
-            stop_reactor
-          end
+    it 'sends a String data payload' do
+      channel.attach
+      channel.on(:attached) do
+        channel.publish('test_event', payload) do |message|
+          expect(message.data).to eql(payload)
+          stop_reactor
         end
       end
     end
@@ -39,55 +35,47 @@ describe 'Ably::Realtime::Channel Message' do
     context 'with ASCII_8BIT message name' do
       let(:message_name) { random_str.encode(Encoding::ASCII_8BIT) }
       it 'is converted into UTF_8' do
-        run_reactor do
-          channel.attach do
-            channel.publish message_name, payload
-          end
-          channel.subscribe do |message|
-            expect(message.name.encoding).to eql(Encoding::UTF_8)
-            expect(message.name.encode(Encoding::ASCII_8BIT)).to eql(message_name)
-            stop_reactor
-          end
+        channel.attach do
+          channel.publish message_name, payload
+        end
+        channel.subscribe do |message|
+          expect(message.name.encoding).to eql(Encoding::UTF_8)
+          expect(message.name.encode(Encoding::ASCII_8BIT)).to eql(message_name)
+          stop_reactor
         end
       end
     end
 
-    context 'with a publisher having a client_id' do
+    context 'when the message publisher has a client_id' do
       let(:client_id) { random_str }
       let(:client_options)  { default_options.merge(client_id: client_id) }
 
-      specify 'the message is published with the client_id' do
-        run_reactor do
-          channel.attach do
-            other_client_channel.attach do
-              other_client_channel.subscribe('event') do |message|
-                expect(message.client_id).to eql(client_id)
-                stop_reactor
-              end
-              channel.publish('event', payload)
-            end
+      it 'contains a #client_id attribute' do
+        when_all(channel.attach, other_client_channel.attach) do
+          other_client_channel.subscribe('event') do |message|
+            expect(message.client_id).to eql(client_id)
+            stop_reactor
           end
+          channel.publish('event', payload)
         end
       end
     end
 
-    context 'the message contains a member_id of the publisher' do
-      specify 'over realtime' do
-        run_reactor do
-          channel.attach do
-            other_client_channel.attach do
-              other_client_channel.subscribe('event') do |message|
-                expect(message.member_id).to eql(client.connection.member_id)
-                stop_reactor
-              end
-              channel.publish('event', payload)
+    describe '#member_id attribute' do
+      context 'over realtime' do
+        it 'matches the sender connection member_id' do
+          when_all(channel.attach, other_client_channel.attach) do
+            other_client_channel.subscribe('event') do |message|
+              expect(message.member_id).to eql(client.connection.member_id)
+              stop_reactor
             end
+            channel.publish('event', payload)
           end
         end
       end
 
-      specify 'over REST' do
-        run_reactor do
+      context 'when retrieved over REST' do
+        it 'matches the sender connection member_id' do
           channel.publish('event', payload) do
             channel.history do |messages|
               expect(messages.first.data).to eql(payload)
@@ -99,26 +87,24 @@ describe 'Ably::Realtime::Channel Message' do
       end
     end
 
-    it 'sends a single message with an echo on another connection' do
-      run_reactor do
-        other_client_channel.attach do
+    describe 'local echo when published' do
+      it 'is enabled by default' do
+        channel.attach do
           channel.publish 'test_event', payload
-          other_client_channel.subscribe('test_event') do |message|
+          channel.subscribe('test_event') do |message|
             expect(message.data).to eql(payload)
             stop_reactor
           end
         end
       end
-    end
 
-    context 'with echo_messages => false' do
-      let(:no_echo_client) do
-        Ably::Realtime::Client.new(default_options.merge(echo_messages: false))
-      end
-      let(:no_echo_channel) { no_echo_client.channel(channel_name) }
+      context 'with :echo_messages option set to false' do
+        let(:no_echo_client) do
+          Ably::Realtime::Client.new(default_options.merge(echo_messages: false))
+        end
+        let(:no_echo_channel) { no_echo_client.channel(channel_name) }
 
-      it 'sends a single message without a reply yet the messages is echoed on another normal connection' do
-        run_reactor(10) do
+        it 'will not echo messages to the client but will still broadcast messages to other connected clients', em_timeout: 10 do
           channel.attach do |echo_channel|
             no_echo_channel.attach do
               no_echo_channel.publish 'test_event', payload
@@ -139,8 +125,8 @@ describe 'Ably::Realtime::Channel Message' do
       end
     end
 
-    context 'with multiple messages' do
-      let(:send_count)     { 15 }
+    context 'publishing lots of messages across two connections' do
+      let(:send_count)     { 30 }
       let(:expected_echos) { send_count * 2 }
       let(:channel_name)   { random_str }
       let(:echos) do
@@ -150,52 +136,40 @@ describe 'Ably::Realtime::Channel Message' do
         { client: 0, other: 0 }
       end
 
-      it 'sends and receives the messages on both opened connections and calls the callbacks (expects twice number of messages due to local echos)' do
-        run_reactor(8) do
-          check_message_and_callback_counts = Proc.new do
-            if echos[:client] == expected_echos && echos[:other] == expected_echos
-              # Wait for message backlog to clear
-              EventMachine.add_timer(0.5) do
-                expect(echos[:client]).to eql(expected_echos)
-                expect(echos[:other]).to eql(expected_echos)
+      it 'sends and receives the messages on both opened connections and calls the success callbacks for each message published', em_timeout: 10 do
+        check_message_and_callback_counts = Proc.new do
+          if echos[:client] == expected_echos && echos[:other] == expected_echos
+            # Wait for message backlog to clear
+            EventMachine.add_timer(0.5) do
+              expect(echos[:client]).to eql(expected_echos)
+              expect(echos[:other]).to eql(expected_echos)
 
-                expect(callbacks[:client]).to eql(send_count)
-                expect(callbacks[:other]).to eql(send_count)
+              expect(callbacks[:client]).to eql(send_count)
+              expect(callbacks[:other]).to eql(send_count)
 
-                stop_reactor
-              end
+              stop_reactor
             end
           end
+        end
 
-          published = false
-          attach_callback = Proc.new do
-            next if published
+        channel.subscribe('test_event') do |message|
+          echos[:client] += 1
+          check_message_and_callback_counts.call
+        end
+        other_client_channel.subscribe('test_event') do |message|
+          echos[:other] += 1
+          check_message_and_callback_counts.call
+        end
 
-            if channel.attached? && other_client_channel.attached?
-              send_count.times do |index|
-                channel.publish('test_event', "#{index}: #{payload}") do
-                  callbacks[:client] += 1
-                end
-                other_client_channel.publish('test_event', "#{index}: #{payload}") do
-                  callbacks[:other] += 1
-                end
-              end
-
-              published = true
+        when_all(channel.attach, other_client_channel.attach) do
+          send_count.times do |index|
+            channel.publish('test_event', "#{index}: #{payload}") do
+              callbacks[:client] += 1
+            end
+            other_client_channel.publish('test_event', "#{index}: #{payload}") do
+              callbacks[:other] += 1
             end
           end
-
-          channel.subscribe('test_event') do |message|
-            echos[:client] += 1
-            check_message_and_callback_counts.call
-          end
-          other_client_channel.subscribe('test_event') do |message|
-            echos[:other] += 1
-            check_message_and_callback_counts.call
-          end
-
-          channel.attach &attach_callback
-          other_client_channel.attach &attach_callback
         end
       end
     end
@@ -208,19 +182,15 @@ describe 'Ably::Realtime::Channel Message' do
       let(:payload)            { 'Test message without permission to publish' }
 
       it 'calls the error callback' do
-        run_reactor do
-          restricted_channel.attach
-          restricted_channel.on(:attached) do
-            deferrable = restricted_channel.publish('test_event', payload)
-            deferrable.errback do |message, error|
-              expect(message.data).to eql(payload)
-              expect(error.status).to eql(401)
-              stop_reactor
-            end
-            deferrable.callback do |message|
-              fail 'Success callback should not have been called'
-              stop_reactor
-            end
+        restricted_channel.attach do
+          deferrable = restricted_channel.publish('test_event', payload)
+          deferrable.errback do |message, error|
+            expect(message.data).to eql(payload)
+            expect(error.status).to eql(401)
+            stop_reactor
+          end
+          deferrable.callback do |message|
+            fail 'Success callback should not have been called'
           end
         end
       end
@@ -236,7 +206,7 @@ describe 'Ably::Realtime::Channel Message' do
 
         let(:cipher_options) { { key: secret_key, iv: iv, algorithm: algorithm, mode: mode, key_length: key_length } }
 
-        context 'publish & subscribe' do
+        context 'with #publish and #subscribe' do
           let(:encoded)          { item['encoded'] }
           let(:encoded_data)     { encoded['data'] }
           let(:encoded_encoding) { encoded['encoding'] }
@@ -263,34 +233,30 @@ describe 'Ably::Realtime::Channel Message' do
 
           let(:encrypted_channel) { client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
 
-          it 'encrypts message automatically when published' do
-            run_reactor do
-              encrypted_channel.__incoming_msgbus__.unsubscribe # remove all subscribe callbacks that could decrypt the message
+          it 'encrypts message automatically before they are pushed to the server' do
+            encrypted_channel.__incoming_msgbus__.unsubscribe # remove all subscribe callbacks that could decrypt the message
 
-              encrypted_channel.__incoming_msgbus__.subscribe(:message) do |message|
-                if protocol == :json
-                  expect(message['encoding']).to eql(encrypted_encoding)
-                  expect(message['data']).to eql(encrypted_data)
-                else
-                  # Messages received over binary protocol will not have Base64 encoded data
-                  expect(message['encoding']).to eql(encrypted_encoding.gsub(%r{/base64$}, ''))
-                  expect(message['data']).to eql(encrypted_data_decoded)
-                end
-                stop_reactor
+            encrypted_channel.__incoming_msgbus__.subscribe(:message) do |message|
+              if protocol == :json
+                expect(message['encoding']).to eql(encrypted_encoding)
+                expect(message['data']).to eql(encrypted_data)
+              else
+                # Messages received over binary protocol will not have Base64 encoded data
+                expect(message['encoding']).to eql(encrypted_encoding.gsub(%r{/base64$}, ''))
+                expect(message['data']).to eql(encrypted_data_decoded)
               end
-
-              encrypted_channel.publish 'example', encoded_data_decoded
+              stop_reactor
             end
+
+            encrypted_channel.publish 'example', encoded_data_decoded
           end
 
           it 'sends and receives messages that are encrypted & decrypted by the Ably library' do
-            run_reactor do
-              encrypted_channel.publish 'example', encoded_data_decoded
-              encrypted_channel.subscribe do |message|
-                expect(message.data).to eql(encoded_data_decoded)
-                expect(message.encoding).to be_nil
-                stop_reactor
-              end
+            encrypted_channel.publish 'example', encoded_data_decoded
+            encrypted_channel.subscribe do |message|
+              expect(message.data).to eql(encoded_data_decoded)
+              expect(message.encoding).to be_nil
+              stop_reactor
             end
           end
         end
@@ -316,7 +282,7 @@ describe 'Ably::Realtime::Channel Message' do
         add_tests_for_data data
       end
 
-      context 'multiple sends from one client to another' do
+      context 'with multiple sends from one client to another' do
         let(:cipher_options)            { { key: random_str(32) } }
         let(:encrypted_channel_client1) { client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
         let(:encrypted_channel_client2) { other_client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
@@ -324,35 +290,33 @@ describe 'Ably::Realtime::Channel Message' do
         let(:data) { MessagePack.pack({ 'key' => random_str }) }
         let(:message_count) { 50 }
 
-        it 'encrypt and decrypt messages' do
+        it 'encrypts and decrypts all messages' do
           messages_received = {
             decrypted: 0,
             encrypted: 0
           }
 
-          run_reactor do
-            encrypted_channel_client2.attach do
-              encrypted_channel_client2.subscribe do |message|
-                expect(message.data).to eql("#{message.name}-#{data}")
-                expect(message.encoding).to be_nil
-                messages_received[:decrypted] += 1
-                stop_reactor if messages_received[:decrypted] == message_count
-              end
-
-              encrypted_channel_client1.__incoming_msgbus__.subscribe(:message) do |message|
-                expect(message['encoding']).to match(/cipher\+/)
-                messages_received[:encrypted] += 1
-              end
+          encrypted_channel_client2.attach do
+            encrypted_channel_client2.subscribe do |message|
+              expect(message.data).to eql("#{message.name}-#{data}")
+              expect(message.encoding).to be_nil
+              messages_received[:decrypted] += 1
+              stop_reactor if messages_received[:decrypted] == message_count
             end
 
-            message_count.times do |index|
-              encrypted_channel_client2.publish index.to_s, "#{index}-#{data}"
+            encrypted_channel_client1.__incoming_msgbus__.subscribe(:message) do |message|
+              expect(message['encoding']).to match(/cipher\+/)
+              messages_received[:encrypted] += 1
             end
+          end
+
+          message_count.times do |index|
+            encrypted_channel_client2.publish index.to_s, "#{index}-#{data}"
           end
         end
       end
 
-      context 'subscribing with a different protocol' do
+      context 'subscribing with a different transport protocol' do
         let(:other_protocol) { protocol == :msgpack ? :json : :msgpack }
         let(:other_client) do
           Ably::Realtime::Client.new(default_options.merge(protocol: other_protocol))
@@ -369,14 +333,12 @@ describe 'Ably::Realtime::Channel Message' do
         [MessagePack.pack({ 'key' => SecureRandom.hex }), 'ã unicode', { 'key' => SecureRandom.hex }].each do |payload|
           payload_description = "#{payload.class}#{" #{payload.encoding}" if payload.kind_of?(String)}"
 
-          specify "delivers a #{payload_description} payload to the receiver" do
-            run_reactor do
-              encrypted_channel_client1.publish 'example', payload
-              encrypted_channel_client2.subscribe do |message|
-                expect(message.data).to eql(payload)
-                expect(message.encoding).to be_nil
-                stop_reactor
-              end
+          it "delivers a #{payload_description} payload to the receiver" do
+            encrypted_channel_client1.publish 'example', payload
+            encrypted_channel_client2.subscribe do |message|
+              expect(message.data).to eql(payload)
+              expect(message.encoding).to be_nil
+              stop_reactor
             end
           end
         end
@@ -391,13 +353,11 @@ describe 'Ably::Realtime::Channel Message' do
         let(:payload) { MessagePack.pack({ 'key' => random_str }) }
 
         it 'does not attempt to decrypt the message' do
-          run_reactor do
-            unencrypted_channel_client1.publish 'example', payload
-            encrypted_channel_client2.subscribe do |message|
-              expect(message.data).to eql(payload)
-              expect(message.encoding).to be_nil
-              stop_reactor
-            end
+          unencrypted_channel_client1.publish 'example', payload
+          encrypted_channel_client2.subscribe do |message|
+            expect(message.data).to eql(payload)
+            expect(message.encoding).to be_nil
+            stop_reactor
           end
         end
       end
@@ -410,27 +370,23 @@ describe 'Ably::Realtime::Channel Message' do
 
         let(:payload) { MessagePack.pack({ 'key' => random_str }) }
 
-        it 'delivers the message but still encrypted' do
-          run_reactor do
-            encrypted_channel_client1.publish 'example', payload
-            unencrypted_channel_client2.subscribe do |message|
-              expect(message.data).to_not eql(payload)
-              expect(message.encoding).to match(/^cipher\+aes-256-cbc/)
-              stop_reactor
-            end
+        it 'delivers the message but still encrypted with a value in the #encoding attribute' do
+          encrypted_channel_client1.publish 'example', payload
+          unencrypted_channel_client2.subscribe do |message|
+            expect(message.data).to_not eql(payload)
+            expect(message.encoding).to match(/^cipher\+aes-256-cbc/)
+            stop_reactor
           end
         end
 
         it 'triggers a Cipher error on the channel' do
-          run_reactor do
-            unencrypted_channel_client2.attach do
-              encrypted_channel_client1.publish 'example', payload
-              unencrypted_channel_client2.on(:error) do |error|
-                expect(error).to be_a(Ably::Exceptions::CipherError)
-                expect(error.code).to eql(92001)
-                expect(error.message).to match(/Message cannot be decrypted/)
-                stop_reactor
-              end
+          unencrypted_channel_client2.attach do
+            encrypted_channel_client1.publish 'example', payload
+            unencrypted_channel_client2.on(:error) do |error|
+              expect(error).to be_a(Ably::Exceptions::CipherError)
+              expect(error.code).to eql(92001)
+              expect(error.message).to match(/Message cannot be decrypted/)
+              stop_reactor
             end
           end
         end
@@ -445,27 +401,23 @@ describe 'Ably::Realtime::Channel Message' do
 
         let(:payload) { MessagePack.pack({ 'key' => random_str }) }
 
-        it 'delivers the message but still encrypted' do
-          run_reactor do
-            encrypted_channel_client1.publish 'example', payload
-            encrypted_channel_client2.subscribe do |message|
-              expect(message.data).to_not eql(payload)
-              expect(message.encoding).to match(/^cipher\+aes-256-cbc/)
-              stop_reactor
-            end
+        it 'delivers the message but still encrypted with the cipher detials in the #encoding attribute' do
+          encrypted_channel_client1.publish 'example', payload
+          encrypted_channel_client2.subscribe do |message|
+            expect(message.data).to_not eql(payload)
+            expect(message.encoding).to match(/^cipher\+aes-256-cbc/)
+            stop_reactor
           end
         end
 
         it 'triggers a Cipher error on the channel' do
-          run_reactor do
-            encrypted_channel_client2.attach do
-              encrypted_channel_client1.publish 'example', payload
-              encrypted_channel_client2.on(:error) do |error|
-                expect(error).to be_a(Ably::Exceptions::CipherError)
-                expect(error.code).to eql(92002)
-                expect(error.message).to match(/Cipher algorithm [\w\d-]+ does not match/)
-                stop_reactor
-              end
+          encrypted_channel_client2.attach do
+            encrypted_channel_client1.publish 'example', payload
+            encrypted_channel_client2.on(:error) do |error|
+              expect(error).to be_a(Ably::Exceptions::CipherError)
+              expect(error.code).to eql(92002)
+              expect(error.message).to match(/Cipher algorithm [\w\d-]+ does not match/)
+              stop_reactor
             end
           end
         end
@@ -480,27 +432,23 @@ describe 'Ably::Realtime::Channel Message' do
 
         let(:payload) { MessagePack.pack({ 'key' => random_str }) }
 
-        it 'delivers the message but still encrypted' do
-          run_reactor do
-            encrypted_channel_client1.publish 'example', payload
-            encrypted_channel_client2.subscribe do |message|
-              expect(message.data).to_not eql(payload)
-              expect(message.encoding).to match(/^cipher\+aes-256-cbc/)
-              stop_reactor
-            end
+        it 'delivers the message but still encrypted with the cipher details in the #encoding attribute' do
+          encrypted_channel_client1.publish 'example', payload
+          encrypted_channel_client2.subscribe do |message|
+            expect(message.data).to_not eql(payload)
+            expect(message.encoding).to match(/^cipher\+aes-256-cbc/)
+            stop_reactor
           end
         end
 
         it 'triggers a Cipher error on the channel' do
-          run_reactor do
-            encrypted_channel_client2.attach do
-              encrypted_channel_client1.publish 'example', payload
-              encrypted_channel_client2.on(:error) do |error|
-                expect(error).to be_a(Ably::Exceptions::CipherError)
-                expect(error.code).to eql(92003)
-                expect(error.message).to match(/CipherError decrypting data/)
-                stop_reactor
-              end
+          encrypted_channel_client2.attach do
+            encrypted_channel_client1.publish 'example', payload
+            encrypted_channel_client2.on(:error) do |error|
+              expect(error).to be_a(Ably::Exceptions::CipherError)
+              expect(error.code).to eql(92003)
+              expect(error.message).to match(/CipherError decrypting data/)
+              stop_reactor
             end
           end
         end
