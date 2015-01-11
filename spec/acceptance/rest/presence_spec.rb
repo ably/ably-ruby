@@ -17,11 +17,11 @@ describe Ably::Rest::Presence do
       end
     end
 
-    describe '#get presence' do
+    describe '#get' do
       let(:channel) { client.channel('persisted:presence_fixtures') }
       let(:presence) { channel.presence.get }
 
-      it 'returns current members on the channel with :present action' do
+      it 'returns current members on the channel with their action set to :present' do
         expect(presence.size).to eql(4)
 
         fixtures.each do |fixture|
@@ -31,11 +31,11 @@ describe Ably::Rest::Presence do
         end
       end
 
-      context 'with limit option' do
+      context 'with :limit option' do
         let(:page_size) { 2 }
         let(:presence)  { channel.presence.get(limit: page_size) }
 
-        it 'returns a paged response' do
+        it 'returns a paged response limiting number of members per page' do
           expect(presence.size).to eql(2)
           next_page = presence.next_page
           expect(next_page.size).to eql(2)
@@ -44,7 +44,7 @@ describe Ably::Rest::Presence do
       end
     end
 
-    describe 'presence #history' do
+    describe '#history' do
       let(:channel) { client.channel('persisted:presence_fixtures') }
       let(:presence_history) { channel.presence.history }
 
@@ -60,11 +60,11 @@ describe Ably::Rest::Presence do
       context 'with options' do
         let(:page_size) { 2 }
 
-        context 'forwards' do
+        context 'direction: :forwards' do
           let(:presence_history) { channel.presence.history(direction: :forwards) }
           let(:paged_history_forward) { channel.presence.history(limit: page_size, direction: :forwards) }
 
-          it 'returns recent presence activity with options passed to Ably' do
+          it 'returns recent presence activity forwards with most recent history last' do
             expect(paged_history_forward).to be_a(Ably::Models::PaginatedResource)
             expect(paged_history_forward.size).to eql(2)
 
@@ -75,11 +75,11 @@ describe Ably::Rest::Presence do
           end
         end
 
-        context 'backwards' do
+        context 'direction: :backwards' do
           let(:presence_history) { channel.presence.history(direction: :backwards) }
           let(:paged_history_backward) { channel.presence.history(limit: page_size, direction: :backwards) }
 
-          it 'returns recent presence activity with options passed to Ably' do
+          it 'returns recent presence activity backwards with most recent history first' do
             expect(paged_history_backward).to be_a(Ably::Models::PaginatedResource)
             expect(paged_history_backward.size).to eql(2)
 
@@ -89,51 +89,51 @@ describe Ably::Rest::Presence do
             expect(next_page.first.id).to eql(presence_history[page_size].id)
           end
         end
-      end
-    end
 
-    describe 'options' do
-      let(:channel_name) { "persisted:#{random_str(4)}" }
-      let(:presence) { client.channel(channel_name).presence }
-      let(:user) { 'appid.keyuid' }
-      let(:secret) { random_str(8) }
-      let(:endpoint) do
-        client.endpoint.tap do |client_end_point|
-          client_end_point.user = user
-          client_end_point.password = secret
-        end
-      end
-      let(:client) do
-        Ably::Rest::Client.new(api_key: "#{user}:#{secret}")
-      end
-
-      [:start, :end].each do |option|
-        describe ":#{option}", :webmock do
-          let!(:history_stub) {
-            stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence/history?#{option}=#{milliseconds}").
-              to_return(:body => '{}', :headers => { 'Content-Type' => 'application/json' })
-          }
-
-          before do
-            presence.history(options)
-          end
-
-          context 'with milliseconds since epoch' do
-            let(:milliseconds) { as_since_epoch(Time.now) }
-            let(:options) { { option => milliseconds } }
-
-            specify 'are left unchanged' do
-              expect(history_stub).to have_been_requested
+        describe 'time options' do
+          let(:channel_name) { "persisted:#{random_str(4)}" }
+          let(:presence) { client.channel(channel_name).presence }
+          let(:user) { 'appid.keyuid' }
+          let(:secret) { random_str(8) }
+          let(:endpoint) do
+            client.endpoint.tap do |client_end_point|
+              client_end_point.user = user
+              client_end_point.password = secret
             end
           end
+          let(:client) do
+            Ably::Rest::Client.new(api_key: "#{user}:#{secret}")
+          end
 
-          context 'with Time' do
-            let(:time) { Time.now }
-            let(:milliseconds) { as_since_epoch(time) }
-            let(:options) { { option => time } }
+          [:start, :end].each do |option|
+            describe ":#{option}", :webmock do
+              let!(:history_stub) {
+                stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence/history?#{option}=#{milliseconds}").
+                  to_return(:body => '{}', :headers => { 'Content-Type' => 'application/json' })
+              }
 
-            specify 'are left unchanged' do
-              expect(history_stub).to have_been_requested
+              before do
+                presence.history(options)
+              end
+
+              context 'with milliseconds since epoch value' do
+                let(:milliseconds) { as_since_epoch(Time.now) }
+                let(:options) { { option => milliseconds } }
+
+                it 'uses this value in the history request' do
+                  expect(history_stub).to have_been_requested
+                end
+              end
+
+              context 'with Time object value' do
+                let(:time) { Time.now }
+                let(:milliseconds) { as_since_epoch(time) }
+                let(:options) { { option => time } }
+
+                it 'converts the value to milliseconds since epoch in the hisotry request' do
+                  expect(history_stub).to have_been_requested
+                end
+              end
             end
           end
         end
