@@ -15,7 +15,7 @@ describe Ably::Modules::EventEmitter do
   subject { klass.new }
 
   context '#trigger event fan out' do
-    specify do
+    it 'should emit an event for any number of subscribers' do
       2.times do
         subject.on(:message) { |msg| obj.received_message msg }
       end
@@ -24,7 +24,7 @@ describe Ably::Modules::EventEmitter do
       subject.trigger :message, msg
     end
 
-    it '#trigger sends only messages to matching event names' do
+    it 'sends only messages to matching event names' do
       subject.on(:valid) { |msg| obj.received_message msg }
 
       expect(obj).to receive(:received_message).with(msg).once
