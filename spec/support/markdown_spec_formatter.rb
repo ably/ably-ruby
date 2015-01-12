@@ -17,7 +17,7 @@ module Ably::RSpec
 
     def start(notification)
       puts "\n\e[33m --> Creating SPEC.md <--\e[0m\n"
-      output.write "# Ably Client Library Specification\n"
+      output.write "# Ably Client Library #{Ably::VERSION} Specification\n"
     end
 
     def close(notification)

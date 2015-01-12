@@ -1,4 +1,4 @@
-# Ably Client Library Specification
+# Ably Client Library 0.6.2 Specification
 
 ### Ably::Realtime::Channel#history
 _(see [spec/acceptance/realtime/channel_history_spec.rb](./spec/acceptance/realtime/channel_history_spec.rb))_
@@ -879,12 +879,12 @@ _(see [spec/unit/auth_spec.rb](./spec/unit/auth_spec.rb))_
 
 ### Ably::Logger
 _(see [spec/unit/logger_spec.rb](./spec/unit/logger_spec.rb))_
-  * [uses the language provided Logger by default](./spec/unit/logger_spec.rb#L25)
+  * [uses the language provided Logger by default](./spec/unit/logger_spec.rb#L15)
   * with a custom Logger
     * with an invalid interface
-      * [raises an exception](./spec/unit/logger_spec.rb#L111)
+      * [raises an exception](./spec/unit/logger_spec.rb#L116)
     * with a valid interface
-      * [is used](./spec/unit/logger_spec.rb#L130)
+      * [is used](./spec/unit/logger_spec.rb#L135)
 
 ### Ably::Models::ErrorInfo
 _(see [spec/unit/models/error_info_spec.rb](./spec/unit/models/error_info_spec.rb))_
@@ -1356,8 +1356,8 @@ _(see [spec/unit/models/token_spec.rb](./spec/unit/models/token_spec.rb))_
 ### Ably::Modules::EventEmitter
 _(see [spec/unit/modules/event_emitter_spec.rb](./spec/unit/modules/event_emitter_spec.rb))_
   * #trigger event fan out
-    * [should #<RSpec::Mocks::Matchers::Receive:0x007fe5dd6c17c0>](./spec/unit/modules/event_emitter_spec.rb#L18)
-    * [#trigger sends only messages to matching event names](./spec/unit/modules/event_emitter_spec.rb#L27)
+    * [should emit an event for any number of subscribers](./spec/unit/modules/event_emitter_spec.rb#L18)
+    * [sends only messages to matching event names](./spec/unit/modules/event_emitter_spec.rb#L27)
     * #on subscribe to multiple events
       * [with the same block](./spec/unit/modules/event_emitter_spec.rb#L59)
     * event callback changes within the callback block
