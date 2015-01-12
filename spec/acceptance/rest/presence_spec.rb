@@ -17,122 +17,132 @@ describe Ably::Rest::Presence do
       end
     end
 
-    describe '#get' do
-      let(:channel) { client.channel('persisted:presence_fixtures') }
-      let(:presence) { channel.presence.get }
+    context 'tested against presence fixture data set up in test app' do
+      before(:context) do
+        # When this test is run as a part of a test suite, the presence data injected in the test app may have expired
+        WebMock.disable!
+        TestApp.reload
+      end
 
-      it 'returns current members on the channel with their action set to :present' do
-        expect(presence.size).to eql(4)
+      describe '#get' do
+        let(:channel) { client.channel('persisted:presence_fixtures') }
+        let(:presence) { channel.presence.get }
 
-        fixtures.each do |fixture|
-          presence_message = presence.find { |client| client.client_id == fixture[:client_id] }
-          expect(presence_message.data).to eq(fixture[:data])
-          expect(presence_message.action).to eq(:present)
+        it 'returns current members on the channel with their action set to :present' do
+          expect(presence.size).to eql(4)
+
+          fixtures.each do |fixture|
+            presence_message = presence.find { |client| client.client_id == fixture[:client_id] }
+            expect(presence_message.data).to eq(fixture[:data])
+            expect(presence_message.action).to eq(:present)
+          end
+        end
+
+        context 'with :limit option' do
+          let(:page_size) { 2 }
+          let(:presence)  { channel.presence.get(limit: page_size) }
+
+          it 'returns a paged response limiting number of members per page' do
+            expect(presence.size).to eql(2)
+            next_page = presence.next_page
+            expect(next_page.size).to eql(2)
+            expect(next_page).to be_last_page
+          end
         end
       end
 
-      context 'with :limit option' do
-        let(:page_size) { 2 }
-        let(:presence)  { channel.presence.get(limit: page_size) }
+      describe '#history' do
+        let(:channel) { client.channel('persisted:presence_fixtures') }
+        let(:presence_history) { channel.presence.history }
 
-        it 'returns a paged response limiting number of members per page' do
-          expect(presence.size).to eql(2)
-          next_page = presence.next_page
-          expect(next_page.size).to eql(2)
-          expect(next_page).to be_last_page
+        it 'returns recent presence activity' do
+          expect(presence_history.size).to eql(4)
+
+          fixtures.each do |fixture|
+            presence_message = presence_history.find { |client| client.client_id == fixture['clientId'] }
+            expect(presence_message.data).to eq(fixture[:data])
+          end
+        end
+
+        context 'with options' do
+          let(:page_size) { 2 }
+
+          context 'direction: :forwards' do
+            let(:presence_history) { channel.presence.history(direction: :forwards) }
+            let(:paged_history_forward) { channel.presence.history(limit: page_size, direction: :forwards) }
+
+            it 'returns recent presence activity forwards with most recent history last' do
+              expect(paged_history_forward).to be_a(Ably::Models::PaginatedResource)
+              expect(paged_history_forward.size).to eql(2)
+
+              next_page = paged_history_forward.next_page
+
+              expect(paged_history_forward.first.id).to eql(presence_history.first.id)
+              expect(next_page.first.id).to eql(presence_history[page_size].id)
+            end
+          end
+
+          context 'direction: :backwards' do
+            let(:presence_history) { channel.presence.history(direction: :backwards) }
+            let(:paged_history_backward) { channel.presence.history(limit: page_size, direction: :backwards) }
+
+            it 'returns recent presence activity backwards with most recent history first' do
+              expect(paged_history_backward).to be_a(Ably::Models::PaginatedResource)
+              expect(paged_history_backward.size).to eql(2)
+
+              next_page = paged_history_backward.next_page
+
+              expect(paged_history_backward.first.id).to eql(presence_history.first.id)
+              expect(next_page.first.id).to eql(presence_history[page_size].id)
+            end
+          end
         end
       end
     end
 
     describe '#history' do
-      let(:channel) { client.channel('persisted:presence_fixtures') }
-      let(:presence_history) { channel.presence.history }
-
-      it 'returns recent presence activity' do
-        expect(presence_history.size).to eql(4)
-
-        fixtures.each do |fixture|
-          presence_message = presence_history.find { |client| client.client_id == fixture['clientId'] }
-          expect(presence_message.data).to eq(fixture[:data])
-        end
-      end
-
-      context 'with options' do
-        let(:page_size) { 2 }
-
-        context 'direction: :forwards' do
-          let(:presence_history) { channel.presence.history(direction: :forwards) }
-          let(:paged_history_forward) { channel.presence.history(limit: page_size, direction: :forwards) }
-
-          it 'returns recent presence activity forwards with most recent history last' do
-            expect(paged_history_forward).to be_a(Ably::Models::PaginatedResource)
-            expect(paged_history_forward.size).to eql(2)
-
-            next_page = paged_history_forward.next_page
-
-            expect(paged_history_forward.first.id).to eql(presence_history.first.id)
-            expect(next_page.first.id).to eql(presence_history[page_size].id)
+      context 'with time range options' do
+        let(:channel_name) { "persisted:#{random_str(4)}" }
+        let(:presence) { client.channel(channel_name).presence }
+        let(:user) { 'appid.keyuid' }
+        let(:secret) { random_str(8) }
+        let(:endpoint) do
+          client.endpoint.tap do |client_end_point|
+            client_end_point.user = user
+            client_end_point.password = secret
           end
         end
-
-        context 'direction: :backwards' do
-          let(:presence_history) { channel.presence.history(direction: :backwards) }
-          let(:paged_history_backward) { channel.presence.history(limit: page_size, direction: :backwards) }
-
-          it 'returns recent presence activity backwards with most recent history first' do
-            expect(paged_history_backward).to be_a(Ably::Models::PaginatedResource)
-            expect(paged_history_backward.size).to eql(2)
-
-            next_page = paged_history_backward.next_page
-
-            expect(paged_history_backward.first.id).to eql(presence_history.first.id)
-            expect(next_page.first.id).to eql(presence_history[page_size].id)
-          end
+        let(:client) do
+          Ably::Rest::Client.new(api_key: "#{user}:#{secret}")
         end
 
-        describe 'time options' do
-          let(:channel_name) { "persisted:#{random_str(4)}" }
-          let(:presence) { client.channel(channel_name).presence }
-          let(:user) { 'appid.keyuid' }
-          let(:secret) { random_str(8) }
-          let(:endpoint) do
-            client.endpoint.tap do |client_end_point|
-              client_end_point.user = user
-              client_end_point.password = secret
+        [:start, :end].each do |option|
+          describe ":#{option}", :webmock do
+            let!(:history_stub) {
+              stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence/history?#{option}=#{milliseconds}").
+                to_return(:body => '{}', :headers => { 'Content-Type' => 'application/json' })
+            }
+
+            before do
+              presence.history(options)
             end
-          end
-          let(:client) do
-            Ably::Rest::Client.new(api_key: "#{user}:#{secret}")
-          end
 
-          [:start, :end].each do |option|
-            describe ":#{option}", :webmock do
-              let!(:history_stub) {
-                stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence/history?#{option}=#{milliseconds}").
-                  to_return(:body => '{}', :headers => { 'Content-Type' => 'application/json' })
-              }
+            context 'with milliseconds since epoch value' do
+              let(:milliseconds) { as_since_epoch(Time.now) }
+              let(:options) { { option => milliseconds } }
 
-              before do
-                presence.history(options)
+              it 'uses this value in the history request' do
+                expect(history_stub).to have_been_requested
               end
+            end
 
-              context 'with milliseconds since epoch value' do
-                let(:milliseconds) { as_since_epoch(Time.now) }
-                let(:options) { { option => milliseconds } }
+            context 'with Time object value' do
+              let(:time) { Time.now }
+              let(:milliseconds) { as_since_epoch(time) }
+              let(:options) { { option => time } }
 
-                it 'uses this value in the history request' do
-                  expect(history_stub).to have_been_requested
-                end
-              end
-
-              context 'with Time object value' do
-                let(:time) { Time.now }
-                let(:milliseconds) { as_since_epoch(time) }
-                let(:options) { { option => time } }
-
-                it 'converts the value to milliseconds since epoch in the hisotry request' do
-                  expect(history_stub).to have_been_requested
-                end
+              it 'converts the value to milliseconds since epoch in the hisotry request' do
+                expect(history_stub).to have_been_requested
               end
             end
           end
