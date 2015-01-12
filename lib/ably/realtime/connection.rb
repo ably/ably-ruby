@@ -54,15 +54,15 @@ module Ably
       include Ably::Modules::UsesStateMachine
 
       # Expected format for a connection recover key
-      RECOVER_REGEX = /^(?<recover>\w+):(?<connection_serial>\-?\w+)$/
+      RECOVER_REGEX = /^(?<recover>[\w-]+):(?<connection_serial>\-?\w+)$/
 
-      # Unique connection ID key used to recover this connection, assigned by Ably
+      # A unique public identifier for this connection, used to identify this member in presence events and messages
       # @return [String]
       attr_reader :id
 
-      # A public identifier for this connection, used to identify this member in presence events and messages.
+      # A unique private connection key used to recover this connection, assigned by Ably
       # @return [String]
-      attr_reader :member_id
+      attr_reader :key
 
       # The serial number of the last message to be received on this connection, used to recover or resume a connection
       # @return [Integer]
@@ -178,17 +178,17 @@ module Ably
       end
 
       # @!attribute [r] recovery_key
-      #   @return [String] recovery key that can be used by another client to recover this connection
+      #   @return [String] recovery key that can be used by another client to recover this connection with the :recover option
       def recovery_key
-        "#{id}:#{serial}" if connection_resumable?
+        "#{key}:#{serial}" if connection_resumable?
       end
 
-      # Configure the current connection and member ID
+      # Configure the current connection ID and connection key
       # @return [void]
       # @api private
-      def update_connection_and_member_id(connection_id, member_id)
-        @id        = connection_id
-        @member_id = member_id
+      def update_connection_id_and_key(connection_id, connection_key)
+        @id  = connection_id
+        @key = connection_key
       end
 
       # Store last received connection serial so that the connection can be resumed from the last known point-in-time
@@ -202,7 +202,7 @@ module Ably
       # @return [void]
       # @api private
       def reset_resume_info
-        @id     = nil
+        @key    = nil
         @serial = nil
       end
 
@@ -280,8 +280,8 @@ module Ably
             )
 
             if connection_resumable?
-              url_params.merge! resume: id, connection_serial: serial
-              logger.debug "Resuming connection id #{id} with serial #{serial}"
+              url_params.merge! resume: key, connection_serial: serial
+              logger.debug "Resuming connection key #{key} with serial #{serial}"
             elsif connection_recoverable?
               url_params.merge! recover: connection_recover_parts[:recover], connection_serial: connection_recover_parts[:connection_serial]
               logger.debug "Recovering connection with key #{client.recover}"
@@ -355,7 +355,7 @@ module Ably
       end
 
       def connection_resumable?
-        !id.nil? && !serial.nil?
+        !key.nil? && !serial.nil?
       end
 
       def connection_recoverable?

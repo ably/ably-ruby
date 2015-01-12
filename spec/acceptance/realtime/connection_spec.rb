@@ -260,7 +260,7 @@ describe Ably::Realtime::Connection, :event_machine do
       describe 'once connected' do
         let(:connection2) {  Ably::Realtime::Client.new(client_options).connection }
 
-        describe 'connection #id' do
+        describe 'connection#id' do
           it 'is a string' do
             connection.connect do
               expect(connection.id).to be_a(String)
@@ -268,9 +268,9 @@ describe Ably::Realtime::Connection, :event_machine do
             end
           end
 
-          it 'is unique from the member_id' do
+          it 'is unique from the connection#key' do
             connection.connect do
-              expect(connection.id).to_not eql(connection.member_id)
+              expect(connection.id).to_not eql(connection.key)
               stop_reactor
             end
           end
@@ -283,24 +283,24 @@ describe Ably::Realtime::Connection, :event_machine do
           end
         end
 
-        describe 'member #id' do
+        describe 'connection#key' do
           it 'is a string' do
             connection.connect do
-              expect(connection.member_id).to be_a(String)
+              expect(connection.key).to be_a(String)
               stop_reactor
             end
           end
 
-          it 'is unique from the connection #id' do
+          it 'is unique from the connection#id' do
             connection.connect do
-              expect(connection.member_id).to_not eql(connection.id)
+              expect(connection.key).to_not eql(connection.id)
               stop_reactor
             end
           end
 
           it 'is unique for every connection' do
             when_all(connection.connect, connection2.connect) do
-              expect(connection.member_id).to_not eql(connection2.member_id)
+              expect(connection.key).to_not eql(connection2.key)
               stop_reactor
             end
           end
@@ -308,15 +308,15 @@ describe Ably::Realtime::Connection, :event_machine do
       end
 
       context 'following a previous connection being opened and closed' do
-        it 'reconnects with a new connection ID and member ID' do
+        it 'reconnects and is provided with a new connection ID and connection key from the server' do
           connection.connect do
-            connection_id = connection.id
-            member_id = connection.member_id
+            connection_id  = connection.id
+            connection_key = connection.key
 
             connection.close do
               connection.connect do
                 expect(connection.id).to_not eql(connection_id)
-                expect(connection.member_id).to_not eql(member_id)
+                expect(connection.key).to_not eql(connection_key)
                 stop_reactor
               end
             end
@@ -541,24 +541,24 @@ describe Ably::Realtime::Connection, :event_machine do
         end
       end
 
-      context "opening a new connection using an recent old connection's #recovery_key" do
-        context 'connection#id and #member_id after recovery' do
+      context "opening a new connection using a recently disconnected connection's #recovery_key" do
+        context 'connection#id and connection#key after recovery' do
           let(:client_options)   { default_options.merge(log_level: :none) }
 
-          it 'remain identical' do
-            previous_connection_id = nil
-            previous_member_id     = nil
+          it 'remain the same' do
+            previous_connection_id  = nil
+            previous_connection_key = nil
 
             connection.once(:connected) do
-              previous_connection_id = connection.id
-              previous_member_id     = connection.member_id
+              previous_connection_id  = connection.id
+              previous_connection_key = connection.key
               connection.transition_state_machine! :failed
             end
 
             connection.once(:failed) do
               recover_client = Ably::Realtime::Client.new(default_options.merge(recover: client.connection.recovery_key))
               recover_client.connection.on(:connected) do
-                expect(recover_client.connection.member_id).to eql(previous_member_id)
+                expect(recover_client.connection.key).to eql(previous_connection_key)
                 expect(recover_client.connection.id).to eql(previous_connection_id)
                 stop_reactor
               end
@@ -619,19 +619,19 @@ describe Ably::Realtime::Connection, :event_machine do
     context 'with many connections simultaneously', em_timeout: 15 do
       let(:connection_count) { 40 }
       let(:connection_ids)   { [] }
-      let(:member_ids)       { [] }
+      let(:connection_keys)  { [] }
 
-      it 'opens each with a unique connection ID and member ID' do
+      it 'opens each with a unique connection#id and connection#key' do
         connection_count.times.map do
           Ably::Realtime::Client.new(client_options)
         end.each do |client|
           client.connection.on(:connected) do
-            connection_ids << client.connection.id
-            member_ids     << client.connection.member_id
+            connection_ids  << client.connection.id
+            connection_keys << client.connection.key
             next unless connection_ids.count == connection_count
 
             expect(connection_ids.uniq.count).to eql(connection_count)
-            expect(member_ids.uniq.count).to eql(connection_count)
+            expect(connection_keys.uniq.count).to eql(connection_count)
             stop_reactor
           end
         end

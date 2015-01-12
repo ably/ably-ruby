@@ -611,15 +611,15 @@ describe Ably::Realtime::Presence, :event_machine do
         end
       end
 
-      it 'filters by member_id option if provided' do
+      it 'filters by connection_id option if provided' do
         when_all(presence_client_one.enter, presence_client_two.enter, and_wait: 0.5) do
-          presence_client_one.get(member_id: client_one.connection.member_id) do |members|
+          presence_client_one.get(connection_id: client_one.connection.id) do |members|
             expect(members.count).to eq(1)
-            expect(members.first.member_id).to eql(client_one.connection.member_id)
+            expect(members.first.connection_id).to eql(client_one.connection.id)
 
-            presence_client_one.get(member_id: client_two.connection.member_id) do |members|
+            presence_client_one.get(connection_id: client_two.connection.id) do |members|
               expect(members.count).to eq(1)
-              expect(members.first.member_id).to eql(client_two.connection.member_id)
+              expect(members.first.connection_id).to eql(client_two.connection.id)
               stop_reactor
             end
           end
@@ -631,12 +631,12 @@ describe Ably::Realtime::Presence, :event_machine do
           presence_client_one.get(client_id: 'one') do |members|
             expect(members.count).to eq(1)
             expect(members.first.client_id).to eql('one')
-            expect(members.first.member_id).to eql(client_one.connection.member_id)
+            expect(members.first.connection_id).to eql(client_one.connection.id)
 
             presence_client_one.get(client_id: 'two') do |members|
               expect(members.count).to eq(1)
               expect(members.first.client_id).to eql('two')
-              expect(members.first.member_id).to eql(client_two.connection.member_id)
+              expect(members.first.connection_id).to eql(client_two.connection.id)
               stop_reactor
             end
           end
@@ -940,8 +940,8 @@ describe Ably::Realtime::Presence, :event_machine do
       end
     end
 
-    skip 'ensure member_id is unique and updated on ENTER'
-    skip 'ensure member_id for presence member matches the messages they publish on the channel'
+    skip 'ensure connection_id is unique and updated on ENTER'
+    skip 'ensure connection_id for presence member matches the messages they publish on the channel'
     skip 'stop a call to get when the channel has not been entered'
     skip 'stop a call to get when the channel has been entered but the list is not up to date'
     skip 'presence will resume sync if connection is dropped mid-way'

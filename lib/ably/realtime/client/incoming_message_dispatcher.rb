@@ -116,9 +116,9 @@ module Ably::Realtime
       end
 
       def update_connection_recovery_info(protocol_message)
-        if protocol_message.connection_id && (protocol_message.connection_id != connection.id)
-          logger.debug "New connection ID set to #{protocol_message.connection_id}, member ID #{protocol_message.member_id}"
-          connection.update_connection_and_member_id protocol_message.connection_id, protocol_message.member_id
+        if protocol_message.connection_key && (protocol_message.connection_key != connection.key)
+          logger.debug "New connection ID set to #{protocol_message.connection_id} with connection key #{protocol_message.connection_key}"
+          connection.update_connection_id_and_key protocol_message.connection_id, protocol_message.connection_key
         end
 
         if protocol_message.has_connection_serial?
