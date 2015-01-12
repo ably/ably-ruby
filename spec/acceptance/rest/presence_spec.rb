@@ -243,7 +243,7 @@ describe Ably::Rest::Presence do
 
           it 'logs a cipher error' do
             expect(client.logger).to receive(:error) do |message|
-              expect(message).to match(/Cipher algorithm [\w\d-]+ does not match/)
+              expect(message).to match(/Cipher algorithm [\w-]+ does not match/)
             end
             presence.get
           end
@@ -267,7 +267,7 @@ describe Ably::Rest::Presence do
 
           it 'logs a cipher error' do
             expect(client.logger).to receive(:error) do |message|
-              expect(message).to match(/Cipher algorithm [\w\d-]+ does not match/)
+              expect(message).to match(/Cipher algorithm [\w-]+ does not match/)
             end
             presence.history
           end

@@ -209,7 +209,7 @@ describe Ably::Rest::Channel, 'messages' do
 
           it 'logs a Cipher exception' do
             expect(other_client.logger).to receive(:error) do |message|
-              expect(message).to match(/Cipher algorithm [\w\d-]+ does not match/)
+              expect(message).to match(/Cipher algorithm [\w-]+ does not match/)
             end
             encrypted_channel_client2.history
           end
