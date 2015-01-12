@@ -24,11 +24,45 @@ describe Ably::Models::Message do
     end
   end
 
-  context '#member_id' do
-    let(:model) { subject.new({ id: '8mqVVw-0:0' }, protocol_message) }
+  context '#connection_id attribute' do
+    let(:protocol_connection_id) { random_str }
+    let(:protocol_message) { Ably::Models::ProtocolMessage.new('connectionId' => protocol_connection_id, action: 1, timestamp: protocol_message_timestamp) }
+    let(:model_connection_id) { random_str }
 
-    it 'is derived from the first part of the unique message ID' do
-      expect(model.member_id).to eql('8mqVVw')
+    context 'when this model has a connectionId attribute' do
+      context 'but no protocol message' do
+        let(:model) { subject.new('connectionId' => model_connection_id ) }
+
+        it 'uses the model value' do
+          expect(model.connection_id).to eql(model_connection_id)
+        end
+      end
+
+      context 'with a protocol message with a different connectionId' do
+        let(:model) { subject.new({ 'connectionId' => model_connection_id }, protocol_message) }
+
+        it 'uses the model value' do
+          expect(model.connection_id).to eql(model_connection_id)
+        end
+      end
+    end
+
+    context 'when this model has no connectionId attribute' do
+      context 'and no protocol message' do
+        let(:model) { subject.new({ }) }
+
+        it 'uses the model value' do
+          expect(model.connection_id).to be_nil
+        end
+      end
+
+      context 'with a protocol message with a connectionId' do
+        let(:model) { subject.new({ }, protocol_message) }
+
+        it 'uses the model value' do
+          expect(model.connection_id).to eql(protocol_connection_id)
+        end
+      end
     end
   end
 

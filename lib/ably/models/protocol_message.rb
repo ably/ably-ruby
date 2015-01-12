@@ -17,9 +17,9 @@ module Ably::Models
   # @!attribute [r] channel_serial
   #   @return [String] Contains a serial number for a message on the current channel
   # @!attribute [r] connection_id
-  #   @return [String] Contains a string private connection ID key
-  # @!attribute [r] member_id
-  #   @return [String] Contains a string public member ID
+  #   @return [String] Contains a string public identifier for the connection
+  # @!attribute [r] connection_key
+  #   @return [String] Contains a string private connection key used to recover this connection
   # @!attribute [r] connection_serial
   #   @return [Bignum] Contains a serial number for a message sent from the server to the client
   # @!attribute [r] message_serial
@@ -79,7 +79,7 @@ module Ably::Models
       @hash_object.freeze
     end
 
-    %w(id channel channel_serial connection_id member_id).each do |attribute|
+    %w(id channel channel_serial connection_id connection_key).each do |attribute|
       define_method attribute do
         hash[attribute.to_sym]
       end

@@ -23,10 +23,10 @@ module Ably::Models
   #   @return [STATE] the state change event signified by a PresenceMessage
   # @!attribute [r] client_id
   #   @return [String] The client_id associated with this presence state
-  # @!attribute [r] member_id
+  # @!attribute [r] connection_id
   #   @return [String] A unique member identifier, disambiguating situations where a given client_id is present on multiple connections simultaneously
   # @!attribute [r] member_key
-  #   @return [String] A unique member and client_id identifier ensuring multiple connected clients with the same client_id are unique
+  #   @return [String] A unique connection and client_id identifier ensuring multiple connected clients with the same client_id are unique
   # @!attribute [r] data
   #   @return [Object] Optional client-defined status or other event payload associated with this state
   # @!attribute [r] encoding
@@ -63,23 +63,27 @@ module Ably::Models
 
       set_hash_object hash_object
 
-      ensure_utf_8 :client_id, client_id, allow_nil: true
-      ensure_utf_8 :member_id, member_id, allow_nil: true
-      ensure_utf_8 :encoding,  encoding,  allow_nil: true
+      ensure_utf_8 :client_id,     client_id,     allow_nil: true
+      ensure_utf_8 :connection_id, connection_id, allow_nil: true
+      ensure_utf_8 :encoding,      encoding,      allow_nil: true
     end
 
-    %w( client_id member_id data encoding ).each do |attribute|
+    %w( client_id data encoding ).each do |attribute|
       define_method attribute do
         hash[attribute.to_sym]
       end
     end
 
     def id
-      hash[:id] || "#{protocol_message.id!}:#{protocol_message_index}"
+      hash.fetch(:id) { "#{protocol_message.id!}:#{protocol_message_index}" }
+    end
+
+    def connection_id
+      hash.fetch(:connection_id) { protocol_message.connection_id if assigned_to_protocol_message? }
     end
 
     def member_key
-      "#{member_id}:#{client_id}"
+      "#{connection_id}:#{client_id}"
     end
 
     def timestamp
