@@ -73,11 +73,11 @@ module Ably::Models::MessageEncoders
     end
 
     def cipher_algorithm(message)
-      current_encoding_part(message).to_s[/^#{ENCODING_ID}\+([\w\d_-]+)$/, 1]
+      current_encoding_part(message).to_s[/^#{ENCODING_ID}\+([\w_-]+)$/, 1]
     end
 
     def already_encrypted?(message)
-      message.fetch(:encoding, '').to_s.match(%r{(^|/)#{ENCODING_ID}\+([\w\d_-]+)($|/)})
+      message.fetch(:encoding, '').to_s.match(%r{(^|/)#{ENCODING_ID}\+([\w_-]+)($|/)})
     end
   end
 end

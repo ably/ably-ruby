@@ -161,7 +161,7 @@
       * when websocket transport is closed
         * [reconnects automatically](./spec/acceptance/realtime/connection_failures_spec.rb#L309)
       * after successfully reconnecting and resuming
-        * [retains connection_id and member_id](./spec/acceptance/realtime/connection_failures_spec.rb#L326)
+        * [retains connection_id and connection_key](./spec/acceptance/realtime/connection_failures_spec.rb#L326)
         * [retains channel subscription state](./spec/acceptance/realtime/connection_failures_spec.rb#L343)
         * when messages were published whilst the client was disconnected
           * [receives the messages published whilst offline](./spec/acceptance/realtime/connection_failures_spec.rb#L363)
@@ -218,16 +218,16 @@
       * when already connected
         * [does nothing and no further state changes are emitted](./spec/acceptance/realtime/connection_spec.rb#L247)
       * once connected
-        * connection #id
+        * connection#id
           * [is a string](./spec/acceptance/realtime/connection_spec.rb#L264)
-          * [is unique from the member_id](./spec/acceptance/realtime/connection_spec.rb#L271)
+          * [is unique from the connection#key](./spec/acceptance/realtime/connection_spec.rb#L271)
           * [is unique for every connection](./spec/acceptance/realtime/connection_spec.rb#L278)
-        * member #id
+        * connection#key
           * [is a string](./spec/acceptance/realtime/connection_spec.rb#L287)
-          * [is unique from the connection #id](./spec/acceptance/realtime/connection_spec.rb#L294)
+          * [is unique from the connection#id](./spec/acceptance/realtime/connection_spec.rb#L294)
           * [is unique for every connection](./spec/acceptance/realtime/connection_spec.rb#L301)
       * following a previous connection being opened and closed
-        * [reconnects with a new connection ID and member ID](./spec/acceptance/realtime/connection_spec.rb#L311)
+        * [reconnects and is provided with a new connection ID and connection key from the server](./spec/acceptance/realtime/connection_spec.rb#L311)
     * #close
       * [returns a Deferrable](./spec/acceptance/realtime/connection_spec.rb#L329)
       * [calls the Deferrable callback on success](./spec/acceptance/realtime/connection_spec.rb#L336)
@@ -249,9 +249,9 @@
         * [is composed of connection id and serial that is kept up to date with each message sent](./spec/acceptance/realtime/connection_spec.rb#L489)
         * [is available when connection is in one of the states: connecting, connected, disconnected, suspended, failed](./spec/acceptance/realtime/connection_spec.rb#L510)
         * [is nil when connection is explicitly CLOSED](./spec/acceptance/realtime/connection_spec.rb#L534)
-      * opening a new connection using an recent old connection's #recovery_key
-        * connection#id and #member_id after recovery
-          * [remain identical](./spec/acceptance/realtime/connection_spec.rb#L548)
+      * opening a new connection using a recently disconnected connection's #recovery_key
+        * connection#id and connection#key after recovery
+          * [remain the same](./spec/acceptance/realtime/connection_spec.rb#L548)
         * when messages have been sent whilst the old connection is disconnected
           * the new connection
             * [recovers server-side queued messages](./spec/acceptance/realtime/connection_spec.rb#L573)
@@ -261,7 +261,7 @@
         * with invalid value
           * PENDING: *[triggers an error on the connection object, sets the #error_reason and connects anyway](./spec/acceptance/realtime/connection_spec.rb#L607)*
     * with many connections simultaneously
-      * [opens each with a unique connection ID and member ID](./spec/acceptance/realtime/connection_spec.rb#L624)
+      * [opens each with a unique connection#id and connection#key](./spec/acceptance/realtime/connection_spec.rb#L624)
     * when a state transition is unsupported
       * [emits a StateChangeError](./spec/acceptance/realtime/connection_spec.rb#L644)
 
@@ -272,92 +272,92 @@
       * [is converted into UTF_8](./spec/acceptance/realtime/message_spec.rb#L37)
     * when the message publisher has a client_id
       * [contains a #client_id attribute](./spec/acceptance/realtime/message_spec.rb#L53)
-    * #member_id attribute
+    * #connection_id attribute
       * over realtime
-        * [matches the sender connection member_id](./spec/acceptance/realtime/message_spec.rb#L66)
+        * [matches the sender connection#id](./spec/acceptance/realtime/message_spec.rb#L66)
       * when retrieved over REST
-        * [matches the sender connection member_id](./spec/acceptance/realtime/message_spec.rb#L78)
+        * [matches the sender connection#id](./spec/acceptance/realtime/message_spec.rb#L78)
     * local echo when published
-      * [is enabled by default](./spec/acceptance/realtime/message_spec.rb#L91)
+      * [is enabled by default](./spec/acceptance/realtime/message_spec.rb#L90)
       * with :echo_messages option set to false
-        * [will not echo messages to the client but will still broadcast messages to other connected clients](./spec/acceptance/realtime/message_spec.rb#L107)
+        * [will not echo messages to the client but will still broadcast messages to other connected clients](./spec/acceptance/realtime/message_spec.rb#L106)
     * publishing lots of messages across two connections
-      * [sends and receives the messages on both opened connections and calls the success callbacks for each message published](./spec/acceptance/realtime/message_spec.rb#L139)
+      * [sends and receives the messages on both opened connections and calls the success callbacks for each message published](./spec/acceptance/realtime/message_spec.rb#L138)
     * without suitable publishing permissions
-      * [calls the error callback](./spec/acceptance/realtime/message_spec.rb#L184)
+      * [calls the error callback](./spec/acceptance/realtime/message_spec.rb#L183)
     * encoding and decoding encrypted messages
       * with AES-128-CBC using crypto-data-128.json fixtures
         * item 0 with encrypted encoding utf-8/cipher+aes-128-cbc/base64
           * behaves like an Ably encrypter and decrypter
             * with #publish and #subscribe
-              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L236)
-              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L254)
+              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L235)
+              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L253)
         * item 1 with encrypted encoding cipher+aes-128-cbc/base64
           * behaves like an Ably encrypter and decrypter
             * with #publish and #subscribe
-              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L236)
-              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L254)
+              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L235)
+              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L253)
         * item 2 with encrypted encoding json/utf-8/cipher+aes-128-cbc/base64
           * behaves like an Ably encrypter and decrypter
             * with #publish and #subscribe
-              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L236)
-              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L254)
+              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L235)
+              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L253)
         * item 3 with encrypted encoding json/utf-8/cipher+aes-128-cbc/base64
           * behaves like an Ably encrypter and decrypter
             * with #publish and #subscribe
-              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L236)
-              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L254)
+              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L235)
+              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L253)
       * with AES-256-CBC using crypto-data-256.json fixtures
         * item 0 with encrypted encoding utf-8/cipher+aes-256-cbc/base64
           * behaves like an Ably encrypter and decrypter
             * with #publish and #subscribe
-              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L236)
-              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L254)
+              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L235)
+              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L253)
         * item 1 with encrypted encoding cipher+aes-256-cbc/base64
           * behaves like an Ably encrypter and decrypter
             * with #publish and #subscribe
-              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L236)
-              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L254)
+              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L235)
+              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L253)
         * item 2 with encrypted encoding json/utf-8/cipher+aes-256-cbc/base64
           * behaves like an Ably encrypter and decrypter
             * with #publish and #subscribe
-              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L236)
-              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L254)
+              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L235)
+              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L253)
         * item 3 with encrypted encoding json/utf-8/cipher+aes-256-cbc/base64
           * behaves like an Ably encrypter and decrypter
             * with #publish and #subscribe
-              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L236)
-              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L254)
+              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L235)
+              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L253)
       * with multiple sends from one client to another
-        * [encrypts and decrypts all messages](./spec/acceptance/realtime/message_spec.rb#L293)
+        * [encrypts and decrypts all messages](./spec/acceptance/realtime/message_spec.rb#L292)
       * subscribing with a different transport protocol
-        * [delivers a String ASCII-8BIT payload to the receiver](./spec/acceptance/realtime/message_spec.rb#L336)
-        * [delivers a String UTF-8 payload to the receiver](./spec/acceptance/realtime/message_spec.rb#L336)
-        * [delivers a Hash payload to the receiver](./spec/acceptance/realtime/message_spec.rb#L336)
+        * [delivers a String ASCII-8BIT payload to the receiver](./spec/acceptance/realtime/message_spec.rb#L335)
+        * [delivers a String UTF-8 payload to the receiver](./spec/acceptance/realtime/message_spec.rb#L335)
+        * [delivers a Hash payload to the receiver](./spec/acceptance/realtime/message_spec.rb#L335)
       * publishing on an unencrypted channel and subscribing on an encrypted channel with another client
-        * [does not attempt to decrypt the message](./spec/acceptance/realtime/message_spec.rb#L355)
+        * [does not attempt to decrypt the message](./spec/acceptance/realtime/message_spec.rb#L354)
       * publishing on an encrypted channel and subscribing on an unencrypted channel with another client
-        * [delivers the message but still encrypted with a value in the #encoding attribute](./spec/acceptance/realtime/message_spec.rb#L373)
-        * [triggers a Cipher error on the channel](./spec/acceptance/realtime/message_spec.rb#L382)
+        * [delivers the message but still encrypted with a value in the #encoding attribute](./spec/acceptance/realtime/message_spec.rb#L372)
+        * [triggers a Cipher error on the channel](./spec/acceptance/realtime/message_spec.rb#L381)
       * publishing on an encrypted channel and subscribing with a different algorithm on another client
-        * [delivers the message but still encrypted with the cipher detials in the #encoding attribute](./spec/acceptance/realtime/message_spec.rb#L404)
-        * [triggers a Cipher error on the channel](./spec/acceptance/realtime/message_spec.rb#L413)
+        * [delivers the message but still encrypted with the cipher detials in the #encoding attribute](./spec/acceptance/realtime/message_spec.rb#L403)
+        * [triggers a Cipher error on the channel](./spec/acceptance/realtime/message_spec.rb#L412)
       * publishing on an encrypted channel and subscribing with a different key on another client
-        * [delivers the message but still encrypted with the cipher details in the #encoding attribute](./spec/acceptance/realtime/message_spec.rb#L435)
-        * [triggers a Cipher error on the channel](./spec/acceptance/realtime/message_spec.rb#L444)
+        * [delivers the message but still encrypted with the cipher details in the #encoding attribute](./spec/acceptance/realtime/message_spec.rb#L434)
+        * [triggers a Cipher error on the channel](./spec/acceptance/realtime/message_spec.rb#L443)
 
 ### Ably::Realtime::Presence history
   * using JSON and MsgPack protocol
-    * FAILED: ~~[provides up to the moment presence history](./spec/acceptance/realtime/presence_history_spec.rb#L20)~~
-    * [ensures REST presence history message IDs match ProtocolMessage wrapped message and member IDs via Realtime](./spec/acceptance/realtime/presence_history_spec.rb#L40)
+    * [provides up to the moment presence history](./spec/acceptance/realtime/presence_history_spec.rb#L21)
+    * [ensures REST presence history message IDs match ProtocolMessage wrapped message and connection IDs via Realtime](./spec/acceptance/realtime/presence_history_spec.rb#L41)
 
 ### Ably::Realtime::Presence
   * using JSON and MsgPack protocol
-    * PENDING: *[ensure member_id is unique and updated on ENTER](./spec/acceptance/realtime/presence_spec.rb#L837)*
-    * PENDING: *[ensure member_id for presence member matches the messages they publish on the channel](./spec/acceptance/realtime/presence_spec.rb#L838)*
-    * PENDING: *[stop a call to get when the channel has not been entered](./spec/acceptance/realtime/presence_spec.rb#L839)*
-    * PENDING: *[stop a call to get when the channel has been entered but the list is not up to date](./spec/acceptance/realtime/presence_spec.rb#L840)*
-    * PENDING: *[presence will resume sync if connection is dropped mid-way](./spec/acceptance/realtime/presence_spec.rb#L841)*
+    * PENDING: *[ensure connection_id is unique and updated on ENTER](./spec/acceptance/realtime/presence_spec.rb#L943)*
+    * PENDING: *[ensure connection_id for presence member matches the messages they publish on the channel](./spec/acceptance/realtime/presence_spec.rb#L944)*
+    * PENDING: *[stop a call to get when the channel has not been entered](./spec/acceptance/realtime/presence_spec.rb#L945)*
+    * PENDING: *[stop a call to get when the channel has been entered but the list is not up to date](./spec/acceptance/realtime/presence_spec.rb#L946)*
+    * PENDING: *[presence will resume sync if connection is dropped mid-way](./spec/acceptance/realtime/presence_spec.rb#L947)*
     * when attached (but not present) on a presence channel with an anonymous client (no client ID)
       * [maintains state as other clients enter and leave the channel](./spec/acceptance/realtime/presence_spec.rb#L24)
     * #sync_complete?
@@ -386,73 +386,92 @@
         * when provided as argument option to #enter
           * [remains intact following #leave](./spec/acceptance/realtime/presence_spec.rb#L181)
     * #update
-      * PENDING: *[without previous #enter automatically enters](./spec/acceptance/realtime/presence_spec.rb#L225)*
-      * [updates the data](./spec/acceptance/realtime/presence_spec.rb#L232)
-      * [returns a Deferrable](./spec/acceptance/realtime/presence_spec.rb#L242)
-      * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L249)
+      * [without previous #enter automatically enters](./spec/acceptance/realtime/presence_spec.rb#L224)
+      * [updates the data if :data argument provided](./spec/acceptance/realtime/presence_spec.rb#L249)
+      * [returns a Deferrable](./spec/acceptance/realtime/presence_spec.rb#L259)
+      * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L266)
+      * when ENTERED
+        * [has no effect on the state](./spec/acceptance/realtime/presence_spec.rb#L234)
     * #leave
-      * [#leave raises an exception if not entered](./spec/acceptance/realtime/presence_spec.rb#L261)
-      * [returns a Deferrable](./spec/acceptance/realtime/presence_spec.rb#L266)
-      * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L273)
+      * [raises an exception if not entered](./spec/acceptance/realtime/presence_spec.rb#L321)
+      * [returns a Deferrable](./spec/acceptance/realtime/presence_spec.rb#L326)
+      * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L333)
+      * :data option
+        * when set to a string
+          * [emits the new data for the leave event](./spec/acceptance/realtime/presence_spec.rb#L282)
+        * when set to nil
+          * FAILED: ~~[emits nil data for the leave event](./spec/acceptance/realtime/presence_spec.rb#L295)~~
+        * when not passed as an argument
+          * [emits the original data for the leave event](./spec/acceptance/realtime/presence_spec.rb#L308)
     * :left event
-      * [emits the data defined in enter](./spec/acceptance/realtime/presence_spec.rb#L285)
-      * [emits the data defined in update](./spec/acceptance/realtime/presence_spec.rb#L296)
-    * on behalf of multiple client_ids
+      * [emits the data defined in enter](./spec/acceptance/realtime/presence_spec.rb#L345)
+      * [emits the data defined in update](./spec/acceptance/realtime/presence_spec.rb#L356)
+    * entering/updating/leaving presence state on behalf of another client_id
       * #enter_client
-        * [has no affect on the client's presence state and only enters on behalf of the provided client_id](./spec/acceptance/realtime/presence_spec.rb#L316)
-        * [enters a channel](./spec/acceptance/realtime/presence_spec.rb#L330)
-        * [returns a Deferrable](./spec/acceptance/realtime/presence_spec.rb#L345)
-        * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L350)
+        * [returns a Deferrable](./spec/acceptance/realtime/presence_spec.rb#L407)
+        * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L412)
+        * multiple times on the same channel with different client_ids
+          * [has no affect on the client's presence state and only enters on behalf of the provided client_id](./spec/acceptance/realtime/presence_spec.rb#L377)
+          * [enters a channel and sets the data based on the provided :data option](./spec/acceptance/realtime/presence_spec.rb#L391)
       * #update_client
-        * [updates the data attribute for the member](./spec/acceptance/realtime/presence_spec.rb#L359)
-        * PENDING: *[enters if not already entered](./spec/acceptance/realtime/presence_spec.rb#L384)*
-        * [returns a Deferrable](./spec/acceptance/realtime/presence_spec.rb#L406)
-        * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L411)
+        * [returns a Deferrable](./spec/acceptance/realtime/presence_spec.rb#L469)
+        * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L474)
+        * multiple times on the same channel with different client_ids
+          * [updates the data attribute for the member when :data option provided](./spec/acceptance/realtime/presence_spec.rb#L422)
+          * [enters if not already entered](./spec/acceptance/realtime/presence_spec.rb#L446)
       * #leave_client
-        * FAILED: ~~[leaves a channel and the data attribute is always empty](./spec/acceptance/realtime/presence_spec.rb#L420)~~
-        * [succeeds if client_id is not entered](./spec/acceptance/realtime/presence_spec.rb#L444)
-        * [returns a Deferrable](./spec/acceptance/realtime/presence_spec.rb#L466)
-        * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L471)
+        * [returns a Deferrable](./spec/acceptance/realtime/presence_spec.rb#L572)
+        * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L577)
+        * leaves a channel
+          * multiple times on the same channel with different client_ids
+            * [emits the :leave event for each client_id](./spec/acceptance/realtime/presence_spec.rb#L485)
+            * [succeeds if that client_id has not previously entered the channel](./spec/acceptance/realtime/presence_spec.rb#L509)
+          * with a new value in :data option
+            * [emits the leave event with the new data value](./spec/acceptance/realtime/presence_spec.rb#L533)
+          * with a nil value in :data option
+            * FAILED: ~~[emits the leave event with a nil value](./spec/acceptance/realtime/presence_spec.rb#L546)~~
+          * with no :data option
+            * [emits the leave event with the previous data value](./spec/acceptance/realtime/presence_spec.rb#L559)
     * #get
-      * [returns a Deferrable](./spec/acceptance/realtime/presence_spec.rb#L481)
-      * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L486)
-      * [returns the current members on the channel](./spec/acceptance/realtime/presence_spec.rb#L493)
-      * [filters by member_id option if provided](./spec/acceptance/realtime/presence_spec.rb#L508)
-      * [filters by client_id option if provided](./spec/acceptance/realtime/presence_spec.rb#L523)
-      * [does not wait for SYNC to complete if :wait_for_sync option is false](./spec/acceptance/realtime/presence_spec.rb#L540)
-      * [returns both members on both simultaneously connected clients](./spec/acceptance/realtime/presence_spec.rb#L562)
+      * [returns a Deferrable](./spec/acceptance/realtime/presence_spec.rb#L587)
+      * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L592)
+      * [returns the current members on the channel](./spec/acceptance/realtime/presence_spec.rb#L599)
+      * [filters by connection_id option if provided](./spec/acceptance/realtime/presence_spec.rb#L614)
+      * [filters by client_id option if provided](./spec/acceptance/realtime/presence_spec.rb#L629)
+      * [does not wait for SYNC to complete if :wait_for_sync option is false](./spec/acceptance/realtime/presence_spec.rb#L646)
+      * [returns both members on both simultaneously connected clients](./spec/acceptance/realtime/presence_spec.rb#L668)
       * when a member enters and then leaves
-        * [has no members](./spec/acceptance/realtime/presence_spec.rb#L550)
+        * [has no members](./spec/acceptance/realtime/presence_spec.rb#L656)
     * #subscribe
       * with no arguments
-        * [calls the callback for all presence events](./spec/acceptance/realtime/presence_spec.rb#L588)
+        * [calls the callback for all presence events](./spec/acceptance/realtime/presence_spec.rb#L694)
     * #unsubscribe
       * with no arguments
-        * [removes the callback for all presence events](./spec/acceptance/realtime/presence_spec.rb#L608)
+        * [removes the callback for all presence events](./spec/acceptance/realtime/presence_spec.rb#L714)
     * REST #get
-      * [returns current members](./spec/acceptance/realtime/presence_spec.rb#L627)
-      * [returns no members once left](./spec/acceptance/realtime/presence_spec.rb#L640)
+      * [returns current members](./spec/acceptance/realtime/presence_spec.rb#L733)
+      * [returns no members once left](./spec/acceptance/realtime/presence_spec.rb#L746)
     * client_id with ASCII_8BIT
       * in connection set up
-        * [is converted into UTF_8](./spec/acceptance/realtime/presence_spec.rb#L657)
+        * [is converted into UTF_8](./spec/acceptance/realtime/presence_spec.rb#L763)
       * in channel options
-        * [is converted into UTF_8](./spec/acceptance/realtime/presence_spec.rb#L670)
+        * [is converted into UTF_8](./spec/acceptance/realtime/presence_spec.rb#L776)
     * encoding and decoding of presence message data
-      * [encrypts presence message data](./spec/acceptance/realtime/presence_spec.rb#L694)
+      * [encrypts presence message data](./spec/acceptance/realtime/presence_spec.rb#L800)
       * #subscribe
-        * [emits decrypted enter events](./spec/acceptance/realtime/presence_spec.rb#L713)
-        * [emits decrypted update events](./spec/acceptance/realtime/presence_spec.rb#L725)
-        * [emits previously set data for leave events](./spec/acceptance/realtime/presence_spec.rb#L739)
+        * [emits decrypted enter events](./spec/acceptance/realtime/presence_spec.rb#L819)
+        * [emits decrypted update events](./spec/acceptance/realtime/presence_spec.rb#L831)
+        * [emits previously set data for leave events](./spec/acceptance/realtime/presence_spec.rb#L845)
       * #get
-        * [returns a list of members with decrypted data](./spec/acceptance/realtime/presence_spec.rb#L755)
+        * [returns a list of members with decrypted data](./spec/acceptance/realtime/presence_spec.rb#L861)
       * REST #get
-        * [returns a list of members with decrypted data](./spec/acceptance/realtime/presence_spec.rb#L768)
+        * [returns a list of members with decrypted data](./spec/acceptance/realtime/presence_spec.rb#L874)
       * when cipher settings do not match publisher
-        * [delivers an unencoded presence message left with encoding value](./spec/acceptance/realtime/presence_spec.rb#L783)
-        * [emits an error when cipher does not match and presence data cannot be decoded](./spec/acceptance/realtime/presence_spec.rb#L796)
+        * [delivers an unencoded presence message left with encoding value](./spec/acceptance/realtime/presence_spec.rb#L889)
+        * [emits an error when cipher does not match and presence data cannot be decoded](./spec/acceptance/realtime/presence_spec.rb#L902)
     * leaving
-      * [expect :left event once underlying connection is closed](./spec/acceptance/realtime/presence_spec.rb#L813)
-      * [expect :left event with client data from enter event](./spec/acceptance/realtime/presence_spec.rb#L823)
+      * [expect :left event once underlying connection is closed](./spec/acceptance/realtime/presence_spec.rb#L919)
+      * [expect :left event with client data from enter event](./spec/acceptance/realtime/presence_spec.rb#L929)
 
 ### Ably::Realtime::Client#stats
   * using JSON and MsgPack protocol
@@ -766,41 +785,43 @@
 
 ### Ably::Rest::Presence
   * using JSON and MsgPack protocol
-    * #get
-      * [returns current members on the channel with their action set to :present](./spec/acceptance/rest/presence_spec.rb#L24)
-      * with :limit option
-        * [returns a paged response limiting number of members per page](./spec/acceptance/rest/presence_spec.rb#L38)
+    * tested against presence fixture data set up in test app
+      * #get
+        * [returns current members on the channel with their action set to :present](./spec/acceptance/rest/presence_spec.rb#L31)
+        * with :limit option
+          * [returns a paged response limiting number of members per page](./spec/acceptance/rest/presence_spec.rb#L45)
+      * #history
+        * [returns recent presence activity](./spec/acceptance/rest/presence_spec.rb#L58)
+        * with options
+          * direction: :forwards
+            * [returns recent presence activity forwards with most recent history last](./spec/acceptance/rest/presence_spec.rb#L74)
+          * direction: :backwards
+            * [returns recent presence activity backwards with most recent history first](./spec/acceptance/rest/presence_spec.rb#L89)
     * #history
-      * FAILED: ~~[returns recent presence activity](./spec/acceptance/rest/presence_spec.rb#L51)~~
-      * with options
-        * direction: :forwards
-          * FAILED: ~~[returns recent presence activity forwards with most recent history last](./spec/acceptance/rest/presence_spec.rb#L67)~~
-        * direction: :backwards
-          * FAILED: ~~[returns recent presence activity backwards with most recent history first](./spec/acceptance/rest/presence_spec.rb#L82)~~
-        * time options
-          * :start
-            * with milliseconds since epoch value
-              * [uses this value in the history request](./spec/acceptance/rest/presence_spec.rb#L123)
-            * with Time object value
-              * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/presence_spec.rb#L133)
-          * :end
-            * with milliseconds since epoch value
-              * [uses this value in the history request](./spec/acceptance/rest/presence_spec.rb#L123)
-            * with Time object value
-              * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/presence_spec.rb#L133)
+      * with time range options
+        * :start
+          * with milliseconds since epoch value
+            * [uses this value in the history request](./spec/acceptance/rest/presence_spec.rb#L134)
+          * with Time object value
+            * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/presence_spec.rb#L144)
+        * :end
+          * with milliseconds since epoch value
+            * [uses this value in the history request](./spec/acceptance/rest/presence_spec.rb#L134)
+          * with Time object value
+            * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/presence_spec.rb#L144)
     * decoding
       * valid decodeable content
         * #get
-          * [automaticaly decodes presence messages](./spec/acceptance/rest/presence_spec.rb#L192)
+          * [automaticaly decodes presence messages](./spec/acceptance/rest/presence_spec.rb#L202)
         * #history
-          * [automaticaly decodes presence messages](./spec/acceptance/rest/presence_spec.rb#L209)
+          * [automaticaly decodes presence messages](./spec/acceptance/rest/presence_spec.rb#L219)
       * invalid data
         * #get
-          * [returns the messages still encoded](./spec/acceptance/rest/presence_spec.rb#L240)
-          * [logs a cipher error](./spec/acceptance/rest/presence_spec.rb#L244)
+          * [returns the messages still encoded](./spec/acceptance/rest/presence_spec.rb#L250)
+          * [logs a cipher error](./spec/acceptance/rest/presence_spec.rb#L254)
         * #history
-          * [returns the messages still encoded](./spec/acceptance/rest/presence_spec.rb#L264)
-          * [logs a cipher error](./spec/acceptance/rest/presence_spec.rb#L268)
+          * [returns the messages still encoded](./spec/acceptance/rest/presence_spec.rb#L274)
+          * [logs a cipher error](./spec/acceptance/rest/presence_spec.rb#L278)
 
 ### Ably::Rest::Client#stats
   * using JSON and MsgPack protocol
@@ -1025,51 +1046,60 @@
       * [dups options](./spec/shared/model_behaviour.rb#L80)
   * #timestamp
     * [retrieves attribute :timestamp as Time object from ProtocolMessage](./spec/unit/models/message_spec.rb#L21)
-  * #member_id
-    * [is derived from the first part of the unique message ID](./spec/unit/models/message_spec.rb#L30)
+  * #connection_id attribute
+    * when this model has a connectionId attribute
+      * but no protocol message
+        * [uses the model value](./spec/unit/models/message_spec.rb#L36)
+      * with a protocol message with a different connectionId
+        * [uses the model value](./spec/unit/models/message_spec.rb#L44)
+    * when this model has no connectionId attribute
+      * and no protocol message
+        * [uses the model value](./spec/unit/models/message_spec.rb#L54)
+      * with a protocol message with a connectionId
+        * [uses the model value](./spec/unit/models/message_spec.rb#L62)
   * initialized with
     * :name
       * as UTF_8 string
-        * [is permitted](./spec/unit/models/message_spec.rb#L55)
-        * [remains as UTF-8](./spec/unit/models/message_spec.rb#L59)
+        * [is permitted](./spec/unit/models/message_spec.rb#L89)
+        * [remains as UTF-8](./spec/unit/models/message_spec.rb#L93)
       * as SHIFT_JIS string
-        * [gets converted to UTF-8](./spec/unit/models/message_spec.rb#L67)
-        * [is compatible with original encoding](./spec/unit/models/message_spec.rb#L71)
+        * [gets converted to UTF-8](./spec/unit/models/message_spec.rb#L101)
+        * [is compatible with original encoding](./spec/unit/models/message_spec.rb#L105)
       * as ASCII_8BIT string
-        * [gets converted to UTF-8](./spec/unit/models/message_spec.rb#L79)
-        * [is compatible with original encoding](./spec/unit/models/message_spec.rb#L83)
+        * [gets converted to UTF-8](./spec/unit/models/message_spec.rb#L113)
+        * [is compatible with original encoding](./spec/unit/models/message_spec.rb#L117)
       * as Integer
-        * [raises an argument error](./spec/unit/models/message_spec.rb#L91)
+        * [raises an argument error](./spec/unit/models/message_spec.rb#L125)
       * as Nil
-        * [is permitted](./spec/unit/models/message_spec.rb#L99)
+        * [is permitted](./spec/unit/models/message_spec.rb#L133)
     * :client_id
       * as UTF_8 string
-        * [is permitted](./spec/unit/models/message_spec.rb#L55)
-        * [remains as UTF-8](./spec/unit/models/message_spec.rb#L59)
+        * [is permitted](./spec/unit/models/message_spec.rb#L89)
+        * [remains as UTF-8](./spec/unit/models/message_spec.rb#L93)
       * as SHIFT_JIS string
-        * [gets converted to UTF-8](./spec/unit/models/message_spec.rb#L67)
-        * [is compatible with original encoding](./spec/unit/models/message_spec.rb#L71)
+        * [gets converted to UTF-8](./spec/unit/models/message_spec.rb#L101)
+        * [is compatible with original encoding](./spec/unit/models/message_spec.rb#L105)
       * as ASCII_8BIT string
-        * [gets converted to UTF-8](./spec/unit/models/message_spec.rb#L79)
-        * [is compatible with original encoding](./spec/unit/models/message_spec.rb#L83)
+        * [gets converted to UTF-8](./spec/unit/models/message_spec.rb#L113)
+        * [is compatible with original encoding](./spec/unit/models/message_spec.rb#L117)
       * as Integer
-        * [raises an argument error](./spec/unit/models/message_spec.rb#L91)
+        * [raises an argument error](./spec/unit/models/message_spec.rb#L125)
       * as Nil
-        * [is permitted](./spec/unit/models/message_spec.rb#L99)
+        * [is permitted](./spec/unit/models/message_spec.rb#L133)
     * :encoding
       * as UTF_8 string
-        * [is permitted](./spec/unit/models/message_spec.rb#L55)
-        * [remains as UTF-8](./spec/unit/models/message_spec.rb#L59)
+        * [is permitted](./spec/unit/models/message_spec.rb#L89)
+        * [remains as UTF-8](./spec/unit/models/message_spec.rb#L93)
       * as SHIFT_JIS string
-        * [gets converted to UTF-8](./spec/unit/models/message_spec.rb#L67)
-        * [is compatible with original encoding](./spec/unit/models/message_spec.rb#L71)
+        * [gets converted to UTF-8](./spec/unit/models/message_spec.rb#L101)
+        * [is compatible with original encoding](./spec/unit/models/message_spec.rb#L105)
       * as ASCII_8BIT string
-        * [gets converted to UTF-8](./spec/unit/models/message_spec.rb#L79)
-        * [is compatible with original encoding](./spec/unit/models/message_spec.rb#L83)
+        * [gets converted to UTF-8](./spec/unit/models/message_spec.rb#L113)
+        * [is compatible with original encoding](./spec/unit/models/message_spec.rb#L117)
       * as Integer
-        * [raises an argument error](./spec/unit/models/message_spec.rb#L91)
+        * [raises an argument error](./spec/unit/models/message_spec.rb#L125)
       * as Nil
-        * [is permitted](./spec/unit/models/message_spec.rb#L99)
+        * [is permitted](./spec/unit/models/message_spec.rb#L133)
 
 ### Ably::Models::PaginatedResource
   * [returns correct length from body](./spec/unit/models/paginated_resource_spec.rb#L30)
@@ -1105,8 +1135,6 @@
     * attributes
       * #client_id
         * [retrieves attribute :client_id](./spec/shared/model_behaviour.rb#L15)
-      * #member_id
-        * [retrieves attribute :member_id](./spec/shared/model_behaviour.rb#L15)
       * #data
         * [retrieves attribute :data](./spec/shared/model_behaviour.rb#L15)
       * #encoding
@@ -1118,57 +1146,68 @@
     * is immutable
       * [prevents changes](./spec/shared/model_behaviour.rb#L76)
       * [dups options](./spec/shared/model_behaviour.rb#L80)
+  * #connection_id attribute
+    * when this model has a connectionId attribute
+      * but no protocol message
+        * [uses the model value](./spec/unit/models/presence_message_spec.rb#L25)
+      * with a protocol message with a different connectionId
+        * [uses the model value](./spec/unit/models/presence_message_spec.rb#L33)
+    * when this model has no connectionId attribute
+      * and no protocol message
+        * [uses the model value](./spec/unit/models/presence_message_spec.rb#L43)
+      * with a protocol message with a connectionId
+        * [uses the model value](./spec/unit/models/presence_message_spec.rb#L51)
   * #member_key attribute
-    * [is string in format member_id:client_id](./spec/unit/models/presence_message_spec.rb#L19)
+    * [is string in format connection_id:client_id](./spec/unit/models/presence_message_spec.rb#L61)
     * with the same client id across multiple connections
-      * [is unique](./spec/unit/models/presence_message_spec.rb#L27)
+      * [is unique](./spec/unit/models/presence_message_spec.rb#L69)
     * with a single connection and different client_ids
-      * [is unique](./spec/unit/models/presence_message_spec.rb#L36)
+      * [is unique](./spec/unit/models/presence_message_spec.rb#L78)
   * #timestamp
-    * [retrieves attribute :timestamp as a Time object from ProtocolMessage](./spec/unit/models/presence_message_spec.rb#L44)
+    * [retrieves attribute :timestamp as a Time object from ProtocolMessage](./spec/unit/models/presence_message_spec.rb#L86)
   * initialized with
     * :client_id
       * as UTF_8 string
-        * [is permitted](./spec/unit/models/presence_message_spec.rb#L96)
-        * [remains as UTF-8](./spec/unit/models/presence_message_spec.rb#L100)
+        * [is permitted](./spec/unit/models/presence_message_spec.rb#L138)
+        * [remains as UTF-8](./spec/unit/models/presence_message_spec.rb#L142)
       * as SHIFT_JIS string
-        * [gets converted to UTF-8](./spec/unit/models/presence_message_spec.rb#L108)
-        * [is compatible with original encoding](./spec/unit/models/presence_message_spec.rb#L112)
+        * [gets converted to UTF-8](./spec/unit/models/presence_message_spec.rb#L150)
+        * [is compatible with original encoding](./spec/unit/models/presence_message_spec.rb#L154)
       * as ASCII_8BIT string
-        * [gets converted to UTF-8](./spec/unit/models/presence_message_spec.rb#L120)
-        * [is compatible with original encoding](./spec/unit/models/presence_message_spec.rb#L124)
+        * [gets converted to UTF-8](./spec/unit/models/presence_message_spec.rb#L162)
+        * [is compatible with original encoding](./spec/unit/models/presence_message_spec.rb#L166)
       * as Integer
-        * [raises an argument error](./spec/unit/models/presence_message_spec.rb#L132)
+        * [raises an argument error](./spec/unit/models/presence_message_spec.rb#L174)
       * as Nil
-        * [is permitted](./spec/unit/models/presence_message_spec.rb#L140)
-    * :member_id
+        * [is permitted](./spec/unit/models/presence_message_spec.rb#L182)
+    * :connection_id
       * as UTF_8 string
-        * [is permitted](./spec/unit/models/presence_message_spec.rb#L96)
-        * [remains as UTF-8](./spec/unit/models/presence_message_spec.rb#L100)
+        * [is permitted](./spec/unit/models/presence_message_spec.rb#L138)
+        * [remains as UTF-8](./spec/unit/models/presence_message_spec.rb#L142)
       * as SHIFT_JIS string
-        * [gets converted to UTF-8](./spec/unit/models/presence_message_spec.rb#L108)
-        * [is compatible with original encoding](./spec/unit/models/presence_message_spec.rb#L112)
+        * [gets converted to UTF-8](./spec/unit/models/presence_message_spec.rb#L150)
+        * [is compatible with original encoding](./spec/unit/models/presence_message_spec.rb#L154)
       * as ASCII_8BIT string
-        * [gets converted to UTF-8](./spec/unit/models/presence_message_spec.rb#L120)
-        * [is compatible with original encoding](./spec/unit/models/presence_message_spec.rb#L124)
+        * [gets converted to UTF-8](./spec/unit/models/presence_message_spec.rb#L162)
+        * [is compatible with original encoding](./spec/unit/models/presence_message_spec.rb#L166)
       * as Integer
-        * [raises an argument error](./spec/unit/models/presence_message_spec.rb#L132)
+        * [raises an argument error](./spec/unit/models/presence_message_spec.rb#L174)
       * as Nil
-        * [is permitted](./spec/unit/models/presence_message_spec.rb#L140)
+        * [is permitted](./spec/unit/models/presence_message_spec.rb#L182)
     * :encoding
       * as UTF_8 string
-        * [is permitted](./spec/unit/models/presence_message_spec.rb#L96)
-        * [remains as UTF-8](./spec/unit/models/presence_message_spec.rb#L100)
+        * [is permitted](./spec/unit/models/presence_message_spec.rb#L138)
+        * [remains as UTF-8](./spec/unit/models/presence_message_spec.rb#L142)
       * as SHIFT_JIS string
-        * [gets converted to UTF-8](./spec/unit/models/presence_message_spec.rb#L108)
-        * [is compatible with original encoding](./spec/unit/models/presence_message_spec.rb#L112)
+        * [gets converted to UTF-8](./spec/unit/models/presence_message_spec.rb#L150)
+        * [is compatible with original encoding](./spec/unit/models/presence_message_spec.rb#L154)
       * as ASCII_8BIT string
-        * [gets converted to UTF-8](./spec/unit/models/presence_message_spec.rb#L120)
-        * [is compatible with original encoding](./spec/unit/models/presence_message_spec.rb#L124)
+        * [gets converted to UTF-8](./spec/unit/models/presence_message_spec.rb#L162)
+        * [is compatible with original encoding](./spec/unit/models/presence_message_spec.rb#L166)
       * as Integer
-        * [raises an argument error](./spec/unit/models/presence_message_spec.rb#L132)
+        * [raises an argument error](./spec/unit/models/presence_message_spec.rb#L174)
       * as Nil
-        * [is permitted](./spec/unit/models/presence_message_spec.rb#L140)
+        * [is permitted](./spec/unit/models/presence_message_spec.rb#L182)
 
 ### Ably::Models::ProtocolMessage
   * behaves like a model
@@ -1284,7 +1323,7 @@
 
 ### Ably::Modules::EventEmitter
   * #trigger event fan out
-    * [should #<RSpec::Mocks::Matchers::Receive:0x007fb34e1a5c30>](./spec/unit/modules/event_emitter_spec.rb#L18)
+    * [should #<RSpec::Mocks::Matchers::Receive:0x007f8a3e972d70>](./spec/unit/modules/event_emitter_spec.rb#L18)
     * [#trigger sends only messages to matching event names](./spec/unit/modules/event_emitter_spec.rb#L27)
     * #on subscribe to multiple events
       * [with the same block](./spec/unit/modules/event_emitter_spec.rb#L59)
@@ -1586,6 +1625,6 @@
 
 ## Test summary
 
-* Passing tests: 768
-* Pending tests: 14
-* Failing tests: 5
+* Passing tests: 786
+* Pending tests: 12
+* Failing tests: 2

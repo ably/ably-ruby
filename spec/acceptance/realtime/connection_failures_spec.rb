@@ -323,17 +323,17 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
       end
 
       context 'after successfully reconnecting and resuming' do
-        it 'retains connection_id and member_id' do
-          previous_connection_id = nil
-          previous_member_id     = nil
+        it 'retains connection_id and connection_key' do
+          previous_connection_id  = nil
+          previous_connection_key = nil
 
           connection.once(:connected) do
-            previous_connection_id = connection.id
-            previous_member_id     = connection.member_id
+            previous_connection_id  = connection.id
+            previous_connection_key = connection.key
             connection.transport.close_connection_after_writing
 
             connection.once(:connected) do
-              expect(connection.member_id).to eql(previous_member_id)
+              expect(connection.key).to eql(previous_connection_key)
               expect(connection.id).to eql(previous_connection_id)
               stop_reactor
             end

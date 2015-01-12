@@ -38,13 +38,13 @@ describe Ably::Realtime::Presence, 'history', :event_machine do
       end
     end
 
-    it 'ensures REST presence history message IDs match ProtocolMessage wrapped message and member IDs via Realtime' do
+    it 'ensures REST presence history message IDs match ProtocolMessage wrapped message and connection IDs via Realtime' do
       presence_client_one.subscribe(:enter) do |message|
         presence_client_one.history do |history|
           expect(history.count).to eql(1)
 
           expect(history[0].id).to eql(message.id)
-          expect(history[0].member_id).to eql(message.member_id)
+          expect(history[0].connection_id).to eql(message.connection_id)
           stop_reactor
         end
       end
