@@ -66,7 +66,7 @@ module Ably
     end
 
     def realtime?
-      client.kind_of?(Ably::Realtime::Client)
+      defined?(Ably::Realtime::Client) && client.kind_of?(Ably::Realtime::Client)
     end
 
     def default_logger
