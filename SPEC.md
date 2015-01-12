@@ -1,6 +1,7 @@
 # Ably Client Library Specification
 
 ### Ably::Realtime::Channel#history
+_(see [spec/acceptance/realtime/channel_history_spec.rb](./spec/acceptance/realtime/channel_history_spec.rb))_
   * using JSON and MsgPack protocol
     * [returns a Deferrable](./spec/acceptance/realtime/channel_history_spec.rb#L20)
     * with a single client publishing and receiving
@@ -18,6 +19,7 @@
         * [return the same results with unique matching message IDs](./spec/acceptance/realtime/channel_history_spec.rb#L133)
 
 ### Ably::Realtime::Channel
+_(see [spec/acceptance/realtime/channel_spec.rb](./spec/acceptance/realtime/channel_spec.rb))_
   * using JSON and MsgPack protocol
     * initialization
       * with :connect_automatically option set to false on connection
@@ -96,6 +98,7 @@
           * [remains in the :failed state and retains the error_reason](./spec/acceptance/realtime/channel_spec.rb#L536)
 
 ### Ably::Realtime::Client
+_(see [spec/acceptance/realtime/client_spec.rb](./spec/acceptance/realtime/client_spec.rb))_
   * using JSON and MsgPack protocol
     * initialization
       * basic auth
@@ -123,6 +126,7 @@
           * [uses the token request when requesting a new token](./spec/acceptance/realtime/client_spec.rb#L109)
 
 ### Ably::Realtime::Connection failures
+_(see [spec/acceptance/realtime/connection_failures_spec.rb](./spec/acceptance/realtime/connection_failures_spec.rb))_
   * using JSON and MsgPack protocol
     * authentication failure
       * when API key is invalid
@@ -175,6 +179,7 @@
         * [uses the primary host when suspended, and a fallback host on every subsequent suspended attempt](./spec/acceptance/realtime/connection_failures_spec.rb#L478)
 
 ### Ably::Realtime::Connection
+_(see [spec/acceptance/realtime/connection_spec.rb](./spec/acceptance/realtime/connection_spec.rb))_
   * using JSON and MsgPack protocol
     * intialization
       * [connects automatically](./spec/acceptance/realtime/connection_spec.rb#L22)
@@ -266,6 +271,7 @@
       * [emits a StateChangeError](./spec/acceptance/realtime/connection_spec.rb#L644)
 
 ### Ably::Realtime::Channel Message
+_(see [spec/acceptance/realtime/message_spec.rb](./spec/acceptance/realtime/message_spec.rb))_
   * using JSON and MsgPack protocol
     * [sends a String data payload](./spec/acceptance/realtime/message_spec.rb#L25)
     * with ASCII_8BIT message name
@@ -347,11 +353,13 @@
         * [triggers a Cipher error on the channel](./spec/acceptance/realtime/message_spec.rb#L443)
 
 ### Ably::Realtime::Presence history
+_(see [spec/acceptance/realtime/presence_history_spec.rb](./spec/acceptance/realtime/presence_history_spec.rb))_
   * using JSON and MsgPack protocol
     * [provides up to the moment presence history](./spec/acceptance/realtime/presence_history_spec.rb#L21)
     * [ensures REST presence history message IDs match ProtocolMessage wrapped message and connection IDs via Realtime](./spec/acceptance/realtime/presence_history_spec.rb#L41)
 
 ### Ably::Realtime::Presence
+_(see [spec/acceptance/realtime/presence_spec.rb](./spec/acceptance/realtime/presence_spec.rb))_
   * using JSON and MsgPack protocol
     * PENDING: *[ensure connection_id is unique and updated on ENTER](./spec/acceptance/realtime/presence_spec.rb#L943)*
     * PENDING: *[ensure connection_id for presence member matches the messages they publish on the channel](./spec/acceptance/realtime/presence_spec.rb#L944)*
@@ -474,18 +482,21 @@
       * [expect :left event with client data from enter event](./spec/acceptance/realtime/presence_spec.rb#L929)
 
 ### Ably::Realtime::Client#stats
+_(see [spec/acceptance/realtime/stats_spec.rb](./spec/acceptance/realtime/stats_spec.rb))_
   * using JSON and MsgPack protocol
     * fetching stats
       * [should return a Hash](./spec/acceptance/realtime/stats_spec.rb#L10)
       * [should return a Deferrable object](./spec/acceptance/realtime/stats_spec.rb#L17)
 
 ### Ably::Realtime::Client#time
+_(see [spec/acceptance/realtime/time_spec.rb](./spec/acceptance/realtime/time_spec.rb))_
   * using JSON and MsgPack protocol
     * fetching the service time
       * [should return the service time as a Time object](./spec/acceptance/realtime/time_spec.rb#L10)
       * [should return a deferrable object](./spec/acceptance/realtime/time_spec.rb#L19)
 
 ### Ably::Auth
+_(see [spec/acceptance/rest/auth_spec.rb](./spec/acceptance/rest/auth_spec.rb))_
   * using JSON and MsgPack protocol
     * [has immutable options](./spec/acceptance/rest/auth_spec.rb#L52)
     * #request_token
@@ -589,6 +600,7 @@
       * [#using_basic_auth? is true](./spec/acceptance/rest/auth_spec.rb#L554)
 
 ### Ably::Rest
+_(see [spec/acceptance/rest/base_spec.rb](./spec/acceptance/rest/base_spec.rb))_
   * transport protocol
     * when protocol is not defined it defaults to :msgpack
       * [uses MsgPack](./spec/acceptance/rest/base_spec.rb#L27)
@@ -615,6 +627,7 @@
         * [should raise an InvalidToken exception](./spec/acceptance/rest/base_spec.rb#L156)
 
 ### Ably::Rest::Channel
+_(see [spec/acceptance/rest/channel_spec.rb](./spec/acceptance/rest/channel_spec.rb))_
   * using JSON and MsgPack protocol
     * #publish
       * [should publish the message adn return true indicating success](./spec/acceptance/rest/channel_spec.rb#L17)
@@ -638,6 +651,7 @@
           * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/channel_spec.rb#L126)
 
 ### Ably::Rest::Channels
+_(see [spec/acceptance/rest/channels_spec.rb](./spec/acceptance/rest/channels_spec.rb))_
   * using JSON and MsgPack protocol
     * using shortcut method #channel on the client object
       * behaves like a channel
@@ -653,6 +667,7 @@
         * [returns channel object and passes the provided options](./spec/acceptance/rest/channels_spec.rb#L11)
 
 ### Ably::Rest::Client
+_(see [spec/acceptance/rest/client_spec.rb](./spec/acceptance/rest/client_spec.rb))_
   * using JSON and MsgPack protocol
     * #initialize
       * with an auth block
@@ -694,6 +709,7 @@
           * [are never used](./spec/acceptance/rest/client_spec.rb#L265)
 
 ### Ably::Models::MessageEncoders
+_(see [spec/acceptance/rest/encoders_spec.rb](./spec/acceptance/rest/encoders_spec.rb))_
   * with binary transport protocol
     * without encryption
       * with UTF-8 data
@@ -726,6 +742,7 @@
         * [applies json, utf-8, cipher and base64 encoding](./spec/acceptance/rest/encoders_spec.rb#L176)
 
 ### Ably::Rest::Channel messages
+_(see [spec/acceptance/rest/message_spec.rb](./spec/acceptance/rest/message_spec.rb))_
   * using JSON and MsgPack protocol
     * publishing with an ASCII_8BIT message name
       * [is converted into UTF_8](./spec/acceptance/rest/message_spec.rb#L18)
@@ -784,6 +801,7 @@
           * [logs a Cipher exception](./spec/acceptance/rest/message_spec.rb#L237)
 
 ### Ably::Rest::Presence
+_(see [spec/acceptance/rest/presence_spec.rb](./spec/acceptance/rest/presence_spec.rb))_
   * using JSON and MsgPack protocol
     * tested against presence fixture data set up in test app
       * #get
@@ -824,6 +842,7 @@
           * [logs a cipher error](./spec/acceptance/rest/presence_spec.rb#L278)
 
 ### Ably::Rest::Client#stats
+_(see [spec/acceptance/rest/stats_spec.rb](./spec/acceptance/rest/stats_spec.rb))_
   * using JSON and MsgPack protocol
     * fetching application stats
       * by minute
@@ -836,11 +855,13 @@
         * [should return all the stats for the application](./spec/acceptance/rest/stats_spec.rb#L49)
 
 ### Ably::Rest::Client#time
+_(see [spec/acceptance/rest/time_spec.rb](./spec/acceptance/rest/time_spec.rb))_
   * using JSON and MsgPack protocol
     * fetching the service time
       * [should return the service time as a Time object](./spec/acceptance/rest/time_spec.rb#L10)
 
 ### Ably::Auth
+_(see [spec/unit/auth_spec.rb](./spec/unit/auth_spec.rb))_
   * client_id option
     * with nil value
       * [is permitted](./spec/unit/auth_spec.rb#L19)
@@ -857,6 +878,7 @@
       * [raises an argument error](./spec/unit/auth_spec.rb#L63)
 
 ### Ably::Logger
+_(see [spec/unit/logger_spec.rb](./spec/unit/logger_spec.rb))_
   * [uses the language provided Logger by default](./spec/unit/logger_spec.rb#L25)
   * with a custom Logger
     * with an invalid interface
@@ -865,6 +887,7 @@
       * [is used](./spec/unit/logger_spec.rb#L130)
 
 ### Ably::Models::ErrorInfo
+_(see [spec/unit/models/error_info_spec.rb](./spec/unit/models/error_info_spec.rb))_
   * behaves like a model
     * attributes
       * #code
@@ -884,6 +907,7 @@
     * [is an alias for #status_code](./spec/unit/models/error_info_spec.rb#L13)
 
 ### Ably::Models::MessageEncoders::Base64
+_(see [spec/unit/models/message_encoders/base64_spec.rb](./spec/unit/models/message_encoders/base64_spec.rb))_
   * #decode
     * message with base64 payload
       * [decodes base64](./spec/unit/models/message_encoders/base64_spec.rb#L24)
@@ -926,6 +950,7 @@
         * [leaves the encoding intact](./spec/unit/models/message_encoders/base64_spec.rb#L175)
 
 ### Ably::Models::MessageEncoders::Cipher
+_(see [spec/unit/models/message_encoders/cipher_spec.rb](./spec/unit/models/message_encoders/cipher_spec.rb))_
   * #decode
     * with channel set up for AES-128-CBC
       * valid cipher data
@@ -984,6 +1009,7 @@
         * [strips the encoding](./spec/unit/models/message_encoders/cipher_spec.rb#L254)
 
 ### Ably::Models::MessageEncoders::Json
+_(see [spec/unit/models/message_encoders/json_spec.rb](./spec/unit/models/message_encoders/json_spec.rb))_
   * #decode
     * message with json payload
       * [decodes json](./spec/unit/models/message_encoders/json_spec.rb#L24)
@@ -1015,6 +1041,7 @@
       * [leaves the encoding intact](./spec/unit/models/message_encoders/json_spec.rb#L130)
 
 ### Ably::Models::MessageEncoders::Utf8
+_(see [spec/unit/models/message_encoders/utf8_spec.rb](./spec/unit/models/message_encoders/utf8_spec.rb))_
   * #decode
     * message with utf8 payload
       * [sets the encoding](./spec/unit/models/message_encoders/utf8_spec.rb#L21)
@@ -1027,6 +1054,7 @@
       * [leaves the encoding intact](./spec/unit/models/message_encoders/utf8_spec.rb#L51)
 
 ### Ably::Models::Message
+_(see [spec/unit/models/message_spec.rb](./spec/unit/models/message_spec.rb))_
   * behaves like a model
     * attributes
       * #name
@@ -1102,6 +1130,7 @@
         * [is permitted](./spec/unit/models/message_spec.rb#L133)
 
 ### Ably::Models::PaginatedResource
+_(see [spec/unit/models/paginated_resource_spec.rb](./spec/unit/models/paginated_resource_spec.rb))_
   * [returns correct length from body](./spec/unit/models/paginated_resource_spec.rb#L30)
   * [supports alias methods for length](./spec/unit/models/paginated_resource_spec.rb#L34)
   * [is Enumerable](./spec/unit/models/paginated_resource_spec.rb#L39)
@@ -1131,6 +1160,7 @@
         * [is the first page](./spec/unit/models/paginated_resource_spec.rb#L267)
 
 ### Ably::Models::PresenceMessage
+_(see [spec/unit/models/presence_message_spec.rb](./spec/unit/models/presence_message_spec.rb))_
   * behaves like a model
     * attributes
       * #client_id
@@ -1210,6 +1240,7 @@
         * [is permitted](./spec/unit/models/presence_message_spec.rb#L182)
 
 ### Ably::Models::ProtocolMessage
+_(see [spec/unit/models/protocol_message_spec.rb](./spec/unit/models/protocol_message_spec.rb))_
   * behaves like a model
     * attributes
       * #id
@@ -1283,6 +1314,7 @@
         * [returns a valid ErrorInfo object](./spec/unit/models/protocol_message_spec.rb#L261)
 
 ### Ably::Models::Token
+_(see [spec/unit/models/token_spec.rb](./spec/unit/models/token_spec.rb))_
   * behaves like a model
     * attributes
       * #id
@@ -1322,8 +1354,9 @@
     * [is false when class type differs](./spec/unit/models/token_spec.rb#L82)
 
 ### Ably::Modules::EventEmitter
+_(see [spec/unit/modules/event_emitter_spec.rb](./spec/unit/modules/event_emitter_spec.rb))_
   * #trigger event fan out
-    * [should #<RSpec::Mocks::Matchers::Receive:0x007f8a3e972d70>](./spec/unit/modules/event_emitter_spec.rb#L18)
+    * [should #<RSpec::Mocks::Matchers::Receive:0x007fe5dd6c17c0>](./spec/unit/modules/event_emitter_spec.rb#L18)
     * [#trigger sends only messages to matching event names](./spec/unit/modules/event_emitter_spec.rb#L27)
     * #on subscribe to multiple events
       * [with the same block](./spec/unit/modules/event_emitter_spec.rb#L59)
@@ -1347,6 +1380,7 @@
       * [deletes all callbacks if not block given](./spec/unit/modules/event_emitter_spec.rb#L178)
 
 ### Ably::Modules::StateEmitter
+_(see [spec/unit/modules/state_emitter_spec.rb](./spec/unit/modules/state_emitter_spec.rb))_
   * [#state returns current state](./spec/unit/modules/state_emitter_spec.rb#L25)
   * [#state= sets current state](./spec/unit/modules/state_emitter_spec.rb#L29)
   * [#change_state sets current state](./spec/unit/modules/state_emitter_spec.rb#L33)
@@ -1360,6 +1394,7 @@
       * [returns false for #connecting? if state does not match](./spec/unit/modules/state_emitter_spec.rb#L65)
 
 ### Ably::Realtime::Channel
+_(see [spec/unit/realtime/channel_spec.rb](./spec/unit/realtime/channel_spec.rb))_
   * #initializer
     * as UTF_8 string
       * [is permitted](./spec/unit/realtime/channel_spec.rb#L19)
@@ -1399,6 +1434,7 @@
       * [all callbacks by not providing a callback](./spec/unit/realtime/channel_spec.rb#L199)
 
 ### Ably::Realtime::Channels
+_(see [spec/unit/realtime/channels_spec.rb](./spec/unit/realtime/channels_spec.rb))_
   * creating channels
     * [#get creates a channel](./spec/unit/realtime/channels_spec.rb#L13)
     * [#get will reuse the channel object](./spec/unit/realtime/channels_spec.rb#L18)
@@ -1410,6 +1446,7 @@
     * [#release detatches and then releases the channel resoures](./spec/unit/realtime/channels_spec.rb#L44)
 
 ### Ably::Realtime::Client
+_(see [spec/unit/realtime/client_spec.rb](./spec/unit/realtime/client_spec.rb))_
   * behaves like a client initializer
     * with invalid arguments
       * empty hash
@@ -1467,11 +1504,13 @@
       * [#custom_host](./spec/unit/realtime/client_spec.rb#L23)
 
 ### Ably::Realtime::Connection
+_(see [spec/unit/realtime/connection_spec.rb](./spec/unit/realtime/connection_spec.rb))_
   * callbacks
     * [are supported for valid STATE events](./spec/unit/realtime/connection_spec.rb#L18)
     * [fail with unacceptable STATE event names](./spec/unit/realtime/connection_spec.rb#L24)
 
 ### Ably::Realtime::Presence
+_(see [spec/unit/realtime/presence_spec.rb](./spec/unit/realtime/presence_spec.rb))_
   * callbacks
     * [are supported for valid STATE events](./spec/unit/realtime/presence_spec.rb#L13)
     * [fail with unacceptable STATE event names](./spec/unit/realtime/presence_spec.rb#L19)
@@ -1486,9 +1525,11 @@
       * [all callbacks by not providing a callback](./spec/unit/realtime/presence_spec.rb#L104)
 
 ### Ably::Realtime
+_(see [spec/unit/realtime/realtime_spec.rb](./spec/unit/realtime/realtime_spec.rb))_
   * [constructor returns an Ably::Realtime::Client](./spec/unit/realtime/realtime_spec.rb#L6)
 
 ### Ably::Rest::Channels
+_(see [spec/unit/rest/channel_spec.rb](./spec/unit/rest/channel_spec.rb))_
   * #initializer
     * as UTF_8 string
       * [is permitted](./spec/unit/rest/channel_spec.rb#L16)
@@ -1516,6 +1557,7 @@
       * [raises an argument error](./spec/unit/rest/channel_spec.rb#L104)
 
 ### Ably::Rest::Channels
+_(see [spec/unit/rest/channels_spec.rb](./spec/unit/rest/channels_spec.rb))_
   * creating channels
     * [#get creates a channel](./spec/unit/rest/channels_spec.rb#L12)
     * [#get will reuse the channel object](./spec/unit/rest/channels_spec.rb#L17)
@@ -1527,6 +1569,7 @@
     * [#release releases the channel resoures](./spec/unit/rest/channels_spec.rb#L43)
 
 ### Ably::Rest::Client
+_(see [spec/unit/rest/client_spec.rb](./spec/unit/rest/client_spec.rb))_
   * behaves like a client initializer
     * with invalid arguments
       * empty hash
@@ -1590,9 +1633,11 @@
           * [fails as an api_key is required to issue tokens](./spec/unit/rest/client_spec.rb#L46)
 
 ### Ably::Rest
+_(see [spec/unit/rest/rest_spec.rb](./spec/unit/rest/rest_spec.rb))_
   * [constructor returns an Ably::Rest::Client](./spec/unit/rest/rest_spec.rb#L7)
 
 ### Ably::Util::Crypto
+_(see [spec/unit/util/crypto_spec.rb](./spec/unit/util/crypto_spec.rb))_
   * defaults
     * [match other client libraries](./spec/unit/util/crypto_spec.rb#L18)
   * encrypts & decrypt
@@ -1613,6 +1658,7 @@
           * [decrypts exactly the same binary data as other client libraries](./spec/unit/util/crypto_spec.rb#L69)
 
 ### Ably::Util::PubSub
+_(see [spec/unit/util/pub_sub_spec.rb](./spec/unit/util/pub_sub_spec.rb))_
   * event fan out
     * [#publish allows publishing to more than on subscriber](./spec/unit/util/pub_sub_spec.rb#L11)
     * [#publish sends only messages to #subscribe callbacks matching event names](./spec/unit/util/pub_sub_spec.rb#L19)

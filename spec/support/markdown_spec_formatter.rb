@@ -26,6 +26,7 @@ module Ably::RSpec
 
     def example_group_started(notification)
       output.write "#{indent_prefix}#{notification.group.description}\n"
+      output.write "_(see #{heading_location_path(notification)})_\n" if indent == 0
       @indent += 1
     end
 
@@ -72,6 +73,10 @@ module Ably::RSpec
 
     def example_name_and_link(notification)
       "[#{notification.example.metadata[:description]}](#{notification.example.location.gsub(/\:(\d+)/, '#L\1')})"
+    end
+
+    def heading_location_path(notification)
+      "[#{notification.group.location.gsub(/\:(\d+)/, '').gsub(%r{^.\/}, '')}](#{notification.group.location.gsub(/\:(\d+)/, '')})"
     end
 
     def indent_prefix
