@@ -16,10 +16,11 @@ describe Ably::Realtime::Presence, 'history', :event_machine do
     let(:presence_client_two) { channel_client_two.presence }
 
     let(:data)                { random_str }
+    let(:leave_data)          { random_str }
 
     it 'provides up to the moment presence history' do
       presence_client_one.enter(data: data) do
-        presence_client_one.leave do
+        presence_client_one.leave(data: leave_data) do
           presence_client_one.history do |history|
             expect(history.count).to eql(2)
 
@@ -29,7 +30,7 @@ describe Ably::Realtime::Presence, 'history', :event_machine do
 
             expect(history[0].action).to eq(:leave)
             expect(history[0].client_id).to eq(client_one.client_id)
-            expect(history[0].data).to be_nil
+            expect(history[0].data).to eql(leave_data)
 
             stop_reactor
           end
