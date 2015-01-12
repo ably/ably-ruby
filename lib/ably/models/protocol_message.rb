@@ -37,7 +37,7 @@ module Ably::Models
   #
   class ProtocolMessage
     include Ably::Modules::ModelCommon
-    include EventMachine::Deferrable
+    include EventMachine::Deferrable if defined?(EventMachine)
     extend Ably::Modules::Enum
 
     # Actions which are sent by the Ably Realtime API
