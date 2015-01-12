@@ -61,12 +61,12 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       end
     end
 
-    describe '#member_id attribute' do
+    describe '#connection_id attribute' do
       context 'over realtime' do
-        it 'matches the sender connection member_id' do
+        it 'matches the sender connection#id' do
           when_all(channel.attach, other_client_channel.attach) do
             other_client_channel.subscribe('event') do |message|
-              expect(message.member_id).to eql(client.connection.member_id)
+              expect(message.connection_id).to eql(client.connection.id)
               stop_reactor
             end
             channel.publish('event', payload)
@@ -75,11 +75,10 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       end
 
       context 'when retrieved over REST' do
-        it 'matches the sender connection member_id' do
+        it 'matches the sender connection#id' do
           channel.publish('event', payload) do
             channel.history do |messages|
-              expect(messages.first.data).to eql(payload)
-              expect(messages.first.member_id).to eql(client.connection.member_id)
+              expect(messages.first.connection_id).to eql(client.connection.id)
               stop_reactor
             end
           end
@@ -416,7 +415,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
             encrypted_channel_client2.on(:error) do |error|
               expect(error).to be_a(Ably::Exceptions::CipherError)
               expect(error.code).to eql(92002)
-              expect(error.message).to match(/Cipher algorithm [\w\d-]+ does not match/)
+              expect(error.message).to match(/Cipher algorithm [\w-]+ does not match/)
               stop_reactor
             end
           end

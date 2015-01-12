@@ -9,20 +9,62 @@ describe Ably::Models::PresenceMessage do
   let(:protocol_message_timestamp) { as_since_epoch(Time.now) }
   let(:protocol_message) { Ably::Models::ProtocolMessage.new(action: 1, timestamp: protocol_message_timestamp) }
 
-  it_behaves_like 'a model', with_simple_attributes: %w(client_id member_id data encoding) do
+  it_behaves_like 'a model', with_simple_attributes: %w(client_id data encoding) do
     let(:model_args) { [protocol_message] }
   end
 
-  context '#member_key attribute' do
-    let(:model) { subject.new(client_id: 'client_id', member_id: 'member_id') }
+  context '#connection_id attribute' do
+    let(:protocol_connection_id) { random_str }
+    let(:protocol_message) { Ably::Models::ProtocolMessage.new('connectionId' => protocol_connection_id, action: 1, timestamp: protocol_message_timestamp) }
+    let(:model_connection_id) { random_str }
 
-    it 'is string in format member_id:client_id' do
-      expect(model.member_key).to eql('member_id:client_id')
+    context 'when this model has a connectionId attribute' do
+      context 'but no protocol message' do
+        let(:model) { subject.new('connectionId' => model_connection_id ) }
+
+        it 'uses the model value' do
+          expect(model.connection_id).to eql(model_connection_id)
+        end
+      end
+
+      context 'with a protocol message with a different connectionId' do
+        let(:model) { subject.new({ 'connectionId' => model_connection_id }, protocol_message) }
+
+        it 'uses the model value' do
+          expect(model.connection_id).to eql(model_connection_id)
+        end
+      end
+    end
+
+    context 'when this model has no connectionId attribute' do
+      context 'and no protocol message' do
+        let(:model) { subject.new({ }) }
+
+        it 'uses the model value' do
+          expect(model.connection_id).to be_nil
+        end
+      end
+
+      context 'with a protocol message with a connectionId' do
+        let(:model) { subject.new({ }, protocol_message) }
+
+        it 'uses the model value' do
+          expect(model.connection_id).to eql(protocol_connection_id)
+        end
+      end
+    end
+  end
+
+  context '#member_key attribute' do
+    let(:model) { subject.new(client_id: 'client_id', connection_id: 'connection_id') }
+
+    it 'is string in format connection_id:client_id' do
+      expect(model.member_key).to eql('connection_id:client_id')
     end
 
     context 'with the same client id across multiple connections' do
-      let(:connection_1) { subject.new({ client_id: 'same', member_id: 'unique' }, protocol_message) }
-      let(:connection_2) { subject.new({ client_id: 'same', member_id: 'different' }, protocol_message) }
+      let(:connection_1) { subject.new({ client_id: 'same', connection_id: 'unique' }, protocol_message) }
+      let(:connection_2) { subject.new({ client_id: 'same', connection_id: 'different' }, protocol_message) }
 
       it 'is unique' do
         expect(connection_1.member_key).to_not eql(connection_2.member_key)
@@ -30,8 +72,8 @@ describe Ably::Models::PresenceMessage do
     end
 
     context 'with a single connection and different client_ids' do
-      let(:client_1) { subject.new({ client_id: 'unique', member_id: 'same' }, protocol_message) }
-      let(:client_2) { subject.new({ client_id: 'different', member_id: 'same' }, protocol_message) }
+      let(:client_1) { subject.new({ client_id: 'unique', connection_id: 'same' }, protocol_message) }
+      let(:client_2) { subject.new({ client_id: 'different', connection_id: 'same' }, protocol_message) }
 
       it 'is unique' do
         expect(client_1.member_key).to_not eql(client_2.member_key)
@@ -82,7 +124,7 @@ describe Ably::Models::PresenceMessage do
   end
 
   context 'initialized with' do
-    %w(client_id member_id encoding).each do |attribute|
+    %w(client_id connection_id encoding).each do |attribute|
       context ":#{attribute}" do
         let(:encoded_value)   { value.encode(encoding) }
         let(:value)           { random_str }

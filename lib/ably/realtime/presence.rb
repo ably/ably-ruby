@@ -19,10 +19,10 @@ module Ably::Realtime
     # @return [Ably::Realtime::Channel]
     attr_reader :channel
 
-    # A unique member identifier for this channel client, disambiguating situations where a given
-    # client_id is present on multiple connections simultaneously.
+    # A unique identifier for this channel client based on their connection, disambiguating situations
+    # where a given client_id is present on multiple connections simultaneously.
     # @return [String]
-    attr_reader :member_id
+    attr_reader :connection_id
 
     # The client_id for the member present on this channel
     # @return [String]
@@ -38,8 +38,6 @@ module Ably::Realtime
       @members       = Hash.new
       @subscriptions = Hash.new { |hash, key| hash[key] = [] }
       @client_id     = client.client_id
-      @data          = nil
-      @member_id     = nil
 
       setup_event_handlers
     end
@@ -208,7 +206,7 @@ module Ably::Realtime
     #
     # @param [Hash,String] options an options Hash to filter members
     # @option options [String] :client_id      optional client_id for the member
-    # @option options [String] :member_id      optional connection member_id for the member
+    # @option options [String] :connection_id  optional connection_id for the member
     # @option options [String] :wait_for_sync  defaults to true, if false the get method returns the current list of members and does not wait for the presence sync to complete
     #
     # @yield [Array<Ably::Models::PresenceMessage>] array of members or the member
@@ -222,7 +220,7 @@ module Ably::Realtime
       ensure_channel_attached(deferrable) do
         result_block = proc do
           members.map { |key, presence| presence }.tap do |filtered_members|
-            filtered_members.keep_if { |presence| presence.member_id == options[:member_id] } if options[:member_id]
+            filtered_members.keep_if { |presence| presence.connection_id == options[:connection_id] } if options[:connection_id]
             filtered_members.keep_if { |presence| presence.client_id == options[:client_id] } if options[:client_id]
           end
         end
@@ -374,7 +372,7 @@ module Ably::Realtime
     # an empty cursor appears after the ':' such as 'cf30e75054887:psl_7g:client:189'
     # then there are no more SYNC messages to come
     def sync_serial_cursor_at_end?
-      sync_serial.nil? || sync_serial.to_s.match(/^\w+:?$/)
+      sync_serial.nil? || sync_serial.to_s.match(/^[\w-]+:?$/)
     end
 
     def able_to_leave?
@@ -400,7 +398,7 @@ module Ably::Realtime
       end
 
       on(STATE.Entered) do |message|
-        @member_id = message.member_id
+        @connection_id = message.connection_id
       end
     end
 
@@ -435,8 +433,8 @@ module Ably::Realtime
     end
 
     def update_members_from_presence_message(presence_message)
-      unless presence_message.member_id
-        new Ably::Exceptions::ProtocolError.new("Protocol error, presence message is missing memberId", 400, 80013)
+      unless presence_message.connection_id
+        Ably::Exceptions::ProtocolError.new("Protocol error, presence message is missing connectionId", 400, 80013)
       end
 
       if sync_complete?
