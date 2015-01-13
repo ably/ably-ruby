@@ -40,6 +40,10 @@ module Ably::Realtime
         connection.manager.reconnect_transport
       end
 
+      after_transition(to: [:connected]) do |connection, current_transition|
+        connection.manager.connected_with_error current_transition.metadata if current_transition.metadata
+      end
+
       after_transition(to: [:disconnected, :suspended], from: [:connecting]) do |connection, current_transition|
         connection.manager.respond_to_transport_disconnected_when_connecting current_transition
       end
@@ -52,9 +56,8 @@ module Ably::Realtime
         connection.manager.destroy_transport # never reuse a transport if the connection has failed
       end
 
-      after_transition(to: [:failed]) do |connection, current_transition|
-        connection.logger.fatal "ConnectionStateMachine: Connection failed - #{current_transition.metadata}"
-        connection.manager.destroy_transport
+      before_transition(to: [:failed]) do |connection, current_transition|
+        connection.manager.fail current_transition.metadata
       end
 
       after_transition(to: [:closing], from: [:initialized, :disconnected, :suspended]) do |connection|
@@ -70,12 +73,8 @@ module Ably::Realtime
       end
 
       # Transitions responsible for updating connection#error_reason
-      before_transition(to: [:disconnected, :suspended, :failed]) do |connection, current_transition|
+      before_transition(to: [:connected, :closed, :disconnected, :suspended, :failed]) do |connection, current_transition|
         connection.set_failed_connection_error_reason current_transition.metadata
-      end
-
-      before_transition(to: [:connected, :closed]) do |connection, current_transition|
-        connection.set_failed_connection_error_reason nil
       end
 
       private
