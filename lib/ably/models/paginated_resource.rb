@@ -101,11 +101,7 @@ module Ably::Models
     # Method to allow {PaginatedResource} to be {http://ruby-doc.org/core-2.1.3/Enumerable.html Enumerable}
     def each(&block)
       body.each do |item|
-        if block_given?
-          block.call item
-        else
-          yield item
-        end
+        yield item
       end
     end
 

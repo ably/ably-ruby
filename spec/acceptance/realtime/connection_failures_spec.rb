@@ -393,6 +393,59 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
       end
+
+      context 'when failing to resume because the connection_key is not or no longer valid' do
+        def kill_connection_transport_and_prevent_valid_resume
+          connection.transport.close_connection_after_writing
+          connection.update_connection_id_and_key '0123456789abcdef', '0123456789abcdef' # force the resume connection key to be invalid
+        end
+
+        it 'updates the connection_id and connection_key' do
+          connection.once(:connected) do
+            previous_connection_id  = connection.id
+            previous_connection_key = connection.key
+
+            connection.once(:connected) do
+              expect(connection.key).to_not eql(previous_connection_key)
+              expect(connection.id).to_not eql(previous_connection_id)
+              stop_reactor
+            end
+
+            kill_connection_transport_and_prevent_valid_resume
+          end
+        end
+
+        it 'detaches all channels' do
+          channel_count = 10
+          channels = channel_count.times.map { |index| client.channel("channel-#{index}") }
+          when_all(*channels.map(&:attach)) do
+            detached_channels = []
+            channels.each do |channel|
+              channel.on(:detached) do
+                detached_channels << channel
+                next unless detached_channels.count == channel_count
+                expect(detached_channels.count).to eql(channel_count)
+                stop_reactor
+              end
+            end
+
+            kill_connection_transport_and_prevent_valid_resume
+          end
+        end
+
+        it 'emits an error on the channel and sets the error reason' do
+          client.channel(random_str).attach do |channel|
+            channel.on(:error) do |error|
+              expect(error.message).to match(/Invalid connection key/i)
+              expect(error.code).to eql(80008)
+              expect(channel.error_reason).to eql(error)
+              stop_reactor
+            end
+
+            kill_connection_transport_and_prevent_valid_resume
+          end
+        end
+      end
     end
 
     describe 'fallback host feature' do

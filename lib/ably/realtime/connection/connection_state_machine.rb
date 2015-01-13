@@ -74,7 +74,8 @@ module Ably::Realtime
 
       # Transitions responsible for updating connection#error_reason
       before_transition(to: [:connected, :closed, :disconnected, :suspended, :failed]) do |connection, current_transition|
-        connection.set_failed_connection_error_reason current_transition.metadata
+        reason = current_transition.metadata if is_error_type?(current_transition.metadata)
+        connection.set_failed_connection_error_reason reason
       end
 
       private

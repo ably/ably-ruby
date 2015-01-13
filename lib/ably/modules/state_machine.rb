@@ -13,6 +13,7 @@ module Ably::Modules
         include Statesman::Machine
       end
       klass.extend Ably::Modules::StatesmanMonkeyPatch
+      klass.extend ClassMethods
     end
 
     # Alternative to Statesman's #transition_to that:
@@ -45,9 +46,12 @@ module Ably::Modules
       Ably::Exceptions::StateChangeError.new(error_message, nil, 80020)
     end
 
-    private
-    def self.is_error_type?(error)
-      error.kind_of?(Ably::Models::ErrorInfo) || error.kind_of?(StandardError)
+    module ClassMethods
+      private
+
+      def is_error_type?(error)
+        error.kind_of?(Ably::Models::ErrorInfo) || error.kind_of?(StandardError)
+      end
     end
   end
 end

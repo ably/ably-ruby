@@ -48,4 +48,25 @@ describe Ably::Realtime::Channels do
       expect(subject.get(channel_name, options).object_id).to_not eql(released_channel.object_id)
     end
   end
+
+  context 'is Enumerable' do
+    let(:channel_count) { 5 }
+    let(:mock_channel)  { instance_double('Ably::Realtime::Channel') }
+
+    before do
+      allow(Ably::Realtime::Channel).to receive(:new).and_return(mock_channel)
+      channel_count.times { |index| subject.get("channel-#{index}") }
+    end
+
+    it 'allows enumeration' do
+      expect(subject.map.count).to eql(channel_count)
+      subject.each do |channel|
+        expect(channel).to eql(mock_channel)
+      end
+    end
+
+    it 'provides #length' do
+      expect(subject.length).to eql(channel_count)
+    end
+  end
 end

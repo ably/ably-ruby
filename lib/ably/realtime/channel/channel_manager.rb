@@ -20,10 +20,6 @@ module Ably::Realtime
         connection.on(:failed) do |error|
           channel.transition_state_machine :failed, error if can_transition_to?(:failed)
         end
-
-        channel.on(:attached, :detached) do
-          channel.set_failed_channel_error_reason nil
-        end
       end
 
       # Commence attachment
@@ -35,9 +31,9 @@ module Ably::Realtime
       end
 
       # Commence attachment
-      def detach
-        if connection.closed?
-          channel.transition_state_machine :detached
+      def detach(error = nil)
+        if connection.closed? || connection.connecting?
+          channel.transition_state_machine :detached, error
         elsif can_transition_to?(:detached)
           send_detach_protocol_message
         end
@@ -52,10 +48,15 @@ module Ably::Realtime
         end
       end
 
-      # Channel has failed
-      def failed(error)
-        logger.error "Channel #{channel.name} error: #{error}"
+      # An error has occurred on the channel
+      def emit_error(error)
+        logger.error "ChannelManager: Channel '#{channel.name}' error: #{error}"
         channel.trigger :error, error
+      end
+
+      # Detach a channel as a result of an error
+      def suspend(error)
+        channel.transition_state_machine! :detaching, error
       end
 
       private
