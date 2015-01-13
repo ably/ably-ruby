@@ -601,13 +601,28 @@ describe Ably::Realtime::Connection, :event_machine do
           end
         end
 
-        context 'with invalid value' do
-          let(:client_options) { default_options.merge(recover: 'invalid:key', log_level: :fatal) }
+        context 'with invalid formatted value sent to server' do
+          let(:client_options) { default_options.merge(recover: 'not-a-valid-connection-key:1', log_level: :none) }
 
-          skip 'triggers an error on the connection object, sets the #error_reason and connects anyway' do
-            connection.on(:error) do |error|
+          it 'triggers a fatal error on the connection object, sets the #error_reason and disconnects' do
+            connection.once(:error) do |error|
+              expect(connection.state).to eq(:failed)
+              expect(connection.error_reason.message).to match(/Invalid connection key/)
+              expect(connection.error_reason.code).to eql(40006)
+              expect(connection.error_reason).to eql(error)
+              stop_reactor
+            end
+          end
+        end
+
+        context 'with expired (missing) value sent to server' do
+          let(:client_options) { default_options.merge(recover: '0123456789abcdef:0', log_level: :fatal) }
+
+          it 'triggers an error on the connection object, sets the #error_reason, yet will connect anyway' do
+            connection.once(:error) do |error|
               expect(connection.state).to eq(:connected)
-              expect(connection.error_reason.message).to match(/Recover/)
+              expect(connection.error_reason.message).to match(/Invalid connection key/i)
+              expect(connection.error_reason.code).to eql(80008)
               expect(connection.error_reason).to eql(error)
               stop_reactor
             end

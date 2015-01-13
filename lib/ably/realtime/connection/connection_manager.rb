@@ -78,6 +78,14 @@ module Ably::Realtime
         connection.transition_state_machine next_retry_state, Ably::Exceptions::ConnectionError.new("Connection failed; #{error.message}", nil, 80000)
       end
 
+      # Called whenever a new connection message is received with an error
+      #
+      # @api private
+      def connected_with_error(error)
+        logger.warn "ConnectionManager: Connected with error; #{error.message}"
+        connection.trigger :error, error
+      end
+
       # Ensures the underlying transport has been disconnected and all event emitter callbacks removed
       #
       # @api private
@@ -117,6 +125,15 @@ module Ably::Realtime
       def force_close_connection
         destroy_transport
         connection.transition_state_machine :closed
+      end
+
+      # Connection has failed
+      #
+      # @api private
+      def fail(error)
+        connection.logger.fatal "ConnectionManager: Connection failed - #{error}"
+        connection.manager.destroy_transport
+        connection.once(:failed) { connection.trigger :error, error }
       end
 
       # When a connection is disconnected whilst connecting, attempt reconnect and/or set state to :suspended or :failed
