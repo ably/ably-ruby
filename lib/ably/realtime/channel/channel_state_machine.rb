@@ -38,21 +38,22 @@ module Ably::Realtime
         channel.manager.sync current_transition.metadata
       end
 
-      after_transition(to: [:detaching]) do |channel|
-        channel.manager.detach
+      after_transition(to: [:detaching]) do |channel, current_transition|
+        channel.manager.detach current_transition.metadata
+      end
+
+      after_transition(to: [:detached]) do |channel, current_transition|
+        channel.manager.emit_error current_transition.metadata if current_transition.metadata
       end
 
       after_transition(to: [:failed]) do |channel, current_transition|
-        channel.manager.failed current_transition.metadata
+        channel.manager.emit_error current_transition.metadata
       end
 
       # Transitions responsible for updating channel#error_reason
-      before_transition(to: [:failed]) do |channel, current_transition|
-        channel.set_failed_channel_error_reason current_transition.metadata
-      end
-
-      before_transition(to: [:attached, :detached]) do |channel, current_transition|
-        channel.set_failed_channel_error_reason nil
+      before_transition(to: [:attached, :detached, :failed]) do |channel, current_transition|
+        reason = current_transition.metadata if is_error_type?(current_transition.metadata)
+        channel.set_failed_channel_error_reason reason
       end
 
       private

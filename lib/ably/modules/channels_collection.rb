@@ -2,6 +2,8 @@ module Ably::Modules
   # ChannelsCollection module provides common functionality to the Rest and Realtime Channels objects
   # such as #get, #[], #fetch, and #release
   module ChannelsCollection
+    include Enumerable
+
     def initialize(client, channel_klass)
       @client         = client
       @channel_klass  = channel_klass
@@ -11,11 +13,12 @@ module Ably::Modules
     # Return a Channel for the given name
     #
     # @param name [String] The name of the channel
-    # @param channel_options [Hash] Channel options, currently reserved for Encryption options
+    # @param channel_options [Hash] Channel options including the encryption options
     #
-    # @return Channel
+    # @return [Channel]
+    #
     def get(name, channel_options = {})
-      @channels[name] ||= channel_klass.new(client, name, channel_options)
+      channels[name] ||= channel_klass.new(client, name, channel_options)
     end
     alias_method :[], :get
 
@@ -27,20 +30,41 @@ module Ably::Modules
     # @yield [options] (optional) if a missing_block is passed to this method and no channel exists matching the name, this block is called
     # @yieldparam [String] name of the missing channel
     #
-    # @return Channel
+    # @return [Channel]
+    #
     def fetch(name, &missing_block)
-      @channels.fetch(name, &missing_block)
+      channels.fetch(name, &missing_block)
     end
 
     # Destroy the Channel and releases the associated resources.
     #
     # Releasing a Channel is not typically necessary as a channel consumes no resources other than the memory footprint of the
     # Channel object. Explicitly release channels to free up resources if required
-    def release(channel)
-      @channels.delete(channel)
+    #
+    # @param name [String] The name of the channel
+    #
+    # @return [void]
+    #
+    def release(name)
+      channels.delete(name)
+    end
+
+    # @!attribute [r] length
+    # @return [Integer] number of channels created
+    def length
+      channels.length
+    end
+    alias_method :count, :length
+    alias_method :size,  :length
+
+    # Method to allow {ChannelsCollection} to be {http://ruby-doc.org/core-2.1.3/Enumerable.html Enumerable}
+    def each(&block)
+      channels.each do |channel_name, channel|
+        yield channel
+      end
     end
 
     private
-    attr_reader :client, :channel_klass
+    attr_reader :client, :channel_klass, :channels
   end
 end
