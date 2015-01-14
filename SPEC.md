@@ -534,7 +534,7 @@ _(see [spec/acceptance/rest/auth_spec.rb](./spec/acceptance/rest/auth_spec.rb))_
       * with :query_time option
         * [queries the server for the time](./spec/acceptance/rest/auth_spec.rb#L128)
       * without :query_time option
-        * [queries the server for the time](./spec/acceptance/rest/auth_spec.rb#L137)
+        * [does not query the server for the time](./spec/acceptance/rest/auth_spec.rb#L137)
       * with :auth_url option
         * when response is valid
           * [requests a token from :auth_url using an HTTP GET request](./spec/acceptance/rest/auth_spec.rb#L184)
