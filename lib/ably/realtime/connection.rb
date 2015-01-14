@@ -177,6 +177,22 @@ module Ably
         end
       end
 
+      # @yield [Boolean] True if an internet connection check appears to be up following an HTTP request to a reliable CDN
+      # @return [EventMachine::Deferrable]
+      # @api private
+      def internet_up?(&result_callback)
+        EventMachine::HttpRequest.new(Ably::INTERNET_CHECK.fetch(:url)).get.tap do |http|
+          if block_given?
+            http.errback do
+              yield false
+            end
+            http.callback do
+              yield http.response_header.status == 200 && http.response.strip == Ably::INTERNET_CHECK.fetch(:ok_text)
+            end
+          end
+        end
+      end
+
       # @!attribute [r] recovery_key
       #   @return [String] recovery key that can be used by another client to recover this connection with the :recover option
       def recovery_key
@@ -220,15 +236,30 @@ module Ably
         @__incoming_protocol_msgbus__ ||= create_pub_sub_message_bus
       end
 
-      # @!attribute [r] host
-      # @return [String] The host name used for this connection, for network connection failures a {Ably::FALLBACK_HOSTS fallback host} is used to route around networking or intermittent problems
-      def host
+      # Determines the correct host name to use for the next connection attempt and updates current_host
+      # @yield [String] The host name used for this connection, for network connection failures a {Ably::FALLBACK_HOSTS fallback host} is used to route around networking or intermittent problems if an Internet connection is available
+      # @api private
+      def determine_host(&callback)
+        raise ArgumentError, 'Callback expected' unless block_given?
+
         if can_use_fallback_hosts?
-          client.fallback_endpoint.host
+          internet_up? do |internet_is_up_result|
+            @current_host = if internet_is_up_result
+              client.fallback_endpoint.host
+            else
+              client.endpoint.host
+            end
+            yield current_host
+          end
         else
-          client.endpoint.host
+          @current_host = client.endpoint.host
+          yield current_host
         end
       end
+
+      # @return [String] The current host that is configured following a call to method {#determine_host}
+      # @api private
+      attr_reader :current_host
 
       # @!attribute [r] port
       # @return [Integer] The default port used for this connection
@@ -295,12 +326,14 @@ module Ably
         end
 
         callback = proc do |url|
-          begin
-            @transport = EventMachine.connect(host, port, WebsocketTransport, self, url) do |websocket_transport|
-              yield websocket_transport if block_given?
+          determine_host do |host|
+            begin
+              @transport = EventMachine.connect(host, port, WebsocketTransport, self, url) do |websocket_transport|
+                yield websocket_transport if block_given?
+              end
+            rescue EventMachine::ConnectionError => error
+              manager.connection_opening_failed error
             end
-          rescue EventMachine::ConnectionError => error
-            manager.connection_opening_failed error
           end
         end
 

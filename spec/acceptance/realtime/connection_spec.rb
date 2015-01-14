@@ -667,5 +667,49 @@ describe Ably::Realtime::Connection, :event_machine do
         end
       end
     end
+
+
+    context 'undocumented method' do
+      context '#internet_up?' do
+        it 'returns a Deferrable' do
+          expect(connection.internet_up?).to be_a(EventMachine::Deferrable)
+          stop_reactor
+        end
+
+        context 'when the Internet is up' do
+          it 'calls the block with true' do
+            connection.internet_up? do |result|
+              expect(result).to be_truthy
+              stop_reactor
+            end
+          end
+
+          it 'calls the success callback of the Deferrable' do
+            connection.internet_up?.callback do
+              stop_reactor
+            end
+          end
+        end
+
+        context 'when the Internet is down' do
+          before do
+            stub_const 'Ably::INTERNET_CHECK', { url: 'http://does.not.exist.com', ok_text: 'no.way.this.will.match' }
+          end
+
+          it 'calls the block with false' do
+            connection.internet_up? do |result|
+              expect(result).to be_falsey
+              stop_reactor
+            end
+          end
+
+          it 'calls the failure callback of the Deferrable' do
+            connection.internet_up?.errback do
+              stop_reactor
+            end
+          end
+        end
+      end
+    end
   end
 end

@@ -169,14 +169,21 @@ _(see [spec/acceptance/realtime/connection_failures_spec.rb](./spec/acceptance/r
         * [retains channel subscription state](./spec/acceptance/realtime/connection_failures_spec.rb#L343)
         * when messages were published whilst the client was disconnected
           * [receives the messages published whilst offline](./spec/acceptance/realtime/connection_failures_spec.rb#L363)
+      * when failing to resume because the connection_key is not or no longer valid
+        * [updates the connection_id and connection_key](./spec/acceptance/realtime/connection_failures_spec.rb#L403)
+        * [detaches all channels](./spec/acceptance/realtime/connection_failures_spec.rb#L418)
+        * [emits an error on the channel and sets the error reason](./spec/acceptance/realtime/connection_failures_spec.rb#L436)
     * fallback host feature
       * with custom realtime websocket host option
-        * [never uses a fallback host](./spec/acceptance/realtime/connection_failures_spec.rb#L419)
+        * [never uses a fallback host](./spec/acceptance/realtime/connection_failures_spec.rb#L472)
       * with non-production environment
-        * [never uses a fallback host](./spec/acceptance/realtime/connection_failures_spec.rb#L436)
+        * [never uses a fallback host](./spec/acceptance/realtime/connection_failures_spec.rb#L489)
       * with production environment
-        * [uses a fallback host on every subsequent disconnected attempt until suspended](./spec/acceptance/realtime/connection_failures_spec.rb#L459)
-        * [uses the primary host when suspended, and a fallback host on every subsequent suspended attempt](./spec/acceptance/realtime/connection_failures_spec.rb#L478)
+        * when the Internet is down
+          * [never uses a fallback host](./spec/acceptance/realtime/connection_failures_spec.rb#L517)
+        * when the Internet is up
+          * [uses a fallback host on every subsequent disconnected attempt until suspended](./spec/acceptance/realtime/connection_failures_spec.rb#L534)
+          * [uses the primary host when suspended, and a fallback host on every subsequent suspended attempt](./spec/acceptance/realtime/connection_failures_spec.rb#L553)
 
 ### Ably::Realtime::Connection
 _(see [spec/acceptance/realtime/connection_spec.rb](./spec/acceptance/realtime/connection_spec.rb))_
@@ -263,12 +270,23 @@ _(see [spec/acceptance/realtime/connection_spec.rb](./spec/acceptance/realtime/c
       * with :recover option
         * with invalid syntax
           * [raises an exception](./spec/acceptance/realtime/connection_spec.rb#L598)
-        * with invalid value
-          * PENDING: *[triggers an error on the connection object, sets the #error_reason and connects anyway](./spec/acceptance/realtime/connection_spec.rb#L607)*
+        * with invalid formatted value sent to server
+          * [triggers a fatal error on the connection object, sets the #error_reason and disconnects](./spec/acceptance/realtime/connection_spec.rb#L607)
+        * with expired (missing) value sent to server
+          * [triggers an error on the connection object, sets the #error_reason, yet will connect anyway](./spec/acceptance/realtime/connection_spec.rb#L621)
     * with many connections simultaneously
-      * [opens each with a unique connection#id and connection#key](./spec/acceptance/realtime/connection_spec.rb#L624)
+      * [opens each with a unique connection#id and connection#key](./spec/acceptance/realtime/connection_spec.rb#L639)
     * when a state transition is unsupported
-      * [emits a StateChangeError](./spec/acceptance/realtime/connection_spec.rb#L644)
+      * [emits a StateChangeError](./spec/acceptance/realtime/connection_spec.rb#L659)
+    * undocumented method
+      * #internet_up?
+        * [returns a Deferrable](./spec/acceptance/realtime/connection_spec.rb#L674)
+        * when the Internet is up
+          * [calls the block with true](./spec/acceptance/realtime/connection_spec.rb#L680)
+          * [calls the success callback of the Deferrable](./spec/acceptance/realtime/connection_spec.rb#L687)
+        * when the Internet is down
+          * [calls the block with false](./spec/acceptance/realtime/connection_spec.rb#L699)
+          * [calls the failure callback of the Deferrable](./spec/acceptance/realtime/connection_spec.rb#L706)
 
 ### Ably::Realtime::Channel Message
 _(see [spec/acceptance/realtime/message_spec.rb](./spec/acceptance/realtime/message_spec.rb))_
@@ -1444,6 +1462,9 @@ _(see [spec/unit/realtime/channels_spec.rb](./spec/unit/realtime/channels_spec.r
     * [calls the block if channel is missing](./spec/unit/realtime/channels_spec.rb#L36)
   * destroying channels
     * [#release detatches and then releases the channel resoures](./spec/unit/realtime/channels_spec.rb#L44)
+  * is Enumerable
+    * [allows enumeration](./spec/unit/realtime/channels_spec.rb#L61)
+    * [provides #length](./spec/unit/realtime/channels_spec.rb#L68)
 
 ### Ably::Realtime::Client
 _(see [spec/unit/realtime/client_spec.rb](./spec/unit/realtime/client_spec.rb))_
@@ -1567,6 +1588,9 @@ _(see [spec/unit/rest/channels_spec.rb](./spec/unit/rest/channels_spec.rb))_
     * [calls the block if channel is missing](./spec/unit/rest/channels_spec.rb#L35)
   * destroying channels
     * [#release releases the channel resoures](./spec/unit/rest/channels_spec.rb#L43)
+  * is Enumerable
+    * [allows enumeration](./spec/unit/rest/channels_spec.rb#L59)
+    * [provides #length](./spec/unit/rest/channels_spec.rb#L66)
 
 ### Ably::Rest::Client
 _(see [spec/unit/rest/client_spec.rb](./spec/unit/rest/client_spec.rb))_
@@ -1671,6 +1695,6 @@ _(see [spec/unit/util/pub_sub_spec.rb](./spec/unit/util/pub_sub_spec.rb))_
 
 ## Test summary
 
-* Passing tests: 786
-* Pending tests: 12
 * Failing tests: 2
+* Passing tests: 800
+* Pending tests: 11

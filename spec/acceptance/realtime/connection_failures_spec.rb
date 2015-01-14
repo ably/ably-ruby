@@ -192,7 +192,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           it 'is reset to nil when :connected' do
             connection.once(:disconnected) do |error|
               # stub the host so that the connection connects
-              allow(connection).to receive(:host).and_return(TestApp.instance.host)
+              allow(connection).to receive(:determine_host).and_yield(TestApp.instance.host)
               connection.once(:connected) do
                 expect(connection.error_reason).to be_nil
                 stop_reactor
@@ -509,41 +509,64 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
         let(:fallback_hosts_used) { Array.new }
 
-        it 'uses a fallback host on every subsequent disconnected attempt until suspended' do
-          request = 0
-          expect(EventMachine).to receive(:connect).exactly(retry_count_for_one_state).times do |host|
-            if request == 0
-              expect(host).to eql(expected_host)
-            else
-              expect(custom_hosts).to include(host)
-              fallback_hosts_used << host
-            end
-            request += 1
-            raise EventMachine::ConnectionError
+        context 'when the Internet is down' do
+          before do
+            allow(connection).to receive(:internet_up?).and_yield(false)
           end
 
-          connection.on(:suspended) do
-            expect(fallback_hosts_used.uniq).to match_array(custom_hosts)
-            stop_reactor
+          it 'never uses a fallback host' do
+            expect(EventMachine).to receive(:connect).exactly(retry_count_for_all_states).times do |host|
+              expect(host).to eql(expected_host)
+              raise EventMachine::ConnectionError
+            end
+
+            connection.on(:failed) do
+              stop_reactor
+            end
           end
         end
 
-        it 'uses the primary host when suspended, and a fallback host on every subsequent suspended attempt' do
-          request = 0
-          expect(EventMachine).to receive(:connect).exactly(retry_count_for_all_states).times do |host|
-            if request == 0 || request == expected_retry_attempts + 1
-              expect(host).to eql(expected_host)
-            else
-              expect(custom_hosts).to include(host)
-              fallback_hosts_used << host
-            end
-            request += 1
-            raise EventMachine::ConnectionError
+        context 'when the Internet is up' do
+          before do
+            allow(connection).to receive(:internet_up?).and_yield(true)
           end
 
-          connection.on(:failed) do
-            expect(fallback_hosts_used.uniq).to match_array(custom_hosts)
-            stop_reactor
+          it 'uses a fallback host on every subsequent disconnected attempt until suspended' do
+            request = 0
+            expect(EventMachine).to receive(:connect).exactly(retry_count_for_one_state).times do |host|
+              if request == 0
+                expect(host).to eql(expected_host)
+              else
+                expect(custom_hosts).to include(host)
+                fallback_hosts_used << host
+              end
+              request += 1
+              raise EventMachine::ConnectionError
+            end
+
+            connection.on(:suspended) do
+              expect(fallback_hosts_used.uniq).to match_array(custom_hosts)
+              stop_reactor
+            end
+          end
+
+          it 'uses the primary host when suspended, and a fallback host on every subsequent suspended attempt' do
+            request = 0
+            expect(EventMachine).to receive(:connect).exactly(retry_count_for_all_states).times do |host|
+              if request == 0 || request == expected_retry_attempts + 1
+                expect(host).to eql(expected_host)
+              else
+                expect(custom_hosts).to include(host)
+                fallback_hosts_used << host
+              end
+              request += 1
+              raise EventMachine::ConnectionError
+            end
+
+            connection.on(:failed) do
+              expect(fallback_hosts_used.uniq).to match_array(custom_hosts)
+              stop_reactor
+            end
           end
         end
       end
