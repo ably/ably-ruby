@@ -58,6 +58,16 @@ module Ably::Modules
         join
     end
 
+    # Convert a Hash into a mixed case Hash objet
+    # i.e. { client_id: 1 } becomes { 'clientId' => 1 }
+    def convert_to_mixed_case_hash(hash, options = {})
+      raise ArgumentError, 'Hash expected' unless hash.kind_of?(Hash)
+      hash.each_with_object({}) do |pair, new_hash|
+        key, val = pair
+        new_hash[convert_to_mixed_case(key, options)] = val
+      end
+    end
+
     # Convert key to :snake_case from snakeCase
     def convert_to_snake_case_symbol(key)
       key.to_s.gsub(/::/, '/').

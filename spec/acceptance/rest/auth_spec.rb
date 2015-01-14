@@ -5,14 +5,16 @@ describe Ably::Auth do
   include Ably::Modules::Conversions
 
   def hmac_for(token_request, secret)
-    text = token_request.values_at(
+    ruby_named_token_request = Ably::Models::IdiomaticRubyWrapper.new(token_request)
+
+    text = [
       :id,
       :ttl,
       :capability,
       :client_id,
       :timestamp,
       :nonce
-    ).map { |t| "#{t}\n" }.join("")
+    ].map { |key| "#{ruby_named_token_request[key]}\n" }.join("")
 
     encode64(
       Digest::HMAC.digest(text, key_secret, Digest::SHA256)
@@ -38,7 +40,7 @@ describe Ably::Auth do
       else
         JSON.parse(request.body)
       end
-      body[key.to_s].to_s == val.to_s
+      body[convert_to_mixed_case(key)].to_s == val.to_s
     end
 
     def serialize(object, protocol)
@@ -70,7 +72,7 @@ describe Ably::Auth do
       end
 
       %w(client_id capability nonce timestamp ttl).each do |option|
-        context "option :#{option}", :webmock do
+        context "with option :#{option}", :webmock do
           let(:random)         { random_int_str }
           let(:options)        { { option.to_sym => random } }
 
@@ -88,7 +90,7 @@ describe Ably::Auth do
 
           before { auth.request_token options }
 
-          it 'overrides default' do
+          it 'overrides default and uses camelCase notation for all attributes' do
             expect(request_token_stub).to have_been_requested
           end
         end
@@ -356,25 +358,25 @@ describe Ably::Auth do
       subject { auth.create_token_request(options) }
 
       it 'uses the key ID from the client' do
-        expect(subject[:id]).to eql(key_id)
+        expect(subject['id']).to eql(key_id)
       end
 
       it 'uses the default TTL' do
-        expect(subject[:ttl]).to eql(Ably::Models::Token::DEFAULTS[:ttl])
+        expect(subject['ttl']).to eql(Ably::Models::Token::DEFAULTS[:ttl])
       end
 
       it 'uses the default capability' do
-        expect(subject[:capability]).to eql(Ably::Models::Token::DEFAULTS[:capability].to_json)
+        expect(subject['capability']).to eql(Ably::Models::Token::DEFAULTS[:capability].to_json)
       end
 
       context 'the nonce' do
         it 'is unique for every request' do
-          unique_nonces = 100.times.map { auth.create_token_request[:nonce] }
+          unique_nonces = 100.times.map { auth.create_token_request['nonce'] }
           expect(unique_nonces.uniq.length).to eql(100)
         end
 
         it 'is at least 16 characters' do
-          expect(subject[:nonce].length).to be >= 16
+          expect(subject['nonce'].length).to be >= 16
         end
       end
 
@@ -385,7 +387,7 @@ describe Ably::Auth do
             options[attribute.to_sym] = option_value
           end
           it "overrides default" do
-            expect(subject[attribute.to_sym].to_s).to eql(option_value.to_s)
+            expect(subject[convert_to_mixed_case(attribute)].to_s).to eql(option_value.to_s)
           end
         end
       end
@@ -394,8 +396,9 @@ describe Ably::Auth do
         let(:options) { { nonce: 'valid', is_not_used_by_token_request: 'invalid' } }
         specify 'are ignored' do
           expect(subject.keys).to_not include(:is_not_used_by_token_request)
-          expect(subject.keys).to include(:nonce)
-          expect(subject[:nonce]).to eql('valid')
+          expect(subject.keys).to_not include(convert_to_mixed_case(:is_not_used_by_token_request))
+          expect(subject.keys).to include('nonce')
+          expect(subject['nonce']).to eql('valid')
         end
       end
 
@@ -417,7 +420,7 @@ describe Ably::Auth do
 
         it 'queries the server for the timestamp' do
           expect(client).to receive(:time).and_return(time)
-          expect(subject[:timestamp]).to eql(time.to_i)
+          expect(subject['timestamp']).to eql(time.to_i)
         end
       end
 
@@ -426,7 +429,7 @@ describe Ably::Auth do
         let(:options) { { timestamp: token_request_time } }
 
         it 'uses the provided timestamp in the token request' do
-          expect(subject[:timestamp]).to eql(token_request_time.to_i)
+          expect(subject['timestamp']).to eql(token_request_time.to_i)
         end
       end
 
@@ -444,7 +447,7 @@ describe Ably::Auth do
 
         it 'generates a valid HMAC' do
           hmac = hmac_for(options, key_secret)
-          expect(subject[:mac]).to eql(hmac)
+          expect(subject['mac']).to eql(hmac)
         end
       end
     end
