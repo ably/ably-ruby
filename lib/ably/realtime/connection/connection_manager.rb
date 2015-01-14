@@ -57,14 +57,14 @@ module Ably::Realtime
           return
         end
 
-        logger.debug "ConnectionManager: Opening connection to #{connection.host}:#{connection.port}"
+        logger.debug "ConnectionManager: Opening connection to #{connection.current_host}:#{connection.port}"
 
         connection.create_websocket_transport do |websocket_transport|
           subscribe_to_transport_events websocket_transport
           yield websocket_transport if block_given?
         end
 
-        logger.debug 'ConnectionManager: Setting up automatic connection timeout timer for #{TIMEOUTS.fetch(:open)}s'
+        logger.debug "ConnectionManager: Setting up automatic connection timeout timer for #{TIMEOUTS.fetch(:open)}s"
         create_timeout_timer_whilst_in_state(:connect, TIMEOUTS.fetch(:open)) do
           connection_opening_failed Ably::Exceptions::ConnectionTimeoutError.new("Connection to Ably timed out after #{TIMEOUTS.fetch(:open)}s", nil, 80014)
         end
@@ -74,7 +74,7 @@ module Ably::Realtime
       #
       # @api private
       def connection_opening_failed(error)
-        logger.warn "ConnectionManager: Connection to #{connection.host}:#{connection.port} failed; #{error.message}"
+        logger.warn "ConnectionManager: Connection to #{connection.current_host}:#{connection.port} failed; #{error.message}"
         connection.transition_state_machine next_retry_state, Ably::Exceptions::ConnectionError.new("Connection failed; #{error.message}", nil, 80000)
       end
 
@@ -104,7 +104,7 @@ module Ably::Realtime
         if !transport || transport.disconnected?
           setup_transport
         else
-          transport.reconnect connection.host, connection.port
+          transport.reconnect connection.current_host, connection.port
         end
       end
 

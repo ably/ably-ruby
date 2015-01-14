@@ -19,6 +19,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ['lib']
 
   spec.add_runtime_dependency 'eventmachine', '~> 1.0'
+  spec.add_runtime_dependency 'em-http-request', '~> 1.1'
   spec.add_runtime_dependency 'statesman', '~> 1.0.0'
   spec.add_runtime_dependency 'faraday', '~> 0.9'
   spec.add_runtime_dependency 'json'
