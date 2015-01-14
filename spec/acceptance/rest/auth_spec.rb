@@ -134,7 +134,7 @@ describe Ably::Auth do
       context 'without :query_time option' do
         let(:options) { { query_time: false } }
 
-        it 'queries the server for the time' do
+        it 'does not query the server for the time' do
           expect(client).to_not receive(:time)
           auth.request_token(options)
         end
