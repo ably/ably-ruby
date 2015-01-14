@@ -203,7 +203,7 @@ module Ably
 
       token_request = {
         id:         request_key_id,
-        client_id:  client_id,
+        clientId:   client_id,
         ttl:        Ably::Models::Token::DEFAULTS[:ttl],
         timestamp:  timestamp,
         capability: Ably::Models::Token::DEFAULTS[:capability],
@@ -217,7 +217,8 @@ module Ably
       ensure_utf_8 :nonce, token_request[:nonce], allow_nil: true
 
       token_request[:mac] = sign_params(token_request, request_key_secret)
-      token_request
+
+      convert_to_mixed_case_hash(token_request)
     end
 
     def api_key
