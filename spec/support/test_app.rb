@@ -94,6 +94,10 @@ class TestApp
     sandbox_client.endpoint.host
   end
 
+  def realtime_host
+    host.gsub(/rest/, 'realtime')
+  end
+
   private
   def sandbox_client
     @sandbox_client ||= Ably::Rest::Client.new(api_key: 'app.key:secret', tls: true, environment: environment)
