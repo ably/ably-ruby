@@ -333,6 +333,7 @@ module Ably
         callback = proc do |url|
           determine_host do |host|
             begin
+              logger.debug "Connection: Opening socket connection to #{host}:#{port} and URL '#{url}'"
               @transport = EventMachine.connect(host, port, WebsocketTransport, self, url) do |websocket_transport|
                 yield websocket_transport if block_given?
               end
