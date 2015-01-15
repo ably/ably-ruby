@@ -24,7 +24,7 @@ module RSpec
 
     # Allows multiple Deferrables to be passed in and calls the provided block when
     # all success callbacks have completed
-    def when_all(*deferrables, &block)
+    def when_all(*deferrables)
       raise ArgumentError, 'Block required' unless block_given?
 
       options = if deferrables.last.kind_of?(Hash)
@@ -40,9 +40,9 @@ module RSpec
           successful_deferrables[deferrable.object_id] = true
           if successful_deferrables.keys.sort == deferrables.map(&:object_id).sort
             if options[:and_wait]
-              ::EventMachine.add_timer(options[:and_wait]) { block.call }
+              ::EventMachine.add_timer(options[:and_wait]) { yield }
             else
-              block.call
+              yield
             end
           end
         end
