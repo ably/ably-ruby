@@ -192,7 +192,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           it 'is reset to nil when :connected' do
             connection.once(:disconnected) do |error|
               # stub the host so that the connection connects
-              allow(connection).to receive(:determine_host).and_yield(TestApp.instance.host)
+              allow(connection).to receive(:determine_host).and_yield(TestApp.instance.realtime_host)
               connection.once(:connected) do
                 expect(connection.error_reason).to be_nil
                 stop_reactor
