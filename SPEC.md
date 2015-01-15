@@ -379,11 +379,11 @@ _(see [spec/acceptance/realtime/presence_history_spec.rb](./spec/acceptance/real
 ### Ably::Realtime::Presence
 _(see [spec/acceptance/realtime/presence_spec.rb](./spec/acceptance/realtime/presence_spec.rb))_
   * using JSON and MsgPack protocol
-    * PENDING: *[ensure connection_id is unique and updated on ENTER](./spec/acceptance/realtime/presence_spec.rb#L943)*
-    * PENDING: *[ensure connection_id for presence member matches the messages they publish on the channel](./spec/acceptance/realtime/presence_spec.rb#L944)*
-    * PENDING: *[stop a call to get when the channel has not been entered](./spec/acceptance/realtime/presence_spec.rb#L945)*
-    * PENDING: *[stop a call to get when the channel has been entered but the list is not up to date](./spec/acceptance/realtime/presence_spec.rb#L946)*
-    * PENDING: *[presence will resume sync if connection is dropped mid-way](./spec/acceptance/realtime/presence_spec.rb#L947)*
+    * PENDING: *[ensure connection_id is unique and updated on ENTER](./spec/acceptance/realtime/presence_spec.rb#L966)*
+    * PENDING: *[ensure connection_id for presence member matches the messages they publish on the channel](./spec/acceptance/realtime/presence_spec.rb#L967)*
+    * PENDING: *[stop a call to get when the channel has not been entered](./spec/acceptance/realtime/presence_spec.rb#L968)*
+    * PENDING: *[stop a call to get when the channel has been entered but the list is not up to date](./spec/acceptance/realtime/presence_spec.rb#L969)*
+    * PENDING: *[presence will resume sync if connection is dropped mid-way](./spec/acceptance/realtime/presence_spec.rb#L970)*
     * when attached (but not present) on a presence channel with an anonymous client (no client ID)
       * [maintains state as other clients enter and leave the channel](./spec/acceptance/realtime/presence_spec.rb#L24)
     * #sync_complete?
@@ -414,90 +414,92 @@ _(see [spec/acceptance/realtime/presence_spec.rb](./spec/acceptance/realtime/pre
     * #update
       * [without previous #enter automatically enters](./spec/acceptance/realtime/presence_spec.rb#L224)
       * [updates the data if :data argument provided](./spec/acceptance/realtime/presence_spec.rb#L249)
-      * [returns a Deferrable](./spec/acceptance/realtime/presence_spec.rb#L259)
-      * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L266)
+      * [updates the data to nil if :data argument is not provided (assumes nil value)](./spec/acceptance/realtime/presence_spec.rb#L259)
+      * [returns a Deferrable](./spec/acceptance/realtime/presence_spec.rb#L269)
+      * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L276)
       * when ENTERED
         * [has no effect on the state](./spec/acceptance/realtime/presence_spec.rb#L234)
     * #leave
-      * [raises an exception if not entered](./spec/acceptance/realtime/presence_spec.rb#L321)
-      * [returns a Deferrable](./spec/acceptance/realtime/presence_spec.rb#L326)
-      * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L333)
+      * [raises an exception if not entered](./spec/acceptance/realtime/presence_spec.rb#L332)
+      * [returns a Deferrable](./spec/acceptance/realtime/presence_spec.rb#L337)
+      * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L344)
       * :data option
         * when set to a string
-          * [emits the new data for the leave event](./spec/acceptance/realtime/presence_spec.rb#L282)
+          * [emits the new data for the leave event](./spec/acceptance/realtime/presence_spec.rb#L293)
         * when set to nil
-          * FAILED: ~~[emits nil data for the leave event](./spec/acceptance/realtime/presence_spec.rb#L295)~~
+          * [emits the previously defined value as a convenience](./spec/acceptance/realtime/presence_spec.rb#L306)
         * when not passed as an argument
-          * [emits the original data for the leave event](./spec/acceptance/realtime/presence_spec.rb#L308)
+          * [emits the previously defined value as a convenience](./spec/acceptance/realtime/presence_spec.rb#L319)
     * :left event
-      * [emits the data defined in enter](./spec/acceptance/realtime/presence_spec.rb#L345)
-      * [emits the data defined in update](./spec/acceptance/realtime/presence_spec.rb#L356)
+      * [emits the data defined in enter](./spec/acceptance/realtime/presence_spec.rb#L356)
+      * [emits the data defined in update](./spec/acceptance/realtime/presence_spec.rb#L367)
     * entering/updating/leaving presence state on behalf of another client_id
       * #enter_client
-        * [returns a Deferrable](./spec/acceptance/realtime/presence_spec.rb#L407)
-        * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L412)
+        * [returns a Deferrable](./spec/acceptance/realtime/presence_spec.rb#L418)
+        * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L423)
         * multiple times on the same channel with different client_ids
-          * [has no affect on the client's presence state and only enters on behalf of the provided client_id](./spec/acceptance/realtime/presence_spec.rb#L377)
-          * [enters a channel and sets the data based on the provided :data option](./spec/acceptance/realtime/presence_spec.rb#L391)
+          * [has no affect on the client's presence state and only enters on behalf of the provided client_id](./spec/acceptance/realtime/presence_spec.rb#L388)
+          * [enters a channel and sets the data based on the provided :data option](./spec/acceptance/realtime/presence_spec.rb#L402)
       * #update_client
-        * [returns a Deferrable](./spec/acceptance/realtime/presence_spec.rb#L469)
-        * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L474)
+        * [returns a Deferrable](./spec/acceptance/realtime/presence_spec.rb#L492)
+        * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L497)
         * multiple times on the same channel with different client_ids
-          * [updates the data attribute for the member when :data option provided](./spec/acceptance/realtime/presence_spec.rb#L422)
-          * [enters if not already entered](./spec/acceptance/realtime/presence_spec.rb#L446)
+          * [updates the data attribute for the member when :data option provided](./spec/acceptance/realtime/presence_spec.rb#L433)
+          * [updates the data attribute to null for the member when :data option is not provided (assumed null)](./spec/acceptance/realtime/presence_spec.rb#L457)
+          * [enters if not already entered](./spec/acceptance/realtime/presence_spec.rb#L469)
       * #leave_client
-        * [returns a Deferrable](./spec/acceptance/realtime/presence_spec.rb#L572)
-        * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L577)
+        * [returns a Deferrable](./spec/acceptance/realtime/presence_spec.rb#L595)
+        * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L600)
         * leaves a channel
           * multiple times on the same channel with different client_ids
-            * [emits the :leave event for each client_id](./spec/acceptance/realtime/presence_spec.rb#L485)
-            * [succeeds if that client_id has not previously entered the channel](./spec/acceptance/realtime/presence_spec.rb#L509)
+            * [emits the :leave event for each client_id](./spec/acceptance/realtime/presence_spec.rb#L508)
+            * [succeeds if that client_id has not previously entered the channel](./spec/acceptance/realtime/presence_spec.rb#L532)
           * with a new value in :data option
-            * [emits the leave event with the new data value](./spec/acceptance/realtime/presence_spec.rb#L533)
+            * [emits the leave event with the new data value](./spec/acceptance/realtime/presence_spec.rb#L556)
           * with a nil value in :data option
-            * FAILED: ~~[emits the leave event with a nil value](./spec/acceptance/realtime/presence_spec.rb#L546)~~
+            * [emits the leave event with the previous value as a convenience](./spec/acceptance/realtime/presence_spec.rb#L569)
           * with no :data option
-            * [emits the leave event with the previous data value](./spec/acceptance/realtime/presence_spec.rb#L559)
+            * [emits the leave event with the previous value as a convenience](./spec/acceptance/realtime/presence_spec.rb#L582)
     * #get
-      * [returns a Deferrable](./spec/acceptance/realtime/presence_spec.rb#L587)
-      * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L592)
-      * [returns the current members on the channel](./spec/acceptance/realtime/presence_spec.rb#L599)
-      * [filters by connection_id option if provided](./spec/acceptance/realtime/presence_spec.rb#L614)
-      * [filters by client_id option if provided](./spec/acceptance/realtime/presence_spec.rb#L629)
-      * [does not wait for SYNC to complete if :wait_for_sync option is false](./spec/acceptance/realtime/presence_spec.rb#L646)
-      * [returns both members on both simultaneously connected clients](./spec/acceptance/realtime/presence_spec.rb#L668)
+      * [returns a Deferrable](./spec/acceptance/realtime/presence_spec.rb#L610)
+      * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L615)
+      * [returns the current members on the channel](./spec/acceptance/realtime/presence_spec.rb#L622)
+      * [filters by connection_id option if provided](./spec/acceptance/realtime/presence_spec.rb#L637)
+      * [filters by client_id option if provided](./spec/acceptance/realtime/presence_spec.rb#L652)
+      * [does not wait for SYNC to complete if :wait_for_sync option is false](./spec/acceptance/realtime/presence_spec.rb#L669)
+      * [returns both members on both simultaneously connected clients](./spec/acceptance/realtime/presence_spec.rb#L691)
       * when a member enters and then leaves
-        * [has no members](./spec/acceptance/realtime/presence_spec.rb#L656)
+        * [has no members](./spec/acceptance/realtime/presence_spec.rb#L679)
     * #subscribe
       * with no arguments
-        * [calls the callback for all presence events](./spec/acceptance/realtime/presence_spec.rb#L694)
+        * [calls the callback for all presence events](./spec/acceptance/realtime/presence_spec.rb#L717)
     * #unsubscribe
       * with no arguments
-        * [removes the callback for all presence events](./spec/acceptance/realtime/presence_spec.rb#L714)
+        * [removes the callback for all presence events](./spec/acceptance/realtime/presence_spec.rb#L737)
     * REST #get
-      * [returns current members](./spec/acceptance/realtime/presence_spec.rb#L733)
-      * [returns no members once left](./spec/acceptance/realtime/presence_spec.rb#L746)
+      * [returns current members](./spec/acceptance/realtime/presence_spec.rb#L756)
+      * [returns no members once left](./spec/acceptance/realtime/presence_spec.rb#L769)
     * client_id with ASCII_8BIT
       * in connection set up
-        * [is converted into UTF_8](./spec/acceptance/realtime/presence_spec.rb#L763)
+        * [is converted into UTF_8](./spec/acceptance/realtime/presence_spec.rb#L786)
       * in channel options
-        * [is converted into UTF_8](./spec/acceptance/realtime/presence_spec.rb#L776)
+        * [is converted into UTF_8](./spec/acceptance/realtime/presence_spec.rb#L799)
     * encoding and decoding of presence message data
-      * [encrypts presence message data](./spec/acceptance/realtime/presence_spec.rb#L800)
+      * [encrypts presence message data](./spec/acceptance/realtime/presence_spec.rb#L823)
       * #subscribe
-        * [emits decrypted enter events](./spec/acceptance/realtime/presence_spec.rb#L819)
-        * [emits decrypted update events](./spec/acceptance/realtime/presence_spec.rb#L831)
-        * [emits previously set data for leave events](./spec/acceptance/realtime/presence_spec.rb#L845)
+        * [emits decrypted enter events](./spec/acceptance/realtime/presence_spec.rb#L842)
+        * [emits decrypted update events](./spec/acceptance/realtime/presence_spec.rb#L854)
+        * [emits previously set data for leave events](./spec/acceptance/realtime/presence_spec.rb#L868)
       * #get
-        * [returns a list of members with decrypted data](./spec/acceptance/realtime/presence_spec.rb#L861)
+        * [returns a list of members with decrypted data](./spec/acceptance/realtime/presence_spec.rb#L884)
       * REST #get
-        * [returns a list of members with decrypted data](./spec/acceptance/realtime/presence_spec.rb#L874)
+        * [returns a list of members with decrypted data](./spec/acceptance/realtime/presence_spec.rb#L897)
       * when cipher settings do not match publisher
-        * [delivers an unencoded presence message left with encoding value](./spec/acceptance/realtime/presence_spec.rb#L889)
-        * [emits an error when cipher does not match and presence data cannot be decoded](./spec/acceptance/realtime/presence_spec.rb#L902)
+        * [delivers an unencoded presence message left with encoding value](./spec/acceptance/realtime/presence_spec.rb#L912)
+        * [emits an error when cipher does not match and presence data cannot be decoded](./spec/acceptance/realtime/presence_spec.rb#L925)
     * leaving
-      * [expect :left event once underlying connection is closed](./spec/acceptance/realtime/presence_spec.rb#L919)
-      * [expect :left event with client data from enter event](./spec/acceptance/realtime/presence_spec.rb#L929)
+      * [expect :left event once underlying connection is closed](./spec/acceptance/realtime/presence_spec.rb#L942)
+      * [expect :left event with client data from enter event](./spec/acceptance/realtime/presence_spec.rb#L952)
 
 ### Ably::Realtime::Client#stats
 _(see [spec/acceptance/realtime/stats_spec.rb](./spec/acceptance/realtime/stats_spec.rb))_
@@ -1695,6 +1697,6 @@ _(see [spec/unit/util/pub_sub_spec.rb](./spec/unit/util/pub_sub_spec.rb))_
 
 ## Test summary
 
-* Failing tests: 2
-* Passing tests: 800
+* Passing tests: 805
 * Pending tests: 11
+* Failing tests: 0

@@ -256,6 +256,16 @@ describe Ably::Realtime::Presence, :event_machine do
         end
       end
 
+      it 'updates the data to nil if :data argument is not provided (assumes nil value)' do
+        presence_client_one.enter(data: 'prior') do
+          presence_client_one.update
+        end
+        presence_client_one.subscribe(:update) do |message|
+          expect(message.data).to be_nil
+          stop_reactor
+        end
+      end
+
       it 'returns a Deferrable' do
         presence_client_one.enter do
           expect(presence_client_one.update).to be_a(EventMachine::Deferrable)
@@ -277,10 +287,11 @@ describe Ably::Realtime::Presence, :event_machine do
     context '#leave' do
       context ':data option' do
         let(:data) { random_str }
+        let(:enter_data) { random_str }
 
         context 'when set to a string' do
           it 'emits the new data for the leave event' do
-            presence_client_one.enter data: random_str do
+            presence_client_one.enter data: enter_data do
               presence_client_one.leave data: data
             end
 
@@ -292,26 +303,26 @@ describe Ably::Realtime::Presence, :event_machine do
         end
 
         context 'when set to nil' do
-          it 'emits nil data for the leave event' do
-            presence_client_one.enter data: random_str do
+          it 'emits the previously defined value as a convenience' do
+            presence_client_one.enter data: enter_data do
               presence_client_one.leave data: nil
             end
 
             presence_client_one.subscribe(:leave) do |presence_message|
-              expect(presence_message.data).to be_nil
+              expect(presence_message.data).to eql(enter_data)
               stop_reactor
             end
           end
         end
 
         context 'when not passed as an argument' do
-          it 'emits the original data for the leave event' do
-            presence_client_one.enter data: data do
+          it 'emits the previously defined value as a convenience' do
+            presence_client_one.enter data: enter_data do
               presence_client_one.leave
             end
 
             presence_client_one.subscribe(:leave) do |presence_message|
-              expect(presence_message.data).to eql(data)
+              expect(presence_message.data).to eql(enter_data)
               stop_reactor
             end
           end
@@ -443,6 +454,18 @@ describe Ably::Realtime::Presence, :event_machine do
             end
           end
 
+          it 'updates the data attribute to null for the member when :data option is not provided (assumed null)' do
+            presence_client_one.enter_client('client_1') do
+              presence_client_one.update_client('client_1')
+            end
+
+            presence_anonymous_client.subscribe(:update) do |presence|
+              expect(presence.client_id).to eql('client_1')
+              expect(presence.data).to be_nil
+              stop_reactor
+            end
+          end
+
           it 'enters if not already entered' do
             updated_callback_count = 0
 
@@ -543,20 +566,20 @@ describe Ably::Realtime::Presence, :event_machine do
           end
 
           context 'with a nil value in :data option' do
-            it 'emits the leave event with a nil value' do
+            it 'emits the leave event with the previous value as a convenience' do
               presence_client_one.enter_client("client:unique", data: data) do
                 presence_client_one.leave_client("client:unique", data: nil)
               end
 
               presence_client_one.subscribe(:leave) do |presence_message|
-                expect(presence_message.data).to be_nil
+                expect(presence_message.data).to eql(data)
                 stop_reactor
               end
             end
           end
 
           context 'with no :data option' do
-            it 'emits the leave event with the previous data value' do
+            it 'emits the leave event with the previous value as a convenience' do
               presence_client_one.enter_client("client:unique", data: data) do
                 presence_client_one.leave_client("client:unique")
               end
