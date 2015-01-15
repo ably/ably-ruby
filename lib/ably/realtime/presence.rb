@@ -57,7 +57,7 @@ module Ably::Realtime
     #
     def enter(options = {}, &success_block)
       @client_id = options.fetch(:client_id, client_id)
-      @data      = options.fetch(:data, data)
+      @data      = options.fetch(:data, nil)
       deferrable = EventMachine::DefaultDeferrable.new
 
       raise Ably::Exceptions::Standard.new('Unable to enter presence channel without a client_id', 400, 91000) unless client_id
@@ -115,7 +115,7 @@ module Ably::Realtime
     # @return (see Presence#enter)
     #
     def leave(options = {}, &success_block)
-      @data      = options.fetch(:data) if options.has_key?(:data)
+      @data      = options.fetch(:data, data) # nil value defaults leave data to existing value
       deferrable = EventMachine::DefaultDeferrable.new
 
       raise Ably::Exceptions::Standard.new('Unable to leave presence channel that is not entered', 400, 91002) unless able_to_leave?
@@ -168,7 +168,7 @@ module Ably::Realtime
     # @return (see Presence#enter)
     #
     def update(options = {}, &success_block)
-      @data      = options.fetch(:data) if options.has_key?(:data)
+      @data      = options.fetch(:data, nil)
       deferrable = EventMachine::DefaultDeferrable.new
 
       ensure_channel_attached(deferrable) do
