@@ -111,6 +111,9 @@ RSpec.configure do |config|
         example.call
         raise example.exception if example.exception
       end
+    rescue Timeout::Error => timeout_error
+      # Set the exception on the example so that around blocks checking for exceptions respond to failures
+      example.example.set_exception timeout_error
     ensure
       example.example.run_after_example_original
       remove_patch_example_block example
