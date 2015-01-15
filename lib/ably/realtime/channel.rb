@@ -214,6 +214,12 @@ module Ably
         @error_reason = error
       end
 
+      # Used by {Ably::Modules::StateEmitter} to debug state changes
+      # @api private
+      def logger
+        client.logger
+      end
+
       private
       attr_reader :queue, :subscriptions
 
@@ -274,11 +280,6 @@ module Ably
 
       def rest_channel
         client.rest_client.channel(name)
-      end
-
-      # Used by {Ably::Modules::StateEmitter} to debug state changes
-      def logger
-        client.logger
       end
 
       def connection
