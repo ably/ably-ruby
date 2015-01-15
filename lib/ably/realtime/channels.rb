@@ -15,6 +15,7 @@ module Ably
       # @param name [String] The name of the channel
       # @param channel_options [Hash] Channel options, currently reserved for Encryption options
       # @return [Ably::Realtime::Channel}
+      #
       def get(*args)
         super
       end
@@ -27,6 +28,7 @@ module Ably
       # @yield [options] (optional) if a missing_block is passed to this method and no channel exists matching the name, this block is called
       # @yieldparam [String] name of the missing channel
       # @return [Ably::Realtime::Channel]
+      #
       def fetch(*args)
         super
       end
@@ -37,6 +39,7 @@ module Ably
       # the memory footprint of the {Ably::Realtime::Channel Realtime Channel object}. Release channels to free up resources if required
       #
       # @return [void]
+      #
       def release(channel)
         get(channel).detach do
           @channels.delete(channel)

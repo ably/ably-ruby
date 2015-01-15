@@ -37,6 +37,7 @@ module Ably
     # @param options (see Ably::Rest::Client#initialize)
     # @option (see Ably::Rest::Client#initialize)
     # @yield  (see Ably::Rest::Client#initialize)
+    #
     def initialize(client, options, &token_request_block)
       auth_options = options.dup
 
@@ -140,12 +141,12 @@ module Ably
     #      token_request
     #    end
     #
-    def request_token(options = {}, &token_request_block)
+    def request_token(options = {})
       token_options = self.auth_options.merge(options)
 
       auth_url = token_options.delete(:auth_url)
       token_request = if block_given?
-        token_request_block.call(token_options)
+        yield token_options
       elsif default_token_block
         default_token_block.call(token_options)
       elsif auth_url

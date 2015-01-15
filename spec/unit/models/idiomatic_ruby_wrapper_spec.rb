@@ -207,9 +207,27 @@ describe Ably::Models::IdiomaticRubyWrapper, :api_private do
     context 'iterable' do
       subject { Ably::Models::IdiomaticRubyWrapper.new(mixed_case_data, stop_at: [:hash_object, :array_object]) }
 
+      let(:expected_keys) { [:mixed_case, :simple, :hash_object, :array_object] }
+      let(:expected_vals) { mixed_case_data.map { |k,v| v } }
+
       it 'yields key value pairs' do
-        expect(subject.map { |k,v| k }).to eql([:mixed_case, :simple, :hash_object, :array_object])
-        expect(subject.map { |k,v| v }).to eql(mixed_case_data.map { |k,v| v })
+        expect(subject.map { |k,v| k }).to eql(expected_keys)
+        expect(subject.map { |k,v| v }).to eql(expected_vals)
+      end
+
+      context '#each' do
+        it 'returns an enumerator' do
+          expect(subject.each).to be_a(Enumerator)
+        end
+
+        it 'yields key value pairs' do
+          emitted = {}
+          subject.each do |key, val|
+            emitted[key] = val
+          end
+          expect(emitted.keys).to eql(expected_keys)
+          expect(emitted.values).to eql(expected_vals)
+        end
       end
     end
 

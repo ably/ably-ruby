@@ -44,6 +44,20 @@ describe Ably::Models::PaginatedResource do
     expect(subject.map { |d| d }).to eql(body)
   end
 
+  context '#each' do
+    it 'returns an enumerator' do
+      expect(subject.each).to be_a(Enumerator)
+    end
+
+    it 'yields each item' do
+      items = []
+      subject.each do |item|
+        items << item
+      end
+      expect(items).to eq(body)
+    end
+  end
+
   it 'provides [] accessor method' do
     expect(subject[0][:id]).to eql(body[0][:id])
     expect(subject[1][:id]).to eql(body[1][:id])

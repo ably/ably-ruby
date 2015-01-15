@@ -25,19 +25,9 @@ module Ably::Models
       @each_block    = each_block
       @make_async    = options.fetch(:async_blocking_operations, false)
 
-      @body = if @coerce_into
-        http_response.body.map do |item|
-          @coerce_into.split('::').inject(Kernel) do |base, klass_name|
-            base.public_send(:const_get, klass_name)
-          end.new(item)
-        end
-      else
-        http_response.body
-      end
-
-      @body = @body.map do |resource|
-        each_block.call(resource)
-      end if block_given?
+      @body = http_response.body
+      @body = coerce_items_into(body, @coerce_into) if @coerce_into
+      @body = body.map { |item| yield item } if block_given?
     end
 
     # Retrieve the first page of results.
@@ -100,9 +90,8 @@ module Ably::Models
 
     # Method to allow {PaginatedResource} to be {http://ruby-doc.org/core-2.1.3/Enumerable.html Enumerable}
     def each(&block)
-      body.each do |item|
-        yield item
-      end
+      return to_enum(:each) unless block_given?
+      body.each(&block)
     end
 
     # First item in this page
@@ -129,6 +118,14 @@ module Ably::Models
 
     private
     attr_reader :body, :http_response, :base_url, :client, :coerce_into, :raw_body, :each_block, :make_async
+
+    def coerce_items_into(items, type_string)
+      items.map do |item|
+        @coerce_into.split('::').inject(Kernel) do |base, klass_name|
+          base.public_send(:const_get, klass_name)
+        end.new(item)
+      end
+    end
 
     def pagination_headers
       link_regex = %r{<(?<url>[^>]+)>; rel="(?<rel>[^"]+)"}

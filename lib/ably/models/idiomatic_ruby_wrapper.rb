@@ -76,7 +76,7 @@ module Ably::Models
       hash[source_key_for(key)] = value
     end
 
-    def fetch(key, default = nil, &missing_block)
+    def fetch(key, default = nil)
       if has_key?(key)
         self[key]
       else
@@ -107,15 +107,13 @@ module Ably::Models
     end
 
     # Method ensuring this {IdiomaticRubyWrapper} is {http://ruby-doc.org/core-2.1.3/Enumerable.html Enumerable}
-    def each(&block)
+    def each
+      return to_enum(:each) unless block_given?
+
       hash.each do |key, value|
         key = convert_to_snake_case_symbol(key)
         value = self[key]
-        if block_given?
-          block.call key, value
-        else
-          yield key, value
-        end
+        yield key, value
       end
     end
 

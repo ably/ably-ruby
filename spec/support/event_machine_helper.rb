@@ -25,7 +25,7 @@ module RSpec
     # Allows multiple Deferrables to be passed in and calls the provided block when
     # all success callbacks have completed
     def when_all(*deferrables, &block)
-      raise "Block expected" unless block_given?
+      raise ArgumentError, 'Block required' unless block_given?
 
       options = if deferrables.last.kind_of?(Hash)
         deferrables.pop
