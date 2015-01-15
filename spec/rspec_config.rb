@@ -5,6 +5,8 @@
 #
 # See http://rubydoc.info/gems/rspec-core/RSpec/Core/Configuration
 
+require 'rspec/retry'
+
 RSpec.configure do |config|
   config.run_all_when_everything_filtered = true
   config.filter_run :focus
@@ -45,4 +47,11 @@ RSpec.configure do |config|
   end
 
   config.add_formatter Ably::RSpec::PrivateApiFormatter
+
+  if ENV['RSPEC_RETRY']
+    puts 'Running tests using RSpec retry'
+    config.verbose_retry = true # show retry status in spec process
+    config.default_retry_count = 3
+    config.default_sleep_interval = 2
+  end
 end
