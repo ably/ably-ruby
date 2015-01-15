@@ -52,7 +52,7 @@ describe Ably::Auth do
     end
 
     it 'has immutable options' do
-      expect { auth.options['key_id'] = 'new_id' }.to raise_error RuntimeError, /can't modify frozen Hash/
+      expect { auth.options['key_id'] = 'new_id' }.to raise_error RuntimeError, /can't modify frozen.*Hash/
     end
 
     describe '#request_token' do

@@ -270,7 +270,7 @@ describe Ably::Models::Message do
     end
 
     it 'should not allow changes to the payload' do
-      expect { message_0.data["test"] = true }.to raise_error RuntimeError, /can't modify frozen Hash/
+      expect { message_0.data["test"] = true }.to raise_error RuntimeError, /can't modify frozen.*Hash/
     end
 
     context 'with identical message objects' do
