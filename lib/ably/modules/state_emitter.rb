@@ -69,17 +69,17 @@ module Ably::Modules
     # @yield block is called if the state is matched immediately or once when the state is reached
     #
     # @return [void]
-    def once_or_if(target_states, options = {}, &success_block)
-      raise ArgumentError, 'Block is expected' unless block_given?
+    def once_or_if(target_states, options = {})
+      raise ArgumentError, 'Block required' unless block_given?
 
       if Array(target_states).any? { |target_state| state == target_state }
-        success_block.call
+        yield
       else
         failure_block   = options.fetch(:else, nil)
         failure_wrapper = nil
 
         success_wrapper = Proc.new do
-          success_block.call
+          yield
           off &success_wrapper
           off &failure_wrapper if failure_wrapper
         end
@@ -107,7 +107,7 @@ module Ably::Modules
     #
     # @api private
     def once_state_changed(&block)
-      raise ArgumentError, 'Block is expected' unless block_given?
+      raise ArgumentError, 'Block required' unless block_given?
 
       once_block = proc do |*args|
         off *self.class::STATE.map, &once_block
@@ -120,13 +120,13 @@ module Ably::Modules
     private
 
     # Returns an {EventMachine::Deferrable} and once the target state is reached, the
-    # success_block if provided and {EventMachine::Deferrable#callback} is called.
+    # success block if provided and {EventMachine::Deferrable#callback} is called.
     # If the state changes to any other state, the {EventMachine::Deferrable#errback} is called.
     #
-    def deferrable_for_state_change_to(target_state, &success_block)
+    def deferrable_for_state_change_to(target_state)
       EventMachine::DefaultDeferrable.new.tap do |deferrable|
         once_or_if(target_state, else: proc { |*args| deferrable.fail self, *args }) do
-          success_block.call self if block_given?
+          yield self if block_given?
           deferrable.succeed self
         end
       end

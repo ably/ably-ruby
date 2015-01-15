@@ -130,6 +130,16 @@ describe Ably::Modules::Enum, :api_private do
     it 'behaves like Enumerable' do
       expect(subject.map(&:to_sym)).to eql([:value_zero, :value_1, :value_snake_case_2, :sentence_case])
     end
+
+    context '#each' do
+      it 'returns an enumerator' do
+        expect(subject.each).to be_a(Enumerator)
+      end
+
+      it 'yields each channel' do
+        expect(subject.each.map(&:to_sym)).to eql([:value_zero, :value_1, :value_snake_case_2, :sentence_case])
+      end
+    end
   end
 
   context 'defined Enum from Hash class' do

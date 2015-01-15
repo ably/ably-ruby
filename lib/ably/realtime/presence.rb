@@ -211,9 +211,9 @@ module Ably::Realtime
     #
     # @yield [Array<Ably::Models::PresenceMessage>] array of members or the member
     #
-    # @return [EventMachine::Deferrable] Deferrable that supports both success (callback) and failure (errback) callback
+    # @return [EventMachine::Deferrable] Deferrable that supports both success (callback) and failure (errback) callbacks
     #
-    def get(options = {}, &success_block)
+    def get(options = {})
       wait_for_sync = options.fetch(:wait_for_sync, true)
       deferrable    = EventMachine::DefaultDeferrable.new
 
@@ -222,18 +222,17 @@ module Ably::Realtime
           members.map { |key, presence| presence }.tap do |filtered_members|
             filtered_members.keep_if { |presence| presence.connection_id == options[:connection_id] } if options[:connection_id]
             filtered_members.keep_if { |presence| presence.client_id == options[:client_id] } if options[:client_id]
+          end.tap do |current_members|
+            yield current_members if block_given?
+            deferrable.succeed current_members
           end
         end
 
         if !wait_for_sync || sync_complete?
-          result = result_block.call
-          success_block.call result if block_given?
-          deferrable.succeed result
+          result_block.call
         else
           sync_pubsub.once(:done) do
-            result = result_block.call
-            success_block.call result if block_given?
-            deferrable.succeed result
+            result_block.call
           end
 
           sync_pubsub.once(:failed) do |error|
@@ -486,7 +485,7 @@ module Ably::Realtime
 
     def send_protocol_message_and_transition_state_to(action, options = {}, &success_block)
       deferrable   = options.fetch(:deferrable) { raise ArgumentError, 'option :deferrable is required' }
-      client_id    = options.fetch(:client_id) { raise ArgumentError, 'option :client_id is required' }
+      client_id    = options.fetch(:client_id)  { raise ArgumentError, 'option :client_id is required' }
       target_state = options.fetch(:target_state, nil)
       failed_state = options.fetch(:failed_state, nil)
 
@@ -509,14 +508,14 @@ module Ably::Realtime
       end
     end
 
-    def deferrable_succeed(deferrable, *args, &block)
-      block.call self, *args if block_given?
-      EventMachine.next_tick { deferrable.succeed self, *args } # allow callback to be added to the returned Deferrable
+    def deferrable_succeed(deferrable, *args)
+      yield self, *args if block_given?
+      EventMachine.next_tick { deferrable.succeed self, *args } # allow callback to be added to the returned Deferrable before calling succeed
       deferrable
     end
 
-    def deferrable_fail(deferrable, *args, &block)
-      block.call self, *args if block_given?
+    def deferrable_fail(deferrable, *args)
+      yield self, *args if block_given?
       EventMachine.next_tick { deferrable.fail self, *args } # allow errback to be added to the returned Deferrable
       deferrable
     end

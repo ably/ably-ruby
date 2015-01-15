@@ -47,7 +47,7 @@ module Ably::Realtime
       #
       # @yield [Ably::Realtime::Connection::WebsocketTransport] block is called with new websocket transport
       # @api private
-      def setup_transport(&block)
+      def setup_transport
         if transport && !transport.ready_for_release?
           raise RuntimeError, 'Existing WebsocketTransport is connected, and must be closed first'
         end
@@ -209,11 +209,11 @@ module Ably::Realtime
 
       # Create a timer that will execute in timeout_in seconds.
       # If the connection state changes however, cancel the timer
-      def create_timeout_timer_whilst_in_state(timer_id, timeout_in, &block)
-        raise 'Block required for timer' unless block_given?
+      def create_timeout_timer_whilst_in_state(timer_id, timeout_in)
+        raise ArgumentError, 'Block required' unless block_given?
 
         timers[timer_id] << EventMachine::Timer.new(timeout_in) do
-          block.call
+          yield
         end
         connection.once_state_changed { clear_timers timer_id }
       end

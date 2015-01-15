@@ -37,8 +37,8 @@ module Ably::Modules
     # @yield [Object] operation block that is run in a thread
     # @return [EventMachine::Deferrable]
     #
-    def async_wrap(success_callback = nil, &operation)
-      raise ArgumentError, "Operation block is missing" unless block_given?
+    def async_wrap(success_callback = nil)
+      raise ArgumentError, 'Block required' unless block_given?
 
       EventMachine::DefaultDeferrable.new.tap do |deferrable|
         deferrable.callback &success_callback if success_callback

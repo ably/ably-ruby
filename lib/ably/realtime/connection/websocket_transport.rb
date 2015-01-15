@@ -128,9 +128,9 @@ module Ably::Realtime
         end
       end
 
-      def create_timer(period, &block)
+      def create_timer(period)
         @timer = EventMachine::Timer.new(period) do
-          block.call
+          yield
         end
       end
 

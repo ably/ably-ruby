@@ -156,7 +156,7 @@ module Ably
       #
       # @return [void]
       #
-      def ping(&block)
+      def ping
         raise RuntimeError, 'Cannot send a ping when connection is not open' if initialized?
         raise RuntimeError, 'Cannot send a ping when connection is in a closed or failed state' if closed? || failed?
 
@@ -166,7 +166,7 @@ module Ably
           if protocol_message.action == Ably::Models::ProtocolMessage::ACTION.Heartbeat
             __incoming_protocol_msgbus__.unsubscribe(:protocol_message, &wait_for_ping)
             time_passed = (Time.now.to_f * 1000 - started.to_f * 1000).to_i
-            block.call time_passed if block_given?
+            yield time_passed if block_given?
           end
         end
 
@@ -180,14 +180,17 @@ module Ably
       # @yield [Boolean] True if an internet connection check appears to be up following an HTTP request to a reliable CDN
       # @return [EventMachine::Deferrable]
       # @api private
-      def internet_up?(&result_callback)
-        EventMachine::HttpRequest.new(Ably::INTERNET_CHECK.fetch(:url)).get.tap do |http|
-          if block_given?
+      def internet_up?
+        EventMachine::DefaultDeferrable.new.tap do |deferrable|
+          EventMachine::HttpRequest.new(Ably::INTERNET_CHECK.fetch(:url)).get.tap do |http|
             http.errback do
-              yield false
+              yield false if block_given?
+              deferrable.fail
             end
             http.callback do
-              yield http.response_header.status == 200 && http.response.strip == Ably::INTERNET_CHECK.fetch(:ok_text)
+              result = http.response_header.status == 200 && http.response.strip == Ably::INTERNET_CHECK.fetch(:ok_text)
+              yield result if block_given?
+              deferrable.succeed
             end
           end
         end
@@ -239,8 +242,8 @@ module Ably
       # Determines the correct host name to use for the next connection attempt and updates current_host
       # @yield [String] The host name used for this connection, for network connection failures a {Ably::FALLBACK_HOSTS fallback host} is used to route around networking or intermittent problems if an Internet connection is available
       # @api private
-      def determine_host(&callback)
-        raise ArgumentError, 'Callback expected' unless block_given?
+      def determine_host
+        raise ArgumentError, 'Block required' unless block_given?
 
         if can_use_fallback_hosts?
           internet_up? do |internet_is_up_result|
@@ -301,8 +304,10 @@ module Ably
       end
 
       # @api private
-      def create_websocket_transport(&block)
-        operation = proc do
+      def create_websocket_transport
+        raise ArgumentError, 'Block required' unless block_given?
+
+        blocking_operation = proc do
           URI(client.endpoint).tap do |endpoint|
             url_params = client.auth.auth_params.merge(
               timestamp: as_since_epoch(Time.now),
@@ -338,7 +343,7 @@ module Ably
         end
 
         # client.auth.auth_params is a blocking call, so defer this into a thread
-        EventMachine.defer operation, callback
+        EventMachine.defer blocking_operation, callback
       end
 
       # @api private
@@ -383,7 +388,7 @@ module Ably
       end
 
       # Simply wait until the next EventMachine tick to ensure Connection initialization is complete
-      def when_initialized(&block)
+      def when_initialized
         EventMachine.next_tick { yield }
       end
 

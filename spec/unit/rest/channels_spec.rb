@@ -58,8 +58,17 @@ describe Ably::Rest::Channels do
 
     it 'allows enumeration' do
       expect(subject.map.count).to eql(channel_count)
-      subject.each do |channel|
-        expect(channel).to eql(mock_channel)
+    end
+
+    context '#each' do
+      it 'returns an enumerator' do
+        expect(subject.each).to be_a(Enumerator)
+      end
+
+      it 'yields each channel' do
+        subject.each do |channel|
+          expect(channel).to eql(mock_channel)
+        end
       end
     end
 
