@@ -17,7 +17,7 @@ describe Ably::Auth do
     ].map { |key| "#{ruby_named_token_request[key]}\n" }.join("")
 
     encode64(
-      Digest::HMAC.digest(text, key_secret, Digest::SHA256)
+      OpenSSL::HMAC.digest(OpenSSL::Digest::SHA256.new, secret, text)
     )
   end
 
