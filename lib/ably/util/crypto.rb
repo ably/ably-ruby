@@ -62,7 +62,7 @@ module Ably::Util
     # @return [String]
     #
     def decrypt(encrypted_payload_with_iv)
-      raise Ably::Exceptions::EncryptionError, 'iv is missing or not long enough' unless encrypted_payload_with_iv.length >= BLOCK_LENGTH*2
+      raise Ably::Exceptions::CipherError, 'iv is missing or not long enough' unless encrypted_payload_with_iv.length >= BLOCK_LENGTH*2
 
       iv = encrypted_payload_with_iv.slice(0...BLOCK_LENGTH)
       encrypted_payload = encrypted_payload_with_iv.slice(BLOCK_LENGTH..-1)
