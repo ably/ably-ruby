@@ -9,7 +9,12 @@ module Ably
                                                :dump_summary
 
       def initialize(output)
-        @output  = File.open(File.expand_path('../../../SPEC.md', __FILE__), 'w')
+        @output = if File.exists?(File.expand_path('../../../../../../ably-rest.gemspec', __FILE__))
+          File.open(File.expand_path('../../../../../../SPEC.md', __FILE__), 'w')
+        else
+          File.open(File.expand_path('../../../SPEC.md', __FILE__), 'w')
+        end
+
         @indent  = 0
         @passed  = 0
         @pending = 0
