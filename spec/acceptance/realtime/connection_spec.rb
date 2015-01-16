@@ -139,23 +139,25 @@ describe Ably::Realtime::Connection, :event_machine do
 
                 context 'the server' do
                   it 'disconnects the client, and the client automatically renews the token and then reconnects', em_timeout: 10 do
-                    expect(client.auth.current_token).to_not be_expired
-
-                    channel.attach
                     original_token = client.auth.current_token
+                    expect(original_token).to_not be_expired
 
                     connection.once(:connected) do
                       started_at = Time.now
                       connection.once(:disconnected) do |error|
-                        expect(Time.now - started_at >= ttl)
-                        expect(original_token).to be_expired
-                        expect(error.code).to eql(40140) # token expired
-                        connection.once(:connected) do
-                          expect(client.auth.current_token).to_not be_expired
-                          stop_reactor
+                        EventMachine.add_timer(1) do # allow 1 second
+                          expect(Time.now - started_at >= ttl)
+                          expect(original_token).to be_expired
+                          expect(error.code).to eql(40140) # token expired
+                          connection.once(:connected) do
+                            expect(client.auth.current_token).to_not be_expired
+                            stop_reactor
+                          end
                         end
                       end
                     end
+
+                    channel.attach
                   end
                 end
 
