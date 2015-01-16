@@ -5,7 +5,7 @@ module Ably::Models
   # Paging information is provided by Ably in the LINK HTTP headers
   class PaginatedResource
     include Enumerable
-    include Ably::Modules::AsyncWrapper if defined?(EventMachine)
+    include Ably::Modules::AsyncWrapper if defined?(Ably::Realtime)
 
     # @param [Faraday::Response] http_response Initial HTTP response from an Ably request to a paged resource
     # @param [String] base_url Base URL for request that generated the http_response so that subsequent paged requests can be made
