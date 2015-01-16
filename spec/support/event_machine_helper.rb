@@ -71,32 +71,11 @@ RSpec.configure do |config|
     end
   end
 
-  # Running a reactor block and then calling the example block with #call
-  # does not work as expected as the example completes immediately and the block
-  # calls after hooks before it returns the EventMachine loop.
+  # Run the test block wrapped in an EventMachine reactor that has a configured timeout.
+  # As RSpec does not provide an API to wrap blocks, accessing the instance variables is required.
+  # Note, if you start a reactor and simply run the example with example#run then the example
+  # will run and not wait for the reactor to stop thus triggering after callbacks prematurely.
   #
-  # As there is no public API to inject around blocks correctly without calling the after blocks,
-  # we have to monkey patch the run_after_example method at https://github.com/rspec/rspec-core/blob/master/lib/rspec/core/example.rb#L376
-  # so that it does not run until we explicitly call it once the EventMachine reactor loop is finished.
-  #
-  def patch_example_block_with_surrounding_eventmachine_reactor(example)
-    example.example.class.class_eval do
-      alias_method :run_after_example_original, :run_after_example
-      public :run_after_example_original
-
-      # prevent after hooks being run for example until EventMachine reactor has finished
-      def run_after_example; end
-    end
-  end
-
-  def remove_patch_example_block(example)
-    example.example.class.class_eval do
-      remove_method :run_after_example
-      alias_method :run_after_example, :run_after_example_original
-      remove_method :run_after_example_original
-    end
-  end
-
   config.around(:example, :event_machine) do |example|
     timeout = if example.metadata[:em_timeout].is_a?(Numeric)
       example.metadata[:em_timeout]
@@ -104,20 +83,18 @@ RSpec.configure do |config|
       RSpec::EventMachine::DEFAULT_TIMEOUT
     end
 
-    patch_example_block_with_surrounding_eventmachine_reactor example
+    example_block          = example.example.instance_variable_get('@example_block')
+    example_group_instance = example.example.instance_variable_get('@example_group_instance')
 
-    begin
+    event_machine_block = Proc.new do
       RSpec::EventMachine.run_reactor(timeout) do
-        example.call
-        raise example.exception if example.exception
+        example_group_instance.instance_exec(example, &example_block)
       end
-    rescue Timeout::Error => timeout_error
-      # Set the exception on the example so that around blocks checking for exceptions respond to failures
-      example.example.set_exception timeout_error
-    ensure
-      example.example.run_after_example_original
-      remove_patch_example_block example
     end
+
+    example.example.instance_variable_set('@example_block', event_machine_block)
+
+    example.run
   end
 
   config.before(:example) do
