@@ -1,4 +1,4 @@
-# Ably Client Library 0.7.1 Specification
+# Ably Real-time & REST Client Library 0.7.1 Specification
 
 ### Ably::Realtime::Channel#history
 _(see [spec/acceptance/realtime/channel_history_spec.rb](./spec/acceptance/realtime/channel_history_spec.rb))_

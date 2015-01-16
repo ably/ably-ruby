@@ -128,7 +128,7 @@ describe Ably::Models::PaginatedResource do
       end
     end
 
-    if defined?(EventMachine)
+    if defined?(Ably::Realtime)
       context 'with option async_blocking_operations: true' do
         include RSpec::EventMachine
 
