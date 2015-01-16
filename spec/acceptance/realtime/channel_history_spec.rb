@@ -103,7 +103,7 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
         end
       end
 
-      context 'in multiple ProtocolMessages', em_timeout: (30 / 4) + 10 do
+      context 'in multiple ProtocolMessages', em_timeout: (30 / 4) + 20 do
         it 'retrieves limited history forwards with pagination' do
           messages_sent.times do |index|
             EventMachine.add_timer(index.to_f / rate_per_second) do
