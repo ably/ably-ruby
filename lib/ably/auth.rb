@@ -352,7 +352,7 @@ module Ably
       ).map { |t| "#{t}\n" }.join("")
 
       encode64(
-        Digest::HMAC.digest(text, secret, Digest::SHA256)
+        OpenSSL::HMAC.digest(OpenSSL::Digest::SHA256.new, secret, text)
       )
     end
 
