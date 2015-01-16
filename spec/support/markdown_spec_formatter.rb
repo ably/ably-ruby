@@ -9,7 +9,7 @@ module Ably
                                                :dump_summary
 
       def initialize(output)
-        @output = if File.exists?(File.expand_path('../../../../../../ably-rest.gemspec', __FILE__))
+        @output = if documenting_rest_only?
           File.open(File.expand_path('../../../../../../SPEC.md', __FILE__), 'w')
         else
           File.open(File.expand_path('../../../SPEC.md', __FILE__), 'w')
@@ -82,12 +82,28 @@ module Ably
       private
       attr_reader :output, :indent
 
+      def documenting_rest_only?
+        File.exists?(File.expand_path('../../../../../../ably-rest.gemspec', __FILE__))
+      end
+
       def example_name_and_link(notification)
-        "[#{notification.example.metadata[:description]}](#{notification.example.location.gsub(/\:(\d+)/, '#L\1')})"
+        "[#{notification.example.metadata[:description]}](#{path_for(notification.example.location).gsub(/\:(\d+)/, '#L\1')})"
       end
 
       def heading_location_path(notification)
-        "[#{notification.group.location.gsub(/\:(\d+)/, '').gsub(%r{^.\/}, '')}](#{notification.group.location.gsub(/\:(\d+)/, '')})"
+        "[#{notification.group.location.gsub(/\:(\d+)/, '').gsub(%r{^\.\/}, '')}](#{path_for(notification.group.location).gsub(/\:(\d+)/, '')})"
+      end
+
+      def path_for(location)
+        if documenting_rest_only?
+          "https://github.com/ably/ably-ruby/tree/#{submodule_sha}#{location.gsub(%r{^\./lib/submodules/ably-ruby}, '')}"
+        else
+          location
+        end
+      end
+
+      def submodule_sha
+        @sha ||= `git ls-tree HEAD:lib/submodules grep ably-ruby`[/^\w+\s+\w+\s+(\w+)/, 1]
       end
 
       def indent_prefix
