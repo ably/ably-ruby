@@ -10,13 +10,13 @@ _(see [spec/acceptance/realtime/channel_history_spec.rb](./spec/acceptance/realt
       * [retrieves real-time history on both channels](./spec/acceptance/realtime/channel_history_spec.rb#L45)
     * with lots of messages published with a single client and channel
       * as one ProtocolMessage
-        * [retrieves history forwards with pagination through :limit option](./spec/acceptance/realtime/channel_history_spec.rb#L86)
-        * [retrieves history backwards with pagination through :limit option](./spec/acceptance/realtime/channel_history_spec.rb#L95)
+        * [retrieves history forwards with pagination through :limit option](./spec/acceptance/realtime/channel_history_spec.rb#L87)
+        * [retrieves history backwards with pagination through :limit option](./spec/acceptance/realtime/channel_history_spec.rb#L96)
       * in multiple ProtocolMessages
-        * [retrieves limited history forwards with pagination](./spec/acceptance/realtime/channel_history_spec.rb#L106)
-        * [retrieves limited history backwards with pagination](./spec/acceptance/realtime/channel_history_spec.rb#L117)
+        * [retrieves limited history forwards with pagination](./spec/acceptance/realtime/channel_history_spec.rb#L107)
+        * [retrieves limited history backwards with pagination](./spec/acceptance/realtime/channel_history_spec.rb#L118)
       * and REST history
-        * [return the same results with unique matching message IDs](./spec/acceptance/realtime/channel_history_spec.rb#L133)
+        * [return the same results with unique matching message IDs](./spec/acceptance/realtime/channel_history_spec.rb#L134)
 
 ### Ably::Realtime::Channel
 _(see [spec/acceptance/realtime/channel_spec.rb](./spec/acceptance/realtime/channel_spec.rb))_
@@ -209,84 +209,84 @@ _(see [spec/acceptance/realtime/connection_spec.rb](./spec/acceptance/realtime/c
                 * [uses the primary host for subsequent connection and auth requests](./spec/acceptance/realtime/connection_spec.rb#L117)
             * when connected with a valid non-expired token
               * that then expires following the connection being opened
-                * PENDING: *[retains connection state](./spec/acceptance/realtime/connection_spec.rb#L162)*
-                * PENDING: *[changes state to failed if a new token cannot be issued](./spec/acceptance/realtime/connection_spec.rb#L163)*
+                * PENDING: *[retains connection state](./spec/acceptance/realtime/connection_spec.rb#L164)*
+                * PENDING: *[changes state to failed if a new token cannot be issued](./spec/acceptance/realtime/connection_spec.rb#L165)*
                 * the server
                   * [disconnects the client, and the client automatically renews the token and then reconnects](./spec/acceptance/realtime/connection_spec.rb#L141)
         * for non-renewable tokens
           * that are expired
             * opening a new connection
-              * [transitions state to failed](./spec/acceptance/realtime/connection_spec.rb#L178)
+              * [transitions state to failed](./spec/acceptance/realtime/connection_spec.rb#L180)
             * when connected
-              * PENDING: *[transitions state to failed](./spec/acceptance/realtime/connection_spec.rb#L191)*
+              * PENDING: *[transitions state to failed](./spec/acceptance/realtime/connection_spec.rb#L193)*
     * initialization state changes
       * with implicit #connect
-        * [are triggered in order](./spec/acceptance/realtime/connection_spec.rb#L219)
+        * [are triggered in order](./spec/acceptance/realtime/connection_spec.rb#L221)
       * with explicit #connect
-        * [are triggered in order](./spec/acceptance/realtime/connection_spec.rb#L225)
+        * [are triggered in order](./spec/acceptance/realtime/connection_spec.rb#L227)
     * #connect
-      * [returns a Deferrable](./spec/acceptance/realtime/connection_spec.rb#L233)
-      * [calls the Deferrable callback on success](./spec/acceptance/realtime/connection_spec.rb#L238)
+      * [returns a Deferrable](./spec/acceptance/realtime/connection_spec.rb#L235)
+      * [calls the Deferrable callback on success](./spec/acceptance/realtime/connection_spec.rb#L240)
       * when already connected
-        * [does nothing and no further state changes are emitted](./spec/acceptance/realtime/connection_spec.rb#L247)
+        * [does nothing and no further state changes are emitted](./spec/acceptance/realtime/connection_spec.rb#L249)
       * once connected
         * connection#id
-          * [is a string](./spec/acceptance/realtime/connection_spec.rb#L264)
-          * [is unique from the connection#key](./spec/acceptance/realtime/connection_spec.rb#L271)
-          * [is unique for every connection](./spec/acceptance/realtime/connection_spec.rb#L278)
+          * [is a string](./spec/acceptance/realtime/connection_spec.rb#L266)
+          * [is unique from the connection#key](./spec/acceptance/realtime/connection_spec.rb#L273)
+          * [is unique for every connection](./spec/acceptance/realtime/connection_spec.rb#L280)
         * connection#key
-          * [is a string](./spec/acceptance/realtime/connection_spec.rb#L287)
-          * [is unique from the connection#id](./spec/acceptance/realtime/connection_spec.rb#L294)
-          * [is unique for every connection](./spec/acceptance/realtime/connection_spec.rb#L301)
+          * [is a string](./spec/acceptance/realtime/connection_spec.rb#L289)
+          * [is unique from the connection#id](./spec/acceptance/realtime/connection_spec.rb#L296)
+          * [is unique for every connection](./spec/acceptance/realtime/connection_spec.rb#L303)
       * following a previous connection being opened and closed
-        * [reconnects and is provided with a new connection ID and connection key from the server](./spec/acceptance/realtime/connection_spec.rb#L311)
+        * [reconnects and is provided with a new connection ID and connection key from the server](./spec/acceptance/realtime/connection_spec.rb#L313)
     * #close
-      * [returns a Deferrable](./spec/acceptance/realtime/connection_spec.rb#L329)
-      * [calls the Deferrable callback on success](./spec/acceptance/realtime/connection_spec.rb#L336)
+      * [returns a Deferrable](./spec/acceptance/realtime/connection_spec.rb#L331)
+      * [calls the Deferrable callback on success](./spec/acceptance/realtime/connection_spec.rb#L338)
       * when already closed
-        * [does nothing and no further state changes are emitted](./spec/acceptance/realtime/connection_spec.rb#L347)
+        * [does nothing and no further state changes are emitted](./spec/acceptance/realtime/connection_spec.rb#L349)
       * when connection state is
         * :initialized
-          * [changes the connection state to :closing and then immediately :closed without sending a ProtocolMessage CLOSE](./spec/acceptance/realtime/connection_spec.rb#L375)
+          * [changes the connection state to :closing and then immediately :closed without sending a ProtocolMessage CLOSE](./spec/acceptance/realtime/connection_spec.rb#L377)
         * :connected
-          * [changes the connection state to :closing and waits for the server to confirm connection is :closed with a ProtocolMessage](./spec/acceptance/realtime/connection_spec.rb#L393)
+          * [changes the connection state to :closing and waits for the server to confirm connection is :closed with a ProtocolMessage](./spec/acceptance/realtime/connection_spec.rb#L395)
           * with an unresponsive connection
-            * [force closes the connection when a :closed ProtocolMessage response is not received](./spec/acceptance/realtime/connection_spec.rb#L423)
+            * [force closes the connection when a :closed ProtocolMessage response is not received](./spec/acceptance/realtime/connection_spec.rb#L425)
     * #ping
-      * [echoes a heart beat](./spec/acceptance/realtime/connection_spec.rb#L446)
+      * [echoes a heart beat](./spec/acceptance/realtime/connection_spec.rb#L448)
       * when not connected
-        * [raises an exception](./spec/acceptance/realtime/connection_spec.rb#L456)
+        * [raises an exception](./spec/acceptance/realtime/connection_spec.rb#L458)
     * recovery
       * #recovery_key
-        * [is composed of connection id and serial that is kept up to date with each message sent](./spec/acceptance/realtime/connection_spec.rb#L489)
-        * [is available when connection is in one of the states: connecting, connected, disconnected, suspended, failed](./spec/acceptance/realtime/connection_spec.rb#L510)
-        * [is nil when connection is explicitly CLOSED](./spec/acceptance/realtime/connection_spec.rb#L534)
+        * [is composed of connection id and serial that is kept up to date with each message sent](./spec/acceptance/realtime/connection_spec.rb#L491)
+        * [is available when connection is in one of the states: connecting, connected, disconnected, suspended, failed](./spec/acceptance/realtime/connection_spec.rb#L512)
+        * [is nil when connection is explicitly CLOSED](./spec/acceptance/realtime/connection_spec.rb#L536)
       * opening a new connection using a recently disconnected connection's #recovery_key
         * connection#id and connection#key after recovery
-          * [remain the same](./spec/acceptance/realtime/connection_spec.rb#L548)
+          * [remain the same](./spec/acceptance/realtime/connection_spec.rb#L550)
         * when messages have been sent whilst the old connection is disconnected
           * the new connection
-            * [recovers server-side queued messages](./spec/acceptance/realtime/connection_spec.rb#L573)
+            * [recovers server-side queued messages](./spec/acceptance/realtime/connection_spec.rb#L575)
       * with :recover option
         * with invalid syntax
-          * [raises an exception](./spec/acceptance/realtime/connection_spec.rb#L598)
+          * [raises an exception](./spec/acceptance/realtime/connection_spec.rb#L600)
         * with invalid formatted value sent to server
-          * [triggers a fatal error on the connection object, sets the #error_reason and disconnects](./spec/acceptance/realtime/connection_spec.rb#L607)
+          * [triggers a fatal error on the connection object, sets the #error_reason and disconnects](./spec/acceptance/realtime/connection_spec.rb#L609)
         * with expired (missing) value sent to server
-          * [triggers an error on the connection object, sets the #error_reason, yet will connect anyway](./spec/acceptance/realtime/connection_spec.rb#L621)
+          * [triggers an error on the connection object, sets the #error_reason, yet will connect anyway](./spec/acceptance/realtime/connection_spec.rb#L623)
     * with many connections simultaneously
-      * [opens each with a unique connection#id and connection#key](./spec/acceptance/realtime/connection_spec.rb#L639)
+      * [opens each with a unique connection#id and connection#key](./spec/acceptance/realtime/connection_spec.rb#L641)
     * when a state transition is unsupported
-      * [emits a StateChangeError](./spec/acceptance/realtime/connection_spec.rb#L659)
+      * [emits a StateChangeError](./spec/acceptance/realtime/connection_spec.rb#L661)
     * undocumented method
       * #internet_up?
-        * [returns a Deferrable](./spec/acceptance/realtime/connection_spec.rb#L674)
+        * [returns a Deferrable](./spec/acceptance/realtime/connection_spec.rb#L676)
         * when the Internet is up
-          * [calls the block with true](./spec/acceptance/realtime/connection_spec.rb#L680)
-          * [calls the success callback of the Deferrable](./spec/acceptance/realtime/connection_spec.rb#L687)
+          * [calls the block with true](./spec/acceptance/realtime/connection_spec.rb#L682)
+          * [calls the success callback of the Deferrable](./spec/acceptance/realtime/connection_spec.rb#L689)
         * when the Internet is down
-          * [calls the block with false](./spec/acceptance/realtime/connection_spec.rb#L699)
-          * [calls the failure callback of the Deferrable](./spec/acceptance/realtime/connection_spec.rb#L706)
+          * [calls the block with false](./spec/acceptance/realtime/connection_spec.rb#L701)
+          * [calls the failure callback of the Deferrable](./spec/acceptance/realtime/connection_spec.rb#L708)
 
 ### Ably::Realtime::Channel Message
 _(see [spec/acceptance/realtime/message_spec.rb](./spec/acceptance/realtime/message_spec.rb))_
@@ -379,11 +379,11 @@ _(see [spec/acceptance/realtime/presence_history_spec.rb](./spec/acceptance/real
 ### Ably::Realtime::Presence
 _(see [spec/acceptance/realtime/presence_spec.rb](./spec/acceptance/realtime/presence_spec.rb))_
   * using JSON and MsgPack protocol
-    * PENDING: *[ensure connection_id is unique and updated on ENTER](./spec/acceptance/realtime/presence_spec.rb#L966)*
-    * PENDING: *[ensure connection_id for presence member matches the messages they publish on the channel](./spec/acceptance/realtime/presence_spec.rb#L967)*
-    * PENDING: *[stop a call to get when the channel has not been entered](./spec/acceptance/realtime/presence_spec.rb#L968)*
-    * PENDING: *[stop a call to get when the channel has been entered but the list is not up to date](./spec/acceptance/realtime/presence_spec.rb#L969)*
-    * PENDING: *[presence will resume sync if connection is dropped mid-way](./spec/acceptance/realtime/presence_spec.rb#L970)*
+    * PENDING: *[ensure connection_id is unique and updated on ENTER](./spec/acceptance/realtime/presence_spec.rb#L995)*
+    * PENDING: *[ensure connection_id for presence member matches the messages they publish on the channel](./spec/acceptance/realtime/presence_spec.rb#L996)*
+    * PENDING: *[stop a call to get when the channel has not been entered](./spec/acceptance/realtime/presence_spec.rb#L997)*
+    * PENDING: *[stop a call to get when the channel has been entered but the list is not up to date](./spec/acceptance/realtime/presence_spec.rb#L998)*
+    * PENDING: *[presence will resume sync if connection is dropped mid-way](./spec/acceptance/realtime/presence_spec.rb#L999)*
     * when attached (but not present) on a presence channel with an anonymous client (no client ID)
       * [maintains state as other clients enter and leave the channel](./spec/acceptance/realtime/presence_spec.rb#L24)
     * #sync_complete?
@@ -465,41 +465,42 @@ _(see [spec/acceptance/realtime/presence_spec.rb](./spec/acceptance/realtime/pre
       * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L615)
       * [returns the current members on the channel](./spec/acceptance/realtime/presence_spec.rb#L622)
       * [filters by connection_id option if provided](./spec/acceptance/realtime/presence_spec.rb#L637)
-      * [filters by client_id option if provided](./spec/acceptance/realtime/presence_spec.rb#L652)
-      * [does not wait for SYNC to complete if :wait_for_sync option is false](./spec/acceptance/realtime/presence_spec.rb#L669)
-      * [returns both members on both simultaneously connected clients](./spec/acceptance/realtime/presence_spec.rb#L691)
+      * [filters by client_id option if provided](./spec/acceptance/realtime/presence_spec.rb#L659)
+      * [does not wait for SYNC to complete if :wait_for_sync option is false](./spec/acceptance/realtime/presence_spec.rb#L683)
       * when a member enters and then leaves
-        * [has no members](./spec/acceptance/realtime/presence_spec.rb#L679)
+        * [has no members](./spec/acceptance/realtime/presence_spec.rb#L693)
+      * with lots of members on different clients
+        * [returns a complete list of members on all clients](./spec/acceptance/realtime/presence_spec.rb#L710)
     * #subscribe
       * with no arguments
-        * [calls the callback for all presence events](./spec/acceptance/realtime/presence_spec.rb#L717)
+        * [calls the callback for all presence events](./spec/acceptance/realtime/presence_spec.rb#L746)
     * #unsubscribe
       * with no arguments
-        * [removes the callback for all presence events](./spec/acceptance/realtime/presence_spec.rb#L737)
+        * [removes the callback for all presence events](./spec/acceptance/realtime/presence_spec.rb#L766)
     * REST #get
-      * [returns current members](./spec/acceptance/realtime/presence_spec.rb#L756)
-      * [returns no members once left](./spec/acceptance/realtime/presence_spec.rb#L769)
+      * [returns current members](./spec/acceptance/realtime/presence_spec.rb#L785)
+      * [returns no members once left](./spec/acceptance/realtime/presence_spec.rb#L798)
     * client_id with ASCII_8BIT
       * in connection set up
-        * [is converted into UTF_8](./spec/acceptance/realtime/presence_spec.rb#L786)
+        * [is converted into UTF_8](./spec/acceptance/realtime/presence_spec.rb#L815)
       * in channel options
-        * [is converted into UTF_8](./spec/acceptance/realtime/presence_spec.rb#L799)
+        * [is converted into UTF_8](./spec/acceptance/realtime/presence_spec.rb#L828)
     * encoding and decoding of presence message data
-      * [encrypts presence message data](./spec/acceptance/realtime/presence_spec.rb#L823)
+      * [encrypts presence message data](./spec/acceptance/realtime/presence_spec.rb#L852)
       * #subscribe
-        * [emits decrypted enter events](./spec/acceptance/realtime/presence_spec.rb#L842)
-        * [emits decrypted update events](./spec/acceptance/realtime/presence_spec.rb#L854)
-        * [emits previously set data for leave events](./spec/acceptance/realtime/presence_spec.rb#L868)
+        * [emits decrypted enter events](./spec/acceptance/realtime/presence_spec.rb#L871)
+        * [emits decrypted update events](./spec/acceptance/realtime/presence_spec.rb#L883)
+        * [emits previously set data for leave events](./spec/acceptance/realtime/presence_spec.rb#L897)
       * #get
-        * [returns a list of members with decrypted data](./spec/acceptance/realtime/presence_spec.rb#L884)
+        * [returns a list of members with decrypted data](./spec/acceptance/realtime/presence_spec.rb#L913)
       * REST #get
-        * [returns a list of members with decrypted data](./spec/acceptance/realtime/presence_spec.rb#L897)
+        * [returns a list of members with decrypted data](./spec/acceptance/realtime/presence_spec.rb#L926)
       * when cipher settings do not match publisher
-        * [delivers an unencoded presence message left with encoding value](./spec/acceptance/realtime/presence_spec.rb#L912)
-        * [emits an error when cipher does not match and presence data cannot be decoded](./spec/acceptance/realtime/presence_spec.rb#L925)
+        * [delivers an unencoded presence message left with encoding value](./spec/acceptance/realtime/presence_spec.rb#L941)
+        * [emits an error when cipher does not match and presence data cannot be decoded](./spec/acceptance/realtime/presence_spec.rb#L954)
     * leaving
-      * [expect :left event once underlying connection is closed](./spec/acceptance/realtime/presence_spec.rb#L942)
-      * [expect :left event with client data from enter event](./spec/acceptance/realtime/presence_spec.rb#L952)
+      * [expect :left event once underlying connection is closed](./spec/acceptance/realtime/presence_spec.rb#L971)
+      * [expect :left event with client data from enter event](./spec/acceptance/realtime/presence_spec.rb#L981)
 
 ### Ably::Realtime::Client#stats
 _(see [spec/acceptance/realtime/stats_spec.rb](./spec/acceptance/realtime/stats_spec.rb))_
@@ -829,37 +830,37 @@ _(see [spec/acceptance/rest/presence_spec.rb](./spec/acceptance/rest/presence_sp
         * with :limit option
           * [returns a paged response limiting number of members per page](./spec/acceptance/rest/presence_spec.rb#L45)
       * #history
-        * [returns recent presence activity](./spec/acceptance/rest/presence_spec.rb#L58)
+        * [returns recent presence activity](./spec/acceptance/rest/presence_spec.rb#L64)
         * with options
           * direction: :forwards
-            * [returns recent presence activity forwards with most recent history last](./spec/acceptance/rest/presence_spec.rb#L74)
+            * [returns recent presence activity forwards with most recent history last](./spec/acceptance/rest/presence_spec.rb#L80)
           * direction: :backwards
-            * [returns recent presence activity backwards with most recent history first](./spec/acceptance/rest/presence_spec.rb#L89)
+            * [returns recent presence activity backwards with most recent history first](./spec/acceptance/rest/presence_spec.rb#L95)
     * #history
       * with time range options
         * :start
           * with milliseconds since epoch value
-            * [uses this value in the history request](./spec/acceptance/rest/presence_spec.rb#L134)
+            * [uses this value in the history request](./spec/acceptance/rest/presence_spec.rb#L140)
           * with Time object value
-            * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/presence_spec.rb#L144)
+            * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/presence_spec.rb#L150)
         * :end
           * with milliseconds since epoch value
-            * [uses this value in the history request](./spec/acceptance/rest/presence_spec.rb#L134)
+            * [uses this value in the history request](./spec/acceptance/rest/presence_spec.rb#L140)
           * with Time object value
-            * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/presence_spec.rb#L144)
+            * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/presence_spec.rb#L150)
     * decoding
       * valid decodeable content
         * #get
-          * [automaticaly decodes presence messages](./spec/acceptance/rest/presence_spec.rb#L202)
+          * [automaticaly decodes presence messages](./spec/acceptance/rest/presence_spec.rb#L208)
         * #history
-          * [automaticaly decodes presence messages](./spec/acceptance/rest/presence_spec.rb#L219)
+          * [automaticaly decodes presence messages](./spec/acceptance/rest/presence_spec.rb#L225)
       * invalid data
         * #get
-          * [returns the messages still encoded](./spec/acceptance/rest/presence_spec.rb#L250)
-          * [logs a cipher error](./spec/acceptance/rest/presence_spec.rb#L254)
+          * [returns the messages still encoded](./spec/acceptance/rest/presence_spec.rb#L256)
+          * [logs a cipher error](./spec/acceptance/rest/presence_spec.rb#L260)
         * #history
-          * [returns the messages still encoded](./spec/acceptance/rest/presence_spec.rb#L274)
-          * [logs a cipher error](./spec/acceptance/rest/presence_spec.rb#L278)
+          * [returns the messages still encoded](./spec/acceptance/rest/presence_spec.rb#L280)
+          * [logs a cipher error](./spec/acceptance/rest/presence_spec.rb#L284)
 
 ### Ably::Rest::Client#stats
 _(see [spec/acceptance/rest/stats_spec.rb](./spec/acceptance/rest/stats_spec.rb))_
@@ -1155,29 +1156,32 @@ _(see [spec/unit/models/paginated_resource_spec.rb](./spec/unit/models/paginated
   * [supports alias methods for length](./spec/unit/models/paginated_resource_spec.rb#L34)
   * [is Enumerable](./spec/unit/models/paginated_resource_spec.rb#L39)
   * [is iterable](./spec/unit/models/paginated_resource_spec.rb#L43)
-  * [provides [] accessor method](./spec/unit/models/paginated_resource_spec.rb#L47)
-  * [#first gets the first item in page](./spec/unit/models/paginated_resource_spec.rb#L53)
-  * [#last gets the last item in page](./spec/unit/models/paginated_resource_spec.rb#L57)
+  * [provides [] accessor method](./spec/unit/models/paginated_resource_spec.rb#L61)
+  * [#first gets the first item in page](./spec/unit/models/paginated_resource_spec.rb#L67)
+  * [#last gets the last item in page](./spec/unit/models/paginated_resource_spec.rb#L71)
+  * #each
+    * [returns an enumerator](./spec/unit/models/paginated_resource_spec.rb#L48)
+    * [yields each item](./spec/unit/models/paginated_resource_spec.rb#L52)
   * with non paged http response
-    * [is the first page](./spec/unit/models/paginated_resource_spec.rb#L161)
-    * [is the last page](./spec/unit/models/paginated_resource_spec.rb#L165)
-    * [does not support pagination](./spec/unit/models/paginated_resource_spec.rb#L169)
-    * [raises an exception when accessing next page](./spec/unit/models/paginated_resource_spec.rb#L173)
-    * [raises an exception when accessing first page](./spec/unit/models/paginated_resource_spec.rb#L177)
+    * [is the first page](./spec/unit/models/paginated_resource_spec.rb#L175)
+    * [is the last page](./spec/unit/models/paginated_resource_spec.rb#L179)
+    * [does not support pagination](./spec/unit/models/paginated_resource_spec.rb#L183)
+    * [raises an exception when accessing next page](./spec/unit/models/paginated_resource_spec.rb#L187)
+    * [raises an exception when accessing first page](./spec/unit/models/paginated_resource_spec.rb#L191)
   * with paged http response
-    * [is the first page](./spec/unit/models/paginated_resource_spec.rb#L195)
-    * [is not the last page](./spec/unit/models/paginated_resource_spec.rb#L199)
-    * [supports pagination](./spec/unit/models/paginated_resource_spec.rb#L203)
+    * [is the first page](./spec/unit/models/paginated_resource_spec.rb#L209)
+    * [is not the last page](./spec/unit/models/paginated_resource_spec.rb#L213)
+    * [supports pagination](./spec/unit/models/paginated_resource_spec.rb#L217)
     * accessing next page
-      * [returns another PaginatedResource](./spec/unit/models/paginated_resource_spec.rb#L231)
-      * [retrieves the next page of results](./spec/unit/models/paginated_resource_spec.rb#L235)
-      * [is not the first page](./spec/unit/models/paginated_resource_spec.rb#L240)
-      * [is the last page](./spec/unit/models/paginated_resource_spec.rb#L244)
-      * [raises an exception if trying to access the last page when it is the last page](./spec/unit/models/paginated_resource_spec.rb#L248)
+      * [returns another PaginatedResource](./spec/unit/models/paginated_resource_spec.rb#L245)
+      * [retrieves the next page of results](./spec/unit/models/paginated_resource_spec.rb#L249)
+      * [is not the first page](./spec/unit/models/paginated_resource_spec.rb#L254)
+      * [is the last page](./spec/unit/models/paginated_resource_spec.rb#L258)
+      * [raises an exception if trying to access the last page when it is the last page](./spec/unit/models/paginated_resource_spec.rb#L262)
       * and then first page
-        * [returns a PaginatedResource](./spec/unit/models/paginated_resource_spec.rb#L259)
-        * [retrieves the first page of results](./spec/unit/models/paginated_resource_spec.rb#L263)
-        * [is the first page](./spec/unit/models/paginated_resource_spec.rb#L267)
+        * [returns a PaginatedResource](./spec/unit/models/paginated_resource_spec.rb#L273)
+        * [retrieves the first page of results](./spec/unit/models/paginated_resource_spec.rb#L277)
+        * [is the first page](./spec/unit/models/paginated_resource_spec.rb#L281)
 
 ### Ably::Models::PresenceMessage
 _(see [spec/unit/models/presence_message_spec.rb](./spec/unit/models/presence_message_spec.rb))_
@@ -1466,7 +1470,10 @@ _(see [spec/unit/realtime/channels_spec.rb](./spec/unit/realtime/channels_spec.r
     * [#release detatches and then releases the channel resoures](./spec/unit/realtime/channels_spec.rb#L44)
   * is Enumerable
     * [allows enumeration](./spec/unit/realtime/channels_spec.rb#L61)
-    * [provides #length](./spec/unit/realtime/channels_spec.rb#L68)
+    * [provides #length](./spec/unit/realtime/channels_spec.rb#L77)
+    * #each
+      * [returns an enumerator](./spec/unit/realtime/channels_spec.rb#L66)
+      * [yields each channel](./spec/unit/realtime/channels_spec.rb#L70)
 
 ### Ably::Realtime::Client
 _(see [spec/unit/realtime/client_spec.rb](./spec/unit/realtime/client_spec.rb))_
@@ -1592,7 +1599,10 @@ _(see [spec/unit/rest/channels_spec.rb](./spec/unit/rest/channels_spec.rb))_
     * [#release releases the channel resoures](./spec/unit/rest/channels_spec.rb#L43)
   * is Enumerable
     * [allows enumeration](./spec/unit/rest/channels_spec.rb#L59)
-    * [provides #length](./spec/unit/rest/channels_spec.rb#L66)
+    * [provides #length](./spec/unit/rest/channels_spec.rb#L75)
+    * #each
+      * [returns an enumerator](./spec/unit/rest/channels_spec.rb#L64)
+      * [yields each channel](./spec/unit/rest/channels_spec.rb#L68)
 
 ### Ably::Rest::Client
 _(see [spec/unit/rest/client_spec.rb](./spec/unit/rest/client_spec.rb))_
@@ -1697,6 +1707,6 @@ _(see [spec/unit/util/pub_sub_spec.rb](./spec/unit/util/pub_sub_spec.rb))_
 
 ## Test summary
 
-* Passing tests: 805
+* Passing tests: 811
 * Pending tests: 11
 * Failing tests: 0

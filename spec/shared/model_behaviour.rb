@@ -74,7 +74,7 @@ shared_examples 'a model' do |shared_options = {}|
     let(:model_options) { { channel: 'name' } }
 
     it 'prevents changes' do
-      expect { model.hash[:channel] = 'new' }.to raise_error RuntimeError, /can't modify frozen Hash/
+      expect { model.hash[:channel] = 'new' }.to raise_error RuntimeError, /can't modify frozen.*Hash/
     end
 
     it 'dups options' do
