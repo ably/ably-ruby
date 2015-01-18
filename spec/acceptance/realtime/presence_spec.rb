@@ -391,7 +391,7 @@ describe Ably::Realtime::Presence, :event_machine do
                 presence_client_one.on(:entered) { raise 'Should not have entered' }
                 next unless client_id == client_count - 1
 
-                EventMachine.add_timer(0.5) do
+                EventMachine.add_timer(1) do
                   expect(presence_client_one.state).to eq(:initialized)
                   stop_reactor
                 end
@@ -446,7 +446,7 @@ describe Ably::Realtime::Presence, :event_machine do
               clients << presence
               next unless clients.count == 5
 
-              EventMachine.add_timer(0.5) do
+              wait_until(proc { updated_callback_count == 5 }) do
                 expect(clients.map(&:client_id).uniq.count).to eql(5)
                 expect(updated_callback_count).to eql(5)
                 stop_reactor
@@ -480,7 +480,7 @@ describe Ably::Realtime::Presence, :event_machine do
               clients << presence
               next unless clients.count == 5
 
-              EventMachine.add_timer(0.5) do
+              wait_until(proc { updated_callback_count == 5 }) do
                 expect(clients.map(&:client_id).uniq.count).to eql(5)
                 expect(updated_callback_count).to eql(5)
                 stop_reactor
@@ -521,7 +521,7 @@ describe Ably::Realtime::Presence, :event_machine do
                 clients << presence
                 next unless clients.count == 5
 
-                EventMachine.add_timer(0.5) do
+                wait_until(proc { left_callback_count == 5 }) do
                   expect(clients.map(&:client_id).uniq.count).to eql(5)
                   expect(left_callback_count).to eql(5)
                   stop_reactor
@@ -543,7 +543,7 @@ describe Ably::Realtime::Presence, :event_machine do
                 clients << presence
                 next unless clients.count == 5
 
-                EventMachine.add_timer(1) do
+                wait_until(proc { left_callback_count == 5 }) do
                   expect(clients.map(&:client_id).uniq.count).to eql(5)
                   expect(left_callback_count).to eql(5)
                   stop_reactor
@@ -635,7 +635,14 @@ describe Ably::Realtime::Presence, :event_machine do
       end
 
       it 'filters by connection_id option if provided' do
-        when_all(presence_client_one.enter, presence_client_two.enter, and_wait: 0.5) do
+        presence_client_one.enter do
+          presence_client_two.enter
+        end
+
+        presence_client_one.subscribe(:enter) do |presence_message|
+          # wait until the client_two enter event has been sent to client_one
+          next unless presence_message.client_id == client_two.client_id
+
           presence_client_one.get(connection_id: client_one.connection.id) do |members|
             expect(members.count).to eq(1)
             expect(members.first.connection_id).to eql(client_one.connection.id)
@@ -650,7 +657,14 @@ describe Ably::Realtime::Presence, :event_machine do
       end
 
       it 'filters by client_id option if provided' do
-        when_all(presence_client_one.enter(client_id: 'one'), presence_client_two.enter(client_id: 'two')) do
+        presence_client_one.enter(client_id: 'one') do
+          presence_client_two.enter client_id: 'two'
+        end
+
+        presence_client_one.subscribe(:enter) do |presence_message|
+          # wait until the client_two enter event has been sent to client_one
+          next unless presence_message.client_id == 'two'
+
           presence_client_one.get(client_id: 'one') do |members|
             expect(members.count).to eq(1)
             expect(members.first.client_id).to eql('one')
@@ -688,21 +702,36 @@ describe Ably::Realtime::Presence, :event_machine do
         end
       end
 
-      it 'returns both members on both simultaneously connected clients' do
-        when_all(presence_client_one.enter(data: data_payload), presence_client_two.enter) do
-          EventMachine.add_timer(0.5) do
-            presence_client_one.get do |client_one_members|
-              presence_client_two.get do |client_two_members|
-                expect(client_one_members.count).to eq(client_two_members.count)
+      context 'with lots of members on different clients' do
+        let(:members_per_client) { 10 }
+        let(:clients_entered)    { Hash.new { |hash, key| hash[key] = 0 } }
+        let(:total_members)      { members_per_client * 2 }
 
-                member_client_one = client_one_members.find { |presence| presence.client_id == client_one.client_id }
-                member_client_two = client_one_members.find { |presence| presence.client_id == client_two.client_id }
+        it 'returns a complete list of members on all clients' do
+          members_per_client.times do |index|
+            presence_client_one.enter_client("client_1:#{index}")
+            presence_client_two.enter_client("client_2:#{index}")
+          end
 
-                expect(member_client_one).to be_a(Ably::Models::PresenceMessage)
-                expect(member_client_one.data).to eql(data_payload)
-                expect(member_client_two).to be_a(Ably::Models::PresenceMessage)
+          presence_client_one.subscribe(:enter) do
+            clients_entered[:client_one] += 1
+          end
 
-                stop_reactor
+          presence_client_two.subscribe(:enter) do
+            clients_entered[:client_two] += 1
+          end
+
+          wait_until(proc { clients_entered[:client_one] + clients_entered[:client_two] == total_members * 2 }) do
+            presence_anonymous_client.get do |anonymous_members|
+              expect(anonymous_members.count).to eq(total_members)
+              expect(anonymous_members.map(&:client_id).uniq.count).to eq(total_members)
+
+              presence_client_one.get do |client_one_members|
+                presence_client_two.get do |client_two_members|
+                  expect(client_one_members.count).to eq(total_members)
+                  expect(client_one_members.count).to eq(client_two_members.count)
+                  stop_reactor
+                end
               end
             end
           end
@@ -743,7 +772,7 @@ describe Ably::Realtime::Presence, :event_machine do
             presence_client_one.enter
             presence_client_one.update
             presence_client_one.leave do
-              EventMachine.add_timer(0.5) do
+              EventMachine.add_timer(1) do
                 stop_reactor
               end
             end

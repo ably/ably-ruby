@@ -57,7 +57,7 @@ module Ably::Realtime
           return
         end
 
-        logger.debug "ConnectionManager: Opening connection to #{connection.current_host}:#{connection.port}"
+        logger.debug 'ConnectionManager: Opening a websocket transport connection'
 
         connection.create_websocket_transport do |websocket_transport|
           subscribe_to_transport_events websocket_transport

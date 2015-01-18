@@ -9,9 +9,12 @@ require 'webmock/rspec'
 require 'ably'
 
 require 'support/api_helper'
-require 'support/event_machine_helper'
 require 'support/private_api_formatter'
 require 'support/protocol_helper'
 require 'support/random_helper'
 
 require 'rspec_config'
+
+# EM Helper must be loaded after rspec_config to ensure around block occurs before RSpec retry
+require 'support/event_machine_helper'
+require 'support/rest_testapp_before_retry'
