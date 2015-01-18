@@ -17,3 +17,4 @@ require 'rspec_config'
 
 # EM Helper must be loaded after rspec_config to ensure around block occurs before RSpec retry
 require 'support/event_machine_helper'
+require 'support/rest_testapp_before_retry'
