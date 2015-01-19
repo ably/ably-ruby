@@ -512,7 +512,7 @@ _(see [spec/acceptance/realtime/presence_spec.rb](./spec/acceptance/realtime/pre
 _(see [spec/acceptance/realtime/stats_spec.rb](./spec/acceptance/realtime/stats_spec.rb))_
   * using JSON and MsgPack protocol
     * fetching stats
-      * [should return a Hash](./spec/acceptance/realtime/stats_spec.rb#L10)
+      * [should return a PaginatedResource](./spec/acceptance/realtime/stats_spec.rb#L10)
       * [should return a Deferrable object](./spec/acceptance/realtime/stats_spec.rb#L17)
 
 ### Ably::Realtime::Client#time
@@ -873,13 +873,32 @@ _(see [spec/acceptance/rest/stats_spec.rb](./spec/acceptance/rest/stats_spec.rb)
   * using JSON and MsgPack protocol
     * fetching application stats
       * by minute
-        * [should return all the stats for the application](./spec/acceptance/rest/stats_spec.rb#L49)
+        * with :from set to last interval and :limit set to 1
+          * [retrieves only one stat](./spec/acceptance/rest/stats_spec.rb#L51)
+          * [returns accurate all aggregated message data](./spec/acceptance/rest/stats_spec.rb#L55)
+          * [returns accurate inbound realtime all data](./spec/acceptance/rest/stats_spec.rb#L60)
+          * [returns accurate inbound realtime message data](./spec/acceptance/rest/stats_spec.rb#L65)
+          * [returns accurate outbound realtime all data](./spec/acceptance/rest/stats_spec.rb#L70)
+          * [returns accurate persisted presence all data](./spec/acceptance/rest/stats_spec.rb#L75)
+          * [returns accurate connections all data](./spec/acceptance/rest/stats_spec.rb#L80)
+          * [returns accurate channels all data](./spec/acceptance/rest/stats_spec.rb#L85)
+          * [returns accurate api_requests data](./spec/acceptance/rest/stats_spec.rb#L90)
+          * [returns accurate token_requests data](./spec/acceptance/rest/stats_spec.rb#L95)
+          * [returns stat objects with #interval_granularity equal to :minute](./spec/acceptance/rest/stats_spec.rb#L100)
+          * [returns stat objects with #interval_id matching :start](./spec/acceptance/rest/stats_spec.rb#L104)
+          * [returns stat objects with #interval_time matching :start Time](./spec/acceptance/rest/stats_spec.rb#L108)
+        * with :start set to first interval, :limit set to 1 and direction :forwards
+          * [returns the first interval stats as stats are provided forwards from :start](./spec/acceptance/rest/stats_spec.rb#L118)
+          * [returns 3 pages of stats](./spec/acceptance/rest/stats_spec.rb#L122)
+        * with :end set to last interval, :limit set to 1 and direction :backwards
+          * [returns the 3rd interval stats first as stats are provided backwards from :end](./spec/acceptance/rest/stats_spec.rb#L135)
+          * [returns 3 pages of stats](./spec/acceptance/rest/stats_spec.rb#L139)
       * by hour
-        * [should return all the stats for the application](./spec/acceptance/rest/stats_spec.rb#L49)
+        * [should aggregate the stats for that period](./spec/acceptance/rest/stats_spec.rb#L163)
       * by day
-        * [should return all the stats for the application](./spec/acceptance/rest/stats_spec.rb#L49)
+        * [should aggregate the stats for that period](./spec/acceptance/rest/stats_spec.rb#L163)
       * by month
-        * [should return all the stats for the application](./spec/acceptance/rest/stats_spec.rb#L49)
+        * [should aggregate the stats for that period](./spec/acceptance/rest/stats_spec.rb#L163)
 
 ### Ably::Rest::Client#time
 _(see [spec/acceptance/rest/time_spec.rb](./spec/acceptance/rest/time_spec.rb))_
@@ -1343,6 +1362,63 @@ _(see [spec/unit/models/protocol_message_spec.rb](./spec/unit/models/protocol_me
       * with error
         * [returns a valid ErrorInfo object](./spec/unit/models/protocol_message_spec.rb#L261)
 
+### Ably::Models::Stat
+_(see [spec/unit/models/stat_spec.rb](./spec/unit/models/stat_spec.rb))_
+  * behaves like a model
+    * attributes
+      * #interval_id
+        * [retrieves attribute :interval_id](./spec/shared/model_behaviour.rb#L15)
+      * #all
+        * [retrieves attribute :all](./spec/shared/model_behaviour.rb#L15)
+      * #inbound
+        * [retrieves attribute :inbound](./spec/shared/model_behaviour.rb#L15)
+      * #outbound
+        * [retrieves attribute :outbound](./spec/shared/model_behaviour.rb#L15)
+      * #persisted
+        * [retrieves attribute :persisted](./spec/shared/model_behaviour.rb#L15)
+      * #connections
+        * [retrieves attribute :connections](./spec/shared/model_behaviour.rb#L15)
+      * #channels
+        * [retrieves attribute :channels](./spec/shared/model_behaviour.rb#L15)
+      * #api_requests
+        * [retrieves attribute :api_requests](./spec/shared/model_behaviour.rb#L15)
+      * #token_requests
+        * [retrieves attribute :token_requests](./spec/shared/model_behaviour.rb#L15)
+    * #==
+      * [is true when attributes are the same](./spec/shared/model_behaviour.rb#L41)
+      * [is false when attributes are not the same](./spec/shared/model_behaviour.rb#L46)
+      * [is false when class type differs](./spec/shared/model_behaviour.rb#L50)
+    * is immutable
+      * [prevents changes](./spec/shared/model_behaviour.rb#L76)
+      * [dups options](./spec/shared/model_behaviour.rb#L80)
+  * #interval_granularity
+    * [returns the granularity of the interval_id](./spec/unit/models/stat_spec.rb#L17)
+  * #interval_time
+    * [returns a Time object representing the start of the interval](./spec/unit/models/stat_spec.rb#L25)
+  * class methods
+    * #to_interval_id
+      * when time zone of time argument is UTC
+        * [converts time 2014-02-03:05:06 with granularity :month into 2014-02](./spec/unit/models/stat_spec.rb#L33)
+        * [converts time 2014-02-03:05:06 with granularity :day into 2014-02-03](./spec/unit/models/stat_spec.rb#L37)
+        * [converts time 2014-02-03:05:06 with granularity :hour into 2014-02-03:05](./spec/unit/models/stat_spec.rb#L41)
+        * [converts time 2014-02-03:05:06 with granularity :minute into 2014-02-03:05:06](./spec/unit/models/stat_spec.rb#L45)
+        * [fails with invalid granularity](./spec/unit/models/stat_spec.rb#L49)
+        * [fails with invalid time](./spec/unit/models/stat_spec.rb#L53)
+      * when time zone of time argument is +02:00
+        * [converts time 2014-02-03:06 with granularity :hour into 2014-02-03:04 at UTC +00:00](./spec/unit/models/stat_spec.rb#L59)
+    * #from_interval_id
+      * [converts a month interval_id 2014-02 into a Time object in UTC 0](./spec/unit/models/stat_spec.rb#L66)
+      * [converts a day interval_id 2014-02-03 into a Time object in UTC 0](./spec/unit/models/stat_spec.rb#L71)
+      * [converts an hour interval_id 2014-02-03:05 into a Time object in UTC 0](./spec/unit/models/stat_spec.rb#L76)
+      * [converts a minute interval_id 2014-02-03:05:06 into a Time object in UTC 0](./spec/unit/models/stat_spec.rb#L81)
+      * [fails with an invalid interval_id 14-20](./spec/unit/models/stat_spec.rb#L86)
+    * #granularity_from_interval_id
+      * [returns a :month interval_id for 2014-02](./spec/unit/models/stat_spec.rb#L92)
+      * [returns a :day interval_id for 2014-02-03](./spec/unit/models/stat_spec.rb#L96)
+      * [returns a :hour interval_id for 2014-02-03:05](./spec/unit/models/stat_spec.rb#L100)
+      * [returns a :minute interval_id for 2014-02-03:05:06](./spec/unit/models/stat_spec.rb#L104)
+      * [fails with an invalid interval_id 14-20](./spec/unit/models/stat_spec.rb#L108)
+
 ### Ably::Models::Token
 _(see [spec/unit/models/token_spec.rb](./spec/unit/models/token_spec.rb))_
   * behaves like a model
@@ -1713,6 +1789,6 @@ _(see [spec/unit/util/pub_sub_spec.rb](./spec/unit/util/pub_sub_spec.rb))_
 
   ## Test summary
 
-  * Passing tests: 815
+  * Passing tests: 864
   * Pending tests: 11
   * Failing tests: 0
