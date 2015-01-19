@@ -139,20 +139,33 @@ module Ably
         channels.get(name, channel_options)
       end
 
-      # Retrieve the stats for the application
+      # Retrieve the Stats for the application
       #
-      # @return [Array] An Array of hashes representing the stats
-      def stats(params = {})
-        default_params = {
+      # @param [Hash] options the options for the stats request
+      # @option options [Integer,Time] :start      Time or millisecond since epoch
+      # @option options [Integer,Time] :end        Time or millisecond since epoch
+      # @option options [Symbol]       :direction  `:forwards` or `:backwards`
+      # @option options [Integer]      :limit      Maximum number of stats to retrieve up to 10,000
+      # @option options [Symbol]       :by         `:minute`, `:hour`, `:day` or `:month`. Defaults to `:minute`
+      #
+      # @return [Ably::Models::PaginatedResource<Ably::Models::Stat>] An Array of Stats
+      #
+      def stats(options = {})
+        options = {
           :direction => :forwards,
           :by        => :minute
+        }.merge(options)
+
+        [:start, :end].each { |option| options[option] = as_since_epoch(options[option]) if options.has_key?(option) }
+
+        paginated_options = {
+          coerce_into: 'Ably::Models::Stat'
         }
 
-        response = get("/stats", default_params.merge(params))
+        url = '/stats'
+        response = get(url, options)
 
-        response.body.map do |stat|
-          IdiomaticRubyWrapper(stat)
-        end
+        Ably::Models::PaginatedResource.new(response, url, self, paginated_options)
       end
 
       # Retrieve the Ably service time

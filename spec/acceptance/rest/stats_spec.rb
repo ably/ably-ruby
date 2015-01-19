@@ -2,59 +2,169 @@
 require 'spec_helper'
 
 describe Ably::Rest::Client, '#stats' do
+  include Ably::Modules::Conversions
+
+  LAST_YEAR = Time.now.year - 1
+  LAST_INTERVAL = Time.new(LAST_YEAR, 2, 3, 15, 5, 0) # 3rd Feb 20(x) 16:05:00
+
+  STATS_FIXTURES = [
+    {
+      intervalId: Ably::Models::Stat.to_interval_id(LAST_INTERVAL - 120, :minute),
+      inbound:  { realtime: { messages: { count: 50, data: 5000 } } },
+      outbound: { realtime: { messages: { count: 20, data: 2000 } } }
+    },
+    {
+      intervalId: Ably::Models::Stat.to_interval_id(LAST_INTERVAL - 60, :minute),
+      inbound:  { realtime: { messages: { count: 60, data: 6000 } } },
+      outbound: { realtime: { messages: { count: 10, data: 1000 } } }
+    },
+    {
+      intervalId: Ably::Models::Stat.to_interval_id(LAST_INTERVAL, :minute),
+      inbound:       { realtime: { messages: { count: 70, data: 7000 } } },
+      outbound:      { realtime: { messages: { count: 40, data: 4000 } } },
+      persisted:     { presence: { count: 20, data: 2000 } },
+      connections:   { tls:      { peak: 20,  opened: 10 } },
+      channels:      { peak: 50, opened: 30 },
+      apiRequests:   { succeeded: 50, failed: 10 },
+      tokenRequests: { succeeded: 60, failed: 20 },
+    }
+  ]
+
   before(:context) do
     WebMock.disable! # ensure previous test's WebMock does not have side effects
-    reload_test_app
-  end
-
-  before(:context) do
-    client = Ably::Rest::Client.new(api_key: api_key, environment: environment)
-
-    number_of_channels             = 3
-    number_of_messages_per_channel = 5
-
-    # Wait until the start of the next minute according to the service
-    # time because stats are created in 1 minute intervals
-    service_time   = client.time
-    stats_setup_at = (service_time.to_i / 60 + 1) * 60
-    sleep_time     = stats_setup_at - Time.now.to_i
-
-    if sleep_time > 30
-      stats_setup_at -= 60 # there is enough time to generate the stats in this minute interval
-    elsif sleep_time > 0
-      sleep sleep_time
-    end
-
-    number_of_channels.times do |i|
-      channel = client.channel("stats-#{i}")
-
-      number_of_messages_per_channel.times do |j|
-        channel.publish("event-#{j}", "data-#{j}") || raise("Unable to publish message")
-      end
-    end
-
-    # wait for stats to be persisted
-    sleep 10
-
-    @stats_setup_at = stats_setup_at
-    @messages_published_count = number_of_channels * number_of_messages_per_channel
+    reload_test_app # ensure no previous stats interfere
+    TestApp.instance.create_test_stats(STATS_FIXTURES)
   end
 
   vary_by_protocol do
+    let(:client) {  Ably::Rest::Client.new(api_key: api_key, environment: environment, protocol: protocol) }
+
     describe 'fetching application stats' do
-      [:minute, :hour, :day, :month].each do |interval|
+      context 'by minute' do
+        let(:first_inbound_realtime_count) { STATS_FIXTURES.first[:inbound][:realtime][:messages][:count] }
+        let(:last_inbound_realtime_count)  { STATS_FIXTURES.last[:inbound][:realtime][:messages][:count] }
+
+        context 'with :from set to last interval and :limit set to 1' do
+          let(:subject) { client.stats(start: as_since_epoch(LAST_INTERVAL), by: :minute) }
+          let(:stat)    { subject.first}
+
+          it 'retrieves only one stat' do
+            expect(subject.count).to eql(1)
+          end
+
+          it 'returns accurate all aggregated message data' do
+            expect(stat.all[:messages][:count]).to eql(70 + 40) # inbound + outbound
+            expect(stat.all[:messages][:data]).to eql(7000 + 4000) # inbound + outbound
+          end
+
+          it 'returns accurate inbound realtime all data' do
+            expect(stat.inbound[:realtime][:all][:count]).to eql(70)
+            expect(stat.inbound[:realtime][:all][:data]).to eql(7000)
+          end
+
+          it 'returns accurate inbound realtime message data' do
+            expect(stat.inbound[:realtime][:messages][:count]).to eql(70)
+            expect(stat.inbound[:realtime][:messages][:data]).to eql(7000)
+          end
+
+          it 'returns accurate outbound realtime all data' do
+            expect(stat.outbound[:realtime][:all][:count]).to eql(40)
+            expect(stat.outbound[:realtime][:all][:data]).to eql(4000)
+          end
+
+          it 'returns accurate persisted presence all data' do
+            expect(stat.persisted[:all][:count]).to eql(20)
+            expect(stat.persisted[:all][:data]).to eql(2000)
+          end
+
+          it 'returns accurate connections all data' do
+            expect(stat.connections[:tls][:peak]).to eql(20)
+            expect(stat.connections[:tls][:opened]).to eql(10)
+          end
+
+          it 'returns accurate channels all data' do
+            expect(stat.channels[:peak]).to eql(50)
+            expect(stat.channels[:opened]).to eql(30)
+          end
+
+          it 'returns accurate api_requests data' do
+            expect(stat.api_requests[:succeeded]).to eql(50)
+            expect(stat.api_requests[:failed]).to eql(10)
+          end
+
+          it 'returns accurate token_requests data' do
+            expect(stat.token_requests[:succeeded]).to eql(60)
+            expect(stat.token_requests[:failed]).to eql(20)
+          end
+
+          it 'returns stat objects with #interval_granularity equal to :minute' do
+            expect(stat.interval_granularity).to eq(:minute)
+          end
+
+          it 'returns stat objects with #interval_id matching :start' do
+            expect(stat.interval_id).to eql(LAST_INTERVAL.strftime('%Y-%m-%d:%H:%M'))
+          end
+
+          it 'returns stat objects with #interval_time matching :start Time' do
+            expect(stat.interval_time.to_i).to eql(LAST_INTERVAL.to_i)
+          end
+        end
+
+        context 'with :start set to first interval, :limit set to 1 and direction :forwards' do
+          let(:first_interval) { LAST_INTERVAL - 120 }
+          let(:subject)        { client.stats(start: as_since_epoch(first_interval), by: :minute, direction: :forwards, limit: 1) }
+          let(:stat)           { subject.first}
+
+          it 'returns the first interval stats as stats are provided forwards from :start' do
+            expect(stat.inbound[:realtime][:all][:count]).to eql(first_inbound_realtime_count)
+          end
+
+          it 'returns 3 pages of stats' do
+            expect(subject).to be_first_page
+            expect(subject).to_not be_last_page
+            page3 = subject.next_page.next_page
+            expect(page3).to be_last_page
+            expect(page3.first.inbound[:realtime][:all][:count]).to eql(last_inbound_realtime_count)
+          end
+        end
+
+        context 'with :end set to last interval, :limit set to 1 and direction :backwards' do
+          let(:subject)        { client.stats(:end => as_since_epoch(LAST_INTERVAL), by: :minute, direction: :backwards, limit: 1) }
+          let(:stat)           { subject.first}
+
+          it 'returns the 3rd interval stats first as stats are provided backwards from :end' do
+            expect(stat.inbound[:realtime][:all][:count]).to eql(last_inbound_realtime_count)
+          end
+
+          it 'returns 3 pages of stats' do
+            expect(subject).to be_first_page
+            expect(subject).to_not be_last_page
+            page3 = subject.next_page.next_page
+            expect(page3.first.inbound[:realtime][:all][:count]).to eql(first_inbound_realtime_count)
+          end
+        end
+      end
+
+      [:hour, :day, :month].each do |interval|
         context "by #{interval}" do
-          let(:client) {  Ably::Rest::Client.new(api_key: api_key, environment: environment, protocol: protocol) }
+          let(:subject) { client.stats(start: as_since_epoch(LAST_INTERVAL), by: interval, direction: 'forwards') }
+          let(:stat)    { subject.first }
+          let(:aggregate_messages_count) do
+            STATS_FIXTURES.inject(0) do |sum, fixture|
+              sum + fixture[:inbound][:realtime][:messages][:count] + fixture[:outbound][:realtime][:messages][:count]
+            end
+          end
+          let(:aggregate_messages_data) do
+            STATS_FIXTURES.inject(0) do |sum, fixture|
+              sum + fixture[:inbound][:realtime][:messages][:data] + fixture[:outbound][:realtime][:messages][:data]
+            end
+          end
 
-          it 'should return all the stats for the application' do
-            stats = client.stats(start: @stats_setup_at * 1000, by: interval.to_s, direction: 'forwards')
+          it 'should aggregate the stats for that period' do
+            expect(subject.count).to eql(1)
 
-            expect(stats.size).to eql(1)
-            stat = stats.first
-
-            expect(@messages_published_count).to be_a(Numeric)
-            expect(stat[:inbound][:all][:messages][:count]).to eql(@messages_published_count)
-            expect(stat[:inbound][:rest][:messages][:count]).to eql(@messages_published_count)
+            expect(stat.all[:messages][:count]).to eql(aggregate_messages_count)
+            expect(stat.all[:messages][:data]).to eql(aggregate_messages_data)
           end
         end
       end
