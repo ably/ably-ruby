@@ -53,10 +53,6 @@ describe Ably::Realtime::Presence do
     end
 
     context '#subscribe' do
-      before do
-        subject.sync_completed
-      end
-
       specify 'to all presence state actions' do
         subject.subscribe { |message| message_history[:received] += 1}
         subject.__incoming_msgbus__.publish(:presence, message)
@@ -72,10 +68,6 @@ describe Ably::Realtime::Presence do
     end
 
     context '#unsubscribe' do
-      before do
-        subject.sync_completed
-      end
-
       let(:callback) do
         Proc.new { |message| message_history[:received] += 1 }
       end

@@ -5,13 +5,8 @@ require 'ably/modules/event_emitter'
 
 require 'ably/realtime/channel'
 require 'ably/realtime/channels'
-require 'ably/realtime/channel/channel_manager'
-require 'ably/realtime/channel/channel_state_machine'
 require 'ably/realtime/client'
 require 'ably/realtime/connection'
-require 'ably/realtime/connection/connection_manager'
-require 'ably/realtime/connection/connection_state_machine'
-require 'ably/realtime/connection/websocket_transport'
 require 'ably/realtime/presence'
 
 Dir.glob(File.expand_path("models/*.rb", File.dirname(__FILE__))).each do |file|

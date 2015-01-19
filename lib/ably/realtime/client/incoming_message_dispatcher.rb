@@ -83,7 +83,7 @@ module Ably::Realtime
             protocol_message.presence.each do |presence_message|
               presence.__incoming_msgbus__.publish :sync, presence_message
             end
-            presence.update_sync_serial protocol_message.channel_serial
+            presence.members.update_sync_serial protocol_message.channel_serial
 
           when ACTION.Presence
             presence = get_channel(protocol_message.channel).presence

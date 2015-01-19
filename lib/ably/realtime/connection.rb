@@ -362,6 +362,11 @@ module Ably
         @error_reason = error
       end
 
+      # @api private
+      def clear_error_reason
+        @error_reason = nil
+      end
+
       # As we are using a state machine, do not allow change_state to be used
       # #transition_state_machine must be used instead
       private :change_state
@@ -443,3 +448,7 @@ module Ably
     end
   end
 end
+
+require 'ably/realtime/connection/connection_manager'
+require 'ably/realtime/connection/connection_state_machine'
+require 'ably/realtime/connection/websocket_transport'
