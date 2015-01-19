@@ -397,7 +397,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
       context 'when failing to resume because the connection_key is not or no longer valid' do
         def kill_connection_transport_and_prevent_valid_resume
           connection.transport.close_connection_after_writing
-          connection.update_connection_id_and_key '0123456789abcdef', '0123456789abcdef' # force the resume connection key to be invalid
+          connection.configure_new '0123456789abcdef', '0123456789abcdef', -1 # force the resume connection key to be invalid
         end
 
         it 'updates the connection_id and connection_key' do
