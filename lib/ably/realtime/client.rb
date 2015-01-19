@@ -111,12 +111,16 @@ module Ably
 
       # Retrieve the stats for the application
       #
-      # @yield [Array] An Array of hashes representing the stats
+      # @param (see Ably::Rest::Client#stats)
+      # @option options (see Ably::Rest::Client#stats)
+      #
+      # @yield [Ably::Models::PaginatedResource<Ably::Models::Stat>] An Array of Stats
+      #
       # @return [EventMachine::Deferrable]
       #
-      def stats(params = {}, &success_callback)
+      def stats(options = {}, &success_callback)
         async_wrap(success_callback) do
-          rest_client.stats(params)
+          rest_client.stats(options)
         end
       end
 
