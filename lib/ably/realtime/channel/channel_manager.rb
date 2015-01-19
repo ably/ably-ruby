@@ -13,13 +13,7 @@ module Ably::Realtime
         @channel    = channel
         @connection = connection
 
-        connection.on(:closed) do
-          channel.transition_state_machine :detaching if can_transition_to?(:detaching)
-        end
-
-        connection.on(:failed) do |error|
-          channel.transition_state_machine :failed, error if can_transition_to?(:failed)
-        end
+        setup_connection_event_handlers
       end
 
       # Commence attachment
@@ -39,12 +33,12 @@ module Ably::Realtime
         end
       end
 
-      # Commence presence SYNC if applicable
-      def sync(attached_protocol_message)
+      # Channel is attached, notify presence if sync is expected
+      def attached(attached_protocol_message)
         if attached_protocol_message.has_presence_flag?
-          channel.presence.sync_started
+          channel.presence.manager.sync_expected
         else
-          channel.presence.sync_completed
+          channel.presence.manager.sync_not_expected
         end
       end
 
@@ -82,6 +76,16 @@ module Ably::Realtime
           action:  state.to_i,
           channel: channel.name
         )
+      end
+
+      def setup_connection_event_handlers
+        connection.on(:closed) do
+          channel.transition_state_machine :detaching if can_transition_to?(:detaching)
+        end
+
+        connection.on(:failed) do |error|
+          channel.transition_state_machine :failed, error if can_transition_to?(:failed)
+        end
       end
 
       def logger

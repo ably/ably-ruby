@@ -41,7 +41,7 @@ module Ably::Realtime
       end
 
       after_transition(to: [:connected]) do |connection, current_transition|
-        connection.manager.connected_with_error current_transition.metadata if current_transition.metadata
+        connection.manager.connected_with_error current_transition.metadata if is_error_type?(current_transition.metadata)
       end
 
       after_transition(to: [:disconnected, :suspended], from: [:connecting]) do |connection, current_transition|
@@ -73,9 +73,17 @@ module Ably::Realtime
       end
 
       # Transitions responsible for updating connection#error_reason
-      before_transition(to: [:connected, :closed, :disconnected, :suspended, :failed]) do |connection, current_transition|
-        reason = current_transition.metadata if is_error_type?(current_transition.metadata)
-        connection.set_failed_connection_error_reason reason
+      before_transition(to: [:disconnected, :suspended, :failed]) do |connection, current_transition|
+        connection.set_failed_connection_error_reason current_transition.metadata
+      end
+
+      before_transition(to: [:connected, :closed]) do |connection, current_transition|
+        if is_error_type?(current_transition.metadata)
+          connection.set_failed_connection_error_reason current_transition.metadata
+        else
+          # Connected & Closed are "healthy" final states so reset the error reason
+          connection.clear_error_reason
+        end
       end
 
       private
