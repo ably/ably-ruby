@@ -209,84 +209,90 @@ _(see [spec/acceptance/realtime/connection_spec.rb](./spec/acceptance/realtime/c
                 * [uses the primary host for subsequent connection and auth requests](./spec/acceptance/realtime/connection_spec.rb#L117)
             * when connected with a valid non-expired token
               * that then expires following the connection being opened
-                * PENDING: *[retains connection state](./spec/acceptance/realtime/connection_spec.rb#L164)*
-                * PENDING: *[changes state to failed if a new token cannot be issued](./spec/acceptance/realtime/connection_spec.rb#L165)*
+                * PENDING: *[retains connection state](./spec/acceptance/realtime/connection_spec.rb#L167)*
+                * PENDING: *[changes state to failed if a new token cannot be issued](./spec/acceptance/realtime/connection_spec.rb#L168)*
                 * the server
-                  * [disconnects the client, and the client automatically renews the token and then reconnects](./spec/acceptance/realtime/connection_spec.rb#L141)
+                  * [disconnects the client, and the client automatically renews the token and then reconnects](./spec/acceptance/realtime/connection_spec.rb#L144)
         * for non-renewable tokens
           * that are expired
             * opening a new connection
-              * [transitions state to failed](./spec/acceptance/realtime/connection_spec.rb#L180)
+              * [transitions state to failed](./spec/acceptance/realtime/connection_spec.rb#L183)
             * when connected
-              * PENDING: *[transitions state to failed](./spec/acceptance/realtime/connection_spec.rb#L193)*
+              * PENDING: *[transitions state to failed](./spec/acceptance/realtime/connection_spec.rb#L196)*
     * initialization state changes
       * with implicit #connect
-        * [are triggered in order](./spec/acceptance/realtime/connection_spec.rb#L221)
+        * [are triggered in order](./spec/acceptance/realtime/connection_spec.rb#L223)
       * with explicit #connect
-        * [are triggered in order](./spec/acceptance/realtime/connection_spec.rb#L227)
+        * [are triggered in order](./spec/acceptance/realtime/connection_spec.rb#L229)
     * #connect
-      * [returns a Deferrable](./spec/acceptance/realtime/connection_spec.rb#L235)
-      * [calls the Deferrable callback on success](./spec/acceptance/realtime/connection_spec.rb#L240)
+      * [returns a Deferrable](./spec/acceptance/realtime/connection_spec.rb#L237)
+      * [calls the Deferrable callback on success](./spec/acceptance/realtime/connection_spec.rb#L242)
       * when already connected
-        * [does nothing and no further state changes are emitted](./spec/acceptance/realtime/connection_spec.rb#L249)
+        * [does nothing and no further state changes are emitted](./spec/acceptance/realtime/connection_spec.rb#L251)
       * once connected
         * connection#id
-          * [is a string](./spec/acceptance/realtime/connection_spec.rb#L266)
-          * [is unique from the connection#key](./spec/acceptance/realtime/connection_spec.rb#L273)
-          * [is unique for every connection](./spec/acceptance/realtime/connection_spec.rb#L280)
+          * [is a string](./spec/acceptance/realtime/connection_spec.rb#L268)
+          * [is unique from the connection#key](./spec/acceptance/realtime/connection_spec.rb#L275)
+          * [is unique for every connection](./spec/acceptance/realtime/connection_spec.rb#L282)
         * connection#key
-          * [is a string](./spec/acceptance/realtime/connection_spec.rb#L289)
-          * [is unique from the connection#id](./spec/acceptance/realtime/connection_spec.rb#L296)
-          * [is unique for every connection](./spec/acceptance/realtime/connection_spec.rb#L303)
+          * [is a string](./spec/acceptance/realtime/connection_spec.rb#L291)
+          * [is unique from the connection#id](./spec/acceptance/realtime/connection_spec.rb#L298)
+          * [is unique for every connection](./spec/acceptance/realtime/connection_spec.rb#L305)
       * following a previous connection being opened and closed
-        * [reconnects and is provided with a new connection ID and connection key from the server](./spec/acceptance/realtime/connection_spec.rb#L313)
+        * [reconnects and is provided with a new connection ID and connection key from the server](./spec/acceptance/realtime/connection_spec.rb#L315)
+    * #serial connection serial
+      * [is set to -1 when a new connection is opened](./spec/acceptance/realtime/connection_spec.rb#L335)
+      * [is set to 0 when a message sent ACK is received](./spec/acceptance/realtime/connection_spec.rb#L357)
+      * [is set to 1 when the second message sent ACK is received](./spec/acceptance/realtime/connection_spec.rb#L364)
+      * when a message is sent but the ACK has not yet been received
+        * [the sent message msgSerial is 0 but the connection serial remains at -1](./spec/acceptance/realtime/connection_spec.rb#L344)
     * #close
-      * [returns a Deferrable](./spec/acceptance/realtime/connection_spec.rb#L331)
-      * [calls the Deferrable callback on success](./spec/acceptance/realtime/connection_spec.rb#L338)
+      * [returns a Deferrable](./spec/acceptance/realtime/connection_spec.rb#L375)
+      * [calls the Deferrable callback on success](./spec/acceptance/realtime/connection_spec.rb#L382)
       * when already closed
-        * [does nothing and no further state changes are emitted](./spec/acceptance/realtime/connection_spec.rb#L349)
+        * [does nothing and no further state changes are emitted](./spec/acceptance/realtime/connection_spec.rb#L393)
       * when connection state is
         * :initialized
-          * [changes the connection state to :closing and then immediately :closed without sending a ProtocolMessage CLOSE](./spec/acceptance/realtime/connection_spec.rb#L377)
+          * [changes the connection state to :closing and then immediately :closed without sending a ProtocolMessage CLOSE](./spec/acceptance/realtime/connection_spec.rb#L421)
         * :connected
-          * [changes the connection state to :closing and waits for the server to confirm connection is :closed with a ProtocolMessage](./spec/acceptance/realtime/connection_spec.rb#L395)
+          * [changes the connection state to :closing and waits for the server to confirm connection is :closed with a ProtocolMessage](./spec/acceptance/realtime/connection_spec.rb#L439)
           * with an unresponsive connection
-            * [force closes the connection when a :closed ProtocolMessage response is not received](./spec/acceptance/realtime/connection_spec.rb#L425)
+            * [force closes the connection when a :closed ProtocolMessage response is not received](./spec/acceptance/realtime/connection_spec.rb#L469)
     * #ping
-      * [echoes a heart beat](./spec/acceptance/realtime/connection_spec.rb#L448)
+      * [echoes a heart beat](./spec/acceptance/realtime/connection_spec.rb#L492)
       * when not connected
-        * [raises an exception](./spec/acceptance/realtime/connection_spec.rb#L458)
+        * [raises an exception](./spec/acceptance/realtime/connection_spec.rb#L502)
     * recovery
       * #recovery_key
-        * [is composed of connection id and serial that is kept up to date with each message sent](./spec/acceptance/realtime/connection_spec.rb#L491)
-        * [is available when connection is in one of the states: connecting, connected, disconnected, suspended, failed](./spec/acceptance/realtime/connection_spec.rb#L512)
-        * [is nil when connection is explicitly CLOSED](./spec/acceptance/realtime/connection_spec.rb#L536)
+        * [is composed of connection id and serial that is kept up to date with each message ACK received](./spec/acceptance/realtime/connection_spec.rb#L535)
+        * [is available when connection is in one of the states: connecting, connected, disconnected, suspended, failed](./spec/acceptance/realtime/connection_spec.rb#L556)
+        * [is nil when connection is explicitly CLOSED](./spec/acceptance/realtime/connection_spec.rb#L580)
       * opening a new connection using a recently disconnected connection's #recovery_key
         * connection#id and connection#key after recovery
-          * [remain the same](./spec/acceptance/realtime/connection_spec.rb#L550)
+          * [remain the same](./spec/acceptance/realtime/connection_spec.rb#L594)
         * when messages have been sent whilst the old connection is disconnected
           * the new connection
-            * [recovers server-side queued messages](./spec/acceptance/realtime/connection_spec.rb#L575)
+            * [recovers server-side queued messages](./spec/acceptance/realtime/connection_spec.rb#L619)
       * with :recover option
         * with invalid syntax
-          * [raises an exception](./spec/acceptance/realtime/connection_spec.rb#L600)
+          * [raises an exception](./spec/acceptance/realtime/connection_spec.rb#L644)
         * with invalid formatted value sent to server
-          * [triggers a fatal error on the connection object, sets the #error_reason and disconnects](./spec/acceptance/realtime/connection_spec.rb#L609)
+          * [triggers a fatal error on the connection object, sets the #error_reason and disconnects](./spec/acceptance/realtime/connection_spec.rb#L653)
         * with expired (missing) value sent to server
-          * [triggers an error on the connection object, sets the #error_reason, yet will connect anyway](./spec/acceptance/realtime/connection_spec.rb#L623)
+          * [triggers an error on the connection object, sets the #error_reason, yet will connect anyway](./spec/acceptance/realtime/connection_spec.rb#L667)
     * with many connections simultaneously
-      * [opens each with a unique connection#id and connection#key](./spec/acceptance/realtime/connection_spec.rb#L641)
+      * [opens each with a unique connection#id and connection#key](./spec/acceptance/realtime/connection_spec.rb#L685)
     * when a state transition is unsupported
-      * [emits a StateChangeError](./spec/acceptance/realtime/connection_spec.rb#L661)
+      * [emits a StateChangeError](./spec/acceptance/realtime/connection_spec.rb#L705)
     * undocumented method
       * #internet_up?
-        * [returns a Deferrable](./spec/acceptance/realtime/connection_spec.rb#L676)
+        * [returns a Deferrable](./spec/acceptance/realtime/connection_spec.rb#L720)
         * when the Internet is up
-          * [calls the block with true](./spec/acceptance/realtime/connection_spec.rb#L682)
-          * [calls the success callback of the Deferrable](./spec/acceptance/realtime/connection_spec.rb#L689)
+          * [calls the block with true](./spec/acceptance/realtime/connection_spec.rb#L726)
+          * [calls the success callback of the Deferrable](./spec/acceptance/realtime/connection_spec.rb#L733)
         * when the Internet is down
-          * [calls the block with false](./spec/acceptance/realtime/connection_spec.rb#L701)
-          * [calls the failure callback of the Deferrable](./spec/acceptance/realtime/connection_spec.rb#L708)
+          * [calls the block with false](./spec/acceptance/realtime/connection_spec.rb#L745)
+          * [calls the failure callback of the Deferrable](./spec/acceptance/realtime/connection_spec.rb#L752)
 
 ### Ably::Realtime::Channel Message
 _(see [spec/acceptance/realtime/message_spec.rb](./spec/acceptance/realtime/message_spec.rb))_
@@ -738,29 +744,29 @@ _(see [spec/acceptance/rest/encoders_spec.rb](./spec/acceptance/rest/encoders_sp
       * with binary data
         * [does not apply any encoding](./spec/acceptance/rest/encoders_spec.rb#L52)
       * with JSON data
-        * [stringifies the JSON and sets the json encoding type](./spec/acceptance/rest/encoders_spec.rb#L63)
+        * [stringifies the JSON and sets the encoding attribute to "json"](./spec/acceptance/rest/encoders_spec.rb#L63)
     * with encryption
       * with UTF-8 data
-        * [applies utf-8 and cipher encoding](./spec/acceptance/rest/encoders_spec.rb#L78)
+        * [applies utf-8 and cipher encoding and sets the encoding attribute to "utf-8/cipher+aes-128-cbc"](./spec/acceptance/rest/encoders_spec.rb#L78)
       * with binary data
-        * [applies cipher encoding](./spec/acceptance/rest/encoders_spec.rb#L89)
+        * [applies cipher encoding and sets the encoding attribute to "cipher+aes-128-cbc"](./spec/acceptance/rest/encoders_spec.rb#L89)
       * with JSON data
-        * [applies json, utf-8 and cipher encoding](./spec/acceptance/rest/encoders_spec.rb#L100)
+        * [applies json, utf-8 and cipher encoding and sets the encoding attribute to "json/utf-8/cipher+aes-128-cbc"](./spec/acceptance/rest/encoders_spec.rb#L100)
   * with text transport protocol
     * without encryption
       * with UTF-8 data
         * [does not apply any encoding](./spec/acceptance/rest/encoders_spec.rb#L117)
       * with binary data
-        * [applies a base64 encoding](./spec/acceptance/rest/encoders_spec.rb#L128)
+        * [applies a base64 encoding and sets the encoding attribute to "base64"](./spec/acceptance/rest/encoders_spec.rb#L128)
       * with JSON data
-        * [stringifies the JSON and sets the json encoding type](./spec/acceptance/rest/encoders_spec.rb#L139)
+        * [stringifies the JSON and sets the encoding attribute to "json"](./spec/acceptance/rest/encoders_spec.rb#L139)
     * with encryption
       * with UTF-8 data
-        * [applies utf-8, cipher and base64 encodings](./spec/acceptance/rest/encoders_spec.rb#L154)
+        * [applies utf-8, cipher and base64 encodings and sets the encoding attribute to "utf-8/cipher+aes-128-cbc/base64"](./spec/acceptance/rest/encoders_spec.rb#L154)
       * with binary data
-        * [applies cipher and base64 encoding](./spec/acceptance/rest/encoders_spec.rb#L165)
+        * [applies cipher and base64 encoding and sets the encoding attribute to "utf-8/cipher+aes-128-cbc/base64"](./spec/acceptance/rest/encoders_spec.rb#L165)
       * with JSON data
-        * [applies json, utf-8, cipher and base64 encoding](./spec/acceptance/rest/encoders_spec.rb#L176)
+        * [applies json, utf-8, cipher and base64 encoding and sets the encoding attribute to "json/utf-8/cipher+aes-128-cbc/base64"](./spec/acceptance/rest/encoders_spec.rb#L176)
 
 ### Ably::Rest::Channel messages
 _(see [spec/acceptance/rest/message_spec.rb](./spec/acceptance/rest/message_spec.rb))_
@@ -1703,10 +1709,10 @@ _(see [spec/unit/util/pub_sub_spec.rb](./spec/unit/util/pub_sub_spec.rb))_
     * [deletes all callbacks if not block given](./spec/unit/util/pub_sub_spec.rb#L76)
     * [continues if the block does not exist](./spec/unit/util/pub_sub_spec.rb#L81)
 
--------
+  -------
 
-## Test summary
+  ## Test summary
 
-* Passing tests: 811
-* Pending tests: 11
-* Failing tests: 0
+  * Passing tests: 815
+  * Pending tests: 11
+  * Failing tests: 0

@@ -60,7 +60,7 @@ describe Ably::Models::MessageEncoders do
       context 'with JSON data' do
         let(:published_data) { json_data }
 
-        it 'stringifies the JSON and sets the json encoding type' do
+        it 'stringifies the JSON and sets the encoding attribute to "json"' do
           on_publish do |encoding, encoded_data|
             expect(encoding).to eql('json')
             expect(encoded_data).to eql(JSON.dump(published_data))
@@ -75,7 +75,7 @@ describe Ably::Models::MessageEncoders do
       context 'with UTF-8 data' do
         let(:published_data) { utf_8_data }
 
-        it 'applies utf-8 and cipher encoding' do
+        it 'applies utf-8 and cipher encoding and sets the encoding attribute to "utf-8/cipher+aes-128-cbc"' do
           on_publish do |encoding, encoded_data|
             expect(encoding).to eql('utf-8/cipher+aes-128-cbc')
             expect(decrypted(encoded_data)).to eql(published_data)
@@ -86,7 +86,7 @@ describe Ably::Models::MessageEncoders do
       context 'with binary data' do
         let(:published_data) { binary_data }
 
-        it 'applies cipher encoding' do
+        it 'applies cipher encoding and sets the encoding attribute to "cipher+aes-128-cbc"' do
           on_publish do |encoding, encoded_data|
             expect(encoding).to eql('cipher+aes-128-cbc')
             expect(decrypted(encoded_data)).to eql(published_data)
@@ -97,7 +97,7 @@ describe Ably::Models::MessageEncoders do
       context 'with JSON data' do
         let(:published_data) { json_data }
 
-        it 'applies json, utf-8 and cipher encoding' do
+        it 'applies json, utf-8 and cipher encoding and sets the encoding attribute to "json/utf-8/cipher+aes-128-cbc"' do
           on_publish do |encoding, encoded_data|
             expect(encoding).to eql('json/utf-8/cipher+aes-128-cbc')
             expect(decrypted(encoded_data)).to eql(JSON.dump(published_data))
@@ -125,7 +125,7 @@ describe Ably::Models::MessageEncoders do
       context 'with binary data' do
         let(:published_data) { binary_data }
 
-        it 'applies a base64 encoding' do
+        it 'applies a base64 encoding and sets the encoding attribute to "base64"' do
           on_publish do |encoding, encoded_data|
             expect(encoding).to eql('base64')
             expect(Base64.decode64(encoded_data)).to eql(published_data)
@@ -136,7 +136,7 @@ describe Ably::Models::MessageEncoders do
       context 'with JSON data' do
         let(:published_data) { json_data }
 
-        it 'stringifies the JSON and sets the json encoding type' do
+        it 'stringifies the JSON and sets the encoding attribute to "json"' do
           on_publish do |encoding, encoded_data|
             expect(encoding).to eql('json')
             expect(encoded_data).to eql(JSON.dump(published_data))
@@ -151,7 +151,7 @@ describe Ably::Models::MessageEncoders do
       context 'with UTF-8 data' do
         let(:published_data) { utf_8_data }
 
-        it 'applies utf-8, cipher and base64 encodings' do
+        it 'applies utf-8, cipher and base64 encodings and sets the encoding attribute to "utf-8/cipher+aes-128-cbc/base64"' do
           on_publish do |encoding, encoded_data|
             expect(encoding).to eql('utf-8/cipher+aes-128-cbc/base64')
             expect(decrypted(encoded_data, base64: true)).to eql(published_data)
@@ -162,7 +162,7 @@ describe Ably::Models::MessageEncoders do
       context 'with binary data' do
         let(:published_data) { binary_data }
 
-        it 'applies cipher and base64 encoding' do
+        it 'applies cipher and base64 encoding and sets the encoding attribute to "utf-8/cipher+aes-128-cbc/base64"' do
           on_publish do |encoding, encoded_data|
             expect(encoding).to eql('cipher+aes-128-cbc/base64')
             expect(decrypted(encoded_data, base64: true)).to eql(published_data)
@@ -173,7 +173,7 @@ describe Ably::Models::MessageEncoders do
       context 'with JSON data' do
         let(:published_data) { json_data }
 
-        it 'applies json, utf-8, cipher and base64 encoding' do
+        it 'applies json, utf-8, cipher and base64 encoding and sets the encoding attribute to "json/utf-8/cipher+aes-128-cbc/base64"' do
           on_publish do |encoding, encoded_data|
             expect(encoding).to eql('json/utf-8/cipher+aes-128-cbc/base64')
             expect(decrypted(encoded_data, base64: true)).to eql(JSON.dump(published_data))
