@@ -7,9 +7,9 @@ describe Ably::Realtime::Client, '#stats', :event_machine do
     end
 
     describe 'fetching stats' do
-      it 'should return a Hash' do
+      it 'should return a PaginatedResource' do
         client.stats do |stats|
-          expect(stats).to be_a(Array)
+          expect(stats).to be_a(Ably::Models::PaginatedResource)
           stop_reactor
         end
       end

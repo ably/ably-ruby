@@ -98,6 +98,11 @@ class TestApp
     host.gsub(/rest/, 'realtime')
   end
 
+  def create_test_stats(stats)
+    client = Ably::Rest::Client.new(api_key: api_key, environment: environment)
+    client.post('/stats', stats)
+  end
+
   private
   def sandbox_client
     @sandbox_client ||= Ably::Rest::Client.new(api_key: 'app.key:secret', tls: true, environment: environment)
