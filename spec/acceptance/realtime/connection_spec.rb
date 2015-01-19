@@ -198,7 +198,6 @@ describe Ably::Realtime::Connection, :event_machine do
           end
         end
       end
-
     end
 
     context 'initialization state changes' do
@@ -325,6 +324,48 @@ describe Ably::Realtime::Connection, :event_machine do
                 stop_reactor
               end
             end
+          end
+        end
+      end
+    end
+
+    describe '#serial connection serial' do
+      let(:channel) { client.channel(random_str) }
+
+      it 'is set to -1 when a new connection is opened' do
+        connection.connect do
+          expect(connection.serial).to eql(-1)
+          stop_reactor
+        end
+      end
+
+      context 'when a message is sent but the ACK has not yet been received' do
+
+        it 'the sent message msgSerial is 0 but the connection serial remains at -1' do
+          channel.attach do
+            connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+              connection.__outgoing_protocol_msgbus__.unsubscribe
+              expect(protocol_message['msgSerial']).to eql(0)
+              expect(connection.serial).to eql(-1)
+              stop_reactor
+            end
+            channel.publish('event', 'data')
+          end
+        end
+      end
+
+      it 'is set to 0 when a message sent ACK is received' do
+        channel.publish('event', 'data') do
+          expect(connection.serial).to eql(0)
+          stop_reactor
+        end
+      end
+
+      it 'is set to 1 when the second message sent ACK is received' do
+        channel.publish('event', 'data') do
+          channel.publish('event', 'data') do
+            expect(connection.serial).to eql(1)
+            stop_reactor
           end
         end
       end
@@ -491,7 +532,7 @@ describe Ably::Realtime::Connection, :event_machine do
         let(:states)           { Hash.new }
         let(:client_options)   { default_options.merge(log_level: :none) }
 
-        it 'is composed of connection id and serial that is kept up to date with each message sent' do
+        it 'is composed of connection id and serial that is kept up to date with each message ACK received' do
           connection.on(:connected) do
             expected_serial = -1
             expect(connection.id).to_not be_nil

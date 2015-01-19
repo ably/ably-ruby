@@ -119,7 +119,7 @@ module Ably::Realtime
         if protocol_message.connection_key && (protocol_message.connection_key != connection.key)
           logger.debug "New connection ID set to #{protocol_message.connection_id} with connection key #{protocol_message.connection_key}"
           detach_attached_channels protocol_message.error if protocol_message.error
-          connection.update_connection_id_and_key protocol_message.connection_id, protocol_message.connection_key
+          connection.configure_new protocol_message.connection_id, protocol_message.connection_key, protocol_message.connection_serial
         end
 
         if protocol_message.has_connection_serial?

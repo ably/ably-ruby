@@ -99,7 +99,7 @@ module Ably
       # @api public
       def initialize(client)
         @client                     = client
-        @serial                     = -1
+        @client_serial              = -1
         @__outgoing_message_queue__ = []
         @__pending_message_queue__  = []
 
@@ -202,12 +202,17 @@ module Ably
         "#{key}:#{serial}" if connection_resumable?
       end
 
-      # Configure the current connection ID and connection key
+      # Following a new connection being made, resumed or recovered, the connection ID, connection key
+      # and message serial need to match the details provided by the server.
+      #
       # @return [void]
       # @api private
-      def update_connection_id_and_key(connection_id, connection_key)
-        @id  = connection_id
-        @key = connection_key
+      def configure_new(connection_id, connection_key, connection_serial)
+        @id            = connection_id
+        @key           = connection_key
+        @client_serial = connection_serial
+
+        update_connection_serial connection_serial
       end
 
       # Store last received connection serial so that the connection can be resumed from the last known point-in-time
@@ -362,6 +367,17 @@ module Ably
       private :change_state
 
       private
+
+      # The client serial is incremented for every message that is published that requires an ACK.
+      # Note that this is different to the connection serial that contains the last known serial number
+      # received from the server.
+      #
+      # A client serial number therefore does not guarantee a message has been received, only sent.
+      # A connection serial guarantees the server has received the message and is thus used for connection
+      # recovery and resumes.
+      # @return [Integer] starting at -1 indicating no messages sent, 0 when the first message is sent
+      attr_reader :client_serial
+
       def create_pub_sub_message_bus
         Ably::Util::PubSub.new(
           coerce_into: Proc.new do |event|
@@ -380,11 +396,11 @@ module Ably
       end
 
       def add_message_serial_to(protocol_message)
-        @serial += 1
-        protocol_message[:msgSerial] = serial
+        @client_serial += 1
+        protocol_message[:msgSerial] = client_serial
         yield
       rescue StandardError => e
-        @serial -= 1
+        @client_serial -= 1
         raise e
       end
 

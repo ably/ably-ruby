@@ -61,7 +61,7 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
 
     context 'with lots of messages published with a single client and channel' do
       let(:messages_sent)   { 30 }
-      let(:rate_per_second) { 4 }
+      let(:rate_per_second) { 10 }
       let(:limit)           { 15 }
 
       def ensure_message_history_direction_and_paging_is_correct(direction)
@@ -103,7 +103,7 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
         end
       end
 
-      context 'in multiple ProtocolMessages', em_timeout: (30 / 4) + 20 do
+      context 'in multiple ProtocolMessages', em_timeout: (30 / 10) + 5 do
         it 'retrieves limited history forwards with pagination' do
           messages_sent.times do |index|
             EventMachine.add_timer(index.to_f / rate_per_second) do
