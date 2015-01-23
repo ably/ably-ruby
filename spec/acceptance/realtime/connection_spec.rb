@@ -722,6 +722,30 @@ describe Ably::Realtime::Connection, :event_machine do
           stop_reactor
         end
 
+        context 'internet up URL protocol' do
+          let(:http_request) { double('EventMachine::HttpRequest', get: EventMachine::DefaultDeferrable.new) }
+
+          context 'when using TLS for the connection' do
+            let(:client_options) { default_options.merge(tls: true) }
+
+            it 'uses TLS for the Internet check to https://internet-up.ably-realtime.com/is-the-internet-up.txt' do
+              expect(EventMachine::HttpRequest).to receive(:new).with('https://internet-up.ably-realtime.com/is-the-internet-up.txt').and_return(http_request)
+              connection.internet_up?
+              stop_reactor
+            end
+          end
+
+          context 'when using a non-secured connection' do
+            let(:client_options) { default_options.merge(tls: false, use_token_auth: true) }
+
+            it 'uses TLS for the Internet check to http://internet-up.ably-realtime.com/is-the-internet-up.txt' do
+              expect(EventMachine::HttpRequest).to receive(:new).with('http://internet-up.ably-realtime.com/is-the-internet-up.txt').and_return(http_request)
+              connection.internet_up?
+              stop_reactor
+            end
+          end
+        end
+
         context 'when the Internet is up' do
           it 'calls the block with true' do
             connection.internet_up? do |result|
@@ -739,7 +763,7 @@ describe Ably::Realtime::Connection, :event_machine do
 
         context 'when the Internet is down' do
           before do
-            stub_const 'Ably::INTERNET_CHECK', { url: 'http://does.not.exist.com', ok_text: 'no.way.this.will.match' }
+            stub_const 'Ably::INTERNET_CHECK', { url: '//does.not.exist.com', ok_text: 'no.way.this.will.match' }
           end
 
           it 'calls the block with false' do

@@ -182,7 +182,7 @@ module Ably
       # @api private
       def internet_up?
         EventMachine::DefaultDeferrable.new.tap do |deferrable|
-          EventMachine::HttpRequest.new(Ably::INTERNET_CHECK.fetch(:url)).get.tap do |http|
+          EventMachine::HttpRequest.new("http#{'s' if client.use_tls?}:#{Ably::INTERNET_CHECK.fetch(:url)}").get.tap do |http|
             http.errback do
               yield false if block_given?
               deferrable.fail
