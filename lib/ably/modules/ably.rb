@@ -9,7 +9,7 @@ module Ably
   #
   FALLBACK_HOSTS = %w(A.ably-realtime.com B.ably-realtime.com C.ably-realtime.com D.ably-realtime.com E.ably-realtime.com)
   INTERNET_CHECK = {
-    url:     'http://internet-up.ably.io/is-the-internet-up.txt', #ably-realtime.com
+    url:     'http://internet-up.ably-realtime.com/is-the-internet-up.txt',
     ok_text: 'yes'
   }
 end
