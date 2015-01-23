@@ -59,16 +59,18 @@ describe Ably::Auth do
       let(:ttl)        { 30 * 60 }
       let(:capability) { { :foo => ['publish'] } }
 
-      it 'returns the requested token' do
-        actual_token = auth.request_token(
+      let(:token) do
+        auth.request_token(
           ttl:        ttl,
           capability: capability
         )
+      end
 
-        expect(actual_token.id).to match(/^#{app_id}\.[\w-]+$/)
-        expect(actual_token.key_id).to match(/^#{key_id}$/)
-        expect(actual_token.issued_at).to be_within(2).of(Time.now)
-        expect(actual_token.expires_at).to be_within(2).of(Time.now + ttl)
+      it 'returns a valid requested token in the expected format with valid issued_at and expires_at attributes' do
+        expect(token.id).to match(/^#{app_id}\.[\w-]+$/)
+        expect(token.key_id).to match(/^#{key_id}$/)
+        expect(token.issued_at).to be_within(2).of(Time.now)
+        expect(token.expires_at).to be_within(2).of(Time.now + ttl)
       end
 
       %w(client_id capability nonce timestamp ttl).each do |option|
