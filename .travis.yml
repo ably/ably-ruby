@@ -4,6 +4,7 @@ rvm:
 - 1.9.3
 - 2.0.0
 - 2.2.0
+script: bundle exec rspec
 notifications:
   slack:
     secure: Xe8MwDcV2C8XLGk6O6Co31LpQiRSxsmS7Toy5vM7rHds5fnVRBNn5iX6Q5mXMdLOlnsMhjKLt7zl4fsBOZv+siQ+Us0omZSIYpXCYSCIj8nofReF0Lj8M4oa6lFSL5OuygO7PH+wLKTRxQURGZ6Pi1nHU+RE5izRmsewQHkhtY0=
