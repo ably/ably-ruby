@@ -37,7 +37,7 @@ class TestApp
   end
 
   def app_id
-    @attributes["id"]
+    @attributes["appId"]
   end
 
   def key
@@ -85,9 +85,7 @@ class TestApp
       'Content-Type' => 'application/json'
     }
 
-    response = Faraday.post(url, APP_SPEC.to_json, headers)
-
-    @attributes = JSON.parse(response.body)
+    @attributes = JSON.parse(Faraday.post(url, APP_SPEC.to_json, headers).body)
   end
 
   def host
