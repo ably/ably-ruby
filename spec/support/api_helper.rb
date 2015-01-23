@@ -26,6 +26,7 @@ module ApiHelper
   end
 
   def reload_test_app
+    WebMock.disable!
     TestApp.reload
   end
 
@@ -43,7 +44,7 @@ RSpec.configure do |config|
 
   config.after(:suite) do
     WebMock.disable!
-    TestApp.instance.delete if TestApp.instance_variable_get('@singleton__instance__')
+    TestApp.instance.delete
   end
 end
 

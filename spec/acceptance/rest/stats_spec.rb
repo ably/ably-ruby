@@ -31,7 +31,6 @@ describe Ably::Rest::Client, '#stats' do
   ]
 
   before(:context) do
-    WebMock.disable! # ensure previous test's WebMock does not have side effects
     reload_test_app # ensure no previous stats interfere
     TestApp.instance.create_test_stats(STATS_FIXTURES)
   end

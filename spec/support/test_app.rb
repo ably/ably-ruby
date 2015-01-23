@@ -27,7 +27,10 @@ class TestApp
   # If an app has already been created and we need a new app, create a new test app
   # This is sometimes needed when a test needs to be isolated from any other tests
   def self.reload
-    instance.create_test_app if instance_variable_get('@singleton__instance__')
+    if instance_variable_get('@singleton__instance__')
+      instance.delete
+      instance.create_test_app
+    end
   end
 
   include Singleton
@@ -65,6 +68,8 @@ class TestApp
   end
 
   def delete
+    return unless TestApp.instance_variable_get('@singleton__instance__')
+
     url = "#{sandbox_client.endpoint}/apps/#{app_id}"
 
     basic_auth = Base64.encode64(api_key).chomp
