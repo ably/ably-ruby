@@ -21,8 +21,7 @@ describe Ably::Rest::Presence do
       describe '#get' do
         before(:context) do
           # When this test is run as a part of a test suite, the presence data injected in the test app may have expired
-          WebMock.disable!
-          TestApp.reload
+          reload_test_app
         end
 
         let(:channel) { client.channel('persisted:presence_fixtures') }
@@ -54,8 +53,7 @@ describe Ably::Rest::Presence do
       describe '#history' do
         before(:context) do
           # When this test is run as a part of a test suite, the presence data injected in the test app may have expired
-          WebMock.disable!
-          TestApp.reload
+          reload_test_app
         end
 
         let(:channel) { client.channel('persisted:presence_fixtures') }
