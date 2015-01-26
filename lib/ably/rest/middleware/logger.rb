@@ -42,7 +42,7 @@ module Ably
           end
 
         rescue StandardError
-          "Error displaying body: (as hex) '#{readable_body(env.body)}'"
+          readable_body(env.body)
         end
 
         def readable_body(body)
