@@ -44,54 +44,54 @@ describe Ably::Rest::Client, '#stats' do
         let(:last_inbound_realtime_count)  { STATS_FIXTURES.last[:inbound][:realtime][:messages][:count] }
 
         context 'with :from set to last interval and :limit set to 1' do
-          let(:subject) { client.stats(start: as_since_epoch(LAST_INTERVAL), by: :minute) }
+          let(:subject) { client.stats(start: as_since_epoch(LAST_INTERVAL), by: :minute, limit: 1) }
           let(:stat)    { subject.first}
 
           it 'retrieves only one stat' do
             expect(subject.count).to eql(1)
           end
 
-          it 'returns accurate all aggregated message data' do
+          it 'returns all aggregated message data' do
             expect(stat.all[:messages][:count]).to eql(70 + 40) # inbound + outbound
             expect(stat.all[:messages][:data]).to eql(7000 + 4000) # inbound + outbound
           end
 
-          it 'returns accurate inbound realtime all data' do
+          it 'returns inbound realtime all data' do
             expect(stat.inbound[:realtime][:all][:count]).to eql(70)
             expect(stat.inbound[:realtime][:all][:data]).to eql(7000)
           end
 
-          it 'returns accurate inbound realtime message data' do
+          it 'returns inbound realtime message data' do
             expect(stat.inbound[:realtime][:messages][:count]).to eql(70)
             expect(stat.inbound[:realtime][:messages][:data]).to eql(7000)
           end
 
-          it 'returns accurate outbound realtime all data' do
+          it 'returns outbound realtime all data' do
             expect(stat.outbound[:realtime][:all][:count]).to eql(40)
             expect(stat.outbound[:realtime][:all][:data]).to eql(4000)
           end
 
-          it 'returns accurate persisted presence all data' do
+          it 'returns persisted presence all data' do
             expect(stat.persisted[:all][:count]).to eql(20)
             expect(stat.persisted[:all][:data]).to eql(2000)
           end
 
-          it 'returns accurate connections all data' do
+          it 'returns connections all data' do
             expect(stat.connections[:tls][:peak]).to eql(20)
             expect(stat.connections[:tls][:opened]).to eql(10)
           end
 
-          it 'returns accurate channels all data' do
+          it 'returns channels all data' do
             expect(stat.channels[:peak]).to eql(50)
             expect(stat.channels[:opened]).to eql(30)
           end
 
-          it 'returns accurate api_requests data' do
+          it 'returns api_requests data' do
             expect(stat.api_requests[:succeeded]).to eql(50)
             expect(stat.api_requests[:failed]).to eql(10)
           end
 
-          it 'returns accurate token_requests data' do
+          it 'returns token_requests data' do
             expect(stat.token_requests[:succeeded]).to eql(60)
             expect(stat.token_requests[:failed]).to eql(20)
           end
@@ -146,7 +146,7 @@ describe Ably::Rest::Client, '#stats' do
 
       [:hour, :day, :month].each do |interval|
         context "by #{interval}" do
-          let(:subject) { client.stats(start: as_since_epoch(LAST_INTERVAL), by: interval, direction: 'forwards') }
+          let(:subject) { client.stats(start: as_since_epoch(LAST_INTERVAL), by: interval, direction: 'forwards', limit: 1) }
           let(:stat)    { subject.first }
           let(:aggregate_messages_count) do
             STATS_FIXTURES.inject(0) do |sum, fixture|
