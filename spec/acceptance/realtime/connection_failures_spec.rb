@@ -127,7 +127,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         end
 
         context 'when connection state is :suspended' do
-          it 'enters the failed state after multiple attempts' do
+          it 'enters the failed state after multiple attempts if the max_time_in_state is set' do
             connection.on(:connected) { raise 'Connection should not have reached :connected state' }
 
             connection.once(:suspended) do

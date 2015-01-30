@@ -10,8 +10,8 @@ module Ably::Realtime
     class ConnectionManager
       # Configuration for automatic recovery of failed connection attempts
       CONNECT_RETRY_CONFIG = {
-        disconnected: { retry_every: 0.5, max_time_in_state: 10 },
-        suspended:    { retry_every: 5,   max_time_in_state: 60 }
+        disconnected: { retry_every: 15,  max_time_in_state: 120 },
+        suspended:    { retry_every: 120, max_time_in_state: Float::INFINITY }
       }.freeze
 
       # Time to wait following a connection state request before it's considered a failure
