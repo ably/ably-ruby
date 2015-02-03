@@ -23,12 +23,46 @@ Or install it yourself as:
 
 ## Using the Realtime API
 
+### Introduction
+
+Before using any of the examples below, you'll need to encapsulate them within an event machine run block:
+
+```ruby
+EventMachine.run do
+  # ...
+end
+```
+
+Also we will admit that the client library has been instanciated as follow:
+
+```ruby
+client = Ably::Realtime.new(api_key: "xxxxx")
+```
+
+### Connection
+
+Successful connection:
+
+```ruby
+client.connection.connect do
+  # successful connection
+end
+```
+
+Failed connection:
+
+```ruby
+connection_result = client.connection.connect
+connection_result.errback = Proc.new do
+  # failed connection
+end
+```
+
 ### Subscribing to a channel
 
 Given:
 
 ```ruby
-client = Ably::Realtime.new(api_key: "xxxxx")
 channel = client.channel("test")
 ```
 
@@ -53,60 +87,95 @@ end
 ### Publishing to a channel
 
 ```ruby
-client = Ably::Realtime.new(api_key: "xxxxx")
-channel = client.channel("test")
 channel.publish("greeting", "Hello World!")
+```
+
+### Querying the History
+
+```ruby
+channel.history do |messages|
+  messages # Ably::Models::PaginatedResource
+  messages.first # Ably::Models::Message
+  messages.length # messages in history length
+end
 ```
 
 ### Presence on a channel
 
 ```ruby
-client = Ably::Realtime.new(api_key: "xxxxx")
-channel = client.channel("test")
 channel.presence.enter(data: 'john.doe') do |presence|
   presence.get #=> [Array of members present]
 end
 ```
 
+### Querying the Presence History
+
+```ruby
+channel.presence.history do |presences|
+  presences.first.action # Any of :enter, :update or :leave
+  presences.first.client_id
+  presences.first.data
+end
+```
+
 ## Using the REST API
+
+### Introduction
+
+Unlike the Realtime API, all calls are synchronous and therefore don't need to
+be encapsulated within EventMachine.
+
+We will admit that the client library has been instanciated as follow:
+
+```ruby
+client = Ably::Rest.new(api_key: "xxxxx")
+channel = client.channel('test')
+```
 
 ### Publishing a message to a channel
 
 ```ruby
-client = Ably::Rest.new(api_key: "xxxxx")
-channel = client.channel("test")
 channel.publish("myEvent", "Hello!") #=> true
 ```
 
-### Fetching a channel's history
+### Querying the History
 
 ```ruby
-client = Ably::Rest.new(api_key: "xxxxx")
-channel = client.channel("test")
-channel.history #=> [{:name=>"test", :data=>"payload"}]
+channel.history #=> # => #<Ably::Models::PaginatedResource ...>
 ```
 
-### Authentication with a token
+### Presence on a channel
 
 ```ruby
-client = Ably::Rest.new(api_key: "xxxxx")
-client.auth.authorise # creates a token and will use token authentication moving forwards
-client.auth.current_token #=> #<Ably::Models::Token>
-channel.publish("myEvent", "Hello!") #=> true, sent using token authentication
+channel.presence.get # => #<Ably::Models::PaginatedResource ...>
+```
+
+### Querying the Presence History
+
+```ruby
+channel.presence.history # => #<Ably::Models::PaginatedResource ...>
+```
+
+### Generate Token and Token Request
+
+```ruby
+client.auth.request_token
+# => #<Ably::Models::Token ...>
+
+client.auth.create_token_request
+# => {"id"=>...,
+#     "clientId"=>nil,
+#     "ttl"=>3600,
+#     "timestamp"=>...,
+#     "capability"=>"{\"*\":[\"*\"]}",
+#     "nonce"=>...,
+#     "mac"=>...}
 ```
 
 ### Fetching your application's stats
 
 ```ruby
-client = Ably::Rest.new(api_key: "xxxxx")
-client.stats #=> [{:channels=>..., :apiRequests=>..., ...}]
-```
-
-### Fetching the Ably service time
-
-```ruby
-client = Ably::Rest.new(api_key: "xxxxx")
-client.time #=> 2013-12-12 14:23:34 +0000
+client.stats #=> PaginatedResource [{:channels=>..., :apiRequests=>..., ...}]
 ```
 
 ## Dependencies
