@@ -25,7 +25,7 @@ Or install it yourself as:
 
 ### Introduction
 
-Before using any of the examples below, you'll need to encapsulate them within an event machine run block:
+All examples must be run within an [EventMachine](https://github.com/eventmachine/eventmachine) [reactor](https://github.com/eventmachine/eventmachine/wiki/General-Introduction) as follows:
 
 ```ruby
 EventMachine.run do
@@ -33,7 +33,7 @@ EventMachine.run do
 end
 ```
 
-Also we will admit that the client library has been instanciated as follow:
+All examples assume a client has been created as follows:
 
 ```ruby
 client = Ably::Realtime.new(api_key: "xxxxx")
@@ -96,7 +96,8 @@ channel.publish("greeting", "Hello World!")
 channel.history do |messages|
   messages # Ably::Models::PaginatedResource
   messages.first # Ably::Models::Message
-  messages.length # messages in history length
+  messages.length # number of messages in the retrieved history page
+  messages.next_page # Ably::Models::PaginatedResource
 end
 ```
 
@@ -111,10 +112,11 @@ end
 ### Querying the Presence History
 
 ```ruby
-channel.presence.history do |presences|
-  presences.first.action # Any of :enter, :update or :leave
-  presences.first.client_id
-  presences.first.data
+channel.presence.history do |presence_messages|
+  presence_messages.first.action # Any of :enter, :update or :leave
+  presence_messages.first.client_id
+  presence_messages.first.data
+  presence_messages.next_page # Ably::Models::PaginatedResource
 end
 ```
 
@@ -122,10 +124,9 @@ end
 
 ### Introduction
 
-Unlike the Realtime API, all calls are synchronous and therefore don't need to
-be encapsulated within EventMachine.
+Unlike the Realtime API, all calls are synchronous and are not run within an [EventMachine](https://github.com/eventmachine/eventmachine) [reactor](https://github.com/eventmachine/eventmachine/wiki/General-Introduction).
 
-We will admit that the client library has been instanciated as follow:
+All examples assume a client and/or channel has been created as follows:
 
 ```ruby
 client = Ably::Rest.new(api_key: "xxxxx")
@@ -141,7 +142,7 @@ channel.publish("myEvent", "Hello!") #=> true
 ### Querying the History
 
 ```ruby
-channel.history #=> # => #<Ably::Models::PaginatedResource ...>
+channel.history #=> #<Ably::Models::PaginatedResource ...>
 ```
 
 ### Presence on a channel
