@@ -17,7 +17,7 @@ Add this line to your application's Gemfile:
 
     gem 'ably'
 
-And then execute:
+And then install this Bundler dependency:
 
     $ bundle
 
@@ -187,13 +187,18 @@ client.stats #=> PaginatedResource [{:channels=>..., :apiRequests=>..., ...}]
 
 If you only need to use the REST features of this library and do not want EventMachine as a dependency, then you should use the [Ably Ruby REST gem](https://rubygems.org/gems/ably-rest).
 
+## Support and feedback
+
+Please visit https://support.ably.io/ for access to our knowledgebase and to ask for any assistance.
+
 ## Contributing
 
 1. Fork it
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Commit your changes (`git commit -am 'Add some feature'`)
+4. Ensure you have added suitable tests and the test suite is passing(`bundle exec rspec`)
 4. Push to the branch (`git push origin my-new-feature`)
-5. Create new Pull Request
+5. Create a new Pull Request
 
 ## License
 
