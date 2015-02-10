@@ -5,6 +5,10 @@
 
 A Ruby client library for [ably.io](https://ably.io), the real-time messaging service.
 
+## Documentation
+
+Visit https://ably.io/documentation for a complete API reference and more examples.
+
 ## Installation
 
 The client library is available as a [gem from RubyGems.org](https://rubygems.org/gems/ably).
