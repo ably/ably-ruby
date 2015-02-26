@@ -66,7 +66,8 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                       )
         end
 
-        let(:expected_retry_attempts) { (max_time_in_state_for_tests / retry_every_for_tests).round }
+        # retry immediately after failure, then one retry every :retry_every_for_tests
+        let(:expected_retry_attempts) { 1 + (max_time_in_state_for_tests / retry_every_for_tests).round }
         let(:state_changes)           { Hash.new { |hash, key| hash[key] = 0 } }
         let(:timer)                   { Hash.new }
 
@@ -516,7 +517,9 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                     )
       end
 
-      let(:expected_retry_attempts) { (max_time_in_state_for_tests / retry_every_for_tests).round }
+      # Retry immediately and then wait retry_every before every subsequent attempt
+      let(:expected_retry_attempts) { 1 + (max_time_in_state_for_tests / retry_every_for_tests).round }
+
       let(:retry_count_for_one_state)  { 1 + expected_retry_attempts } # initial connect then disconnected
       let(:retry_count_for_all_states) { 1 + expected_retry_attempts * 2 } # initial connection, disconnected & then suspended
 
