@@ -246,9 +246,14 @@ module Ably::Realtime
         retry_params = CONNECT_RETRY_CONFIG.fetch(from_state)
 
         if time_spent_attempting_state(from_state, options) <= retry_params.fetch(:max_time_in_state)
-          logger.debug "ConnectionManager: Pausing for #{retry_params.fetch(:retry_every)}s before attempting to reconnect"
-          create_timeout_timer_whilst_in_state(:reconnect, retry_params.fetch(:retry_every)) do
-            connection.connect if connection.state == from_state
+          if retries_for_state(from_state, ignore_states: [:connecting]).length == 1
+            logger.debug "ConnectionManager: Will attempt reconnect immediately as no previous reconnect attempts made in this state"
+            EventMachine.next_tick { connection.connect }
+          else
+            logger.debug "ConnectionManager: Pausing for #{retry_params.fetch(:retry_every)}s before attempting to reconnect"
+            create_timeout_timer_whilst_in_state(:reconnect, retry_params.fetch(:retry_every)) do
+              connection.connect if connection.state == from_state
+            end
           end
           true
         end

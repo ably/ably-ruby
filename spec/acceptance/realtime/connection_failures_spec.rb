@@ -288,19 +288,74 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
       end
 
       context 'when DISCONNECTED ProtocolMessage received from the server' do
-        it 'reconnects automatically' do
+        it 'reconnects automatically and immediately' do
           fail_if_suspended_or_failed
 
           connection.once(:connected) do
             connection.once(:disconnected) do
-              connection.once(:connected) do
-                state_history = connection.state_history.map { |transition| transition[:state].to_sym }
-                expect(state_history).to eql([:connecting, :connected, :disconnected, :connecting, :connected])
-                stop_reactor
+              disconnected_at = Time.now.to_f
+              connection.once(:connecting) do
+                expect(Time.now.to_f).to be_within(0.25).of(disconnected_at)
+                connection.once(:connected) do
+                  state_history = connection.state_history.map { |transition| transition[:state].to_sym }
+                  expect(state_history).to eql([:connecting, :connected, :disconnected, :connecting, :connected])
+                  stop_reactor
+                end
               end
             end
             protocol_message = Ably::Models::ProtocolMessage.new(action: Ably::Models::ProtocolMessage::ACTION.Disconnected.to_i)
             connection.__incoming_protocol_msgbus__.publish :protocol_message, protocol_message
+          end
+        end
+
+        context 'and subsequently fails to reconnect' do
+          let(:retry_every) { 1.5 }
+
+          before do
+            # Reconfigure client library retry periods and timeouts so that tests run quickly
+            stub_const 'Ably::Realtime::Connection::ConnectionManager::CONNECT_RETRY_CONFIG',
+                      Ably::Realtime::Connection::ConnectionManager::CONNECT_RETRY_CONFIG.merge(
+                        disconnected: { retry_every: retry_every, max_time_in_state: 60 })
+          end
+
+          it "retries every CONNECT_RETRY_CONFIG[:disconnected][:retry_every] seconds" do
+            fail_if_suspended_or_failed
+
+            stubbed_first_attempt = false
+
+            connection.once(:connected) do
+              connection.once(:disconnected) do
+                connection.once(:connecting) do
+                  connection.once(:disconnected) do
+                    disconnected_at = Time.now.to_f
+                    connection.once(:connecting) do
+                      expect(Time.now.to_f - disconnected_at).to be > retry_every
+                      state_history = connection.state_history.map { |transition| transition[:state].to_sym }
+                      expect(state_history).to eql([:connecting, :connected, :disconnected, :connecting, :disconnected, :connecting])
+
+                      # allow one more recoonect when reactor stopped
+                      expect(connection.manager).to receive(:reconnect_transport)
+                      stop_reactor
+                    end
+                  end
+
+                  # When reconnect called simply open the transport and close immediately
+                  expect(connection.manager).to receive(:reconnect_transport) do
+                    next if stubbed_first_attempt
+
+                    connection.manager.setup_transport do
+                      EventMachine.next_tick do
+                        connection.transport.unbind
+                        stubbed_first_attempt = true
+                      end
+                    end
+                  end
+                end
+              end
+
+              protocol_message = Ably::Models::ProtocolMessage.new(action: Ably::Models::ProtocolMessage::ACTION.Disconnected.to_i)
+              connection.__incoming_protocol_msgbus__.publish :protocol_message, protocol_message
+            end
           end
         end
       end
