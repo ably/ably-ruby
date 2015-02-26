@@ -1,4 +1,4 @@
-Copyright (c) 2014 Ably
+Copyright (c) 2015 Ably
 
 MIT License
 
