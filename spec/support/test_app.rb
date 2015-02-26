@@ -79,7 +79,7 @@ class TestApp
   end
 
   def environment
-    'sandbox'
+    ENV['ABLY_ENV'] || 'sandbox'
   end
 
   def create_test_app
