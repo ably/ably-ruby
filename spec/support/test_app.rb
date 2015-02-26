@@ -90,7 +90,10 @@ class TestApp
       'Content-Type' => 'application/json'
     }
 
-    @attributes = JSON.parse(Faraday.post(url, APP_SPEC.to_json, headers).body)
+    response = Faraday.post(url, APP_SPEC.to_json, headers)
+    raise "Could not create test app.  Ably responded with status #{response.status}\n#{response.body}" unless (200..299).include?(response.status)
+
+    @attributes = JSON.parse(response.body)
   end
 
   def host
@@ -103,7 +106,8 @@ class TestApp
 
   def create_test_stats(stats)
     client = Ably::Rest::Client.new(api_key: api_key, environment: environment)
-    client.post('/stats', stats)
+    response = client.post('/stats', stats)
+    raise "Could not create stats fixtures.  Ably responded with status #{response.status}\n#{response.body}" unless (200..299).include?(response.status)
   end
 
   private
