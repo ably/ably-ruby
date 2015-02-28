@@ -94,6 +94,8 @@ class TestApp
     raise "Could not create test app.  Ably responded with status #{response.status}\n#{response.body}" unless (200..299).include?(response.status)
 
     @attributes = JSON.parse(response.body)
+
+    puts "Test app '#{app_id}' created in #{environment} environment"
   end
 
   def host
