@@ -5,6 +5,7 @@ module Ably::Realtime
     # This is a private class and should never be used directly by developers as the API is likely to change in future.
     #
     # @api private
+    #
     class PresenceManager
       extend Forwardable
 

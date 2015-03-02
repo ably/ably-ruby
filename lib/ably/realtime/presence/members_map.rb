@@ -10,8 +10,11 @@ module Ably::Realtime
     # fact that a LEAVE event has been seen for a member. These entries are
     # cleared once the last set of updates of a sync sequence have been received.
     #
+    # @api private
+    #
     class MembersMap
       include Ably::Modules::EventEmitter
+      include Enumerable
       extend Ably::Modules::Enum
 
       STATE = ruby_enum('STATE',
@@ -95,6 +98,21 @@ module Ably::Realtime
         end
 
         deferrable
+      end
+
+      # @!attribute [r] length
+      # @return [Integer] number of present members known at this point in time, will not wait for sync operation to complete
+      def length
+        present_members.length
+      end
+      alias_method :count, :length
+      alias_method :size,  :length
+
+      # Method to allow {MembersMap} to be {http://ruby-doc.org/core-2.1.3/Enumerable.html Enumerable}
+      # @note this method will not wait for the sync operation to complete so may return an incomplete set of members.  Use {MembersMap#get} instead.
+      def each(&block)
+        return to_enum(:each) unless block_given?
+        present_members.each(&block)
       end
 
       private
