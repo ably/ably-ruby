@@ -244,6 +244,19 @@ describe Ably::Realtime::Presence, :event_machine do
         end
       end
 
+      context 'message #connection_id' do
+        it 'matches the current client connection_id' do
+          channel_client_two.attach do
+            presence_client_one.enter
+          end
+
+          presence_client_two.subscribe do |presence|
+            expect(presence.connection_id).to eq(client_one.connection.id)
+            stop_reactor
+          end
+        end
+      end
+
       it 'raises an exception if client_id is not set' do
         expect { channel_anonymous_client.presence.enter }.to raise_error(Ably::Exceptions::Standard, /without a client_id/)
         stop_reactor
@@ -453,6 +466,22 @@ describe Ably::Realtime::Presence, :event_machine do
               next unless clients.count == 5
 
               expect(clients.map(&:client_id).uniq.count).to eql(5)
+              stop_reactor
+            end
+          end
+        end
+
+        context 'message #connection_id' do
+          let(:client_id) { random_str }
+
+          it 'matches the current client connection_id' do
+            channel_client_two.attach do
+              presence_client_one.enter_client(client_id)
+            end
+
+            presence_client_two.subscribe do |presence|
+              expect(presence.client_id).to eq(client_id)
+              expect(presence.connection_id).to eq(client_one.connection.id)
               stop_reactor
             end
           end
@@ -1035,8 +1064,6 @@ describe Ably::Realtime::Presence, :event_machine do
       end
     end
 
-    skip 'ensure connection_id is unique and updated on ENTER'
-    skip 'ensure connection_id for presence member matches the messages they publish on the channel'
     skip 'stop a call to get when the channel has not been entered'
     skip 'stop a call to get when the channel has been entered but the list is not up to date'
     skip 'presence will resume sync if connection is dropped mid-way'
