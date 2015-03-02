@@ -152,20 +152,45 @@ describe Ably::Realtime::Channel do
 
   context 'subscriptions' do
     let(:message_history) { Hash.new { |hash, key| hash[key] = 0 } }
-    let(:event_name) { 'click' }
-    let(:message) { instance_double('Ably::Models::Message', name: event_name, encode: nil, decode: nil) }
+    let(:click_event) { 'click' }
+    let(:click_message) { instance_double('Ably::Models::Message', name: click_event, encode: nil, decode: nil) }
+    let(:focus_event) { 'focus' }
+    let(:focus_message) { instance_double('Ably::Models::Message', name: focus_event, encode: nil, decode: nil) }
+    let(:blur_message) { instance_double('Ably::Models::Message', name: 'blur', encode: nil, decode: nil) }
 
     context '#subscribe' do
-      specify 'to all events' do
+      specify 'without a block raises an invalid ArgumentError' do
+        expect { subject.subscribe }.to raise_error ArgumentError
+      end
+
+      specify 'with no event name specified subscribes the provided block to all events' do
         subject.subscribe { |message| message_history[:received] += 1}
-        subject.__incoming_msgbus__.publish(:message, message)
+        subject.__incoming_msgbus__.publish(:message, click_message)
         expect(message_history[:received]).to eql(1)
       end
 
-      specify 'to specific events' do
-        subject.subscribe(event_name) { |message| message_history[:received] += 1 }
-        subject.subscribe('move')  { |message| message_history[:received] += 1 }
-        subject.__incoming_msgbus__.publish(:message, message)
+      specify 'with a single event name subscribes that block to matching events' do
+        subject.subscribe(click_event) { |message| message_history[:received] += 1 }
+        subject.subscribe('non_match_move')  { |message| message_history[:received] += 1 }
+        subject.__incoming_msgbus__.publish(:message, click_message)
+        expect(message_history[:received]).to eql(1)
+      end
+
+      specify 'with a multiple event name arguments subscribes that block to all of those event names' do
+        subject.subscribe(focus_event, click_event) { |message| message_history[:received] += 1 }
+        subject.__incoming_msgbus__.publish(:message, click_message)
+        expect(message_history[:received]).to eql(1)
+        subject.__incoming_msgbus__.publish(:message, focus_message)
+        expect(message_history[:received]).to eql(2)
+
+        # Blur does not match subscribed focus & click events
+        subject.__incoming_msgbus__.publish(:message, blur_message)
+        expect(message_history[:received]).to eql(2)
+      end
+
+      specify 'with a multiple duplicate event name arguments subscribes that block to all of those unique event names once' do
+        subject.subscribe(click_event, click_event) { |message| message_history[:received] += 1 }
+        subject.__incoming_msgbus__.publish(:message, click_message)
         expect(message_history[:received]).to eql(1)
       end
     end
@@ -175,30 +200,36 @@ describe Ably::Realtime::Channel do
         Proc.new { |message| message_history[:received] += 1 }
       end
       before do
-        subject.subscribe(event_name, &callback)
+        subject.subscribe(click_event, &callback)
       end
 
-      specify 'to all events' do
+      specify 'with no event name specified unsubscribes that block from all events' do
         subject.unsubscribe &callback
-        subject.__incoming_msgbus__.publish(:message, message)
+        subject.__incoming_msgbus__.publish(:message, click_message)
         expect(message_history[:received]).to eql(0)
       end
 
-      specify 'to specific events' do
-        subject.unsubscribe event_name, &callback
-        subject.__incoming_msgbus__.publish(:message, message)
+      specify 'with a single event name argument unsubscribes the provided block with the matching event name' do
+        subject.unsubscribe click_event, &callback
+        subject.__incoming_msgbus__.publish(:message, click_message)
         expect(message_history[:received]).to eql(0)
       end
 
-      specify 'to specific non-matching events' do
+      specify 'with multiple event name arguments unsubscribes each of those matching event names with the provided block' do
+        subject.unsubscribe focus_event, click_event, &callback
+        subject.__incoming_msgbus__.publish(:message, click_message)
+        expect(message_history[:received]).to eql(0)
+      end
+
+      specify 'with a non-matching event name argument has no effect' do
         subject.unsubscribe 'move', &callback
-        subject.__incoming_msgbus__.publish(:message, message)
+        subject.__incoming_msgbus__.publish(:message, click_message)
         expect(message_history[:received]).to eql(1)
       end
 
-      specify 'all callbacks by not providing a callback' do
-        subject.unsubscribe event_name
-        subject.__incoming_msgbus__.publish(:message, message)
+      specify 'with no block argument unsubscribes all blocks for the event name argument' do
+        subject.unsubscribe click_event
+        subject.__incoming_msgbus__.publish(:message, click_message)
         expect(message_history[:received]).to eql(0)
       end
     end
