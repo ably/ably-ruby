@@ -54,7 +54,7 @@ module Ably::Realtime
 
           when ACTION.Connect
           when ACTION.Connected
-            connection.transition_state_machine :connected, protocol_message.error
+            connection.transition_state_machine :connected, protocol_message
 
           when ACTION.Disconnect, ACTION.Disconnected
             connection.transition_state_machine :disconnected, protocol_message.error
@@ -116,24 +116,7 @@ module Ably::Realtime
       end
 
       def update_connection_recovery_info(protocol_message)
-        if protocol_message.connection_key && (protocol_message.connection_key != connection.key)
-          logger.debug "New connection ID set to #{protocol_message.connection_id} with connection key #{protocol_message.connection_key}"
-          detach_attached_channels protocol_message.error if protocol_message.error
-          connection.configure_new protocol_message.connection_id, protocol_message.connection_key, protocol_message.connection_serial
-        end
-
-        if protocol_message.has_connection_serial?
-          connection.update_connection_serial protocol_message.connection_serial
-        end
-      end
-
-      def detach_attached_channels(error)
-        channels.select do |channel|
-          channel.attached? || channel.attaching?
-        end.each do |channel|
-          logger.warn "Detaching channel '#{channel.name}': #{error}"
-          channel.manager.suspend error
-        end
+        connection.update_connection_serial protocol_message.connection_serial if protocol_message.has_connection_serial?
       end
 
       def ack_pending_queue_for_message_serial(ack_protocol_message)

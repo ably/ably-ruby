@@ -47,6 +47,9 @@ module Ably
     # Invalid State Change error on a {https://github.com/gocardless/statesman Statesman State Machine}
     class StateChangeError < BaseAblyException; end
 
+    # The state of the object is not suitable for this operation
+    class IncompatibleStateForOperation < BaseAblyException; end
+
     # A generic Ably exception taht supports a status & code.
     # See https://github.com/ably/ably-common/blob/master/protocol/errors.json for a list of Ably errors
     class Standard < BaseAblyException; end

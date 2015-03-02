@@ -78,12 +78,23 @@ module Ably::Realtime
         connection.transition_state_machine next_retry_state, Ably::Exceptions::ConnectionError.new("Connection failed; #{error.message}", nil, 80000)
       end
 
-      # Called whenever a new connection message is received with an error
+      # Called whenever a new connection is made
       #
       # @api private
-      def connected_with_error(error)
-        logger.warn "ConnectionManager: Connected with error; #{error.message}"
-        connection.trigger :error, error
+      def connected(protocol_message)
+        if connection.key
+          if protocol_message.connection_key == connection.key
+            logger.debug "ConnectionManager: Connection resumed successfully - ID #{connection.id} and key #{connection.key}"
+            EventMachine.next_tick { connection.resumed }
+          else
+            logger.debug "ConnectionManager: Connection was not resumed, old connection ID #{connection.id} has been updated with new connect ID #{protocol_message.connection_id} and key #{protocol_message.connection_key}"
+            detach_attached_channels protocol_message.error
+            connection.configure_new protocol_message.connection_id, protocol_message.connection_key, protocol_message.connection_serial
+          end
+        else
+          logger.debug "ConnectionManager: New connection created with ID #{protocol_message.connection_id} and key #{protocol_message.connection_key}"
+          connection.configure_new protocol_message.connection_id, protocol_message.connection_key, protocol_message.connection_serial
+        end
       end
 
       # Ensures the underlying transport has been disconnected and all event emitter callbacks removed
@@ -205,6 +216,10 @@ module Ably::Realtime
 
       def client
         connection.client
+      end
+
+      def channels
+        client.channels
       end
 
       # Create a timer that will execute in timeout_in seconds.
@@ -363,6 +378,15 @@ module Ably::Realtime
 
       def retry_connection?
         !@renewing_token
+      end
+
+      def detach_attached_channels(error)
+        channels.select do |channel|
+          channel.attached? || channel.attaching?
+        end.each do |channel|
+          logger.warn "Force detaching channel '#{channel.name}': #{error}"
+          channel.manager.suspend error
+        end
       end
 
       def logger

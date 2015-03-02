@@ -202,7 +202,7 @@ module Ably
         "#{key}:#{serial}" if connection_resumable?
       end
 
-      # Following a new connection being made, resumed or recovered, the connection ID, connection key
+      # Following a new connection being made, the connection ID, connection key
       # and message serial need to match the details provided by the server.
       #
       # @return [void]
@@ -367,6 +367,24 @@ module Ably
         @error_reason = nil
       end
 
+      # Triggers registered callbacks for a successful connection resume event
+      # @api private
+      def resumed
+        resume_callbacks.each(&:call)
+      end
+
+      # Provides a simple hook to inject a callback when a connection is successfully resumed
+      # @api private
+      def on_resume(&callback)
+        resume_callbacks << callback
+      end
+
+      # Remove a registered connection resume callback
+      # @api private
+      def off_resume(&callback)
+        resume_callbacks.delete(callback)
+      end
+
       # As we are using a state machine, do not allow change_state to be used
       # #transition_state_machine must be used instead
       private :change_state
@@ -382,6 +400,10 @@ module Ably
       # recovery and resumes.
       # @return [Integer] starting at -1 indicating no messages sent, 0 when the first message is sent
       attr_reader :client_serial
+
+      def resume_callbacks
+        @resume_callbacks ||= []
+      end
 
       def create_pub_sub_message_bus
         Ably::Util::PubSub.new(
