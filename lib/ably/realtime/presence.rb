@@ -398,7 +398,7 @@ module Ably::Realtime
 
     def attach_channel_then
       if channel.detached? || channel.failed?
-        raise Ably::Exceptions::Standard.new('Unable to enter presence channel in detached or failed action', 400, 91001)
+        raise Ably::Exceptions::IncompatibleStateForOperation.new("Operation is not allowed when channel is in #{channel.state}", 400, 91001)
       else
         channel.once(Channel::STATE.Attached) { yield }
         channel.attach

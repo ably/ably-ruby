@@ -20,6 +20,49 @@ describe Ably::Realtime::Presence, :event_machine do
     let(:presence_client_two)       { channel_client_two.presence }
     let(:data_payload)              { random_str }
 
+    shared_examples_for 'a public presence method' do |method_name, expected_state, args, options = {}|
+      def setup_test(method_name, args, enter_first)
+        if enter_first
+          presence_client_one.public_send(method_name.to_s.gsub(/leave|update/, 'enter'), args) do
+            yield
+          end
+        else
+          yield
+        end
+      end
+
+      unless expected_state == :left
+        %w(detached failed).each do |state|
+          it "raise an exception if the channel is #{state}" do
+            setup_test(method_name, args, options[:enter_first]) do
+              channel_client_one.attach do
+                channel_client_one.change_state state.to_sym
+                expect { presence_client_one.public_send(method_name, args) }.to raise_error Ably::Exceptions::IncompatibleStateForOperation, /Operation is not allowed when channel is in STATE.#{state}/i
+                stop_reactor
+              end
+            end
+          end
+        end
+      end
+
+      it 'returns a Deferrable' do
+        setup_test(method_name, args, options[:enter_first]) do
+          expect(presence_client_one.public_send(method_name, args)).to be_a(EventMachine::Deferrable)
+          stop_reactor
+        end
+      end
+
+      it 'calls the Deferrable callback on success' do
+        setup_test(method_name, args, options[:enter_first]) do
+          presence_client_one.public_send(method_name, args).callback do |presence|
+            expect(presence).to eql(presence_client_one)
+            expect(presence_client_one.state).to eq(expected_state) if expected_state
+            stop_reactor
+          end
+        end
+      end
+    end
+
     context 'when attached (but not present) on a presence channel with an anonymous client (no client ID)' do
       it 'maintains state as other clients enter and leave the channel' do
         channel_anonymous_client.attach do
@@ -30,11 +73,11 @@ describe Ably::Realtime::Presence, :event_machine do
               expect(members.first.client_id).to eql(client_one.client_id)
               expect(members.first.action).to eq(:enter)
 
-              presence_anonymous_client.subscribe(:leave) do |presence_message|
-                expect(presence_message.client_id).to eql(client_one.client_id)
+              presence_anonymous_client.subscribe(:leave) do |leave_presence_message|
+                expect(leave_presence_message.client_id).to eql(client_one.client_id)
 
-                presence_anonymous_client.get do |members|
-                  expect(members.count).to eql(0)
+                presence_anonymous_client.get do |members_once_left|
+                  expect(members_once_left.count).to eql(0)
                   stop_reactor
                 end
               end
@@ -262,18 +305,7 @@ describe Ably::Realtime::Presence, :event_machine do
         stop_reactor
       end
 
-      it 'returns a Deferrable' do
-        expect(presence_client_one.enter).to be_a(EventMachine::Deferrable)
-        stop_reactor
-      end
-
-      it 'calls the Deferrable callback on success' do
-        presence_client_one.enter.callback do |presence|
-          expect(presence).to eql(presence_client_one)
-          expect(presence_client_one.state).to eq(:entered)
-          stop_reactor
-        end
-      end
+      it_should_behave_like 'a public presence method', :enter, :entered, {}
     end
 
     context '#update' do
@@ -322,22 +354,7 @@ describe Ably::Realtime::Presence, :event_machine do
         end
       end
 
-      it 'returns a Deferrable' do
-        presence_client_one.enter do
-          expect(presence_client_one.update).to be_a(EventMachine::Deferrable)
-          stop_reactor
-        end
-      end
-
-      it 'calls the Deferrable callback on success' do
-        presence_client_one.enter do
-          presence_client_one.update.callback do |presence|
-            expect(presence).to eql(presence_client_one)
-            expect(presence_client_one.state).to eq(:entered)
-            stop_reactor
-          end
-        end
-      end
+      it_should_behave_like 'a public presence method', :update, :entered, {}, enter_first: true
     end
 
     context '#leave' do
@@ -390,22 +407,7 @@ describe Ably::Realtime::Presence, :event_machine do
         stop_reactor
       end
 
-      it 'returns a Deferrable' do
-        presence_client_one.enter do
-          expect(presence_client_one.leave).to be_a(EventMachine::Deferrable)
-          stop_reactor
-        end
-      end
-
-      it 'calls the Deferrable callback on success' do
-        presence_client_one.enter do
-          presence_client_one.leave.callback do |presence|
-            expect(presence).to eql(presence_client_one)
-            expect(presence_client_one.state).to eq(:left)
-            stop_reactor
-          end
-        end
-      end
+      it_should_behave_like 'a public presence method', :leave, :left, {}, enter_first: true
     end
 
     context ':left event' do
@@ -487,17 +489,7 @@ describe Ably::Realtime::Presence, :event_machine do
           end
         end
 
-        it 'returns a Deferrable' do
-          expect(presence_client_one.enter_client('client_id')).to be_a(EventMachine::Deferrable)
-          stop_reactor
-        end
-
-        it 'calls the Deferrable callback on success' do
-          presence_client_one.enter_client('client_id').callback do |presence|
-            expect(presence).to eql(presence_client_one)
-            stop_reactor
-          end
-        end
+        it_should_behave_like 'a public presence method', :enter_client, nil, 'client_id'
       end
 
       context '#update_client' do
@@ -561,17 +553,7 @@ describe Ably::Realtime::Presence, :event_machine do
           end
         end
 
-        it 'returns a Deferrable' do
-          expect(presence_client_one.update_client('client_id')).to be_a(EventMachine::Deferrable)
-          stop_reactor
-        end
-
-        it 'calls the Deferrable callback on success' do
-          presence_client_one.update_client('client_id').callback do |presence|
-            expect(presence).to eql(presence_client_one)
-            stop_reactor
-          end
-        end
+        it_should_behave_like 'a public presence method', :update_client, nil, 'client_id'
       end
 
       context '#leave_client' do
@@ -664,17 +646,7 @@ describe Ably::Realtime::Presence, :event_machine do
           end
         end
 
-        it 'returns a Deferrable' do
-          expect(presence_client_one.leave_client('client_id')).to be_a(EventMachine::Deferrable)
-          stop_reactor
-        end
-
-        it 'calls the Deferrable callback on success' do
-          presence_client_one.leave_client('client_id').callback do |presence|
-            expect(presence).to eql(presence_client_one)
-            stop_reactor
-          end
-        end
+        it_should_behave_like 'a public presence method', :leave_client, nil, 'client_id'
       end
     end
 
@@ -688,6 +660,16 @@ describe Ably::Realtime::Presence, :event_machine do
         presence_client_one.get.callback do |presence|
           expect(presence).to eq([])
           stop_reactor
+        end
+      end
+
+      %w(detached failed).each do |state|
+        it "raise an exception if the channel is #{state}" do
+          channel_client_one.attach do
+            channel_client_one.change_state state.to_sym
+            expect { presence_client_one.get }.to raise_error Ably::Exceptions::IncompatibleStateForOperation, /Operation is not allowed when channel is in STATE.#{state}/i
+            stop_reactor
+          end
         end
       end
 
@@ -1064,8 +1046,37 @@ describe Ably::Realtime::Presence, :event_machine do
       end
     end
 
-    skip 'stop a call to get when the channel has not been entered'
-    skip 'stop a call to get when the channel has been entered but the list is not up to date'
-    skip 'presence will resume sync if connection is dropped mid-way'
+    context 'connection failure mid-way through a large member sync' do
+      let(:members_count) { 400 }
+      let(:sync_pages_received) { [] }
+
+      def force_connection_failure
+        # Prevent any further SYNC messages coming in on this connection
+        client_two.connection.transport.send(:driver).remove_all_listeners('message')
+        client_two.connection.transport.unbind
+      end
+
+      # Will re-enable once https://github.com/ably/realtime/issues/91 is resolved
+      skip 'resumes the SYNC operation', em_timeout: 15 do
+        when_all(*members_count.times.map do |index|
+          presence_client_one.enter_client("client:#{index}")
+        end) do
+          channel_client_two.attach do
+            client_two.connection.transport.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+              if protocol_message.action == :sync
+                sync_pages_received << protocol_message
+                force_connection_failure if sync_pages_received.count == 2
+              end
+            end
+          end
+
+          presence_client_two.get do |members|
+            expect(members.count).to eql(members_count)
+            expect(members.map(&:member_key).uniq.count).to eql(members_count)
+            stop_reactor
+          end
+        end
+      end
+    end
   end
 end

@@ -130,11 +130,30 @@ module Ably::Realtime
         client.logger
       end
 
+      def connection
+        client.connection
+      end
+
       def setup_event_handlers
         presence.__incoming_msgbus__.subscribe(:presence, :sync) do |presence_message|
           presence_message.decode channel
           update_members_and_emit_events presence_message
         end
+
+        resume_sync_proc = method(:resume_sync).to_proc
+        connection.on_resume &resume_sync_proc
+        once(:in_sync, :failed) do
+          connection.off_resume &resume_sync_proc
+        end
+      end
+
+      # Trigger a manual SYNC operation to resume member synchronisation from last known cursor position
+      def resume_sync
+        connection.send_protocol_message(
+          action:         Ably::Models::ProtocolMessage::ACTION.Sync.to_i,
+          channel:        channel.name,
+          channel_serial: sync_serial
+        )
       end
 
       # When channel serial in ProtocolMessage SYNC is nil or
@@ -189,7 +208,7 @@ module Ably::Realtime
       end
 
       def add_presence_member(presence_message)
-        logger.debug "#{self.class.name}: Member '#{presence_message.member_key}' for event '#{presence_message.action} #{members.has_key?(presence_message.member_key) ? 'updated' : 'added'}.\n#{presence_message.to_json}"
+        logger.debug "#{self.class.name}: Member '#{presence_message.member_key}' for event '#{presence_message.action}' #{members.has_key?(presence_message.member_key) ? 'updated' : 'added'}.\n#{presence_message.to_json}"
         members[presence_message.member_key] = { present: true, message: presence_message }
         presence.emit_message presence_message.action, presence_message
       end

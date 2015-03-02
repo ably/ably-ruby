@@ -30,4 +30,34 @@ describe Ably::Realtime::Connection do
 
   it_behaves_like 'an incoming protocol message bus'
   it_behaves_like 'an outgoing protocol message bus'
+
+  describe 'connection resume callbacks', api_private: true do
+    let(:callbacks) { [] }
+
+    describe '#resumed' do
+      it 'triggers callbacks' do
+        subject.on_resume { callbacks << true }
+        subject.resumed
+        expect(callbacks.count).to eql(1)
+      end
+    end
+
+    describe '#on_resume' do
+      it 'registers a callback' do
+        subject.on_resume { callbacks << true }
+        subject.resumed
+        expect(callbacks.count).to eql(1)
+      end
+    end
+
+    describe '#off_resume' do
+      it 'registers a callback' do
+        subject.on_resume { callbacks << true }
+        additional_proc = proc { raise 'This should not be called' }
+        subject.off_resume &additional_proc
+        subject.resumed
+        expect(callbacks.count).to eql(1)
+      end
+    end
+  end
 end
