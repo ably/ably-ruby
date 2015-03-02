@@ -129,6 +129,11 @@ module Ably
         connection.close(&block)
       end
 
+      # (see Ably::Realtime::Connection#connect)
+      def connect(&block)
+        connection.connect(&block)
+      end
+
       # @!attribute [r] endpoint
       # @return [URI::Generic] Default Ably Realtime endpoint used for all requests
       def endpoint

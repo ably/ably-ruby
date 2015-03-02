@@ -195,6 +195,26 @@ describe Ably::Realtime::Channel, :event_machine do
             stop_reactor
           end
         end
+
+        context 'and subsequent authorisation with suitable permissions' do
+          it 'attaches to the channel successfully and resets the channel error_reason' do
+            restricted_channel.attach
+            restricted_channel.once(:failed) do
+              restricted_client.close do
+                # A direct call to #authorise is synchronous
+                restricted_client.auth.authorise(api_key: api_key)
+
+                restricted_client.connect do
+                  restricted_channel.once(:attached) do
+                    expect(restricted_channel.error_reason).to be_nil
+                    stop_reactor
+                  end
+                  restricted_channel.attach
+                end
+              end
+            end
+          end
+        end
       end
     end
 
