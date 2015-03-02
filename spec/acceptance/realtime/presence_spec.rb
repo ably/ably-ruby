@@ -48,6 +48,49 @@ describe Ably::Realtime::Presence, :event_machine do
       end
     end
 
+    context '#members map', api_private: true do
+      it 'is available once the channel is created' do
+        expect(presence_anonymous_client.members).to_not be_nil
+        stop_reactor
+      end
+
+      it 'is not synchronised when initially created' do
+        expect(presence_anonymous_client.members).to_not be_sync_complete
+        stop_reactor
+      end
+
+      it 'will trigger an :in_sync event when synchronisation is complete' do
+        presence_client_one.enter
+        presence_client_two.enter
+
+        presence_anonymous_client.members.once(:in_sync) do
+          stop_reactor
+        end
+      end
+
+      context 'before server sync complete' do
+        it 'behaves like an Enumerable allowing direct access to current members' do
+          expect(presence_anonymous_client.members.count).to eql(0)
+          expect(presence_anonymous_client.members.map(&:member_key)).to eql([])
+          stop_reactor
+        end
+      end
+
+      context 'once server sync is complete' do
+        it 'behaves like an Enumerable allowing direct access to current members' do
+          when_all(presence_client_one.enter, presence_client_two.enter) do
+            presence_anonymous_client.members.once(:in_sync) do
+              expect(presence_anonymous_client.members.count).to eql(2)
+              member_ids = presence_anonymous_client.members.map(&:member_key)
+              expect(member_ids.count).to eql(2)
+              expect(member_ids.uniq.count).to eql(2)
+              stop_reactor
+            end
+          end
+        end
+      end
+    end
+
     context '#sync_complete?' do
       context 'when attaching to a channel without any members present' do
         it 'is true and the presence channel is considered synced immediately' do
