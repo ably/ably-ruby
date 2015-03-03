@@ -94,14 +94,14 @@ module Ably
       # An internal queue used to manage sent messages.  You should never interface with this array directly
       # @return [Array]
       # @api private
-      attr_reader :__pending_message_queue__
+      attr_reader :__pending_message_ack_queue__
 
       # @api public
       def initialize(client)
-        @client                     = client
-        @client_serial              = -1
-        @__outgoing_message_queue__ = []
-        @__pending_message_queue__  = []
+        @client                        = client
+        @client_serial                 = -1
+        @__outgoing_message_queue__    = []
+        @__pending_message_ack_queue__ = []
 
         Client::IncomingMessageDispatcher.new client, self
         Client::OutgoingMessageDispatcher.new client, self

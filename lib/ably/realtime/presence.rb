@@ -391,7 +391,7 @@ module Ably::Realtime
       ensure_channel_attached(deferrable) do
         send_presence_protocol_message(action, client_id, options).tap do |protocol_message|
           protocol_message.callback { |message| deferrable_succeed deferrable, &success_block }
-          protocol_message.errback  { |message| deferrable_fail    deferrable }
+          protocol_message.errback  { |message, error| deferrable_fail deferrable, error }
         end
       end
     end
