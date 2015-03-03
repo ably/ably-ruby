@@ -219,7 +219,7 @@ module Ably::Realtime
       #
       def should_update_member?(presence_message)
         if members[presence_message.member_key]
-          members[presence_message.member_key].fetch(:message).timestamp <= presence_message.timestamp
+          members[presence_message.member_key].fetch(:message).timestamp < presence_message.timestamp
         else
           true
         end
