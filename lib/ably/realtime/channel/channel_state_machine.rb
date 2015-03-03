@@ -43,11 +43,13 @@ module Ably::Realtime
       end
 
       after_transition(to: [:detached]) do |channel, current_transition|
+        channel.manager.fail_messages_awaiting_ack nil_unless_error(current_transition.metadata)
         channel.manager.emit_error current_transition.metadata if is_error_type?(current_transition.metadata)
       end
 
       after_transition(to: [:failed]) do |channel, current_transition|
-        channel.manager.emit_error current_transition.metadata
+        channel.manager.fail_messages_awaiting_ack nil_unless_error(current_transition.metadata)
+        channel.manager.emit_error current_transition.metadata if is_error_type?(current_transition.metadata)
       end
 
       # Transitions responsible for updating channel#error_reason
@@ -62,6 +64,10 @@ module Ably::Realtime
           # Attached & Detached are "healthy" final states so reset the error reason
           channel.clear_error_reason
         end
+      end
+
+      def self.nil_unless_error(error_object)
+        error_object if is_error_type?(error_object)
       end
 
       private

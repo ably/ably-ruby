@@ -44,6 +44,9 @@ module Ably
     # Connection Timeout accessing Realtime or REST service
     class ConnectionTimeoutError < ConnectionError; end
 
+    # Connection closed unexpectedly
+    class ConnectionClosedError < ConnectionError; end
+
     # Invalid State Change error on a {https://github.com/gocardless/statesman Statesman State Machine}
     class StateChangeError < BaseAblyException; end
 
@@ -68,5 +71,8 @@ module Ably
 
     # The token request could not be created
     class TokenRequestError < BaseAblyException; end
+
+    # The message could not be delivered to the server
+    class MessageDeliveryError < BaseAblyException; end
   end
 end

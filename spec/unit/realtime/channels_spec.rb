@@ -2,7 +2,7 @@
 require 'spec_helper'
 
 describe Ably::Realtime::Channels do
-  let(:connection) { instance_double('Ably::Realtime::Connection', on: true) }
+  let(:connection) { instance_double('Ably::Realtime::Connection', on: true, on_resume: true) }
   let(:client) { instance_double('Ably::Realtime::Client', connection: connection, client_id: 'clientId') }
   let(:channel_name) { 'unique' }
   let(:options) { { 'bizarre' => 'value' } }

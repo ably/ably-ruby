@@ -20,9 +20,15 @@ describe Ably::Realtime::Presence, :event_machine do
     let(:presence_client_two)       { channel_client_two.presence }
     let(:data_payload)              { random_str }
 
+    def force_connection_failure(client)
+      # Prevent any further SYNC messages coming in on this connection
+      client.connection.transport.send(:driver).remove_all_listeners('message')
+      client.connection.transport.unbind
+    end
+
     shared_examples_for 'a public presence method' do |method_name, expected_state, args, options = {}|
-      def setup_test(method_name, args, enter_first)
-        if enter_first
+      def setup_test(method_name, args, options)
+        if options[:enter_first]
           presence_client_one.public_send(method_name.to_s.gsub(/leave|update/, 'enter'), args) do
             yield
           end
@@ -34,7 +40,7 @@ describe Ably::Realtime::Presence, :event_machine do
       unless expected_state == :left
         %w(detached failed).each do |state|
           it "raise an exception if the channel is #{state}" do
-            setup_test(method_name, args, options[:enter_first]) do
+            setup_test(method_name, args, options) do
               channel_client_one.attach do
                 channel_client_one.change_state state.to_sym
                 expect { presence_client_one.public_send(method_name, args) }.to raise_error Ably::Exceptions::IncompatibleStateForOperation, /Operation is not allowed when channel is in STATE.#{state}/i
@@ -46,18 +52,52 @@ describe Ably::Realtime::Presence, :event_machine do
       end
 
       it 'returns a Deferrable' do
-        setup_test(method_name, args, options[:enter_first]) do
+        setup_test(method_name, args, options) do
           expect(presence_client_one.public_send(method_name, args)).to be_a(EventMachine::Deferrable)
           stop_reactor
         end
       end
 
       it 'calls the Deferrable callback on success' do
-        setup_test(method_name, args, options[:enter_first]) do
+        setup_test(method_name, args, options) do
           presence_client_one.public_send(method_name, args).callback do |presence|
             expect(presence).to eql(presence_client_one)
             expect(presence_client_one.state).to eq(expected_state) if expected_state
             stop_reactor
+          end
+        end
+      end
+
+      context 'if connection fails before success' do
+        before do
+          # Reconfigure client library so that it makes no retry attempts and fails immediately
+          stub_const 'Ably::Realtime::Connection::ConnectionManager::CONNECT_RETRY_CONFIG',
+                      Ably::Realtime::Connection::ConnectionManager::CONNECT_RETRY_CONFIG.merge(
+                        disconnected: { retry_every: 0.1, max_time_in_state: 0 },
+                        suspended:    { retry_every: 0.1, max_time_in_state: 0 }
+                      )
+        end
+
+        let(:client_options) { default_options.merge(log_level: :none) }
+
+        it 'calls the Deferrable errback if channel is detached' do
+          setup_test(method_name, args, options) do
+            channel_client_one.attach do
+              client_one.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                # Don't allow any messages to reach the server
+                client_one.connection.__outgoing_protocol_msgbus__.unsubscribe
+                force_connection_failure client_one
+              end
+
+              presence_client_one.public_send(method_name, args).tap do |deferrable|
+                deferrable.callback { raise 'Should not succeed' }
+                deferrable.errback do |presence, error|
+                  expect(presence).to be_a(Ably::Realtime::Presence)
+                  expect(error).to be_kind_of(Ably::Exceptions::BaseAblyException)
+                  stop_reactor
+                end
+              end
+            end
           end
         end
       end
@@ -305,6 +345,21 @@ describe Ably::Realtime::Presence, :event_machine do
         stop_reactor
       end
 
+      context 'without necessary capabilities to join presence' do
+        let(:restricted_client) do
+          Ably::Realtime::Client.new(default_options.merge(api_key: restricted_api_key, log_level: :fatal))
+        end
+        let(:restricted_channel)  { restricted_client.channel("cansubscribe:channel") }
+        let(:restricted_presence) { restricted_channel.presence }
+
+        it 'calls the Deferrable errback on capabilities failure' do
+          restricted_presence.enter(client_id: 'clientId').tap do |deferrable|
+            deferrable.callback { raise "Should not succeed" }
+            deferrable.errback { stop_reactor }
+          end
+        end
+      end
+
       it_should_behave_like 'a public presence method', :enter, :entered, {}
     end
 
@@ -490,6 +545,21 @@ describe Ably::Realtime::Presence, :event_machine do
         end
 
         it_should_behave_like 'a public presence method', :enter_client, nil, 'client_id'
+
+        context 'without necessary capabilities to enter on behalf of another client' do
+          let(:restricted_client) do
+            Ably::Realtime::Client.new(default_options.merge(api_key: restricted_api_key, log_level: :fatal))
+          end
+          let(:restricted_channel)  { restricted_client.channel("cansubscribe:channel") }
+          let(:restricted_presence) { restricted_channel.presence }
+
+          it 'calls the Deferrable errback on capabilities failure' do
+            restricted_presence.enter_client('clientId').tap do |deferrable|
+              deferrable.callback { raise "Should not succeed" }
+              deferrable.errback { stop_reactor }
+            end
+          end
+        end
       end
 
       context '#update_client' do
@@ -672,6 +742,72 @@ describe Ably::Realtime::Presence, :event_machine do
           end
         end
       end
+
+      context 'during a sync' do
+        let(:pages) { 2 }
+        let(:members_per_page) { 100 }
+        let(:sync_pages_received) { [] }
+        let(:client_options) { default_options.merge(log_level: :none) }
+
+        def connect_members_deferrables
+          (members_per_page * pages + 1).times.map do |index|
+            presence_client_one.enter_client("client:#{index}")
+          end
+        end
+
+        before do
+          # Reconfigure client library so that it makes no retry attempts and fails immediately
+          stub_const 'Ably::Realtime::Connection::ConnectionManager::CONNECT_RETRY_CONFIG',
+                      Ably::Realtime::Connection::ConnectionManager::CONNECT_RETRY_CONFIG.merge(
+                        disconnected: { retry_every: 0.1, max_time_in_state: 0 },
+                        suspended:    { retry_every: 0.1, max_time_in_state: 0 }
+                      )
+        end
+
+        it 'fails if the connection fails' do
+          when_all(*connect_members_deferrables) do
+            channel_client_two.attach do
+              client_two.connection.transport.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                if protocol_message.action == :sync
+                  sync_pages_received << protocol_message
+                  force_connection_failure client_two if sync_pages_received.count == 1
+                end
+              end
+            end
+
+            presence_client_two.get.tap do |deferrable|
+              deferrable.callback { raise 'Get should not succeed' }
+              deferrable.errback do |error|
+                stop_reactor
+              end
+            end
+          end
+        end
+
+        it 'fails if the channel is detached' do
+          when_all(*connect_members_deferrables) do
+            channel_client_two.attach do
+              client_two.connection.transport.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                if protocol_message.action == :sync
+                  # prevent any more SYNC messages coming through
+                  client_two.connection.transport.__incoming_protocol_msgbus__.unsubscribe
+                  channel_client_two.change_state :detaching
+                  channel_client_two.change_state :detached
+                end
+              end
+            end
+
+            presence_client_two.get.tap do |deferrable|
+              deferrable.callback { raise 'Get should not succeed' }
+              deferrable.errback do |error|
+                stop_reactor
+              end
+            end
+          end
+        end
+      end
+
+      # skip 'it fails if the connection changes to failed state'
 
       it 'returns the current members on the channel' do
         presence_client_one.enter do
@@ -1050,12 +1186,6 @@ describe Ably::Realtime::Presence, :event_machine do
       let(:members_count) { 400 }
       let(:sync_pages_received) { [] }
 
-      def force_connection_failure
-        # Prevent any further SYNC messages coming in on this connection
-        client_two.connection.transport.send(:driver).remove_all_listeners('message')
-        client_two.connection.transport.unbind
-      end
-
       # Will re-enable once https://github.com/ably/realtime/issues/91 is resolved
       skip 'resumes the SYNC operation', em_timeout: 15 do
         when_all(*members_count.times.map do |index|
@@ -1065,7 +1195,7 @@ describe Ably::Realtime::Presence, :event_machine do
             client_two.connection.transport.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
               if protocol_message.action == :sync
                 sync_pages_received << protocol_message
-                force_connection_failure if sync_pages_received.count == 2
+                force_connection_failure client_two if sync_pages_received.count == 2
               end
             end
           end

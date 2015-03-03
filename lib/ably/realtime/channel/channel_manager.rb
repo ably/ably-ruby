@@ -53,6 +53,45 @@ module Ably::Realtime
         channel.transition_state_machine! :detaching, error
       end
 
+      # When a channel is no longer attached or has failed,
+      # all messages awaiting an ACK response should fail immediately
+      def fail_messages_awaiting_ack(error)
+        # Allow a short time for other queued operations to complete before failing all messages
+        EventMachine.add_timer(0.1) do
+          error = Ably::Exceptions::MessageDeliveryError.new('Channel is no longer in a state suitable to deliver this message to the server') unless error
+          fail_messages_in_queue connection.__pending_message_ack_queue__, error
+          fail_messages_in_queue connection.__outgoing_message_queue__, error
+        end
+      end
+
+      def fail_messages_in_queue(queue, error)
+        queue.delete_if do |protocol_message|
+          if protocol_message.channel == channel.name
+            nack_messages protocol_message, error
+            true
+          end
+        end
+      end
+
+      def nack_messages(protocol_message, error)
+        (protocol_message.messages + protocol_message.presence).each do |message|
+          logger.debug "Calling NACK failure callbacks for #{message.class.name} - #{message.to_json}, protocol message: #{protocol_message}"
+          message.fail message, error
+        end
+        logger.debug "Calling NACK failure callbacks for #{protocol_message.class.name} - #{protocol_message.to_json}"
+        protocol_message.fail protocol_message, error
+      end
+
+      def drop_pending_queue_from_ack(ack_protocol_message)
+        message_serial_up_to = ack_protocol_message.message_serial + ack_protocol_message.count - 1
+        connection.__pending_message_ack_queue__.drop_while do |protocol_message|
+          if protocol_message.message_serial <= message_serial_up_to
+            yield protocol_message
+            true
+          end
+        end
+      end
+
       private
 
       attr_reader :channel, :connection

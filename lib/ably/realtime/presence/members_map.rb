@@ -88,12 +88,30 @@ module Ably::Realtime
         if !wait_for_sync || sync_complete?
           result_block.call
         else
-          once(:in_sync) do
+          # Must be defined before subsequent procs reference this callback
+          reset_callbacks = nil
+
+          in_sync_callback = proc do
+            reset_callbacks
             result_block.call
           end
 
-          once(:failed) do |error|
+          failed_callback = proc do |error|
+            reset_callbacks
             deferrable.fail error
+          end
+
+          reset_callbacks = proc do
+            off &in_sync_callback
+            off &failed_callback
+            channel.off &failed_callback
+          end
+
+          once :in_sync, &in_sync_callback
+
+          once(:failed, &failed_callback)
+          channel.once(:detaching, :detached, :failed) do |error_reason|
+            failed_callback.call error_reason
           end
         end
 

@@ -75,7 +75,7 @@ module Ably::Realtime
       # @api private
       def connection_opening_failed(error)
         logger.warn "ConnectionManager: Connection to #{connection.current_host}:#{connection.port} failed; #{error.message}"
-        connection.transition_state_machine next_retry_state, Ably::Exceptions::ConnectionError.new("Connection failed; #{error.message}", nil, 80000)
+        connection.transition_state_machine next_retry_state, Ably::Exceptions::ConnectionError.new("Connection failed: #{error.message}", nil, 80000)
       end
 
       # Called whenever a new connection is made
@@ -260,8 +260,8 @@ module Ably::Realtime
       def connection_retry_for(from_state, options = {})
         retry_params = CONNECT_RETRY_CONFIG.fetch(from_state)
 
-        if time_spent_attempting_state(from_state, options) <= retry_params.fetch(:max_time_in_state)
-          if retries_for_state(from_state, ignore_states: [:connecting]).length == 1
+        if time_spent_attempting_state(from_state, options) < retry_params.fetch(:max_time_in_state)
+          if retries_for_state(from_state, ignore_states: [:connecting]).empty?
             logger.debug "ConnectionManager: Will attempt reconnect immediately as no previous reconnect attempts made in this state"
             EventMachine.next_tick { connection.connect }
           else
@@ -302,7 +302,16 @@ module Ably::Realtime
         ignore_states = options.fetch(:ignore_states, [])
         allowed_states = Array(state) + Array(ignore_states)
 
-        connection.state_history.reverse.take_while do |transition|
+        state_history_ordered = connection.state_history.reverse
+        last_state = state_history_ordered.first
+
+        # If this method is called after the transition has been persisted to memory,
+        # then we need to ignore the current transition when reviewing the number of retries
+        if last_state[:state].to_sym == state && last_state.fetch(:transitioned_at).to_f > Time.now.to_f - 0.1
+          state_history_ordered.shift
+        end
+
+        state_history_ordered.take_while do |transition|
           allowed_states.include?(transition[:state].to_sym)
         end.select do |transition|
           transition[:state] == state
@@ -314,11 +323,14 @@ module Ably::Realtime
           connection.__incoming_protocol_msgbus__.publish :protocol_message, protocol_message
         end
 
-        transport.on(:disconnected) do
+        transport.on(:disconnected) do |reason|
           if connection.closing?
             connection.transition_state_machine :closed
           elsif !connection.closed? && !connection.disconnected?
-            connection.transition_state_machine :disconnected
+            exception = if reason
+              Ably::Exceptions::ConnectionClosedError.new(reason)
+            end
+            connection.transition_state_machine :disconnected, exception
           end
         end
       end
