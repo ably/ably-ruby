@@ -2,6 +2,8 @@
 require 'spec_helper'
 
 describe Ably::Realtime::Presence, :event_machine do
+  include Ably::Modules::Conversions
+
   vary_by_protocol do
     let(:default_options) { { api_key: api_key, environment: environment, protocol: protocol } }
     let(:client_options)  { default_options }
@@ -199,33 +201,162 @@ describe Ably::Realtime::Presence, :event_machine do
       end
     end
 
-    context 'when the SYNC of a presence channel spans multiple ProtocolMessage messages' do
-      context 'with 250 existing (present) members' do
+    context '250 existing (present) members on a channel (3 SYNC pages)' do
+      context 'requires at least 3 SYNC ProtocolMessages' do
         let(:enter_expected_count) { 250 }
         let(:present) { [] }
         let(:entered) { [] }
+        let(:sync_pages_received) { [] }
 
-        context 'when a new client attaches to the presence channel', em_timeout: 10 do
+        def setup_members_on(presence)
+          enter_expected_count.times do |index|
+            presence.enter_client("client:#{index}") do |message|
+              entered << message
+              next unless entered.count == enter_expected_count
+              yield
+            end
+          end
+        end
+
+        context 'when a client attaches to the presence channel', em_timeout: 10 do
           it 'emits :present for each member' do
-            enter_expected_count.times do |index|
-              presence_client_one.enter_client("client:#{index}") do |message|
-                entered << message
-                next unless entered.count == enter_expected_count
+            setup_members_on(presence_client_one) do
+              presence_anonymous_client.subscribe(:present) do |present_message|
+                expect(present_message.action).to eq(:present)
+                present << present_message
+                next unless present.count == enter_expected_count
+
+                expect(present.map(&:client_id).uniq.count).to eql(enter_expected_count)
+                stop_reactor
+              end
+            end
+          end
+
+          context 'and a member leaves before the SYNC operation is complete' do
+            it 'emits :leave immediately as the member leaves' do
+              all_client_ids = enter_expected_count.times.map { |id| "client:#{id}" }
+
+              setup_members_on(presence_client_one) do
+                leave_member = nil
 
                 presence_anonymous_client.subscribe(:present) do |present_message|
-                  expect(present_message.action).to eq(:present)
                   present << present_message
-                  next unless present.count == enter_expected_count
+                  all_client_ids.delete(present_message.client_id)
+                end
 
-                  expect(present.map(&:client_id).uniq.count).to eql(enter_expected_count)
+                presence_anonymous_client.subscribe(:leave) do |leave_message|
+                  expect(leave_message.client_id).to eql(leave_member.client_id)
+                  expect(present.count).to be < enter_expected_count
                   stop_reactor
+                end
+
+                anonymous_client.connect do
+                  anonymous_client.connection.transport.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                    if protocol_message.action == :sync
+                      sync_pages_received << protocol_message
+                      if sync_pages_received.count == 1
+                        leave_action = Ably::Models::PresenceMessage::ACTION.Leave
+                        leave_member = Ably::Models::PresenceMessage.new(
+                          'id' => "#{client_one.connection.id}-#{all_client_ids.first}:0",
+                          'clientId' => all_client_ids.first,
+                          'connectionId' => client_one.connection.id,
+                          'timestamp' => as_since_epoch(Time.now),
+                          'action' => leave_action
+                        )
+                        presence_anonymous_client.__incoming_msgbus__.publish :presence, leave_member
+                      end
+                    end
+                  end
+                end
+              end
+            end
+
+            it 'ignores presence events with timestamps prior to the current :present event in the MembersMap' do
+              started_at = Time.now
+
+              setup_members_on(presence_client_one) do
+                leave_member = nil
+
+                presence_anonymous_client.subscribe(:present) do |present_message|
+                  present << present_message
+                  leave_member = present_message unless leave_member
+
+                  if present.count == enter_expected_count
+                    presence_anonymous_client.get do |members|
+                      expect(members.find { |member| member.client_id == leave_member.client_id}.action).to eq(:present)
+                      stop_reactor
+                    end
+                  end
+                end
+
+                presence_anonymous_client.subscribe(:leave) do |leave_message|
+                  raise 'Leave event should not have been fired because it is out of date'
+                end
+
+                anonymous_client.connect do
+                  anonymous_client.connection.transport.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                    if protocol_message.action == :sync
+                      sync_pages_received << protocol_message
+                      if sync_pages_received.count == 1
+                        leave_action = Ably::Models::PresenceMessage::ACTION.Leave
+                        leave_member = Ably::Models::PresenceMessage.new(
+                          leave_member.as_json.merge('action' => leave_action, 'timestamp' => as_since_epoch(started_at))
+                        )
+                        presence_anonymous_client.__incoming_msgbus__.publish :presence, leave_member
+                      end
+                    end
+                  end
+                end
+              end
+            end
+
+            it 'does not emit :present after the :leave event has been emitted, and that member is not included in the list of members via #get' do
+              left_client = 10
+              left_client_id = "client:#{left_client}"
+
+              setup_members_on(presence_client_one) do
+                member_left_emitted = false
+
+                presence_anonymous_client.subscribe(:present) do |present_message|
+                  if present_message.client_id == left_client_id
+                    raise "Member #{present_message.client_id} should not have been emitted as present"
+                  end
+                  present << present_message.client_id
+                end
+
+                presence_anonymous_client.subscribe(:leave) do |leave_message|
+                  if present.include?(leave_message.client_id)
+                    raise "Member #{leave_message.client_id} should not have been emitted as present previously"
+                  end
+                  expect(leave_message.client_id).to eql(left_client_id)
+                  member_left_emitted = true
+                end
+
+                presence_anonymous_client.get do |members|
+                  expect(members.count).to eql(enter_expected_count - 1)
+                  expect(member_left_emitted).to eql(true)
+                  expect(members.map(&:client_id)).to_not include(left_client_id)
+                  stop_reactor
+                end
+
+                channel_anonymous_client.attach do
+                  leave_action = Ably::Models::PresenceMessage::ACTION.Leave
+                  fake_leave_presence_message = Ably::Models::PresenceMessage.new(
+                    'id' => "#{client_one.connection.id}-#{left_client_id}:0",
+                    'clientId' => left_client_id,
+                    'connectionId' => client_one.connection.id,
+                    'timestamp' => as_since_epoch(Time.now),
+                    'action' => leave_action
+                  )
+                  # Push out a LEAVE event directly to the Presence object before it's received the :present action via the SYNC ProtocolMessage
+                  presence_anonymous_client.__incoming_msgbus__.publish :presence, fake_leave_presence_message
                 end
               end
             end
           end
 
           context '#get' do
-            it '#waits until sync is complete', event_machine: 15 do
+            it 'waits until sync is complete', event_machine: 15 do
               enter_expected_count.times do |index|
                 presence_client_one.enter_client("client:#{index}") do |message|
                   entered << message
@@ -245,7 +376,7 @@ describe Ably::Realtime::Presence, :event_machine do
     end
 
     context 'automatic attachment of channel on access to presence object' do
-      it 'is implicit if presence state is initalized' do
+      it 'is implicit if presence state is initialized' do
         channel_client_one.presence
         channel_client_one.on(:attached) do
           expect(channel_client_one.state).to eq(:attached)
@@ -943,9 +1074,11 @@ describe Ably::Realtime::Presence, :event_machine do
               stop_reactor
             end
 
-            presence_client_one.enter
-            presence_client_one.update
-            presence_client_one.leave
+            presence_client_one.enter do
+              presence_client_one.update do
+                presence_client_one.leave
+              end
+            end
           end
         end
       end
