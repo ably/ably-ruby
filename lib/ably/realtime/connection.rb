@@ -37,6 +37,7 @@ module Ably
     class Connection
       include Ably::Modules::EventEmitter
       include Ably::Modules::Conversions
+      include Ably::Modules::SafeYield
       extend Ably::Modules::Enum
 
       # Valid Connection states
@@ -156,7 +157,7 @@ module Ably
       #
       # @return [void]
       #
-      def ping
+      def ping(&block)
         raise RuntimeError, 'Cannot send a ping when connection is not open' if initialized?
         raise RuntimeError, 'Cannot send a ping when connection is in a closed or failed state' if closed? || failed?
 
@@ -166,7 +167,7 @@ module Ably
           if protocol_message.action == Ably::Models::ProtocolMessage::ACTION.Heartbeat
             __incoming_protocol_msgbus__.unsubscribe(:protocol_message, &wait_for_ping)
             time_passed = (Time.now.to_f * 1000 - started.to_f * 1000).to_i
-            yield time_passed if block_given?
+            safe_yield block, time_passed if block_given?
           end
         end
 

@@ -70,6 +70,15 @@ describe Ably::Realtime::Presence, :event_machine do
         end
       end
 
+      it 'catches exceptions in the provided method block and logs them to the logger' do
+        setup_test(method_name, args, options) do
+          expect(presence_client_one.logger).to receive(:error).with(/Intentional exception/) do
+            stop_reactor
+          end
+          presence_client_one.public_send(method_name, args) { raise 'Intentional exception' }
+        end
+      end
+
       context 'if connection fails before success' do
         before do
           # Reconfigure client library so that it makes no retry attempts and fails immediately
@@ -862,6 +871,13 @@ describe Ably::Realtime::Presence, :event_machine do
           expect(presence).to eq([])
           stop_reactor
         end
+      end
+
+      it 'catches exceptions in the provided method block' do
+        expect(presence_client_one.logger).to receive(:error).with(/Intentional exception/) do
+          stop_reactor
+        end
+        presence_client_one.get { raise 'Intentional exception' }
       end
 
       %w(detached failed).each do |state|
