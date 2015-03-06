@@ -53,12 +53,7 @@ module Ably
         raise ArgumentError, 'api_key and key_id or key_secret are mutually exclusive. Provider either an api_key or key_id & key_secret'
       end
 
-      if auth_options[:api_key]
-        api_key_parts = auth_options[:api_key].to_s.match(/(?<id>[\w_-]+\.[\w_-]+):(?<secret>[\w_-]+)/)
-        raise ArgumentError, 'api_key is invalid' unless api_key_parts
-        auth_options[:key_id] = api_key_parts[:id].encode(Encoding::UTF_8)
-        auth_options[:key_secret] = api_key_parts[:secret].encode(Encoding::UTF_8)
-      end
+      split_api_key_into_key_and_secret! auth_options if auth_options[:api_key]
 
       if using_basic_auth? && !api_key_present?
         raise ArgumentError, 'api_key is missing. Either an API key, token, or token auth method must be provided'
@@ -78,6 +73,7 @@ module Ably
     #
     # @param [Hash] options the options for the token request
     # @option options (see #request_token)
+    # @option options [String]  :api_key API key comprising the key ID and key secret in a single string
     # @option options [Boolean] :force   obtains a new token even if the current token is valid
     #
     # @yield (see #request_token)
@@ -101,6 +97,9 @@ module Ably
       if !options[:force] && current_token
         return current_token unless current_token.expired?
       end
+
+      options = options.clone
+      split_api_key_into_key_and_secret! options if options[:api_key]
 
       @options             = @options.merge(options)
       @default_token_block = token_request_block if block_given?
@@ -191,6 +190,7 @@ module Ably
       token_attributes   = %w(id client_id ttl timestamp capability nonce)
 
       token_options      = options.clone
+
       request_key_id     = token_options.delete(:key_id) || key_id
       request_key_secret = token_options.delete(:key_secret) || key_secret
 
@@ -296,7 +296,7 @@ module Ably
     end
 
     private
-    attr_reader :default_token_block
+    attr_reader :client, :default_token_block
 
     def ensure_api_key_sent_over_secure_connection
       raise Ably::Exceptions::InsecureRequestError, 'Cannot use Basic Auth over non-TLS connections' unless authentication_security_requirements_met?
@@ -306,6 +306,14 @@ module Ably
     def basic_auth_header
       ensure_api_key_sent_over_secure_connection
       "Basic #{encode64("#{api_key}")}"
+    end
+
+    def split_api_key_into_key_and_secret!(options)
+      api_key_parts = options[:api_key].to_s.match(/(?<id>[\w_-]+\.[\w_-]+):(?<secret>[\w_-]+)/)
+      raise ArgumentError, 'api_key is invalid' unless api_key_parts
+
+      options[:key_id]     = api_key_parts[:id].encode(Encoding::UTF_8)
+      options[:key_secret] = api_key_parts[:secret].encode(Encoding::UTF_8)
     end
 
     def token_auth_id
@@ -431,8 +439,5 @@ module Ably
     def api_key_present?
       key_id && key_secret
     end
-
-    private
-    attr_reader :client
   end
 end

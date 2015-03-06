@@ -33,7 +33,7 @@ module Ably::Realtime
         change_state STATE.Disconnecting
         create_timer(2) do
           # if connection is not disconnected within 2s, set state as disconnected
-          change_state STATE.Disconnected
+          change_state STATE.Disconnected unless disconnected?
         end
       end
 
@@ -63,7 +63,7 @@ module Ably::Realtime
       # Called whenever a connection (either a server or client connection) is closed
       # Required {http://www.rubydoc.info/github/eventmachine/eventmachine/EventMachine/Connection EventMachine::Connection} interface
       def unbind
-        change_state STATE.Disconnected
+        change_state STATE.Disconnected, reason_closed || 'Websocket connection closed unexpectedly'
       end
 
       # URL end point including initialization configuration
@@ -98,7 +98,7 @@ module Ably::Realtime
       end
 
       private
-      attr_reader :connection, :driver
+      attr_reader :connection, :driver, :reason_closed
 
       # Send object down the WebSocket driver connection as a serialized string/byte array based on protocol
       # @param [Object] object to serialize and send to the WebSocket driver
@@ -151,6 +151,16 @@ module Ably::Realtime
           else
             __incoming_protocol_msgbus__.publish :protocol_message, protocol_message
           end
+        end
+
+        driver.on("error") do |error|
+          logger.error "WebsocketTransport: Protocol Error on transports - #{error.message}"
+        end
+
+        @reason_closed = nil
+        driver.on("closed") do |event|
+          @reason_closed = "#{event.code}: #{event.reason}"
+          logger.warn "WebsocketTransport: Driver reported transport as closed - #{reason_closed}"
         end
       end
 

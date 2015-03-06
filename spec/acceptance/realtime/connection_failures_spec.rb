@@ -415,6 +415,16 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
 
+        it 'triggers the resume callback', api_private: true do
+          channel.attach do
+            connection.transport.close_connection_after_writing
+            connection.on_resume do
+              expect(connection).to be_connected
+              stop_reactor
+            end
+          end
+        end
+
         context 'when messages were published whilst the client was disconnected' do
           it 'receives the messages published whilst offline' do
             messages_received = false
@@ -450,55 +460,57 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         end
       end
 
-      context 'when failing to resume because the connection_key is not or no longer valid' do
-        def kill_connection_transport_and_prevent_valid_resume
-          connection.transport.close_connection_after_writing
-          connection.configure_new '0123456789abcdef', '0123456789abcdef', -1 # force the resume connection key to be invalid
-        end
-
-        it 'updates the connection_id and connection_key' do
-          connection.once(:connected) do
-            previous_connection_id  = connection.id
-            previous_connection_key = connection.key
-
-            connection.once(:connected) do
-              expect(connection.key).to_not eql(previous_connection_key)
-              expect(connection.id).to_not eql(previous_connection_id)
-              stop_reactor
-            end
-
-            kill_connection_transport_and_prevent_valid_resume
+      context 'when failing to resume' do
+        context 'because the connection_key is not or no longer valid' do
+          def kill_connection_transport_and_prevent_valid_resume
+            connection.transport.close_connection_after_writing
+            connection.configure_new '0123456789abcdef', '0123456789abcdef', -1 # force the resume connection key to be invalid
           end
-        end
 
-        it 'detaches all channels' do
-          channel_count = 10
-          channels = channel_count.times.map { |index| client.channel("channel-#{index}") }
-          when_all(*channels.map(&:attach)) do
-            detached_channels = []
-            channels.each do |channel|
-              channel.on(:detached) do
-                detached_channels << channel
-                next unless detached_channels.count == channel_count
-                expect(detached_channels.count).to eql(channel_count)
+          it 'updates the connection_id and connection_key' do
+            connection.once(:connected) do
+              previous_connection_id  = connection.id
+              previous_connection_key = connection.key
+
+              connection.once(:connected) do
+                expect(connection.key).to_not eql(previous_connection_key)
+                expect(connection.id).to_not eql(previous_connection_id)
                 stop_reactor
               end
-            end
 
-            kill_connection_transport_and_prevent_valid_resume
+              kill_connection_transport_and_prevent_valid_resume
+            end
           end
-        end
 
-        it 'emits an error on the channel and sets the error reason' do
-          client.channel(random_str).attach do |channel|
-            channel.on(:error) do |error|
-              expect(error.message).to match(/Invalid connection key/i)
-              expect(error.code).to eql(80008)
-              expect(channel.error_reason).to eql(error)
-              stop_reactor
+          it 'detaches all channels' do
+            channel_count = 10
+            channels = channel_count.times.map { |index| client.channel("channel-#{index}") }
+            when_all(*channels.map(&:attach)) do
+              detached_channels = []
+              channels.each do |channel|
+                channel.on(:detached) do
+                  detached_channels << channel
+                  next unless detached_channels.count == channel_count
+                  expect(detached_channels.count).to eql(channel_count)
+                  stop_reactor
+                end
+              end
+
+              kill_connection_transport_and_prevent_valid_resume
             end
+          end
 
-            kill_connection_transport_and_prevent_valid_resume
+          it 'emits an error on the channel and sets the error reason' do
+            client.channel(random_str).attach do |channel|
+              channel.on(:error) do |error|
+                expect(error.message).to match(/Invalid connection key/i)
+                expect(error.code).to eql(80008)
+                expect(channel.error_reason).to eql(error)
+                stop_reactor
+              end
+
+              kill_connection_transport_and_prevent_valid_resume
+            end
           end
         end
       end

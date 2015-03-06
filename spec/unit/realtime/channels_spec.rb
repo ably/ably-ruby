@@ -2,8 +2,8 @@
 require 'spec_helper'
 
 describe Ably::Realtime::Channels do
-  let(:connection) { instance_double('Ably::Realtime::Connection', on: true) }
-  let(:client) { instance_double('Ably::Realtime::Client', connection: connection) }
+  let(:connection) { instance_double('Ably::Realtime::Connection', on: true, on_resume: true) }
+  let(:client) { instance_double('Ably::Realtime::Client', connection: connection, client_id: 'clientId') }
   let(:channel_name) { 'unique' }
   let(:options) { { 'bizarre' => 'value' } }
 
@@ -41,7 +41,7 @@ describe Ably::Realtime::Channels do
   end
 
   context 'destroying channels' do
-    it '#release detatches and then releases the channel resoures' do
+    it '#release detaches and then releases the channel resources' do
       released_channel = subject.get(channel_name, options)
       expect(released_channel).to receive(:detach).and_yield
       subject.release(channel_name)

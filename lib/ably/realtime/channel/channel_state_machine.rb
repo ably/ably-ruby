@@ -35,7 +35,7 @@ module Ably::Realtime
       end
 
       before_transition(to: [:attached]) do |channel, current_transition|
-        channel.manager.sync current_transition.metadata
+        channel.manager.attached current_transition.metadata
       end
 
       after_transition(to: [:detaching]) do |channel, current_transition|
@@ -43,17 +43,31 @@ module Ably::Realtime
       end
 
       after_transition(to: [:detached]) do |channel, current_transition|
-        channel.manager.emit_error current_transition.metadata if current_transition.metadata
+        channel.manager.fail_messages_awaiting_ack nil_unless_error(current_transition.metadata)
+        channel.manager.emit_error current_transition.metadata if is_error_type?(current_transition.metadata)
       end
 
       after_transition(to: [:failed]) do |channel, current_transition|
-        channel.manager.emit_error current_transition.metadata
+        channel.manager.fail_messages_awaiting_ack nil_unless_error(current_transition.metadata)
+        channel.manager.emit_error current_transition.metadata if is_error_type?(current_transition.metadata)
       end
 
       # Transitions responsible for updating channel#error_reason
-      before_transition(to: [:attached, :detached, :failed]) do |channel, current_transition|
-        reason = current_transition.metadata if is_error_type?(current_transition.metadata)
-        channel.set_failed_channel_error_reason reason
+      before_transition(to: [:failed]) do |channel, current_transition|
+        channel.set_failed_channel_error_reason current_transition.metadata if is_error_type?(current_transition.metadata)
+      end
+
+      before_transition(to: [:attached, :detached]) do |channel, current_transition|
+        if is_error_type?(current_transition.metadata)
+          channel.set_failed_channel_error_reason current_transition.metadata
+        else
+          # Attached & Detached are "healthy" final states so reset the error reason
+          channel.clear_error_reason
+        end
+      end
+
+      def self.nil_unless_error(error_object)
+        error_object if is_error_type?(error_object)
       end
 
       private
@@ -61,6 +75,7 @@ module Ably::Realtime
         object
       end
 
+      # Logged needs to be defined as it is used by {Ably::Modules::StateMachine}
       def logger
         channel.logger
       end

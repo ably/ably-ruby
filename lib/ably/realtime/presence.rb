@@ -3,6 +3,7 @@ module Ably::Realtime
   class Presence
     include Ably::Modules::EventEmitter
     include Ably::Modules::AsyncWrapper
+    include Ably::Modules::MessageEmitter
     extend Ably::Modules::Enum
 
     STATE = ruby_enum('STATE',
@@ -14,6 +15,7 @@ module Ably::Realtime
       :failed
     )
     include Ably::Modules::StateEmitter
+    include Ably::Modules::UsesStateMachine
 
     # {Ably::Realtime::Channel} this Presence object is associated with
     # @return [Ably::Realtime::Channel]
@@ -32,14 +34,24 @@ module Ably::Realtime
     # @return [String]
     attr_reader :data
 
+    # {MembersMap} containing an up to date list of members on this channel
+    # @return [MembersMap]
+    # @api private
+    attr_reader :members
+
+    # The Presence manager responsible for actions relating to state changes such as entering a channel
+    # @return [Ably::Realtime::Presence::PresenceManager]
+    # @api private
+    attr_reader :manager
+
     def initialize(channel)
       @channel       = channel
-      @state         = STATE.Initialized
-      @members       = Hash.new
-      @subscriptions = Hash.new { |hash, key| hash[key] = [] }
       @client_id     = client.client_id
 
-      setup_event_handlers
+      @state_machine = PresenceStateMachine.new(self)
+      @state         = STATE(state_machine.current_state)
+      @members       = MembersMap.new(self)
+      @manager       = PresenceManager.new(self)
     end
 
     # Enter this client into this channel. This client will be added to the presence set
@@ -204,39 +216,22 @@ module Ably::Realtime
 
     # Get the presence state for this Channel.
     #
-    # @param [Hash,String] options an options Hash to filter members
-    # @option options [String] :client_id      optional client_id for the member
-    # @option options [String] :connection_id  optional connection_id for the member
-    # @option options [String] :wait_for_sync  defaults to true, if false the get method returns the current list of members and does not wait for the presence sync to complete
-    #
-    # @yield [Array<Ably::Models::PresenceMessage>] array of members or the member
-    #
-    # @return [EventMachine::Deferrable] Deferrable that supports both success (callback) and failure (errback) callbacks
+    # @param (see Ably::Realtime::Presence::MembersMap#get)
+    # @option options (see Ably::Realtime::Presence::MembersMap#get)
+    # @yield (see Ably::Realtime::Presence::MembersMap#get)
+    # @return (see Ably::Realtime::Presence::MembersMap#get)
     #
     def get(options = {})
-      wait_for_sync = options.fetch(:wait_for_sync, true)
-      deferrable    = EventMachine::DefaultDeferrable.new
+      deferrable = EventMachine::DefaultDeferrable.new
 
       ensure_channel_attached(deferrable) do
-        result_block = proc do
-          members.map { |key, presence| presence }.tap do |filtered_members|
-            filtered_members.keep_if { |presence| presence.connection_id == options[:connection_id] } if options[:connection_id]
-            filtered_members.keep_if { |presence| presence.client_id == options[:client_id] } if options[:client_id]
-          end.tap do |current_members|
-            yield current_members if block_given?
-            deferrable.succeed current_members
+        members.get(options).tap do |members_map_deferrable|
+          members_map_deferrable.callback do |*args|
+            yield *args if block_given?
+            deferrable.succeed *args
           end
-        end
-
-        if !wait_for_sync || sync_complete?
-          result_block.call
-        else
-          sync_pubsub.once(:done) do
-            result_block.call
-          end
-
-          sync_pubsub.once(:failed) do |error|
-            deferrable.fail error
+          members_map_deferrable.errback do |*args|
+            deferrable.fail *args
           end
         end
       end
@@ -250,9 +245,9 @@ module Ably::Realtime
     #
     # @return [void]
     #
-    def subscribe(action = :all, &callback)
+    def subscribe(*names, &callback)
       ensure_channel_attached do
-        subscriptions[message_action_key(action)] << callback
+        super
       end
     end
 
@@ -263,16 +258,8 @@ module Ably::Realtime
     #
     # @return [void]
     #
-    def unsubscribe(action = :all, &callback)
-      if message_action_key(action) == :all
-        subscriptions.keys
-      else
-        Array(message_action_key(action))
-      end.each do |key|
-        subscriptions[key].delete_if do |block|
-          !block_given? || callback == block
-        end
-      end
+    def unsubscribe(*names, &callback)
+      super
     end
 
     # Return the presence messages history for the channel
@@ -290,62 +277,8 @@ module Ably::Realtime
       end
     end
 
-    # When attaching to a channel that has members present, the client and server
-    # initiate a sync automatically so that the client has a complete list of members.
-    #
-    # Whilst this sync is happening, this method returns false
-    #
-    # @return [Boolean]
-    def sync_complete?
-      sync_complete
-    end
-
-    # Expect SYNC ProtocolMessages with a list of current members on this channel from the server
-    #
-    # @return [void]
-    #
-    # @api private
-    def sync_started
-      @sync_complete = false
-
-      sync_pubsub.once(:sync_complete) do
-        sync_changes_backlog.each do |presence_message|
-          apply_member_presence_changes presence_message
-        end
-        sync_completed
-        sync_pubsub.trigger :done
-      end
-
-      channel.once_or_if [:detached, :failed] do |error|
-        sync_completed
-        sync_pubsub.trigger :failed, error
-      end
-    end
-
-    # The server has indicated that no members are present on this channel and no SYNC is expected,
-    # or that the SYNC has now completed
-    #
-    # @return [void]
-    #
-    # @api private
-    def sync_completed
-      @sync_complete = true
-      @sync_changes_backlog = []
-    end
-
-    # Update the SYNC serial from the ProtocolMessage so that SYNC can be resumed.
-    # If the serial is nil, or the part after the first : is empty, then the SYNC is complete
-    #
-    # @return [void]
-    #
-    # @api private
-    def update_sync_serial(serial)
-      @sync_serial = serial
-      sync_pubsub.trigger :sync_complete if sync_serial_cursor_at_end?
-    end
-
     # @!attribute [r] __incoming_msgbus__
-    # @return [Ably::Util::PubSub] Client library internal channel incoming message bus
+    # @return [Ably::Util::PubSub] Client library internal channel incoming protocol message bus
     # @api private
     def __incoming_msgbus__
       @__incoming_msgbus__ ||= Ably::Util::PubSub.new(
@@ -353,52 +286,27 @@ module Ably::Realtime
       )
     end
 
+    # Configure the connection ID for this presence channel.
+    # Typically configured only once when a user first enters a presence channel.
+    # @api private
+    def set_connection_id(new_connection_id)
+      @connection_id = new_connection_id
+    end
+
+    # Used by {Ably::Modules::StateEmitter} to debug action changes
+    # @api private
+    def logger
+      client.logger
+    end
+
+    # Returns true when the initial member SYNC following channel attach is completed
+    def sync_complete?
+      members.sync_complete?
+    end
+
     private
-    attr_reader :members, :subscriptions, :sync_serial, :sync_complete
-
-
-    # A simple PubSub class used to publish synchronisation state changes
-    def sync_pubsub
-      @sync_pubsub ||= Ably::Util::PubSub.new
-    end
-
-    # During a SYNC of presence members, all enter, update and leave events are queued for processing once the SYNC is complete
-    def sync_changes_backlog
-      @sync_changes_backlog ||= []
-    end
-
-    # When channel serial in ProtocolMessage SYNC is nil or
-    # an empty cursor appears after the ':' such as 'cf30e75054887:psl_7g:client:189'
-    # then there are no more SYNC messages to come
-    def sync_serial_cursor_at_end?
-      sync_serial.nil? || sync_serial.to_s.match(/^[\w-]+:?$/)
-    end
-
     def able_to_leave?
       entering? || entered?
-    end
-
-    def setup_event_handlers
-      __incoming_msgbus__.subscribe(:presence, :sync) do |presence_message|
-        presence_message.decode self.channel
-        update_members_from_presence_message presence_message
-      end
-
-      channel.on(Channel::STATE.Detaching) do
-        change_state STATE.Leaving
-      end
-
-      channel.on(Channel::STATE.Detached) do
-        change_state STATE.Left
-      end
-
-      channel.on(Channel::STATE.Failed) do
-        change_state STATE.Failed unless left? || initialized?
-      end
-
-      on(STATE.Entered) do |message|
-        @connection_id = message.connection_id
-      end
     end
 
     # @return [Ably::Models::PresenceMessage] presence message is returned allowing callbacks to be added
@@ -429,49 +337,6 @@ module Ably::Realtime
       Ably::Models::PresenceMessage.new(model, nil).tap do |presence_message|
         presence_message.encode self.channel
       end
-    end
-
-    def update_members_from_presence_message(presence_message)
-      unless presence_message.connection_id
-        Ably::Exceptions::ProtocolError.new("Protocol error, presence message is missing connectionId", 400, 80013)
-      end
-
-      if sync_complete?
-        apply_member_presence_changes presence_message
-      else
-        if presence_message.action == Ably::Models::PresenceMessage::ACTION.Present
-          add_presence_member presence_message
-          publish_presence_member_state_change presence_message
-        else
-          sync_changes_backlog << presence_message
-        end
-      end
-    end
-
-    def apply_member_presence_changes(presence_message)
-      case presence_message.action
-      when Ably::Models::PresenceMessage::ACTION.Enter, Ably::Models::PresenceMessage::ACTION.Update
-        add_presence_member presence_message
-      when Ably::Models::PresenceMessage::ACTION.Leave
-        remove_presence_member presence_message
-      else
-        Ably::Exceptions::ProtocolError.new("Protocol error, unknown presence action #{presence_message.action}", 400, 80013)
-      end
-
-      publish_presence_member_state_change presence_message
-    end
-
-    def add_presence_member(presence_message)
-      members[presence_message.member_key] = presence_message
-    end
-
-    def remove_presence_member(presence_message)
-      members.delete presence_message.member_key
-    end
-
-    def publish_presence_member_state_change(presence_message)
-      subscriptions[:all].each                    { |cb| cb.call(presence_message) }
-      subscriptions[presence_message.action].each { |cb| cb.call(presence_message) }
     end
 
     def ensure_channel_attached(deferrable = nil)
@@ -526,14 +391,14 @@ module Ably::Realtime
       ensure_channel_attached(deferrable) do
         send_presence_protocol_message(action, client_id, options).tap do |protocol_message|
           protocol_message.callback { |message| deferrable_succeed deferrable, &success_block }
-          protocol_message.errback  { |message| deferrable_fail    deferrable }
+          protocol_message.errback  { |message, error| deferrable_fail deferrable, error }
         end
       end
     end
 
     def attach_channel_then
       if channel.detached? || channel.failed?
-        raise Ably::Exceptions::Standard.new('Unable to enter presence channel in detached or failed action', 400, 91001)
+        raise Ably::Exceptions::IncompatibleStateForOperation.new("Operation is not allowed when channel is in #{channel.state}", 400, 91001)
       else
         channel.once(Channel::STATE.Attached) { yield }
         channel.attach
@@ -548,17 +413,13 @@ module Ably::Realtime
       client.rest_client.channel(channel.name).presence
     end
 
-    # Used by {Ably::Modules::StateEmitter} to debug action changes
-    def logger
-      client.logger
-    end
-
-    def message_action_key(action)
-      if action == :all
-        :all
-      else
-        Ably::Models::PresenceMessage.ACTION(action)
-      end
+    # Force subscriptions to match valid PresenceMessage actions
+    def message_emitter_subscriptions_coerce_message_key(name)
+      Ably::Models::PresenceMessage.ACTION(name)
     end
   end
 end
+
+require 'ably/realtime/presence/presence_manager'
+require 'ably/realtime/presence/members_map'
+require 'ably/realtime/presence/presence_state_machine'
