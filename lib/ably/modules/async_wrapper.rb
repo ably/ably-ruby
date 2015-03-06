@@ -7,7 +7,7 @@ module Ably::Modules
   #
   # @note using this AsyncWrapper should only be used for methods that are used less frequently and typically
   #       not run with levels of concurrency due to the limited number of threads available to EventMachine by default.
-  #       This module requires that the method logger is defined.
+  #       This module requires that the method #logger is defined.
   #
   # @example
   #   class BlockingOperation

@@ -29,11 +29,11 @@ module Ably::Realtime
         @connection = connection
         @timers     = Hash.new { |hash, key| hash[key] = [] }
 
-        connection.on(:closed) do
+        connection.unsafe_on(:closed) do
           connection.reset_resume_info
         end
 
-        connection.once(:connecting) do
+        connection.unsafe_once(:connecting) do
           close_connection_when_reactor_is_stopped
         end
 
@@ -144,7 +144,7 @@ module Ably::Realtime
       def fail(error)
         connection.logger.fatal "ConnectionManager: Connection failed - #{error}"
         connection.manager.destroy_transport
-        connection.once(:failed) { connection.trigger :error, error }
+        connection.unsafe_once(:failed) { connection.trigger :error, error }
       end
 
       # When a connection is disconnected whilst connecting, attempt reconnect and/or set state to :suspended or :failed
@@ -187,7 +187,7 @@ module Ably::Realtime
         case error.code
         when RESOLVABLE_ERROR_CODES.fetch(:token_expired)
           connection.transition_state_machine :disconnected
-          connection.once_or_if(:disconnected) do
+          connection.unsafe_once_or_if(:disconnected) do
             renew_token_and_reconnect error
           end
         else
@@ -230,7 +230,7 @@ module Ably::Realtime
         timers[timer_id] << EventMachine::Timer.new(timeout_in) do
           yield
         end
-        connection.once_state_changed { clear_timers timer_id }
+        connection.unsafe_once_state_changed { clear_timers timer_id }
       end
 
       def clear_timers(key)
@@ -319,11 +319,11 @@ module Ably::Realtime
       end
 
       def subscribe_to_transport_events(transport)
-        transport.__incoming_protocol_msgbus__.on(:protocol_message) do |protocol_message|
+        transport.__incoming_protocol_msgbus__.unsafe_on(:protocol_message) do |protocol_message|
           connection.__incoming_protocol_msgbus__.publish :protocol_message, protocol_message
         end
 
-        transport.on(:disconnected) do |reason|
+        transport.unsafe_on(:disconnected) do |reason|
           if connection.closing?
             connection.transition_state_machine :closed
           elsif !connection.closed? && !connection.disconnected?
@@ -360,7 +360,7 @@ module Ably::Realtime
               connection.off &state_changed_callback
             end
 
-            connection.once :connected, :closed, :failed, &state_changed_callback
+            connection.unsafe_once :connected, :closed, :failed, &state_changed_callback
 
             if token && !token.expired?
               reconnect_transport

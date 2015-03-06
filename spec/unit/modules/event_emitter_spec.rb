@@ -7,6 +7,7 @@ describe Ably::Modules::EventEmitter do
     Class.new do
       include Ably::Modules::EventEmitter
       configure_event_emitter callback_opts
+      def logger; end
     end
   end
   let(:obj) { double('example') }
@@ -124,6 +125,35 @@ describe Ably::Modules::EventEmitter do
     end
   end
 
+  context '#on' do
+    it 'calls the block every time an event is emitted only' do
+      block_called = 0
+      subject.on('event') { block_called += 1 }
+      3.times { subject.trigger 'event', 'data' }
+      expect(block_called).to eql(3)
+    end
+
+    it 'catches exceptions in the provided block, logs the error and continues' do
+      expect(subject.logger).to receive(:error).with(/Intentional exception/)
+      subject.on(:event) { raise 'Intentional exception' }
+      subject.trigger :event
+    end
+  end
+
+  context '#unsafe_on', api_private: true do
+    it 'calls the block every time an event is emitted only' do
+      block_called = 0
+      subject.unsafe_on('event') { block_called += 1 }
+      3.times { subject.trigger 'event', 'data' }
+      expect(block_called).to eql(3)
+    end
+
+    it 'does not catch exceptions in provided blocks' do
+      subject.unsafe_on(:event) { raise 'Intentional exception' }
+      expect { subject.trigger :event }.to raise_error(/Intentional exception/)
+    end
+  end
+
   context '#once' do
     it 'calls the block the first time an event is emitted only' do
       block_called = 0
@@ -138,6 +168,26 @@ describe Ably::Modules::EventEmitter do
       subject.on('event')   { block_called += 1 }
       3.times { subject.trigger 'event', 'data' }
       expect(block_called).to eql(4)
+    end
+
+    it 'catches exceptions in the provided block, logs the error and continues' do
+      expect(subject.logger).to receive(:error).with(/Intentional exception/)
+      subject.once(:event) { raise 'Intentional exception' }
+      subject.trigger :event
+    end
+  end
+
+  context '#unsafe_once' do
+    it 'calls the block the first time an event is emitted only' do
+      block_called = 0
+      subject.unsafe_once('event') { block_called += 1 }
+      3.times { subject.trigger 'event', 'data' }
+      expect(block_called).to eql(1)
+    end
+
+    it 'does not catch exceptions in provided blocks' do
+      subject.unsafe_once(:event) { raise 'Intentional exception' }
+      expect { subject.trigger :event }.to raise_error(/Intentional exception/)
     end
   end
 

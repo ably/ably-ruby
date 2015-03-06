@@ -241,12 +241,12 @@ module Ably::Realtime
     # Subscribe to presence events on the associated Channel.
     # This implicitly attaches the Channel if it is not already attached.
     #
-    # @param action [Ably::Models::PresenceMessage::ACTION] Optional, the state change action to subscribe to. Defaults to all presence actions
+    # @param actions [Ably::Models::PresenceMessage::ACTION] Optional, the state change action to subscribe to. Defaults to all presence actions
     # @yield [Ably::Models::PresenceMessage] For each presence state change event, the block is called
     #
     # @return [void]
     #
-    def subscribe(*names, &callback)
+    def subscribe(*actions, &callback)
       ensure_channel_attached do
         super
       end
@@ -255,11 +255,11 @@ module Ably::Realtime
     # Unsubscribe the matching block for presence events on the associated Channel.
     # If a block is not provided, all subscriptions will be unsubscribed
     #
-    # @param action [Ably::Models::PresenceMessage::ACTION] Optional, the state change action to subscribe to. Defaults to all presence actions
+    # @param actions [Ably::Models::PresenceMessage::ACTION] Optional, the state change action to subscribe to. Defaults to all presence actions
     #
     # @return [void]
     #
-    def unsubscribe(*names, &callback)
+    def unsubscribe(*actions, &callback)
       super
     end
 
@@ -401,7 +401,7 @@ module Ably::Realtime
       if channel.detached? || channel.failed?
         raise Ably::Exceptions::IncompatibleStateForOperation.new("Operation is not allowed when channel is in #{channel.state}", 400, 91001)
       else
-        channel.once(Channel::STATE.Attached) { yield }
+        channel.unsafe_once(Channel::STATE.Attached) { yield }
         channel.attach
       end
     end

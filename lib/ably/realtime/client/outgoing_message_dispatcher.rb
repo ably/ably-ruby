@@ -61,7 +61,7 @@ module Ably::Realtime
       end
 
       def setup_event_handlers
-        connection.on(:connected) do
+        connection.unsafe_on(:connected) do
           deliver_queued_protocol_messages
         end
       end

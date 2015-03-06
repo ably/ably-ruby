@@ -13,14 +13,17 @@ describe Ably::Modules::StateEmitter do
     )
     include Ably::Modules::StateEmitter
 
-    def initialize
+    def initialize(logger)
       @state = :initializing
+      @logger = logger
     end
+
+    attr_reader :logger
   end
 
   let(:initial_state) { :initializing }
 
-  subject { ExampleStateWithEventEmitter.new }
+  subject { ExampleStateWithEventEmitter.new(double('Logger').as_null_object) }
 
   specify '#state returns current state' do
     expect(subject.state).to eq(:initializing)
@@ -248,6 +251,64 @@ describe Ably::Modules::StateEmitter do
         subject.change_state :connecting, *arguments
       end
     end
+
+    context 'with blocks that raise exceptions' do
+      let(:success_block) do
+        proc { raise 'Success exception' }
+      end
+
+      let(:failure_block) do
+        proc { raise 'Failure exception' }
+      end
+
+      let(:target_state) { :connected }
+
+      before do
+        subject.once_or_if target_state, else: failure_block, &success_block
+      end
+
+      context 'success block' do
+        it 'catches exceptions in the provided block, logs the error and continues' do
+          expect(subject.logger).to receive(:error).with(/Success exception/)
+          subject.change_state target_state
+        end
+      end
+
+      context 'failure block' do
+        it 'catches exceptions in the provided block, logs the error and continues' do
+          expect(subject.logger).to receive(:error).with(/Failure exception/)
+          subject.change_state :connecting
+        end
+      end
+    end
+  end
+
+  context '#unsafe_once_or_if', :api_private do
+    let(:target_state) { :connected }
+
+    let(:success_block) do
+      proc { raise 'Success exception' }
+    end
+
+    let(:failure_block) do
+      proc { raise 'Failure exception' }
+    end
+
+    before do
+      subject.unsafe_once_or_if target_state, else: failure_block, &success_block
+    end
+
+    context 'success block' do
+      it 'catches exceptions in the provided block, logs the error and continues' do
+        expect { subject.change_state target_state }.to raise_error(/Success exception/)
+      end
+    end
+
+    context 'failure block' do
+      it 'catches exceptions in the provided block, logs the error and continues' do
+        expect { subject.change_state :connecting }.to raise_error(/Failure exception/)
+      end
+    end
   end
 
   context '#once_state_changed', :api_private do
@@ -278,6 +339,19 @@ describe Ably::Modules::StateEmitter do
       subject.change_state :connected, 1, 2
       expect(block_calls.count).to eql(1)
       expect(block_calls.first).to contain_exactly(1, 2)
+    end
+
+    it 'catches exceptions in the provided block, logs the error and continues' do
+      subject.once_state_changed { raise 'Intentional exception' }
+      expect(subject.logger).to receive(:error).with(/Intentional exception/)
+      subject.change_state :connected
+    end
+  end
+
+  context '#unsafe_once_state_changed', :api_private do
+    it 'does not catch exceptions in the provided block' do
+      subject.unsafe_once_state_changed { raise 'Intentional exception' }
+      expect { subject.change_state :connected }.to raise_error(/Intentional exception/)
     end
   end
 end
