@@ -41,6 +41,16 @@ module Ably::Realtime
           logger.debug "#{protocol_message.action} received: #{protocol_message}"
         end
 
+        if connection.serial && protocol_message.has_connection_serial? && protocol_message.connection_serial <= connection.serial
+          error_target = if protocol_message.channel
+            get_channel(protocol_message.channel)
+          else
+            connection
+          end
+          error_target.trigger :error, Ably::Exceptions::ProtocolError.new("Protocol error, duplicate message received for serial #{protocol_message.connection_serial}", 400, 80013)
+          return
+        end
+
         update_connection_recovery_info protocol_message
 
         case protocol_message.action
@@ -98,7 +108,9 @@ module Ably::Realtime
             end
 
           else
-            raise ArgumentError, "Protocol Message Action #{protocol_message.action} is unsupported by this MessageDispatcher"
+            error = Ably::Exceptions::ProtocolError.new("Protocol Message Action #{protocol_message.action} is unsupported by this MessageDispatcher", 400, 80013)
+            client.connection.trigger :error, error
+            logger.fatal error.message
         end
       end
 
