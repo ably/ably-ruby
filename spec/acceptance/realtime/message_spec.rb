@@ -195,6 +195,37 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       end
     end
 
+    context 'server incorrectly resends a message that was already received by the client library' do
+      let(:messages_received) { [] }
+      let(:connection) { client.connection }
+
+      it 'discards the message and logs it as an error to the channel' do
+        first_message_protocol_message = nil
+        connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+          first_message_protocol_message ||= protocol_message unless protocol_message.messages.empty?
+        end
+
+        channel.subscribe do |message|
+          messages_received << message
+          if messages_received.count == 2
+            # simulate a duplicate protocol message being received
+            EventMachine.next_tick do
+              connection.__incoming_protocol_msgbus__.publish :protocol_message, first_message_protocol_message
+            end
+          end
+        end
+        2.times { |i| EventMachine.add_timer(i.to_f / 5) { channel.publish('event', 'data') } }
+
+        channel.on(:error) do |error|
+          expect(error.message).to match(/duplicate/)
+          EventMachine.add_timer(0.5) do
+            expect(messages_received.count).to eql(2)
+            stop_reactor
+          end
+        end
+      end
+    end
+
     context 'encoding and decoding encrypted messages' do
       shared_examples 'an Ably encrypter and decrypter' do |item, data|
         let(:algorithm)      { data['algorithm'].upcase }
