@@ -133,7 +133,7 @@ describe Ably::Realtime::Channel do
       Ably::Models::Message.new({
         'name' => 'test',
         'data' => 'payload'
-      }, instance_double('Ably::Models::ProtocolMessage'))
+      }, protocol_message: instance_double('Ably::Models::ProtocolMessage'))
     end
     let(:msgbus) { subject.__incoming_msgbus__ }
 

@@ -124,7 +124,7 @@ module Ably
 
       # Subscribe to messages matching providing event name, or all messages if event name not provided
       #
-      # @param name [String] The event name of the message to subscribe to if provided.  Defaults to all events.
+      # @param names [String] The event name of the message to subscribe to if provided.  Defaults to all events.
       # @yield [Ably::Models::Message] For each message received, the block is called
       #
       # @return [void]
@@ -137,7 +137,7 @@ module Ably
       # Unsubscribe the matching block for messages matching providing event name, or all messages if event name not provided.
       # If a block is not provided, all subscriptions will be unsubscribed
       #
-      # @param name [String] The event name of the message to subscribe to if provided.  Defaults to all events.
+      # @param names [String] The event name of the message to subscribe to if provided.  Defaults to all events.
       #
       # @return [void]
       #
@@ -150,7 +150,7 @@ module Ably
       # to need to call attach explicitly.
       #
       # @yield [Ably::Realtime::Channel] Block is called as soon as this channel is in the Attached state
-      # @return [EventMachine::Deferrable] Deferrable that supports both success (callback) and failure (errback) callback
+      # @return [Ably::Util::SafeDeferrable] Deferrable that supports both success (callback) and failure (errback) callback
       #
       def attach(&success_block)
         transition_state_machine :attaching if can_transition_to?(:attaching)
@@ -186,7 +186,7 @@ module Ably
       #
       # @yield [Ably::Models::PaginatedResource<Ably::Models::Message>] An Array of {Ably::Models::Message} objects that supports paging (#next_page, #first_page)
       #
-      # @return [EventMachine::Deferrable]
+      # @return [Ably::Util::SafeDeferrable]
       def history(options = {}, &callback)
         async_wrap(callback) do
           rest_channel.history(options.merge(async_blocking_operations: true))
@@ -269,7 +269,7 @@ module Ably
         message.merge!(data: data) unless data.nil?
         message.merge!(clientId: client.client_id) if client.client_id
 
-        Ably::Models::Message.new(message, nil).tap do |message|
+        Ably::Models::Message.new(message, logger: logger).tap do |message|
           message.encode self
         end
       end

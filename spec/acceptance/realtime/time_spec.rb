@@ -16,9 +16,9 @@ describe Ably::Realtime::Client, '#time', :event_machine do
         end
       end
 
-      it 'should return a deferrable object' do
+      it 'returns a SafeDeferrable that catches exceptions in callbacks and logs them' do
         run_reactor do
-          expect(client.time).to be_a(EventMachine::Deferrable)
+          expect(client.time).to be_a(Ably::Util::SafeDeferrable)
           stop_reactor
         end
       end

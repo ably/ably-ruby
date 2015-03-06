@@ -6,6 +6,8 @@ module Ably::Modules
   # It also ensures the EventEmitter is configured to retrict permitted events to the
   # the available STATEs and :error.
   #
+  # @note This module requires that the method #logger is defined.
+  #
   # @example
   #   class Connection
   #     include Ably::Modules::EventEmitter
@@ -91,13 +93,20 @@ module Ably::Modules
         end if failure_block
 
         Array(target_states).each do |target_state|
-          once target_state, &success_wrapper
+          safe_unsafe_method options[:unsafe], :once, target_state, &success_wrapper
 
-          once_state_changed do |*args|
+          safe_unsafe_method options[:unsafe], :once_state_changed do |*args|
             failure_wrapper.call *args unless state == target_state
           end if failure_block
         end
       end
+    end
+
+    # Equivalent of {#once_or_if} but any exception raised in a block will bubble up and cause this client library to fail.
+    # This method should only be used internally by the client library.
+    # @api private
+    def unsafe_once_or_if(target_states, options = {}, &block)
+      once_or_if(target_states, options.merge(unsafe: true), &block)
     end
 
     # Calls the block once when the state changes
@@ -106,7 +115,7 @@ module Ably::Modules
     # @return [void]
     #
     # @api private
-    def once_state_changed(&block)
+    def once_state_changed(options = {}, &block)
       raise ArgumentError, 'Block required' unless block_given?
 
       once_block = proc do |*args|
@@ -114,17 +123,24 @@ module Ably::Modules
         yield *args
       end
 
-      once *self.class::STATE.map, &once_block
+      safe_unsafe_method options[:unsafe], :once, *self.class::STATE.map, &once_block
+    end
+
+    # Equivalent of {#once_state_changed} but any exception raised in a block will bubble up and cause this client library to fail.
+    # This method should only be used internally by the client library.
+    # @api private
+    def unsafe_once_state_changed(&block)
+      once_state_changed(unsafe: true, &block)
     end
 
     private
 
-    # Returns an {EventMachine::Deferrable} and once the target state is reached, the
-    # success block if provided and {EventMachine::Deferrable#callback} is called.
-    # If the state changes to any other state, the {EventMachine::Deferrable#errback} is called.
+    # Returns an {Ably::Util::SafeDeferrable} and once the target state is reached, the
+    # success block if provided and {Ably::Util::SafeDeferrable#callback} is called.
+    # If the state changes to any other state, the {Ably::Util::SafeDeferrable#errback} is called.
     #
     def deferrable_for_state_change_to(target_state)
-      EventMachine::DefaultDeferrable.new.tap do |deferrable|
+      Ably::Util::SafeDeferrable.new(logger).tap do |deferrable|
         once_or_if(target_state, else: proc { |*args| deferrable.fail self, *args }) do
           yield self if block_given?
           deferrable.succeed self
@@ -148,6 +164,10 @@ module Ably::Modules
           end
         end
       end
+    end
+
+    def safe_unsafe_method(unsafe, method_name, *args, &block)
+      public_send("#{'unsafe_' if unsafe}#{method_name}", *args, &block)
     end
   end
 end

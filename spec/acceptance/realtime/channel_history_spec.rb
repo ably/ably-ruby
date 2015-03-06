@@ -17,10 +17,10 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
 
     let(:options)      { { :protocol => :json } }
 
-    it 'returns a Deferrable' do
+    it 'returns a SafeDeferrable that catches exceptions in callbacks and logs them' do
       channel.publish('event', payload) do |message|
         history = channel.history
-        expect(history).to be_a(EventMachine::Deferrable)
+        expect(history).to be_a(Ably::Util::SafeDeferrable)
         history.callback do |messages|
           expect(messages.count).to eql(1)
           expect(messages).to be_a(Ably::Models::PaginatedResource)

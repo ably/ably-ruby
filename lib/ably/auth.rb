@@ -34,7 +34,7 @@ module Ably
     # Creates an Auth object
     #
     # @param [Ably::Rest::Client] client  {Ably::Rest::Client} this Auth object uses
-    # @param options (see Ably::Rest::Client#initialize)
+    # @param [Hash] options (see Ably::Rest::Client#initialize)
     # @option (see Ably::Rest::Client#initialize)
     # @yield  (see Ably::Rest::Client#initialize)
     #

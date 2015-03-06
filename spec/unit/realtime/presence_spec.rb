@@ -28,7 +28,7 @@ describe Ably::Realtime::Presence do
       Ably::Models::PresenceMessage.new({
         'action' => 0,
         'connection_id' => random_str,
-      }, instance_double('Ably::Models::ProtocolMessage'))
+      }, protocol_message: instance_double('Ably::Models::ProtocolMessage'))
     end
     let(:msgbus) { subject.__incoming_msgbus__ }
 

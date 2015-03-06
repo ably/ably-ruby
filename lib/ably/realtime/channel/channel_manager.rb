@@ -118,11 +118,11 @@ module Ably::Realtime
       end
 
       def setup_connection_event_handlers
-        connection.on(:closed) do
+        connection.unsafe_on(:closed) do
           channel.transition_state_machine :detaching if can_transition_to?(:detaching)
         end
 
-        connection.on(:failed) do |error|
+        connection.unsafe_on(:failed) do |error|
           channel.transition_state_machine :failed, error if can_transition_to?(:failed)
         end
       end
