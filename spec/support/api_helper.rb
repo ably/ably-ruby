@@ -44,7 +44,7 @@ RSpec.configure do |config|
 
   config.after(:suite) do
     WebMock.disable!
-    TestApp.instance.delete
+    TestApp.instance.delete if TestApp.instance_variable_get('@singleton__instance__')
   end
 end
 
