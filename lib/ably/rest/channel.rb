@@ -43,7 +43,7 @@ module Ably
           data: data
         }
 
-        message = Ably::Models::Message.new(payload, nil).tap do |message|
+        message = Ably::Models::Message.new(payload).tap do |message|
           message.encode self
         end
 

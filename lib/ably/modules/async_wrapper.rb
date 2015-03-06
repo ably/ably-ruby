@@ -7,6 +7,7 @@ module Ably::Modules
   #
   # @note using this AsyncWrapper should only be used for methods that are used less frequently and typically
   #       not run with levels of concurrency due to the limited number of threads available to EventMachine by default.
+  #       This module requires that the method logger is defined.
   #
   # @example
   #   class BlockingOperation
@@ -32,15 +33,15 @@ module Ably::Modules
   module AsyncWrapper
     private
 
-    # Will yield the provided block in a new thread and return an {EventMachine::Deferrable http://www.rubydoc.info/github/eventmachine/eventmachine/EventMachine/Deferrable}
+    # Will yield the provided block in a new thread and return an {Ably::Util::SafeDeferrable}
     #
     # @yield [Object] operation block that is run in a thread
-    # @return [EventMachine::Deferrable]
+    # @return [Ably::Util::SafeDeferrable]
     #
     def async_wrap(success_callback = nil)
       raise ArgumentError, 'Block required' unless block_given?
 
-      EventMachine::DefaultDeferrable.new.tap do |deferrable|
+      Ably::Util::SafeDeferrable.new(logger).tap do |deferrable|
         deferrable.callback &success_callback if success_callback
 
         operation_with_exception_handling = proc do

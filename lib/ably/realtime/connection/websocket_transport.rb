@@ -143,7 +143,7 @@ module Ably::Realtime
 
         driver.on("message") do |event|
           event_data = parse_event_data(event.data).freeze
-          protocol_message = Ably::Models::ProtocolMessage.new(event_data)
+          protocol_message = Ably::Models::ProtocolMessage.new(event_data, logger: logger)
           logger.debug "WebsocketTransport: Prot msg recv <=: #{protocol_message.action} #{event_data}"
 
           if protocol_message.invalid?

@@ -1,8 +1,9 @@
 # encoding: utf-8
-require 'spec_helper'
-require 'shared/model_behaviour'
 require 'base64'
 require 'msgpack'
+
+require 'spec_helper'
+require 'shared/model_behaviour'
 
 describe Ably::Models::Message do
   include Ably::Modules::Conversions
@@ -12,11 +13,11 @@ describe Ably::Models::Message do
   let(:protocol_message) { Ably::Models::ProtocolMessage.new(action: 1, timestamp: protocol_message_timestamp) }
 
   it_behaves_like 'a model', with_simple_attributes: %w(name client_id data encoding) do
-    let(:model_args) { [protocol_message] }
+    let(:model_args) { [protocol_message: protocol_message] }
   end
 
   context '#timestamp' do
-    let(:model) { subject.new({}, protocol_message) }
+    let(:model) { subject.new({}, protocol_message: protocol_message) }
 
     it 'retrieves attribute :timestamp as Time object from ProtocolMessage' do
       expect(model.timestamp).to be_a(Time)
@@ -39,7 +40,7 @@ describe Ably::Models::Message do
       end
 
       context 'with a protocol message with a different connectionId' do
-        let(:model) { subject.new({ 'connectionId' => model_connection_id }, protocol_message) }
+        let(:model) { subject.new({ 'connectionId' => model_connection_id }, protocol_message: protocol_message) }
 
         it 'uses the model value' do
           expect(model.connection_id).to eql(model_connection_id)
@@ -57,7 +58,7 @@ describe Ably::Models::Message do
       end
 
       context 'with a protocol message with a connectionId' do
-        let(:model) { subject.new({ }, protocol_message) }
+        let(:model) { subject.new({ }, protocol_message: protocol_message) }
 
         it 'uses the model value' do
           expect(model.connection_id).to eql(protocol_connection_id)
@@ -67,7 +68,7 @@ describe Ably::Models::Message do
   end
 
   context 'Java naming', :api_private do
-    let(:model) { subject.new({ clientId: 'joe' }, protocol_message) }
+    let(:model) { subject.new({ clientId: 'joe' }, protocol_message: protocol_message) }
 
     it 'converts the attribute to ruby symbol naming convention' do
       expect(model.client_id).to eql('joe')
@@ -80,7 +81,7 @@ describe Ably::Models::Message do
         let(:encoded_value)   { value.encode(encoding) }
         let(:value)           { random_str }
         let(:options)         { { attribute.to_sym => encoded_value } }
-        let(:model)           { subject.new(options, protocol_message) }
+        let(:model)           { subject.new(options, protocol_message: protocol_message) }
         let(:model_attribute) { model.public_send(attribute) }
 
         context 'as UTF_8 string' do
@@ -142,7 +143,7 @@ describe Ably::Models::Message do
     let(:json_object) { JSON.parse(model.to_json) }
 
     context 'with valid data' do
-      let(:model) { subject.new({ name: 'test', clientId: 'joe' }, protocol_message) }
+      let(:model) { subject.new({ name: 'test', clientId: 'joe' }, protocol_message: protocol_message) }
 
       it 'converts the attribute back to Java mixedCase notation using string keys' do
         expect(json_object["clientId"]).to eql('joe')
@@ -150,7 +151,7 @@ describe Ably::Models::Message do
     end
 
     context 'with invalid data' do
-      let(:model) { subject.new({ clientId: 'joe' }, protocol_message) }
+      let(:model) { subject.new({ clientId: 'joe' }, protocol_message: protocol_message) }
 
       it 'raises an exception' do
         expect { model.to_json }.to raise_error RuntimeError, /cannot generate a valid Hash/
@@ -159,7 +160,7 @@ describe Ably::Models::Message do
 
     context 'with binary data' do
       let(:data) { MessagePack.pack(random_str(32)) }
-      let(:model) { subject.new({ name: 'test', data: data }, protocol_message) }
+      let(:model) { subject.new({ name: 'test', data: data }, protocol_message: protocol_message) }
 
       it 'encodes as Base64 so that it can be converted to UTF-8 automatically by JSON#dump' do
         expect(json_object["data"]).to eql(::Base64.encode64(data))
@@ -188,7 +189,7 @@ describe Ably::Models::Message do
     end
 
     context 'with protocol message' do
-      let(:model) { subject.new({ id: id, timestamp: message_timestamp }, protocol_message) }
+      let(:model) { subject.new({ id: id, timestamp: message_timestamp }, protocol_message: protocol_message) }
 
       specify '#id prefers embedded ID' do
         expect(model.id).to eql(id)
@@ -322,7 +323,7 @@ describe Ably::Models::Message do
       end
 
       context 'with ProtocolMessage' do
-        subject { Ably::Models.Message(json, protocol_message) }
+        subject { Ably::Models.Message(json, protocol_message: protocol_message) }
 
         it 'returns a Message object' do
           expect(subject).to be_a(Ably::Models::Message)
@@ -366,7 +367,7 @@ describe Ably::Models::Message do
       end
 
       context 'with ProtocolMessage' do
-        subject { Ably::Models.Message(message, protocol_message) }
+        subject { Ably::Models.Message(message, protocol_message: protocol_message) }
 
         it 'returns a Message object' do
           expect(subject).to be_a(Ably::Models::Message)

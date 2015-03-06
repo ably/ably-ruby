@@ -14,6 +14,10 @@ describe Ably::Modules::AsyncWrapper, :api_private do
       def block=(block)
         @block = block
       end
+
+      def logger
+        true
+      end
     end
   end
   let(:subject)    { class_with_module.new }
@@ -33,7 +37,15 @@ describe Ably::Modules::AsyncWrapper, :api_private do
         end
       end
 
-      it 'calls the success_callback block with result when provided' do
+      it 'returns a SafeDeferrable that catches and logs exceptions in the provided callbacks' do
+        run_reactor do
+          deferrable = subject.operation
+          expect(deferrable).to be_a(Ably::Util::SafeDeferrable)
+          stop_reactor
+        end
+      end
+
+      it 'calls the provided block with result when provided' do
         run_reactor do
           subject.operation do |result|
             expect(result).to eql(result)
@@ -42,10 +54,20 @@ describe Ably::Modules::AsyncWrapper, :api_private do
         end
       end
 
-      it 'returns a deferrable that succeeds with result' do
+      it 'catches exceptions in the provided block and logs them to logger' do
+        run_reactor do
+          subject.operation do |result|
+            raise 'Intentional exception'
+          end
+          expect(subject.logger).to receive(:error).with(/Intentional exception/) do
+            stop_reactor
+          end
+        end
+      end
+
+      it 'returns a SafeDeferrable that calls the callback block' do
         run_reactor do
           deferrable = subject.operation
-          expect(deferrable).to be_a(EventMachine::Deferrable)
           deferrable.callback do |result|
             expect(result).to eql(result)
             stop_reactor
@@ -56,7 +78,6 @@ describe Ably::Modules::AsyncWrapper, :api_private do
       it 'does not call the errback' do
         run_reactor do
           deferrable = subject.operation
-          expect(deferrable).to be_a(EventMachine::Deferrable)
           deferrable.callback do |result|
             expect(result).to eql(result)
             EventMachine.add_timer(sleep_time * 2) { stop_reactor }
@@ -88,10 +109,9 @@ describe Ably::Modules::AsyncWrapper, :api_private do
         end
       end
 
-      it 'calls the errback block of the deferrable' do
+      it 'calls the errback block of the SafeDeferrable' do
         run_reactor do
           deferrable = subject.operation
-          expect(deferrable).to be_a(EventMachine::Deferrable)
           deferrable.errback do |error|
             expect(error).to be_a(RuntimeError)
             expect(error.message).to match(/Intentional/)
@@ -100,7 +120,7 @@ describe Ably::Modules::AsyncWrapper, :api_private do
         end
       end
 
-      it 'does not call the success_callback block' do
+      it 'does not call the provided block' do
         run_reactor do
           subject.operation do |result|
             raise 'Callback should not have been called'
@@ -109,10 +129,9 @@ describe Ably::Modules::AsyncWrapper, :api_private do
         end
       end
 
-      it 'does not call the callback block of the deferrable' do
+      it 'does not call the callback block of the SafeDeferrable' do
         run_reactor do
           deferrable = subject.operation
-          expect(deferrable).to be_a(EventMachine::Deferrable)
           deferrable.callback do |result|
             raise 'Callback should not have been called'
           end
