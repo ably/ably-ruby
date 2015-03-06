@@ -16,11 +16,15 @@ module Ably::Modules
       block.call *args
     rescue StandardError => e
       message = "An exception in an external block was caught. #{e.class}: #{e.message}\n#{e.backtrace.join("\n")}"
+      safe_yield_log_error message
+    end
+
+    def safe_yield_log_error(message)
       if defined?(:logger) && logger.respond_to?(:error)
-        logger.error message
-      else
-        fallback_logger.error message
+        return logger.error message
       end
+    rescue StandardError => e
+      fallback_logger.error message
     end
 
     def fallback_logger
