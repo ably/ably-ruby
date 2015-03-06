@@ -1,9 +1,13 @@
+require 'ably/modules/safe_yield'
+
 module Ably
   module Modules
     # EventEmitter provides methods to attach to public events and trigger events on any class instance
     #
     # EventEmitter are typically used for public interfaces, and as such, may be overriden in
     # the classes to enforce `event` names match expected values.
+    #
+    # @note This module requires that the method #logger is defined.
     #
     # @example
     #   class Example
@@ -16,6 +20,8 @@ module Ably
     #   #=> "Signal Test received"
     #
     module EventEmitter
+      include Ably::Modules::SafeYield
+
       module ClassMethods
         attr_reader :event_emitter_coerce_proc
 
@@ -49,6 +55,15 @@ module Ably
         end
       end
 
+      # Equivalent of {#on} but any exception raised in a block will bubble up and cause this client library to fail.
+      # This method should only be used internally by the client library.
+      # @api private
+      def unsafe_on(*event_names, &block)
+        event_names.each do |event_name|
+          callbacks[callbacks_event_coerced(event_name)] << proc_for_block(block, unsafe: true)
+        end
+      end
+
       # On receiving an event maching the event_name, call the provided block only once and remove the registered callback
       #
       # @param [Array<String>] event_names event name
@@ -60,12 +75,25 @@ module Ably
         end
       end
 
+      # Equivalent of {#once} but any exception raised in a block will bubble up and cause this client library to fail.
+      # This method should only be used internally by the client library.
+      # @api private
+      def unsafe_once(*event_names, &block)
+        event_names.each do |event_name|
+          callbacks[callbacks_event_coerced(event_name)] << proc_for_block(block, delete_once_run: true, unsafe: true)
+        end
+      end
+
       # Trigger an event with event_name that will in turn call all matching callbacks setup with `on`
       def trigger(event_name, *args)
         callbacks[callbacks_event_coerced(event_name)].
           clone.
           select do |proc_hash|
-            proc_hash[:trigger_proc].call(*args)
+            if proc_hash[:unsafe]
+              proc_hash[:trigger_proc].call *args
+            else
+              safe_yield proc_hash[:trigger_proc], *args
+            end
           end.each do |callback|
             callbacks[callbacks_event_coerced(event_name)].delete callback
           end
@@ -108,7 +136,8 @@ module Ably
             block.call *args
             true if options[:delete_once_run]
           end,
-          block: block
+          block: block,
+          unsafe: options[:unsafe]
         }
       end
 

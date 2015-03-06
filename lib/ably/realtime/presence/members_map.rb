@@ -111,7 +111,7 @@ module Ably::Realtime
           once :in_sync, &in_sync_callback
 
           once(:failed, &failed_callback)
-          channel.once(:detaching, :detached, :failed) do |error_reason|
+          channel.unsafe_once(:detaching, :detached, :failed) do |error_reason|
             failed_callback.call error_reason
           end
         end

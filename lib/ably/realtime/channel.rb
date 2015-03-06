@@ -124,7 +124,7 @@ module Ably
 
       # Subscribe to messages matching providing event name, or all messages if event name not provided
       #
-      # @param name [String] The event name of the message to subscribe to if provided.  Defaults to all events.
+      # @param names [String] The event name of the message to subscribe to if provided.  Defaults to all events.
       # @yield [Ably::Models::Message] For each message received, the block is called
       #
       # @return [void]
@@ -137,7 +137,7 @@ module Ably
       # Unsubscribe the matching block for messages matching providing event name, or all messages if event name not provided.
       # If a block is not provided, all subscriptions will be unsubscribed
       #
-      # @param name [String] The event name of the message to subscribe to if provided.  Defaults to all events.
+      # @param names [String] The event name of the message to subscribe to if provided.  Defaults to all events.
       #
       # @return [void]
       #
