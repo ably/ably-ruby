@@ -234,8 +234,8 @@ describe Ably::Realtime::Connection, :event_machine do
     end
 
     context '#connect' do
-      it 'returns a Deferrable' do
-        expect(connection.connect).to be_a(EventMachine::Deferrable)
+      it 'returns a SafeDeferrable that catches exceptions in callbacks and logs them' do
+        expect(connection.connect).to be_a(Ably::Util::SafeDeferrable)
         stop_reactor
       end
 
@@ -372,9 +372,9 @@ describe Ably::Realtime::Connection, :event_machine do
     end
 
     context '#close' do
-      it 'returns a Deferrable' do
+      it 'returns a SafeDeferrable that catches exceptions in callbacks and logs them' do
         connection.connect do
-          expect(connection.close).to be_a(EventMachine::Deferrable)
+          expect(connection.close).to be_a(Ably::Util::SafeDeferrable)
           stop_reactor
         end
       end
@@ -502,6 +502,17 @@ describe Ably::Realtime::Connection, :event_machine do
         it 'raises an exception' do
           expect { connection.ping }.to raise_error RuntimeError, /Cannot send a ping when connection/
           stop_reactor
+        end
+      end
+
+      context 'with a success block that raises an exception' do
+        it 'catches the exception and logs the error' do
+          connection.on(:connected) do
+            expect(connection.logger).to receive(:error).with(/Forced exception/) do
+              stop_reactor
+            end
+            connection.ping { raise 'Forced exception' }
+          end
         end
       end
     end

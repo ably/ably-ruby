@@ -37,7 +37,7 @@ module Ably::Models
   #
   class ProtocolMessage
     include Ably::Modules::ModelCommon
-    include EventMachine::Deferrable if defined?(Ably::Realtime)
+    include Ably::Modules::SafeDeferrable if defined?(Ably::Realtime)
     extend Ably::Modules::Enum
 
     # Actions which are sent by the Ably Realtime API
@@ -69,7 +69,15 @@ module Ably::Models
       [ACTION.Presence, ACTION.Message].include?(ACTION(for_action))
     end
 
-    def initialize(hash_object)
+    # {ProtocolMessage} initializer
+    #
+    # @param  hash_object [Hash]            object with the underlying protocol message data
+    # @param  [Hash]      options           an options Hash for this initializer
+    # @option options     [Logger]          :logger            An optional Logger to be used by {Ably::Modules::SafeDeferrable} if an exception is caught in a callback
+    #
+    def initialize(hash_object, options = {})
+      @logger = options[:logger] # Logger expected for SafeDeferrable
+
       @raw_hash_object = hash_object
       @hash_object     = IdiomaticRubyWrapper(@raw_hash_object.clone)
 
@@ -147,7 +155,7 @@ module Ably::Models
     def messages
       @messages ||=
         Array(hash[:messages]).map do |message|
-          Ably::Models.Message(message, self)
+          Ably::Models.Message(message, protocol_message: self)
         end
     end
 
@@ -158,7 +166,7 @@ module Ably::Models
     def presence
       @presence ||=
         Array(hash[:presence]).map do |message|
-          Ably::Models.PresenceMessage(message, self)
+          Ably::Models.PresenceMessage(message, protocol_message: self)
         end
     end
 
@@ -206,5 +214,8 @@ module Ably::Models
       action_enum = action rescue nil
       !action_enum || (ack_required? && !has_serial?)
     end
+
+    private
+    attr_reader :logger
   end
 end

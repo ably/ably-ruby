@@ -6,6 +6,8 @@ module Ably::Modules
   # It also ensures the EventEmitter is configured to retrict permitted events to the
   # the available STATEs and :error.
   #
+  # @note This module requires that the method logger is defined.
+  #
   # @example
   #   class Connection
   #     include Ably::Modules::EventEmitter
@@ -119,12 +121,12 @@ module Ably::Modules
 
     private
 
-    # Returns an {EventMachine::Deferrable} and once the target state is reached, the
-    # success block if provided and {EventMachine::Deferrable#callback} is called.
-    # If the state changes to any other state, the {EventMachine::Deferrable#errback} is called.
+    # Returns an {Ably::Util::SafeDeferrable} and once the target state is reached, the
+    # success block if provided and {Ably::Util::SafeDeferrable#callback} is called.
+    # If the state changes to any other state, the {Ably::Util::SafeDeferrable#errback} is called.
     #
     def deferrable_for_state_change_to(target_state)
-      EventMachine::DefaultDeferrable.new.tap do |deferrable|
+      Ably::Util::SafeDeferrable.new(logger).tap do |deferrable|
         once_or_if(target_state, else: proc { |*args| deferrable.fail self, *args }) do
           yield self if block_given?
           deferrable.succeed self

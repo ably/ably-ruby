@@ -5,7 +5,7 @@ describe Ably::Models::PaginatedResource do
   let(:paginated_resource_class) { Ably::Models::PaginatedResource }
   let(:headers) { Hash.new }
   let(:client) do
-    instance_double('Ably::Rest::Client').tap do |client|
+    instance_double('Ably::Rest::Client', logger: true).tap do |client|
       allow(client).to receive(:get).and_return(http_response)
     end
   end
@@ -90,7 +90,7 @@ describe Ably::Models::PaginatedResource do
       }
     end
     let(:paged_client) do
-      instance_double('Ably::Rest::Client').tap do |client|
+      instance_double('Ably::Rest::Client', logger: true).tap do |client|
         allow(client).to receive(:get).and_return(http_response_page2)
       end
     end
@@ -137,9 +137,9 @@ describe Ably::Models::PaginatedResource do
         end
 
         context '#next_page' do
-          it 'returns a deferrable object' do
+          it 'returns a SafeDeferrable that catches exceptions in callbacks and logs them' do
             run_reactor do
-              expect(subject.next_page).to be_a(EventMachine::Deferrable)
+              expect(subject.next_page).to be_a(Ably::Util::SafeDeferrable)
               stop_reactor
             end
           end

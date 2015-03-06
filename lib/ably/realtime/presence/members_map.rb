@@ -69,11 +69,11 @@ module Ably::Realtime
       #
       # @yield [Array<Ably::Models::PresenceMessage>] array of present members
       #
-      # @return [EventMachine::Deferrable] Deferrable that supports both success (callback) and failure (errback) callbacks
+      # @return [Ably::Util::SafeDeferrable] Deferrable that supports both success (callback) and failure (errback) callbacks
       #
       def get(options = {})
         wait_for_sync = options.fetch(:wait_for_sync, true)
-        deferrable    = EventMachine::DefaultDeferrable.new
+        deferrable    = Ably::Util::SafeDeferrable.new(logger)
 
         result_block = proc do
           present_members.tap do |members|

@@ -101,7 +101,7 @@ module Ably
       # Retrieve the Ably service time
       #
       # @yield [Time] The time as reported by the Ably service
-      # @return [EventMachine::Deferrable]
+      # @return [Ably::Util::SafeDeferrable]
       #
       def time(&success_callback)
         async_wrap(success_callback) do
@@ -116,7 +116,7 @@ module Ably
       #
       # @yield [Ably::Models::PaginatedResource<Ably::Models::Stat>] An Array of Stats
       #
-      # @return [EventMachine::Deferrable]
+      # @return [Ably::Util::SafeDeferrable]
       #
       def stats(options = {}, &success_callback)
         async_wrap(success_callback) do

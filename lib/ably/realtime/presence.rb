@@ -65,12 +65,12 @@ module Ably::Realtime
     #                                     library must have been instanced either with a key, or with a token bound to the wildcard clientId.
     #
     # @yield [Ably::Realtime::Presence] On success, will call the block with this {Ably::Realtime::Presence} object
-    # @return [EventMachine::Deferrable] Deferrable that supports both success (callback) and failure (errback) callbacks
+    # @return [Ably::Util::SafeDeferrable] Deferrable that supports both success (callback) and failure (errback) callbacks
     #
     def enter(options = {}, &success_block)
       @client_id = options.fetch(:client_id, client_id)
       @data      = options.fetch(:data, nil)
-      deferrable = EventMachine::DefaultDeferrable.new
+      deferrable = create_deferrable
 
       raise Ably::Exceptions::Standard.new('Unable to enter presence channel without a client_id', 400, 91000) unless client_id
       return deferrable_succeed(deferrable, &success_block) if state == STATE.Entered
@@ -108,7 +108,7 @@ module Ably::Realtime
     # @option options [String] :data   optional data (eg a status message) for this member
     #
     # @yield [Ably::Realtime::Presence] On success, will call the block with this {Ably::Realtime::Presence} object
-    # @return [EventMachine::Deferrable] Deferrable that supports both success (callback) and failure (errback) callbacks
+    # @return [Ably::Util::SafeDeferrable] Deferrable that supports both success (callback) and failure (errback) callbacks
     #
     def enter_client(client_id, options = {}, &success_block)
       raise ArgumentError, 'options must be a Hash' unless options.kind_of?(Hash)
@@ -128,7 +128,7 @@ module Ably::Realtime
     #
     def leave(options = {}, &success_block)
       @data      = options.fetch(:data, data) # nil value defaults leave data to existing value
-      deferrable = EventMachine::DefaultDeferrable.new
+      deferrable = create_deferrable
 
       raise Ably::Exceptions::Standard.new('Unable to leave presence channel that is not entered', 400, 91002) unless able_to_leave?
       return deferrable_succeed(deferrable, &success_block) if state == STATE.Left
@@ -181,7 +181,7 @@ module Ably::Realtime
     #
     def update(options = {}, &success_block)
       @data      = options.fetch(:data, nil)
-      deferrable = EventMachine::DefaultDeferrable.new
+      deferrable = create_deferrable
 
       ensure_channel_attached(deferrable) do
         send_protocol_message_and_transition_state_to(
@@ -222,7 +222,7 @@ module Ably::Realtime
     # @return (see Ably::Realtime::Presence::MembersMap#get)
     #
     def get(options = {})
-      deferrable = EventMachine::DefaultDeferrable.new
+      deferrable = create_deferrable
 
       ensure_channel_attached(deferrable) do
         members.get(options).tap do |members_map_deferrable|
@@ -269,7 +269,7 @@ module Ably::Realtime
     #
     # @yield [Ably::Models::PaginatedResource<Ably::Models::PresenceMessage>] An Array of {Ably::Models::PresenceMessage} objects that supports paging (#next_page, #first_page)
     #
-    # @return [EventMachine::Deferrable]
+    # @return [Ably::Util::SafeDeferrable]
     #
     def history(options = {}, &callback)
       async_wrap(callback) do
@@ -334,7 +334,7 @@ module Ably::Realtime
       }
       model.merge!(data: options.fetch(:data)) if options.has_key?(:data)
 
-      Ably::Models::PresenceMessage.new(model, nil).tap do |presence_message|
+      Ably::Models::PresenceMessage.new(model, logger: logger).tap do |presence_message|
         presence_message.encode self.channel
       end
     end
@@ -383,10 +383,10 @@ module Ably::Realtime
       yield self, *args if block_given?
       EventMachine.next_tick { deferrable.fail self, *args } # allow errback to be added to the returned Deferrable
       deferrable
-    end
+      end
 
     def send_presence_action_for_client(action, client_id, options = {}, &success_block)
-      deferrable = EventMachine::DefaultDeferrable.new
+      deferrable = create_deferrable
 
       ensure_channel_attached(deferrable) do
         send_presence_protocol_message(action, client_id, options).tap do |protocol_message|
@@ -416,6 +416,10 @@ module Ably::Realtime
     # Force subscriptions to match valid PresenceMessage actions
     def message_emitter_subscriptions_coerce_message_key(name)
       Ably::Models::PresenceMessage.ACTION(name)
+    end
+
+    def create_deferrable
+      Ably::Util::SafeDeferrable.new(logger)
     end
   end
 end
