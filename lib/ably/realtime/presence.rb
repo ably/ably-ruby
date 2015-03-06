@@ -4,6 +4,7 @@ module Ably::Realtime
     include Ably::Modules::EventEmitter
     include Ably::Modules::AsyncWrapper
     include Ably::Modules::MessageEmitter
+    include Ably::Modules::SafeYield
     extend Ably::Modules::Enum
 
     STATE = ruby_enum('STATE',
@@ -221,13 +222,13 @@ module Ably::Realtime
     # @yield (see Ably::Realtime::Presence::MembersMap#get)
     # @return (see Ably::Realtime::Presence::MembersMap#get)
     #
-    def get(options = {})
+    def get(options = {}, &block)
       deferrable = create_deferrable
 
       ensure_channel_attached(deferrable) do
         members.get(options).tap do |members_map_deferrable|
           members_map_deferrable.callback do |*args|
-            yield *args if block_given?
+            safe_yield block, *args if block_given?
             deferrable.succeed *args
           end
           members_map_deferrable.errback do |*args|
@@ -373,14 +374,14 @@ module Ably::Realtime
       end
     end
 
-    def deferrable_succeed(deferrable, *args)
-      yield self, *args if block_given?
+    def deferrable_succeed(deferrable, *args, &block)
+      safe_yield block, self, *args if block_given?
       EventMachine.next_tick { deferrable.succeed self, *args } # allow callback to be added to the returned Deferrable before calling succeed
       deferrable
     end
 
-    def deferrable_fail(deferrable, *args)
-      yield self, *args if block_given?
+    def deferrable_fail(deferrable, *args, &block)
+      safe_yield block, self, *args if block_given?
       EventMachine.next_tick { deferrable.fail self, *args } # allow errback to be added to the returned Deferrable
       deferrable
       end
