@@ -34,7 +34,7 @@ module Ably::Util
       self.class.instance_eval do
         configure_event_emitter options
 
-        alias_method :subscribe, :on
+        alias_method :subscribe, :unsafe_on
         alias_method :publish, :trigger
         alias_method :unsubscribe, :off
       end
