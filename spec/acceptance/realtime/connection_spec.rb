@@ -1,5 +1,6 @@
 # encoding: utf-8
 require 'spec_helper'
+require 'ostruct'
 
 describe Ably::Realtime::Connection, :event_machine do
   let(:connection) { client.connection }
@@ -743,6 +744,23 @@ describe Ably::Realtime::Connection, :event_machine do
       end
     end
 
+    context 'protocol failure' do
+      let(:client_options) { default_options.merge(protocol: :json, log_level: :debug) }
+
+      context 'receiving an invalid ProtocolMessage' do
+        it 'emits an error on the connection and logs a fatal error message' do
+          connection.connect do
+            connection.transport.send(:driver).emit 'message', OpenStruct.new(data: { action: 500 }.to_json)
+          end
+
+          expect(client.logger).to receive(:fatal).with(/Invalid Protocol Message/)
+          connection.on(:error) do |error|
+            expect(error.message).to match(/Invalid Protocol Message/)
+            stop_reactor
+          end
+        end
+      end
+    end
 
     context 'undocumented method' do
       context '#internet_up?' do
