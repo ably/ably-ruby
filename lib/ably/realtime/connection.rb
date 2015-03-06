@@ -94,14 +94,14 @@ module Ably
       # An internal queue used to manage sent messages.  You should never interface with this array directly
       # @return [Array]
       # @api private
-      attr_reader :__pending_message_queue__
+      attr_reader :__pending_message_ack_queue__
 
       # @api public
       def initialize(client)
-        @client                     = client
-        @client_serial              = -1
-        @__outgoing_message_queue__ = []
-        @__pending_message_queue__  = []
+        @client                        = client
+        @client_serial                 = -1
+        @__outgoing_message_queue__    = []
+        @__pending_message_ack_queue__ = []
 
         Client::IncomingMessageDispatcher.new client, self
         Client::OutgoingMessageDispatcher.new client, self
@@ -202,7 +202,7 @@ module Ably
         "#{key}:#{serial}" if connection_resumable?
       end
 
-      # Following a new connection being made, resumed or recovered, the connection ID, connection key
+      # Following a new connection being made, the connection ID, connection key
       # and message serial need to match the details provided by the server.
       #
       # @return [void]
@@ -362,6 +362,29 @@ module Ably
         @error_reason = error
       end
 
+      # @api private
+      def clear_error_reason
+        @error_reason = nil
+      end
+
+      # Triggers registered callbacks for a successful connection resume event
+      # @api private
+      def resumed
+        resume_callbacks.each(&:call)
+      end
+
+      # Provides a simple hook to inject a callback when a connection is successfully resumed
+      # @api private
+      def on_resume(&callback)
+        resume_callbacks << callback
+      end
+
+      # Remove a registered connection resume callback
+      # @api private
+      def off_resume(&callback)
+        resume_callbacks.delete(callback)
+      end
+
       # As we are using a state machine, do not allow change_state to be used
       # #transition_state_machine must be used instead
       private :change_state
@@ -377,6 +400,10 @@ module Ably
       # recovery and resumes.
       # @return [Integer] starting at -1 indicating no messages sent, 0 when the first message is sent
       attr_reader :client_serial
+
+      def resume_callbacks
+        @resume_callbacks ||= []
+      end
 
       def create_pub_sub_message_bus
         Ably::Util::PubSub.new(
@@ -443,3 +470,7 @@ module Ably
     end
   end
 end
+
+require 'ably/realtime/connection/connection_manager'
+require 'ably/realtime/connection/connection_state_machine'
+require 'ably/realtime/connection/websocket_transport'

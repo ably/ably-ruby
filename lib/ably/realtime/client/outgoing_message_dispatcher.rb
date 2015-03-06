@@ -31,8 +31,8 @@ module Ably::Realtime
         connection.__outgoing_message_queue__
       end
 
-      def pending_queue
-        connection.__pending_message_queue__
+      def pending_ack_queue
+        connection.__pending_message_ack_queue__
       end
 
       def current_transport_outgoing_message_bus
@@ -47,7 +47,7 @@ module Ably::Realtime
           current_transport_outgoing_message_bus.publish :protocol_message, protocol_message
 
           if protocol_message.ack_required?
-            pending_queue << protocol_message
+            pending_ack_queue << protocol_message
           else
             protocol_message.succeed protocol_message
           end

@@ -47,63 +47,89 @@ describe Ably::Realtime::Presence do
 
   context 'subscriptions' do
     let(:message_history) { Hash.new { |hash, key| hash[key] = 0 } }
-    let(:presence_action) { Ably::Models::PresenceMessage::ACTION.Enter }
-    let(:message) do
-      instance_double('Ably::Models::PresenceMessage', action: presence_action, connection_id: random_str, decode: true, member_key: random_str)
+    let(:enter_action) { Ably::Models::PresenceMessage::ACTION.Enter }
+    let(:enter_message) do
+      instance_double('Ably::Models::PresenceMessage', action: enter_action, connection_id: random_str, decode: true, member_key: random_str)
+    end
+    let(:leave_message) do
+      instance_double('Ably::Models::PresenceMessage', action: Ably::Models::PresenceMessage::ACTION.Leave, connection_id: random_str, decode: true, member_key: random_str)
+    end
+    let(:update_message) do
+      instance_double('Ably::Models::PresenceMessage', action: Ably::Models::PresenceMessage::ACTION.Update, connection_id: random_str, decode: true, member_key: random_str)
     end
 
     context '#subscribe' do
-      before do
-        subject.sync_completed
+      specify 'without a block raises an invalid ArgumentError' do
+        expect { subject.subscribe }.to raise_error ArgumentError
       end
 
-      specify 'to all presence state actions' do
+      specify 'with no action specified subscribes the provided block to all action' do
         subject.subscribe { |message| message_history[:received] += 1}
-        subject.__incoming_msgbus__.publish(:presence, message)
+        subject.__incoming_msgbus__.publish(:presence, enter_message)
         expect(message_history[:received]).to eql(1)
       end
 
-      specify 'to specific presence state actions' do
-        subject.subscribe(presence_action) { |message| message_history[:received] += 1 }
+      specify 'with a single action argument subscribes that block to matching actions' do
+        subject.subscribe(enter_action) { |message| message_history[:received] += 1 }
         subject.subscribe(:leave)  { |message| message_history[:received] += 1 }
-        subject.__incoming_msgbus__.publish(:presence, message)
+        subject.__incoming_msgbus__.publish(:presence, enter_message)
+        expect(message_history[:received]).to eql(1)
+      end
+
+      specify 'with a multiple action arguments subscribes that block to all of those actions' do
+        subject.subscribe(:leave, enter_action) { |message| message_history[:received] += 1 }
+        subject.__incoming_msgbus__.publish(:presence, enter_message)
+        expect(message_history[:received]).to eql(1)
+        subject.__incoming_msgbus__.publish(:presence, leave_message)
+        expect(message_history[:received]).to eql(2)
+
+        # This message should be ignored as subscribed to :leave and :enter
+        subject.__incoming_msgbus__.publish(:presence, update_message)
+        expect(message_history[:received]).to eql(2)
+      end
+
+      specify 'with a multiple duplicate action arguments subscribes that block to all of those unique actions once' do
+        subject.subscribe(enter_action, enter_action) { |message| message_history[:received] += 1 }
+        subject.__incoming_msgbus__.publish(:presence, enter_message)
         expect(message_history[:received]).to eql(1)
       end
     end
 
     context '#unsubscribe' do
-      before do
-        subject.sync_completed
-      end
-
       let(:callback) do
         Proc.new { |message| message_history[:received] += 1 }
       end
       before do
-        subject.subscribe(presence_action, &callback)
+        subject.subscribe(enter_action, &callback)
       end
 
-      specify 'to all presence state actions' do
+      specify 'with no action specified unsubscribes that block from all events' do
         subject.unsubscribe &callback
-        subject.__incoming_msgbus__.publish(:presence, message)
+        subject.__incoming_msgbus__.publish(:presence, enter_message)
         expect(message_history[:received]).to eql(0)
       end
 
-      specify 'to specific presence state actions' do
-        subject.unsubscribe presence_action, &callback
-        subject.__incoming_msgbus__.publish(:presence, message)
+      specify 'with a single action argument unsubscribes the provided block with the matching action' do
+        subject.unsubscribe enter_action, &callback
+        subject.__incoming_msgbus__.publish(:presence, enter_message)
         expect(message_history[:received]).to eql(0)
       end
 
-      specify 'to specific non-matching presence state actions' do
+      specify 'with multiple action arguments unsubscribes each of those matching actions with the provided block' do
+        subject.unsubscribe :update, :leave, enter_action, &callback
+        subject.__incoming_msgbus__.publish(:presence, enter_message)
+        expect(message_history[:received]).to eql(0)
+      end
+
+      specify 'with a non-matching action argument has no effect' do
         subject.unsubscribe :leave, &callback
-        subject.__incoming_msgbus__.publish(:presence, message)
+        subject.__incoming_msgbus__.publish(:presence, enter_message)
         expect(message_history[:received]).to eql(1)
       end
 
-      specify 'all callbacks by not providing a callback' do
-        subject.unsubscribe presence_action
-        subject.__incoming_msgbus__.publish(:presence, message)
+      specify 'with no block argument unsubscribes all blocks for the action argument' do
+        subject.unsubscribe enter_action
+        subject.__incoming_msgbus__.publish(:presence, enter_message)
         expect(message_history[:received]).to eql(0)
       end
     end

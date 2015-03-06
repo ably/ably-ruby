@@ -591,7 +591,7 @@ describe Ably::Realtime::Connection, :event_machine do
         context 'connection#id and connection#key after recovery' do
           let(:client_options)   { default_options.merge(log_level: :none) }
 
-          it 'remain the same' do
+          it 'remains the same' do
             previous_connection_id  = nil
             previous_connection_key = nil
 
@@ -607,6 +607,22 @@ describe Ably::Realtime::Connection, :event_machine do
                 expect(recover_client.connection.key).to eql(previous_connection_key)
                 expect(recover_client.connection.id).to eql(previous_connection_id)
                 stop_reactor
+              end
+            end
+          end
+
+          it 'does not trigger a resume callback', api_private: true do
+            connection.once(:connected) do
+              connection.transition_state_machine! :failed
+            end
+
+            connection.once(:failed) do
+              recover_client = Ably::Realtime::Client.new(default_options.merge(recover: client.connection.recovery_key))
+              recover_client.connection.on_resume do
+                raise 'Should not trigger resume callback'
+              end
+              recover_client.connection.on(:connected) do
+                EventMachine.add_timer(0.5) { stop_reactor }
               end
             end
           end
@@ -653,6 +669,7 @@ describe Ably::Realtime::Connection, :event_machine do
           it 'triggers a fatal error on the connection object, sets the #error_reason and disconnects' do
             connection.once(:error) do |error|
               expect(connection.state).to eq(:failed)
+              expect(error.message).to match(/Invalid connection key/)
               expect(connection.error_reason.message).to match(/Invalid connection key/)
               expect(connection.error_reason.code).to eql(40006)
               expect(connection.error_reason).to eql(error)
@@ -667,6 +684,7 @@ describe Ably::Realtime::Connection, :event_machine do
           it 'triggers an error on the connection object, sets the #error_reason, yet will connect anyway' do
             connection.once(:error) do |error|
               expect(connection.state).to eq(:connected)
+              expect(error.message).to match(/Invalid connection key/i)
               expect(connection.error_reason.message).to match(/Invalid connection key/i)
               expect(connection.error_reason.code).to eql(80008)
               expect(connection.error_reason).to eql(error)

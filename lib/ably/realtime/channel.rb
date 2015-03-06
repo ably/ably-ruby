@@ -33,6 +33,7 @@ module Ably
       include Ably::Modules::EventEmitter
       include Ably::Modules::EventMachineHelpers
       include Ably::Modules::AsyncWrapper
+      include Ably::Modules::MessageEmitter
       extend Ably::Modules::Enum
 
       STATE = ruby_enum('STATE',
@@ -84,7 +85,6 @@ module Ably
         @client        = client
         @name          = name
         @options       = channel_options.clone.freeze
-        @subscriptions = Hash.new { |hash, key| hash[key] = [] }
         @queue         = []
 
         @state_machine = ChannelStateMachine.new(self)
@@ -92,6 +92,7 @@ module Ably
         @manager       = ChannelManager.new(self, client.connection)
 
         setup_event_handlers
+        setup_presence
       end
 
       # Publish a message on the channel
@@ -128,9 +129,9 @@ module Ably
       #
       # @return [void]
       #
-      def subscribe(name = :all, &callback)
+      def subscribe(*names, &callback)
         attach unless attached? || attaching?
-        subscriptions[message_name_key(name)] << callback
+        super
       end
 
       # Unsubscribe the matching block for messages matching providing event name, or all messages if event name not provided.
@@ -140,16 +141,8 @@ module Ably
       #
       # @return [void]
       #
-      def unsubscribe(name = :all, &callback)
-        if message_name_key(name) == :all
-          subscriptions.keys
-        else
-          Array(message_name_key(name))
-        end.each do |key|
-          subscriptions[key].delete_if do |block|
-            !block_given? || callback == block
-          end
-        end
+      def unsubscribe(*names, &callback)
+        super
       end
 
       # Attach to this channel, and call the block if provided when attached.
@@ -183,7 +176,7 @@ module Ably
       #
       def presence
         attach if initialized?
-        @presence ||= Presence.new(self)
+        @presence
       end
 
       # Return the message history of the channel
@@ -214,6 +207,11 @@ module Ably
         @error_reason = error
       end
 
+      # @api private
+      def clear_error_reason
+        @error_reason = nil
+      end
+
       # Used by {Ably::Modules::StateEmitter} to debug state changes
       # @api private
       def logger
@@ -221,14 +219,12 @@ module Ably
       end
 
       private
-      attr_reader :queue, :subscriptions
+      attr_reader :queue
 
       def setup_event_handlers
         __incoming_msgbus__.subscribe(:message) do |message|
           message.decode self
-
-          subscriptions[:all].each         { |cb| cb.call(message) }
-          subscriptions[message.name].each { |cb| cb.call(message) }
+          emit_message message.name, message
         end
 
         on(STATE.Attached) do
@@ -286,13 +282,12 @@ module Ably
         client.connection
       end
 
-      def message_name_key(name)
-        if name == :all
-          :all
-        else
-          name.to_s
-        end
+      def setup_presence
+        @presence ||= Presence.new(self)
       end
     end
   end
 end
+
+require 'ably/realtime/channel/channel_manager'
+require 'ably/realtime/channel/channel_state_machine'

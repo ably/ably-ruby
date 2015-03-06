@@ -75,15 +75,26 @@ module Ably::Realtime
       # @api private
       def connection_opening_failed(error)
         logger.warn "ConnectionManager: Connection to #{connection.current_host}:#{connection.port} failed; #{error.message}"
-        connection.transition_state_machine next_retry_state, Ably::Exceptions::ConnectionError.new("Connection failed; #{error.message}", nil, 80000)
+        connection.transition_state_machine next_retry_state, Ably::Exceptions::ConnectionError.new("Connection failed: #{error.message}", nil, 80000)
       end
 
-      # Called whenever a new connection message is received with an error
+      # Called whenever a new connection is made
       #
       # @api private
-      def connected_with_error(error)
-        logger.warn "ConnectionManager: Connected with error; #{error.message}"
-        connection.trigger :error, error
+      def connected(protocol_message)
+        if connection.key
+          if protocol_message.connection_key == connection.key
+            logger.debug "ConnectionManager: Connection resumed successfully - ID #{connection.id} and key #{connection.key}"
+            EventMachine.next_tick { connection.resumed }
+          else
+            logger.debug "ConnectionManager: Connection was not resumed, old connection ID #{connection.id} has been updated with new connect ID #{protocol_message.connection_id} and key #{protocol_message.connection_key}"
+            detach_attached_channels protocol_message.error
+            connection.configure_new protocol_message.connection_id, protocol_message.connection_key, protocol_message.connection_serial
+          end
+        else
+          logger.debug "ConnectionManager: New connection created with ID #{protocol_message.connection_id} and key #{protocol_message.connection_key}"
+          connection.configure_new protocol_message.connection_id, protocol_message.connection_key, protocol_message.connection_serial
+        end
       end
 
       # Ensures the underlying transport has been disconnected and all event emitter callbacks removed
@@ -207,6 +218,10 @@ module Ably::Realtime
         connection.client
       end
 
+      def channels
+        client.channels
+      end
+
       # Create a timer that will execute in timeout_in seconds.
       # If the connection state changes however, cancel the timer
       def create_timeout_timer_whilst_in_state(timer_id, timeout_in)
@@ -245,8 +260,8 @@ module Ably::Realtime
       def connection_retry_for(from_state, options = {})
         retry_params = CONNECT_RETRY_CONFIG.fetch(from_state)
 
-        if time_spent_attempting_state(from_state, options) <= retry_params.fetch(:max_time_in_state)
-          if retries_for_state(from_state, ignore_states: [:connecting]).length == 1
+        if time_spent_attempting_state(from_state, options) < retry_params.fetch(:max_time_in_state)
+          if retries_for_state(from_state, ignore_states: [:connecting]).empty?
             logger.debug "ConnectionManager: Will attempt reconnect immediately as no previous reconnect attempts made in this state"
             EventMachine.next_tick { connection.connect }
           else
@@ -287,7 +302,16 @@ module Ably::Realtime
         ignore_states = options.fetch(:ignore_states, [])
         allowed_states = Array(state) + Array(ignore_states)
 
-        connection.state_history.reverse.take_while do |transition|
+        state_history_ordered = connection.state_history.reverse
+        last_state = state_history_ordered.first
+
+        # If this method is called after the transition has been persisted to memory,
+        # then we need to ignore the current transition when reviewing the number of retries
+        if last_state[:state].to_sym == state && last_state.fetch(:transitioned_at).to_f > Time.now.to_f - 0.1
+          state_history_ordered.shift
+        end
+
+        state_history_ordered.take_while do |transition|
           allowed_states.include?(transition[:state].to_sym)
         end.select do |transition|
           transition[:state] == state
@@ -299,11 +323,14 @@ module Ably::Realtime
           connection.__incoming_protocol_msgbus__.publish :protocol_message, protocol_message
         end
 
-        transport.on(:disconnected) do
+        transport.on(:disconnected) do |reason|
           if connection.closing?
             connection.transition_state_machine :closed
           elsif !connection.closed? && !connection.disconnected?
-            connection.transition_state_machine :disconnected
+            exception = if reason
+              Ably::Exceptions::ConnectionClosedError.new(reason)
+            end
+            connection.transition_state_machine :disconnected, exception
           end
         end
       end
@@ -363,6 +390,15 @@ module Ably::Realtime
 
       def retry_connection?
         !@renewing_token
+      end
+
+      def detach_attached_channels(error)
+        channels.select do |channel|
+          channel.attached? || channel.attaching?
+        end.each do |channel|
+          logger.warn "Force detaching channel '#{channel.name}': #{error}"
+          channel.manager.suspend error
+        end
       end
 
       def logger
