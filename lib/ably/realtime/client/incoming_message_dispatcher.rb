@@ -93,7 +93,7 @@ module Ably::Realtime
           when ACTION.Detach
           when ACTION.Detached
             get_channel(protocol_message.channel).tap do |channel|
-              transition_state_machine :detached unless channel.detached?
+              channel.transition_state_machine :detached unless channel.detached?
             end
 
           when ACTION.Sync
