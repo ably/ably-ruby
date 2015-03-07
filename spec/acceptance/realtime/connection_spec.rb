@@ -149,14 +149,12 @@ describe Ably::Realtime::Connection, :event_machine do
                     connection.once(:connected) do
                       started_at = Time.now
                       connection.once(:disconnected) do |error|
-                        EventMachine.add_timer(1) do # allow 1 second
+                        connection.once(:connected) do
+                          expect(client.auth.current_token).to_not be_expired
                           expect(Time.now - started_at >= ttl)
                           expect(original_token).to be_expired
                           expect(error.code).to eql(40140) # token expired
-                          connection.once(:connected) do
-                            expect(client.auth.current_token).to_not be_expired
-                            stop_reactor
-                          end
+                          stop_reactor
                         end
                       end
                     end

@@ -154,6 +154,12 @@ module Ably::Realtime
         return unless connection.disconnected? || connection.suspended? # do nothing if state has changed through an explicit request
         return unless retry_connection? # do not always reattempt connection or change state as client may be re-authorising
 
+        error = current_transition.metadata
+        if error.kind_of?(Ably::Models::ErrorInfo)
+          renew_token_and_reconnect error if error.code == RESOLVABLE_ERROR_CODES.fetch(:token_expired)
+          return
+        end
+
         unless connection_retry_from_suspended_state?
           return if connection_retry_for(:disconnected, ignore_states: [:connecting])
         end
@@ -170,9 +176,10 @@ module Ably::Realtime
       def respond_to_transport_disconnected_whilst_connected(current_transition)
         logger.warn "ConnectionManager: Connection to #{connection.transport.url} was disconnected unexpectedly"
 
-        if current_transition.metadata.kind_of?(Ably::Models::ErrorInfo)
-          connection.trigger :error, current_transition.metadata
-          logger.error "ConnectionManager: Error received when disconnected within ProtocolMessage - #{current_transition.metadata}"
+        error = current_transition.metadata
+        if error.kind_of?(Ably::Models::ErrorInfo) && error.code != RESOLVABLE_ERROR_CODES.fetch(:token_expired)
+          connection.trigger :error, error
+          logger.error "ConnectionManager: Error in Disconnected ProtocolMessage received from the server - #{error}"
         end
 
         destroy_transport
@@ -363,7 +370,7 @@ module Ably::Realtime
             connection.unsafe_once :connected, :closed, :failed, &state_changed_callback
 
             if token && !token.expired?
-              reconnect_transport
+              connection.connect
             else
               connection.transition_state_machine :failed, error unless connection.failed?
             end
@@ -371,7 +378,7 @@ module Ably::Realtime
 
           EventMachine.defer operation, callback
         else
-          logger.warn "ConnectionManager: Token has expired and is not renewable"
+          logger.error "ConnectionManager: Token has expired and is not renewable"
           connection.transition_state_machine :failed, error
         end
       end
