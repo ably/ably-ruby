@@ -67,7 +67,7 @@ module Ably
 
       # Creates a {Ably::Rest::Client Rest Client} and configures the {Ably::Auth} object for the connection.
       #
-      # @param [Hash,String] options an options Hash used to configure the client and the authentication, or String with an API key
+      # @param [Hash,String] options an options Hash used to configure the client and the authentication, or String with an API key or Token ID
       # @option options (see Ably::Auth#authorise)
       # @option options [Boolean]                 :tls                 TLS is used by default, providing a value of false disables TLS.  Please note Basic Auth is disallowed without TLS as secrets cannot be transmitted over unsecured connections.
       # @option options [String]                  :api_key             API key comprising the key ID and key secret in a single string
@@ -96,7 +96,11 @@ module Ably
 
         options = options.clone
         if options.kind_of?(String)
-          options = { api_key: options }
+          options = if options.match(/^[\w]{2,}\.[\w]{2,}:[\w]{2,}$/)
+            { api_key:  options }
+          else
+            { token_id: options }
+          end
         end
 
         @tls           = options.delete(:tls) == false ? false : true
