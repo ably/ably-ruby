@@ -745,7 +745,7 @@ describe Ably::Realtime::Connection, :event_machine do
     end
 
     context 'protocol failure' do
-      let(:client_options) { default_options.merge(protocol: :json, log_level: :debug) }
+      let(:client_options) { default_options.merge(protocol: :json) }
 
       context 'receiving an invalid ProtocolMessage' do
         it 'emits an error on the connection and logs a fatal error message' do
