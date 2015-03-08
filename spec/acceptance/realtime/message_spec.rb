@@ -197,7 +197,8 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
 
     context 'server incorrectly resends a message that was already received by the client library' do
       let(:messages_received) { [] }
-      let(:connection) { client.connection }
+      let(:connection)        { client.connection }
+      let(:client_options)    { default_options.merge(log_level: :fatal) }
 
       it 'discards the message and logs it as an error to the channel' do
         first_message_protocol_message = nil
