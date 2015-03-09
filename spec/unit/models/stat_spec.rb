@@ -64,22 +64,22 @@ describe Ably::Models::Stat do
 
     describe '#from_interval_id' do
       it 'converts a month interval_id 2014-02 into a Time object in UTC 0' do
-        expect(subject.from_interval_id('2014-02')).to eql(Time.new(2014, 2))
+        expect(subject.from_interval_id('2014-02')).to eql(Time.gm(2014, 2))
         expect(subject.from_interval_id('2014-02').utc_offset).to eql(0)
       end
 
       it 'converts a day interval_id 2014-02-03 into a Time object in UTC 0' do
-        expect(subject.from_interval_id('2014-02-03')).to eql(Time.new(2014, 2, 3))
+        expect(subject.from_interval_id('2014-02-03')).to eql(Time.gm(2014, 2, 3))
         expect(subject.from_interval_id('2014-02-03').utc_offset).to eql(0)
       end
 
       it 'converts an hour interval_id 2014-02-03:05 into a Time object in UTC 0' do
-        expect(subject.from_interval_id('2014-02-03:05')).to eql(Time.new(2014, 2, 3, 5))
+        expect(subject.from_interval_id('2014-02-03:05')).to eql(Time.gm(2014, 2, 3, 5))
         expect(subject.from_interval_id('2014-02-03:05').utc_offset).to eql(0)
       end
 
       it 'converts a minute interval_id 2014-02-03:05:06 into a Time object in UTC 0' do
-        expect(subject.from_interval_id('2014-02-03:05:06')).to eql(Time.new(2014, 2, 3, 5, 6))
+        expect(subject.from_interval_id('2014-02-03:05:06')).to eql(Time.gm(2014, 2, 3, 5, 6))
         expect(subject.from_interval_id('2014-02-03:05:06').utc_offset).to eql(0)
       end
 
