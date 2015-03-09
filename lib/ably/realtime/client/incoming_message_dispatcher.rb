@@ -41,6 +41,20 @@ module Ably::Realtime
           logger.debug "#{protocol_message.action} received: #{protocol_message}"
         end
 
+        if [:sync, :presence, :message].any? { |prevent_duplicate| protocol_message.action == prevent_duplicate }
+          if connection.serial && protocol_message.has_connection_serial? && protocol_message.connection_serial <= connection.serial
+            error_target = if protocol_message.channel
+              get_channel(protocol_message.channel)
+            else
+              connection
+            end
+            error_message = "Protocol error, duplicate message received for serial #{protocol_message.connection_serial}"
+            error_target.trigger :error, Ably::Exceptions::ProtocolError.new(error_message, 400, 80013)
+            logger.error error_message
+            return
+          end
+        end
+
         update_connection_recovery_info protocol_message
 
         case protocol_message.action
@@ -54,14 +68,14 @@ module Ably::Realtime
 
           when ACTION.Connect
           when ACTION.Connected
-            connection.transition_state_machine :connected, protocol_message
+            connection.transition_state_machine :connected, protocol_message unless connection.connected?
 
           when ACTION.Disconnect, ACTION.Disconnected
-            connection.transition_state_machine :disconnected, protocol_message.error
+            connection.transition_state_machine :disconnected, protocol_message.error unless connection.disconnected?
 
           when ACTION.Close
           when ACTION.Closed
-            connection.transition_state_machine :closed
+            connection.transition_state_machine :closed unless connection.closed?
 
           when ACTION.Error
             if protocol_message.channel && !protocol_message.has_message_serial?
@@ -72,11 +86,15 @@ module Ably::Realtime
 
           when ACTION.Attach
           when ACTION.Attached
-            get_channel(protocol_message.channel).transition_state_machine :attached, protocol_message
+            get_channel(protocol_message.channel).tap do |channel|
+              channel.transition_state_machine :attached, protocol_message unless channel.attached?
+            end
 
           when ACTION.Detach
           when ACTION.Detached
-            get_channel(protocol_message.channel).transition_state_machine :detached
+            get_channel(protocol_message.channel).tap do |channel|
+              channel.transition_state_machine :detached unless channel.detached?
+            end
 
           when ACTION.Sync
             presence = get_channel(protocol_message.channel).presence
@@ -98,7 +116,9 @@ module Ably::Realtime
             end
 
           else
-            raise ArgumentError, "Protocol Message Action #{protocol_message.action} is unsupported by this MessageDispatcher"
+            error = Ably::Exceptions::ProtocolError.new("Protocol Message Action #{protocol_message.action} is unsupported by this MessageDispatcher", 400, 80013)
+            client.connection.trigger :error, error
+            logger.fatal error.message
         end
       end
 

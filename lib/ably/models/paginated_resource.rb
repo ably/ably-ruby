@@ -31,23 +31,23 @@ module Ably::Models
     end
 
     # Retrieve the first page of results.
-    # When used as part of the {Ably::Realtime} library, it will return a {EventMachine::Deferrable} object,
+    # When used as part of the {Ably::Realtime} library, it will return a {Ably::Util::SafeDeferrable} object,
     #   and allows an optional success callback block to be provided.
     #
-    # @return [PaginatedResource,EventMachine::Deferrable]
+    # @return [PaginatedResource,Ably::Util::SafeDeferrable]
     def first_page(&success_callback)
-      async_wrap_if(make_async, success_callback) do
+      async_wrap_if_realtime(success_callback) do
         PaginatedResource.new(client.get(pagination_url('first')), base_url, client, pagination_options, &each_block)
       end
     end
 
     # Retrieve the next page of results.
-    # When used as part of the {Ably::Realtime} library, it will return a {EventMachine::Deferrable} object,
+    # When used as part of the {Ably::Realtime} library, it will return a {Ably::Util::SafeDeferrable} object,
     #   and allows an optional success callback block to be provided.
     #
-    # @return [PaginatedResource,EventMachine::Deferrable]
+    # @return [PaginatedResource,Ably::Util::SafeDeferrable]
     def next_page(&success_callback)
-      async_wrap_if(make_async, success_callback) do
+      async_wrap_if_realtime(success_callback) do
         raise Ably::Exceptions::InvalidPageError, 'There are no more pages' if supports_pagination? && last_page?
         PaginatedResource.new(client.get(pagination_url('next')), base_url, client, pagination_options, &each_block)
       end
@@ -161,13 +161,17 @@ module Ably::Models
       }
     end
 
-    def async_wrap_if(is_realtime, success_callback, &operation)
-      if is_realtime
+    def async_wrap_if_realtime(success_callback, &operation)
+      if make_async
         raise 'EventMachine is required for asynchronous operations' unless defined?(EventMachine)
         async_wrap success_callback, &operation
       else
         yield
       end
+    end
+
+    def logger
+      client.logger
     end
   end
 end

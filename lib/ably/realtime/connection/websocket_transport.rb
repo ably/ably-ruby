@@ -143,11 +143,14 @@ module Ably::Realtime
 
         driver.on("message") do |event|
           event_data = parse_event_data(event.data).freeze
-          protocol_message = Ably::Models::ProtocolMessage.new(event_data)
-          logger.debug "WebsocketTransport: Prot msg recv <=: #{protocol_message.action} #{event_data}"
+          protocol_message = Ably::Models::ProtocolMessage.new(event_data, logger: logger)
+          action_name = Ably::Models::ProtocolMessage::ACTION[event_data['action']] rescue event_data['action']
+          logger.debug "WebsocketTransport: Prot msg recv <=: #{action_name} - #{event_data}"
 
           if protocol_message.invalid?
-            logger.fatal "WebsocketTransport: Invalid Protocol Message received: #{event_data}\nNo action taken"
+            error = Ably::Exceptions::ProtocolError.new("Invalid Protocol Message received: #{event_data}\nMessage has been discarded", 400, 80013)
+            connection.trigger :error, error
+            logger.fatal "WebsocketTransport: #{error.message}"
           else
             __incoming_protocol_msgbus__.publish :protocol_message, protocol_message
           end

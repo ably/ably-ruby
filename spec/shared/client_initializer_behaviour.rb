@@ -113,6 +113,14 @@ shared_examples 'a client initializer' do
       end
     end
 
+    context 'with a string token key instead of options hash' do
+      let(:client_options) { 'app.kjhkasjhdsakdh127g7g1271' }
+
+      it 'sets the token_id' do
+        expect(subject.auth.token_id).to eql(client_options)
+      end
+    end
+
     context 'with token' do
       let(:client_options) { { token_id: 'token' } }
 

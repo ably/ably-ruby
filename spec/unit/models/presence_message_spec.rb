@@ -28,7 +28,7 @@ describe Ably::Models::PresenceMessage do
       end
 
       context 'with a protocol message with a different connectionId' do
-        let(:model) { subject.new({ 'connectionId' => model_connection_id }, protocol_message) }
+        let(:model) { subject.new({ 'connectionId' => model_connection_id }, protocol_message: protocol_message) }
 
         it 'uses the model value' do
           expect(model.connection_id).to eql(model_connection_id)
@@ -46,7 +46,7 @@ describe Ably::Models::PresenceMessage do
       end
 
       context 'with a protocol message with a connectionId' do
-        let(:model) { subject.new({ }, protocol_message) }
+        let(:model) { subject.new({ }, protocol_message: protocol_message) }
 
         it 'uses the model value' do
           expect(model.connection_id).to eql(protocol_connection_id)
@@ -63,8 +63,8 @@ describe Ably::Models::PresenceMessage do
     end
 
     context 'with the same client id across multiple connections' do
-      let(:connection_1) { subject.new({ client_id: 'same', connection_id: 'unique' }, protocol_message) }
-      let(:connection_2) { subject.new({ client_id: 'same', connection_id: 'different' }, protocol_message) }
+      let(:connection_1) { subject.new({ client_id: 'same', connection_id: 'unique' }, protocol_message: protocol_message) }
+      let(:connection_2) { subject.new({ client_id: 'same', connection_id: 'different' }, protocol_message: protocol_message) }
 
       it 'is unique' do
         expect(connection_1.member_key).to_not eql(connection_2.member_key)
@@ -72,8 +72,8 @@ describe Ably::Models::PresenceMessage do
     end
 
     context 'with a single connection and different client_ids' do
-      let(:client_1) { subject.new({ client_id: 'unique', connection_id: 'same' }, protocol_message) }
-      let(:client_2) { subject.new({ client_id: 'different', connection_id: 'same' }, protocol_message) }
+      let(:client_1) { subject.new({ client_id: 'unique', connection_id: 'same' }, protocol_message: protocol_message) }
+      let(:client_2) { subject.new({ client_id: 'different', connection_id: 'same' }, protocol_message: protocol_message) }
 
       it 'is unique' do
         expect(client_1.member_key).to_not eql(client_2.member_key)
@@ -82,7 +82,7 @@ describe Ably::Models::PresenceMessage do
   end
 
   context '#timestamp' do
-    let(:model) { subject.new({}, protocol_message) }
+    let(:model) { subject.new({}, protocol_message: protocol_message) }
     it 'retrieves attribute :timestamp as a Time object from ProtocolMessage' do
       expect(model.timestamp).to be_a(Time)
       expect(model.timestamp.to_i).to be_within(1).of(Time.now.to_i)
@@ -90,7 +90,7 @@ describe Ably::Models::PresenceMessage do
   end
 
   context 'Java naming', :api_private do
-    let(:model) { subject.new({ clientId: 'joe' }, protocol_message) }
+    let(:model) { subject.new({ clientId: 'joe' }, protocol_message: protocol_message) }
 
     it 'converts the attribute to ruby symbol naming convention' do
       expect(model.client_id).to eql('joe')
@@ -99,7 +99,7 @@ describe Ably::Models::PresenceMessage do
 
   context 'with action', :api_private do
     context 'absent' do
-      let(:model) { subject.new({ action: 0 }, protocol_message) }
+      let(:model) { subject.new({ action: 0 }, protocol_message: protocol_message) }
 
       it 'provides action as an Enum' do
         expect(model.action).to eq(:absent)
@@ -107,7 +107,7 @@ describe Ably::Models::PresenceMessage do
     end
 
     context 'enter' do
-      let(:model) { subject.new({ action: 2 }, protocol_message) }
+      let(:model) { subject.new({ action: 2 }, protocol_message: protocol_message) }
 
       it 'provides action as an Enum' do
         expect(model.action).to eq(:enter)
@@ -116,7 +116,7 @@ describe Ably::Models::PresenceMessage do
   end
 
   context 'without action', :api_private do
-    let(:model) { subject.new({}, protocol_message) }
+    let(:model) { subject.new({}, protocol_message: protocol_message) }
 
     it 'raises an exception when accessed' do
       expect { model.action }.to raise_error KeyError
@@ -129,7 +129,7 @@ describe Ably::Models::PresenceMessage do
         let(:encoded_value)   { value.encode(encoding) }
         let(:value)           { random_str }
         let(:options)         { { attribute.to_sym => encoded_value } }
-        let(:model)           { subject.new(options, protocol_message) }
+        let(:model)           { subject.new(options, protocol_message: protocol_message) }
         let(:model_attribute) { model.public_send(attribute) }
 
         context 'as UTF_8 string' do
@@ -191,7 +191,7 @@ describe Ably::Models::PresenceMessage do
     let(:json_object) { JSON.parse(model.to_json) }
 
     context 'with valid data' do
-      let(:model) { subject.new({ action: 'enter', clientId: 'joe' }, protocol_message) }
+      let(:model) { subject.new({ action: 'enter', clientId: 'joe' }, protocol_message: protocol_message) }
 
       it 'converts the attribute back to Java mixedCase notation using string keys' do
         expect(json_object["clientId"]).to eql('joe')
@@ -199,7 +199,7 @@ describe Ably::Models::PresenceMessage do
     end
 
     context 'with invalid data' do
-      let(:model) { subject.new({ clientId: 'joe' }, protocol_message) }
+      let(:model) { subject.new({ clientId: 'joe' }, protocol_message: protocol_message) }
 
       it 'raises an exception' do
         expect { model.to_json }.to raise_error KeyError, /cannot generate a valid Hash/
@@ -208,7 +208,7 @@ describe Ably::Models::PresenceMessage do
 
     context 'with binary data' do
       let(:data) { MessagePack.pack(random_str(32)) }
-      let(:model) { subject.new({ action: 'enter', data: data }, protocol_message) }
+      let(:model) { subject.new({ action: 'enter', data: data }, protocol_message: protocol_message) }
 
       it 'encodes as Base64 so that it can be converted to UTF-8 automatically by JSON#dump' do
         expect(json_object["data"]).to eql(::Base64.encode64(data))
@@ -319,7 +319,7 @@ describe Ably::Models::PresenceMessage do
       end
 
       context 'with ProtocolMessage' do
-        subject { Ably::Models.PresenceMessage(json, protocol_message) }
+        subject { Ably::Models.PresenceMessage(json, protocol_message: protocol_message) }
 
         it 'returns a PresenceMessage object' do
           expect(subject).to be_a(Ably::Models::PresenceMessage)
@@ -363,7 +363,7 @@ describe Ably::Models::PresenceMessage do
       end
 
       context 'with ProtocolMessage' do
-        subject { Ably::Models.PresenceMessage(message, protocol_message) }
+        subject { Ably::Models.PresenceMessage(message, protocol_message: protocol_message) }
 
         it 'returns a PresenceMessage object' do
           expect(subject).to be_a(Ably::Models::PresenceMessage)

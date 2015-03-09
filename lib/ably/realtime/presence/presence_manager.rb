@@ -42,15 +42,15 @@ module Ably::Realtime
       def_delegators :presence, :members, :channel
 
       def setup_channel_event_handlers
-        channel.on(:detached) do
+        channel.unsafe_on(:detached) do
           presence.transition_state_machine :left if presence.can_transition_to?(:left)
         end
 
-        channel.on(:failed) do |metadata|
+        channel.unsafe_on(:failed) do |metadata|
           presence.transition_state_machine :failed, metadata if presence.can_transition_to?(:failed)
         end
 
-        presence.on(:entered) do |message|
+        presence.unsafe_on(:entered) do |message|
           presence.set_connection_id message.connection_id
         end
       end

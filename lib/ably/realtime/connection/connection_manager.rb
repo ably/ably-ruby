@@ -29,11 +29,11 @@ module Ably::Realtime
         @connection = connection
         @timers     = Hash.new { |hash, key| hash[key] = [] }
 
-        connection.on(:closed) do
+        connection.unsafe_on(:closed) do
           connection.reset_resume_info
         end
 
-        connection.once(:connecting) do
+        connection.unsafe_once(:connecting) do
           close_connection_when_reactor_is_stopped
         end
 
@@ -144,7 +144,7 @@ module Ably::Realtime
       def fail(error)
         connection.logger.fatal "ConnectionManager: Connection failed - #{error}"
         connection.manager.destroy_transport
-        connection.once(:failed) { connection.trigger :error, error }
+        connection.unsafe_once(:failed) { connection.trigger :error, error }
       end
 
       # When a connection is disconnected whilst connecting, attempt reconnect and/or set state to :suspended or :failed
@@ -153,6 +153,12 @@ module Ably::Realtime
       def respond_to_transport_disconnected_when_connecting(current_transition)
         return unless connection.disconnected? || connection.suspended? # do nothing if state has changed through an explicit request
         return unless retry_connection? # do not always reattempt connection or change state as client may be re-authorising
+
+        error = current_transition.metadata
+        if error.kind_of?(Ably::Models::ErrorInfo)
+          renew_token_and_reconnect error if error.code == RESOLVABLE_ERROR_CODES.fetch(:token_expired)
+          return
+        end
 
         unless connection_retry_from_suspended_state?
           return if connection_retry_for(:disconnected, ignore_states: [:connecting])
@@ -170,9 +176,10 @@ module Ably::Realtime
       def respond_to_transport_disconnected_whilst_connected(current_transition)
         logger.warn "ConnectionManager: Connection to #{connection.transport.url} was disconnected unexpectedly"
 
-        if current_transition.metadata.kind_of?(Ably::Models::ErrorInfo)
-          connection.trigger :error, current_transition.metadata
-          logger.error "ConnectionManager: Error received when disconnected within ProtocolMessage - #{current_transition.metadata}"
+        error = current_transition.metadata
+        if error.kind_of?(Ably::Models::ErrorInfo) && error.code != RESOLVABLE_ERROR_CODES.fetch(:token_expired)
+          connection.trigger :error, error
+          logger.error "ConnectionManager: Error in Disconnected ProtocolMessage received from the server - #{error}"
         end
 
         destroy_transport
@@ -187,7 +194,7 @@ module Ably::Realtime
         case error.code
         when RESOLVABLE_ERROR_CODES.fetch(:token_expired)
           connection.transition_state_machine :disconnected
-          connection.once_or_if(:disconnected) do
+          connection.unsafe_once_or_if(:disconnected) do
             renew_token_and_reconnect error
           end
         else
@@ -230,7 +237,7 @@ module Ably::Realtime
         timers[timer_id] << EventMachine::Timer.new(timeout_in) do
           yield
         end
-        connection.once_state_changed { clear_timers timer_id }
+        connection.unsafe_once_state_changed { clear_timers timer_id }
       end
 
       def clear_timers(key)
@@ -319,11 +326,11 @@ module Ably::Realtime
       end
 
       def subscribe_to_transport_events(transport)
-        transport.__incoming_protocol_msgbus__.on(:protocol_message) do |protocol_message|
+        transport.__incoming_protocol_msgbus__.unsafe_on(:protocol_message) do |protocol_message|
           connection.__incoming_protocol_msgbus__.publish :protocol_message, protocol_message
         end
 
-        transport.on(:disconnected) do |reason|
+        transport.unsafe_on(:disconnected) do |reason|
           if connection.closing?
             connection.transition_state_machine :closed
           elsif !connection.closed? && !connection.disconnected?
@@ -360,10 +367,10 @@ module Ably::Realtime
               connection.off &state_changed_callback
             end
 
-            connection.once :connected, :closed, :failed, &state_changed_callback
+            connection.unsafe_once :connected, :closed, :failed, &state_changed_callback
 
             if token && !token.expired?
-              reconnect_transport
+              connection.connect
             else
               connection.transition_state_machine :failed, error unless connection.failed?
             end
@@ -371,7 +378,7 @@ module Ably::Realtime
 
           EventMachine.defer operation, callback
         else
-          logger.warn "ConnectionManager: Token has expired and is not renewable"
+          logger.error "ConnectionManager: Token has expired and is not renewable"
           connection.transition_state_machine :failed, error
         end
       end

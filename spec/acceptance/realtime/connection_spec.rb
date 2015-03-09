@@ -1,5 +1,6 @@
 # encoding: utf-8
 require 'spec_helper'
+require 'ostruct'
 
 describe Ably::Realtime::Connection, :event_machine do
   let(:connection) { client.connection }
@@ -148,14 +149,12 @@ describe Ably::Realtime::Connection, :event_machine do
                     connection.once(:connected) do
                       started_at = Time.now
                       connection.once(:disconnected) do |error|
-                        EventMachine.add_timer(1) do # allow 1 second
+                        connection.once(:connected) do
+                          expect(client.auth.current_token).to_not be_expired
                           expect(Time.now - started_at >= ttl)
                           expect(original_token).to be_expired
                           expect(error.code).to eql(40140) # token expired
-                          connection.once(:connected) do
-                            expect(client.auth.current_token).to_not be_expired
-                            stop_reactor
-                          end
+                          stop_reactor
                         end
                       end
                     end
@@ -234,8 +233,8 @@ describe Ably::Realtime::Connection, :event_machine do
     end
 
     context '#connect' do
-      it 'returns a Deferrable' do
-        expect(connection.connect).to be_a(EventMachine::Deferrable)
+      it 'returns a SafeDeferrable that catches exceptions in callbacks and logs them' do
+        expect(connection.connect).to be_a(Ably::Util::SafeDeferrable)
         stop_reactor
       end
 
@@ -372,9 +371,9 @@ describe Ably::Realtime::Connection, :event_machine do
     end
 
     context '#close' do
-      it 'returns a Deferrable' do
+      it 'returns a SafeDeferrable that catches exceptions in callbacks and logs them' do
         connection.connect do
-          expect(connection.close).to be_a(EventMachine::Deferrable)
+          expect(connection.close).to be_a(Ably::Util::SafeDeferrable)
           stop_reactor
         end
       end
@@ -502,6 +501,17 @@ describe Ably::Realtime::Connection, :event_machine do
         it 'raises an exception' do
           expect { connection.ping }.to raise_error RuntimeError, /Cannot send a ping when connection/
           stop_reactor
+        end
+      end
+
+      context 'with a success block that raises an exception' do
+        it 'catches the exception and logs the error' do
+          connection.on(:connected) do
+            expect(connection.logger).to receive(:error).with(/Forced exception/) do
+              stop_reactor
+            end
+            connection.ping { raise 'Forced exception' }
+          end
         end
       end
     end
@@ -732,6 +742,23 @@ describe Ably::Realtime::Connection, :event_machine do
       end
     end
 
+    context 'protocol failure' do
+      let(:client_options) { default_options.merge(protocol: :json) }
+
+      context 'receiving an invalid ProtocolMessage' do
+        it 'emits an error on the connection and logs a fatal error message' do
+          connection.connect do
+            connection.transport.send(:driver).emit 'message', OpenStruct.new(data: { action: 500 }.to_json)
+          end
+
+          expect(client.logger).to receive(:fatal).with(/Invalid Protocol Message/)
+          connection.on(:error) do |error|
+            expect(error.message).to match(/Invalid Protocol Message/)
+            stop_reactor
+          end
+        end
+      end
+    end
 
     context 'undocumented method' do
       context '#internet_up?' do

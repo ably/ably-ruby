@@ -2,17 +2,17 @@ module Ably::Models
   # Convert presence_messsage argument to a {PresenceMessage} object and associate with a protocol message if provided
   #
   # @param presence_message [PresenceMessage,Hash] A presence message object or Hash of presence message properties
-  # @param protocol_message [ProtocolMessage] An optional protocol message to assocate the presence message with
+  # @param [Hash] options (see PresenceMessage#initialize)
   #
   # @return [PresenceMessage]
-  def self.PresenceMessage(presence_message, protocol_message = nil)
+  def self.PresenceMessage(presence_message, options = {})
     case presence_message
     when PresenceMessage
       presence_message.tap do
-        presence_message.assign_to_protocol_message protocol_message
+        presence_message.assign_to_protocol_message options[:protocol_message] if options[:protocol_message]
       end
     else
-      PresenceMessage.new(presence_message, protocol_message)
+      PresenceMessage.new(presence_message, options)
     end
   end
 
@@ -41,7 +41,7 @@ module Ably::Models
     include Ably::Modules::Conversions
     include Ably::Modules::Encodeable
     include Ably::Modules::ModelCommon
-    include EventMachine::Deferrable
+    include Ably::Modules::SafeDeferrable if defined?(Ably::Realtime)
     extend Ably::Modules::Enum
 
     ACTION = ruby_enum('ACTION',
@@ -52,13 +52,16 @@ module Ably::Models
       :update
     )
 
-    # {Message} initializer
+    # {PresenceMessage} initializer
     #
-    # @param hash_object      [Hash]             object with the underlying message details
-    # @param protocol_message [ProtocolMessage] if this message has been published, then it is associated with a {ProtocolMessage}
+    # @param  hash_object [Hash]            object with the underlying presence message details
+    # @param  [Hash]      options           an options Hash for this initializer
+    # @option options     [ProtocolMessage] :protocol_message  An optional protocol message to assocate the presence message with
+    # @option options     [Logger]          :logger            An optional Logger to be used by {Ably::Modules::SafeDeferrable} if an exception is caught in a callback
     #
-    def initialize(hash_object, protocol_message = nil)
-      @protocol_message = protocol_message
+    def initialize(hash_object, options = {})
+      @logger           = options[:logger] # Logger expected for SafeDeferrable
+      @protocol_message = options[:protocol_message]
       @raw_hash_object  = hash_object
 
       set_hash_object hash_object
@@ -142,6 +145,11 @@ module Ably::Models
 
     def set_hash_object(hash)
       @hash_object = IdiomaticRubyWrapper(hash.clone.freeze, stop_at: [:data])
+    end
+
+    def logger
+      return logger if logger
+      protocol_message.logger if protocol_message
     end
   end
 end

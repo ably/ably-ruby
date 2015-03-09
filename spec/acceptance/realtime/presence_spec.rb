@@ -53,9 +53,9 @@ describe Ably::Realtime::Presence, :event_machine do
         end
       end
 
-      it 'returns a Deferrable' do
+      it 'returns a SafeDeferrable that catches exceptions in callbacks and logs them' do
         setup_test(method_name, args, options) do
-          expect(presence_client_one.public_send(method_name, args)).to be_a(EventMachine::Deferrable)
+          expect(presence_client_one.public_send(method_name, args)).to be_a(Ably::Util::SafeDeferrable)
           stop_reactor
         end
       end
@@ -67,6 +67,15 @@ describe Ably::Realtime::Presence, :event_machine do
             expect(presence_client_one.state).to eq(expected_state) if expected_state
             stop_reactor
           end
+        end
+      end
+
+      it 'catches exceptions in the provided method block and logs them to the logger' do
+        setup_test(method_name, args, options) do
+          expect(presence_client_one.logger).to receive(:error).with(/Intentional exception/) do
+            stop_reactor
+          end
+          presence_client_one.public_send(method_name, args) { raise 'Intentional exception' }
         end
       end
 
@@ -852,8 +861,8 @@ describe Ably::Realtime::Presence, :event_machine do
     end
 
     context '#get' do
-      it 'returns a Deferrable' do
-        expect(presence_client_one.get).to be_a(EventMachine::Deferrable)
+      it 'returns a SafeDeferrable that catches exceptions in callbacks and logs them' do
+        expect(presence_client_one.get).to be_a(Ably::Util::SafeDeferrable)
         stop_reactor
       end
 
@@ -862,6 +871,13 @@ describe Ably::Realtime::Presence, :event_machine do
           expect(presence).to eq([])
           stop_reactor
         end
+      end
+
+      it 'catches exceptions in the provided method block' do
+        expect(presence_client_one.logger).to receive(:error).with(/Intentional exception/) do
+          stop_reactor
+        end
+        presence_client_one.get { raise 'Intentional exception' }
       end
 
       %w(detached failed).each do |state|

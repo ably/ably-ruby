@@ -14,6 +14,7 @@ module Ably::Realtime
     #
     class MembersMap
       include Ably::Modules::EventEmitter
+      include Ably::Modules::SafeYield
       include Enumerable
       extend Ably::Modules::Enum
 
@@ -69,18 +70,18 @@ module Ably::Realtime
       #
       # @yield [Array<Ably::Models::PresenceMessage>] array of present members
       #
-      # @return [EventMachine::Deferrable] Deferrable that supports both success (callback) and failure (errback) callbacks
+      # @return [Ably::Util::SafeDeferrable] Deferrable that supports both success (callback) and failure (errback) callbacks
       #
-      def get(options = {})
+      def get(options = {}, &block)
         wait_for_sync = options.fetch(:wait_for_sync, true)
-        deferrable    = EventMachine::DefaultDeferrable.new
+        deferrable    = Ably::Util::SafeDeferrable.new(logger)
 
         result_block = proc do
           present_members.tap do |members|
             members.keep_if { |member| member.connection_id == options[:connection_id] } if options[:connection_id]
             members.keep_if { |member| member.client_id == options[:client_id] } if options[:client_id]
           end.tap do |members|
-            yield members if block_given?
+            safe_yield block, members if block_given?
             deferrable.succeed members
           end
         end
@@ -110,7 +111,7 @@ module Ably::Realtime
           once :in_sync, &in_sync_callback
 
           once(:failed, &failed_callback)
-          channel.once(:detaching, :detached, :failed) do |error_reason|
+          channel.unsafe_once(:detaching, :detached, :failed) do |error_reason|
             failed_callback.call error_reason
           end
         end

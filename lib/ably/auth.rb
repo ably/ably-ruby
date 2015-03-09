@@ -34,7 +34,7 @@ module Ably
     # Creates an Auth object
     #
     # @param [Ably::Rest::Client] client  {Ably::Rest::Client} this Auth object uses
-    # @param options (see Ably::Rest::Client#initialize)
+    # @param [Hash] options (see Ably::Rest::Client#initialize)
     # @option (see Ably::Rest::Client#initialize)
     # @yield  (see Ably::Rest::Client#initialize)
     #
@@ -156,10 +156,13 @@ module Ably
 
       token_request = IdiomaticRubyWrapper(token_request)
 
-      response = client.post("/keys/#{token_request.fetch(:id)}/requestToken", token_request.hash, send_auth_header: false, disable_automatic_reauthorise: true)
-      body = IdiomaticRubyWrapper(response.body)
-
-      Ably::Models::Token.new(body.fetch(:access_token))
+      if token_request.has_key?(:issued_at) && token_request.has_key?(:expires)
+        Ably::Models::Token.new(token_request)
+      else
+        response = client.post("/keys/#{token_request.fetch(:id)}/requestToken", token_request.hash, send_auth_header: false, disable_automatic_reauthorise: true)
+        body = IdiomaticRubyWrapper(response.body)
+        Ably::Models::Token.new(body.fetch(:access_token))
+      end
     end
 
     # Creates and signs a token request that can then subsequently be used by any client to request a token
