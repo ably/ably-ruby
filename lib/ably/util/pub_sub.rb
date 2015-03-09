@@ -1,3 +1,5 @@
+require 'ably/modules/event_emitter.rb'
+
 module Ably::Util
   # PubSub class provides methods to publish & subscribe to events, with methods and naming
   # intentionally different to EventEmitter as it is intended for private message handling
