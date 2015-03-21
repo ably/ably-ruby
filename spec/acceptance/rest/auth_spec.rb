@@ -328,6 +328,27 @@ describe Ably::Auth do
           expect(request_token.capability.to_json).to eql(capability.to_json)
         end
       end
+
+      context 'persisted option', api_private: true do
+        context 'when set to true', api_private: true do
+          let(:options) { { persisted: true } }
+          let(:token) { auth.request_token(options) }
+
+          it 'returns a token with a short token ID that is used to look up the token details' do
+            expect(token.id.length).to be < 64
+            expect(token.id).to match(/^#{app_id}\.A/)
+          end
+        end
+
+        context 'when omitted', api_private: true do
+          let(:options) { { } }
+          let(:token) { auth.request_token(options) }
+
+          it 'returns a literal token' do
+            expect(token.id.length).to be > 64
+          end
+        end
+      end
     end
 
     context 'before #authorise has been called' do

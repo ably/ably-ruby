@@ -190,7 +190,7 @@ module Ably
     #    #   :mac=>"881oZHeFo6oMim7N64y2vFHtSlpQ2gn/uE56a8gUxHw="
     #    # }
     def create_token_request(options = {})
-      token_attributes   = %w(id client_id ttl timestamp capability nonce)
+      token_attributes   = %w(id client_id ttl timestamp capability nonce persisted)
 
       token_options      = options.clone
 
