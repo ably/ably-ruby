@@ -349,6 +349,15 @@ describe Ably::Auth do
           end
         end
       end
+
+      context 'with client_id' do
+        let(:client_id) { random_str }
+        let(:token) { auth.request_token(client_id: client_id) }
+
+        it 'returns a token with the client_id' do
+          expect(token.client_id).to eql(client_id)
+        end
+      end
     end
 
     context 'before #authorise has been called' do
