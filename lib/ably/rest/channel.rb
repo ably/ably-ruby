@@ -20,7 +20,7 @@ module Ably
       # @param name [String] The name of the channel
       # @param channel_options [Hash] Channel options, currently reserved for Encryption options
       # @option channel_options [Boolean]  :encrypted       setting this to true for this channel will encrypt & decrypt all messages automatically
-      # @option channel_options [Hash]     :cipher_params   A hash of options to configure the encryption. *:key* is required, all other options are optional.  See {Ably::Util::Crypto#initialize} for a list of `cipher_params` options
+      # @option channel_options [Hash]     :cipher_params   A hash of options to configure the encryption. *:key* is required, all other options are optional.  See {Ably::Util::Crypto#initialize} for a list of +cipher_params+ options
       #
       def initialize(client, name, channel_options = {})
         ensure_utf_8 :name, name
@@ -52,14 +52,13 @@ module Ably
         [201, 204].include?(response.status)
       end
 
-      # Return the message history of the channel
+      # Return the message   of the channel
       #
       # @param [Hash] options the options for the message history request
       # @option options [Integer,Time] :start      Time or millisecond since epoch
       # @option options [Integer,Time] :end        Time or millisecond since epoch
-      # @option options [Symbol]       :direction  `:forwards` or `:backwards`
+      # @option options [Symbol]       :direction  +:forwards+ or +:backwards+
       # @option options [Integer]      :limit      Maximum number of messages to retrieve up to 10,000
-      # @option options [Symbol]       :by         `:message`, `:bundle` or `:hour`. Defaults to `:message`
       #
       # @return [Ably::Models::PaginatedResource<Ably::Models::Message>] First {Ably::Models::PaginatedResource page} of {Ably::Models::Message} objects accessible with {Ably::Models::PaginatedResource#items #items}.
       def history(options = {})
