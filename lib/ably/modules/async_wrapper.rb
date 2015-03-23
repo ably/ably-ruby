@@ -47,8 +47,9 @@ module Ably::Modules
         operation_with_exception_handling = proc do
           begin
             yield
-          rescue StandardError => e
-            deferrable.fail e
+          rescue StandardError => err
+            logger.error "An exception in an AsyncWrapper block was caught. #{err.class}: #{err.message}\n#{err.backtrace.join("\n")}"
+            deferrable.fail err
           end
         end
 
