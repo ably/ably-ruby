@@ -7,6 +7,7 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
 
     let(:client)       { Ably::Realtime::Client.new(default_options) }
     let(:channel)      { client.channel(channel_name) }
+    let(:rest_channel) { client.rest_client.channel(channel_name) }
 
     let(:client2)      { Ably::Realtime::Client.new(default_options) }
     let(:channel2)     { client2.channel(channel_name) }
@@ -148,6 +149,56 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
             end
           end
         end
+      end
+    end
+
+    context 'with option :end => :before_attach' do
+      let(:event) { random_str }
+      let(:message_before_attach) { random_str }
+      let(:message_after_attach) { random_str }
+
+      it 'retrieves all messages before channel was attached' do
+        rest_channel.publish event, message_before_attach
+
+        channel.attach do
+          channel.publish(event, message_after_attach) do
+            history = channel.history(end: :before_attach) do |messages|
+              expect(messages.count).to eql(1)
+              expect(messages.first.data).to eql(message_before_attach)
+              stop_reactor
+            end
+          end
+        end
+      end
+
+      context 'and two pages of messages' do
+        it 'retrieves two pages of messages before channel was attached' do
+          10.times { rest_channel.publish event, message_before_attach }
+
+          channel.attach do
+            10.times { rest_channel.publish event, message_after_attach }
+
+            EventMachine.add_timer(0.5) do
+              history = channel.history(end: :before_attach, limit: 5) do |messages|
+                expect(messages.count).to eql(5)
+                expect(messages.first.data).to eql(message_before_attach)
+
+                messages.next_page do |next_page_messages|
+                  expect(next_page_messages.count).to eql(5)
+                  expect(next_page_messages.first.data).to eql(message_before_attach)
+                  expect(next_page_messages).to be_last_page
+
+                  stop_reactor
+                end
+              end
+            end
+          end
+        end
+      end
+
+      it 'raises an exception unless state is attached' do
+        expect { channel.history(end: :before_attach) }.to raise_error(ArgumentError, /not attached/)
+        stop_reactor
       end
     end
   end

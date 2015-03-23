@@ -23,7 +23,7 @@ module Ably
     #   Channel::STATE.Detached
     #   Channel::STATE.Failed
     #
-    # Channels emit errors - use `on(:error)` to subscribe to errors
+    # Channels emit errors - use +on(:error)+ to subscribe to errors
     #
     # @!attribute [r] state
     #   @return {Ably::Realtime::Connection::STATE} channel state
@@ -77,7 +77,7 @@ module Ably
       # @param  name [String] The name of the channel
       # @param  channel_options [Hash]     Channel options, currently reserved for Encryption options
       # @option channel_options [Boolean]  :encrypted       setting this to true for this channel will encrypt & decrypt all messages automatically
-      # @option channel_options [Hash]     :cipher_params   A hash of options to configure the encryption. *:key* is required, all other options are optional.  See {Ably::Util::Crypto#initialize} for a list of `cipher_params` options
+      # @option channel_options [Hash]     :cipher_params   A hash of options to configure the encryption. *:key* is required, all other options are optional.  See {Ably::Util::Crypto#initialize} for a list of +cipher_params+ options
       #
       def initialize(client, name, channel_options = {})
         ensure_utf_8 :name, name
@@ -181,13 +181,25 @@ module Ably
 
       # Return the message history of the channel.
       #
+      # Once attached to a channel, you can retrieve messages published on the channel before the
+      # channel was attached with the option <tt>:end => :before_attach</tt>.  This is very useful for
+      # developers who wish to display both new realtime messages as well as historical messages with
+      # the guarantee that no messages have been missed.
+      #
       # @param (see Ably::Rest::Channel#history)
       # @option options (see Ably::Rest::Channel#history)
+      # @option options [Integer,Time,Symbol]   :end        Time or millisecond since epoch, or +:before_attach+ for all messages published before this channel has been attached.
       #
       # @yield [Ably::Models::PaginatedResource<Ably::Models::Message>] First {Ably::Models::PaginatedResource page} of {Ably::Models::Message} objects accessible with {Ably::Models::PaginatedResource#items #items}.
       #
       # @return [Ably::Util::SafeDeferrable]
       def history(options = {}, &callback)
+        if options[:end] == :before_attach
+          raise ArgumentError, 'option :before_attach cannot be specified if the channel is not attached' unless attached?
+          options[:from_serial] = attached_serial
+          options.delete :end
+        end
+
         async_wrap(callback) do
           rest_channel.history(options.merge(async_blocking_operations: true))
         end
@@ -212,6 +224,11 @@ module Ably
         @error_reason = nil
       end
 
+      # @api private
+      def set_attached_serial(serial)
+        @attached_serial = serial
+      end
+
       # Used by {Ably::Modules::StateEmitter} to debug state changes
       # @api private
       def logger
@@ -219,7 +236,7 @@ module Ably
       end
 
       private
-      attr_reader :queue
+      attr_reader :queue, :attached_serial
 
       def setup_event_handlers
         __incoming_msgbus__.subscribe(:message) do |message|
