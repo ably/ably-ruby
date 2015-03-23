@@ -16,7 +16,7 @@ describe Ably::Modules::AsyncWrapper, :api_private do
       end
 
       def logger
-        true
+        @logger ||= Ably::Models::NilLogger.new
       end
     end
   end
