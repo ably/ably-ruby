@@ -1,4 +1,4 @@
-# Ably Real-time & REST Client Library 0.7.3 Specification
+# Ably Real-time & REST Client Library 0.7.5 Specification
 
 ### Ably::Realtime::Channel#history
 _(see [spec/acceptance/realtime/channel_history_spec.rb](./spec/acceptance/realtime/channel_history_spec.rb))_
@@ -331,67 +331,67 @@ _(see [spec/acceptance/realtime/message_spec.rb](./spec/acceptance/realtime/mess
     * without suitable publishing permissions
       * [calls the error callback](./spec/acceptance/realtime/message_spec.rb#L183)
     * server incorrectly resends a message that was already received by the client library
-      * [discards the message and logs it as an error to the channel](./spec/acceptance/realtime/message_spec.rb#L202)
+      * [discards the message and logs it as an error to the channel](./spec/acceptance/realtime/message_spec.rb#L203)
     * encoding and decoding encrypted messages
       * with AES-128-CBC using crypto-data-128.json fixtures
         * item 0 with encrypted encoding utf-8/cipher+aes-128-cbc/base64
           * behaves like an Ably encrypter and decrypter
             * with #publish and #subscribe
-              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L266)
-              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L284)
+              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L267)
+              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L285)
         * item 1 with encrypted encoding cipher+aes-128-cbc/base64
           * behaves like an Ably encrypter and decrypter
             * with #publish and #subscribe
-              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L266)
-              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L284)
+              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L267)
+              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L285)
         * item 2 with encrypted encoding json/utf-8/cipher+aes-128-cbc/base64
           * behaves like an Ably encrypter and decrypter
             * with #publish and #subscribe
-              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L266)
-              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L284)
+              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L267)
+              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L285)
         * item 3 with encrypted encoding json/utf-8/cipher+aes-128-cbc/base64
           * behaves like an Ably encrypter and decrypter
             * with #publish and #subscribe
-              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L266)
-              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L284)
+              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L267)
+              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L285)
       * with AES-256-CBC using crypto-data-256.json fixtures
         * item 0 with encrypted encoding utf-8/cipher+aes-256-cbc/base64
           * behaves like an Ably encrypter and decrypter
             * with #publish and #subscribe
-              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L266)
-              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L284)
+              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L267)
+              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L285)
         * item 1 with encrypted encoding cipher+aes-256-cbc/base64
           * behaves like an Ably encrypter and decrypter
             * with #publish and #subscribe
-              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L266)
-              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L284)
+              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L267)
+              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L285)
         * item 2 with encrypted encoding json/utf-8/cipher+aes-256-cbc/base64
           * behaves like an Ably encrypter and decrypter
             * with #publish and #subscribe
-              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L266)
-              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L284)
+              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L267)
+              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L285)
         * item 3 with encrypted encoding json/utf-8/cipher+aes-256-cbc/base64
           * behaves like an Ably encrypter and decrypter
             * with #publish and #subscribe
-              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L266)
-              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L284)
+              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L267)
+              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L285)
       * with multiple sends from one client to another
-        * [encrypts and decrypts all messages](./spec/acceptance/realtime/message_spec.rb#L323)
+        * [encrypts and decrypts all messages](./spec/acceptance/realtime/message_spec.rb#L324)
       * subscribing with a different transport protocol
-        * [delivers a String ASCII-8BIT payload to the receiver](./spec/acceptance/realtime/message_spec.rb#L366)
-        * [delivers a String UTF-8 payload to the receiver](./spec/acceptance/realtime/message_spec.rb#L366)
-        * [delivers a Hash payload to the receiver](./spec/acceptance/realtime/message_spec.rb#L366)
+        * [delivers a String ASCII-8BIT payload to the receiver](./spec/acceptance/realtime/message_spec.rb#L367)
+        * [delivers a String UTF-8 payload to the receiver](./spec/acceptance/realtime/message_spec.rb#L367)
+        * [delivers a Hash payload to the receiver](./spec/acceptance/realtime/message_spec.rb#L367)
       * publishing on an unencrypted channel and subscribing on an encrypted channel with another client
-        * [does not attempt to decrypt the message](./spec/acceptance/realtime/message_spec.rb#L385)
+        * [does not attempt to decrypt the message](./spec/acceptance/realtime/message_spec.rb#L386)
       * publishing on an encrypted channel and subscribing on an unencrypted channel with another client
-        * [delivers the message but still encrypted with a value in the #encoding attribute](./spec/acceptance/realtime/message_spec.rb#L403)
-        * [triggers a Cipher error on the channel](./spec/acceptance/realtime/message_spec.rb#L412)
+        * [delivers the message but still encrypted with a value in the #encoding attribute](./spec/acceptance/realtime/message_spec.rb#L404)
+        * [triggers a Cipher error on the channel](./spec/acceptance/realtime/message_spec.rb#L413)
       * publishing on an encrypted channel and subscribing with a different algorithm on another client
-        * [delivers the message but still encrypted with the cipher detials in the #encoding attribute](./spec/acceptance/realtime/message_spec.rb#L434)
-        * [triggers a Cipher error on the channel](./spec/acceptance/realtime/message_spec.rb#L443)
+        * [delivers the message but still encrypted with the cipher detials in the #encoding attribute](./spec/acceptance/realtime/message_spec.rb#L435)
+        * [triggers a Cipher error on the channel](./spec/acceptance/realtime/message_spec.rb#L444)
       * publishing on an encrypted channel and subscribing with a different key on another client
-        * [delivers the message but still encrypted with the cipher details in the #encoding attribute](./spec/acceptance/realtime/message_spec.rb#L465)
-        * [triggers a Cipher error on the channel](./spec/acceptance/realtime/message_spec.rb#L474)
+        * [delivers the message but still encrypted with the cipher details in the #encoding attribute](./spec/acceptance/realtime/message_spec.rb#L466)
+        * [triggers a Cipher error on the channel](./spec/acceptance/realtime/message_spec.rb#L475)
 
 ### Ably::Realtime::Presence history
 _(see [spec/acceptance/realtime/presence_history_spec.rb](./spec/acceptance/realtime/presence_history_spec.rb))_
@@ -633,70 +633,72 @@ _(see [spec/acceptance/rest/auth_spec.rb](./spec/acceptance/rest/auth_spec.rb))_
       * with token_request_block that returns a token
         * [calls the block when authenticating to obtain the request token](./spec/acceptance/rest/auth_spec.rb#L317)
         * [uses the token request from the block when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L322)
+      * with client_id
+        * [returns a token with the client_id](./spec/acceptance/rest/auth_spec.rb#L357)
     * before #authorise has been called
-      * [has no current_token](./spec/acceptance/rest/auth_spec.rb#L334)
+      * [has no current_token](./spec/acceptance/rest/auth_spec.rb#L364)
     * #authorise
-      * [updates the persisted auth options thare are then used for subsequent authorise requests](./spec/acceptance/rest/auth_spec.rb#L381)
+      * [updates the persisted auth options thare are then used for subsequent authorise requests](./spec/acceptance/rest/auth_spec.rb#L411)
       * when called for the first time since the client has been instantiated
-        * [passes all options to #request_token](./spec/acceptance/rest/auth_spec.rb#L345)
-        * [returns a valid token](./spec/acceptance/rest/auth_spec.rb#L350)
-        * [issues a new token if option :force => true](./spec/acceptance/rest/auth_spec.rb#L354)
+        * [passes all options to #request_token](./spec/acceptance/rest/auth_spec.rb#L375)
+        * [returns a valid token](./spec/acceptance/rest/auth_spec.rb#L380)
+        * [issues a new token if option :force => true](./spec/acceptance/rest/auth_spec.rb#L384)
       * with previous authorisation
-        * [does not request a token if current_token has not expired](./spec/acceptance/rest/auth_spec.rb#L365)
-        * [requests a new token if token is expired](./spec/acceptance/rest/auth_spec.rb#L370)
-        * [issues a new token if option :force => true](./spec/acceptance/rest/auth_spec.rb#L376)
+        * [does not request a token if current_token has not expired](./spec/acceptance/rest/auth_spec.rb#L395)
+        * [requests a new token if token is expired](./spec/acceptance/rest/auth_spec.rb#L400)
+        * [issues a new token if option :force => true](./spec/acceptance/rest/auth_spec.rb#L406)
       * with token_request_block
-        * [calls the block](./spec/acceptance/rest/auth_spec.rb#L397)
-        * [uses the token request returned from the block when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L401)
+        * [calls the block](./spec/acceptance/rest/auth_spec.rb#L427)
+        * [uses the token request returned from the block when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L431)
         * for every subsequent #request_token
           * without a provided block
-            * [calls the originally provided block](./spec/acceptance/rest/auth_spec.rb#L407)
+            * [calls the originally provided block](./spec/acceptance/rest/auth_spec.rb#L437)
           * with a provided block
-            * [does not call the originally provided block and calls the new #request_token block](./spec/acceptance/rest/auth_spec.rb#L414)
+            * [does not call the originally provided block and calls the new #request_token block](./spec/acceptance/rest/auth_spec.rb#L444)
     * #create_token_request
-      * [uses the key ID from the client](./spec/acceptance/rest/auth_spec.rb#L430)
-      * [uses the default TTL](./spec/acceptance/rest/auth_spec.rb#L434)
-      * [uses the default capability](./spec/acceptance/rest/auth_spec.rb#L438)
+      * [uses the key ID from the client](./spec/acceptance/rest/auth_spec.rb#L460)
+      * [uses the default TTL](./spec/acceptance/rest/auth_spec.rb#L464)
+      * [uses the default capability](./spec/acceptance/rest/auth_spec.rb#L468)
       * the nonce
-        * [is unique for every request](./spec/acceptance/rest/auth_spec.rb#L443)
-        * [is at least 16 characters](./spec/acceptance/rest/auth_spec.rb#L448)
+        * [is unique for every request](./spec/acceptance/rest/auth_spec.rb#L473)
+        * [is at least 16 characters](./spec/acceptance/rest/auth_spec.rb#L478)
       * with option :ttl
-        * [overrides default](./spec/acceptance/rest/auth_spec.rb#L459)
+        * [overrides default](./spec/acceptance/rest/auth_spec.rb#L489)
       * with option :capability
-        * [overrides default](./spec/acceptance/rest/auth_spec.rb#L459)
+        * [overrides default](./spec/acceptance/rest/auth_spec.rb#L489)
       * with option :nonce
-        * [overrides default](./spec/acceptance/rest/auth_spec.rb#L459)
+        * [overrides default](./spec/acceptance/rest/auth_spec.rb#L489)
       * with option :timestamp
-        * [overrides default](./spec/acceptance/rest/auth_spec.rb#L459)
+        * [overrides default](./spec/acceptance/rest/auth_spec.rb#L489)
       * with option :client_id
-        * [overrides default](./spec/acceptance/rest/auth_spec.rb#L459)
+        * [overrides default](./spec/acceptance/rest/auth_spec.rb#L489)
       * with additional invalid attributes
-        * [are ignored](./spec/acceptance/rest/auth_spec.rb#L467)
+        * [are ignored](./spec/acceptance/rest/auth_spec.rb#L497)
       * when required fields are missing
-        * [should raise an exception if key secret is missing](./spec/acceptance/rest/auth_spec.rb#L478)
-        * [should raise an exception if key id is missing](./spec/acceptance/rest/auth_spec.rb#L482)
+        * [should raise an exception if key secret is missing](./spec/acceptance/rest/auth_spec.rb#L508)
+        * [should raise an exception if key id is missing](./spec/acceptance/rest/auth_spec.rb#L512)
       * with :query_time option
-        * [queries the server for the timestamp](./spec/acceptance/rest/auth_spec.rb#L491)
+        * [queries the server for the timestamp](./spec/acceptance/rest/auth_spec.rb#L521)
       * with :timestamp option
-        * [uses the provided timestamp in the token request](./spec/acceptance/rest/auth_spec.rb#L501)
+        * [uses the provided timestamp in the token request](./spec/acceptance/rest/auth_spec.rb#L531)
       * signing
-        * [generates a valid HMAC](./spec/acceptance/rest/auth_spec.rb#L518)
+        * [generates a valid HMAC](./spec/acceptance/rest/auth_spec.rb#L548)
     * using token authentication
       * with :token_id option
-        * [authenticates successfully using the provided :token_id](./spec/acceptance/rest/auth_spec.rb#L541)
-        * [disallows publishing on unspecified capability channels](./spec/acceptance/rest/auth_spec.rb#L545)
-        * [fails if timestamp is invalid](./spec/acceptance/rest/auth_spec.rb#L553)
-        * [cannot be renewed automatically](./spec/acceptance/rest/auth_spec.rb#L561)
+        * [authenticates successfully using the provided :token_id](./spec/acceptance/rest/auth_spec.rb#L571)
+        * [disallows publishing on unspecified capability channels](./spec/acceptance/rest/auth_spec.rb#L575)
+        * [fails if timestamp is invalid](./spec/acceptance/rest/auth_spec.rb#L583)
+        * [cannot be renewed automatically](./spec/acceptance/rest/auth_spec.rb#L591)
       * when implicit as a result of using :client id
         * and requests to the Ably server are mocked
-          * [will send a token request to the server](./spec/acceptance/rest/auth_spec.rb#L591)
+          * [will send a token request to the server](./spec/acceptance/rest/auth_spec.rb#L621)
         * a token is created
-          * [before a request is made](./spec/acceptance/rest/auth_spec.rb#L600)
-          * [when a message is published](./spec/acceptance/rest/auth_spec.rb#L604)
-          * [with capability and TTL defaults](./spec/acceptance/rest/auth_spec.rb#L608)
+          * [before a request is made](./spec/acceptance/rest/auth_spec.rb#L630)
+          * [when a message is published](./spec/acceptance/rest/auth_spec.rb#L634)
+          * [with capability and TTL defaults](./spec/acceptance/rest/auth_spec.rb#L638)
     * when using an :api_key and basic auth
-      * [#using_token_auth? is false](./spec/acceptance/rest/auth_spec.rb#L623)
-      * [#using_basic_auth? is true](./spec/acceptance/rest/auth_spec.rb#L627)
+      * [#using_token_auth? is false](./spec/acceptance/rest/auth_spec.rb#L653)
+      * [#using_basic_auth? is true](./spec/acceptance/rest/auth_spec.rb#L657)
 
 ### Ably::Rest
 _(see [spec/acceptance/rest/base_spec.rb](./spec/acceptance/rest/base_spec.rb))_
@@ -729,7 +731,7 @@ _(see [spec/acceptance/rest/base_spec.rb](./spec/acceptance/rest/base_spec.rb))_
 _(see [spec/acceptance/rest/channel_spec.rb](./spec/acceptance/rest/channel_spec.rb))_
   * using JSON and MsgPack protocol
     * #publish
-      * [should publish the message adn return true indicating success](./spec/acceptance/rest/channel_spec.rb#L17)
+      * [should publish the message and return true indicating success](./spec/acceptance/rest/channel_spec.rb#L17)
     * #history
       * [should return the current message history for the channel](./spec/acceptance/rest/channel_spec.rb#L39)
       * [should return paged history using the PaginatedResource model](./spec/acceptance/rest/channel_spec.rb#L67)
@@ -1771,7 +1773,7 @@ _(see [spec/unit/realtime/safe_deferrable_spec.rb](./spec/unit/realtime/safe_def
     * #succeed
       * [calls the callbacks defined with #callback, but not the ones added for #errback](./spec/shared/safe_deferrable_behaviour.rb#L61)
 
-### Ably::Rest::Channels
+### Ably::Rest::Channel
 _(see [spec/unit/rest/channel_spec.rb](./spec/unit/rest/channel_spec.rb))_
   * #initializer
     * as UTF_8 string
@@ -1922,6 +1924,6 @@ _(see [spec/unit/util/pub_sub_spec.rb](./spec/unit/util/pub_sub_spec.rb))_
 
   ## Test summary
 
-  * Passing tests: 942
+  * Passing tests: 943
   * Pending tests: 7
   * Failing tests: 0

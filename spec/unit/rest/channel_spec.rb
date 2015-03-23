@@ -1,7 +1,7 @@
 # encoding: utf-8
 require 'spec_helper'
 
-describe Ably::Rest::Channels do
+describe Ably::Rest::Channel do
   let(:client)       { instance_double('Ably::Rest::Client', encoders: [], post: instance_double('Faraday::Response', status: 201)) }
   let(:channel_name) { 'unique' }
 

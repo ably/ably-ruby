@@ -14,7 +14,7 @@ describe Ably::Rest::Channel do
       let(:event)   { 'foo' }
       let(:message) { 'woop!' }
 
-      it 'should publish the message adn return true indicating success' do
+      it 'should publish the message and return true indicating success' do
         expect(channel.publish(event, message)).to eql(true)
       end
     end
