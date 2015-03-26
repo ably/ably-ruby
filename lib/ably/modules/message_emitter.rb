@@ -6,7 +6,7 @@ module Ably::Modules
   module MessageEmitter
     # Subscribe to events on this object
     #
-    # @param name [String,Symbol] Optional, the event name to subscribe to. Defaults to `:all` events
+    # @param names [String,Symbol] Optional, the event name(s) to subscribe to. Defaults to `:all` events
     # @yield [Object] For each event, the provided block is called with the event payload object
     #
     # @return [void]
@@ -22,7 +22,7 @@ module Ably::Modules
     # Unsubscribe the matching block for events on the this object.
     # If a block is not provided, all subscriptions will be unsubscribed
     #
-    # @param name [String,Symbol] Optional, the event name to unsubscribe from. Defaults to `:all` events
+    # @param names [String,Symbol] Optional, the event name(s) to unsubscribe from. Defaults to `:all` events
     #
     # @return [void]
     #

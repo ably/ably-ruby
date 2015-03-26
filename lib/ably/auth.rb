@@ -179,7 +179,7 @@ module Ably
     # @return [Hash]
     #
     # @example
-    #    client.auth.create_request_token(id: 'asd.asd', ttl: 3600)
+    #    client.auth.create_token_request(id: 'asd.asd', ttl: 3600)
     #    # => {
     #    #   :id=>"asds.adsa",
     #    #   :client_id=>nil,
