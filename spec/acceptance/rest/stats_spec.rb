@@ -51,49 +51,54 @@ describe Ably::Rest::Client, '#stats' do
             expect(subject.count).to eql(1)
           end
 
+          it 'returns zero value for any missing metrics' do
+            expect(stat.channels.refused).to eql(0)
+            expect(stat.outbound.webhook.all.count).to eql(0)
+          end
+
           it 'returns all aggregated message data' do
-            expect(stat.all[:messages][:count]).to eql(70 + 40) # inbound + outbound
-            expect(stat.all[:messages][:data]).to eql(7000 + 4000) # inbound + outbound
+            expect(stat.all.messages.count).to eql(70 + 40) # inbound + outbound
+            expect(stat.all.messages.data).to eql(7000 + 4000) # inbound + outbound
           end
 
           it 'returns inbound realtime all data' do
-            expect(stat.inbound[:realtime][:all][:count]).to eql(70)
-            expect(stat.inbound[:realtime][:all][:data]).to eql(7000)
+            expect(stat.inbound.realtime.all.count).to eql(70)
+            expect(stat.inbound.realtime.all.data).to eql(7000)
           end
 
           it 'returns inbound realtime message data' do
-            expect(stat.inbound[:realtime][:messages][:count]).to eql(70)
-            expect(stat.inbound[:realtime][:messages][:data]).to eql(7000)
+            expect(stat.inbound.realtime.messages.count).to eql(70)
+            expect(stat.inbound.realtime.messages.data).to eql(7000)
           end
 
           it 'returns outbound realtime all data' do
-            expect(stat.outbound[:realtime][:all][:count]).to eql(40)
-            expect(stat.outbound[:realtime][:all][:data]).to eql(4000)
+            expect(stat.outbound.realtime.all.count).to eql(40)
+            expect(stat.outbound.realtime.all.data).to eql(4000)
           end
 
           it 'returns persisted presence all data' do
-            expect(stat.persisted[:all][:count]).to eql(20)
-            expect(stat.persisted[:all][:data]).to eql(2000)
+            expect(stat.persisted.all.count).to eql(20)
+            expect(stat.persisted.all.data).to eql(2000)
           end
 
           it 'returns connections all data' do
-            expect(stat.connections[:tls][:peak]).to eql(20)
-            expect(stat.connections[:tls][:opened]).to eql(10)
+            expect(stat.connections.tls.peak).to eql(20)
+            expect(stat.connections.tls.opened).to eql(10)
           end
 
           it 'returns channels all data' do
-            expect(stat.channels[:peak]).to eql(50)
-            expect(stat.channels[:opened]).to eql(30)
+            expect(stat.channels.peak).to eql(50)
+            expect(stat.channels.opened).to eql(30)
           end
 
           it 'returns api_requests data' do
-            expect(stat.api_requests[:succeeded]).to eql(50)
-            expect(stat.api_requests[:failed]).to eql(10)
+            expect(stat.api_requests.succeeded).to eql(50)
+            expect(stat.api_requests.failed).to eql(10)
           end
 
           it 'returns token_requests data' do
-            expect(stat.token_requests[:succeeded]).to eql(60)
-            expect(stat.token_requests[:failed]).to eql(20)
+            expect(stat.token_requests.succeeded).to eql(60)
+            expect(stat.token_requests.failed).to eql(20)
           end
 
           it 'returns stat objects with #interval_granularity equal to :minute' do
@@ -115,7 +120,7 @@ describe Ably::Rest::Client, '#stats' do
           let(:stat)           { subject.first}
 
           it 'returns the first interval stats as stats are provided forwards from :start' do
-            expect(stat.inbound[:realtime][:all][:count]).to eql(first_inbound_realtime_count)
+            expect(stat.inbound.realtime.all.count).to eql(first_inbound_realtime_count)
           end
 
           it 'returns 3 pages of stats' do
@@ -123,7 +128,7 @@ describe Ably::Rest::Client, '#stats' do
             expect(subject).to_not be_last_page
             page3 = subject.next_page.next_page
             expect(page3).to be_last_page
-            expect(page3.first.inbound[:realtime][:all][:count]).to eql(last_inbound_realtime_count)
+            expect(page3.first.inbound.realtime.all.count).to eql(last_inbound_realtime_count)
           end
         end
 
@@ -132,14 +137,14 @@ describe Ably::Rest::Client, '#stats' do
           let(:stat)           { subject.first}
 
           it 'returns the 3rd interval stats first as stats are provided backwards from :end' do
-            expect(stat.inbound[:realtime][:all][:count]).to eql(last_inbound_realtime_count)
+            expect(stat.inbound.realtime.all.count).to eql(last_inbound_realtime_count)
           end
 
           it 'returns 3 pages of stats' do
             expect(subject).to be_first_page
             expect(subject).to_not be_last_page
             page3 = subject.next_page.next_page
-            expect(page3.first.inbound[:realtime][:all][:count]).to eql(first_inbound_realtime_count)
+            expect(page3.first.inbound.realtime.all.count).to eql(first_inbound_realtime_count)
           end
         end
       end
@@ -162,8 +167,8 @@ describe Ably::Rest::Client, '#stats' do
           it 'should aggregate the stats for that period' do
             expect(subject.count).to eql(1)
 
-            expect(stat.all[:messages][:count]).to eql(aggregate_messages_count)
-            expect(stat.all[:messages][:data]).to eql(aggregate_messages_data)
+            expect(stat.all.messages.count).to eql(aggregate_messages_count)
+            expect(stat.all.messages.data).to eql(aggregate_messages_data)
           end
         end
       end

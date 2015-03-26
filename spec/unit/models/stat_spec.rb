@@ -7,8 +7,184 @@ describe Ably::Models::Stat do
 
   subject { Ably::Models::Stat }
 
-  it_behaves_like 'a model', with_simple_attributes: %w(interval_id all inbound outbound persisted connections channels api_requests token_requests) do
-    let(:model_args) { [] }
+  %w(all persisted).each do |attribute|
+    context "##{attribute} stats" do
+      let(:data) do
+        { attribute.to_sym => { messages: { count: 5 }, all: { data: 10 } } }
+      end
+      subject { Ably::Models::Stat.new(data.merge(interval_id: '2004-02')).public_send(attribute) }
+
+      it 'returns a MessageTypes object' do
+        expect(subject).to be_a(Ably::Models::StatTypes::MessageTypes)
+      end
+
+      it 'returns value for message counts' do
+        expect(subject.messages.count).to eql(5)
+      end
+
+      it 'returns value for all data transferred' do
+        expect(subject.all.data).to eql(10)
+      end
+
+      it 'returns zero for empty values' do
+        expect(subject.presence.count).to eql(0)
+      end
+
+      it 'raises an exception for unknown attributes' do
+        expect { subject.unknown }.to raise_error NoMethodError
+      end
+
+      %w(all presence messages).each do |type|
+        context "##{type}" do
+          it 'is a MessageCount object' do
+            expect(subject.public_send(type)).to be_a(Ably::Models::StatTypes::MessageCount)
+          end
+        end
+      end
+    end
+  end
+
+  %w(inbound outbound).each do |direction|
+    context "##{direction} stats" do
+      let(:data) do
+        {
+          direction.to_sym => {
+            realtime: { messages: { count: 5 }, presence: { data: 10 } },
+            all: { messages: { count: 25 }, presence: { data: 210 } }
+          }
+        }
+      end
+      subject { Ably::Models::Stat.new(data.merge(interval_id: '2004-02')).public_send(direction) }
+
+      it 'returns a MessageTraffic object' do
+        expect(subject).to be_a(Ably::Models::StatTypes::MessageTraffic)
+      end
+
+      it 'returns value for realtime message counts' do
+        expect(subject.realtime.messages.count).to eql(5)
+      end
+
+      it 'returns value for all presence data' do
+        expect(subject.all.presence.data).to eql(210)
+      end
+
+      it 'raises an exception for unknown attributes' do
+        expect { subject.unknown }.to raise_error NoMethodError
+      end
+
+      %w(realtime rest webhook all).each do |type|
+        context "##{type}" do
+          it 'is a MessageTypes object' do
+            expect(subject.public_send(type)).to be_a(Ably::Models::StatTypes::MessageTypes)
+          end
+        end
+      end
+    end
+  end
+
+  context '#connections stats' do
+    let(:data) do
+      { connections: { tls: { opened: 5 }, all: { peak: 10 } } }
+    end
+    subject { Ably::Models::Stat.new(data.merge(interval_id: '2004-02')).connections }
+
+    it 'returns a ConnectionTypes object' do
+      expect(subject).to be_a(Ably::Models::StatTypes::ConnectionTypes)
+    end
+
+    it 'returns value for tls opened counts' do
+      expect(subject.tls.opened).to eql(5)
+    end
+
+    it 'returns value for all peak connections' do
+      expect(subject.all.peak).to eql(10)
+    end
+
+    it 'returns zero for empty values' do
+      expect(subject.all.refused).to eql(0)
+    end
+
+    it 'raises an exception for unknown attributes' do
+      expect { subject.unknown }.to raise_error NoMethodError
+    end
+
+    %w(tls plain all).each do |type|
+      context "##{type}" do
+        it 'is a ResourceCount object' do
+          expect(subject.public_send(type)).to be_a(Ably::Models::StatTypes::ResourceCount)
+        end
+      end
+    end
+  end
+
+  context '#channels stats' do
+    let(:data) do
+      { channels: { opened: 5, peak: 10 } }
+    end
+    subject { Ably::Models::Stat.new(data.merge(interval_id: '2004-02')).channels }
+
+    it 'returns a ResourceCount object' do
+      expect(subject).to be_a(Ably::Models::StatTypes::ResourceCount)
+    end
+
+    it 'returns value for opened counts' do
+      expect(subject.opened).to eql(5)
+    end
+
+    it 'returns value for peak channels' do
+      expect(subject.peak).to eql(10)
+    end
+
+    it 'returns zero for empty values' do
+      expect(subject.refused).to eql(0)
+    end
+
+    it 'raises an exception for unknown attributes' do
+      expect { subject.unknown }.to raise_error NoMethodError
+    end
+
+    %w(opened peak mean min refused).each do |type|
+      context "##{type}" do
+        it 'is a Integer object' do
+          expect(subject.public_send(type)).to be_a(Integer)
+        end
+      end
+    end
+  end
+
+  %w(api_requests token_requests).each do |request_type|
+    context "##{request_type} stats" do
+      let(:data) do
+        {
+          request_type.to_sym => { succeeded: 5, failed: 10 }
+        }
+      end
+      subject { Ably::Models::Stat.new(data.merge(interval_id: '2004-02')).public_send(request_type) }
+
+      it 'returns a RequestCount object' do
+        expect(subject).to be_a(Ably::Models::StatTypes::RequestCount)
+      end
+
+      it 'returns value for succeeded' do
+        expect(subject.succeeded).to eql(5)
+      end
+
+      it 'returns value for failed' do
+        expect(subject.failed).to eql(10)
+      end
+
+      it 'raises an exception for unknown attributes' do
+        expect { subject.unknown }.to raise_error NoMethodError
+      end
+
+      %w(succeeded failed refused).each do |type|
+        context "##{type}" do
+          it 'is a Integer object' do
+            expect(subject.public_send(type)).to be_a(Integer)
+          end
+        end
+      end
+    end
   end
 
   describe '#interval_granularity' do

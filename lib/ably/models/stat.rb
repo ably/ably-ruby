@@ -1,3 +1,5 @@
+require 'ably/models/stat_types'
+
 module Ably::Models
   # Convert stat argument to a {Stat} object
   #
@@ -115,14 +117,55 @@ module Ably::Models
     #
     def initialize(hash_object)
       @raw_hash_object  = hash_object
-
       set_hash_object hash_object
     end
 
-    %w( all inbound outbound persisted connections channels api_requests token_requests ).each do |attribute|
-      define_method attribute do
-        hash[attribute.to_sym]
-      end
+    # Aggregates inbound and outbound messages
+    # return {@StatTypes::MessageTypes}
+    def all
+      @all ||= StatTypes::MessageTypes.new(hash[:all])
+    end
+
+    # All inbound messages i.e. received by Ably from clients
+    # @return {StatTypes::MessageTraffic}
+    def inbound
+      @inbound ||= StatTypes::MessageTraffic.new(hash[:inbound])
+    end
+
+    # All outbound messages i.e. sent from Ably to clients
+    # @return {StatTypes::MessageTraffic}
+    def outbound
+      @outbound ||= StatTypes::MessageTraffic.new(hash[:outbound])
+    end
+
+    # Messages persisted for later retrieval via the history API
+    # @return {StatTypes::MessageTypes}
+    def persisted
+      @persisted ||= StatTypes::MessageTypes.new(hash[:persisted])
+    end
+
+    # Breakdown of connection stats data for different (TLS vs non-TLS) connection types
+    # @return {StatTypes::ConnectionTypes}
+    def connections
+      @connections ||= StatTypes::ConnectionTypes.new(hash[:connections])
+    end
+
+    # Breakdown of channels stats
+    # @return {StatTypes::ResourceCount}
+    def channels
+      @channels ||= StatTypes::ResourceCount.new(hash[:channels])
+    end
+
+    # Breakdown of API requests received via the REST API
+    # @return {StatTypes::RequestCount}
+    def api_requests
+      @api_requests ||= StatTypes::RequestCount.new(hash[:api_requests])
+    end
+
+    # Breakdown of Token requests received via the REST API
+    # @return {StatTypes::RequestCount}
+    def token_requests
+      @token_requests ||= StatTypes::RequestCount.new(hash[:token_requests])
     end
 
     # @!attribute [r] interval_id
