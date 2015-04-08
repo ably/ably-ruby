@@ -293,7 +293,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
         end
       end
 
-      resources_root = File.expand_path('../../../resources', __FILE__)
+      resources_root = File.expand_path('../../../../lib/submodules/ably-common/test-resources', __FILE__)
 
       def self.add_tests_for_data(data)
         data['items'].each_with_index do |item, index|
