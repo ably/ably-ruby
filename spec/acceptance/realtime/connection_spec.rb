@@ -138,11 +138,11 @@ describe Ably::Realtime::Connection, :event_machine do
 
             context 'when connected with a valid non-expired token' do
               context 'that then expires following the connection being opened' do
-                let(:ttl)     { 2 }
+                let(:ttl)     { 5 }
                 let(:channel) { client.channel('test') }
 
                 context 'the server' do
-                  it 'disconnects the client, and the client automatically renews the token and then reconnects', em_timeout: 10 do
+                  it 'disconnects the client, and the client automatically renews the token and then reconnects', em_timeout: 15 do
                     original_token = client.auth.current_token
                     expect(original_token).to_not be_expired
 
