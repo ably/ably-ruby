@@ -4,6 +4,9 @@ def console(message)
   puts "\033[31m[#{Time.now.strftime('%H:%M:%S.%L')}]\033[0m \033[33m#{message}\033[0m"
 end
 
+require 'coveralls'
+Coveralls.wear!
+
 require 'webmock/rspec'
 
 require 'ably'
