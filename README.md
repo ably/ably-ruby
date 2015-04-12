@@ -40,7 +40,7 @@ end
 All examples assume a client has been created as follows:
 
 ```ruby
-client = Ably::Realtime.new(api_key: "xxxxx")
+client = Ably::Realtime.new(api_key: 'xxxxx')
 ```
 
 ### Connection
@@ -67,7 +67,7 @@ end
 Given:
 
 ```ruby
-channel = client.channel("test")
+channel = client.channel('test')
 ```
 
 Subscribe to all events:
@@ -82,7 +82,7 @@ end
 Only certain events:
 
 ```ruby
-channel.subscribe("myEvent") do |message|
+channel.subscribe('myEvent') do |message|
   message[:name] #=> "myEvent"
   message[:data] #=> "myData"
 end
@@ -91,7 +91,7 @@ end
 ### Publishing to a channel
 
 ```ruby
-channel.publish("greeting", "Hello World!")
+channel.publish('greeting', 'Hello World!')
 ```
 
 ### Querying the History
@@ -133,32 +133,35 @@ Unlike the Realtime API, all calls are synchronous and are not run within an [Ev
 All examples assume a client and/or channel has been created as follows:
 
 ```ruby
-client = Ably::Rest.new(api_key: "xxxxx")
+client = Ably::Rest.new(api_key: 'xxxxx')
 channel = client.channel('test')
 ```
 
 ### Publishing a message to a channel
 
 ```ruby
-channel.publish("myEvent", "Hello!") #=> true
+channel.publish('myEvent', 'Hello!') #=> true
 ```
 
 ### Querying the History
 
 ```ruby
-channel.history #=> #<Ably::Models::PaginatedResource ...>
+mesage_history = channel.history #=> #<Ably::Models::PaginatedResource ...>
+message_history.first # => #<Ably::Models::Message ...>
 ```
 
 ### Presence on a channel
 
 ```ruby
-channel.presence.get # => #<Ably::Models::PaginatedResource ...>
+members = channel.presence.get # => #<Ably::Models::PaginatedResource ...>
+members.first # => #<Ably::Models::PresenceMessage ...>
 ```
 
 ### Querying the Presence History
 
 ```ruby
-channel.presence.history # => #<Ably::Models::PaginatedResource ...>
+presence_history = channel.presence.history # => #<Ably::Models::PaginatedResource ...>
+presence_history.first # => #<Ably::Models::PresenceMessage ...>
 ```
 
 ### Generate Token and Token Request
@@ -182,7 +185,14 @@ client = Ably::Rest.new(token_id: token.id)
 ### Fetching your application's stats
 
 ```ruby
-client.stats #=> PaginatedResource [{:channels=>..., :apiRequests=>..., ...}]
+stats = client.stats #=> #<Ably::Models::PaginatedResource ...>
+stats.first = #<Ably::Models::Stat ...>
+```
+
+### Fetching the Ably service time
+
+```ruby
+client.time #=> 2013-12-12 14:23:34 +0000
 ```
 
 ## Dependencies
