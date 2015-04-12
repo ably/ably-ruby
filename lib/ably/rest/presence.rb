@@ -28,7 +28,7 @@ module Ably
       # @option options [Symbol]       :direction  `:forwards` or `:backwards`
       # @option options [Integer]      :limit      Maximum number of members to retrieve up to 10,000
       #
-      # @return [Ably::Models::PaginatedResource<Ably::Models::PresenceMessage>] An Array of {Ably::Models::PresenceMessage} objects that supports paging (#next_page, #first_page)
+      # @return [Ably::Models::PaginatedResource<Ably::Models::PresenceMessage>] First {Ably::Models::PaginatedResource page} of {Ably::Models::PresenceMessage} objects accessible with {Ably::Models::PaginatedResource#items #items}.
       #
       def get(options = {})
         options = options.dup
@@ -55,7 +55,7 @@ module Ably
       # @option options [Symbol]       :direction  `:forwards` or `:backwards`
       # @option options [Integer]      :limit      Maximum number of presence messages to retrieve up to 10,000
       #
-      # @return [Ably::Models::PaginatedResource<Ably::Models::PresenceMessage>] An Array of {Ably::Models::PresenceMessage} objects that supports paging (#next_page, #first_page)
+      # @return [Ably::Models::PaginatedResource<Ably::Models::PresenceMessage>] First {Ably::Models::PaginatedResource page} of {Ably::Models::PresenceMessage} objects accessible with {Ably::Models::PaginatedResource#items #items}.
       #
       def history(options = {})
         url = "#{base_path}/history"

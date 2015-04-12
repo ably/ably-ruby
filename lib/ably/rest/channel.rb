@@ -61,7 +61,7 @@ module Ably
       # @option options [Integer]      :limit      Maximum number of messages to retrieve up to 10,000
       # @option options [Symbol]       :by         `:message`, `:bundle` or `:hour`. Defaults to `:message`
       #
-      # @return [Ably::Models::PaginatedResource<Ably::Models::Message>] An Array of {Ably::Models::Message} objects that supports paging (#next_page, #first_page)
+      # @return [Ably::Models::PaginatedResource<Ably::Models::Message>] First {Ably::Models::PaginatedResource page} of {Ably::Models::Message} objects accessible with {Ably::Models::PaginatedResource#items #items}.
       def history(options = {})
         url = "#{base_path}/messages"
         options = options.dup

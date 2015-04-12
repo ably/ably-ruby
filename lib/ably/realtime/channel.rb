@@ -184,7 +184,7 @@ module Ably
       # @param (see Ably::Rest::Channel#history)
       # @option options (see Ably::Rest::Channel#history)
       #
-      # @yield [Ably::Models::PaginatedResource<Ably::Models::Message>] An Array of {Ably::Models::Message} objects that supports paging (#next_page, #first_page)
+      # @yield [Ably::Models::PaginatedResource<Ably::Models::Message>] First {Ably::Models::PaginatedResource page} of {Ably::Models::Message} objects accessible with {Ably::Models::PaginatedResource#items #items}.
       #
       # @return [Ably::Util::SafeDeferrable]
       def history(options = {}, &callback)

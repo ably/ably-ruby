@@ -268,7 +268,7 @@ module Ably::Realtime
     # @param (see Ably::Rest::Presence#history)
     # @option options (see Ably::Rest::Presence#history)
     #
-    # @yield [Ably::Models::PaginatedResource<Ably::Models::PresenceMessage>] An Array of {Ably::Models::PresenceMessage} objects that supports paging (#next_page, #first_page)
+    # @yield [Ably::Models::PaginatedResource<Ably::Models::PresenceMessage>] First {Ably::Models::PaginatedResource page} of {Ably::Models::PresenceMessage} objects accessible with {Ably::Models::PaginatedResource#items #items}.
     #
     # @return [Ably::Util::SafeDeferrable]
     #

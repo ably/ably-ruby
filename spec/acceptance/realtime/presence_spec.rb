@@ -1123,8 +1123,8 @@ describe Ably::Realtime::Presence, :event_machine do
     context 'REST #get' do
       it 'returns current members' do
         presence_client_one.enter(data: data_payload) do
-          members = channel_rest_client_one.presence.get
-          this_member = members.first
+          members_page = channel_rest_client_one.presence.get
+          this_member = members_page.items.first
 
           expect(this_member).to be_a(Ably::Models::PresenceMessage)
           expect(this_member.client_id).to eql(client_one.client_id)
@@ -1137,8 +1137,8 @@ describe Ably::Realtime::Presence, :event_machine do
       it 'returns no members once left' do
         presence_client_one.enter(data: data_payload) do
           presence_client_one.leave do
-            members = channel_rest_client_one.presence.get
-            expect(members.count).to eql(0)
+            members_page = channel_rest_client_one.presence.get
+            expect(members_page.items.count).to eql(0)
             stop_reactor
           end
         end
@@ -1264,7 +1264,7 @@ describe Ably::Realtime::Presence, :event_machine do
       context 'REST #get' do
         it 'returns a list of members with decrypted data' do
           encrypted_channel.presence.enter(data: data) do
-            member = channel_rest_client_one.presence.get.first
+            member = channel_rest_client_one.presence.get.items.first
             expect(member.encoding).to be_nil
             expect(member.data).to eql(data)
             stop_reactor

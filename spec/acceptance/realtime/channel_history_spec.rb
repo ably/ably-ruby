@@ -21,9 +21,9 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
       channel.publish('event', payload) do |message|
         history = channel.history
         expect(history).to be_a(Ably::Util::SafeDeferrable)
-        history.callback do |messages|
-          expect(messages.count).to eql(1)
-          expect(messages).to be_a(Ably::Models::PaginatedResource)
+        history.callback do |page|
+          expect(page.items.count).to eql(1)
+          expect(page).to be_a(Ably::Models::PaginatedResource)
           stop_reactor
         end
       end
@@ -32,9 +32,9 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
     context 'with a single client publishing and receiving' do
       it 'retrieves real-time history' do
         channel.publish('event', payload) do |message|
-          channel.history do |history|
-            expect(history.length).to eql(1)
-            expect(history[0].data).to eql(payload)
+          channel.history do |page|
+            expect(page.items.length).to eql(1)
+            expect(page.items[0].data).to eql(payload)
             stop_reactor
           end
         end
@@ -45,12 +45,12 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
       it 'retrieves real-time history on both channels' do
         channel.publish('event', payload) do |message|
           channel2.publish('event', payload) do |message|
-            channel.history do |history|
-              expect(history.length).to eql(2)
-              expect(history.map(&:data).uniq).to eql([payload])
+            channel.history do |page|
+              expect(page.items.length).to eql(2)
+              expect(page.items.map(&:data).uniq).to eql([payload])
 
-              channel2.history do |history_2|
-                expect(history_2.length).to eql(2)
+              channel2.history do |page_2|
+                expect(page_2.items.length).to eql(2)
                 stop_reactor
               end
             end
@@ -65,18 +65,18 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
       let(:limit)           { 15 }
 
       def ensure_message_history_direction_and_paging_is_correct(direction)
-        channel.history(direction: direction, limit: limit) do |history|
-          expect(history.length).to eql(limit)
+        channel.history(direction: direction, limit: limit) do |history_page|
+          expect(history_page.items.length).to eql(limit)
           limit.times do |index|
-            expect(history[index].data).to eql("history#{index}")
+            expect(history_page.items[index].data).to eql("history#{index}")
           end
 
-          history.next_page do |history|
-            expect(history.length).to eql(limit)
+          history_page.next do |next_page|
+            expect(next_page.items.length).to eql(limit)
             limit.times do |index|
-              expect(history[index].data).to eql("history#{index + limit}")
+              expect(next_page.items[index].data).to eql("history#{index + limit}")
             end
-            expect(history.last_page?).to eql(true)
+            expect(next_page).to be_last
 
             stop_reactor
           end
@@ -141,8 +141,8 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
           channel.subscribe('event') do |message|
             messages << message
             if messages.count == batches * messages_per_batch
-              channel.history do |history|
-                expect(history.map(&:id).sort).to eql(messages.map(&:id).sort)
+              channel.history do |page|
+                expect(page.items.map(&:id).sort).to eql(messages.map(&:id).sort)
                 stop_reactor
               end
             end

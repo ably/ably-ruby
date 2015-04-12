@@ -77,8 +77,8 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       context 'when retrieved over REST' do
         it 'matches the sender connection#id' do
           channel.publish('event', payload) do
-            channel.history do |messages|
-              expect(messages.first.connection_id).to eql(client.connection.id)
+            channel.history do |page|
+              expect(page.items.first.connection_id).to eql(client.connection.id)
               stop_reactor
             end
           end

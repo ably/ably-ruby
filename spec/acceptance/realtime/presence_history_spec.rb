@@ -21,16 +21,16 @@ describe Ably::Realtime::Presence, 'history', :event_machine do
     it 'provides up to the moment presence history' do
       presence_client_one.enter(data: data) do
         presence_client_one.leave(data: leave_data) do
-          presence_client_one.history do |history|
-            expect(history.count).to eql(2)
+          presence_client_one.history do |history_page|
+            expect(history_page.items.count).to eql(2)
 
-            expect(history[1].action).to eq(:enter)
-            expect(history[1].client_id).to eq(client_one.client_id)
-            expect(history[1].data).to eql(data)
+            expect(history_page.items[1].action).to eq(:enter)
+            expect(history_page.items[1].client_id).to eq(client_one.client_id)
+            expect(history_page.items[1].data).to eql(data)
 
-            expect(history[0].action).to eq(:leave)
-            expect(history[0].client_id).to eq(client_one.client_id)
-            expect(history[0].data).to eql(leave_data)
+            expect(history_page.items[0].action).to eq(:leave)
+            expect(history_page.items[0].client_id).to eq(client_one.client_id)
+            expect(history_page.items[0].data).to eql(leave_data)
 
             stop_reactor
           end
@@ -40,11 +40,11 @@ describe Ably::Realtime::Presence, 'history', :event_machine do
 
     it 'ensures REST presence history message IDs match ProtocolMessage wrapped message and connection IDs via Realtime' do
       presence_client_one.subscribe(:enter) do |message|
-        presence_client_one.history do |history|
-          expect(history.count).to eql(1)
+        presence_client_one.history do |history_page|
+          expect(history_page.items.count).to eql(1)
 
-          expect(history[0].id).to eql(message.id)
-          expect(history[0].connection_id).to eql(message.connection_id)
+          expect(history_page.items[0].id).to eql(message.id)
+          expect(history_page.items[0].connection_id).to eql(message.connection_id)
           stop_reactor
         end
       end

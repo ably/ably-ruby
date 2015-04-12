@@ -17,7 +17,7 @@ describe Ably::Rest::Channel, 'messages' do
 
       it 'is converted into UTF_8' do
         channel.publish message_name, 'example'
-        message = channel.history.first
+        message = channel.history.items.first
         expect(message.name.encoding).to eql(Encoding::UTF_8)
         expect(message.name.encode(Encoding::ASCII_8BIT)).to eql(message_name)
       end
@@ -80,7 +80,7 @@ describe Ably::Rest::Channel, 'messages' do
           it 'sends and retrieves messages that are encrypted & decrypted by the Ably library' do
             encrypted_channel.publish 'example', encoded_data_decoded
 
-            message = encrypted_channel.history.first
+            message = encrypted_channel.history.items.first
             expect(message.data).to eql(encoded_data_decoded)
             expect(message.encoding).to be_nil
           end
@@ -115,7 +115,7 @@ describe Ably::Rest::Channel, 'messages' do
               encrypted_channel.publish index.to_s, "#{index}-#{data}"
             end
 
-            messages = encrypted_channel.history
+            messages = encrypted_channel.history.items
 
             expect(messages.count).to eql(message_count)
             messages.each do |message|
@@ -140,7 +140,7 @@ describe Ably::Rest::Channel, 'messages' do
             specify "delivers a #{payload_description} payload to the receiver" do
               encrypted_channel.publish 'example', payload
 
-              message = other_client_channel.history.first
+              message = other_client_channel.history.items.first
               expect(message.data).to eql(payload)
               expect(message.encoding).to be_nil
             end
@@ -156,7 +156,7 @@ describe Ably::Rest::Channel, 'messages' do
           it 'does not attempt to decrypt the message' do
             unencrypted_channel.publish 'example', payload
 
-            message = other_client_encrypted_channel.history.first
+            message = other_client_encrypted_channel.history.items.first
             expect(message.data).to eql(payload)
             expect(message.encoding).to be_nil
           end
@@ -175,7 +175,7 @@ describe Ably::Rest::Channel, 'messages' do
           end
 
           it 'retrieves the message that remains encrypted with an encrypted encoding attribute' do
-            message = other_client_unencrypted_channel.history.first
+            message = other_client_unencrypted_channel.history.items.first
             expect(message.data).to_not eql(payload)
             expect(message.encoding).to match(/^cipher\+aes-256-cbc/)
           end
@@ -202,7 +202,7 @@ describe Ably::Rest::Channel, 'messages' do
           end
 
           it 'retrieves the message that remains encrypted with an encrypted encoding attribute' do
-            message = encrypted_channel_client2.history.first
+            message = encrypted_channel_client2.history.items.first
             expect(message.data).to_not eql(payload)
             expect(message.encoding).to match(/^cipher\+aes-256-cbc/)
           end
@@ -229,7 +229,7 @@ describe Ably::Rest::Channel, 'messages' do
           end
 
           it 'retrieves the message that remains encrypted with an encrypted encoding attribute' do
-            message = encrypted_channel_client2.history.first
+            message = encrypted_channel_client2.history.items.first
             expect(message.data).to_not eql(payload)
             expect(message.encoding).to match(/^cipher\+aes-256-cbc/)
           end
