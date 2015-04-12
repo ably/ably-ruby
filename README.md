@@ -167,7 +167,7 @@ channel.presence.history # => #<Ably::Models::PaginatedResource ...>
 client.auth.request_token
 # => #<Ably::Models::Token ...>
 
-client.auth.create_token_request
+token = client.auth.create_token_request
 # => {"id"=>...,
 #     "clientId"=>nil,
 #     "ttl"=>3600,
@@ -175,6 +175,8 @@ client.auth.create_token_request
 #     "capability"=>"{\"*\":[\"*\"]}",
 #     "nonce"=>...,
 #     "mac"=>...}
+
+client = Ably::Rest.new(token_id: token.id)
 ```
 
 ### Fetching your application's stats
