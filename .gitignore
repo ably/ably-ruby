@@ -4,3 +4,4 @@ doc/*
 pkg
 .bundle
 bin
+coverage
