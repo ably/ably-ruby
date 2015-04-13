@@ -15,7 +15,7 @@ module Ably
   #   @return [Ably::Models::Token] Current {Ably::Models::Token} issued by this library or one of the provided callbacks used to authenticate requests
   # @!attribute [r] token_id
   #   @return [String] Token ID provided to the {Ably::Client} constructor that is used to authenticate all requests
-  # @!attribute [r] api_key
+  # @!attribute [r] key
   #   @return [String] Complete API key containing both the key ID and key secret, if present
   # @!attribute [r] key_id
   #   @return [String] Key ID (public part of the API key), if present
@@ -49,14 +49,16 @@ module Ably
         raise ArgumentError, 'Expected auth_options to be a Hash'
       end
 
-      if auth_options[:api_key] && (auth_options[:key_secret] || auth_options[:key_id])
-        raise ArgumentError, 'api_key and key_id or key_secret are mutually exclusive. Provider either an api_key or key_id & key_secret'
+      api_key = auth_options[:key] || auth_options[:api_key] # backwards support for previously used :api_key
+
+      if api_key && (auth_options[:key_secret] || auth_options[:key_id])
+        raise ArgumentError, 'key and key_id or key_secret are mutually exclusive. Provider either a key or key_id & key_secret'
       end
 
-      split_api_key_into_key_and_secret! auth_options if auth_options[:api_key]
+      split_api_key_into_key_and_secret! auth_options if api_key
 
       if using_basic_auth? && !api_key_present?
-        raise ArgumentError, 'api_key is missing. Either an API key, token, or token auth method must be provided'
+        raise ArgumentError, 'key is missing. Either an API key, token, or token auth method must be provided'
       end
 
       if has_client_id?
@@ -73,7 +75,7 @@ module Ably
     #
     # @param [Hash] options the options for the token request
     # @option options (see #request_token)
-    # @option options [String]  :api_key API key comprising the key ID and key secret in a single string
+    # @option options [String]  :key     API key comprising the key ID and key secret in a single string
     # @option options [Boolean] :force   obtains a new token even if the current token is valid
     #
     # @yield (see #request_token)
@@ -84,7 +86,7 @@ module Ably
     #
     # @example
     #    # will issue a simple token request using basic auth
-    #    client = Ably::Rest::Client.new(api_key: 'key.id:secret')
+    #    client = Ably::Rest::Client.new(key: 'key.id:secret')
     #    token = client.auth.authorise
     #
     #    # will use token request from block to authorise if not already authorised
@@ -99,7 +101,9 @@ module Ably
       end
 
       options = options.clone
-      split_api_key_into_key_and_secret! options if options[:api_key]
+
+      api_key = options[:key] || options[:api_key] # backwards support for previously used :api_key
+      split_api_key_into_key_and_secret! options if api_key
 
       @options             = @options.merge(options)
       @default_token_block = token_request_block if block_given?
@@ -131,7 +135,7 @@ module Ably
     #
     # @example
     #    # simple token request using basic auth
-    #    client = Ably::Rest::Client.new(api_key: 'key.id:secret')
+    #    client = Ably::Rest::Client.new(key: 'key.id:secret')
     #    token = client.auth.request_token
     #
     #    # token request using auth block
@@ -225,7 +229,7 @@ module Ably
       convert_to_mixed_case_hash(token_request)
     end
 
-    def api_key
+    def key
       "#{key_id}:#{key_secret}" if api_key_present?
     end
 
@@ -308,12 +312,12 @@ module Ably
     # Basic Auth HTTP Authorization header value
     def basic_auth_header
       ensure_api_key_sent_over_secure_connection
-      "Basic #{encode64("#{api_key}")}"
+      "Basic #{encode64("#{key}")}"
     end
 
     def split_api_key_into_key_and_secret!(options)
-      api_key_parts = options[:api_key].to_s.match(/(?<id>[\w_-]+\.[\w_-]+):(?<secret>[\w_-]+)/)
-      raise ArgumentError, 'api_key is invalid' unless api_key_parts
+      api_key_parts = (options[:key] || options[:api_key]).to_s.match(/(?<id>[\w_-]+\.[\w_-]+):(?<secret>[\w_-]+)/)
+      raise ArgumentError, 'key is invalid' unless api_key_parts
 
       options[:key_id]     = api_key_parts[:id].encode(Encoding::UTF_8)
       options[:key_secret] = api_key_parts[:secret].encode(Encoding::UTF_8)

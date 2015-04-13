@@ -36,7 +36,7 @@ describe Ably::Rest::Client, '#stats' do
   end
 
   vary_by_protocol do
-    let(:client) {  Ably::Rest::Client.new(api_key: api_key, environment: environment, protocol: protocol) }
+    let(:client) {  Ably::Rest::Client.new(key: api_key, environment: environment, protocol: protocol) }
 
     describe 'fetching application stats' do
       context 'by minute' do

@@ -50,7 +50,7 @@ module Ably
     #    client = Ably::Realtime.new('key.id:secret')
     #
     #    # create a new client authenticating with basic auth and a client_id
-    #    client = Ably::Realtime.new(api_key: 'key.id:secret', client_id: 'john')
+    #    client = Ably::Realtime.new(key: 'key.id:secret', client_id: 'john')
     #
     def self.new(options, &token_request_block)
       Ably::Realtime::Client.new(options, &token_request_block)

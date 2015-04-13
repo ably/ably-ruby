@@ -6,7 +6,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
   vary_by_protocol do
     let(:default_options) do
-      { api_key: api_key, environment: environment, protocol: protocol }
+      { key: api_key, environment: environment, protocol: protocol }
     end
 
     let(:client_options) { default_options }
@@ -16,7 +16,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
     context 'authentication failure' do
       let(:client_options) do
-        default_options.merge(api_key: invalid_key, log_level: :none)
+        default_options.merge(key: invalid_key, log_level: :none)
       end
 
       context 'when API key is invalid' do

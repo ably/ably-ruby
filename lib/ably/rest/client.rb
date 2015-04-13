@@ -70,7 +70,7 @@ module Ably
       # @param [Hash,String] options an options Hash used to configure the client and the authentication, or String with an API key or Token ID
       # @option options (see Ably::Auth#authorise)
       # @option options [Boolean]                 :tls                 TLS is used by default, providing a value of false disables TLS.  Please note Basic Auth is disallowed without TLS as secrets cannot be transmitted over unsecured connections.
-      # @option options [String]                  :api_key             API key comprising the key ID and key secret in a single string
+      # @option options [String]                  :key                 API key comprising the key ID and key secret in a single string
       # @option options [Boolean]                 :use_token_auth      Will force Basic Auth if set to false, and TOken auth if set to true
       # @option options [String]                  :environment         Specify 'sandbox' when testing the client library against an alternate Ably environment
       # @option options [Symbol]                  :protocol            Protocol used to communicate with Ably, :json and :msgpack currently supported. Defaults to :msgpack
@@ -89,7 +89,7 @@ module Ably
       #    client = Ably::Rest::Client.new('key.id:secret')
       #
       #    # create a new client and configure a client ID used for presence
-      #    client = Ably::Rest::Client.new(api_key: 'key.id:secret', client_id: 'john')
+      #    client = Ably::Rest::Client.new(key: 'key.id:secret', client_id: 'john')
       #
       def initialize(options, &token_request_block)
         raise ArgumentError, 'Options Hash is expected' if options.nil?
@@ -97,7 +97,7 @@ module Ably
         options = options.clone
         if options.kind_of?(String)
           options = if options.match(/^[\w]{2,}\.[\w]{2,}:[\w]{2,}$/)
-            { api_key:  options }
+            { key: options }
           else
             { token_id: options }
           end

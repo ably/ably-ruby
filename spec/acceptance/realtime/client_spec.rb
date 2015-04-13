@@ -4,7 +4,7 @@ require 'spec_helper'
 describe Ably::Realtime::Client, :event_machine do
   vary_by_protocol do
     let(:default_options) do
-      { api_key: api_key, environment: environment, protocol: protocol }
+      { key: api_key, environment: environment, protocol: protocol }
     end
 
     let(:client_options) { default_options }
@@ -15,7 +15,7 @@ describe Ably::Realtime::Client, :event_machine do
 
     context 'initialization' do
       context 'basic auth' do
-        it 'is enabled by default with a provided :api_key option' do
+        it 'is enabled by default with a provided :key option' do
           connection.on(:connected) do
             expect(auth_params[:key_id]).to_not be_nil
             expect(auth_params[:access_token]).to be_nil
@@ -58,7 +58,7 @@ describe Ably::Realtime::Client, :event_machine do
               end
             end
 
-            context 'with valid :api_key and :use_token_auth option set to true' do
+            context 'with valid :key and :use_token_auth option set to true' do
               let(:client_options)  { default_options.merge(use_token_auth: true) }
 
               it 'automatically authorises on connect and generates a token' do

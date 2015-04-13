@@ -5,7 +5,7 @@ describe Ably::Rest::Presence do
   include Ably::Modules::Conversions
 
   vary_by_protocol do
-    let(:default_options) { { api_key: api_key, environment: environment, protocol: protocol } }
+    let(:default_options) { { key: api_key, environment: environment, protocol: protocol } }
     let(:client_options) { default_options }
     let(:client) do
       Ably::Rest::Client.new(client_options)
@@ -117,7 +117,7 @@ describe Ably::Rest::Presence do
           end
         end
         let(:client) do
-          Ably::Rest::Client.new(api_key: "#{user}:#{secret}")
+          Ably::Rest::Client.new(key: "#{user}:#{secret}")
         end
 
         [:start, :end].each do |option|
@@ -164,7 +164,7 @@ describe Ably::Rest::Presence do
         end
       end
       let(:client) do
-        Ably::Rest::Client.new(client_options.merge(api_key: "#{user}:#{secret}"))
+        Ably::Rest::Client.new(client_options.merge(key: "#{user}:#{secret}"))
       end
 
       let(:data)            { random_str(32) }

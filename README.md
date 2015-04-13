@@ -41,7 +41,7 @@ end
 All examples assume a client has been created as follows:
 
 ```ruby
-client = Ably::Realtime.new(api_key: 'xxxxx')
+client = Ably::Realtime.new(key: 'xxxxx')
 ```
 
 ### Connection
@@ -134,7 +134,7 @@ Unlike the Realtime API, all calls are synchronous and are not run within an [Ev
 All examples assume a client and/or channel has been created as follows:
 
 ```ruby
-client = Ably::Rest.new(api_key: 'xxxxx')
+client = Ably::Rest.new(key: 'xxxxx')
 channel = client.channel('test')
 ```
 

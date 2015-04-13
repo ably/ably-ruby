@@ -150,7 +150,7 @@ module Ably
       # @yield [Integer] if a block is passed to this method, then this block will be called once the ping heartbeat is received with the time elapsed in milliseconds
       #
       # @example
-      #    client = Ably::Rest::Client.new(api_key: 'key.id:secret')
+      #    client = Ably::Rest::Client.new(key: 'key.id:secret')
       #    client.connection.ping do |ms_elapsed|
       #      puts "Ping took #{ms_elapsed}ms"
       #    end

@@ -7,7 +7,7 @@ describe Ably::Rest do
 
     let(:client_options) { {} }
     let(:client) do
-      Ably::Rest::Client.new(client_options.merge(api_key: 'appid.keyuid:keysecret'))
+      Ably::Rest::Client.new(client_options.merge(key: 'appid.keyuid:keysecret'))
     end
 
     let(:now) { Time.now - 1000 }
@@ -67,13 +67,13 @@ describe Ably::Rest do
 
   vary_by_protocol do
     let(:client) do
-      Ably::Rest::Client.new(api_key: api_key, environment: environment, protocol: protocol)
+      Ably::Rest::Client.new(key: api_key, environment: environment, protocol: protocol)
     end
 
     describe 'failed requests' do
       context 'due to invalid Auth' do
         it 'should raise an InvalidRequest exception with a valid error message and code' do
-          invalid_client = Ably::Rest::Client.new(api_key: 'appid.keyuid:keysecret', environment: environment)
+          invalid_client = Ably::Rest::Client.new(key: 'appid.keyuid:keysecret', environment: environment)
           expect { invalid_client.channel('test').publish('foo', 'choo') }.to raise_error do |error|
             expect(error).to be_a(Ably::Exceptions::InvalidRequest)
             expect(error.message).to match(/invalid credentials/)

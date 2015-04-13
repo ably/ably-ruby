@@ -107,13 +107,13 @@ class TestApp
   end
 
   def create_test_stats(stats)
-    client = Ably::Rest::Client.new(api_key: api_key, environment: environment)
+    client = Ably::Rest::Client.new(key: api_key, environment: environment)
     response = client.post('/stats', stats)
     raise "Could not create stats fixtures.  Ably responded with status #{response.status}\n#{response.body}" unless (200..299).include?(response.status)
   end
 
   private
   def sandbox_client
-    @sandbox_client ||= Ably::Rest::Client.new(api_key: 'app.key:secret', tls: true, environment: environment)
+    @sandbox_client ||= Ably::Rest::Client.new(key: 'app.key:secret', tls: true, environment: environment)
   end
 end

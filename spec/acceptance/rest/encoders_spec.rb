@@ -3,7 +3,7 @@ require 'spec_helper'
 require 'base64'
 
 describe Ably::Models::MessageEncoders do
-  let(:default_client_options) { { api_key: api_key, environment: environment } }
+  let(:default_client_options) { { key: api_key, environment: environment } }
   let(:client)                 { Ably::Rest::Client.new(default_client_options.merge(protocol: protocol)) }
   let(:channel_options)        { {} }
   let(:channel)                { client.channel('test', channel_options) }

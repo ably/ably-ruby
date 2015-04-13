@@ -23,7 +23,7 @@ describe Ably::Auth do
 
   vary_by_protocol do
     let(:client) do
-      Ably::Rest::Client.new(api_key: api_key, environment: environment, protocol: protocol)
+      Ably::Rest::Client.new(key: api_key, environment: environment, protocol: protocol)
     end
     let(:auth) { client.auth }
     let(:content_type) do
@@ -596,7 +596,7 @@ describe Ably::Auth do
       context 'when implicit as a result of using :client id' do
         let(:client_id) { '999' }
         let(:client) do
-          Ably::Rest::Client.new(api_key: api_key, client_id: client_id, environment: environment, protocol: protocol)
+          Ably::Rest::Client.new(key: api_key, client_id: client_id, environment: environment, protocol: protocol)
         end
         let(:token_id) { 'unique-token-id' }
         let(:token_response) do
@@ -649,13 +649,31 @@ describe Ably::Auth do
       end
     end
 
-    context 'when using an :api_key and basic auth' do
+    context 'when using an :key and basic auth' do
       specify '#using_token_auth? is false' do
         expect(auth).to_not be_using_token_auth
       end
 
+      specify '#key attribute contains the key string' do
+        expect(auth.key).to eql(api_key)
+      end
+
       specify '#using_basic_auth? is true' do
         expect(auth).to be_using_basic_auth
+      end
+    end
+
+    context 'when using legacy :api_key option and basic auth' do
+      let(:client) do
+        Ably::Rest::Client.new(api_key: api_key, environment: environment, protocol: protocol)
+      end
+
+      specify '#using_token_auth? is false' do
+        expect(auth).to_not be_using_token_auth
+      end
+
+      specify '#key attribute contains the key string' do
+        expect(auth.key).to eql(api_key)
       end
     end
   end

@@ -3,7 +3,7 @@ require 'spec_helper'
 
 describe Ably::Realtime::Presence, 'history', :event_machine do
   vary_by_protocol do
-    let(:default_options)     { { api_key: api_key, environment: environment, protocol: protocol } }
+    let(:default_options)     { { key: api_key, environment: environment, protocol: protocol } }
 
     let(:channel_name)        { "persisted:#{random_str(2)}" }
 

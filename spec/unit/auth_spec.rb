@@ -4,7 +4,7 @@ require 'shared/protocol_msgbus_behaviour'
 describe Ably::Auth do
   let(:client)    { double('client').as_null_object }
   let(:client_id) { nil }
-  let(:options)   { { api_key: 'appid.keyuid:keysecret', client_id: client_id } }
+  let(:options)   { { key: 'appid.keyuid:keysecret', client_id: client_id } }
 
   subject do
     Ably::Auth.new(client, options)

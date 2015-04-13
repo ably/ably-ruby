@@ -75,7 +75,7 @@ module Ably
       #    client = Ably::Realtime::Client.new('key.id:secret')
       #
       #    # create a new client and configure a client ID used for presence
-      #    client = Ably::Realtime::Client.new(api_key: 'key.id:secret', client_id: 'john')
+      #    client = Ably::Realtime::Client.new(key: 'key.id:secret', client_id: 'john')
       #
       def initialize(options, &token_request_block)
         @rest_client           = Ably::Rest::Client.new(options, &token_request_block)

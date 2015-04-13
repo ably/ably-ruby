@@ -6,7 +6,7 @@ describe Ably::Rest::Channel, 'messages' do
   include Ably::Modules::Conversions
 
   vary_by_protocol do
-    let(:default_client_options) { { api_key: api_key, environment: environment, protocol: protocol } }
+    let(:default_client_options) { { key: api_key, environment: environment, protocol: protocol } }
     let(:client_options)         { default_client_options }
     let(:client)                 { Ably::Rest::Client.new(client_options) }
     let(:other_client)           { Ably::Rest::Client.new(client_options) }

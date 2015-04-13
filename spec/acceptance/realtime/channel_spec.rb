@@ -3,7 +3,7 @@ require 'spec_helper'
 
 describe Ably::Realtime::Channel, :event_machine do
   vary_by_protocol do
-    let(:default_options) { { api_key: api_key, environment: environment, protocol: protocol } }
+    let(:default_options) { { key: api_key, environment: environment, protocol: protocol } }
     let(:client_options)  { default_options }
 
     let(:client)       { Ably::Realtime::Client.new(client_options) }
@@ -158,7 +158,7 @@ describe Ably::Realtime::Channel, :event_machine do
 
       context 'failure as a result of insufficient key permissions' do
         let(:restricted_client) do
-          Ably::Realtime::Client.new(default_options.merge(api_key: restricted_api_key, log_level: :fatal))
+          Ably::Realtime::Client.new(default_options.merge(key: restricted_api_key, log_level: :fatal))
         end
         let(:restricted_channel) { restricted_client.channel("cannot_subscribe") }
 
@@ -202,7 +202,7 @@ describe Ably::Realtime::Channel, :event_machine do
             restricted_channel.once(:failed) do
               restricted_client.close do
                 # A direct call to #authorise is synchronous
-                restricted_client.auth.authorise(api_key: api_key)
+                restricted_client.auth.authorise(key: api_key)
 
                 restricted_client.connect do
                   restricted_channel.once(:attached) do

@@ -104,7 +104,7 @@ _(see [spec/acceptance/realtime/client_spec.rb](./spec/acceptance/realtime/clien
   * using JSON and MsgPack protocol
     * initialization
       * basic auth
-        * [is enabled by default with a provided :api_key option](./spec/acceptance/realtime/client_spec.rb#L18)
+        * [is enabled by default with a provided :key option](./spec/acceptance/realtime/client_spec.rb#L18)
         * :tls option
           * set to false to forec a plain-text connection
             * [fails to connect because a private key cannot be sent over a non-secure connection](./spec/acceptance/realtime/client_spec.rb#L31)
@@ -112,14 +112,14 @@ _(see [spec/acceptance/realtime/client_spec.rb](./spec/acceptance/realtime/clien
         * with TLS enabled
           * and a pre-generated Token provided with the :token_id option
             * [connects using token auth](./spec/acceptance/realtime/client_spec.rb#L51)
-          * with valid :api_key and :use_token_auth option set to true
+          * with valid :key and :use_token_auth option set to true
             * [automatically authorises on connect and generates a token](./spec/acceptance/realtime/client_spec.rb#L64)
           * with client_id
             * [connects using token auth](./spec/acceptance/realtime/client_spec.rb#L77)
         * with TLS disabled
           * and a pre-generated Token provided with the :token_id option
             * [connects using token auth](./spec/acceptance/realtime/client_spec.rb#L51)
-          * with valid :api_key and :use_token_auth option set to true
+          * with valid :key and :use_token_auth option set to true
             * [automatically authorises on connect and generates a token](./spec/acceptance/realtime/client_spec.rb#L64)
           * with client_id
             * [connects using token auth](./spec/acceptance/realtime/client_spec.rb#L77)
@@ -696,9 +696,13 @@ _(see [spec/acceptance/rest/auth_spec.rb](./spec/acceptance/rest/auth_spec.rb))_
           * [before a request is made](./spec/acceptance/rest/auth_spec.rb#L630)
           * [when a message is published](./spec/acceptance/rest/auth_spec.rb#L634)
           * [with capability and TTL defaults](./spec/acceptance/rest/auth_spec.rb#L638)
-    * when using an :api_key and basic auth
+    * when using an :key and basic auth
       * [#using_token_auth? is false](./spec/acceptance/rest/auth_spec.rb#L653)
-      * [#using_basic_auth? is true](./spec/acceptance/rest/auth_spec.rb#L657)
+      * [#key attribute contains the key string](./spec/acceptance/rest/auth_spec.rb#L657)
+      * [#using_basic_auth? is true](./spec/acceptance/rest/auth_spec.rb#L661)
+    * when using legacy :api_key option and basic auth
+      * [#using_token_auth? is false](./spec/acceptance/rest/auth_spec.rb#L671)
+      * [#key attribute contains the key string](./spec/acceptance/rest/auth_spec.rb#L675)
 
 ### Ably::Rest
 _(see [spec/acceptance/rest/base_spec.rb](./spec/acceptance/rest/base_spec.rb))_
@@ -949,30 +953,31 @@ _(see [spec/acceptance/rest/stats_spec.rb](./spec/acceptance/rest/stats_spec.rb)
       * by minute
         * with :from set to last interval and :limit set to 1
           * [retrieves only one stat](./spec/acceptance/rest/stats_spec.rb#L50)
-          * [returns all aggregated message data](./spec/acceptance/rest/stats_spec.rb#L54)
-          * [returns inbound realtime all data](./spec/acceptance/rest/stats_spec.rb#L59)
-          * [returns inbound realtime message data](./spec/acceptance/rest/stats_spec.rb#L64)
-          * [returns outbound realtime all data](./spec/acceptance/rest/stats_spec.rb#L69)
-          * [returns persisted presence all data](./spec/acceptance/rest/stats_spec.rb#L74)
-          * [returns connections all data](./spec/acceptance/rest/stats_spec.rb#L79)
-          * [returns channels all data](./spec/acceptance/rest/stats_spec.rb#L84)
-          * [returns api_requests data](./spec/acceptance/rest/stats_spec.rb#L89)
-          * [returns token_requests data](./spec/acceptance/rest/stats_spec.rb#L94)
-          * [returns stat objects with #interval_granularity equal to :minute](./spec/acceptance/rest/stats_spec.rb#L99)
-          * [returns stat objects with #interval_id matching :start](./spec/acceptance/rest/stats_spec.rb#L103)
-          * [returns stat objects with #interval_time matching :start Time](./spec/acceptance/rest/stats_spec.rb#L107)
+          * [returns zero value for any missing metrics](./spec/acceptance/rest/stats_spec.rb#L54)
+          * [returns all aggregated message data](./spec/acceptance/rest/stats_spec.rb#L59)
+          * [returns inbound realtime all data](./spec/acceptance/rest/stats_spec.rb#L64)
+          * [returns inbound realtime message data](./spec/acceptance/rest/stats_spec.rb#L69)
+          * [returns outbound realtime all data](./spec/acceptance/rest/stats_spec.rb#L74)
+          * [returns persisted presence all data](./spec/acceptance/rest/stats_spec.rb#L79)
+          * [returns connections all data](./spec/acceptance/rest/stats_spec.rb#L84)
+          * [returns channels all data](./spec/acceptance/rest/stats_spec.rb#L89)
+          * [returns api_requests data](./spec/acceptance/rest/stats_spec.rb#L94)
+          * [returns token_requests data](./spec/acceptance/rest/stats_spec.rb#L99)
+          * [returns stat objects with #interval_granularity equal to :minute](./spec/acceptance/rest/stats_spec.rb#L104)
+          * [returns stat objects with #interval_id matching :start](./spec/acceptance/rest/stats_spec.rb#L108)
+          * [returns stat objects with #interval_time matching :start Time](./spec/acceptance/rest/stats_spec.rb#L112)
         * with :start set to first interval, :limit set to 1 and direction :forwards
-          * [returns the first interval stats as stats are provided forwards from :start](./spec/acceptance/rest/stats_spec.rb#L117)
-          * [returns 3 pages of stats](./spec/acceptance/rest/stats_spec.rb#L121)
+          * [returns the first interval stats as stats are provided forwards from :start](./spec/acceptance/rest/stats_spec.rb#L122)
+          * [returns 3 pages of stats](./spec/acceptance/rest/stats_spec.rb#L126)
         * with :end set to last interval, :limit set to 1 and direction :backwards
-          * [returns the 3rd interval stats first as stats are provided backwards from :end](./spec/acceptance/rest/stats_spec.rb#L134)
-          * [returns 3 pages of stats](./spec/acceptance/rest/stats_spec.rb#L138)
+          * [returns the 3rd interval stats first as stats are provided backwards from :end](./spec/acceptance/rest/stats_spec.rb#L139)
+          * [returns 3 pages of stats](./spec/acceptance/rest/stats_spec.rb#L143)
       * by hour
-        * [should aggregate the stats for that period](./spec/acceptance/rest/stats_spec.rb#L162)
+        * [should aggregate the stats for that period](./spec/acceptance/rest/stats_spec.rb#L167)
       * by day
-        * [should aggregate the stats for that period](./spec/acceptance/rest/stats_spec.rb#L162)
+        * [should aggregate the stats for that period](./spec/acceptance/rest/stats_spec.rb#L167)
       * by month
-        * [should aggregate the stats for that period](./spec/acceptance/rest/stats_spec.rb#L162)
+        * [should aggregate the stats for that period](./spec/acceptance/rest/stats_spec.rb#L167)
 
 ### Ably::Rest::Client#time
 _(see [spec/acceptance/rest/time_spec.rb](./spec/acceptance/rest/time_spec.rb))_
@@ -1438,60 +1443,133 @@ _(see [spec/unit/models/protocol_message_spec.rb](./spec/unit/models/protocol_me
 
 ### Ably::Models::Stat
 _(see [spec/unit/models/stat_spec.rb](./spec/unit/models/stat_spec.rb))_
-  * behaves like a model
-    * attributes
-      * #interval_id
-        * [retrieves attribute :interval_id](./spec/shared/model_behaviour.rb#L15)
-      * #all
-        * [retrieves attribute :all](./spec/shared/model_behaviour.rb#L15)
-      * #inbound
-        * [retrieves attribute :inbound](./spec/shared/model_behaviour.rb#L15)
-      * #outbound
-        * [retrieves attribute :outbound](./spec/shared/model_behaviour.rb#L15)
-      * #persisted
-        * [retrieves attribute :persisted](./spec/shared/model_behaviour.rb#L15)
-      * #connections
-        * [retrieves attribute :connections](./spec/shared/model_behaviour.rb#L15)
-      * #channels
-        * [retrieves attribute :channels](./spec/shared/model_behaviour.rb#L15)
-      * #api_requests
-        * [retrieves attribute :api_requests](./spec/shared/model_behaviour.rb#L15)
-      * #token_requests
-        * [retrieves attribute :token_requests](./spec/shared/model_behaviour.rb#L15)
-    * #==
-      * [is true when attributes are the same](./spec/shared/model_behaviour.rb#L41)
-      * [is false when attributes are not the same](./spec/shared/model_behaviour.rb#L46)
-      * [is false when class type differs](./spec/shared/model_behaviour.rb#L50)
-    * is immutable
-      * [prevents changes](./spec/shared/model_behaviour.rb#L76)
-      * [dups options](./spec/shared/model_behaviour.rb#L80)
+  * #all stats
+    * [returns a MessageTypes object](./spec/unit/models/stat_spec.rb#L17)
+    * [returns value for message counts](./spec/unit/models/stat_spec.rb#L21)
+    * [returns value for all data transferred](./spec/unit/models/stat_spec.rb#L25)
+    * [returns zero for empty values](./spec/unit/models/stat_spec.rb#L29)
+    * [raises an exception for unknown attributes](./spec/unit/models/stat_spec.rb#L33)
+    * #all
+      * [is a MessageCount object](./spec/unit/models/stat_spec.rb#L39)
+    * #presence
+      * [is a MessageCount object](./spec/unit/models/stat_spec.rb#L39)
+    * #messages
+      * [is a MessageCount object](./spec/unit/models/stat_spec.rb#L39)
+  * #persisted stats
+    * [returns a MessageTypes object](./spec/unit/models/stat_spec.rb#L17)
+    * [returns value for message counts](./spec/unit/models/stat_spec.rb#L21)
+    * [returns value for all data transferred](./spec/unit/models/stat_spec.rb#L25)
+    * [returns zero for empty values](./spec/unit/models/stat_spec.rb#L29)
+    * [raises an exception for unknown attributes](./spec/unit/models/stat_spec.rb#L33)
+    * #all
+      * [is a MessageCount object](./spec/unit/models/stat_spec.rb#L39)
+    * #presence
+      * [is a MessageCount object](./spec/unit/models/stat_spec.rb#L39)
+    * #messages
+      * [is a MessageCount object](./spec/unit/models/stat_spec.rb#L39)
+  * #inbound stats
+    * [returns a MessageTraffic object](./spec/unit/models/stat_spec.rb#L59)
+    * [returns value for realtime message counts](./spec/unit/models/stat_spec.rb#L63)
+    * [returns value for all presence data](./spec/unit/models/stat_spec.rb#L67)
+    * [raises an exception for unknown attributes](./spec/unit/models/stat_spec.rb#L71)
+    * #realtime
+      * [is a MessageTypes object](./spec/unit/models/stat_spec.rb#L77)
+    * #rest
+      * [is a MessageTypes object](./spec/unit/models/stat_spec.rb#L77)
+    * #webhook
+      * [is a MessageTypes object](./spec/unit/models/stat_spec.rb#L77)
+    * #all
+      * [is a MessageTypes object](./spec/unit/models/stat_spec.rb#L77)
+  * #outbound stats
+    * [returns a MessageTraffic object](./spec/unit/models/stat_spec.rb#L59)
+    * [returns value for realtime message counts](./spec/unit/models/stat_spec.rb#L63)
+    * [returns value for all presence data](./spec/unit/models/stat_spec.rb#L67)
+    * [raises an exception for unknown attributes](./spec/unit/models/stat_spec.rb#L71)
+    * #realtime
+      * [is a MessageTypes object](./spec/unit/models/stat_spec.rb#L77)
+    * #rest
+      * [is a MessageTypes object](./spec/unit/models/stat_spec.rb#L77)
+    * #webhook
+      * [is a MessageTypes object](./spec/unit/models/stat_spec.rb#L77)
+    * #all
+      * [is a MessageTypes object](./spec/unit/models/stat_spec.rb#L77)
+  * #connections stats
+    * [returns a ConnectionTypes object](./spec/unit/models/stat_spec.rb#L91)
+    * [returns value for tls opened counts](./spec/unit/models/stat_spec.rb#L95)
+    * [returns value for all peak connections](./spec/unit/models/stat_spec.rb#L99)
+    * [returns zero for empty values](./spec/unit/models/stat_spec.rb#L103)
+    * [raises an exception for unknown attributes](./spec/unit/models/stat_spec.rb#L107)
+    * #tls
+      * [is a ResourceCount object](./spec/unit/models/stat_spec.rb#L113)
+    * #plain
+      * [is a ResourceCount object](./spec/unit/models/stat_spec.rb#L113)
+    * #all
+      * [is a ResourceCount object](./spec/unit/models/stat_spec.rb#L113)
+  * #channels stats
+    * [returns a ResourceCount object](./spec/unit/models/stat_spec.rb#L126)
+    * [returns value for opened counts](./spec/unit/models/stat_spec.rb#L130)
+    * [returns value for peak channels](./spec/unit/models/stat_spec.rb#L134)
+    * [returns zero for empty values](./spec/unit/models/stat_spec.rb#L138)
+    * [raises an exception for unknown attributes](./spec/unit/models/stat_spec.rb#L142)
+    * #opened
+      * [is a Integer object](./spec/unit/models/stat_spec.rb#L148)
+    * #peak
+      * [is a Integer object](./spec/unit/models/stat_spec.rb#L148)
+    * #mean
+      * [is a Integer object](./spec/unit/models/stat_spec.rb#L148)
+    * #min
+      * [is a Integer object](./spec/unit/models/stat_spec.rb#L148)
+    * #refused
+      * [is a Integer object](./spec/unit/models/stat_spec.rb#L148)
+  * #api_requests stats
+    * [returns a RequestCount object](./spec/unit/models/stat_spec.rb#L164)
+    * [returns value for succeeded](./spec/unit/models/stat_spec.rb#L168)
+    * [returns value for failed](./spec/unit/models/stat_spec.rb#L172)
+    * [raises an exception for unknown attributes](./spec/unit/models/stat_spec.rb#L176)
+    * #succeeded
+      * [is a Integer object](./spec/unit/models/stat_spec.rb#L182)
+    * #failed
+      * [is a Integer object](./spec/unit/models/stat_spec.rb#L182)
+    * #refused
+      * [is a Integer object](./spec/unit/models/stat_spec.rb#L182)
+  * #token_requests stats
+    * [returns a RequestCount object](./spec/unit/models/stat_spec.rb#L164)
+    * [returns value for succeeded](./spec/unit/models/stat_spec.rb#L168)
+    * [returns value for failed](./spec/unit/models/stat_spec.rb#L172)
+    * [raises an exception for unknown attributes](./spec/unit/models/stat_spec.rb#L176)
+    * #succeeded
+      * [is a Integer object](./spec/unit/models/stat_spec.rb#L182)
+    * #failed
+      * [is a Integer object](./spec/unit/models/stat_spec.rb#L182)
+    * #refused
+      * [is a Integer object](./spec/unit/models/stat_spec.rb#L182)
   * #interval_granularity
-    * [returns the granularity of the interval_id](./spec/unit/models/stat_spec.rb#L17)
+    * [returns the granularity of the interval_id](./spec/unit/models/stat_spec.rb#L193)
   * #interval_time
-    * [returns a Time object representing the start of the interval](./spec/unit/models/stat_spec.rb#L25)
+    * [returns a Time object representing the start of the interval](./spec/unit/models/stat_spec.rb#L201)
   * class methods
     * #to_interval_id
       * when time zone of time argument is UTC
-        * [converts time 2014-02-03:05:06 with granularity :month into 2014-02](./spec/unit/models/stat_spec.rb#L33)
-        * [converts time 2014-02-03:05:06 with granularity :day into 2014-02-03](./spec/unit/models/stat_spec.rb#L37)
-        * [converts time 2014-02-03:05:06 with granularity :hour into 2014-02-03:05](./spec/unit/models/stat_spec.rb#L41)
-        * [converts time 2014-02-03:05:06 with granularity :minute into 2014-02-03:05:06](./spec/unit/models/stat_spec.rb#L45)
-        * [fails with invalid granularity](./spec/unit/models/stat_spec.rb#L49)
-        * [fails with invalid time](./spec/unit/models/stat_spec.rb#L53)
+        * [converts time 2014-02-03:05:06 with granularity :month into 2014-02](./spec/unit/models/stat_spec.rb#L209)
+        * [converts time 2014-02-03:05:06 with granularity :day into 2014-02-03](./spec/unit/models/stat_spec.rb#L213)
+        * [converts time 2014-02-03:05:06 with granularity :hour into 2014-02-03:05](./spec/unit/models/stat_spec.rb#L217)
+        * [converts time 2014-02-03:05:06 with granularity :minute into 2014-02-03:05:06](./spec/unit/models/stat_spec.rb#L221)
+        * [fails with invalid granularity](./spec/unit/models/stat_spec.rb#L225)
+        * [fails with invalid time](./spec/unit/models/stat_spec.rb#L229)
       * when time zone of time argument is +02:00
-        * [converts time 2014-02-03:06 with granularity :hour into 2014-02-03:04 at UTC +00:00](./spec/unit/models/stat_spec.rb#L59)
+        * [converts time 2014-02-03:06 with granularity :hour into 2014-02-03:04 at UTC +00:00](./spec/unit/models/stat_spec.rb#L235)
     * #from_interval_id
-      * [converts a month interval_id 2014-02 into a Time object in UTC 0](./spec/unit/models/stat_spec.rb#L66)
-      * [converts a day interval_id 2014-02-03 into a Time object in UTC 0](./spec/unit/models/stat_spec.rb#L71)
-      * [converts an hour interval_id 2014-02-03:05 into a Time object in UTC 0](./spec/unit/models/stat_spec.rb#L76)
-      * [converts a minute interval_id 2014-02-03:05:06 into a Time object in UTC 0](./spec/unit/models/stat_spec.rb#L81)
-      * [fails with an invalid interval_id 14-20](./spec/unit/models/stat_spec.rb#L86)
+      * [converts a month interval_id 2014-02 into a Time object in UTC 0](./spec/unit/models/stat_spec.rb#L242)
+      * [converts a day interval_id 2014-02-03 into a Time object in UTC 0](./spec/unit/models/stat_spec.rb#L247)
+      * [converts an hour interval_id 2014-02-03:05 into a Time object in UTC 0](./spec/unit/models/stat_spec.rb#L252)
+      * [converts a minute interval_id 2014-02-03:05:06 into a Time object in UTC 0](./spec/unit/models/stat_spec.rb#L257)
+      * [fails with an invalid interval_id 14-20](./spec/unit/models/stat_spec.rb#L262)
     * #granularity_from_interval_id
-      * [returns a :month interval_id for 2014-02](./spec/unit/models/stat_spec.rb#L92)
-      * [returns a :day interval_id for 2014-02-03](./spec/unit/models/stat_spec.rb#L96)
-      * [returns a :hour interval_id for 2014-02-03:05](./spec/unit/models/stat_spec.rb#L100)
-      * [returns a :minute interval_id for 2014-02-03:05:06](./spec/unit/models/stat_spec.rb#L104)
-      * [fails with an invalid interval_id 14-20](./spec/unit/models/stat_spec.rb#L108)
+      * [returns a :month interval_id for 2014-02](./spec/unit/models/stat_spec.rb#L268)
+      * [returns a :day interval_id for 2014-02-03](./spec/unit/models/stat_spec.rb#L272)
+      * [returns a :hour interval_id for 2014-02-03:05](./spec/unit/models/stat_spec.rb#L276)
+      * [returns a :minute interval_id for 2014-02-03:05:06](./spec/unit/models/stat_spec.rb#L280)
+      * [fails with an invalid interval_id 14-20](./spec/unit/models/stat_spec.rb#L284)
 
 ### Ably::Models::Token
 _(see [spec/unit/models/token_spec.rb](./spec/unit/models/token_spec.rb))_
@@ -1650,50 +1728,53 @@ _(see [spec/unit/realtime/client_spec.rb](./spec/unit/realtime/client_spec.rb))_
         * [raises an exception](./spec/shared/client_initializer_behaviour.rb#L28)
       * nil
         * [raises an exception](./spec/shared/client_initializer_behaviour.rb#L36)
-      * api_key: "invalid"
+      * key: "invalid"
         * [raises an exception](./spec/shared/client_initializer_behaviour.rb#L44)
-      * api_key: "invalid:asdad"
+      * key: "invalid:asdad"
         * [raises an exception](./spec/shared/client_initializer_behaviour.rb#L52)
-      * api_key and key_id
+      * key and key_id
         * [raises an exception](./spec/shared/client_initializer_behaviour.rb#L60)
-      * api_key and key_secret
+      * key and key_secret
         * [raises an exception](./spec/shared/client_initializer_behaviour.rb#L68)
       * client_id as only option
         * [requires a valid key](./spec/shared/client_initializer_behaviour.rb#L76)
     * with valid arguments
-      * api_key only
+      * key only
         * [connects to the Ably service](./spec/shared/client_initializer_behaviour.rb#L87)
+      * with legacy :api_key only
+        * [connects to the Ably service](./spec/shared/client_initializer_behaviour.rb#L94)
+        * [sets the Auth#key](./spec/shared/client_initializer_behaviour.rb#L98)
       * key_id and key_secret
-        * [constructs an api_key](./spec/shared/client_initializer_behaviour.rb#L95)
+        * [constructs an key](./spec/shared/client_initializer_behaviour.rb#L106)
       * with a string key instead of options hash
-        * [sets the api_key](./spec/shared/client_initializer_behaviour.rb#L103)
-        * [sets the key_id](./spec/shared/client_initializer_behaviour.rb#L107)
-        * [sets the key_secret](./spec/shared/client_initializer_behaviour.rb#L111)
+        * [sets the key](./spec/shared/client_initializer_behaviour.rb#L114)
+        * [sets the key_id](./spec/shared/client_initializer_behaviour.rb#L118)
+        * [sets the key_secret](./spec/shared/client_initializer_behaviour.rb#L122)
       * with a string token key instead of options hash
-        * [sets the token_id](./spec/shared/client_initializer_behaviour.rb#L119)
+        * [sets the token_id](./spec/shared/client_initializer_behaviour.rb#L130)
       * with token
-        * [sets the token_id](./spec/shared/client_initializer_behaviour.rb#L127)
+        * [sets the token_id](./spec/shared/client_initializer_behaviour.rb#L138)
       * endpoint
-        * [defaults to production](./spec/shared/client_initializer_behaviour.rb#L133)
+        * [defaults to production](./spec/shared/client_initializer_behaviour.rb#L144)
         * with environment option
-          * [uses an alternate endpoint](./spec/shared/client_initializer_behaviour.rb#L140)
+          * [uses an alternate endpoint](./spec/shared/client_initializer_behaviour.rb#L151)
       * tls
-        * [defaults to TLS](./spec/shared/client_initializer_behaviour.rb#L159)
+        * [defaults to TLS](./spec/shared/client_initializer_behaviour.rb#L170)
         * set to false
-          * [uses plain text](./spec/shared/client_initializer_behaviour.rb#L150)
-          * [uses HTTP](./spec/shared/client_initializer_behaviour.rb#L154)
+          * [uses plain text](./spec/shared/client_initializer_behaviour.rb#L161)
+          * [uses HTTP](./spec/shared/client_initializer_behaviour.rb#L165)
       * logger
         * default
-          * [uses Ruby Logger](./spec/shared/client_initializer_behaviour.rb#L166)
-          * [specifies Logger::ERROR log level](./spec/shared/client_initializer_behaviour.rb#L170)
+          * [uses Ruby Logger](./spec/shared/client_initializer_behaviour.rb#L177)
+          * [specifies Logger::ERROR log level](./spec/shared/client_initializer_behaviour.rb#L181)
         * with log_level :none
-          * [silences all logging with a NilLogger](./spec/shared/client_initializer_behaviour.rb#L178)
+          * [silences all logging with a NilLogger](./spec/shared/client_initializer_behaviour.rb#L189)
         * with custom logger and log_level
-          * [uses the custom logger](./spec/shared/client_initializer_behaviour.rb#L196)
-          * [sets the custom log level](./spec/shared/client_initializer_behaviour.rb#L200)
+          * [uses the custom logger](./spec/shared/client_initializer_behaviour.rb#L207)
+          * [sets the custom log level](./spec/shared/client_initializer_behaviour.rb#L211)
     * delegators
-      * [delegates :client_id to .auth](./spec/shared/client_initializer_behaviour.rb#L210)
-      * [delegates :auth_options to .auth](./spec/shared/client_initializer_behaviour.rb#L215)
+      * [delegates :client_id to .auth](./spec/shared/client_initializer_behaviour.rb#L221)
+      * [delegates :auth_options to .auth](./spec/shared/client_initializer_behaviour.rb#L226)
   * delegation to the REST Client
     * [passes on the options to the initializer](./spec/unit/realtime/client_spec.rb#L15)
     * for attribute
@@ -1827,63 +1908,66 @@ _(see [spec/unit/rest/client_spec.rb](./spec/unit/rest/client_spec.rb))_
         * [raises an exception](./spec/shared/client_initializer_behaviour.rb#L28)
       * nil
         * [raises an exception](./spec/shared/client_initializer_behaviour.rb#L36)
-      * api_key: "invalid"
+      * key: "invalid"
         * [raises an exception](./spec/shared/client_initializer_behaviour.rb#L44)
-      * api_key: "invalid:asdad"
+      * key: "invalid:asdad"
         * [raises an exception](./spec/shared/client_initializer_behaviour.rb#L52)
-      * api_key and key_id
+      * key and key_id
         * [raises an exception](./spec/shared/client_initializer_behaviour.rb#L60)
-      * api_key and key_secret
+      * key and key_secret
         * [raises an exception](./spec/shared/client_initializer_behaviour.rb#L68)
       * client_id as only option
         * [requires a valid key](./spec/shared/client_initializer_behaviour.rb#L76)
     * with valid arguments
-      * api_key only
+      * key only
         * [connects to the Ably service](./spec/shared/client_initializer_behaviour.rb#L87)
+      * with legacy :api_key only
+        * [connects to the Ably service](./spec/shared/client_initializer_behaviour.rb#L94)
+        * [sets the Auth#key](./spec/shared/client_initializer_behaviour.rb#L98)
       * key_id and key_secret
-        * [constructs an api_key](./spec/shared/client_initializer_behaviour.rb#L95)
+        * [constructs an key](./spec/shared/client_initializer_behaviour.rb#L106)
       * with a string key instead of options hash
-        * [sets the api_key](./spec/shared/client_initializer_behaviour.rb#L103)
-        * [sets the key_id](./spec/shared/client_initializer_behaviour.rb#L107)
-        * [sets the key_secret](./spec/shared/client_initializer_behaviour.rb#L111)
+        * [sets the key](./spec/shared/client_initializer_behaviour.rb#L114)
+        * [sets the key_id](./spec/shared/client_initializer_behaviour.rb#L118)
+        * [sets the key_secret](./spec/shared/client_initializer_behaviour.rb#L122)
       * with a string token key instead of options hash
-        * [sets the token_id](./spec/shared/client_initializer_behaviour.rb#L119)
+        * [sets the token_id](./spec/shared/client_initializer_behaviour.rb#L130)
       * with token
-        * [sets the token_id](./spec/shared/client_initializer_behaviour.rb#L127)
+        * [sets the token_id](./spec/shared/client_initializer_behaviour.rb#L138)
       * endpoint
-        * [defaults to production](./spec/shared/client_initializer_behaviour.rb#L133)
+        * [defaults to production](./spec/shared/client_initializer_behaviour.rb#L144)
         * with environment option
-          * [uses an alternate endpoint](./spec/shared/client_initializer_behaviour.rb#L140)
+          * [uses an alternate endpoint](./spec/shared/client_initializer_behaviour.rb#L151)
       * tls
-        * [defaults to TLS](./spec/shared/client_initializer_behaviour.rb#L159)
+        * [defaults to TLS](./spec/shared/client_initializer_behaviour.rb#L170)
         * set to false
-          * [uses plain text](./spec/shared/client_initializer_behaviour.rb#L150)
-          * [uses HTTP](./spec/shared/client_initializer_behaviour.rb#L154)
+          * [uses plain text](./spec/shared/client_initializer_behaviour.rb#L161)
+          * [uses HTTP](./spec/shared/client_initializer_behaviour.rb#L165)
       * logger
         * default
-          * [uses Ruby Logger](./spec/shared/client_initializer_behaviour.rb#L166)
-          * [specifies Logger::ERROR log level](./spec/shared/client_initializer_behaviour.rb#L170)
+          * [uses Ruby Logger](./spec/shared/client_initializer_behaviour.rb#L177)
+          * [specifies Logger::ERROR log level](./spec/shared/client_initializer_behaviour.rb#L181)
         * with log_level :none
-          * [silences all logging with a NilLogger](./spec/shared/client_initializer_behaviour.rb#L178)
+          * [silences all logging with a NilLogger](./spec/shared/client_initializer_behaviour.rb#L189)
         * with custom logger and log_level
-          * [uses the custom logger](./spec/shared/client_initializer_behaviour.rb#L196)
-          * [sets the custom log level](./spec/shared/client_initializer_behaviour.rb#L200)
+          * [uses the custom logger](./spec/shared/client_initializer_behaviour.rb#L207)
+          * [sets the custom log level](./spec/shared/client_initializer_behaviour.rb#L211)
     * delegators
-      * [delegates :client_id to .auth](./spec/shared/client_initializer_behaviour.rb#L210)
-      * [delegates :auth_options to .auth](./spec/shared/client_initializer_behaviour.rb#L215)
+      * [delegates :client_id to .auth](./spec/shared/client_initializer_behaviour.rb#L221)
+      * [delegates :auth_options to .auth](./spec/shared/client_initializer_behaviour.rb#L226)
   * initializer options
     * TLS
       * disabled
         * [fails for any operation with basic auth and attempting to send an API key over a non-secure connection](./spec/unit/rest/client_spec.rb#L17)
     * :use_token_auth
       * set to false
-        * with an api_key with :tls => false
+        * with an key with :tls => false
           * [fails for any operation with basic auth and attempting to send an API key over a non-secure connection](./spec/unit/rest/client_spec.rb#L28)
-        * without an api_key
-          * [fails as an api_key is required if not using token auth](./spec/unit/rest/client_spec.rb#L36)
+        * without an key
+          * [fails as an key is required if not using token auth](./spec/unit/rest/client_spec.rb#L36)
       * set to true
-        * without an api_key or token_id
-          * [fails as an api_key is required to issue tokens](./spec/unit/rest/client_spec.rb#L46)
+        * without an key or token_id
+          * [fails as an key is required to issue tokens](./spec/unit/rest/client_spec.rb#L46)
 
 ### Ably::Rest
 _(see [spec/unit/rest/rest_spec.rb](./spec/unit/rest/rest_spec.rb))_
@@ -1924,6 +2008,6 @@ _(see [spec/unit/util/pub_sub_spec.rb](./spec/unit/util/pub_sub_spec.rb))_
 
   ## Test summary
 
-  * Passing tests: 943
+  * Passing tests: 1001
   * Pending tests: 7
   * Failing tests: 0

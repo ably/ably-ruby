@@ -6,7 +6,7 @@ require 'securerandom'
 
 describe 'Ably::Realtime::Channel Message', :event_machine do
   vary_by_protocol do
-    let(:default_options) { options.merge(api_key: api_key, environment: environment, protocol: protocol) }
+    let(:default_options) { options.merge(key: api_key, environment: environment, protocol: protocol) }
     let(:client_options)  { default_options }
     let(:client) do
       Ably::Realtime::Client.new(client_options)
@@ -175,7 +175,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
 
     context 'without suitable publishing permissions' do
       let(:restricted_client) do
-        Ably::Realtime::Client.new(options.merge(api_key: restricted_api_key, environment: environment, protocol: protocol))
+        Ably::Realtime::Client.new(options.merge(key: restricted_api_key, environment: environment, protocol: protocol))
       end
       let(:restricted_channel) { restricted_client.channel("cansubscribe:example") }
       let(:payload)            { 'Test message without permission to publish' }

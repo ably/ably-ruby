@@ -6,7 +6,7 @@ describe Ably::Rest::Channel do
 
   vary_by_protocol do
     let(:client) do
-      Ably::Rest::Client.new(api_key: api_key, environment: environment, protocol: protocol)
+      Ably::Rest::Client.new(key: api_key, environment: environment, protocol: protocol)
     end
 
     describe '#publish' do

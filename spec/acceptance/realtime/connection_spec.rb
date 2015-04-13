@@ -7,7 +7,7 @@ describe Ably::Realtime::Connection, :event_machine do
 
   vary_by_protocol do
     let(:default_options) do
-      { api_key: api_key, environment: environment, protocol: protocol }
+      { key: api_key, environment: environment, protocol: protocol }
     end
 
     let(:client_options) { default_options }
@@ -177,7 +177,7 @@ describe Ably::Realtime::Connection, :event_machine do
             end
 
             context 'opening a new connection' do
-              let(:client_options) { default_options.merge(api_key: nil, token_id: expired_token.id, log_level: :none) }
+              let(:client_options) { default_options.merge(key: nil, token_id: expired_token.id, log_level: :none) }
 
               it 'transitions state to failed', em_timeout: 10 do
                 EventMachine.add_timer(1) do # wait for token to expire

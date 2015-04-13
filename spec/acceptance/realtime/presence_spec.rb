@@ -5,7 +5,7 @@ describe Ably::Realtime::Presence, :event_machine do
   include Ably::Modules::Conversions
 
   vary_by_protocol do
-    let(:default_options) { { api_key: api_key, environment: environment, protocol: protocol } }
+    let(:default_options) { { key: api_key, environment: environment, protocol: protocol } }
     let(:client_options)  { default_options }
 
     let(:anonymous_client) { Ably::Realtime::Client.new(client_options) }
@@ -487,7 +487,7 @@ describe Ably::Realtime::Presence, :event_machine do
 
       context 'without necessary capabilities to join presence' do
         let(:restricted_client) do
-          Ably::Realtime::Client.new(default_options.merge(api_key: restricted_api_key, log_level: :fatal))
+          Ably::Realtime::Client.new(default_options.merge(key: restricted_api_key, log_level: :fatal))
         end
         let(:restricted_channel)  { restricted_client.channel("cansubscribe:channel") }
         let(:restricted_presence) { restricted_channel.presence }
@@ -688,7 +688,7 @@ describe Ably::Realtime::Presence, :event_machine do
 
         context 'without necessary capabilities to enter on behalf of another client' do
           let(:restricted_client) do
-            Ably::Realtime::Client.new(default_options.merge(api_key: restricted_api_key, log_level: :fatal))
+            Ably::Realtime::Client.new(default_options.merge(key: restricted_api_key, log_level: :fatal))
           end
           let(:restricted_channel)  { restricted_client.channel("cansubscribe:channel") }
           let(:restricted_presence) { restricted_channel.presence }

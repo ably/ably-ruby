@@ -26,7 +26,7 @@ shared_examples 'a client initializer' do
       let(:client_options) { Hash.new }
 
       it 'raises an exception' do
-        expect { subject }.to raise_error(ArgumentError, /api_key is missing/)
+        expect { subject }.to raise_error(ArgumentError, /key is missing/)
       end
     end
 
@@ -38,35 +38,35 @@ shared_examples 'a client initializer' do
       end
     end
 
-    context 'api_key: "invalid"' do
-      let(:client_options) { { api_key: 'invalid' } }
+    context 'key: "invalid"' do
+      let(:client_options) { { key: 'invalid' } }
 
       it 'raises an exception' do
-        expect { subject }.to raise_error(ArgumentError, /api_key is invalid/)
+        expect { subject }.to raise_error(ArgumentError, /key is invalid/)
       end
     end
 
-    context 'api_key: "invalid:asdad"' do
-      let(:client_options) { { api_key: 'invalid:asdad' } }
+    context 'key: "invalid:asdad"' do
+      let(:client_options) { { key: 'invalid:asdad' } }
 
       it 'raises an exception' do
-        expect { subject }.to raise_error(ArgumentError, /api_key is invalid/)
+        expect { subject }.to raise_error(ArgumentError, /key is invalid/)
       end
     end
 
-    context 'api_key and key_id' do
-      let(:client_options) { { api_key: 'appid.keyuid:keysecret', key_id: 'invalid' } }
+    context 'key and key_id' do
+      let(:client_options) { { key: 'appid.keyuid:keysecret', key_id: 'invalid' } }
 
       it 'raises an exception' do
-        expect { subject }.to raise_error(ArgumentError, /api_key and key_id or key_secret are mutually exclusive/)
+        expect { subject }.to raise_error(ArgumentError, /key and key_id or key_secret are mutually exclusive/)
       end
     end
 
-    context 'api_key and key_secret' do
-      let(:client_options) { { api_key: 'appid.keyuid:keysecret', key_secret: 'invalid' } }
+    context 'key and key_secret' do
+      let(:client_options) { { key: 'appid.keyuid:keysecret', key_secret: 'invalid' } }
 
       it 'raises an exception' do
-        expect { subject }.to raise_error(ArgumentError, /api_key and key_id or key_secret are mutually exclusive/)
+        expect { subject }.to raise_error(ArgumentError, /key and key_id or key_secret are mutually exclusive/)
       end
     end
 
@@ -80,28 +80,39 @@ shared_examples 'a client initializer' do
   end
 
   context 'with valid arguments' do
-    let(:default_options) { { api_key: 'appid.keyuid:keysecret' } }
+    let(:default_options) { { key: 'appid.keyuid:keysecret' } }
     let(:client_options)  { default_options }
 
-    context 'api_key only' do
+    context 'key only' do
       it 'connects to the Ably service' do
         expect { subject }.to_not raise_error
+      end
+    end
+
+    context 'with legacy :api_key only' do
+      let(:default_options) { { api_key: 'api_key_id.keyuid:keysecret' } }
+      it 'connects to the Ably service' do
+        expect { subject }.to_not raise_error
+      end
+
+      it 'sets the Auth#key' do
+        expect(subject.auth.key).to eql('api_key_id.keyuid:keysecret')
       end
     end
 
     context 'key_id and key_secret' do
       let(:client_options) { { key_id: 'id', key_secret: 'secret' } }
 
-      it 'constructs an api_key' do
-        expect(subject.auth.api_key).to eql('id:secret')
+      it 'constructs an key' do
+        expect(subject.auth.key).to eql('id:secret')
       end
     end
 
     context 'with a string key instead of options hash' do
       let(:client_options) { 'app.key:secret' }
 
-      it 'sets the api_key' do
-        expect(subject.auth.api_key).to eql(client_options)
+      it 'sets the key' do
+        expect(subject.auth.key).to eql(client_options)
       end
 
       it 'sets the key_id' do

@@ -79,7 +79,7 @@ describe Ably::Rest::Client do
     end
 
     context 'connection transport' do
-      let(:client_options) { default_options.merge(api_key: api_key) }
+      let(:client_options) { default_options.merge(key: api_key) }
 
       context 'for default host' do
         it "is configured to timeout connection opening in #{connection_retry.fetch(:single_request_open_timeout)} seconds" do
@@ -107,7 +107,7 @@ describe Ably::Rest::Client do
       let(:publish_block)  { proc { client.channel('test').publish('event', 'data') } }
 
       context 'configured' do
-        let(:client_options) { default_options.merge(api_key: api_key) }
+        let(:client_options) { default_options.merge(key: api_key) }
 
         it 'should make connection attempts to A.ably-realtime.com, B.ably-realtime.com, C.ably-realtime.com, D.ably-realtime.com, E.ably-realtime.com' do
           hosts = []
@@ -119,7 +119,7 @@ describe Ably::Rest::Client do
       end
 
       context 'when environment is NOT production' do
-        let(:client_options) { default_options.merge(environment: 'sandbox', api_key: api_key) }
+        let(:client_options) { default_options.merge(environment: 'sandbox', key: api_key) }
         let!(:default_host_request_stub) do
           stub_request(:post, "https://#{api_key}@#{environment}-#{Ably::Rest::Client::DOMAIN}#{path}").to_return do
             raise Faraday::TimeoutError.new('timeout error message')
@@ -135,7 +135,7 @@ describe Ably::Rest::Client do
         let(:custom_hosts)       { %w(A.ably-realtime.com B.ably-realtime.com) }
         let(:max_attempts)       { 2 }
         let(:cumulative_timeout) { 0.5 }
-        let(:client_options)     { default_options.merge(environment: nil, api_key: api_key) }
+        let(:client_options)     { default_options.merge(environment: nil, key: api_key) }
 
         before do
           stub_const 'Ably::FALLBACK_HOSTS', custom_hosts
@@ -209,7 +209,7 @@ describe Ably::Rest::Client do
 
     context 'with a custom host' do
       let(:custom_host)   { 'host.does.not.exist' }
-      let(:client_options) { default_options.merge(api_key: api_key, rest_host: custom_host) }
+      let(:client_options) { default_options.merge(key: api_key, rest_host: custom_host) }
       let(:capability)     { { :foo => ["publish"] } }
 
       context 'that does not exist' do
