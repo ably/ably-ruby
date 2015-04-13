@@ -23,7 +23,7 @@ class TestApp
           {
             'clientId' => 'client_encoded',
             'data' => 'HO4cYSP8LybPYBPZPHQOtuD53yrD3YV3NBoTEYBh4U0N1QXHbtkfsDfTspKeLQFt',
-            'encoding': 'json/utf-8/cipher+aes-128-cbc/base64'
+            'encoding' => 'json/utf-8/cipher+aes-128-cbc/base64'
           }
         ]
       }
