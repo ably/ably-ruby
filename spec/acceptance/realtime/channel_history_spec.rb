@@ -30,7 +30,7 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
     end
 
     context 'with a single client publishing and receiving' do
-      it 'retrieves real-time history' do
+      it 'retrieves realtime history' do
         channel.publish('event', payload) do |message|
           channel.history do |page|
             expect(page.items.length).to eql(1)
@@ -42,7 +42,7 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
     end
 
     context 'with two clients publishing messages on the same channel' do
-      it 'retrieves real-time history on both channels' do
+      it 'retrieves realtime history on both channels' do
         channel.publish('event', payload) do |message|
           channel2.publish('event', payload) do |message|
             channel.history do |page|

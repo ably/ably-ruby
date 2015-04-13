@@ -8,8 +8,8 @@ Gem::Specification.new do |spec|
   spec.version       = Ably::VERSION
   spec.authors       = ['Lewis Marshall', "Matthew O'Riordan"]
   spec.email         = ['lewis@lmars.net', 'matt@ably.io']
-  spec.description   = %q{A Ruby client library for ably.io, the real-time messaging service}
-  spec.summary       = %q{A Ruby client library for ably.io, the real-time messaging service}
+  spec.description   = %q{A Ruby client library for ably.io, the realtime messaging service}
+  spec.summary       = %q{A Ruby client library for ably.io, the realtime messaging service}
   spec.homepage      = 'http://github.com/ably/ably-ruby'
   spec.license       = 'MIT'
 

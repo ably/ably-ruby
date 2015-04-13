@@ -179,7 +179,7 @@ module Ably
         @presence
       end
 
-      # Return the message history of the channel
+      # Return the message history of the channel.
       #
       # @param (see Ably::Rest::Channel#history)
       # @option options (see Ably::Rest::Channel#history)

@@ -117,7 +117,7 @@ module Ably::Models
 
     # MessageTraffic contains a breakdown of summary stats data for traffic over various transport types
     # @!attribute [r] realtime
-    #   @return [MessageTypes] count of messages transferred over a real-time transport such as WebSockets
+    #   @return [MessageTypes] count of messages transferred over a realtime transport such as WebSockets
     # @!attribute [r] rest
     #   @return [MessageTypes] count of messages transferred using REST
     # @!attribute [r] webhook

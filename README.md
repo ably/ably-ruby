@@ -4,7 +4,7 @@
 [![Gem Version](https://badge.fury.io/rb/ably.svg)](http://badge.fury.io/rb/ably)
 [![Coverage Status](https://coveralls.io/repos/ably/ably-ruby/badge.svg)](https://coveralls.io/r/ably/ably-ruby)
 
-A Ruby client library for [ably.io](https://ably.io), the real-time messaging service.
+A Ruby client library for [ably.io](https://ably.io), the realtime messaging service.
 
 ## Documentation
 

@@ -29,7 +29,7 @@ module Ably::Models
   #   @return [Object] The encoding for the message data. Encoding and decoding of messages is handled automatically by the client library.
   #                    Therefore, the `encoding` attribute should always be nil unless an Ably library decoding error has occurred.
   # @!attribute [r] timestamp
-  #   @return [Time] Timestamp when the message was received by the Ably the real-time service
+  #   @return [Time] Timestamp when the message was received by the Ably the realtime service
   # @!attribute [r] id
   #   @return [String] A globally unique message ID
   # @!attribute [r] connection_id
