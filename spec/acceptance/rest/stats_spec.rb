@@ -45,10 +45,10 @@ describe Ably::Rest::Client, '#stats' do
 
         context 'with :from set to last interval and :limit set to 1' do
           let(:subject) { client.stats(start: as_since_epoch(LAST_INTERVAL), by: :minute, limit: 1) }
-          let(:stat)    { subject.first}
+          let(:stat)    { subject.items.first }
 
           it 'retrieves only one stat' do
-            expect(subject.count).to eql(1)
+            expect(subject.items.count).to eql(1)
           end
 
           it 'returns zero value for any missing metrics' do
@@ -117,34 +117,34 @@ describe Ably::Rest::Client, '#stats' do
         context 'with :start set to first interval, :limit set to 1 and direction :forwards' do
           let(:first_interval) { LAST_INTERVAL - 120 }
           let(:subject)        { client.stats(start: as_since_epoch(first_interval), by: :minute, direction: :forwards, limit: 1) }
-          let(:stat)           { subject.first}
+          let(:stat)           { subject.items.first }
 
           it 'returns the first interval stats as stats are provided forwards from :start' do
             expect(stat.inbound.realtime.all.count).to eql(first_inbound_realtime_count)
           end
 
           it 'returns 3 pages of stats' do
-            expect(subject).to be_first_page
-            expect(subject).to_not be_last_page
-            page3 = subject.next_page.next_page
-            expect(page3).to be_last_page
-            expect(page3.first.inbound.realtime.all.count).to eql(last_inbound_realtime_count)
+            expect(subject).to be_first
+            expect(subject).to_not be_last
+            page3 = subject.next.next
+            expect(page3).to be_last
+            expect(page3.items.first.inbound.realtime.all.count).to eql(last_inbound_realtime_count)
           end
         end
 
         context 'with :end set to last interval, :limit set to 1 and direction :backwards' do
           let(:subject)        { client.stats(:end => as_since_epoch(LAST_INTERVAL), by: :minute, direction: :backwards, limit: 1) }
-          let(:stat)           { subject.first}
+          let(:stat)           { subject.items.first }
 
           it 'returns the 3rd interval stats first as stats are provided backwards from :end' do
             expect(stat.inbound.realtime.all.count).to eql(last_inbound_realtime_count)
           end
 
           it 'returns 3 pages of stats' do
-            expect(subject).to be_first_page
-            expect(subject).to_not be_last_page
-            page3 = subject.next_page.next_page
-            expect(page3.first.inbound.realtime.all.count).to eql(first_inbound_realtime_count)
+            expect(subject).to be_first
+            expect(subject).to_not be_last
+            page3 = subject.next.next
+            expect(page3.items.first.inbound.realtime.all.count).to eql(first_inbound_realtime_count)
           end
         end
       end
@@ -152,7 +152,7 @@ describe Ably::Rest::Client, '#stats' do
       [:hour, :day, :month].each do |interval|
         context "by #{interval}" do
           let(:subject) { client.stats(start: as_since_epoch(LAST_INTERVAL), by: interval, direction: 'forwards', limit: 1) }
-          let(:stat)    { subject.first }
+          let(:stat)    { subject.items.first }
           let(:aggregate_messages_count) do
             STATS_FIXTURES.inject(0) do |sum, fixture|
               sum + fixture[:inbound][:realtime][:messages][:count] + fixture[:outbound][:realtime][:messages][:count]
@@ -165,7 +165,7 @@ describe Ably::Rest::Client, '#stats' do
           end
 
           it 'should aggregate the stats for that period' do
-            expect(subject.count).to eql(1)
+            expect(subject.items.count).to eql(1)
 
             expect(stat.all.messages.count).to eql(aggregate_messages_count)
             expect(stat.all.messages.data).to eql(aggregate_messages_data)

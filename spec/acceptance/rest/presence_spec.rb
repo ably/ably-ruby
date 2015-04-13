@@ -36,13 +36,13 @@ describe Ably::Rest::Presence do
       end
 
       describe '#get' do
-        let(:presence) { fixtures_channel.presence.get }
+        let(:presence_page) { fixtures_channel.presence.get }
 
         it 'returns current members on the channel with their action set to :present' do
-          expect(presence.size).to eql(fixtures.count)
+          expect(presence_page.items.size).to eql(fixtures.count)
 
           non_encoded_fixtures.each do |fixture|
-            presence_message = presence.find { |client| client.client_id == fixture[:client_id] }
+            presence_message = presence_page.items.find { |client| client.client_id == fixture[:client_id] }
             expect(presence_message.data).to eq(fixture[:data])
             expect(presence_message.action).to eq(:present)
           end
@@ -50,25 +50,25 @@ describe Ably::Rest::Presence do
 
         context 'with :limit option' do
           let(:page_size) { 3 }
-          let(:presence)  { fixtures_channel.presence.get(limit: page_size) }
+          let(:presence_page)  { fixtures_channel.presence.get(limit: page_size) }
 
           it 'returns a paged response limiting number of members per page' do
-            expect(presence.size).to eql(page_size)
-            next_page = presence.next_page
-            expect(next_page.size).to eql(page_size)
-            expect(next_page).to be_last_page
+            expect(presence_page.items.size).to eql(page_size)
+            next_page = presence_page.next
+            expect(next_page.items.size).to eql(page_size)
+            expect(next_page).to be_last
           end
         end
       end
 
       describe '#history' do
-        let(:presence_history) { fixtures_channel.presence.history }
+        let(:history_page) { fixtures_channel.presence.history }
 
         it 'returns recent presence activity' do
-          expect(presence_history.size).to eql(fixtures.count)
+          expect(history_page.items.size).to eql(fixtures.count)
 
           non_encoded_fixtures.each do |fixture|
-            presence_message = presence_history.find { |client| client.client_id == fixture['clientId'] }
+            presence_message = history_page.items.find { |client| client.client_id == fixture['clientId'] }
             expect(presence_message.data).to eq(fixture[:data])
           end
         end
@@ -77,32 +77,32 @@ describe Ably::Rest::Presence do
           let(:page_size) { 3 }
 
           context 'direction: :forwards' do
-            let(:presence_history) { fixtures_channel.presence.history(direction: :forwards) }
+            let(:history_page) { fixtures_channel.presence.history(direction: :forwards) }
             let(:paged_history_forward) { fixtures_channel.presence.history(limit: page_size, direction: :forwards) }
 
             it 'returns recent presence activity forwards with most recent history last' do
               expect(paged_history_forward).to be_a(Ably::Models::PaginatedResource)
-              expect(paged_history_forward.size).to eql(page_size)
+              expect(paged_history_forward.items.size).to eql(page_size)
 
-              next_page = paged_history_forward.next_page
+              next_page = paged_history_forward.next
 
-              expect(paged_history_forward.first.id).to eql(presence_history.first.id)
-              expect(next_page.first.id).to eql(presence_history[page_size].id)
+              expect(paged_history_forward.items.first.id).to eql(history_page.items.first.id)
+              expect(next_page.items.first.id).to eql(history_page.items[page_size].id)
             end
           end
 
           context 'direction: :backwards' do
-            let(:presence_history) { fixtures_channel.presence.history(direction: :backwards) }
+            let(:history_page) { fixtures_channel.presence.history(direction: :backwards) }
             let(:paged_history_backward) { fixtures_channel.presence.history(limit: page_size, direction: :backwards) }
 
             it 'returns recent presence activity backwards with most recent history first' do
               expect(paged_history_backward).to be_a(Ably::Models::PaginatedResource)
-              expect(paged_history_backward.size).to eql(page_size)
+              expect(paged_history_backward.items.size).to eql(page_size)
 
-              next_page = paged_history_backward.next_page
+              next_page = paged_history_backward.next
 
-              expect(paged_history_backward.first.id).to eql(presence_history.first.id)
-              expect(next_page.first.id).to eql(presence_history[page_size].id)
+              expect(paged_history_backward.items.first.id).to eql(history_page.items.first.id)
+              expect(next_page.items.first.id).to eql(history_page.items[page_size].id)
             end
           end
         end
@@ -165,7 +165,7 @@ describe Ably::Rest::Presence do
         let(:encoded_client_id) { 'client_encoded' }
 
         def message(client_id, messages)
-          messages.find { |message| message.client_id == client_id }
+          messages.items.find { |message| message.client_id == client_id }
         end
 
         describe '#history' do
@@ -234,9 +234,9 @@ describe Ably::Rest::Presence do
           end
 
           it 'automaticaly decodes presence messages' do
-            present = presence.get
-            expect(present.first.encoding).to be_nil
-            expect(present.first.data).to eql(data)
+            present_page = presence.get
+            expect(present_page.items.first.encoding).to be_nil
+            expect(present_page.items.first.data).to eql(data)
           end
         end
 
@@ -251,9 +251,9 @@ describe Ably::Rest::Presence do
           end
 
           it 'automaticaly decodes presence messages' do
-            history = presence.history
-            expect(history.first.encoding).to be_nil
-            expect(history.first.data).to eql(data)
+            history_page = presence.history
+            expect(history_page.items.first.encoding).to be_nil
+            expect(history_page.items.first.data).to eql(data)
           end
         end
       end
@@ -275,7 +275,7 @@ describe Ably::Rest::Presence do
             stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence").
               to_return(:body => serialized_encoded_message_with_invalid_encoding, :headers => { 'Content-Type' => content_type })
           }
-          let(:presence_message) { presence.get.first }
+          let(:presence_message) { presence.get.items.first }
 
           after do
             expect(get_stub).to have_been_requested
@@ -299,7 +299,7 @@ describe Ably::Rest::Presence do
             stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence/history").
               to_return(:body => serialized_encoded_message_with_invalid_encoding, :headers => { 'Content-Type' => content_type })
           }
-          let(:presence_message) { presence.history.first }
+          let(:presence_message) { presence.history.items.first }
 
           after do
             expect(history_stub).to have_been_requested

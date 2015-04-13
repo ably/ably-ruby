@@ -37,20 +37,20 @@ describe Ably::Rest::Channel do
       end
 
       it 'should return the current message history for the channel' do
-        actual_history = channel.history
+        actual_history_items = channel.history.items
 
-        expect(actual_history.size).to eql(3)
+        expect(actual_history_items.size).to eql(3)
 
         expected_history.each do |message|
           message_name, message_data = message[:name], message[:data]
-          matching_message = actual_history.find { |message| message.name == message_name && message.data == message_data }
+          matching_message = actual_history_items.find { |message| message.name == message_name && message.data == message_data }
           expect(matching_message).to be_a(Ably::Models::Message)
         end
       end
 
       context 'message timestamps' do
         it 'should all be after the messages were published' do
-          channel.history.each do |message|
+          channel.history.items.each do |message|
             expect(before_published.to_f).to be < message.timestamp.to_f
           end
         end
@@ -58,7 +58,7 @@ describe Ably::Rest::Channel do
 
       context 'message IDs' do
         it 'should be unique' do
-          message_ids = channel.history.map(&:id).compact
+          message_ids = channel.history.items.map(&:id).compact
           expect(message_ids.count).to eql(3)
           expect(message_ids.uniq.count).to eql(3)
         end
@@ -66,25 +66,25 @@ describe Ably::Rest::Channel do
 
       it 'should return paged history using the PaginatedResource model' do
         page_1 = channel.history(limit: 1)
-        page_2 = page_1.next_page
-        page_3 = page_2.next_page
+        page_2 = page_1.next
+        page_3 = page_2.next
 
-        all_items = [page_1[0].id, page_2[0].id, page_3[0].id]
+        all_items = [page_1.items[0].id, page_2.items[0].id, page_3.items[0].id]
         expect(all_items.uniq).to eql(all_items)
 
-        expect(page_1.size).to eql(1)
-        expect(page_1).to_not be_last_page
-        expect(page_1).to be_first_page
+        expect(page_1.items.size).to eql(1)
+        expect(page_1).to_not be_last
+        expect(page_1).to be_first
 
         # Page 2
-        expect(page_2.size).to eql(1)
-        expect(page_2).to_not be_last_page
-        expect(page_2).to_not be_first_page
+        expect(page_2.items.size).to eql(1)
+        expect(page_2).to_not be_last
+        expect(page_2).to_not be_first
 
         # Page 3
-        expect(page_3.size).to eql(1)
-        expect(page_3).to be_last_page
-        expect(page_3).to_not be_first_page
+        expect(page_3.items.size).to eql(1)
+        expect(page_3).to be_last
+        expect(page_3).to_not be_first
       end
     end
 

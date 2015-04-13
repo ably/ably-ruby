@@ -1,11 +1,17 @@
 module Ably::Models
-  # Wraps any Ably HTTP response that supports paging and automatically provides methods to iterate through
-  # the array of resources using {#first_page}, {#next_page}, {#first_page?} and {#last_page?}
+  # Wraps any Ably HTTP response that supports paging and provides methods to iterate through
+  # the pages using {#first}, {#next}, {#first?}, {#has_next?} and {#last?}
+  #
+  # All items in the HTTP response are available in the Array returned from {#items}
   #
   # Paging information is provided by Ably in the LINK HTTP headers
+  #
   class PaginatedResource
-    include Enumerable
     include Ably::Modules::AsyncWrapper if defined?(Ably::Realtime)
+
+    # The items contained within this {PaginatedResource}
+    # @return [Array]
+    attr_reader :items
 
     # @param [Faraday::Response] http_response Initial HTTP response from an Ably request to a paged resource
     # @param [String] base_url Base URL for request that generated the http_response so that subsequent paged requests can be made
@@ -25,9 +31,9 @@ module Ably::Models
       @each_block    = each_block
       @make_async    = options.fetch(:async_blocking_operations, false)
 
-      @body = http_response.body
-      @body = coerce_items_into(body, @coerce_into) if @coerce_into
-      @body = body.map { |item| yield item } if block_given?
+      @items = http_response.body
+      @items = coerce_items_into(items, @coerce_into) if @coerce_into
+      @items = items.map { |item| yield item } if block_given?
     end
 
     # Retrieve the first page of results.
@@ -35,8 +41,9 @@ module Ably::Models
     #   and allows an optional success callback block to be provided.
     #
     # @return [PaginatedResource,Ably::Util::SafeDeferrable]
-    def first_page(&success_callback)
+    def first(&success_callback)
       async_wrap_if_realtime(success_callback) do
+        return nil unless supports_pagination?
         PaginatedResource.new(client.get(pagination_url('first')), base_url, client, pagination_options, &each_block)
       end
     end
@@ -46,9 +53,9 @@ module Ably::Models
     #   and allows an optional success callback block to be provided.
     #
     # @return [PaginatedResource,Ably::Util::SafeDeferrable]
-    def next_page(&success_callback)
+    def next(&success_callback)
       async_wrap_if_realtime(success_callback) do
-        raise Ably::Exceptions::InvalidPageError, 'There are no more pages' if supports_pagination? && last_page?
+        return nil unless has_next?
         PaginatedResource.new(client.get(pagination_url('next')), base_url, client, pagination_options, &each_block)
       end
     end
@@ -56,7 +63,7 @@ module Ably::Models
     # True if this is the last page in the paged resource set
     #
     # @return [Boolean]
-    def last_page?
+    def last?
       !supports_pagination? ||
         pagination_header('next').nil?
     end
@@ -64,9 +71,16 @@ module Ably::Models
     # True if this is the first page in the paged resource set
     #
     # @return [Boolean]
-    def first_page?
+    def first?
       !supports_pagination? ||
         pagination_header('first') == pagination_header('current')
+    end
+
+    # True if there is a subsequent page in this paginated set available with {#next}
+    #
+    # @return [Boolean]
+    def has_next?
+      supports_pagination? && !last?
     end
 
     # True if the HTTP response supports paging with the expected LINK HTTP headers
@@ -76,48 +90,21 @@ module Ably::Models
       !pagination_headers.empty?
     end
 
-    # Standard Array accessor method
-    def [](index)
-      body[index]
-    end
-
-    # Returns number of items within this page, not the total number of items in the entire paged resource set
-    def length
-      body.length
-    end
-    alias_method :count, :length
-    alias_method :size,  :length
-
-    # Method to allow {PaginatedResource} to be {http://ruby-doc.org/core-2.1.3/Enumerable.html Enumerable}
-    def each(&block)
-      return to_enum(:each) unless block_given?
-      body.each(&block)
-    end
-
-    # First item in this page
-    def first
-      body.first
-    end
-
-    # Last item in this page
-    def last
-      body.last
-    end
-
     def inspect
       <<-EOF.gsub(/^        /, '')
         #<#{self.class.name}:#{self.object_id}
          @base_url="#{base_url}",
-         @first_page?=#{!!first_page?},
-         @last_page?=#{!!first_page?},
-         @body=
-           #{body.map { |item| item.inspect }.join(",\n           ") }
+         @first?=#{!!first?},
+         @last?=#{!!first?},
+         @has_next?=#{!!has_next?},
+         @items=
+           #{items.map { |item| item.inspect }.join(",\n           ") }
         >
       EOF
     end
 
     private
-    attr_reader :body, :http_response, :base_url, :client, :coerce_into, :raw_body, :each_block, :make_async
+    attr_reader :http_response, :base_url, :client, :coerce_into, :raw_body, :each_block, :make_async
 
     def coerce_items_into(items, type_string)
       items.map do |item|
