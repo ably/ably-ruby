@@ -910,41 +910,47 @@ _(see [spec/acceptance/rest/presence_spec.rb](./spec/acceptance/rest/presence_sp
   * using JSON and MsgPack protocol
     * tested against presence fixture data set up in test app
       * #get
-        * [returns current members on the channel with their action set to :present](./spec/acceptance/rest/presence_spec.rb#L30)
+        * [returns current members on the channel with their action set to :present](./spec/acceptance/rest/presence_spec.rb#L41)
         * with :limit option
-          * [returns a paged response limiting number of members per page](./spec/acceptance/rest/presence_spec.rb#L44)
+          * [returns a paged response limiting number of members per page](./spec/acceptance/rest/presence_spec.rb#L55)
       * #history
-        * [returns recent presence activity](./spec/acceptance/rest/presence_spec.rb#L62)
+        * [returns recent presence activity](./spec/acceptance/rest/presence_spec.rb#L72)
         * with options
           * direction: :forwards
-            * [returns recent presence activity forwards with most recent history last](./spec/acceptance/rest/presence_spec.rb#L78)
+            * [returns recent presence activity forwards with most recent history last](./spec/acceptance/rest/presence_spec.rb#L88)
           * direction: :backwards
-            * [returns recent presence activity backwards with most recent history first](./spec/acceptance/rest/presence_spec.rb#L93)
+            * [returns recent presence activity backwards with most recent history first](./spec/acceptance/rest/presence_spec.rb#L103)
     * #history
       * with time range options
         * :start
           * with milliseconds since epoch value
-            * [uses this value in the history request](./spec/acceptance/rest/presence_spec.rb#L138)
+            * [uses this value in the history request](./spec/acceptance/rest/presence_spec.rb#L148)
           * with Time object value
-            * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/presence_spec.rb#L148)
+            * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/presence_spec.rb#L158)
         * :end
           * with milliseconds since epoch value
-            * [uses this value in the history request](./spec/acceptance/rest/presence_spec.rb#L138)
+            * [uses this value in the history request](./spec/acceptance/rest/presence_spec.rb#L148)
           * with Time object value
-            * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/presence_spec.rb#L148)
+            * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/presence_spec.rb#L158)
     * decoding
+      * with encoded fixture data
+        * #history
+          * [decodes encoded and encryped presence fixture data automatically](./spec/acceptance/rest/presence_spec.rb#L178)
+        * #get
+          * [decodes encoded and encryped presence fixture data automatically](./spec/acceptance/rest/presence_spec.rb#L185)
+    * decoding permutations using mocked #history
       * valid decodeable content
         * #get
-          * [automaticaly decodes presence messages](./spec/acceptance/rest/presence_spec.rb#L206)
+          * [automaticaly decodes presence messages](./spec/acceptance/rest/presence_spec.rb#L241)
         * #history
-          * [automaticaly decodes presence messages](./spec/acceptance/rest/presence_spec.rb#L223)
+          * [automaticaly decodes presence messages](./spec/acceptance/rest/presence_spec.rb#L258)
       * invalid data
         * #get
-          * [returns the messages still encoded](./spec/acceptance/rest/presence_spec.rb#L254)
-          * [logs a cipher error](./spec/acceptance/rest/presence_spec.rb#L258)
+          * [returns the messages still encoded](./spec/acceptance/rest/presence_spec.rb#L289)
+          * [logs a cipher error](./spec/acceptance/rest/presence_spec.rb#L293)
         * #history
-          * [returns the messages still encoded](./spec/acceptance/rest/presence_spec.rb#L278)
-          * [logs a cipher error](./spec/acceptance/rest/presence_spec.rb#L282)
+          * [returns the messages still encoded](./spec/acceptance/rest/presence_spec.rb#L313)
+          * [logs a cipher error](./spec/acceptance/rest/presence_spec.rb#L317)
 
 ### Ably::Rest::Client#stats
 _(see [spec/acceptance/rest/stats_spec.rb](./spec/acceptance/rest/stats_spec.rb))_
@@ -2008,6 +2014,6 @@ _(see [spec/unit/util/pub_sub_spec.rb](./spec/unit/util/pub_sub_spec.rb))_
 
   ## Test summary
 
-  * Passing tests: 1001
+  * Passing tests: 1003
   * Pending tests: 7
   * Failing tests: 0
