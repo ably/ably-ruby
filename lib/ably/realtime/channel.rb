@@ -71,6 +71,11 @@ module Ably
       # @api private
       attr_reader :manager
 
+      # Serial number assigned to this channel when it was attached
+      # @return [Integer]
+      # @api private
+      attr_reader :attached_serial
+
       # Initialize a new Channel object
       #
       # @param  client [Ably::Rest::Client]
@@ -235,7 +240,7 @@ module Ably
       end
 
       private
-      attr_reader :queue, :attached_serial
+      attr_reader :queue
 
       def setup_event_handlers
         __incoming_msgbus__.subscribe(:message) do |message|
