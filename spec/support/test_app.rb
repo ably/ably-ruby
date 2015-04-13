@@ -18,10 +18,25 @@ class TestApp
           { 'clientId' => 'client_bool',    'data' => 'true' },
           { 'clientId' => 'client_int',     'data' => '24' },
           { 'clientId' => 'client_string',  'data' => 'This is a string clientData payload' },
-          { 'clientId' => 'client_json',    'data' => '{ "test" => \'This is a JSONObject clientData payload\'}' }
+          { 'clientId' => 'client_json',    'data' => '{ "test" => \'This is a JSONObject clientData payload\'}' },
+          { 'clientId' => 'client_decoded', 'data' => '{"example":{"json":"Object"}}', 'encoding' => 'json/utf-8' },
+          {
+            'clientId' => 'client_encoded',
+            'data' => 'HO4cYSP8LybPYBPZPHQOtuD53yrD3YV3NBoTEYBh4U0N1QXHbtkfsDfTspKeLQFt',
+            'encoding': 'json/utf-8/cipher+aes-128-cbc/base64'
+          }
         ]
       }
     ]
+  }
+
+  # Cipher details used for client_encoded presence data
+  APP_SPEC_CIPHER = {
+    algorithm: 'aes',
+    mode: 'cbc',
+    keylength: 128,
+    key: 'WUP6u0K7MXI5Zeo0VppPwg==',
+    iv: 'HO4cYSP8LybPYBPZPHQOtg==',
   }
 
   # If an app has already been created and we need a new app, create a new test app
