@@ -16,21 +16,32 @@ describe Ably::Rest::Presence do
         IdiomaticRubyWrapper(fixture, stop_at: [:data])
       end
     end
+    let(:non_encoded_fixtures) { fixtures.reject { |fixture| fixture['encoding'] } }
+
+    # Encrypted fixtures need encryption details or an error will be raised
+    let(:cipher_details)   { TestApp::APP_SPEC_CIPHER }
+    let(:algorithm)        { cipher_details.fetch('algorithm').upcase }
+    let(:mode)             { cipher_details.fetch('mode').upcase }
+    let(:key_length)       { cipher_details.fetch('keylength') }
+    let(:secret_key)       { Base64.decode64(cipher_details.fetch('key')) }
+    let(:iv)               { Base64.decode64(cipher_details.fetch('iv')) }
+
+    let(:cipher_options)   { { key: secret_key, algorithm: algorithm, mode: mode, key_length: key_length, iv: iv } }
+    let(:fixtures_channel) { client.channel('persisted:presence_fixtures', encrypted: true, cipher_params: cipher_options, iv: iv) }
 
     context 'tested against presence fixture data set up in test app' do
-      describe '#get' do
-        before(:context) do
-          # When this test is run as a part of a test suite, the presence data injected in the test app may have expired
-          reload_test_app
-        end
+      before(:context) do
+        # When this test is run as a part of a test suite, the presence data injected in the test app may have expired
+        reload_test_app
+      end
 
-        let(:channel) { client.channel('persisted:presence_fixtures') }
-        let(:presence) { channel.presence.get }
+      describe '#get' do
+        let(:presence) { fixtures_channel.presence.get }
 
         it 'returns current members on the channel with their action set to :present' do
-          expect(presence.size).to eql(4)
+          expect(presence.size).to eql(fixtures.count)
 
-          fixtures.each do |fixture|
+          non_encoded_fixtures.each do |fixture|
             presence_message = presence.find { |client| client.client_id == fixture[:client_id] }
             expect(presence_message.data).to eq(fixture[:data])
             expect(presence_message.action).to eq(:present)
@@ -38,46 +49,40 @@ describe Ably::Rest::Presence do
         end
 
         context 'with :limit option' do
-          let(:page_size) { 2 }
-          let(:presence)  { channel.presence.get(limit: page_size) }
+          let(:page_size) { 3 }
+          let(:presence)  { fixtures_channel.presence.get(limit: page_size) }
 
           it 'returns a paged response limiting number of members per page' do
-            expect(presence.size).to eql(2)
+            expect(presence.size).to eql(page_size)
             next_page = presence.next_page
-            expect(next_page.size).to eql(2)
+            expect(next_page.size).to eql(page_size)
             expect(next_page).to be_last_page
           end
         end
       end
 
       describe '#history' do
-        before(:context) do
-          # When this test is run as a part of a test suite, the presence data injected in the test app may have expired
-          reload_test_app
-        end
-
-        let(:channel) { client.channel('persisted:presence_fixtures') }
-        let(:presence_history) { channel.presence.history }
+        let(:presence_history) { fixtures_channel.presence.history }
 
         it 'returns recent presence activity' do
-          expect(presence_history.size).to eql(4)
+          expect(presence_history.size).to eql(fixtures.count)
 
-          fixtures.each do |fixture|
+          non_encoded_fixtures.each do |fixture|
             presence_message = presence_history.find { |client| client.client_id == fixture['clientId'] }
             expect(presence_message.data).to eq(fixture[:data])
           end
         end
 
         context 'with options' do
-          let(:page_size) { 2 }
+          let(:page_size) { 3 }
 
           context 'direction: :forwards' do
-            let(:presence_history) { channel.presence.history(direction: :forwards) }
-            let(:paged_history_forward) { channel.presence.history(limit: page_size, direction: :forwards) }
+            let(:presence_history) { fixtures_channel.presence.history(direction: :forwards) }
+            let(:paged_history_forward) { fixtures_channel.presence.history(limit: page_size, direction: :forwards) }
 
             it 'returns recent presence activity forwards with most recent history last' do
               expect(paged_history_forward).to be_a(Ably::Models::PaginatedResource)
-              expect(paged_history_forward.size).to eql(2)
+              expect(paged_history_forward.size).to eql(page_size)
 
               next_page = paged_history_forward.next_page
 
@@ -87,12 +92,12 @@ describe Ably::Rest::Presence do
           end
 
           context 'direction: :backwards' do
-            let(:presence_history) { channel.presence.history(direction: :backwards) }
-            let(:paged_history_backward) { channel.presence.history(limit: page_size, direction: :backwards) }
+            let(:presence_history) { fixtures_channel.presence.history(direction: :backwards) }
+            let(:paged_history_backward) { fixtures_channel.presence.history(limit: page_size, direction: :backwards) }
 
             it 'returns recent presence activity backwards with most recent history first' do
               expect(paged_history_backward).to be_a(Ably::Models::PaginatedResource)
-              expect(paged_history_backward.size).to eql(2)
+              expect(paged_history_backward.size).to eql(page_size)
 
               next_page = paged_history_backward.next_page
 
@@ -154,7 +159,32 @@ describe Ably::Rest::Presence do
       end
     end
 
-    describe 'decoding', :webmock do
+    describe 'decoding' do
+      context 'with encoded fixture data' do
+        let(:decoded_client_id) { 'client_decoded' }
+        let(:encoded_client_id) { 'client_encoded' }
+
+        def message(client_id, messages)
+          messages.find { |message| message.client_id == client_id }
+        end
+
+        describe '#history' do
+          let(:history) { fixtures_channel.presence.history }
+          it 'decodes encoded and encryped presence fixture data automatically' do
+            expect(message(decoded_client_id, history).data).to eql(message(encoded_client_id, history).data)
+          end
+        end
+
+        describe '#get' do
+          let(:present) { fixtures_channel.presence.get }
+          it 'decodes encoded and encryped presence fixture data automatically' do
+            expect(message(decoded_client_id, present).data).to eql(message(encoded_client_id, present).data)
+          end
+        end
+      end
+    end
+
+    describe 'decoding permutations using mocked #history', :webmock do
       let(:user) { 'appid.keyuid' }
       let(:secret) { random_str(8) }
       let(:endpoint) do
