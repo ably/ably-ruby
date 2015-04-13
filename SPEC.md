@@ -1,22 +1,27 @@
-# Ably Real-time & REST Client Library 0.7.5 Specification
+# Ably Realtime & REST Client Library 0.7.5 Specification
 
 ### Ably::Realtime::Channel#history
 _(see [spec/acceptance/realtime/channel_history_spec.rb](./spec/acceptance/realtime/channel_history_spec.rb))_
   * using JSON and MsgPack protocol
-    * [returns a SafeDeferrable that catches exceptions in callbacks and logs them](./spec/acceptance/realtime/channel_history_spec.rb#L20)
+    * [returns a SafeDeferrable that catches exceptions in callbacks and logs them](./spec/acceptance/realtime/channel_history_spec.rb#L21)
     * with a single client publishing and receiving
-      * [retrieves real-time history](./spec/acceptance/realtime/channel_history_spec.rb#L33)
+      * [retrieves realtime history](./spec/acceptance/realtime/channel_history_spec.rb#L34)
     * with two clients publishing messages on the same channel
-      * [retrieves real-time history on both channels](./spec/acceptance/realtime/channel_history_spec.rb#L45)
+      * [retrieves realtime history on both channels](./spec/acceptance/realtime/channel_history_spec.rb#L46)
     * with lots of messages published with a single client and channel
       * as one ProtocolMessage
-        * [retrieves history forwards with pagination through :limit option](./spec/acceptance/realtime/channel_history_spec.rb#L87)
-        * [retrieves history backwards with pagination through :limit option](./spec/acceptance/realtime/channel_history_spec.rb#L96)
+        * [retrieves history forwards with pagination through :limit option](./spec/acceptance/realtime/channel_history_spec.rb#L88)
+        * [retrieves history backwards with pagination through :limit option](./spec/acceptance/realtime/channel_history_spec.rb#L97)
       * in multiple ProtocolMessages
-        * [retrieves limited history forwards with pagination](./spec/acceptance/realtime/channel_history_spec.rb#L107)
-        * [retrieves limited history backwards with pagination](./spec/acceptance/realtime/channel_history_spec.rb#L118)
+        * [retrieves limited history forwards with pagination](./spec/acceptance/realtime/channel_history_spec.rb#L108)
+        * [retrieves limited history backwards with pagination](./spec/acceptance/realtime/channel_history_spec.rb#L119)
       * and REST history
-        * [return the same results with unique matching message IDs](./spec/acceptance/realtime/channel_history_spec.rb#L134)
+        * [return the same results with unique matching message IDs](./spec/acceptance/realtime/channel_history_spec.rb#L135)
+    * with option until_attach: true
+      * [retrieves all messages before channel was attached](./spec/acceptance/realtime/channel_history_spec.rb#L160)
+      * [raises an exception unless state is attached](./spec/acceptance/realtime/channel_history_spec.rb#L199)
+      * and two pages of messages
+        * [retrieves two pages of messages before channel was attached](./spec/acceptance/realtime/channel_history_spec.rb#L175)
 
 ### Ably::Realtime::Channel
 _(see [spec/acceptance/realtime/channel_spec.rb](./spec/acceptance/realtime/channel_spec.rb))_
@@ -398,6 +403,11 @@ _(see [spec/acceptance/realtime/presence_history_spec.rb](./spec/acceptance/real
   * using JSON and MsgPack protocol
     * [provides up to the moment presence history](./spec/acceptance/realtime/presence_history_spec.rb#L21)
     * [ensures REST presence history message IDs match ProtocolMessage wrapped message and connection IDs via Realtime](./spec/acceptance/realtime/presence_history_spec.rb#L41)
+    * with option until_attach: true
+      * [retrieves all presence messages before channel was attached](./spec/acceptance/realtime/presence_history_spec.rb#L60)
+      * [raises an exception unless state is attached](./spec/acceptance/realtime/presence_history_spec.rb#L92)
+      * and two pages of messages
+        * [retrieves two pages of messages before channel was attached](./spec/acceptance/realtime/presence_history_spec.rb#L73)
 
 ### Ably::Realtime::Presence
 _(see [spec/acceptance/realtime/presence_spec.rb](./spec/acceptance/realtime/presence_spec.rb))_
@@ -914,43 +924,43 @@ _(see [spec/acceptance/rest/presence_spec.rb](./spec/acceptance/rest/presence_sp
         * with :limit option
           * [returns a paged response limiting number of members per page](./spec/acceptance/rest/presence_spec.rb#L55)
       * #history
-        * [returns recent presence activity](./spec/acceptance/rest/presence_spec.rb#L72)
+        * [returns recent presence activity](./spec/acceptance/rest/presence_spec.rb#L67)
         * with options
           * direction: :forwards
-            * [returns recent presence activity forwards with most recent history last](./spec/acceptance/rest/presence_spec.rb#L88)
+            * [returns recent presence activity forwards with most recent history last](./spec/acceptance/rest/presence_spec.rb#L83)
           * direction: :backwards
-            * [returns recent presence activity backwards with most recent history first](./spec/acceptance/rest/presence_spec.rb#L103)
+            * [returns recent presence activity backwards with most recent history first](./spec/acceptance/rest/presence_spec.rb#L98)
     * #history
       * with time range options
         * :start
           * with milliseconds since epoch value
-            * [uses this value in the history request](./spec/acceptance/rest/presence_spec.rb#L148)
+            * [uses this value in the history request](./spec/acceptance/rest/presence_spec.rb#L143)
           * with Time object value
-            * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/presence_spec.rb#L158)
+            * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/presence_spec.rb#L153)
         * :end
           * with milliseconds since epoch value
-            * [uses this value in the history request](./spec/acceptance/rest/presence_spec.rb#L148)
+            * [uses this value in the history request](./spec/acceptance/rest/presence_spec.rb#L143)
           * with Time object value
-            * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/presence_spec.rb#L158)
+            * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/presence_spec.rb#L153)
     * decoding
       * with encoded fixture data
         * #history
-          * [decodes encoded and encryped presence fixture data automatically](./spec/acceptance/rest/presence_spec.rb#L178)
+          * [decodes encoded and encryped presence fixture data automatically](./spec/acceptance/rest/presence_spec.rb#L173)
         * #get
-          * [decodes encoded and encryped presence fixture data automatically](./spec/acceptance/rest/presence_spec.rb#L185)
+          * [decodes encoded and encryped presence fixture data automatically](./spec/acceptance/rest/presence_spec.rb#L180)
     * decoding permutations using mocked #history
       * valid decodeable content
         * #get
-          * [automaticaly decodes presence messages](./spec/acceptance/rest/presence_spec.rb#L241)
+          * [automaticaly decodes presence messages](./spec/acceptance/rest/presence_spec.rb#L236)
         * #history
-          * [automaticaly decodes presence messages](./spec/acceptance/rest/presence_spec.rb#L258)
+          * [automaticaly decodes presence messages](./spec/acceptance/rest/presence_spec.rb#L253)
       * invalid data
         * #get
-          * [returns the messages still encoded](./spec/acceptance/rest/presence_spec.rb#L289)
-          * [logs a cipher error](./spec/acceptance/rest/presence_spec.rb#L293)
+          * [returns the messages still encoded](./spec/acceptance/rest/presence_spec.rb#L284)
+          * [logs a cipher error](./spec/acceptance/rest/presence_spec.rb#L288)
         * #history
-          * [returns the messages still encoded](./spec/acceptance/rest/presence_spec.rb#L313)
-          * [logs a cipher error](./spec/acceptance/rest/presence_spec.rb#L317)
+          * [returns the messages still encoded](./spec/acceptance/rest/presence_spec.rb#L308)
+          * [logs a cipher error](./spec/acceptance/rest/presence_spec.rb#L312)
 
 ### Ably::Rest::Client#stats
 _(see [spec/acceptance/rest/stats_spec.rb](./spec/acceptance/rest/stats_spec.rb))_
@@ -1262,36 +1272,39 @@ _(see [spec/unit/models/message_spec.rb](./spec/unit/models/message_spec.rb))_
 
 ### Ably::Models::PaginatedResource
 _(see [spec/unit/models/paginated_resource_spec.rb](./spec/unit/models/paginated_resource_spec.rb))_
-  * [returns correct length from body](./spec/unit/models/paginated_resource_spec.rb#L30)
-  * [supports alias methods for length](./spec/unit/models/paginated_resource_spec.rb#L34)
-  * [is Enumerable](./spec/unit/models/paginated_resource_spec.rb#L39)
-  * [is iterable](./spec/unit/models/paginated_resource_spec.rb#L43)
-  * [provides [] accessor method](./spec/unit/models/paginated_resource_spec.rb#L61)
-  * [#first gets the first item in page](./spec/unit/models/paginated_resource_spec.rb#L67)
-  * [#last gets the last item in page](./spec/unit/models/paginated_resource_spec.rb#L71)
-  * #each
-    * [returns an enumerator](./spec/unit/models/paginated_resource_spec.rb#L48)
-    * [yields each item](./spec/unit/models/paginated_resource_spec.rb#L52)
+  * #items
+    * [returns correct length from body](./spec/unit/models/paginated_resource_spec.rb#L31)
+    * [is Enumerable](./spec/unit/models/paginated_resource_spec.rb#L35)
+    * [is iterable](./spec/unit/models/paginated_resource_spec.rb#L39)
+    * [provides [] accessor method](./spec/unit/models/paginated_resource_spec.rb#L57)
+    * [#first gets the first item in page](./spec/unit/models/paginated_resource_spec.rb#L63)
+    * [#last gets the last item in page](./spec/unit/models/paginated_resource_spec.rb#L67)
+    * #each
+      * [returns an enumerator](./spec/unit/models/paginated_resource_spec.rb#L44)
+      * [yields each item](./spec/unit/models/paginated_resource_spec.rb#L48)
   * with non paged http response
-    * [is the first page](./spec/unit/models/paginated_resource_spec.rb#L175)
-    * [is the last page](./spec/unit/models/paginated_resource_spec.rb#L179)
-    * [does not support pagination](./spec/unit/models/paginated_resource_spec.rb#L183)
-    * [raises an exception when accessing next page](./spec/unit/models/paginated_resource_spec.rb#L187)
-    * [raises an exception when accessing first page](./spec/unit/models/paginated_resource_spec.rb#L191)
+    * [is the first page](./spec/unit/models/paginated_resource_spec.rb#L172)
+    * [is the last page](./spec/unit/models/paginated_resource_spec.rb#L176)
+    * [does not have next page](./spec/unit/models/paginated_resource_spec.rb#L180)
+    * [does not support pagination](./spec/unit/models/paginated_resource_spec.rb#L184)
+    * [returns nil when accessing next page](./spec/unit/models/paginated_resource_spec.rb#L188)
+    * [returns nil when accessing first page](./spec/unit/models/paginated_resource_spec.rb#L192)
   * with paged http response
-    * [is the first page](./spec/unit/models/paginated_resource_spec.rb#L209)
-    * [is not the last page](./spec/unit/models/paginated_resource_spec.rb#L213)
-    * [supports pagination](./spec/unit/models/paginated_resource_spec.rb#L217)
+    * [is the first page](./spec/unit/models/paginated_resource_spec.rb#L210)
+    * [has next page](./spec/unit/models/paginated_resource_spec.rb#L214)
+    * [is not the last page](./spec/unit/models/paginated_resource_spec.rb#L218)
+    * [supports pagination](./spec/unit/models/paginated_resource_spec.rb#L222)
     * accessing next page
-      * [returns another PaginatedResource](./spec/unit/models/paginated_resource_spec.rb#L245)
-      * [retrieves the next page of results](./spec/unit/models/paginated_resource_spec.rb#L249)
-      * [is not the first page](./spec/unit/models/paginated_resource_spec.rb#L254)
-      * [is the last page](./spec/unit/models/paginated_resource_spec.rb#L258)
-      * [raises an exception if trying to access the last page when it is the last page](./spec/unit/models/paginated_resource_spec.rb#L262)
+      * [returns another PaginatedResource](./spec/unit/models/paginated_resource_spec.rb#L250)
+      * [retrieves the next page of results](./spec/unit/models/paginated_resource_spec.rb#L254)
+      * [is not the first page](./spec/unit/models/paginated_resource_spec.rb#L259)
+      * [does not have a next page](./spec/unit/models/paginated_resource_spec.rb#L263)
+      * [is the last page](./spec/unit/models/paginated_resource_spec.rb#L267)
+      * [returns nil when trying to access the last page when it is the last page](./spec/unit/models/paginated_resource_spec.rb#L271)
       * and then first page
-        * [returns a PaginatedResource](./spec/unit/models/paginated_resource_spec.rb#L273)
-        * [retrieves the first page of results](./spec/unit/models/paginated_resource_spec.rb#L277)
-        * [is the first page](./spec/unit/models/paginated_resource_spec.rb#L281)
+        * [returns a PaginatedResource](./spec/unit/models/paginated_resource_spec.rb#L282)
+        * [retrieves the first page of results](./spec/unit/models/paginated_resource_spec.rb#L286)
+        * [is the first page](./spec/unit/models/paginated_resource_spec.rb#L290)
 
 ### Ably::Models::PresenceMessage
 _(see [spec/unit/models/presence_message_spec.rb](./spec/unit/models/presence_message_spec.rb))_
@@ -2014,6 +2027,6 @@ _(see [spec/unit/util/pub_sub_spec.rb](./spec/unit/util/pub_sub_spec.rb))_
 
   ## Test summary
 
-  * Passing tests: 1003
+  * Passing tests: 1011
   * Pending tests: 7
   * Failing tests: 0
