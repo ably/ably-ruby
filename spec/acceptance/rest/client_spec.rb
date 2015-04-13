@@ -43,11 +43,14 @@ describe Ably::Rest::Client do
         Ably::Rest::Client.new(client_options) do
           @request_index ||= 0
           @request_index += 1
-          send("token_request_#{@request_index}")
+          send("token_request_#{@request_index > 2 ? 'next' : @request_index}")
         end
       end
       let(:token_request_1) { client.auth.create_token_request(token_request_options.merge(client_id: random_str)) }
       let(:token_request_2) { client.auth.create_token_request(token_request_options.merge(client_id: random_str)) }
+
+      # If token expires against whilst runnig tests in a slower CI environment then use this token
+      let(:token_request_next) { client.auth.create_token_request(token_request_options.merge(client_id: random_str)) }
 
       context 'when expired' do
         let(:token_request_options) { { key_id: key_id, key_secret: key_secret, ttl: Ably::Models::Token::TOKEN_EXPIRY_BUFFER } }
