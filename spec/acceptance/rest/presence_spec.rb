@@ -20,22 +20,22 @@ describe Ably::Rest::Presence do
 
     # Encrypted fixtures need encryption details or an error will be raised
     let(:cipher_details)   { TestApp::APP_SPEC_CIPHER }
-    let(:algorithm)        { cipher_details.fetch(:algorithm).upcase }
-    let(:mode)             { cipher_details.fetch(:mode).upcase }
-    let(:key_length)       { cipher_details.fetch(:keylength) }
-    let(:secret_key)       { Base64.decode64(cipher_details.fetch(:key)) }
-    let(:iv)               { Base64.decode64(cipher_details.fetch(:iv)) }
+    let(:algorithm)        { cipher_details.fetch('algorithm').upcase }
+    let(:mode)             { cipher_details.fetch('mode').upcase }
+    let(:key_length)       { cipher_details.fetch('keylength') }
+    let(:secret_key)       { Base64.decode64(cipher_details.fetch('key')) }
+    let(:iv)               { Base64.decode64(cipher_details.fetch('iv')) }
 
     let(:cipher_options)   { { key: secret_key, algorithm: algorithm, mode: mode, key_length: key_length, iv: iv } }
     let(:fixtures_channel) { client.channel('persisted:presence_fixtures', encrypted: true, cipher_params: cipher_options, iv: iv) }
 
     context 'tested against presence fixture data set up in test app' do
-      describe '#get' do
-        before(:context) do
-          # When this test is run as a part of a test suite, the presence data injected in the test app may have expired
-          reload_test_app
-        end
+      before(:context) do
+        # When this test is run as a part of a test suite, the presence data injected in the test app may have expired
+        reload_test_app
+      end
 
+      describe '#get' do
         let(:presence) { fixtures_channel.presence.get }
 
         it 'returns current members on the channel with their action set to :present' do
@@ -62,11 +62,6 @@ describe Ably::Rest::Presence do
       end
 
       describe '#history' do
-        before(:context) do
-          # When this test is run as a part of a test suite, the presence data injected in the test app may have expired
-          reload_test_app
-        end
-
         let(:presence_history) { fixtures_channel.presence.history }
 
         it 'returns recent presence activity' do

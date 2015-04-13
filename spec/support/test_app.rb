@@ -1,43 +1,15 @@
 require 'singleton'
 
 class TestApp
-  APP_SPEC = {
-    'keys' => [
-      {},
-      {
-        'capability' => '{ "cansubscribe:*":["subscribe"], "canpublish:*":["publish"], "canpublish:andpresence":["presence","publish"] }'
-      }
-    ],
-    'namespaces' => [
-      { 'id' => 'persisted', 'persisted' => true }
-    ],
-    'channels' => [
-      {
-        'name' => 'persisted:presence_fixtures',
-        'presence' => [
-          { 'clientId' => 'client_bool',    'data' => 'true' },
-          { 'clientId' => 'client_int',     'data' => '24' },
-          { 'clientId' => 'client_string',  'data' => 'This is a string clientData payload' },
-          { 'clientId' => 'client_json',    'data' => '{ "test" => \'This is a JSONObject clientData payload\'}' },
-          { 'clientId' => 'client_decoded', 'data' => '{"example":{"json":"Object"}}', 'encoding' => 'json/utf-8' },
-          {
-            'clientId' => 'client_encoded',
-            'data' => 'HO4cYSP8LybPYBPZPHQOtuD53yrD3YV3NBoTEYBh4U0N1QXHbtkfsDfTspKeLQFt',
-            'encoding' => 'json/utf-8/cipher+aes-128-cbc/base64'
-          }
-        ]
-      }
-    ]
-  }
+  TEST_RESOURCES_PATH = File.expand_path('../../../lib/submodules/ably-common/test-resources', __FILE__)
 
-  # Cipher details used for client_encoded presence data
-  APP_SPEC_CIPHER = {
-    algorithm: 'aes',
-    mode: 'cbc',
-    keylength: 128,
-    key: 'WUP6u0K7MXI5Zeo0VppPwg==',
-    iv: 'HO4cYSP8LybPYBPZPHQOtg==',
-  }
+  # App configuration for test app
+  # See https://github.com/ably/ably-common/blob/master/test-resources/test-app-setup.json
+  APP_SPEC = JSON.parse(File.read(File.join(TEST_RESOURCES_PATH, 'test-app-setup.json')))['post_apps']
+
+  # Cipher details used for client_encoded presence data in test app
+  # See https://github.com/ably/ably-common/blob/master/test-resources/test-app-setup.json
+  APP_SPEC_CIPHER = JSON.parse(File.read(File.join(TEST_RESOURCES_PATH, 'test-app-setup.json')))['cipher']
 
   # If an app has already been created and we need a new app, create a new test app
   # This is sometimes needed when a test needs to be isolated from any other tests
