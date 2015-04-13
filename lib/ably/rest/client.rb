@@ -99,7 +99,7 @@ module Ably
           options = if options.match(/^[\w]{2,}\.[\w]{2,}:[\w]{2,}$/)
             { key: options }
           else
-            { token_id: options }
+            { token: options }
           end
         end
 

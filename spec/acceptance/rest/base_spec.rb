@@ -117,7 +117,7 @@ describe Ably::Rest do
         @token_requests = 0
         @publish_attempts = 0
 
-        stub_request(:post, "#{client.endpoint}/keys/#{key_id}/requestToken").to_return do
+        stub_request(:post, "#{client.endpoint}/keys/#{key_name}/requestToken").to_return do
           @token_requests += 1
           {
             :body => { access_token: send("token_#{@token_requests}").merge(expires: Time.now.to_i + 3600) }.to_json,
@@ -151,7 +151,7 @@ describe Ably::Rest do
       end
 
       context 'when NOT auth#token_renewable?' do
-        let(:client) { Ably::Rest::Client.new(token_id: 'token ID cannot be used to create a new token', environment: environment, protocol: protocol) }
+        let(:client) { Ably::Rest::Client.new(token: 'token ID cannot be used to create a new token', environment: environment, protocol: protocol) }
 
         it 'should raise an InvalidToken exception' do
           client.channel(channel).publish('evt', 'msg')

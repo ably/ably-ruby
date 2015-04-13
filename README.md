@@ -41,7 +41,11 @@ end
 All examples assume a client has been created as follows:
 
 ```ruby
+# basic auth with an API key
 client = Ably::Realtime.new(key: 'xxxxx')
+
+# using token auth
+client = Ably::Realtime.new(token: 'xxxxx')
 ```
 
 ### Connection
@@ -178,8 +182,10 @@ presence_page.next # retrieves the next page => #<Ably::Models::PaginatedResourc
 ### Generate Token and Token Request
 
 ```ruby
-client.auth.request_token
-# => #<Ably::Models::Token ...>
+token_details = client.auth.request_token
+# => #<Ably::Models::TokenDetails ...>
+token_details.token # => "xVLyHw.CLchevH3hF....MDh9ZC_Q"
+client = Ably::Rest.new(token: token_details.token)
 
 token = client.auth.create_token_request
 # => {"id"=>...,
@@ -189,8 +195,6 @@ token = client.auth.create_token_request
 #     "capability"=>"{\"*\":[\"*\"]}",
 #     "nonce"=>...,
 #     "mac"=>...}
-
-client = Ably::Rest.new(token_id: token.id)
 ```
 
 ### Fetching your application's stats

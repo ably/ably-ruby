@@ -11,10 +11,10 @@ module Ably
   #
   # @!attribute [r] client_id
   #   @return [String] The provided client ID, used for identifying this client for presence purposes
-  # @!attribute [r] current_token
-  #   @return [Ably::Models::Token] Current {Ably::Models::Token} issued by this library or one of the provided callbacks used to authenticate requests
-  # @!attribute [r] token_id
-  #   @return [String] Token ID provided to the {Ably::Client} constructor that is used to authenticate all requests
+  # @!attribute [r] current_token_details
+  #   @return [Ably::Models::TokenDetails] Current {Ably::Models::TokenDetails} issued by this library or one of the provided callbacks used to authenticate requests
+  # @!attribute [r] token
+  #   @return [String] Token provided to the {Ably::Client} constructor that is used to authenticate all requests
   # @!attribute [r] key
   #   @return [String] Complete API key containing both the key ID and key secret, if present
   # @!attribute [r] key_id
@@ -28,7 +28,12 @@ module Ably
     include Ably::Modules::Conversions
     include Ably::Modules::HttpHelpers
 
-    attr_reader :options, :current_token
+    TOKEN_DEFAULTS = {
+      capability: { '*' => ['*'] },
+      ttl:        60 * 60 # 1 hour
+    }
+
+    attr_reader :options, :current_token_details
     alias_method :auth_options, :options
 
     # Creates an Auth object
@@ -96,8 +101,8 @@ module Ably
     #    end
     #
     def authorise(options = {}, &token_request_block)
-      if !options[:force] && current_token
-        return current_token unless current_token.expired?
+      if !options[:force] && current_token_details
+        return current_token_details unless current_token_details.expired?
       end
 
       options = options.clone
@@ -108,10 +113,10 @@ module Ably
       @options             = @options.merge(options)
       @default_token_block = token_request_block if block_given?
 
-      @current_token = request_token(options, &token_request_block)
+      @current_token_details = request_token(options, &token_request_block)
     end
 
-    # Request a {Ably::Models::Token} which can be used to make authenticated token based requests
+    # Request a {Ably::Models::TokenDetails} which can be used to make authenticated token based requests
     #
     # @param [Hash] options the options for the token request
     # @option options [String]  :key_id       key ID for the designated application (defaults to client key_id)
@@ -121,7 +126,7 @@ module Ably
     # @option options [Hash]    :auth_headers a set of application-specific headers to be added to any request made to the authUrl
     # @option options [Hash]    :auth_params  a set of application-specific query params to be added to any request made to the authUrl
     # @option options [Symbol]  :auth_method  HTTP method to use with auth_url, must be either `:get` or `:post` (defaults to :get)
-    # @option options [Integer] :ttl          validity time in seconds for the requested {Ably::Models::Token}.  Limits may apply, see {http://docs.ably.io/other/authentication/}
+    # @option options [Integer] :ttl          validity time in seconds for the requested {Ably::Models::TokenDetails}.  Limits may apply, see {http://docs.ably.io/other/authentication/}
     # @option options [Hash]    :capability   canonicalised representation of the resource paths and associated operations
     # @option options [Boolean] :query_time   when true will query the {https://ably.io Ably} system for the current time instead of using the local time
     # @option options [Time]    :timestamp    the time of the of the request
@@ -131,7 +136,7 @@ module Ably
     # @yieldparam [Hash] options options passed to {#request_token} will be in turn sent to the block in this argument
     # @yieldreturn [Hash] expects a valid token request object, see {#create_token_request}
     #
-    # @return [Ably::Models::Token]
+    # @return [Ably::Models::TokenDetails]
     #
     # @example
     #    # simple token request using basic auth
@@ -161,11 +166,11 @@ module Ably
       token_request = IdiomaticRubyWrapper(token_request)
 
       if token_request.has_key?(:issued_at) && token_request.has_key?(:expires)
-        Ably::Models::Token.new(token_request)
+        Ably::Models::TokenDetails.new(token_request)
       else
         response = client.post("/keys/#{token_request.fetch(:id)}/requestToken", token_request.hash, send_auth_header: false, disable_automatic_reauthorise: true)
         body = IdiomaticRubyWrapper(response.body)
-        Ably::Models::Token.new(body.fetch(:access_token))
+        Ably::Models::TokenDetails.new(body.fetch(:access_token))
       end
     end
 
@@ -175,7 +180,7 @@ module Ably
     # @option options [String]  :key_id     key ID for the designated application
     # @option options [String]  :key_secret key secret for the designated application used to sign token requests (defaults to client key_secret)
     # @option options [String]  :client_id  client ID identifying this connection to other clients
-    # @option options [Integer] :ttl        validity time in seconds for the requested {Ably::Models::Token}.  Limits may apply, see {http://docs.ably.io/other/authentication/}
+    # @option options [Integer] :ttl        validity time in seconds for the requested {Ably::Models::TokenDetails}.  Limits may apply, see {http://docs.ably.io/other/authentication/}
     # @option options [Hash]    :capability canonicalised representation of the resource paths and associated operations
     # @option options [Boolean] :query_time when true will query the {https://ably.io Ably} system for the current time instead of using the local time
     # @option options [Time]    :timestamp  the time of the of the request
@@ -212,9 +217,9 @@ module Ably
       token_request = {
         id:         request_key_id,
         clientId:   client_id,
-        ttl:        Ably::Models::Token::DEFAULTS[:ttl],
+        ttl:        TOKEN_DEFAULTS.fetch(:ttl),
         timestamp:  timestamp,
-        capability: Ably::Models::Token::DEFAULTS[:capability],
+        capability: TOKEN_DEFAULTS.fetch(:capability),
         nonce:      SecureRandom.hex
       }.merge(token_options.select { |key, val| token_attributes.include?(key.to_s) })
 
@@ -249,15 +254,15 @@ module Ably
     # True when Token Auth is being used to authenticate with Ably
     def using_token_auth?
       return options[:use_token_auth] if options.has_key?(:use_token_auth)
-      token_id || current_token || has_client_id? || token_creatable_externally?
+      token || current_token_details || has_client_id? || token_creatable_externally?
     end
 
     def client_id
       options[:client_id]
     end
 
-    def token_id
-      options[:token_id]
+    def token
+      options[:token]
     end
 
     # Auth header string used in HTTP requests to Ably
@@ -285,13 +290,13 @@ module Ably
     # True if prerequisites for creating a new token request are present
     #
     # One of the following criterion must be met:
-    # * Valid key id and secret and token_id option not provided as token options cannot be determined
+    # * Valid API key and token option not provided as token options cannot be determined
     # * Authentication callback for new token requests
     # * Authentication URL for new token requests
     #
     # @return [Boolean]
     def token_renewable?
-      token_creatable_externally? || (api_key_present? && !token_id)
+      token_creatable_externally? || (api_key_present? && !token)
     end
 
     # Returns false when attempting to send an API Key over a non-secure connection
@@ -323,17 +328,18 @@ module Ably
       options[:key_secret] = api_key_parts[:secret].encode(Encoding::UTF_8)
     end
 
-    def token_auth_id
-      if token_id
-        token_id
+    # Returns the current token if it exists or authorises and retrieves a token
+    def token_auth_string
+      if token
+        token
       else
-        authorise.id
+        authorise.token
       end
     end
 
     # Token Auth HTTP Authorization header value
     def token_auth_header
-      "Bearer #{encode64(token_auth_id)}"
+      "Bearer #{encode64(token_auth_string)}"
     end
 
     # Basic Auth params to authenticate the Realtime connection
@@ -349,7 +355,7 @@ module Ably
     # Token Auth params to authenticate the Realtime connection
     def token_auth_params
       {
-        access_token: token_auth_id
+        access_token: token_auth_string
       }
     end
 

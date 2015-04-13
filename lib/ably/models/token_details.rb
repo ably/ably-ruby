@@ -1,12 +1,9 @@
 module Ably::Models
-  # Authentication token issued by Ably in response to an token request
-  class Token
+  # TokenDetails is a class providing details of a token and its associated metadata,
+  # provided when the system successfully requests a token from the system.
+  #
+  class TokenDetails
     include Ably::Modules::ModelCommon
-
-    DEFAULTS = {
-      capability: { '*' => ['*'] },
-      ttl:        60 * 60 # 1 hour
-    }
 
     # Buffer in seconds given to the use of a token prior to it being considered unusable
     # For example, if buffer is 10s, the token can no longer be used for new requests 9s before it expires
@@ -16,15 +13,19 @@ module Ably::Models
       @hash_object = IdiomaticRubyWrapper(attributes.clone.freeze)
     end
 
-    # @!attribute [r] id
-    # @return [String] Unique token ID used to authenticate requests
-    def id
+    # @!attribute [r] token
+    # @return [String] Token used to authenticate requests
+    def token
+      # TODO: Change to :token
+      # hash.fetch(:token)
       hash.fetch(:id)
     end
 
-    # @!attribute [r] key_id
-    # @return [String] Key ID used to create this token
-    def key_id
+    # @!attribute [r] key_name
+    # @return [String] API key name used to create this token.  An API key is made up of an API key name and secret delimited by a +:+
+    def key_name
+      # TODO: Change to :key_name
+      # hash.fetch(:key_name)
       hash.fetch(:key)
     end
 
@@ -34,16 +35,16 @@ module Ably::Models
       as_time_from_epoch(hash.fetch(:issued_at), granularity: :s)
     end
 
-    # @!attribute [r] expires_at
+    # @!attribute [r] expires
     # @return [Time] Time the token expires
-    def expires_at
+    def expires
       as_time_from_epoch(hash.fetch(:expires), granularity: :s)
     end
 
     # @!attribute [r] capability
     # @return [Hash] Capabilities assigned to this token
     def capability
-      hash.fetch(:capability)
+      JSON.parse(hash.fetch(:capability))
     end
 
     # @!attribute [r] client_id
@@ -62,7 +63,7 @@ module Ably::Models
     #
     # @return [Boolean]
     def expired?
-      expires_at < Time.now + TOKEN_EXPIRY_BUFFER
+      expires < Time.now + TOKEN_EXPIRY_BUFFER
     end
 
     # @!attribute [r] hash

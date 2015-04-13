@@ -40,7 +40,7 @@ describe Ably::Rest::Client do
       end
 
       context 'set to true' do
-        context 'without an key or token_id' do
+        context 'without an key or token' do
           let(:client_options) { { use_token_auth: true, key: true } }
 
           it 'fails as an key is required to issue tokens' do

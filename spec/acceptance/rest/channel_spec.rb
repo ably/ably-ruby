@@ -93,7 +93,7 @@ describe Ably::Rest::Channel do
       let(:channel) { client.channel(channel_name) }
       let(:endpoint) do
         client.endpoint.tap do |client_end_point|
-          client_end_point.user = key_id
+          client_end_point.user = key_name
           client_end_point.password = key_secret
         end
       end
