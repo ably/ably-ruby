@@ -179,25 +179,24 @@ module Ably
         @presence
       end
 
-      # Return the message history of the channel.
+      # Return the message history of the channel
       #
       # Once attached to a channel, you can retrieve messages published on the channel before the
-      # channel was attached with the option <tt>:end => :before_attach</tt>.  This is very useful for
-      # developers who wish to display both new realtime messages as well as historical messages with
+      # channel was attached with the option <tt>until_attach: true</tt>.  This is very useful for
+      # developers who wish to subscribe to new realtime messages yet also display historical messages with
       # the guarantee that no messages have been missed.
       #
       # @param (see Ably::Rest::Channel#history)
       # @option options (see Ably::Rest::Channel#history)
-      # @option options [Integer,Time,Symbol]   :end        Time or millisecond since epoch, or +:before_attach+ for all messages published before this channel has been attached.
+      # @option options [Boolean]  :until_attach  When true, request for history will be limited only to messages published before this channel was attached. Channel must be attached.
       #
       # @yield [Ably::Models::PaginatedResource<Ably::Models::Message>] First {Ably::Models::PaginatedResource page} of {Ably::Models::Message} objects accessible with {Ably::Models::PaginatedResource#items #items}.
       #
       # @return [Ably::Util::SafeDeferrable]
       def history(options = {}, &callback)
-        if options[:end] == :before_attach
-          raise ArgumentError, 'option :before_attach cannot be specified if the channel is not attached' unless attached?
+        if options.delete(:until_attach)
+          raise ArgumentError, 'option :until_attach cannot be specified if the channel is not attached' unless attached?
           options[:from_serial] = attached_serial
-          options.delete :end
         end
 
         async_wrap(callback) do

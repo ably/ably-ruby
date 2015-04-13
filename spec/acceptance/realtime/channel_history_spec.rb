@@ -152,7 +152,7 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
       end
     end
 
-    context 'with option :end => :before_attach' do
+    context 'with option until_attach: true' do
       let(:event) { random_str }
       let(:message_before_attach) { random_str }
       let(:message_after_attach) { random_str }
@@ -162,9 +162,9 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
 
         channel.attach do
           channel.publish(event, message_after_attach) do
-            history = channel.history(end: :before_attach) do |messages|
-              expect(messages.count).to eql(1)
-              expect(messages.first.data).to eql(message_before_attach)
+            channel.history(until_attach: true) do |messages|
+              expect(messages.items.count).to eql(1)
+              expect(messages.items.first.data).to eql(message_before_attach)
               stop_reactor
             end
           end
@@ -179,14 +179,14 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
             10.times { rest_channel.publish event, message_after_attach }
 
             EventMachine.add_timer(0.5) do
-              history = channel.history(end: :before_attach, limit: 5) do |messages|
-                expect(messages.count).to eql(5)
-                expect(messages.first.data).to eql(message_before_attach)
+              channel.history(until_attach: true, limit: 5) do |messages|
+                expect(messages.items.count).to eql(5)
+                expect(messages.items.map(&:data).uniq.first).to eql(message_before_attach)
 
-                messages.next_page do |next_page_messages|
-                  expect(next_page_messages.count).to eql(5)
-                  expect(next_page_messages.first.data).to eql(message_before_attach)
-                  expect(next_page_messages).to be_last_page
+                messages.next do |next_page_messages|
+                  expect(next_page_messages.items.count).to eql(5)
+                  expect(next_page_messages.items.map(&:data).uniq.first).to eql(message_before_attach)
+                  expect(next_page_messages).to be_last
 
                   stop_reactor
                 end
@@ -197,7 +197,7 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
       end
 
       it 'raises an exception unless state is attached' do
-        expect { channel.history(end: :before_attach) }.to raise_error(ArgumentError, /not attached/)
+        expect { channel.history(until_attach: true) }.to raise_error(ArgumentError, /not attached/)
         stop_reactor
       end
     end
