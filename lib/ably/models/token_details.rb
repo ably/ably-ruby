@@ -1,4 +1,18 @@
 module Ably::Models
+  # Convert token details argument to a {TokenDetails} object
+  #
+  # @param token_details [TokenDetails,Hash] A {TokenDetails} object or Hash of token details
+  #
+  # @return [TokenDetails]
+  def self.TokenDetails(token_details)
+    case token_details
+    when TokenDetails
+      return token_details
+    else
+      TokenDetails.new(token_details)
+    end
+  end
+
   # TokenDetails is a class providing details of a token and its associated metadata,
   # provided when the system successfully requests a token from the system.
   #
@@ -32,12 +46,14 @@ module Ably::Models
     # @!attribute [r] issued_at
     # @return [Time] Time the token was issued
     def issued_at
+      # TODO: Review whether this underlying data should be in ms
       as_time_from_epoch(hash.fetch(:issued_at), granularity: :s)
     end
 
     # @!attribute [r] expires
     # @return [Time] Time the token expires
     def expires
+      # TODO: Review whether this underlying data should be in ms
       as_time_from_epoch(hash.fetch(:expires), granularity: :s)
     end
 
@@ -67,7 +83,7 @@ module Ably::Models
     end
 
     # @!attribute [r] hash
-    # @return [Hash] Access the token Hash object ruby'fied to use symbolized keys
+    # @return [Hash] Access the token details Hash object ruby'fied to use symbolized keys
     def hash
       @hash_object
     end

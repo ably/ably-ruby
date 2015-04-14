@@ -79,4 +79,23 @@ describe Ably::Models::TokenDetails do
       expect(Ably::Models::TokenDetails.new(token: 1)).to_not eq(nil)
     end
   end
+
+  context 'TokenDetails conversion methods', :api_private do
+    context 'with a TokenDetails object' do
+      let(:token_details) { Ably::Models::TokenDetails.new(client_id: random_str) }
+
+      it 'returns the TokenDetails object' do
+        expect(Ably::Models::TokenDetails(token_details)).to eql(token_details)
+      end
+    end
+
+    context 'with a JSON object' do
+      let(:client_id) { random_str }
+      let(:token_details_json) { { client_id: client_id } }
+
+      it 'returns a new TokenDetails object from the JSON' do
+        expect(Ably::Models::TokenDetails(token_details_json).client_id).to eql(client_id)
+      end
+    end
+  end
 end
