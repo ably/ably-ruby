@@ -78,8 +78,8 @@ module Ably
     #
     # @param [Hash] options the options for the token request
     # @option options (see #request_token)
-    # @option options [String]  :key     API key comprising the key ID and key secret in a single string
-    # @option options [Boolean] :force   obtains a new token even if the current token is valid
+    # @option options [String]  :key            API key comprising the key ID and key secret in a single string
+    # @option options [Boolean] :force          obtains a new token even if the current token is valid
     #
     # @yield (see #request_token)
     # @yieldparam [Hash] options options passed to {#authorise} will be in turn sent to the block in this argument
@@ -273,7 +273,13 @@ module Ably
     end
 
     def token
-      options[:token]
+      token_object = options[:token] || options[:token_details]
+
+      if token_object.kind_of?(Ably::Models::TokenDetails)
+        token_object.token
+      else
+        token_object
+      end
     end
 
     # Auth header string used in HTTP requests to Ably

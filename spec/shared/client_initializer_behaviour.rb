@@ -129,6 +129,15 @@ shared_examples 'a client initializer' do
       end
     end
 
+    context 'with token_details' do
+      # TODO: Change :id to :token
+      let(:client_options) { { token_details: Ably::Models::TokenDetails.new(id: 'token') } }
+
+      it 'sets the token' do
+        expect(subject.auth.token).to eql('token')
+      end
+    end
+
     context 'endpoint' do
       it 'defaults to production' do
         expect(subject.endpoint.to_s).to eql("#{protocol}s://#{subdomain}.ably.io")
