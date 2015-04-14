@@ -54,11 +54,11 @@ shared_examples 'a client initializer' do
       end
     end
 
-    context 'key and key_id' do
-      let(:client_options) { { key: 'appid.keyuid:keysecret', key_id: 'invalid' } }
+    context 'key and key_name' do
+      let(:client_options) { { key: 'appid.keyuid:keysecret', key_name: 'invalid' } }
 
       it 'raises an exception' do
-        expect { subject }.to raise_error(ArgumentError, /key and key_id or key_secret are mutually exclusive/)
+        expect { subject }.to raise_error(ArgumentError, /key and key_name or key_secret are mutually exclusive/)
       end
     end
 
@@ -66,7 +66,7 @@ shared_examples 'a client initializer' do
       let(:client_options) { { key: 'appid.keyuid:keysecret', key_secret: 'invalid' } }
 
       it 'raises an exception' do
-        expect { subject }.to raise_error(ArgumentError, /key and key_id or key_secret are mutually exclusive/)
+        expect { subject }.to raise_error(ArgumentError, /key and key_name or key_secret are mutually exclusive/)
       end
     end
 
@@ -89,19 +89,8 @@ shared_examples 'a client initializer' do
       end
     end
 
-    context 'with legacy :api_key only' do
-      let(:default_options) { { api_key: 'api_key_name.keyuid:keysecret' } }
-      it 'connects to the Ably service' do
-        expect { subject }.to_not raise_error
-      end
-
-      it 'sets the Auth#key' do
-        expect(subject.auth.key).to eql('api_key_name.keyuid:keysecret')
-      end
-    end
-
-    context 'key_id and key_secret' do
-      let(:client_options) { { key_id: 'id', key_secret: 'secret' } }
+    context 'key_name and key_secret', api_private: true do
+      let(:client_options) { { key_name: 'id', key_secret: 'secret' } }
 
       it 'constructs an key' do
         expect(subject.auth.key).to eql('id:secret')
@@ -115,8 +104,8 @@ shared_examples 'a client initializer' do
         expect(subject.auth.key).to eql(client_options)
       end
 
-      it 'sets the key_id' do
-        expect(subject.auth.key_id).to eql('app.key')
+      it 'sets the key_name' do
+        expect(subject.auth.key_name).to eql('app.key')
       end
 
       it 'sets the key_secret' do

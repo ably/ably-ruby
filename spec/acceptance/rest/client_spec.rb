@@ -12,7 +12,7 @@ describe Ably::Rest::Client do
 
     context '#initialize' do
       let(:client_id)     { random_str }
-      let(:token_request) { client.auth.create_token_request(key_id: key_name, key_secret: key_secret, client_id: client_id) }
+      let(:token_request) { client.auth.create_token_request(key_name: key_name, key_secret: key_secret, client_id: client_id) }
 
       context 'with an auth block' do
         let(:client) { Ably::Rest::Client.new(client_options) { token_request } }
@@ -53,7 +53,7 @@ describe Ably::Rest::Client do
       let(:token_request_next) { client.auth.create_token_request(token_request_options.merge(client_id: random_str)) }
 
       context 'when expired' do
-        let(:token_request_options) { { key_id: key_name, key_secret: key_secret, ttl: Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER } }
+        let(:token_request_options) { { key_name: key_name, key_secret: key_secret, ttl: Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER } }
 
         it 'creates a new token automatically when the old token expires' do
           expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token_details }
@@ -67,7 +67,7 @@ describe Ably::Rest::Client do
       end
 
       context 'when token has not expired' do
-        let(:token_request_options) { { key_id: key_name, key_secret: key_secret, ttl: 3600 } }
+        let(:token_request_options) { { key_name: key_name, key_secret: key_secret, ttl: 3600 } }
 
         it 'reuses the existing token for every request' do
           expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token_details }

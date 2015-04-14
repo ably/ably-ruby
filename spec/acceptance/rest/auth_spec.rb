@@ -50,7 +50,7 @@ describe Ably::Auth do
     end
 
     it 'has immutable options' do
-      expect { auth.options['key_id'] = 'new_id' }.to raise_error RuntimeError, /can't modify frozen.*Hash/
+      expect { auth.options['key_name'] = 'new_name' }.to raise_error RuntimeError, /can't modify frozen.*Hash/
     end
 
     describe '#request_token' do
@@ -96,11 +96,11 @@ describe Ably::Auth do
         end
       end
 
-      context 'with :key_id & :key_secret options', :webmock do
-        let(:key_name)      { random_str }
+      context 'with :key option', :webmock do
+        let(:key_name)      { "app.#{random_str}" }
         let(:key_secret)    { random_str }
         let(:nonce)         { random_str }
-        let(:token_options) { { key_id: key_name, key_secret: key_secret, nonce: nonce, timestamp: Time.now } }
+        let(:token_options) { { key: "#{key_name}:#{key_secret}", nonce: nonce, timestamp: Time.now } }
         let(:token_request) { auth.create_token_request(token_options) }
         let(:mac) do
           hmac_for(token_request, key_secret)
@@ -117,9 +117,38 @@ describe Ably::Auth do
               :headers => { 'Content-Type' => content_type })
         end
 
-        let!(:token) { auth.request_token(token_options) }
+        let!(:token) { puts token_options; auth.request_token(token_options) }
 
-        specify 'key_id is used in request and signing uses key_secret' do
+        specify 'key_name is used in request and signing uses key_secret' do
+          expect(request_token_stub).to have_been_requested
+        end
+      end
+
+      context 'with :key_name & :key_secret options', :webmock do
+        let(:key_name)      { "app.#{random_str}" }
+        let(:key_secret)    { random_str }
+        let(:nonce)         { random_str }
+
+        let(:name_secret_token_options) { { key_name: key_name, key_secret: key_secret, nonce: nonce, timestamp: Time.now } }
+        let(:token_request) { auth.create_token_request(name_secret_token_options) }
+        let(:mac) do
+          hmac_for(token_request, key_secret)
+        end
+
+        let(:token_response) { { access_token: {} } }
+        let!(:request_token_stub) do
+          stub_request(:post, "#{client.endpoint}/keys/#{key_name}/requestToken").
+            with do |request|
+              request_body_includes(request, protocol, 'mac', mac)
+            end.to_return(
+              :status => 201,
+              :body => serialize(token_response, protocol),
+              :headers => { 'Content-Type' => content_type })
+        end
+
+        let!(:token) { auth.request_token(name_secret_token_options); }
+
+        specify 'key_name is used in request and signing uses key_secret' do
           expect(request_token_stub).to have_been_requested
         end
       end
@@ -558,10 +587,10 @@ describe Ably::Auth do
         let(:client) { Ably::Rest::Client.new(auth_url: 'http://example.com', protocol: protocol) }
 
         it 'should raise an exception if key secret is missing' do
-          expect { auth.create_token_request(key_id: 'id') }.to raise_error Ably::Exceptions::TokenRequestError
+          expect { auth.create_token_request(key_name: 'name') }.to raise_error Ably::Exceptions::TokenRequestError
         end
 
-        it 'should raise an exception if key id is missing' do
+        it 'should raise an exception if key name is missing' do
           expect { auth.create_token_request(key_secret: 'secret') }.to raise_error Ably::Exceptions::TokenRequestError
         end
       end
@@ -712,20 +741,6 @@ describe Ably::Auth do
 
       specify '#using_basic_auth? is true' do
         expect(auth).to be_using_basic_auth
-      end
-    end
-
-    context 'when using legacy :api_key option and basic auth' do
-      let(:client) do
-        Ably::Rest::Client.new(api_key: api_key, environment: environment, protocol: protocol)
-      end
-
-      specify '#using_token_auth? is false' do
-        expect(auth).to_not be_using_token_auth
-      end
-
-      specify '#key attribute contains the key string' do
-        expect(auth.key).to eql(api_key)
       end
     end
   end

@@ -14,11 +14,11 @@ module Ably
   # @!attribute [r] current_token_details
   #   @return [Ably::Models::TokenDetails] Current {Ably::Models::TokenDetails} issued by this library or one of the provided callbacks used to authenticate requests
   # @!attribute [r] token
-  #   @return [String] Token provided to the {Ably::Client} constructor that is used to authenticate all requests
+  #   @return [String] Token string provided to the {Ably::Client} constructor that is used to authenticate all requests
   # @!attribute [r] key
   #   @return [String] Complete API key containing both the key ID and key secret, if present
-  # @!attribute [r] key_id
-  #   @return [String] Key ID (public part of the API key), if present
+  # @!attribute [r] key_name
+  #   @return [String] Key name (public part of the API key), if present
   # @!attribute [r] key_secret
   #   @return [String] Key secret (private secure part of the API key), if present
   # @!attribute [r] options
@@ -54,13 +54,11 @@ module Ably
         raise ArgumentError, 'Expected auth_options to be a Hash'
       end
 
-      api_key = auth_options[:key] || auth_options[:api_key] # backwards support for previously used :api_key
-
-      if api_key && (auth_options[:key_secret] || auth_options[:key_id])
-        raise ArgumentError, 'key and key_id or key_secret are mutually exclusive. Provider either a key or key_id & key_secret'
+      if auth_options[:key] && (auth_options[:key_secret] || auth_options[:key_name])
+        raise ArgumentError, 'key and key_name or key_secret are mutually exclusive. Provider either a key or key_name & key_secret'
       end
 
-      split_api_key_into_key_and_secret! auth_options if api_key
+      split_api_key_into_key_and_secret! auth_options if auth_options[:key]
 
       if using_basic_auth? && !api_key_present?
         raise ArgumentError, 'key is missing. Either an API key, token, or token auth method must be provided'
@@ -107,8 +105,7 @@ module Ably
 
       options = options.clone
 
-      api_key = options[:key] || options[:api_key] # backwards support for previously used :api_key
-      split_api_key_into_key_and_secret! options if api_key
+      split_api_key_into_key_and_secret! options if options[:key]
 
       @options             = @options.merge(options)
       @default_token_block = token_request_block if block_given?
@@ -119,8 +116,7 @@ module Ably
     # Request a {Ably::Models::TokenDetails} which can be used to make authenticated token based requests
     #
     # @param [Hash] options the options for the token request
-    # @option options [String]  :key_id       key ID for the designated application (defaults to client key_id)
-    # @option options [String]  :key_secret   key secret for the designated application used to sign token requests (defaults to client key_secret)
+    # @option options [String]  :key          complete API key for the designated application
     # @option options [String]  :client_id    client ID identifying this connection to other clients (defaults to client client_id if configured)
     # @option options [String]  :auth_url     a URL to be used to GET or POST a set of token request params, to obtain a signed token request.
     # @option options [Hash]    :auth_headers a set of application-specific headers to be added to any request made to the authUrl
@@ -150,7 +146,7 @@ module Ably
     #    end
     #
     def request_token(options = {})
-      token_options = self.auth_options.merge(options)
+      token_options = auth_options.merge(options)
 
       auth_url = token_options.delete(:auth_url)
       token_request = if block_given?
@@ -187,8 +183,7 @@ module Ably
     # Creates and signs a token request that can then subsequently be used by any client to request a token
     #
     # @param [Hash] options the options for the token request
-    # @option options [String]  :key_id     key ID for the designated application
-    # @option options [String]  :key_secret key secret for the designated application used to sign token requests (defaults to client key_secret)
+    # @option options [String]  :key        complete API key for the designated application
     # @option options [String]  :client_id  client ID identifying this connection to other clients
     # @option options [Integer] :ttl        validity time in seconds for the requested {Ably::Models::TokenDetails}.  Limits may apply, see {http://docs.ably.io/other/authentication/}
     # @option options [Hash]    :capability canonicalised representation of the resource paths and associated operations
@@ -216,10 +211,12 @@ module Ably
 
       token_options      = options.clone
 
-      request_key_id     = token_options.delete(:key_id) || key_id
+      split_api_key_into_key_and_secret! token_options if token_options[:key]
+
+      request_key_name   = token_options.delete(:key_name) || key_name
       request_key_secret = token_options.delete(:key_secret) || key_secret
 
-      raise Ably::Exceptions::TokenRequestError, 'Key ID and Key Secret are required to generate a new token request' unless request_key_id && request_key_secret
+      raise Ably::Exceptions::TokenRequestError, 'Key ID and Key Secret are required to generate a new token request' unless request_key_name && request_key_secret
 
       timestamp = if token_options[:query_time]
         client.time
@@ -229,7 +226,7 @@ module Ably
       # TODO: This should be in milleseconds
 
       token_request = {
-        id:         request_key_id,
+        id:         request_key_name,
         clientId:   client_id,
         ttl:        TOKEN_DEFAULTS.fetch(:ttl),
         timestamp:  timestamp,
@@ -249,11 +246,11 @@ module Ably
     end
 
     def key
-      "#{key_id}:#{key_secret}" if api_key_present?
+      "#{key_name}:#{key_secret}" if api_key_present?
     end
 
-    def key_id
-      options[:key_id]
+    def key_name
+      options[:key_name]
     end
 
     def key_secret
@@ -335,11 +332,13 @@ module Ably
     end
 
     def split_api_key_into_key_and_secret!(options)
-      api_key_parts = (options[:key] || options[:api_key]).to_s.match(/(?<id>[\w_-]+\.[\w_-]+):(?<secret>[\w_-]+)/)
+      api_key_parts = options[:key].to_s.match(/(?<name>[\w_-]+\.[\w_-]+):(?<secret>[\w_-]+)/)
       raise ArgumentError, 'key is invalid' unless api_key_parts
 
-      options[:key_id]     = api_key_parts[:id].encode(Encoding::UTF_8)
+      options[:key_name]   = api_key_parts[:name].encode(Encoding::UTF_8)
       options[:key_secret] = api_key_parts[:secret].encode(Encoding::UTF_8)
+
+      options.delete :key
     end
 
     # Returns the current token if it exists or authorises and retrieves a token
@@ -359,9 +358,9 @@ module Ably
     # Basic Auth params to authenticate the Realtime connection
     def basic_auth_params
       ensure_api_key_sent_over_secure_connection
-      # TODO: Change to key_secret when API is updated
+      # TODO: Change to key_id & key_secret when realtime API is updated
       {
-        key_id: key_id,
+        key_id: key_name,
         key_value: key_secret
       }
     end
@@ -464,7 +463,7 @@ module Ably
     end
 
     def api_key_present?
-      key_id && key_secret
+      key_name && key_secret
     end
   end
 end
