@@ -163,15 +163,25 @@ module Ably
         create_token_request(token_options)
       end
 
-      token_request = IdiomaticRubyWrapper(token_request)
-
-      if token_request.has_key?(:issued_at) && token_request.has_key?(:expires)
-        Ably::Models::TokenDetails.new(token_request)
-      else
-        response = client.post("/keys/#{token_request.fetch(:id)}/requestToken", token_request.hash, send_auth_header: false, disable_automatic_reauthorise: true)
-        body = IdiomaticRubyWrapper(response.body)
-        Ably::Models::TokenDetails.new(body.fetch(:access_token))
+      case token_request
+        when Ably::Models::TokenDetails
+          return token_request
+        when Hash
+          return Ably::Models::TokenDetails.new(token_request) if IdiomaticRubyWrapper(token_request).has_key?(:issued_at)
+        when String
+          # Token requested is simply a token string
+          # TODO: Replace :id with :token
+          return Ably::Models::TokenDetails.new(id: token_request)
       end
+
+      token_request = Ably::Models::TokenRequest(token_request)
+
+      response = client.post("/keys/#{token_request.key_name}/requestToken",
+                             token_request.hash, send_auth_header: false,
+                             disable_automatic_reauthorise: true)
+
+      # TODO: Flatten response and remove access_token
+      Ably::Models::TokenDetails.new(response.body.fetch('access_token'))
     end
 
     # Creates and signs a token request that can then subsequently be used by any client to request a token
@@ -185,19 +195,22 @@ module Ably
     # @option options [Boolean] :query_time when true will query the {https://ably.io Ably} system for the current time instead of using the local time
     # @option options [Time]    :timestamp  the time of the of the request
     # @option options [String]  :nonce      an unquoted, unescaped random string of at least 16 characters
-    # @return [Hash]
+    #
+    # @return [Models::TokenRequest]
     #
     # @example
     #    client.auth.create_token_request(id: 'asd.asd', ttl: 3600)
-    #    # => {
+    #    #<Ably::Models::TokenRequest:0x007fd5d919df78
+    #    #  @hash={
     #    #   :id=>"asds.adsa",
-    #    #   :client_id=>nil,
+    #    #   :clientId=>nil,
     #    #   :ttl=>3600,
-    #    #   :timestamp=>1410718527,
+    #    #   :timestamp=>1428973674,
     #    #   :capability=>"{\"*\":[\"*\"]}",
     #    #   :nonce=>"95e543b88299f6bae83df9b12fbd1ecd",
-    #    #   :mac=>"881oZHeFo6oMim7N64y2vFHtSlpQ2gn/uE56a8gUxHw="
-    #    # }
+    #    #   :mac=>"881oZHeFo6oMim7....uE56a8gUxHw="
+    #    #  }
+    #    #>>
     def create_token_request(options = {})
       token_attributes   = %w(id client_id ttl timestamp capability nonce persisted)
 
@@ -213,6 +226,7 @@ module Ably
       else
         token_options.delete(:timestamp) || Time.now
       end.to_i
+      # TODO: This should be in milleseconds
 
       token_request = {
         id:         request_key_id,
@@ -231,7 +245,7 @@ module Ably
 
       token_request[:mac] = sign_params(token_request, request_key_secret)
 
-      convert_to_mixed_case_hash(token_request)
+      Models::TokenRequest.new(token_request)
     end
 
     def key
@@ -391,7 +405,7 @@ module Ably
         request.headers = options[:auth_headers] || {}
       end
 
-      unless response.body.kind_of?(Hash)
+      if !response.body.kind_of?(Hash) && response.headers['Content-Type'] != 'text/plain'
         raise Ably::Exceptions::InvalidResponseBody,
               "Content Type #{response.headers['Content-Type']} is not supported by this client library"
       end

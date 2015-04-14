@@ -57,12 +57,12 @@ describe Ably::Rest::Client do
 
         it 'creates a new token automatically when the old token expires' do
           expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token_details }
-          expect(client.auth.current_token_details.client_id).to eql(token_request_1['clientId'])
+          expect(client.auth.current_token_details.client_id).to eql(token_request_1.client_id)
 
           sleep 1
 
           expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token_details }
-          expect(client.auth.current_token_details.client_id).to eql(token_request_2['clientId'])
+          expect(client.auth.current_token_details.client_id).to eql(token_request_2.client_id)
         end
       end
 
@@ -71,12 +71,12 @@ describe Ably::Rest::Client do
 
         it 'reuses the existing token for every request' do
           expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token_details }
-          expect(client.auth.current_token_details.client_id).to eql(token_request_1['clientId'])
+          expect(client.auth.current_token_details.client_id).to eql(token_request_1.client_id)
 
           sleep 1
 
           expect { client.channel('channel_name').publish('event', 'message') }.to_not change { client.auth.current_token_details }
-          expect(client.auth.current_token_details.client_id).to eql(token_request_1['clientId'])
+          expect(client.auth.current_token_details.client_id).to eql(token_request_1.client_id)
         end
       end
     end
