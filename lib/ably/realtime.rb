@@ -39,10 +39,6 @@ module Ably
     # @param (see Ably::Realtime::Client#initialize)
     # @option options (see Ably::Realtime::Client#initialize)
     #
-    # @yield (see Ably::Realtime::Client#initialize)
-    # @yieldparam (see Ably::Realtime::Client#initialize)
-    # @yieldreturn (see Ably::Realtime::Client#initialize)
-    #
     # @return [Ably::Realtime::Client]
     #
     # @example

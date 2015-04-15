@@ -64,10 +64,6 @@ module Ably
       # @option options [String]  :recover        When a recover option is specified a connection inherits the state of a previous connection that may have existed under a different instance of the Realtime library, please refer to the API documentation for further information on connection state recovery
       # @option options [Boolean] :connect_automatically  By default as soon as the client library is instantiated it will connect to Ably. You can optionally set this to false and explicitly connect.
       #
-      # @yield (see Ably::Rest::Client#initialize)
-      # @yieldparam (see Ably::Rest::Client#initialize)
-      # @yieldreturn (see Ably::Rest::Client#initialize)
-      #
       # @return [Ably::Realtime::Client]
       #
       # @example

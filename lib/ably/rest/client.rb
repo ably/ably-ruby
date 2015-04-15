@@ -80,10 +80,6 @@ module Ably
       # @option options [Logger::Severity,Symbol] :log_level           Log level for the standard Logger that outputs to STDOUT.  Defaults to Logger::ERROR, can be set to :fatal (Logger::FATAL), :error (Logger::ERROR), :warn (Logger::WARN), :info (Logger::INFO), :debug (Logger::DEBUG) or :none
       # @option options [Logger]                  :logger              A custom logger can be used however it must adhere to the Ruby Logger interface, see http://www.ruby-doc.org/stdlib-1.9.3/libdoc/logger/rdoc/Logger.html
       #
-      # @yield (see Ably::Auth#authorise)
-      # @yieldparam (see Ably::Auth#authorise)
-      # @yieldreturn (see Ably::Auth#authorise)
-      #
       # @return [Ably::Rest::Client]
       #
       # @example

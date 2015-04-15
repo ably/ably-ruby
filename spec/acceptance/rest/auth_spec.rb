@@ -326,11 +326,11 @@ describe Ably::Auth do
           let(:client_id) { random_str }
           let(:options) { { client_id: client_id } }
           let!(:request_token) do
-            auth.request_token(options) do |block_options|
+            auth.request_token(options.merge(auth_callback: Proc.new do |block_options|
               @block_called = true
               @block_options = block_options
               auth.create_token_request(client_id: client_id)
-            end
+            end))
           end
 
           it 'calls the block when authenticating to obtain the request token' do
@@ -353,7 +353,7 @@ describe Ably::Auth do
           let(:capability_str) { JSON.dump(capability) }
 
           let!(:token_details) do
-            auth.request_token(options) do |block_options|
+            auth.request_token(options.merge(auth_callback: Proc.new do |block_options|
               @block_called = true
               @block_options = block_options
               {
@@ -364,7 +364,7 @@ describe Ably::Auth do
                 'expires' => expires.to_i * 1000,
                 'capability'=> capability_str
               }
-            end
+            end))
           end
 
           it 'calls the block when authenticating to obtain the request token' do
@@ -386,11 +386,11 @@ describe Ably::Auth do
           let(:client_id)   { random_str }
 
           let!(:token_details) do
-            auth.request_token do |block_options|
+            auth.request_token(auth_callback: Proc.new do |block_options|
               auth.create_token_request({
                 client_id: client_id
               })
-            end
+            end)
           end
 
           it 'uses the token request from the block when requesting a new token' do
@@ -404,9 +404,9 @@ describe Ably::Auth do
           let(:token) { second_client.auth.request_token.token }
 
           let!(:token_details) do
-            auth.request_token do |block_options|
+            auth.request_token(auth_callback: Proc.new do |block_options|
               token
-            end
+            end)
           end
 
           it 'uses the token request from the block when requesting a new token' do
@@ -504,11 +504,11 @@ describe Ably::Auth do
       context 'with token_request_block' do
         let(:client_id) { random_str }
         let!(:token) do
-          auth.authorise do
+          auth.authorise(auth_callback: Proc.new do
             @block_called ||= 0
             @block_called += 1
             auth.create_token_request(client_id: client_id)
-          end
+          end)
         end
 
         it 'calls the block' do
@@ -529,7 +529,7 @@ describe Ably::Auth do
 
           context 'with a provided block' do
             it 'does not call the originally provided block and calls the new #request_token block' do
-              auth.request_token { @request_block_called = true; auth.create_token_request }
+              auth.request_token(auth_callback: Proc.new { @request_block_called = true; auth.create_token_request })
               expect(@block_called).to eql(1)
               expect(@request_block_called).to eql(true)
             end

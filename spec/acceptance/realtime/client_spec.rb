@@ -93,10 +93,10 @@ describe Ably::Realtime::Client, :event_machine do
           let(:auth)      { subject.auth }
 
           subject do
-            Ably::Realtime::Client.new(client_options) do
+            Ably::Realtime::Client.new(client_options.merge(auth_callback: Proc.new do
               @block_called = true
               auth.create_token_request(client_id: client_id)
-            end
+            end))
           end
 
           it 'calls the block' do

@@ -42,16 +42,14 @@ module Ably
     # @param [Ably::Rest::Client] client  {Ably::Rest::Client} this Auth object uses
     # @param [Hash] options (see Ably::Rest::Client#initialize)
     # @option (see Ably::Rest::Client#initialize)
-    # @yield  (see Ably::Rest::Client#initialize)
     #
-    def initialize(client, options, &token_request_block)
+    def initialize(client, options)
       ensure_valid_auth_attributes options
 
       auth_options = options.dup
 
       @client              = client
       @options             = auth_options
-      @default_token_block = token_request_block if block_given?
 
       unless auth_options.kind_of?(Hash)
         raise ArgumentError, 'Expected auth_options to be a Hash'
@@ -84,10 +82,6 @@ module Ably
     # @option options [String]  :key            API key comprising the key name and key secret in a single string
     # @option options [Boolean] :force          obtains a new token even if the current token is valid
     #
-    # @yield (see #request_token)
-    # @yieldparam [Hash] options options passed to {#authorise} will be in turn sent to the block in this argument
-    # @yieldreturn (see #request_token)
-    #
     # @return (see #request_token)
     #
     # @example
@@ -101,7 +95,7 @@ module Ably
     #      token_request
     #    end
     #
-    def authorise(options = {}, &token_request_block)
+    def authorise(options = {})
       ensure_valid_auth_attributes options
 
       if current_token_details && !options[:force]
@@ -109,33 +103,28 @@ module Ably
       end
 
       options = options.clone
-
       split_api_key_into_key_and_secret! options if options[:key]
+      @options = @options.merge(options) # update default options
 
-      @options             = @options.merge(options)
-      @default_token_block = token_request_block if block_given?
-
-      @current_token_details = request_token(options, &token_request_block)
+      @current_token_details = request_token(options)
     end
 
     # Request a {Ably::Models::TokenDetails} which can be used to make authenticated token based requests
     #
     # @param [Hash] options the options for the token request
-    # @option options [String]  :key          complete API key for the designated application
-    # @option options [String]  :client_id    client ID identifying this connection to other clients (defaults to client client_id if configured)
-    # @option options [String]  :auth_url     a URL to be used to GET or POST a set of token request params, to obtain a signed token request.
-    # @option options [Hash]    :auth_headers a set of application-specific headers to be added to any request made to the authUrl
-    # @option options [Hash]    :auth_params  a set of application-specific query params to be added to any request made to the authUrl
-    # @option options [Symbol]  :auth_method  HTTP method to use with auth_url, must be either `:get` or `:post` (defaults to :get)
-    # @option options [Integer] :ttl          validity time in seconds for the requested {Ably::Models::TokenDetails}.  Limits may apply, see {http://docs.ably.io/other/authentication/}
-    # @option options [Hash]    :capability   canonicalised representation of the resource paths and associated operations
-    # @option options [Boolean] :query_time   when true will query the {https://ably.io Ably} system for the current time instead of using the local time
-    # @option options [Time]    :timestamp    the time of the of the request
-    # @option options [String]  :nonce        an unquoted, unescaped random string of at least 16 characters
-    #
-    # @yield [options] (optional) if a token request block is passed to this method, then this block will be called whenever a new token is required
-    # @yieldparam [Hash] options options passed to {#request_token} will be in turn sent to the block in this argument
-    # @yieldreturn [Hash] expects a valid token request object, see {#create_token_request}
+    # @option options [String]  :key           complete API key for the designated application
+    # @option options [String]  :client_id     client ID identifying this connection to other clients (defaults to client client_id if configured)
+    # @option options [String]  :auth_url      a URL to be used to GET or POST a set of token request params, to obtain a signed token request.
+    # @option options [Hash]    :auth_headers  a set of application-specific headers to be added to any request made to the authUrl
+    # @option options [Hash]    :auth_params   a set of application-specific query params to be added to any request made to the authUrl
+    # @option options [Symbol]  :auth_method   HTTP method to use with auth_url, must be either `:get` or `:post` (defaults to :get)
+    # @option options [Proc]    :auth_callback this Proc / block will be called with the {#auth_options Auth#auth_options Hash} as the first argument whenever a new token is required.
+    #                                          The Proc should return a token string, {Ably::Models::TokenDetails} or JSON equivalent, {Ably::Models::TokenRequest} or JSON equivalent
+    # @option options [Integer] :ttl           validity time in seconds for the requested {Ably::Models::TokenDetails}.  Limits may apply, see {https://www.ably.io/documentation/other/authentication}
+    # @option options [Hash]    :capability    canonicalised representation of the resource paths and associated operations
+    # @option options [Boolean] :query_time    when true will query the {https://www.ably.io Ably} system for the current time instead of using the local time
+    # @option options [Time]    :timestamp     the time of the of the request
+    # @option options [String]  :nonce         an unquoted, unescaped random string of at least 16 characters
     #
     # @return [Ably::Models::TokenDetails]
     #
@@ -155,12 +144,9 @@ module Ably
 
       token_options = auth_options.merge(options)
 
-      auth_url = token_options.delete(:auth_url)
-      token_request = if block_given?
-        yield token_options
-      elsif default_token_block
-        default_token_block.call(token_options)
-      elsif auth_url
+      token_request = if auth_callback = token_options.delete(:auth_callback)
+        auth_callback.call(token_options)
+      elsif auth_url = token_options.delete(:auth_url)
         token_request_from_auth_url(auth_url, token_options)
       else
         create_token_request(token_options)
@@ -326,7 +312,7 @@ module Ably
     end
 
     private
-    attr_reader :client, :default_token_block
+    attr_reader :client
 
     def ensure_valid_auth_attributes(attributes)
       if attributes[:timestamp]
@@ -356,6 +342,12 @@ module Ably
       if attributes[:auth_method]
         unless %(get post).include?(attributes[:auth_method].to_s)
           raise ArgumentError, ':auth_method must be either :get or :post'
+        end
+      end
+
+      if attributes[:auth_callback]
+        unless attributes[:auth_callback].respond_to?(:call)
+          raise ArgumentError, ':auth_callback must be a Proc'
         end
       end
     end
@@ -485,8 +477,8 @@ module Ably
       end
     end
 
-    def token_callback_present?
-      !!default_token_block
+    def auth_callback_present?
+      !!options[:auth_callback]
     end
 
     def token_url_present?
@@ -494,7 +486,7 @@ module Ably
     end
 
     def token_creatable_externally?
-      token_callback_present? || token_url_present?
+      auth_callback_present? || token_url_present?
     end
 
     def has_client_id?

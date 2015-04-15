@@ -23,10 +23,6 @@ module Ably
     # @param (see Ably::Rest::Client#initialize)
     # @option options (see Ably::Rest::Client#initialize)
     #
-    # @yield (see Ably::Rest::Client#initialize)
-    # @yieldparam (see Ably::Rest::Client#initialize)
-    # @yieldreturn (see Ably::Rest::Client#initialize)
-    #
     # @return [Ably::Rest::Client]
     #
     # @example
