@@ -45,6 +45,8 @@ module Ably
     # @yield  (see Ably::Rest::Client#initialize)
     #
     def initialize(client, options, &token_request_block)
+      ensure_valid_auth_attributes options
+
       auth_options = options.dup
 
       @client              = client
@@ -100,6 +102,8 @@ module Ably
     #    end
     #
     def authorise(options = {}, &token_request_block)
+      ensure_valid_auth_attributes options
+
       if current_token_details && !options[:force]
         return current_token_details unless current_token_details.expired?
       end
@@ -147,6 +151,8 @@ module Ably
     #    end
     #
     def request_token(options = {})
+      ensure_valid_auth_attributes options
+
       token_options = auth_options.merge(options)
 
       auth_url = token_options.delete(:auth_url)
@@ -205,6 +211,7 @@ module Ably
     #    #  }
     #    #>>
     def create_token_request(options = {})
+      ensure_valid_auth_attributes options
 
       token_options = options.clone
 
@@ -320,6 +327,38 @@ module Ably
 
     private
     attr_reader :client, :default_token_block
+
+    def ensure_valid_auth_attributes(attributes)
+      if attributes[:timestamp]
+        unless attributes[:timestamp].kind_of?(Time) || attributes[:timestamp].kind_of?(Numeric)
+          raise ArgumentError, ':timestamp must be a Time or positive Integer value of seconds since epoch'
+        end
+      end
+
+      if attributes[:ttl]
+        unless attributes[:ttl].kind_of?(Numeric) && attributes[:ttl].to_f > 0
+          raise ArgumentError, ':ttl must be a positive Numeric value representing time to live in seconds'
+        end
+      end
+
+      if attributes[:auth_headers]
+        unless attributes[:auth_headers].kind_of?(Hash)
+          raise ArgumentError, ':auth_headers must be a valid Hash'
+        end
+      end
+
+      if attributes[:auth_params]
+        unless attributes[:auth_params].kind_of?(Hash)
+          raise ArgumentError, ':auth_params must be a valid Hash'
+        end
+      end
+
+      if attributes[:auth_method]
+        unless %(get post).include?(attributes[:auth_method].to_s)
+          raise ArgumentError, ':auth_method must be either :get or :post'
+        end
+      end
+    end
 
     def ensure_api_key_sent_over_secure_connection
       raise Ably::Exceptions::InsecureRequestError, 'Cannot use Basic Auth over non-TLS connections' unless authentication_security_requirements_met?
