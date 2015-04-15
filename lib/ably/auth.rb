@@ -5,9 +5,9 @@ require 'securerandom'
 require 'ably/rest/middleware/external_exceptions'
 
 module Ably
-  # Auth is responsible for authentication with {https://ably.io Ably} using basic or token authentication
+  # Auth is responsible for authentication with {https://www.ably.io Ably} using basic or token authentication
   #
-  # Find out more about Ably authentication at: http://docs.ably.io/other/authentication/
+  # Find out more about Ably authentication at: https://www.ably.io/documentation/general/authentication/
   #
   # @!attribute [r] client_id
   #   @return [String] The provided client ID, used for identifying this client for presence purposes
@@ -175,9 +175,9 @@ module Ably
     # @param [Hash] options the options for the token request
     # @option options [String]  :key        complete API key for the designated application
     # @option options [String]  :client_id  client ID identifying this connection to other clients
-    # @option options [Integer] :ttl        validity time in seconds for the requested {Ably::Models::TokenDetails}.  Limits may apply, see {http://docs.ably.io/other/authentication/}
+    # @option options [Integer] :ttl        validity time in seconds for the requested {Ably::Models::TokenDetails}.  Limits may apply, see {https://www.ably.io/documentation/other/authentication}
     # @option options [Hash]    :capability canonicalised representation of the resource paths and associated operations
-    # @option options [Boolean] :query_time when true will query the {https://ably.io Ably} system for the current time instead of using the local time
+    # @option options [Boolean] :query_time when true will query the {https://www.ably.io Ably} system for the current time instead of using the local time
     # @option options [Time]    :timestamp  the time of the of the request
     # @option options [String]  :nonce      an unquoted, unescaped random string of at least 16 characters
     #

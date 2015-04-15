@@ -73,7 +73,7 @@ module Ably
       # @option options [String]                  :key                 API key comprising the key name and key secret in a single string
       # @option options [String]                  :token               Token string or {Models::TokenDetails} used to authenticate requests
       # @option options [String]                  :token_details       {Models::TokenDetails} used to authenticate requests
-      # @option options [Boolean]                 :use_token_auth      Will force Basic Auth if set to false, and TOken auth if set to true
+      # @option options [Boolean]                 :use_token_auth      Will force Basic Auth if set to false, and Token auth if set to true
       # @option options [String]                  :environment         Specify 'sandbox' when testing the client library against an alternate Ably environment
       # @option options [Symbol]                  :protocol            Protocol used to communicate with Ably, :json and :msgpack currently supported. Defaults to :msgpack
       # @option options [Boolean]                 :use_binary_protocol Protocol used to communicate with Ably, defaults to true and uses MessagePack protocol.  This option will overide :protocol option
