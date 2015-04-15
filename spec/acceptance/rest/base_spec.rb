@@ -109,9 +109,9 @@ describe Ably::Rest do
     end
 
     describe 'token authentication failures', :webmock do
-      let(:token_1) { { id: random_str } }
-      let(:token_2) { { id: random_str } }
-      let(:channel) { 'channelname' }
+      let(:token_1) { { token: random_str } }
+      let(:token_2) { { token: random_str } }
+      let(:channel) { random_str }
 
       before do
         @token_requests = 0
@@ -120,7 +120,7 @@ describe Ably::Rest do
         stub_request(:post, "#{client.endpoint}/keys/#{key_name}/requestToken").to_return do
           @token_requests += 1
           {
-            :body => { access_token: send("token_#{@token_requests}").merge(expires: Time.now.to_i + 3600) }.to_json,
+            :body => public_send("token_#{@token_requests}").merge(expires: (Time.now.to_i + 60) * 1000).to_json,
             :headers => { 'Content-Type' => 'application/json' }
           }
         end
@@ -143,7 +143,9 @@ describe Ably::Rest do
         it 'should automatically reissue a token' do
           client.channel(channel).publish('evt', 'msg')
           expect(@publish_attempts).to eql(1)
+          expect(@token_requests).to eql(1)
 
+          # Triggers an authentication 401 failure which should automatically request a new token
           client.channel(channel).publish('evt', 'msg')
           expect(@publish_attempts).to eql(3)
           expect(@token_requests).to eql(2)

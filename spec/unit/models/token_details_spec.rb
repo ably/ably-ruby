@@ -2,21 +2,14 @@ require 'spec_helper'
 require 'shared/model_behaviour'
 
 describe Ably::Models::TokenDetails do
+  include Ably::Modules::Conversions
+
   subject { Ably::Models::TokenDetails }
 
-  it_behaves_like 'a model', with_simple_attributes: %w(client_id nonce) do
-    # TODO: Include :token and :key_name
+  it_behaves_like 'a model', with_simple_attributes: %w(token key_name client_id) do
     let(:model_args) { [] }
   end
 
-  context 'interim tests' do
-    subject { Ably::Models::TokenDetails.new(id: 'token', key: 'key_name') }
-
-    it 'retrieves the interim attributes' do
-      expect(subject.token).to eql('token')
-      expect(subject.key_name).to eql('key_name')
-    end
-  end
 
   context 'attributes' do
     let(:capability) { { "value" => random_str } }
@@ -32,12 +25,29 @@ describe Ably::Models::TokenDetails do
 
     { :issued_at => :issued_at, :expires => :expires }.each do |method_name, attribute|
       let(:time) { Time.now }
-      context "##{method_name}" do
-        subject { Ably::Models::TokenDetails.new({ attribute.to_sym => time.to_i }) }
+      context "##{method_name} with :#{method_name} option as milliseconds in constructor" do
+        subject { Ably::Models::TokenDetails.new({ attribute.to_sym => time.to_i * 1000 }) }
 
         it "retrieves attribute :#{attribute} as Time" do
           expect(subject.public_send(method_name)).to be_a(Time)
           expect(subject.public_send(method_name).to_i).to eql(time.to_i)
+        end
+      end
+
+      context "##{method_name} with :#{method_name} option as a Time in constructor" do
+        subject { Ably::Models::TokenDetails.new({ attribute.to_sym => time }) }
+
+        it "retrieves attribute :#{attribute} as Time" do
+          expect(subject.public_send(method_name)).to be_a(Time)
+          expect(subject.public_send(method_name).to_i).to eql(time.to_i)
+        end
+      end
+
+      context "##{method_name} when converted to JSON" do
+        subject { Ably::Models::TokenDetails.new({ attribute.to_sym => time }) }
+
+        it 'is in milliseconds' do
+          expect(JSON.parse(JSON.dump(subject))[convert_to_mixed_case(attribute)]).to eql((time.to_f * 1000).round)
         end
       end
     end

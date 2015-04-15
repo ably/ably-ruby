@@ -17,7 +17,7 @@ describe Ably::Realtime::Client, :event_machine do
       context 'basic auth' do
         it 'is enabled by default with a provided :key option' do
           connection.on(:connected) do
-            expect(auth_params[:key_id]).to_not be_nil
+            expect(auth_params[:key]).to_not be_nil
             expect(auth_params[:access_token]).to be_nil
             expect(subject.auth.current_token_details).to be_nil
             stop_reactor
@@ -51,7 +51,7 @@ describe Ably::Realtime::Client, :event_machine do
               it 'connects using token auth' do
                 connection.on(:connected) do
                   expect(auth_params[:access_token]).to_not be_nil
-                  expect(auth_params[:key_id]).to be_nil
+                  expect(auth_params[:key]).to be_nil
                   expect(subject.auth.current_token_details).to be_nil
                   stop_reactor
                 end
@@ -79,7 +79,7 @@ describe Ably::Realtime::Client, :event_machine do
                   connection.on(:connected) do
                     expect(connection.state).to eq(:connected)
                     expect(auth_params[:access_token]).to_not be_nil
-                    expect(auth_params[:key_id]).to be_nil
+                    expect(auth_params[:key]).to be_nil
                     stop_reactor
                   end
                 end

@@ -103,7 +103,7 @@ describe Ably::Realtime::Connection, :event_machine do
               end
 
               context 'with immediately expiring token' do
-                let(:ttl) { 0.01 }
+                let(:ttl) { 0.001 }
 
                 it 'renews the token on connect, and only makes one subsequent attempt to obtain a new token' do
                   expect(client.auth).to receive(:authorise).at_least(:twice).and_call_original

@@ -34,7 +34,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
 
-        context 'with invalid key ID part of the key' do
+        context 'with invalid key name part of the key' do
           let(:invalid_key) { "#{app_id}.invalid_key_name:invalid_key_value" }
 
           it 'enters the failed state and returns an authorization error' do
