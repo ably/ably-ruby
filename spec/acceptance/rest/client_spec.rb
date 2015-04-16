@@ -44,7 +44,7 @@ describe Ably::Rest::Client do
           @request_index ||= 0
           @request_index += 1
           send("token_request_#{@request_index > 2 ? 'next' : @request_index}")
-        end
+        end))
       end
       let(:token_request_1) { client.auth.create_token_request(token_request_options.merge(client_id: random_str)) }
       let(:token_request_2) { client.auth.create_token_request(token_request_options.merge(client_id: random_str)) }
