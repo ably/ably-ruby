@@ -32,8 +32,8 @@ module Ably
     #    # create a new client authenticating with basic auth and a client_id
     #    client = Ably::Rest.new(key: 'key.id:secret', client_id: 'john')
     #
-    def self.new(options, &token_request_block)
-      Ably::Rest::Client.new(options, &token_request_block)
+    def self.new(options)
+      Ably::Rest::Client.new(options)
     end
   end
 end

@@ -89,7 +89,7 @@ module Ably
       #    # create a new client and configure a client ID used for presence
       #    client = Ably::Rest::Client.new(key: 'key.id:secret', client_id: 'john')
       #
-      def initialize(options, &token_request_block)
+      def initialize(options)
         raise ArgumentError, 'Options Hash is expected' if options.nil?
 
         options = options.clone
@@ -125,7 +125,7 @@ module Ably
         raise ArgumentError, 'Protocol is invalid.  Must be either :msgpack or :json' unless [:msgpack, :json].include?(@protocol)
 
         @options  = options.freeze
-        @auth     = Auth.new(self, options, &token_request_block)
+        @auth     = Auth.new(self, options)
         @channels = Ably::Rest::Channels.new(self)
         @encoders = []
 
