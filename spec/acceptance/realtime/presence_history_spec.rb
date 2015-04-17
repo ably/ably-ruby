@@ -51,5 +51,48 @@ describe Ably::Realtime::Presence, 'history', :event_machine do
 
       presence_client_one.enter(data: data)
     end
+
+    context 'with option until_attach: true' do
+      let(:event) { random_str }
+      let(:presence_data_before_attach) { random_str }
+      let(:presence_data_after_attach) { random_str }
+
+      it 'retrieves all presence messages before channel was attached' do
+        presence_client_two.enter(data: presence_data_before_attach) do
+          presence_client_one.enter(data: presence_data_after_attach) do
+            presence_client_one.history(until_attach: true) do |presence_page|
+              expect(presence_page.items.count).to eql(1)
+              expect(presence_page.items.first.data).to eql(presence_data_before_attach)
+              stop_reactor
+            end
+          end
+        end
+      end
+
+      context 'and two pages of messages' do
+        it 'retrieves two pages of messages before channel was attached' do
+          when_all(*10.times.map { |i| presence_client_two.enter_client("client:#{i}", data: presence_data_before_attach) }) do
+            when_all(*10.times.map { |i| presence_client_one.enter_client("client:#{i}", data: presence_data_after_attach) }) do
+              presence_client_one.history(until_attach: true, limit: 5) do |presence_page|
+                expect(presence_page.items.count).to eql(5)
+                expect(presence_page.items.map(&:data).uniq.first).to eql(presence_data_before_attach)
+
+                presence_page.next do |presence_next_page|
+                  expect(presence_next_page.items.count).to eql(5)
+                  expect(presence_next_page.items.map(&:data).uniq.first).to eql(presence_data_before_attach)
+                  expect(presence_next_page).to be_last
+                  stop_reactor
+                end
+              end
+            end
+          end
+        end
+      end
+
+      it 'raises an exception unless state is attached' do
+        expect { presence_client_one.history(until_attach: true) }.to raise_error(ArgumentError, /not attached/)
+        stop_reactor
+      end
+    end
   end
 end

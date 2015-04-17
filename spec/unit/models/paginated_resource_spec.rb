@@ -5,7 +5,7 @@ describe Ably::Models::PaginatedResource do
   let(:paginated_resource_class) { Ably::Models::PaginatedResource }
   let(:headers) { Hash.new }
   let(:client) do
-    instance_double('Ably::Rest::Client', logger: true).tap do |client|
+    instance_double('Ably::Rest::Client', logger: Ably::Models::NilLogger.new).tap do |client|
       allow(client).to receive(:get).and_return(http_response)
     end
   end
@@ -87,7 +87,7 @@ describe Ably::Models::PaginatedResource do
       }
     end
     let(:paged_client) do
-      instance_double('Ably::Rest::Client', logger: true).tap do |client|
+      instance_double('Ably::Rest::Client', logger: Ably::Models::NilLogger.new).tap do |client|
         allow(client).to receive(:get).and_return(http_response_page2)
       end
     end

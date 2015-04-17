@@ -40,6 +40,7 @@ module Ably::Realtime
         else
           channel.presence.manager.sync_not_expected
         end
+        channel.set_attached_serial attached_protocol_message.channel_serial
       end
 
       # An error has occurred on the channel
