@@ -1,40 +1,40 @@
-require 'ably/models/stat_types'
+require 'ably/models/stats_types'
 
 module Ably::Models
-  # Convert stat argument to a {Stat} object
+  # Convert stat argument to a {Stats} object
   #
-  # @param stat [Stat,Hash] A Stat object or Hash of stat properties
+  # @param stat [Stats,Hash] A Stats object or Hash of stat properties
   #
-  # @return [Stat]
-  def self.Stat(stat)
+  # @return [Stats]
+  def self.Stats(stat)
     case stat
-    when Stat
+    when Stats
       stat
     else
-      Stat.new(stat)
+      Stats.new(stat)
     end
   end
 
   # A class representing an individual statistic for a specified {#interval_id}
   #
   # @!attribute [r] all
-  #   @return [StatTypes::MessageTypes] Breakdown of summary stats for all message types
+  #   @return [Stats::MessageTypes] Breakdown of summary stats for all message types
   # @!attribute [r] inbound
-  #   @return [StatTypes::MessageTraffic] Breakdown of summary stats for traffic over various transport types for all inbound messages
+  #   @return [Stats::MessageTraffic] Breakdown of summary stats for traffic over various transport types for all inbound messages
   # @!attribute [r] outbound
-  #   @return [StatTypes::MessageTraffic] Breakdown of summary stats for traffic over various transport types for all outbound messages
+  #   @return [Stats::MessageTraffic] Breakdown of summary stats for traffic over various transport types for all outbound messages
   # @!attribute [r] persisted
-  #   @return [StatTypes::MessageTypes] Breakdown of summary stats for all persisted messages
+  #   @return [Stats::MessageTypes] Breakdown of summary stats for all persisted messages
   # @!attribute [r] connections
-  #   @return [StatTypes::ConnectionTypes] A breakdown of summary stats data for different (TLS vs non-TLS) connection types.
+  #   @return [Stats::ConnectionTypes] A breakdown of summary stats data for different (TLS vs non-TLS) connection types.
   # @!attribute [r] channels
-  #   @return [StatTypes::ResourceCount] Aggregate data for usage of Channels
+  #   @return [Stats::ResourceCount] Aggregate data for usage of Channels
   # @!attribute [r] api_requests
-  #   @return [StatTypes::RequestCount] Aggregate data for numbers of API requests
+  #   @return [Stats::RequestCount] Aggregate data for numbers of API requests
   # @!attribute [r] token_requests
-  #   @return [StatTypes::RequestCount] Aggregate data for numbers of Token requests
+  #   @return [Stats::RequestCount] Aggregate data for numbers of Token requests
   #
-  class Stat
+  class Stats
     include Ably::Modules::ModelCommon
     extend Ably::Modules::Enum
 
@@ -55,7 +55,7 @@ module Ably::Models
     class << self
       # Convert a Time with the specified Granularity into an interval ID based on UTC 0 time
       # @example
-      #   Stat.to_interval_id(Time.now, :hour) # => '2015-01-01:10'
+      #   Stats.to_interval_id(Time.now, :hour) # => '2015-01-01:10'
       #
       # @param time [Time] Time used to determine the interval
       # @param granularity [GRANULARITY] Granularity of the metrics such as :hour, :day
@@ -73,7 +73,7 @@ module Ably::Models
 
       # Returns the UTC 0 start Time of an interval_id
       # @example
-      #   Stat.from_interval_id('2015-01-01:10') # => 2015-01-01 10:00:00 +0000
+      #   Stats.from_interval_id('2015-01-01:10') # => 2015-01-01 10:00:00 +0000
       #
       # @param interval_id [String]
       #
@@ -90,7 +90,7 @@ module Ably::Models
 
       # Returns the {GRANULARITY} determined from the interval_id
       # @example
-      #   Stat.granularity_from_interval_id('2015-01-01:10') # => :hour
+      #   Stats.granularity_from_interval_id('2015-01-01:10') # => :hour
       #
       # @param interval_id [String]
       #
@@ -111,7 +111,7 @@ module Ably::Models
       end
     end
 
-    # {Stat} initializer
+    # {Stats} initializer
     #
     # @param hash_object  [Hash]  object with the underlying stat details
     #
@@ -121,51 +121,51 @@ module Ably::Models
     end
 
     # Aggregates inbound and outbound messages
-    # return {@StatTypes::MessageTypes}
+    # return {@Stats::MessageTypes}
     def all
-      @all ||= StatTypes::MessageTypes.new(hash[:all])
+      @all ||= Stats::MessageTypes.new(hash[:all])
     end
 
     # All inbound messages i.e. received by Ably from clients
-    # @return {StatTypes::MessageTraffic}
+    # @return {Stats::MessageTraffic}
     def inbound
-      @inbound ||= StatTypes::MessageTraffic.new(hash[:inbound])
+      @inbound ||= Stats::MessageTraffic.new(hash[:inbound])
     end
 
     # All outbound messages i.e. sent from Ably to clients
-    # @return {StatTypes::MessageTraffic}
+    # @return {Stats::MessageTraffic}
     def outbound
-      @outbound ||= StatTypes::MessageTraffic.new(hash[:outbound])
+      @outbound ||= Stats::MessageTraffic.new(hash[:outbound])
     end
 
     # Messages persisted for later retrieval via the history API
-    # @return {StatTypes::MessageTypes}
+    # @return {Stats::MessageTypes}
     def persisted
-      @persisted ||= StatTypes::MessageTypes.new(hash[:persisted])
+      @persisted ||= Stats::MessageTypes.new(hash[:persisted])
     end
 
     # Breakdown of connection stats data for different (TLS vs non-TLS) connection types
-    # @return {StatTypes::ConnectionTypes}
+    # @return {Stats::ConnectionTypes}
     def connections
-      @connections ||= StatTypes::ConnectionTypes.new(hash[:connections])
+      @connections ||= Stats::ConnectionTypes.new(hash[:connections])
     end
 
     # Breakdown of channels stats
-    # @return {StatTypes::ResourceCount}
+    # @return {Stats::ResourceCount}
     def channels
-      @channels ||= StatTypes::ResourceCount.new(hash[:channels])
+      @channels ||= Stats::ResourceCount.new(hash[:channels])
     end
 
     # Breakdown of API requests received via the REST API
-    # @return {StatTypes::RequestCount}
+    # @return {Stats::RequestCount}
     def api_requests
-      @api_requests ||= StatTypes::RequestCount.new(hash[:api_requests])
+      @api_requests ||= Stats::RequestCount.new(hash[:api_requests])
     end
 
     # Breakdown of Token requests received via the REST API
-    # @return {StatTypes::RequestCount}
+    # @return {Stats::RequestCount}
     def token_requests
-      @token_requests ||= StatTypes::RequestCount.new(hash[:token_requests])
+      @token_requests ||= Stats::RequestCount.new(hash[:token_requests])
     end
 
     # @!attribute [r] interval_id

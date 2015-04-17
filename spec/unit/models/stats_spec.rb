@@ -2,20 +2,20 @@
 require 'spec_helper'
 require 'shared/model_behaviour'
 
-describe Ably::Models::Stat do
+describe Ably::Models::Stats do
   include Ably::Modules::Conversions
 
-  subject { Ably::Models::Stat }
+  subject { Ably::Models::Stats }
 
   %w(all persisted).each do |attribute|
     context "##{attribute} stats" do
       let(:data) do
         { attribute.to_sym => { messages: { count: 5 }, all: { data: 10 } } }
       end
-      subject { Ably::Models::Stat.new(data.merge(interval_id: '2004-02')).public_send(attribute) }
+      subject { Ably::Models::Stats.new(data.merge(interval_id: '2004-02')).public_send(attribute) }
 
       it 'returns a MessageTypes object' do
-        expect(subject).to be_a(Ably::Models::StatTypes::MessageTypes)
+        expect(subject).to be_a(Ably::Models::Stats::MessageTypes)
       end
 
       it 'returns value for message counts' do
@@ -37,7 +37,7 @@ describe Ably::Models::Stat do
       %w(all presence messages).each do |type|
         context "##{type}" do
           it 'is a MessageCount object' do
-            expect(subject.public_send(type)).to be_a(Ably::Models::StatTypes::MessageCount)
+            expect(subject.public_send(type)).to be_a(Ably::Models::Stats::MessageCount)
           end
         end
       end
@@ -54,10 +54,10 @@ describe Ably::Models::Stat do
           }
         }
       end
-      subject { Ably::Models::Stat.new(data.merge(interval_id: '2004-02')).public_send(direction) }
+      subject { Ably::Models::Stats.new(data.merge(interval_id: '2004-02')).public_send(direction) }
 
       it 'returns a MessageTraffic object' do
-        expect(subject).to be_a(Ably::Models::StatTypes::MessageTraffic)
+        expect(subject).to be_a(Ably::Models::Stats::MessageTraffic)
       end
 
       it 'returns value for realtime message counts' do
@@ -75,7 +75,7 @@ describe Ably::Models::Stat do
       %w(realtime rest webhook all).each do |type|
         context "##{type}" do
           it 'is a MessageTypes object' do
-            expect(subject.public_send(type)).to be_a(Ably::Models::StatTypes::MessageTypes)
+            expect(subject.public_send(type)).to be_a(Ably::Models::Stats::MessageTypes)
           end
         end
       end
@@ -86,10 +86,10 @@ describe Ably::Models::Stat do
     let(:data) do
       { connections: { tls: { opened: 5 }, all: { peak: 10 } } }
     end
-    subject { Ably::Models::Stat.new(data.merge(interval_id: '2004-02')).connections }
+    subject { Ably::Models::Stats.new(data.merge(interval_id: '2004-02')).connections }
 
     it 'returns a ConnectionTypes object' do
-      expect(subject).to be_a(Ably::Models::StatTypes::ConnectionTypes)
+      expect(subject).to be_a(Ably::Models::Stats::ConnectionTypes)
     end
 
     it 'returns value for tls opened counts' do
@@ -111,7 +111,7 @@ describe Ably::Models::Stat do
     %w(tls plain all).each do |type|
       context "##{type}" do
         it 'is a ResourceCount object' do
-          expect(subject.public_send(type)).to be_a(Ably::Models::StatTypes::ResourceCount)
+          expect(subject.public_send(type)).to be_a(Ably::Models::Stats::ResourceCount)
         end
       end
     end
@@ -121,10 +121,10 @@ describe Ably::Models::Stat do
     let(:data) do
       { channels: { opened: 5, peak: 10 } }
     end
-    subject { Ably::Models::Stat.new(data.merge(interval_id: '2004-02')).channels }
+    subject { Ably::Models::Stats.new(data.merge(interval_id: '2004-02')).channels }
 
     it 'returns a ResourceCount object' do
-      expect(subject).to be_a(Ably::Models::StatTypes::ResourceCount)
+      expect(subject).to be_a(Ably::Models::Stats::ResourceCount)
     end
 
     it 'returns value for opened counts' do
@@ -159,10 +159,10 @@ describe Ably::Models::Stat do
           request_type.to_sym => { succeeded: 5, failed: 10 }
         }
       end
-      subject { Ably::Models::Stat.new(data.merge(interval_id: '2004-02')).public_send(request_type) }
+      subject { Ably::Models::Stats.new(data.merge(interval_id: '2004-02')).public_send(request_type) }
 
       it 'returns a RequestCount object' do
-        expect(subject).to be_a(Ably::Models::StatTypes::RequestCount)
+        expect(subject).to be_a(Ably::Models::Stats::RequestCount)
       end
 
       it 'returns value for succeeded' do
@@ -188,7 +188,7 @@ describe Ably::Models::Stat do
   end
 
   describe '#interval_granularity' do
-    subject { Ably::Models::Stat.new(interval_id: '2004-02') }
+    subject { Ably::Models::Stats.new(interval_id: '2004-02') }
 
     it 'returns the granularity of the interval_id' do
       expect(subject.interval_granularity).to eq(:month)
@@ -196,7 +196,7 @@ describe Ably::Models::Stat do
   end
 
   describe '#interval_time' do
-    subject { Ably::Models::Stat.new(interval_id: '2004-02-01:05:06') }
+    subject { Ably::Models::Stats.new(interval_id: '2004-02-01:05:06') }
 
     it 'returns a Time object representing the start of the interval' do
       expect(subject.interval_time.to_i).to eql(Time.new(2004, 02, 01, 05, 06, 00, '+00:00').to_i)

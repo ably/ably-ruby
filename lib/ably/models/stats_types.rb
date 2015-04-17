@@ -1,19 +1,19 @@
 module Ably::Models
-  class StatTypes
-    # StatStruct is a basic Struct like class that allows methods to be defined
+  class Stats
+    # StatsStruct is a basic Struct like class that allows methods to be defined
     # on the class that will be retuned co-erced objects from the underlying hash used to
     # initialize the object.
     #
     # This class provides a concise way to create classes that have fixed attributes and types
     #
     # @example
-    #   class MessageCount < StatStruct
+    #   class MessageCount < StatsStruct
     #     coerce_attributes :count, :data, into: Integer
     #   end
     #
     # @api private
     #
-    class StatStruct
+    class StatsStruct
       class << self
         def coerce_attributes(*attributes)
           options = attributes.pop
@@ -63,7 +63,7 @@ module Ably::Models
     #   @return [Integer] count of all messages
     # @!attribute [r] data
     #   @return [Integer] total data transferred for all messages in bytes
-    class MessageCount < StatStruct
+    class MessageCount < StatsStruct
       coerce_attributes :count, :data, into: IntegerDefaultZero
     end
 
@@ -74,7 +74,7 @@ module Ably::Models
     #   @return [Integer] requests failed
     # @!attribute [r] refused
     #   @return [Integer] requests refused typically as a result of permissions or a limit being exceeded
-    class RequestCount < StatStruct
+    class RequestCount < StatsStruct
       coerce_attributes :succeeded, :failed, :refused, into: IntegerDefaultZero
     end
 
@@ -89,7 +89,7 @@ module Ably::Models
     #   @return [Integer] minimum total resources of this type used for this period
     # @!attribute [r] refused
     #   @return [Integer] resource requests refused within this period
-    class ResourceCount < StatStruct
+    class ResourceCount < StatsStruct
       coerce_attributes :opened, :peak, :mean, :min, :refused, into: IntegerDefaultZero
     end
 
@@ -100,7 +100,7 @@ module Ably::Models
     #   @return [ResourceCount] non-TLS connection count (unencrypted)
     # @!attribute [r] all
     #   @return [ResourceCount] all connection count (includes both TLS & non-TLS connections)
-    class ConnectionTypes < StatStruct
+    class ConnectionTypes < StatsStruct
       coerce_attributes :tls, :plain, :all, into: ResourceCount
     end
 
@@ -111,7 +111,7 @@ module Ably::Models
     #   @return [MessageCount] count of presence messages
     # @!attribute [r] all
     #   @return [MessageCount] all messages count (includes both presence & messages)
-    class MessageTypes < StatStruct
+    class MessageTypes < StatsStruct
       coerce_attributes :messages, :presence, :all, into: MessageCount
     end
 
@@ -124,7 +124,7 @@ module Ably::Models
     #   @return [MessageTypes] count of messages delivered using WebHooks
     # @!attribute [r] all
     #   @return [MessageTypes] all messages count (includes realtime, rest and webhook messages)
-    class MessageTraffic < StatStruct
+    class MessageTraffic < StatsStruct
       coerce_attributes :realtime, :rest, :webhook, :all, into: MessageTypes
     end
   end

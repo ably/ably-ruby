@@ -9,17 +9,17 @@ describe Ably::Rest::Client, '#stats' do
 
   STATS_FIXTURES = [
     {
-      intervalId: Ably::Models::Stat.to_interval_id(LAST_INTERVAL - 120, :minute),
+      intervalId: Ably::Models::Stats.to_interval_id(LAST_INTERVAL - 120, :minute),
       inbound:  { realtime: { messages: { count: 50, data: 5000 } } },
       outbound: { realtime: { messages: { count: 20, data: 2000 } } }
     },
     {
-      intervalId: Ably::Models::Stat.to_interval_id(LAST_INTERVAL - 60, :minute),
+      intervalId: Ably::Models::Stats.to_interval_id(LAST_INTERVAL - 60, :minute),
       inbound:  { realtime: { messages: { count: 60, data: 6000 } } },
       outbound: { realtime: { messages: { count: 10, data: 1000 } } }
     },
     {
-      intervalId: Ably::Models::Stat.to_interval_id(LAST_INTERVAL, :minute),
+      intervalId: Ably::Models::Stats.to_interval_id(LAST_INTERVAL, :minute),
       inbound:       { realtime: { messages: { count: 70, data: 7000 } } },
       outbound:      { realtime: { messages: { count: 40, data: 4000 } } },
       persisted:     { presence: { count: 20, data: 2000 } },

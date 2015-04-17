@@ -114,7 +114,7 @@ module Ably
       # @param (see Ably::Rest::Client#stats)
       # @option options (see Ably::Rest::Client#stats)
       #
-      # @yield [Ably::Models::PaginatedResource<Ably::Models::Stat>] An Array of Stats
+      # @yield [Ably::Models::PaginatedResource<Ably::Models::Stats>] An Array of Stats
       #
       # @return [Ably::Util::SafeDeferrable]
       #

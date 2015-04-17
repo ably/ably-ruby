@@ -197,7 +197,7 @@ client = Ably::Rest.new(token_id: token.id)
 
 ```ruby
 stats_page = client.stats #=> #<Ably::Models::PaginatedResource ...>
-stats_page.items.first = #<Ably::Models::Stat ...>
+stats_page.items.first = #<Ably::Models::Stats ...>
 stats_page.next # retrieves the next page => #<Ably::Models::PaginatedResource ...>
 ```
 

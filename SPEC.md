@@ -1447,7 +1447,7 @@ _(see [spec/unit/models/protocol_message_spec.rb](./spec/unit/models/protocol_me
       * with error
         * [returns a valid ErrorInfo object](./spec/unit/models/protocol_message_spec.rb#L261)
 
-### Ably::Models::Stat
+### Ably::Models::Stats
 _(see [spec/unit/models/stat_spec.rb](./spec/unit/models/stat_spec.rb))_
   * #all stats
     * [returns a MessageTypes object](./spec/unit/models/stat_spec.rb#L17)

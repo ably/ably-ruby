@@ -152,7 +152,7 @@ module Ably
       # @option options [Integer]      :limit      Maximum number of stats to retrieve up to 10,000
       # @option options [Symbol]       :by         `:minute`, `:hour`, `:day` or `:month`. Defaults to `:minute`
       #
-      # @return [Ably::Models::PaginatedResource<Ably::Models::Stat>] An Array of Stats
+      # @return [Ably::Models::PaginatedResource<Ably::Models::Stats>] An Array of Stats
       #
       def stats(options = {})
         options = {
@@ -163,7 +163,7 @@ module Ably
         [:start, :end].each { |option| options[option] = as_since_epoch(options[option]) if options.has_key?(option) }
 
         paginated_options = {
-          coerce_into: 'Ably::Models::Stat'
+          coerce_into: 'Ably::Models::Stats'
         }
 
         url = '/stats'
