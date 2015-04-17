@@ -495,7 +495,7 @@ describe Ably::Auth do
         end
       end
 
-      it 'updates the persisted auth options thare are then used for subsequent authorise requests' do
+      it 'updates the persisted auth options that are then used for subsequent authorise requests' do
         expect(auth.options[:ttl]).to_not eql(26)
         auth.authorise(ttl: 26)
         expect(auth.options[:ttl]).to eql(26)

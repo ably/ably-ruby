@@ -100,7 +100,9 @@ module Ably
         setup_presence
       end
 
-      # Publish a message on the channel
+      # Publish a message on the channel.
+      #
+      # When publishing a message, if the channel is not attached, the channel is implicitly attached
       #
       # @param name [String] The event name of the message
       # @param data [String,ByteArray] payload for the message
@@ -127,7 +129,9 @@ module Ably
         end
       end
 
-      # Subscribe to messages matching providing event name, or all messages if event name not provided
+      # Subscribe to messages matching providing event name, or all messages if event name not provided.
+      #
+      # When subscribing to messages, if the channel is not attached, the channel is implicitly attached
       #
       # @param names [String] The event name of the message to subscribe to if provided.  Defaults to all events.
       # @yield [Ably::Models::Message] For each message received, the block is called
@@ -177,6 +181,8 @@ module Ably
       # presence on the channel and may also be used to obtain presence information
       # and change events for other members of the channel.
       #
+      # When accessing presence, if the channel is not attached, the channel is implicitly attached
+      #
       # @return {Ably::Realtime::Presence}
       #
       def presence
@@ -186,14 +192,13 @@ module Ably
 
       # Return the message history of the channel
       #
-      # Once attached to a channel, you can retrieve messages published on the channel before the
-      # channel was attached with the option <tt>until_attach: true</tt>.  This is very useful for
-      # developers who wish to subscribe to new realtime messages yet also display historical messages with
-      # the guarantee that no messages have been missed.
+      # If the channel is attached, you can retrieve messages published on the channel before the
+      # channel was attached with the option <tt>until_attach: true</tt>.  This is useful when a developer
+      # wishes to display historical messages with the guarantee that no messages have been missed since attach.
       #
       # @param (see Ably::Rest::Channel#history)
       # @option options (see Ably::Rest::Channel#history)
-      # @option options [Boolean]  :until_attach  When true, request for history will be limited only to messages published before this channel was attached. Channel must be attached.
+      # @option options [Boolean]  :until_attach  When true, the history request will be limited only to messages published before this channel was attached. Channel must be attached
       #
       # @yield [Ably::Models::PaginatedResource<Ably::Models::Message>] First {Ably::Models::PaginatedResource page} of {Ably::Models::Message} objects accessible with {Ably::Models::PaginatedResource#items #items}.
       #
@@ -201,7 +206,7 @@ module Ably
       #
       def history(options = {}, &callback)
         if options.delete(:until_attach)
-          raise ArgumentError, 'option :until_attach cannot be specified if the channel is not attached' unless attached?
+          raise ArgumentError, 'option :until_attach is invalid as the channel is not attached' unless attached?
           options[:from_serial] = attached_serial
         end
 

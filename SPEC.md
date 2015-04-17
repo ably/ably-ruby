@@ -657,7 +657,7 @@ _(see [spec/acceptance/rest/auth_spec.rb](./spec/acceptance/rest/auth_spec.rb))_
     * before #authorise has been called
       * [has no current_token_details](./spec/acceptance/rest/auth_spec.rb#L451)
     * #authorise
-      * [updates the persisted auth options thare are then used for subsequent authorise requests](./spec/acceptance/rest/auth_spec.rb#L498)
+      * [updates the persisted auth options that are then used for subsequent authorise requests](./spec/acceptance/rest/auth_spec.rb#L498)
       * when called for the first time since the client has been instantiated
         * [passes all options to #request_token](./spec/acceptance/rest/auth_spec.rb#L462)
         * [returns a valid token](./spec/acceptance/rest/auth_spec.rb#L467)
