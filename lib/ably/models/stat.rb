@@ -18,21 +18,21 @@ module Ably::Models
   # A class representing an individual statistic for a specified {#interval_id}
   #
   # @!attribute [r] all
-  #   @return [Hash] Breakdown of summary stats for all message types
+  #   @return [StatTypes::MessageTypes] Breakdown of summary stats for all message types
   # @!attribute [r] inbound
-  #   @return [Hash] Breakdown of summary stats for traffic over various transport types for all inbound messages
+  #   @return [StatTypes::MessageTraffic] Breakdown of summary stats for traffic over various transport types for all inbound messages
   # @!attribute [r] outbound
-  #   @return [Hash] Breakdown of summary stats for traffic over various transport types for all outbound messages
+  #   @return [StatTypes::MessageTraffic] Breakdown of summary stats for traffic over various transport types for all outbound messages
   # @!attribute [r] persisted
-  #   @return [Hash] Breakdown of summary stats for all persisted messages
+  #   @return [StatTypes::MessageTypes] Breakdown of summary stats for all persisted messages
   # @!attribute [r] connections
-  #   @return [Hash] A breakdown of summary stats data for different (TLS vs non-TLS) connection types.
+  #   @return [StatTypes::ConnectionTypes] A breakdown of summary stats data for different (TLS vs non-TLS) connection types.
   # @!attribute [r] channels
-  #   @return [Hash] Aggregate data for usage of Channels
+  #   @return [StatTypes::ResourceCount] Aggregate data for usage of Channels
   # @!attribute [r] api_requests
-  #   @return [Hash] Aggregate data for numbers of API requests
+  #   @return [StatTypes::RequestCount] Aggregate data for numbers of API requests
   # @!attribute [r] token_requests
-  #   @return [Hash] Aggregate data for numbers of Token requests
+  #   @return [StatTypes::RequestCount] Aggregate data for numbers of Token requests
   #
   class Stat
     include Ably::Modules::ModelCommon
