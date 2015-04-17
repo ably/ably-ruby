@@ -31,7 +31,7 @@ module Ably::Models
   # @!attribute [r] presence
   #   @return [PresenceMessage] A {ProtocolMessage} with a `:presence` action contains one or more presence updates belonging to a channel
   # @!attribute [r] flags
-  #   @return [Integer] Flags inidicating special ProtocolMessage states
+  #   @return [Integer] Flags indicating special ProtocolMessage states
   # @!attribute [r] hash
   #   @return [Hash] Access the protocol message Hash object ruby'fied to use symbolized keys
   #
@@ -170,7 +170,6 @@ module Ably::Models
         end
     end
 
-    # Flags as bits
     def flags
       Integer(hash[:flags])
     rescue TypeError
