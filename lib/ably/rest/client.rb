@@ -150,14 +150,14 @@ module Ably
       # @option options [Integer,Time] :end        Ensure latest time or millisecond since epoch for any stats retrieved is +:end+
       # @option options [Symbol]       :direction  +:forwards+ or +:backwards+, defaults to +:backwards+
       # @option options [Integer]      :limit      Maximum number of messages to retrieve up to 1,000, defaults to 100
-      # @option options [Symbol]       :by         `:minute`, `:hour`, `:day` or `:month`. Defaults to `:minute`
+      # @option options [Symbol]       :unit       `:minute`, `:hour`, `:day` or `:month`. Defaults to `:minute`
       #
       # @return [Ably::Models::PaginatedResource<Ably::Models::Stats>] An Array of Stats
       #
       def stats(options = {})
         options = {
           :direction => :backwards,
-          :by        => :minute,
+          :unit      => :minute,
           :limit     => 100
         }.merge(options)
 

@@ -44,7 +44,7 @@ describe Ably::Rest::Client, '#stats' do
         let(:last_inbound_realtime_count)  { STATS_FIXTURES.last[:inbound][:realtime][:messages][:count] }
 
         context 'with :from set to last interval and :limit set to 1' do
-          let(:subject) { client.stats(start: as_since_epoch(LAST_INTERVAL), end: LAST_INTERVAL, by: :minute, limit: 1) }
+          let(:subject) { client.stats(start: as_since_epoch(LAST_INTERVAL), end: LAST_INTERVAL, unit: :minute, limit: 1) }
           let(:stat)    { subject.items.first }
 
           it 'retrieves only one stat' do
@@ -116,7 +116,7 @@ describe Ably::Rest::Client, '#stats' do
 
         context 'with :start set to first interval, :limit set to 1 and direction :forwards' do
           let(:first_interval) { LAST_INTERVAL - 120 }
-          let(:subject)        { client.stats(start: as_since_epoch(first_interval), end: LAST_INTERVAL, by: :minute, direction: :forwards, limit: 1) }
+          let(:subject)        { client.stats(start: as_since_epoch(first_interval), end: LAST_INTERVAL, unit: :minute, direction: :forwards, limit: 1) }
           let(:stat)           { subject.items.first }
 
           it 'returns the first interval stats as stats are provided forwards from :start' do
@@ -133,7 +133,7 @@ describe Ably::Rest::Client, '#stats' do
         end
 
         context 'with :end set to last interval, :limit set to 1 and direction :backwards' do
-          let(:subject)        { client.stats(:end => as_since_epoch(LAST_INTERVAL), end: LAST_INTERVAL, by: :minute, direction: :backwards, limit: 1) }
+          let(:subject)        { client.stats(:end => as_since_epoch(LAST_INTERVAL), end: LAST_INTERVAL, unit: :minute, direction: :backwards, limit: 1) }
           let(:stat)           { subject.items.first }
 
           it 'returns the 3rd interval stats first as stats are provided backwards from :end' do
@@ -151,7 +151,7 @@ describe Ably::Rest::Client, '#stats' do
 
       [:hour, :day, :month].each do |interval|
         context "by #{interval}" do
-          let(:subject) { client.stats(start: as_since_epoch(LAST_INTERVAL), end: LAST_INTERVAL, by: interval, direction: 'forwards', limit: 1) }
+          let(:subject) { client.stats(start: as_since_epoch(LAST_INTERVAL), end: LAST_INTERVAL, unit: interval, direction: 'forwards', limit: 1) }
           let(:stat)    { subject.items.first }
           let(:aggregate_messages_count) do
             STATS_FIXTURES.inject(0) do |sum, fixture|
