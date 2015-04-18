@@ -97,11 +97,18 @@ describe Ably::Rest::Channel do
           client_end_point.password = key_secret
         end
       end
+      let(:default_options) do
+          {
+            direction: :backwards,
+            limit: 100
+          }
+        end
 
       [:start, :end].each do |option|
         describe ":#{option}", :webmock do
           let!(:history_stub) {
-            stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/messages?#{option}=#{milliseconds}").
+            query_params = default_options.merge(option => milliseconds).map { |k, v| "#{k}=#{v}" }.join('&')
+            stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/messages?#{query_params}").
               to_return(:body => '{}', :headers => { 'Content-Type' => 'application/json' })
           }
 

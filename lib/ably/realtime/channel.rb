@@ -198,6 +198,7 @@ module Ably
       # @yield [Ably::Models::PaginatedResource<Ably::Models::Message>] First {Ably::Models::PaginatedResource page} of {Ably::Models::Message} objects accessible with {Ably::Models::PaginatedResource#items #items}.
       #
       # @return [Ably::Util::SafeDeferrable]
+      #
       def history(options = {}, &callback)
         if options.delete(:until_attach)
           raise ArgumentError, 'option :until_attach cannot be specified if the channel is not attached' unless attached?

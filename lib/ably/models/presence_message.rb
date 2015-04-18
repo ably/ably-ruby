@@ -30,7 +30,7 @@ module Ably::Models
   # @!attribute [r] data
   #   @return [Object] Optional client-defined status or other event payload associated with this state
   # @!attribute [r] encoding
-  #   @return [Object] The encoding for the message data. Encoding and decoding of messages is handled automatically by the client library.
+  #   @return [String] The encoding for the message data. Encoding and decoding of messages is handled automatically by the client library.
   #                    Therefore, the `encoding` attribute should always be nil unless an Ably library decoding error has occurred.
   # @!attribute [r] timestamp
   #   @return [Time] Timestamp when the message was received by the Ably the realtime service

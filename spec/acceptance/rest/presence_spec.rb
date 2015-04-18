@@ -124,11 +124,18 @@ describe Ably::Rest::Presence do
         let(:client) do
           Ably::Rest::Client.new(key: "#{user}:#{secret}")
         end
+        let(:default_options) do
+          {
+            direction: :backwards,
+            limit: 100
+          }
+        end
 
         [:start, :end].each do |option|
           describe ":#{option}", :webmock do
             let!(:history_stub) {
-              stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence/history?#{option}=#{milliseconds}").
+              query_params = default_options.merge(option => milliseconds).map { |k, v| "#{k}=#{v}" }.join('&')
+              stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence/history?#{query_params}").
                 to_return(:body => '{}', :headers => { 'Content-Type' => 'application/json' })
             }
 
@@ -225,7 +232,7 @@ describe Ably::Rest::Presence do
 
         context '#get' do
           let!(:get_stub)   {
-            stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence").
+            stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence?limit=100").
               to_return(:body => serialized_encoded_message, :headers => { 'Content-Type' => content_type })
           }
 
@@ -242,7 +249,7 @@ describe Ably::Rest::Presence do
 
         context '#history' do
           let!(:history_stub)   {
-            stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence/history").
+            stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence/history?direction=backwards&limit=100").
               to_return(:body => serialized_encoded_message, :headers => { 'Content-Type' => content_type })
           }
 
@@ -272,7 +279,7 @@ describe Ably::Rest::Presence do
         context '#get' do
           let(:client_options) { default_options.merge(log_level: :fatal) }
           let!(:get_stub)   {
-            stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence").
+            stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence?limit=100").
               to_return(:body => serialized_encoded_message_with_invalid_encoding, :headers => { 'Content-Type' => content_type })
           }
           let(:presence_message) { presence.get.items.first }
@@ -296,7 +303,7 @@ describe Ably::Rest::Presence do
         context '#history' do
           let(:client_options) { default_options.merge(log_level: :fatal) }
           let!(:history_stub)   {
-            stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence/history").
+            stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence/history?direction=backwards&limit=100").
               to_return(:body => serialized_encoded_message_with_invalid_encoding, :headers => { 'Content-Type' => content_type })
           }
           let(:presence_message) { presence.history.items.first }

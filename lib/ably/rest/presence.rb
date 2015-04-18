@@ -23,15 +23,14 @@ module Ably
       # Obtain the set of members currently present for a channel
       #
       # @param [Hash] options the options for the set of members present
-      # @option options [Integer,Time] :start      Time or millisecond since epoch
-      # @option options [Integer,Time] :end        Time or millisecond since epoch
-      # @option options [Symbol]       :direction  `:forwards` or `:backwards`
-      # @option options [Integer]      :limit      Maximum number of members to retrieve up to 10,000
+      # @option options [Integer]      :limit      Maximum number of members to retrieve up to 1,000, defaults to 100
       #
       # @return [Ably::Models::PaginatedResource<Ably::Models::PresenceMessage>] First {Ably::Models::PaginatedResource page} of {Ably::Models::PresenceMessage} objects accessible with {Ably::Models::PaginatedResource#items #items}.
       #
       def get(options = {})
-        options = options.dup
+        options = options = {
+          :limit     => 100
+        }.merge(options)
 
         paginated_options = {
           coerce_into: 'Ably::Models::PresenceMessage',
@@ -50,16 +49,19 @@ module Ably
       # Return the presence messages history for the channel
       #
       # @param [Hash] options the options for the message history request
-      # @option options [Integer,Time] :start      Time or millisecond since epoch
-      # @option options [Integer,Time] :end        Time or millisecond since epoch
-      # @option options [Symbol]       :direction  `:forwards` or `:backwards`
-      # @option options [Integer]      :limit      Maximum number of presence messages to retrieve up to 10,000
+      # @option options [Integer,Time] :start      Ensure earliest time or millisecond since epoch for any presence messages retrieved is +:start+
+      # @option options [Integer,Time] :end        Ensure latest time or millisecond since epoch for any presence messages retrieved is +:end+
+      # @option options [Symbol]       :direction  +:forwards+ or +:backwards+, defaults to +:backwards+
+      # @option options [Integer]      :limit      Maximum number of messages to retrieve up to 1,000, defaults to 100
       #
       # @return [Ably::Models::PaginatedResource<Ably::Models::PresenceMessage>] First {Ably::Models::PaginatedResource page} of {Ably::Models::PresenceMessage} objects accessible with {Ably::Models::PaginatedResource#items #items}.
       #
       def history(options = {})
         url = "#{base_path}/history"
-        options = options.dup
+        options = options = {
+          :direction => :backwards,
+          :limit     => 100
+        }.merge(options)
 
         [:start, :end].each { |option| options[option] = as_since_epoch(options[option]) if options.has_key?(option) }
 
