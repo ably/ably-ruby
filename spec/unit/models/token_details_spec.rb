@@ -23,7 +23,7 @@ describe Ably::Models::TokenDetails do
       end
     end
 
-    { :issued_at => :issued_at, :expires => :expires }.each do |method_name, attribute|
+    { :issued => :issued, :expires => :expires }.each do |method_name, attribute|
       let(:time) { Time.now }
       context "##{method_name} with :#{method_name} option as milliseconds in constructor" do
         subject { Ably::Models::TokenDetails.new({ attribute.to_sym => time.to_i * 1000 }) }

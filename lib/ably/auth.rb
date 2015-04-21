@@ -170,7 +170,7 @@ module Ably
         when Ably::Models::TokenDetails
           return token_request
         when Hash
-          return Ably::Models::TokenDetails.new(token_request) if IdiomaticRubyWrapper(token_request).has_key?(:issued_at)
+          return Ably::Models::TokenDetails.new(token_request) if IdiomaticRubyWrapper(token_request).has_key?(:issued)
         when String
           return Ably::Models::TokenDetails.new(token: token_request)
       end

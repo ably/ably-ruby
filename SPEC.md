@@ -603,7 +603,7 @@ _(see [spec/acceptance/rest/auth_spec.rb](./spec/acceptance/rest/auth_spec.rb))_
   * using JSON and MsgPack protocol
     * [has immutable options](./spec/acceptance/rest/auth_spec.rb#L54)
     * #request_token
-      * [returns a valid requested token in the expected format with valid issued_at and expires_at attributes](./spec/acceptance/rest/auth_spec.rb#L69)
+      * [returns a valid requested token in the expected format with valid issued and expires attributes](./spec/acceptance/rest/auth_spec.rb#L69)
       * with option :client_id
         * [overrides default and uses camelCase notation for attributes](./spec/acceptance/rest/auth_spec.rb#L100)
       * with option :capability
@@ -1616,11 +1616,11 @@ _(see [spec/unit/models/token_details_spec.rb](./spec/unit/models/token_details_
   * attributes
     * #capability
       * [retrieves attribute :capability as parsed JSON](./spec/unit/models/token_details_spec.rb#L21)
-    * #issued_at with :issued_at option as milliseconds in constructor
-      * [retrieves attribute :issued_at as Time](./spec/unit/models/token_details_spec.rb#L31)
-    * #issued_at with :issued_at option as a Time in constructor
-      * [retrieves attribute :issued_at as Time](./spec/unit/models/token_details_spec.rb#L40)
-    * #issued_at when converted to JSON
+    * #issued with :issued option as milliseconds in constructor
+      * [retrieves attribute :issued as Time](./spec/unit/models/token_details_spec.rb#L31)
+    * #issued with :issued option as a Time in constructor
+      * [retrieves attribute :issued as Time](./spec/unit/models/token_details_spec.rb#L40)
+    * #issued when converted to JSON
       * [is in milliseconds](./spec/unit/models/token_details_spec.rb#L49)
     * #expires with :expires option as milliseconds in constructor
       * [retrieves attribute :expires as Time](./spec/unit/models/token_details_spec.rb#L31)

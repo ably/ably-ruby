@@ -66,10 +66,10 @@ describe Ably::Auth do
         )
       end
 
-      it 'returns a valid requested token in the expected format with valid issued_at and expires_at attributes' do
+      it 'returns a valid requested token in the expected format with valid issued and expires attributes' do
         expect(token_details.token).to match(/^#{app_id}\.[\w-]+$/)
         expect(token_details.key_name).to match(/^#{key_name}$/)
-        expect(token_details.issued_at).to be_within(2).of(Time.now)
+        expect(token_details.issued).to be_within(2).of(Time.now)
         expect(token_details.expires).to be_within(2).of(Time.now + ttl)
       end
 
@@ -257,7 +257,7 @@ describe Ably::Auth do
 
         context 'when response from :auth_url is a token details object' do
           let(:token) { 'J_0Tlg.D7AVZkdOZW-PqNNGvCSp38' }
-          let(:issued_at) { Time.now }
+          let(:issued) { Time.now }
           let(:expires) { Time.now + 60}
           let(:capability) { {'foo'=>['publish']} }
           let(:capability_str) { JSON.dump(capability) }
@@ -265,7 +265,7 @@ describe Ably::Auth do
             {
               'token' => token,
               'key_name' => 'J_0Tlg.NxCRig',
-              'issued_at' => issued_at.to_i * 1000,
+              'issued' => issued.to_i * 1000,
               'expires' => expires.to_i  * 1000,
               'capability'=> capability_str
             }.to_json
@@ -278,7 +278,7 @@ describe Ably::Auth do
             expect(token_details).to be_a(Ably::Models::TokenDetails)
             expect(token_details.token).to eql(token)
             expect(token_details.expires).to be_within(1).of(expires)
-            expect(token_details.issued_at).to be_within(1).of(issued_at)
+            expect(token_details.issued).to be_within(1).of(issued)
             expect(token_details.capability).to eql(capability)
           end
         end
@@ -347,7 +347,7 @@ describe Ably::Auth do
           let(:client_id)   { random_str }
           let(:options)     { { client_id: client_id } }
           let(:token)       { 'J_0Tlg.D7AVZkdOZW-PqNNGvCSp38' }
-          let(:issued_at)   { Time.now }
+          let(:issued)      { Time.now }
           let(:expires)     { Time.now + 60}
           let(:capability)  { {'foo'=>['publish']} }
           let(:capability_str) { JSON.dump(capability) }
@@ -360,7 +360,7 @@ describe Ably::Auth do
                 'token' => token,
                 'keyName' => 'J_0Tlg.NxCRig',
                 'clientId' => client_id,
-                'issuedAt' => issued_at.to_i * 1000,
+                'issued' => issued.to_i * 1000,
                 'expires' => expires.to_i * 1000,
                 'capability'=> capability_str
               }
@@ -377,7 +377,7 @@ describe Ably::Auth do
             expect(token_details.token).to eql(token)
             expect(token_details.client_id).to eql(client_id)
             expect(token_details.expires).to be_within(1).of(expires)
-            expect(token_details.issued_at).to be_within(1).of(issued_at)
+            expect(token_details.issued).to be_within(1).of(issued)
             expect(token_details.capability).to eql(capability)
           end
         end

@@ -34,7 +34,7 @@ module Ably::Models
     # @param attributes
     # @option attributes [String]       :token      token used to authenticate requests
     # @option attributes [String]       :key_name   API key name used to create this token
-    # @option attributes [Time,Integer] :issued_at  Time the token was issued as Time or Integer in milliseconds
+    # @option attributes [Time,Integer] :issued  Time the token was issued as Time or Integer in milliseconds
     # @option attributes [Time,Integer] :expires    Time the token expires as Time or Integer in milliseconds
     # @option attributes [String]       :capability JSON stringified capabilities assigned to this token
     # @option attributes [String]       :client_id  client ID assigned to this token
@@ -42,7 +42,7 @@ module Ably::Models
     def initialize(attributes = {})
       @hash_object = IdiomaticRubyWrapper(attributes.clone)
 
-      %w(issued_at expires).map(&:to_sym).each do |time_attribute|
+      %w(issued expires).map(&:to_sym).each do |time_attribute|
         hash[time_attribute] = (hash[time_attribute].to_f * 1000).round if hash[time_attribute].kind_of?(Time)
       end
 
@@ -61,10 +61,10 @@ module Ably::Models
       hash.fetch(:key_name)
     end
 
-    # @!attribute [r] issued_at
+    # @!attribute [r] issued
     # @return [Time] Time the token was issued
-    def issued_at
-      as_time_from_epoch(hash.fetch(:issued_at), granularity: :ms)
+    def issued
+      as_time_from_epoch(hash.fetch(:issued), granularity: :ms)
     end
 
     # @!attribute [r] expires
