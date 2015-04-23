@@ -14,10 +14,10 @@ describe Ably::Rest::Client do
       let(:client_id)     { random_str }
       let(:token_request) { client.auth.create_token_request(key_name: key_name, key_secret: key_secret, client_id: client_id) }
 
-      context 'with an auth block' do
-        let(:client) { Ably::Rest::Client.new(client_options) { token_request } }
+      context 'with a :auth_callback Proc' do
+        let(:client) { Ably::Rest::Client.new(client_options.merge(auth_callback: Proc.new { token_request })) }
 
-        it 'calls the block to get a new token' do
+        it 'calls the auth Proc to get a new token' do
           expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token_details }
           expect(client.auth.current_token_details.client_id).to eql(client_id)
         end
@@ -40,11 +40,11 @@ describe Ably::Rest::Client do
 
     context 'using tokens' do
       let(:client) do
-        Ably::Rest::Client.new(client_options) do
+        Ably::Rest::Client.new(client_options.merge(auth_callback: Proc.new do
           @request_index ||= 0
           @request_index += 1
           send("token_request_#{@request_index > 2 ? 'next' : @request_index}")
-        end
+        end))
       end
       let(:token_request_1) { client.auth.create_token_request(token_request_options.merge(client_id: random_str)) }
       let(:token_request_2) { client.auth.create_token_request(token_request_options.merge(client_id: random_str)) }

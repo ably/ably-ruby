@@ -321,24 +321,24 @@ describe Ably::Auth do
         end
       end
 
-      context 'with a token_request_block' do
+      context 'with a Proc for the :auth_callback option' do
         context 'that returns a TokenRequest' do
           let(:client_id) { random_str }
           let(:options) { { client_id: client_id } }
           let!(:request_token) do
-            auth.request_token(options) do |block_options|
+            auth.request_token(options.merge(auth_callback: Proc.new do |block_options|
               @block_called = true
               @block_options = block_options
               auth.create_token_request(client_id: client_id)
-            end
+            end))
           end
 
-          it 'calls the block when authenticating to obtain the request token' do
+          it 'calls the Proc when authenticating to obtain the request token' do
             expect(@block_called).to eql(true)
             expect(@block_options).to include(options)
           end
 
-          it 'uses the token request from the block when requesting a new token' do
+          it 'uses the token request returned from the callback when requesting a new token' do
             expect(request_token.client_id).to eql(client_id)
           end
         end
@@ -353,7 +353,7 @@ describe Ably::Auth do
           let(:capability_str) { JSON.dump(capability) }
 
           let!(:token_details) do
-            auth.request_token(options) do |block_options|
+            auth.request_token(options.merge(auth_callback: Proc.new do |block_options|
               @block_called = true
               @block_options = block_options
               {
@@ -364,15 +364,15 @@ describe Ably::Auth do
                 'expires' => expires.to_i * 1000,
                 'capability'=> capability_str
               }
-            end
+            end))
           end
 
-          it 'calls the block when authenticating to obtain the request token' do
+          it 'calls the Proc when authenticating to obtain the request token' do
             expect(@block_called).to eql(true)
             expect(@block_options).to include(options)
           end
 
-          it 'uses the token request from the block when requesting a new token' do
+          it 'uses the token request returned from the callback when requesting a new token' do
             expect(token_details).to be_a(Ably::Models::TokenDetails)
             expect(token_details.token).to eql(token)
             expect(token_details.client_id).to eql(client_id)
@@ -386,14 +386,14 @@ describe Ably::Auth do
           let(:client_id)   { random_str }
 
           let!(:token_details) do
-            auth.request_token do |block_options|
+            auth.request_token(auth_callback: Proc.new do |block_options|
               auth.create_token_request({
                 client_id: client_id
               })
-            end
+            end)
           end
 
-          it 'uses the token request from the block when requesting a new token' do
+          it 'uses the token request returned from the callback when requesting a new token' do
             expect(token_details).to be_a(Ably::Models::TokenDetails)
             expect(token_details.client_id).to eql(client_id)
           end
@@ -404,12 +404,12 @@ describe Ably::Auth do
           let(:token) { second_client.auth.request_token.token }
 
           let!(:token_details) do
-            auth.request_token do |block_options|
+            auth.request_token(auth_callback: Proc.new do |block_options|
               token
-            end
+            end)
           end
 
-          it 'uses the token request from the block when requesting a new token' do
+          it 'uses the token request returned from the callback when requesting a new token' do
             expect(token_details).to be_a(Ably::Models::TokenDetails)
             expect(token_details.token).to eql(token)
           end
@@ -501,26 +501,26 @@ describe Ably::Auth do
         expect(auth.options[:ttl]).to eql(26)
       end
 
-      context 'with token_request_block' do
+      context 'with a Proc for the :auth_callback option' do
         let(:client_id) { random_str }
         let!(:token) do
-          auth.authorise do
+          auth.authorise(auth_callback: Proc.new do
             @block_called ||= 0
             @block_called += 1
             auth.create_token_request(client_id: client_id)
-          end
+          end)
         end
 
-        it 'calls the block' do
+        it 'calls the Proc' do
           expect(@block_called).to eql(1)
         end
 
-        it 'uses the token request returned from the block when requesting a new token' do
+        it 'uses the token request returned from the callback when requesting a new token' do
           expect(token.client_id).to eql(client_id)
         end
 
         context 'for every subsequent #request_token' do
-          context 'without a provided block' do
+          context 'without a :auth_callback Proc' do
             it 'calls the originally provided block' do
               auth.request_token
               expect(@block_called).to eql(2)
@@ -528,8 +528,8 @@ describe Ably::Auth do
           end
 
           context 'with a provided block' do
-            it 'does not call the originally provided block and calls the new #request_token block' do
-              auth.request_token { @request_block_called = true; auth.create_token_request }
+            it 'does not call the originally provided Proc and calls the new #request_token :auth_callback Proc' do
+              auth.request_token(auth_callback: Proc.new { @request_block_called = true; auth.create_token_request })
               expect(@block_called).to eql(1)
               expect(@request_block_called).to eql(true)
             end

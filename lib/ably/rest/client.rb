@@ -73,16 +73,12 @@ module Ably
       # @option options [String]                  :key                 API key comprising the key name and key secret in a single string
       # @option options [String]                  :token               Token string or {Models::TokenDetails} used to authenticate requests
       # @option options [String]                  :token_details       {Models::TokenDetails} used to authenticate requests
-      # @option options [Boolean]                 :use_token_auth      Will force Basic Auth if set to false, and TOken auth if set to true
+      # @option options [Boolean]                 :use_token_auth      Will force Basic Auth if set to false, and Token auth if set to true
       # @option options [String]                  :environment         Specify 'sandbox' when testing the client library against an alternate Ably environment
       # @option options [Symbol]                  :protocol            Protocol used to communicate with Ably, :json and :msgpack currently supported. Defaults to :msgpack
       # @option options [Boolean]                 :use_binary_protocol Protocol used to communicate with Ably, defaults to true and uses MessagePack protocol.  This option will overide :protocol option
       # @option options [Logger::Severity,Symbol] :log_level           Log level for the standard Logger that outputs to STDOUT.  Defaults to Logger::ERROR, can be set to :fatal (Logger::FATAL), :error (Logger::ERROR), :warn (Logger::WARN), :info (Logger::INFO), :debug (Logger::DEBUG) or :none
       # @option options [Logger]                  :logger              A custom logger can be used however it must adhere to the Ruby Logger interface, see http://www.ruby-doc.org/stdlib-1.9.3/libdoc/logger/rdoc/Logger.html
-      #
-      # @yield (see Ably::Auth#authorise)
-      # @yieldparam (see Ably::Auth#authorise)
-      # @yieldreturn (see Ably::Auth#authorise)
       #
       # @return [Ably::Rest::Client]
       #
@@ -93,7 +89,7 @@ module Ably
       #    # create a new client and configure a client ID used for presence
       #    client = Ably::Rest::Client.new(key: 'key.id:secret', client_id: 'john')
       #
-      def initialize(options, &token_request_block)
+      def initialize(options)
         raise ArgumentError, 'Options Hash is expected' if options.nil?
 
         options = options.clone
@@ -129,7 +125,7 @@ module Ably
         raise ArgumentError, 'Protocol is invalid.  Must be either :msgpack or :json' unless [:msgpack, :json].include?(@protocol)
 
         @options  = options.freeze
-        @auth     = Auth.new(self, options, &token_request_block)
+        @auth     = Auth.new(self, options)
         @channels = Ably::Rest::Channels.new(self)
         @encoders = []
 

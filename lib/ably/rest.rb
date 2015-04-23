@@ -23,10 +23,6 @@ module Ably
     # @param (see Ably::Rest::Client#initialize)
     # @option options (see Ably::Rest::Client#initialize)
     #
-    # @yield (see Ably::Rest::Client#initialize)
-    # @yieldparam (see Ably::Rest::Client#initialize)
-    # @yieldreturn (see Ably::Rest::Client#initialize)
-    #
     # @return [Ably::Rest::Client]
     #
     # @example
@@ -36,8 +32,8 @@ module Ably
     #    # create a new client authenticating with basic auth and a client_id
     #    client = Ably::Rest.new(key: 'key.id:secret', client_id: 'john')
     #
-    def self.new(options, &token_request_block)
-      Ably::Rest::Client.new(options, &token_request_block)
+    def self.new(options)
+      Ably::Rest::Client.new(options)
     end
   end
 end
