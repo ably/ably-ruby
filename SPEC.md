@@ -1,4 +1,4 @@
-# Ably Realtime & REST Client Library 0.7.5 Specification
+# Ably Realtime & REST Client Library 0.8.0 Specification
 
 ### Ably::Realtime::Channel#history
 _(see [spec/acceptance/realtime/channel_history_spec.rb](./spec/acceptance/realtime/channel_history_spec.rb))_
@@ -758,14 +758,14 @@ _(see [spec/acceptance/rest/channel_spec.rb](./spec/acceptance/rest/channel_spec
     * #history option
       * :start
         * with milliseconds since epoch value
-          * [uses this value in the history request](./spec/acceptance/rest/channel_spec.rb#L116)
+          * [uses this value in the history request](./spec/acceptance/rest/channel_spec.rb#L123)
         * with a Time object value
-          * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/channel_spec.rb#L126)
+          * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/channel_spec.rb#L133)
       * :end
         * with milliseconds since epoch value
-          * [uses this value in the history request](./spec/acceptance/rest/channel_spec.rb#L116)
+          * [uses this value in the history request](./spec/acceptance/rest/channel_spec.rb#L123)
         * with a Time object value
-          * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/channel_spec.rb#L126)
+          * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/channel_spec.rb#L133)
 
 ### Ably::Rest::Channels
 _(see [spec/acceptance/rest/channels_spec.rb](./spec/acceptance/rest/channels_spec.rb))_
@@ -793,37 +793,37 @@ _(see [spec/acceptance/rest/client_spec.rb](./spec/acceptance/rest/client_spec.r
         * [sends an HTTP request to the provided URL to get a new token](./spec/acceptance/rest/client_spec.rb#L34)
     * using tokens
       * when expired
-        * [creates a new token automatically when the old token expires](./spec/acceptance/rest/client_spec.rb#L55)
+        * [creates a new token automatically when the old token expires](./spec/acceptance/rest/client_spec.rb#L58)
       * when token has not expired
-        * [reuses the existing token for every request](./spec/acceptance/rest/client_spec.rb#L69)
+        * [reuses the existing token for every request](./spec/acceptance/rest/client_spec.rb#L72)
     * connection transport
       * for default host
-        * [is configured to timeout connection opening in 4 seconds](./spec/acceptance/rest/client_spec.rb#L85)
-        * [is configured to timeout connection requests in 15 seconds](./spec/acceptance/rest/client_spec.rb#L89)
+        * [is configured to timeout connection opening in 4 seconds](./spec/acceptance/rest/client_spec.rb#L88)
+        * [is configured to timeout connection requests in 15 seconds](./spec/acceptance/rest/client_spec.rb#L92)
       * for the fallback hosts
-        * [is configured to timeout connection opening in 4 seconds](./spec/acceptance/rest/client_spec.rb#L95)
-        * [is configured to timeout connection requests in 15 seconds](./spec/acceptance/rest/client_spec.rb#L99)
+        * [is configured to timeout connection opening in 4 seconds](./spec/acceptance/rest/client_spec.rb#L98)
+        * [is configured to timeout connection requests in 15 seconds](./spec/acceptance/rest/client_spec.rb#L102)
     * fallback hosts
       * configured
-        * [should make connection attempts to A.ably-realtime.com, B.ably-realtime.com, C.ably-realtime.com, D.ably-realtime.com, E.ably-realtime.com](./spec/acceptance/rest/client_spec.rb#L112)
+        * [should make connection attempts to A.ably-realtime.com, B.ably-realtime.com, C.ably-realtime.com, D.ably-realtime.com, E.ably-realtime.com](./spec/acceptance/rest/client_spec.rb#L115)
       * when environment is NOT production
-        * [does not retry failed requests with fallback hosts when there is a connection error](./spec/acceptance/rest/client_spec.rb#L129)
+        * [does not retry failed requests with fallback hosts when there is a connection error](./spec/acceptance/rest/client_spec.rb#L132)
       * when environment is production
         * and connection times out
-          * [tries fallback hosts 3 times](./spec/acceptance/rest/client_spec.rb#L169)
+          * [tries fallback hosts 3 times](./spec/acceptance/rest/client_spec.rb#L172)
           * and the total request time exeeds 10 seconds
-            * [makes no further attempts to any fallback hosts](./spec/acceptance/rest/client_spec.rb#L184)
+            * [makes no further attempts to any fallback hosts](./spec/acceptance/rest/client_spec.rb#L187)
         * and connection fails
-          * [tries fallback hosts 3 times](./spec/acceptance/rest/client_spec.rb#L200)
+          * [tries fallback hosts 3 times](./spec/acceptance/rest/client_spec.rb#L203)
     * with a custom host
       * that does not exist
-        * [fails immediately and raises a Faraday Error](./spec/acceptance/rest/client_spec.rb#L216)
+        * [fails immediately and raises a Faraday Error](./spec/acceptance/rest/client_spec.rb#L219)
         * fallback hosts
-          * [are never used](./spec/acceptance/rest/client_spec.rb#L237)
+          * [are never used](./spec/acceptance/rest/client_spec.rb#L240)
       * that times out
-        * [fails immediately and raises a Faraday Error](./spec/acceptance/rest/client_spec.rb#L252)
+        * [fails immediately and raises a Faraday Error](./spec/acceptance/rest/client_spec.rb#L255)
         * fallback hosts
-          * [are never used](./spec/acceptance/rest/client_spec.rb#L265)
+          * [are never used](./spec/acceptance/rest/client_spec.rb#L268)
 
 ### Ably::Models::MessageEncoders
 _(see [spec/acceptance/rest/encoders_spec.rb](./spec/acceptance/rest/encoders_spec.rb))_
@@ -936,33 +936,33 @@ _(see [spec/acceptance/rest/presence_spec.rb](./spec/acceptance/rest/presence_sp
       * with time range options
         * :start
           * with milliseconds since epoch value
-            * [uses this value in the history request](./spec/acceptance/rest/presence_spec.rb#L143)
+            * [uses this value in the history request](./spec/acceptance/rest/presence_spec.rb#L150)
           * with Time object value
-            * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/presence_spec.rb#L153)
+            * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/presence_spec.rb#L160)
         * :end
           * with milliseconds since epoch value
-            * [uses this value in the history request](./spec/acceptance/rest/presence_spec.rb#L143)
+            * [uses this value in the history request](./spec/acceptance/rest/presence_spec.rb#L150)
           * with Time object value
-            * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/presence_spec.rb#L153)
+            * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/presence_spec.rb#L160)
     * decoding
       * with encoded fixture data
         * #history
-          * [decodes encoded and encryped presence fixture data automatically](./spec/acceptance/rest/presence_spec.rb#L173)
-        * #get
           * [decodes encoded and encryped presence fixture data automatically](./spec/acceptance/rest/presence_spec.rb#L180)
+        * #get
+          * [decodes encoded and encryped presence fixture data automatically](./spec/acceptance/rest/presence_spec.rb#L187)
     * decoding permutations using mocked #history
       * valid decodeable content
         * #get
-          * [automaticaly decodes presence messages](./spec/acceptance/rest/presence_spec.rb#L236)
+          * [automaticaly decodes presence messages](./spec/acceptance/rest/presence_spec.rb#L243)
         * #history
-          * [automaticaly decodes presence messages](./spec/acceptance/rest/presence_spec.rb#L253)
+          * [automaticaly decodes presence messages](./spec/acceptance/rest/presence_spec.rb#L260)
       * invalid data
         * #get
-          * [returns the messages still encoded](./spec/acceptance/rest/presence_spec.rb#L284)
-          * [logs a cipher error](./spec/acceptance/rest/presence_spec.rb#L288)
+          * [returns the messages still encoded](./spec/acceptance/rest/presence_spec.rb#L291)
+          * [logs a cipher error](./spec/acceptance/rest/presence_spec.rb#L295)
         * #history
-          * [returns the messages still encoded](./spec/acceptance/rest/presence_spec.rb#L308)
-          * [logs a cipher error](./spec/acceptance/rest/presence_spec.rb#L312)
+          * [returns the messages still encoded](./spec/acceptance/rest/presence_spec.rb#L315)
+          * [logs a cipher error](./spec/acceptance/rest/presence_spec.rb#L319)
 
 ### Ably::Rest::Client#stats
 _(see [spec/acceptance/rest/stats_spec.rb](./spec/acceptance/rest/stats_spec.rb))_
@@ -1467,134 +1467,134 @@ _(see [spec/unit/models/protocol_message_spec.rb](./spec/unit/models/protocol_me
         * [returns a valid ErrorInfo object](./spec/unit/models/protocol_message_spec.rb#L261)
 
 ### Ably::Models::Stats
-_(see [spec/unit/models/stat_spec.rb](./spec/unit/models/stat_spec.rb))_
+_(see [spec/unit/models/stats_spec.rb](./spec/unit/models/stats_spec.rb))_
   * #all stats
-    * [returns a MessageTypes object](./spec/unit/models/stat_spec.rb#L17)
-    * [returns value for message counts](./spec/unit/models/stat_spec.rb#L21)
-    * [returns value for all data transferred](./spec/unit/models/stat_spec.rb#L25)
-    * [returns zero for empty values](./spec/unit/models/stat_spec.rb#L29)
-    * [raises an exception for unknown attributes](./spec/unit/models/stat_spec.rb#L33)
+    * [returns a MessageTypes object](./spec/unit/models/stats_spec.rb#L17)
+    * [returns value for message counts](./spec/unit/models/stats_spec.rb#L21)
+    * [returns value for all data transferred](./spec/unit/models/stats_spec.rb#L25)
+    * [returns zero for empty values](./spec/unit/models/stats_spec.rb#L29)
+    * [raises an exception for unknown attributes](./spec/unit/models/stats_spec.rb#L33)
     * #all
-      * [is a MessageCount object](./spec/unit/models/stat_spec.rb#L39)
+      * [is a MessageCount object](./spec/unit/models/stats_spec.rb#L39)
     * #presence
-      * [is a MessageCount object](./spec/unit/models/stat_spec.rb#L39)
+      * [is a MessageCount object](./spec/unit/models/stats_spec.rb#L39)
     * #messages
-      * [is a MessageCount object](./spec/unit/models/stat_spec.rb#L39)
+      * [is a MessageCount object](./spec/unit/models/stats_spec.rb#L39)
   * #persisted stats
-    * [returns a MessageTypes object](./spec/unit/models/stat_spec.rb#L17)
-    * [returns value for message counts](./spec/unit/models/stat_spec.rb#L21)
-    * [returns value for all data transferred](./spec/unit/models/stat_spec.rb#L25)
-    * [returns zero for empty values](./spec/unit/models/stat_spec.rb#L29)
-    * [raises an exception for unknown attributes](./spec/unit/models/stat_spec.rb#L33)
+    * [returns a MessageTypes object](./spec/unit/models/stats_spec.rb#L17)
+    * [returns value for message counts](./spec/unit/models/stats_spec.rb#L21)
+    * [returns value for all data transferred](./spec/unit/models/stats_spec.rb#L25)
+    * [returns zero for empty values](./spec/unit/models/stats_spec.rb#L29)
+    * [raises an exception for unknown attributes](./spec/unit/models/stats_spec.rb#L33)
     * #all
-      * [is a MessageCount object](./spec/unit/models/stat_spec.rb#L39)
+      * [is a MessageCount object](./spec/unit/models/stats_spec.rb#L39)
     * #presence
-      * [is a MessageCount object](./spec/unit/models/stat_spec.rb#L39)
+      * [is a MessageCount object](./spec/unit/models/stats_spec.rb#L39)
     * #messages
-      * [is a MessageCount object](./spec/unit/models/stat_spec.rb#L39)
+      * [is a MessageCount object](./spec/unit/models/stats_spec.rb#L39)
   * #inbound stats
-    * [returns a MessageTraffic object](./spec/unit/models/stat_spec.rb#L59)
-    * [returns value for realtime message counts](./spec/unit/models/stat_spec.rb#L63)
-    * [returns value for all presence data](./spec/unit/models/stat_spec.rb#L67)
-    * [raises an exception for unknown attributes](./spec/unit/models/stat_spec.rb#L71)
+    * [returns a MessageTraffic object](./spec/unit/models/stats_spec.rb#L59)
+    * [returns value for realtime message counts](./spec/unit/models/stats_spec.rb#L63)
+    * [returns value for all presence data](./spec/unit/models/stats_spec.rb#L67)
+    * [raises an exception for unknown attributes](./spec/unit/models/stats_spec.rb#L71)
     * #realtime
-      * [is a MessageTypes object](./spec/unit/models/stat_spec.rb#L77)
+      * [is a MessageTypes object](./spec/unit/models/stats_spec.rb#L77)
     * #rest
-      * [is a MessageTypes object](./spec/unit/models/stat_spec.rb#L77)
+      * [is a MessageTypes object](./spec/unit/models/stats_spec.rb#L77)
     * #webhook
-      * [is a MessageTypes object](./spec/unit/models/stat_spec.rb#L77)
+      * [is a MessageTypes object](./spec/unit/models/stats_spec.rb#L77)
     * #all
-      * [is a MessageTypes object](./spec/unit/models/stat_spec.rb#L77)
+      * [is a MessageTypes object](./spec/unit/models/stats_spec.rb#L77)
   * #outbound stats
-    * [returns a MessageTraffic object](./spec/unit/models/stat_spec.rb#L59)
-    * [returns value for realtime message counts](./spec/unit/models/stat_spec.rb#L63)
-    * [returns value for all presence data](./spec/unit/models/stat_spec.rb#L67)
-    * [raises an exception for unknown attributes](./spec/unit/models/stat_spec.rb#L71)
+    * [returns a MessageTraffic object](./spec/unit/models/stats_spec.rb#L59)
+    * [returns value for realtime message counts](./spec/unit/models/stats_spec.rb#L63)
+    * [returns value for all presence data](./spec/unit/models/stats_spec.rb#L67)
+    * [raises an exception for unknown attributes](./spec/unit/models/stats_spec.rb#L71)
     * #realtime
-      * [is a MessageTypes object](./spec/unit/models/stat_spec.rb#L77)
+      * [is a MessageTypes object](./spec/unit/models/stats_spec.rb#L77)
     * #rest
-      * [is a MessageTypes object](./spec/unit/models/stat_spec.rb#L77)
+      * [is a MessageTypes object](./spec/unit/models/stats_spec.rb#L77)
     * #webhook
-      * [is a MessageTypes object](./spec/unit/models/stat_spec.rb#L77)
+      * [is a MessageTypes object](./spec/unit/models/stats_spec.rb#L77)
     * #all
-      * [is a MessageTypes object](./spec/unit/models/stat_spec.rb#L77)
+      * [is a MessageTypes object](./spec/unit/models/stats_spec.rb#L77)
   * #connections stats
-    * [returns a ConnectionTypes object](./spec/unit/models/stat_spec.rb#L91)
-    * [returns value for tls opened counts](./spec/unit/models/stat_spec.rb#L95)
-    * [returns value for all peak connections](./spec/unit/models/stat_spec.rb#L99)
-    * [returns zero for empty values](./spec/unit/models/stat_spec.rb#L103)
-    * [raises an exception for unknown attributes](./spec/unit/models/stat_spec.rb#L107)
+    * [returns a ConnectionTypes object](./spec/unit/models/stats_spec.rb#L91)
+    * [returns value for tls opened counts](./spec/unit/models/stats_spec.rb#L95)
+    * [returns value for all peak connections](./spec/unit/models/stats_spec.rb#L99)
+    * [returns zero for empty values](./spec/unit/models/stats_spec.rb#L103)
+    * [raises an exception for unknown attributes](./spec/unit/models/stats_spec.rb#L107)
     * #tls
-      * [is a ResourceCount object](./spec/unit/models/stat_spec.rb#L113)
+      * [is a ResourceCount object](./spec/unit/models/stats_spec.rb#L113)
     * #plain
-      * [is a ResourceCount object](./spec/unit/models/stat_spec.rb#L113)
+      * [is a ResourceCount object](./spec/unit/models/stats_spec.rb#L113)
     * #all
-      * [is a ResourceCount object](./spec/unit/models/stat_spec.rb#L113)
+      * [is a ResourceCount object](./spec/unit/models/stats_spec.rb#L113)
   * #channels stats
-    * [returns a ResourceCount object](./spec/unit/models/stat_spec.rb#L126)
-    * [returns value for opened counts](./spec/unit/models/stat_spec.rb#L130)
-    * [returns value for peak channels](./spec/unit/models/stat_spec.rb#L134)
-    * [returns zero for empty values](./spec/unit/models/stat_spec.rb#L138)
-    * [raises an exception for unknown attributes](./spec/unit/models/stat_spec.rb#L142)
+    * [returns a ResourceCount object](./spec/unit/models/stats_spec.rb#L126)
+    * [returns value for opened counts](./spec/unit/models/stats_spec.rb#L130)
+    * [returns value for peak channels](./spec/unit/models/stats_spec.rb#L134)
+    * [returns zero for empty values](./spec/unit/models/stats_spec.rb#L138)
+    * [raises an exception for unknown attributes](./spec/unit/models/stats_spec.rb#L142)
     * #opened
-      * [is a Integer object](./spec/unit/models/stat_spec.rb#L148)
+      * [is a Integer object](./spec/unit/models/stats_spec.rb#L148)
     * #peak
-      * [is a Integer object](./spec/unit/models/stat_spec.rb#L148)
+      * [is a Integer object](./spec/unit/models/stats_spec.rb#L148)
     * #mean
-      * [is a Integer object](./spec/unit/models/stat_spec.rb#L148)
+      * [is a Integer object](./spec/unit/models/stats_spec.rb#L148)
     * #min
-      * [is a Integer object](./spec/unit/models/stat_spec.rb#L148)
+      * [is a Integer object](./spec/unit/models/stats_spec.rb#L148)
     * #refused
-      * [is a Integer object](./spec/unit/models/stat_spec.rb#L148)
+      * [is a Integer object](./spec/unit/models/stats_spec.rb#L148)
   * #api_requests stats
-    * [returns a RequestCount object](./spec/unit/models/stat_spec.rb#L164)
-    * [returns value for succeeded](./spec/unit/models/stat_spec.rb#L168)
-    * [returns value for failed](./spec/unit/models/stat_spec.rb#L172)
-    * [raises an exception for unknown attributes](./spec/unit/models/stat_spec.rb#L176)
+    * [returns a RequestCount object](./spec/unit/models/stats_spec.rb#L164)
+    * [returns value for succeeded](./spec/unit/models/stats_spec.rb#L168)
+    * [returns value for failed](./spec/unit/models/stats_spec.rb#L172)
+    * [raises an exception for unknown attributes](./spec/unit/models/stats_spec.rb#L176)
     * #succeeded
-      * [is a Integer object](./spec/unit/models/stat_spec.rb#L182)
+      * [is a Integer object](./spec/unit/models/stats_spec.rb#L182)
     * #failed
-      * [is a Integer object](./spec/unit/models/stat_spec.rb#L182)
+      * [is a Integer object](./spec/unit/models/stats_spec.rb#L182)
     * #refused
-      * [is a Integer object](./spec/unit/models/stat_spec.rb#L182)
+      * [is a Integer object](./spec/unit/models/stats_spec.rb#L182)
   * #token_requests stats
-    * [returns a RequestCount object](./spec/unit/models/stat_spec.rb#L164)
-    * [returns value for succeeded](./spec/unit/models/stat_spec.rb#L168)
-    * [returns value for failed](./spec/unit/models/stat_spec.rb#L172)
-    * [raises an exception for unknown attributes](./spec/unit/models/stat_spec.rb#L176)
+    * [returns a RequestCount object](./spec/unit/models/stats_spec.rb#L164)
+    * [returns value for succeeded](./spec/unit/models/stats_spec.rb#L168)
+    * [returns value for failed](./spec/unit/models/stats_spec.rb#L172)
+    * [raises an exception for unknown attributes](./spec/unit/models/stats_spec.rb#L176)
     * #succeeded
-      * [is a Integer object](./spec/unit/models/stat_spec.rb#L182)
+      * [is a Integer object](./spec/unit/models/stats_spec.rb#L182)
     * #failed
-      * [is a Integer object](./spec/unit/models/stat_spec.rb#L182)
+      * [is a Integer object](./spec/unit/models/stats_spec.rb#L182)
     * #refused
-      * [is a Integer object](./spec/unit/models/stat_spec.rb#L182)
+      * [is a Integer object](./spec/unit/models/stats_spec.rb#L182)
   * #interval_granularity
-    * [returns the granularity of the interval_id](./spec/unit/models/stat_spec.rb#L193)
+    * [returns the granularity of the interval_id](./spec/unit/models/stats_spec.rb#L193)
   * #interval_time
-    * [returns a Time object representing the start of the interval](./spec/unit/models/stat_spec.rb#L201)
+    * [returns a Time object representing the start of the interval](./spec/unit/models/stats_spec.rb#L201)
   * class methods
     * #to_interval_id
       * when time zone of time argument is UTC
-        * [converts time 2014-02-03:05:06 with granularity :month into 2014-02](./spec/unit/models/stat_spec.rb#L209)
-        * [converts time 2014-02-03:05:06 with granularity :day into 2014-02-03](./spec/unit/models/stat_spec.rb#L213)
-        * [converts time 2014-02-03:05:06 with granularity :hour into 2014-02-03:05](./spec/unit/models/stat_spec.rb#L217)
-        * [converts time 2014-02-03:05:06 with granularity :minute into 2014-02-03:05:06](./spec/unit/models/stat_spec.rb#L221)
-        * [fails with invalid granularity](./spec/unit/models/stat_spec.rb#L225)
-        * [fails with invalid time](./spec/unit/models/stat_spec.rb#L229)
+        * [converts time 2014-02-03:05:06 with granularity :month into 2014-02](./spec/unit/models/stats_spec.rb#L209)
+        * [converts time 2014-02-03:05:06 with granularity :day into 2014-02-03](./spec/unit/models/stats_spec.rb#L213)
+        * [converts time 2014-02-03:05:06 with granularity :hour into 2014-02-03:05](./spec/unit/models/stats_spec.rb#L217)
+        * [converts time 2014-02-03:05:06 with granularity :minute into 2014-02-03:05:06](./spec/unit/models/stats_spec.rb#L221)
+        * [fails with invalid granularity](./spec/unit/models/stats_spec.rb#L225)
+        * [fails with invalid time](./spec/unit/models/stats_spec.rb#L229)
       * when time zone of time argument is +02:00
-        * [converts time 2014-02-03:06 with granularity :hour into 2014-02-03:04 at UTC +00:00](./spec/unit/models/stat_spec.rb#L235)
+        * [converts time 2014-02-03:06 with granularity :hour into 2014-02-03:04 at UTC +00:00](./spec/unit/models/stats_spec.rb#L235)
     * #from_interval_id
-      * [converts a month interval_id 2014-02 into a Time object in UTC 0](./spec/unit/models/stat_spec.rb#L242)
-      * [converts a day interval_id 2014-02-03 into a Time object in UTC 0](./spec/unit/models/stat_spec.rb#L247)
-      * [converts an hour interval_id 2014-02-03:05 into a Time object in UTC 0](./spec/unit/models/stat_spec.rb#L252)
-      * [converts a minute interval_id 2014-02-03:05:06 into a Time object in UTC 0](./spec/unit/models/stat_spec.rb#L257)
-      * [fails with an invalid interval_id 14-20](./spec/unit/models/stat_spec.rb#L262)
+      * [converts a month interval_id 2014-02 into a Time object in UTC 0](./spec/unit/models/stats_spec.rb#L242)
+      * [converts a day interval_id 2014-02-03 into a Time object in UTC 0](./spec/unit/models/stats_spec.rb#L247)
+      * [converts an hour interval_id 2014-02-03:05 into a Time object in UTC 0](./spec/unit/models/stats_spec.rb#L252)
+      * [converts a minute interval_id 2014-02-03:05:06 into a Time object in UTC 0](./spec/unit/models/stats_spec.rb#L257)
+      * [fails with an invalid interval_id 14-20](./spec/unit/models/stats_spec.rb#L262)
     * #granularity_from_interval_id
-      * [returns a :month interval_id for 2014-02](./spec/unit/models/stat_spec.rb#L268)
-      * [returns a :day interval_id for 2014-02-03](./spec/unit/models/stat_spec.rb#L272)
-      * [returns a :hour interval_id for 2014-02-03:05](./spec/unit/models/stat_spec.rb#L276)
-      * [returns a :minute interval_id for 2014-02-03:05:06](./spec/unit/models/stat_spec.rb#L280)
-      * [fails with an invalid interval_id 14-20](./spec/unit/models/stat_spec.rb#L284)
+      * [returns a :month interval_id for 2014-02](./spec/unit/models/stats_spec.rb#L268)
+      * [returns a :day interval_id for 2014-02-03](./spec/unit/models/stats_spec.rb#L272)
+      * [returns a :hour interval_id for 2014-02-03:05](./spec/unit/models/stats_spec.rb#L276)
+      * [returns a :minute interval_id for 2014-02-03:05:06](./spec/unit/models/stats_spec.rb#L280)
+      * [fails with an invalid interval_id 14-20](./spec/unit/models/stats_spec.rb#L284)
 
 ### Ably::Models::TokenDetails
 _(see [spec/unit/models/token_details_spec.rb](./spec/unit/models/token_details_spec.rb))_
@@ -2068,6 +2068,6 @@ _(see [spec/unit/util/pub_sub_spec.rb](./spec/unit/util/pub_sub_spec.rb))_
 
   ## Test summary
 
-  * Passing tests: 1027
+  * Passing tests: 1028
   * Pending tests: 7
   * Failing tests: 0
