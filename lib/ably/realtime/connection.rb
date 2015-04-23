@@ -10,8 +10,9 @@ module Ably
     #   connected:    2
     #   disconnected: 3
     #   suspended:    4
-    #   closed:       5
-    #   failed:       6
+    #   closing:      5
+    #   closed:       6
+    #   failed:       7
     #
     # Note that the states are available as Enum-like constants:
     #
@@ -20,6 +21,7 @@ module Ably
     #   Connection::STATE.Connected
     #   Connection::STATE.Disconnected
     #   Connection::STATE.Suspended
+    #   Connection::STATE.Closing
     #   Connection::STATE.Closed
     #   Connection::STATE.Failed
     #

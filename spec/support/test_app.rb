@@ -27,31 +27,31 @@ class TestApp
   end
 
   def app_id
-    @attributes["appId"]
+    @attributes.fetch('appId')
   end
 
   def key
-    @attributes["keys"].first
+    @attributes.fetch('keys').first
   end
 
   def restricted_key
-    @attributes["keys"][1]
+    @attributes.fetch('keys')[1]
   end
 
-  def key_id
-    "#{app_id}.#{key['id']}"
+  def key_name
+    key.fetch('keyName')
   end
 
-  def key_value
-    key['value']
+  def key_secret
+    key.fetch('keySecret')
   end
 
   def api_key
-    "#{key_id}:#{key_value}"
+    key.fetch('keyStr')
   end
 
   def restricted_api_key
-    "#{app_id}.#{restricted_key['id']}:#{restricted_key['value']}"
+    restricted_key.fetch('keyStr')
   end
 
   def delete

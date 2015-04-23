@@ -17,9 +17,9 @@ describe Ably::Realtime::Client, :event_machine do
       context 'basic auth' do
         it 'is enabled by default with a provided :key option' do
           connection.on(:connected) do
-            expect(auth_params[:key_id]).to_not be_nil
+            expect(auth_params[:key]).to_not be_nil
             expect(auth_params[:access_token]).to be_nil
-            expect(subject.auth.current_token).to be_nil
+            expect(subject.auth.current_token_details).to be_nil
             stop_reactor
           end
         end
@@ -44,15 +44,15 @@ describe Ably::Realtime::Client, :event_machine do
         [true, false].each do |tls_enabled|
           context "with TLS #{tls_enabled ? 'enabled' : 'disabled'}" do
             let(:capability)      { { :foo => ["publish"] } }
-            let(:token)           { Ably::Realtime::Client.new(default_options).auth.request_token(capability: capability) }
-            let(:client_options)  { default_options.merge(token_id: token.id) }
+            let(:token_details)   { Ably::Realtime::Client.new(default_options).auth.request_token(capability: capability) }
+            let(:client_options)  { default_options.merge(token: token_details.token) }
 
-            context 'and a pre-generated Token provided with the :token_id option' do
+            context 'and a pre-generated Token provided with the :token option' do
               it 'connects using token auth' do
                 connection.on(:connected) do
                   expect(auth_params[:access_token]).to_not be_nil
-                  expect(auth_params[:key_id]).to be_nil
-                  expect(subject.auth.current_token).to be_nil
+                  expect(auth_params[:key]).to be_nil
+                  expect(subject.auth.current_token_details).to be_nil
                   stop_reactor
                 end
               end
@@ -63,7 +63,7 @@ describe Ably::Realtime::Client, :event_machine do
 
               it 'automatically authorises on connect and generates a token' do
                 connection.on(:connected) do
-                  expect(subject.auth.current_token).to_not be_nil
+                  expect(subject.auth.current_token_details).to_not be_nil
                   expect(auth_params[:access_token]).to_not be_nil
                   stop_reactor
                 end
@@ -79,7 +79,7 @@ describe Ably::Realtime::Client, :event_machine do
                   connection.on(:connected) do
                     expect(connection.state).to eq(:connected)
                     expect(auth_params[:access_token]).to_not be_nil
-                    expect(auth_params[:key_id]).to be_nil
+                    expect(auth_params[:key]).to be_nil
                     stop_reactor
                   end
                 end
@@ -108,7 +108,7 @@ describe Ably::Realtime::Client, :event_machine do
 
           it 'uses the token request when requesting a new token' do
             connection.on(:connected) do
-              expect(auth.current_token.client_id).to eql(client_id)
+              expect(auth.current_token_details.client_id).to eql(client_id)
               stop_reactor
             end
           end

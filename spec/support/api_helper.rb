@@ -5,12 +5,12 @@ module ApiHelper
     TestApp.instance.app_id
   end
 
-  def key_id
-    TestApp.instance.key_id
+  def key_name
+    TestApp.instance.key_name
   end
 
   def key_secret
-    api_key.split(':')[1]
+    TestApp.instance.key_secret
   end
 
   def api_key

@@ -12,14 +12,14 @@ describe Ably::Rest::Client do
 
     context '#initialize' do
       let(:client_id)     { random_str }
-      let(:token_request) { client.auth.create_token_request(key_id: key_id, key_secret: key_secret, client_id: client_id) }
+      let(:token_request) { client.auth.create_token_request(key_name: key_name, key_secret: key_secret, client_id: client_id) }
 
       context 'with an auth block' do
         let(:client) { Ably::Rest::Client.new(client_options) { token_request } }
 
         it 'calls the block to get a new token' do
-          expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token }
-          expect(client.auth.current_token.client_id).to eql(client_id)
+          expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token_details }
+          expect(client.auth.current_token_details.client_id).to eql(client_id)
         end
       end
 
@@ -32,8 +32,8 @@ describe Ably::Rest::Client do
         end
 
         it 'sends an HTTP request to the provided URL to get a new token' do
-          expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token }
-          expect(client.auth.current_token.client_id).to eql(client_id)
+          expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token_details }
+          expect(client.auth.current_token_details.client_id).to eql(client_id)
         end
       end
     end
@@ -53,30 +53,30 @@ describe Ably::Rest::Client do
       let(:token_request_next) { client.auth.create_token_request(token_request_options.merge(client_id: random_str)) }
 
       context 'when expired' do
-        let(:token_request_options) { { key_id: key_id, key_secret: key_secret, ttl: Ably::Models::Token::TOKEN_EXPIRY_BUFFER } }
+        let(:token_request_options) { { key_name: key_name, key_secret: key_secret, ttl: Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER } }
 
         it 'creates a new token automatically when the old token expires' do
-          expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token }
-          expect(client.auth.current_token.client_id).to eql(token_request_1['clientId'])
+          expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token_details }
+          expect(client.auth.current_token_details.client_id).to eql(token_request_1.client_id)
 
           sleep 1
 
-          expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token }
-          expect(client.auth.current_token.client_id).to eql(token_request_2['clientId'])
+          expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token_details }
+          expect(client.auth.current_token_details.client_id).to eql(token_request_2.client_id)
         end
       end
 
       context 'when token has not expired' do
-        let(:token_request_options) { { key_id: key_id, key_secret: key_secret, ttl: 3600 } }
+        let(:token_request_options) { { key_name: key_name, key_secret: key_secret, ttl: 3600 } }
 
         it 'reuses the existing token for every request' do
-          expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token }
-          expect(client.auth.current_token.client_id).to eql(token_request_1['clientId'])
+          expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token_details }
+          expect(client.auth.current_token_details.client_id).to eql(token_request_1.client_id)
 
           sleep 1
 
-          expect { client.channel('channel_name').publish('event', 'message') }.to_not change { client.auth.current_token }
-          expect(client.auth.current_token.client_id).to eql(token_request_1['clientId'])
+          expect { client.channel('channel_name').publish('event', 'message') }.to_not change { client.auth.current_token_details }
+          expect(client.auth.current_token_details.client_id).to eql(token_request_1.client_id)
         end
       end
     end
@@ -245,7 +245,7 @@ describe Ably::Rest::Client do
       end
 
       context 'that times out', :webmock do
-        let(:path) { '/keys/app_id.key_id/requestToken' }
+        let(:path) { '/keys/app_id.key_name/requestToken' }
         let!(:custom_host_request_stub) do
           stub_request(:post, "https://#{custom_host}#{path}").to_return do
             raise Faraday::TimeoutError.new('timeout error message')

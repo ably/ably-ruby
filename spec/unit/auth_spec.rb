@@ -65,4 +65,21 @@ describe Ably::Auth do
       end
     end
   end
+
+  context 'defaults' do
+    let(:one_hour)          { 60 * 60 }
+    let(:all_capabilities)  { { "*" => ["*"] } }
+
+    it 'should default TTL to 1 hour' do
+      expect(Ably::Auth::TOKEN_DEFAULTS.fetch(:ttl)).to eql(one_hour)
+    end
+
+    it 'should default capability to all' do
+      expect(Ably::Auth::TOKEN_DEFAULTS.fetch(:capability)).to eql(all_capabilities)
+    end
+
+    it 'should only have defaults for :ttl and :capability' do
+      expect(Ably::Auth::TOKEN_DEFAULTS.keys).to contain_exactly(:ttl, :capability)
+    end
+  end
 end

@@ -115,14 +115,14 @@ _(see [spec/acceptance/realtime/client_spec.rb](./spec/acceptance/realtime/clien
             * [fails to connect because a private key cannot be sent over a non-secure connection](./spec/acceptance/realtime/client_spec.rb#L31)
       * token auth
         * with TLS enabled
-          * and a pre-generated Token provided with the :token_id option
+          * and a pre-generated Token provided with the :token option
             * [connects using token auth](./spec/acceptance/realtime/client_spec.rb#L51)
           * with valid :key and :use_token_auth option set to true
             * [automatically authorises on connect and generates a token](./spec/acceptance/realtime/client_spec.rb#L64)
           * with client_id
             * [connects using token auth](./spec/acceptance/realtime/client_spec.rb#L77)
         * with TLS disabled
-          * and a pre-generated Token provided with the :token_id option
+          * and a pre-generated Token provided with the :token option
             * [connects using token auth](./spec/acceptance/realtime/client_spec.rb#L51)
           * with valid :key and :use_token_auth option set to true
             * [automatically authorises on connect and generates a token](./spec/acceptance/realtime/client_spec.rb#L64)
@@ -603,116 +603,118 @@ _(see [spec/acceptance/rest/auth_spec.rb](./spec/acceptance/rest/auth_spec.rb))_
   * using JSON and MsgPack protocol
     * [has immutable options](./spec/acceptance/rest/auth_spec.rb#L54)
     * #request_token
-      * [returns a valid requested token in the expected format with valid issued_at and expires_at attributes](./spec/acceptance/rest/auth_spec.rb#L69)
+      * [returns a valid requested token in the expected format with valid issued and expires attributes](./spec/acceptance/rest/auth_spec.rb#L69)
       * with option :client_id
-        * [overrides default and uses camelCase notation for all attributes](./spec/acceptance/rest/auth_spec.rb#L95)
+        * [overrides default and uses camelCase notation for attributes](./spec/acceptance/rest/auth_spec.rb#L100)
       * with option :capability
-        * [overrides default and uses camelCase notation for all attributes](./spec/acceptance/rest/auth_spec.rb#L95)
+        * [overrides default and uses camelCase notation for attributes](./spec/acceptance/rest/auth_spec.rb#L100)
       * with option :nonce
-        * [overrides default and uses camelCase notation for all attributes](./spec/acceptance/rest/auth_spec.rb#L95)
+        * [overrides default and uses camelCase notation for attributes](./spec/acceptance/rest/auth_spec.rb#L100)
       * with option :timestamp
-        * [overrides default and uses camelCase notation for all attributes](./spec/acceptance/rest/auth_spec.rb#L95)
+        * [overrides default and uses camelCase notation for attributes](./spec/acceptance/rest/auth_spec.rb#L100)
       * with option :ttl
-        * [overrides default and uses camelCase notation for all attributes](./spec/acceptance/rest/auth_spec.rb#L95)
-      * with :key_id & :key_secret options
-        * [key_id is used in request and signing uses key_secret](./spec/acceptance/rest/auth_spec.rb#L124)
+        * [overrides default and uses camelCase notation for attributes](./spec/acceptance/rest/auth_spec.rb#L100)
+      * with :key option
+        * [key_name is used in request and signing uses key_secret](./spec/acceptance/rest/auth_spec.rb#L129)
+      * with :key_name & :key_secret options
+        * [key_name is used in request and signing uses key_secret](./spec/acceptance/rest/auth_spec.rb#L158)
       * with :query_time option
-        * [queries the server for the time](./spec/acceptance/rest/auth_spec.rb#L132)
+        * [queries the server for the time](./spec/acceptance/rest/auth_spec.rb#L166)
       * without :query_time option
-        * [does not query the server for the time](./spec/acceptance/rest/auth_spec.rb#L141)
+        * [does not query the server for the time](./spec/acceptance/rest/auth_spec.rb#L175)
       * with :auth_url option
         * when response from :auth_url is a valid token request
-          * [requests a token from :auth_url using an HTTP GET request](./spec/acceptance/rest/auth_spec.rb#L188)
-          * [returns a valid token generated from the token request](./spec/acceptance/rest/auth_spec.rb#L193)
+          * [requests a token from :auth_url using an HTTP GET request](./spec/acceptance/rest/auth_spec.rb#L223)
+          * [returns a valid token generated from the token request](./spec/acceptance/rest/auth_spec.rb#L228)
           * with :query_params
-            * [requests a token from :auth_url with the :query_params](./spec/acceptance/rest/auth_spec.rb#L200)
+            * [requests a token from :auth_url with the :query_params](./spec/acceptance/rest/auth_spec.rb#L235)
           * with :headers
-            * [requests a token from :auth_url with the HTTP headers set](./spec/acceptance/rest/auth_spec.rb#L208)
+            * [requests a token from :auth_url with the HTTP headers set](./spec/acceptance/rest/auth_spec.rb#L243)
           * with POST
-            * [requests a token from :auth_url using an HTTP POST instead of the default GET](./spec/acceptance/rest/auth_spec.rb#L216)
-        * when response from :auth_url is a token
-          * [returns a Token created from the token JSON](./spec/acceptance/rest/auth_spec.rb#L240)
+            * [requests a token from :auth_url using an HTTP POST instead of the default GET](./spec/acceptance/rest/auth_spec.rb#L251)
+        * when response from :auth_url is a token details object
+          * [returns TokenDetails created from the token JSON](./spec/acceptance/rest/auth_spec.rb#L276)
+        * when response from :auth_url is text/plain content type and a token string
+          * [returns TokenDetails created from the token JSON](./spec/acceptance/rest/auth_spec.rb#L293)
         * when response is invalid
           * 500
-            * [raises ServerError](./spec/acceptance/rest/auth_spec.rb#L255)
+            * [raises ServerError](./spec/acceptance/rest/auth_spec.rb#L306)
           * XML
-            * [raises InvalidResponseBody](./spec/acceptance/rest/auth_spec.rb#L266)
-      * with token_request_block that returns a token request
-        * [calls the block when authenticating to obtain the request token](./spec/acceptance/rest/auth_spec.rb#L284)
-        * [uses the token request from the block when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L289)
-      * with token_request_block that returns a token
-        * [calls the block when authenticating to obtain the request token](./spec/acceptance/rest/auth_spec.rb#L317)
-        * [uses the token request from the block when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L322)
+            * [raises InvalidResponseBody](./spec/acceptance/rest/auth_spec.rb#L317)
+      * with a token_request_block
+        * that returns a TokenRequest
+          * [calls the block when authenticating to obtain the request token](./spec/acceptance/rest/auth_spec.rb#L336)
+          * [uses the token request from the block when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L341)
+        * that returns a TokenDetails JSON object
+          * [calls the block when authenticating to obtain the request token](./spec/acceptance/rest/auth_spec.rb#L370)
+          * [uses the token request from the block when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L375)
+        * that returns a TokenDetails object
+          * [uses the token request from the block when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L396)
+        * that returns a Token string
+          * [uses the token request from the block when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L412)
       * with client_id
-        * [returns a token with the client_id](./spec/acceptance/rest/auth_spec.rb#L357)
+        * [returns a token with the client_id](./spec/acceptance/rest/auth_spec.rb#L444)
     * before #authorise has been called
-      * [has no current_token](./spec/acceptance/rest/auth_spec.rb#L364)
+      * [has no current_token_details](./spec/acceptance/rest/auth_spec.rb#L451)
     * #authorise
-      * [updates the persisted auth options thare are then used for subsequent authorise requests](./spec/acceptance/rest/auth_spec.rb#L411)
+      * [updates the persisted auth options that are then used for subsequent authorise requests](./spec/acceptance/rest/auth_spec.rb#L498)
       * when called for the first time since the client has been instantiated
-        * [passes all options to #request_token](./spec/acceptance/rest/auth_spec.rb#L375)
-        * [returns a valid token](./spec/acceptance/rest/auth_spec.rb#L380)
-        * [issues a new token if option :force => true](./spec/acceptance/rest/auth_spec.rb#L384)
+        * [passes all options to #request_token](./spec/acceptance/rest/auth_spec.rb#L462)
+        * [returns a valid token](./spec/acceptance/rest/auth_spec.rb#L467)
+        * [issues a new token if option :force => true](./spec/acceptance/rest/auth_spec.rb#L471)
       * with previous authorisation
-        * [does not request a token if current_token has not expired](./spec/acceptance/rest/auth_spec.rb#L395)
-        * [requests a new token if token is expired](./spec/acceptance/rest/auth_spec.rb#L400)
-        * [issues a new token if option :force => true](./spec/acceptance/rest/auth_spec.rb#L406)
+        * [does not request a token if current_token_details has not expired](./spec/acceptance/rest/auth_spec.rb#L482)
+        * [requests a new token if token is expired](./spec/acceptance/rest/auth_spec.rb#L487)
+        * [issues a new token if option :force => true](./spec/acceptance/rest/auth_spec.rb#L493)
       * with token_request_block
-        * [calls the block](./spec/acceptance/rest/auth_spec.rb#L427)
-        * [uses the token request returned from the block when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L431)
+        * [calls the block](./spec/acceptance/rest/auth_spec.rb#L514)
+        * [uses the token request returned from the block when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L518)
         * for every subsequent #request_token
           * without a provided block
-            * [calls the originally provided block](./spec/acceptance/rest/auth_spec.rb#L437)
+            * [calls the originally provided block](./spec/acceptance/rest/auth_spec.rb#L524)
           * with a provided block
-            * [does not call the originally provided block and calls the new #request_token block](./spec/acceptance/rest/auth_spec.rb#L444)
+            * [does not call the originally provided block and calls the new #request_token block](./spec/acceptance/rest/auth_spec.rb#L531)
     * #create_token_request
-      * [uses the key ID from the client](./spec/acceptance/rest/auth_spec.rb#L460)
-      * [uses the default TTL](./spec/acceptance/rest/auth_spec.rb#L464)
-      * [uses the default capability](./spec/acceptance/rest/auth_spec.rb#L468)
+      * [uses the key name from the client](./spec/acceptance/rest/auth_spec.rb#L547)
+      * [uses the default TTL](./spec/acceptance/rest/auth_spec.rb#L551)
+      * [uses the default capability](./spec/acceptance/rest/auth_spec.rb#L555)
       * the nonce
-        * [is unique for every request](./spec/acceptance/rest/auth_spec.rb#L473)
-        * [is at least 16 characters](./spec/acceptance/rest/auth_spec.rb#L478)
+        * [is unique for every request](./spec/acceptance/rest/auth_spec.rb#L560)
+        * [is at least 16 characters](./spec/acceptance/rest/auth_spec.rb#L565)
       * with option :ttl
-        * [overrides default](./spec/acceptance/rest/auth_spec.rb#L489)
-      * with option :capability
-        * [overrides default](./spec/acceptance/rest/auth_spec.rb#L489)
+        * [overrides default](./spec/acceptance/rest/auth_spec.rb#L576)
       * with option :nonce
-        * [overrides default](./spec/acceptance/rest/auth_spec.rb#L489)
-      * with option :timestamp
-        * [overrides default](./spec/acceptance/rest/auth_spec.rb#L489)
+        * [overrides default](./spec/acceptance/rest/auth_spec.rb#L576)
       * with option :client_id
-        * [overrides default](./spec/acceptance/rest/auth_spec.rb#L489)
+        * [overrides default](./spec/acceptance/rest/auth_spec.rb#L576)
       * with additional invalid attributes
-        * [are ignored](./spec/acceptance/rest/auth_spec.rb#L497)
+        * [are ignored](./spec/acceptance/rest/auth_spec.rb#L584)
       * when required fields are missing
-        * [should raise an exception if key secret is missing](./spec/acceptance/rest/auth_spec.rb#L508)
-        * [should raise an exception if key id is missing](./spec/acceptance/rest/auth_spec.rb#L512)
+        * [should raise an exception if key secret is missing](./spec/acceptance/rest/auth_spec.rb#L595)
+        * [should raise an exception if key name is missing](./spec/acceptance/rest/auth_spec.rb#L599)
       * with :query_time option
-        * [queries the server for the timestamp](./spec/acceptance/rest/auth_spec.rb#L521)
+        * [queries the server for the timestamp](./spec/acceptance/rest/auth_spec.rb#L608)
       * with :timestamp option
-        * [uses the provided timestamp in the token request](./spec/acceptance/rest/auth_spec.rb#L531)
+        * [uses the provided timestamp in the token request](./spec/acceptance/rest/auth_spec.rb#L618)
       * signing
-        * [generates a valid HMAC](./spec/acceptance/rest/auth_spec.rb#L548)
+        * [generates a valid HMAC](./spec/acceptance/rest/auth_spec.rb#L640)
     * using token authentication
-      * with :token_id option
-        * [authenticates successfully using the provided :token_id](./spec/acceptance/rest/auth_spec.rb#L571)
-        * [disallows publishing on unspecified capability channels](./spec/acceptance/rest/auth_spec.rb#L575)
-        * [fails if timestamp is invalid](./spec/acceptance/rest/auth_spec.rb#L583)
-        * [cannot be renewed automatically](./spec/acceptance/rest/auth_spec.rb#L591)
+      * with :token option
+        * [authenticates successfully using the provided :token](./spec/acceptance/rest/auth_spec.rb#L663)
+        * [disallows publishing on unspecified capability channels](./spec/acceptance/rest/auth_spec.rb#L667)
+        * [fails if timestamp is invalid](./spec/acceptance/rest/auth_spec.rb#L675)
+        * [cannot be renewed automatically](./spec/acceptance/rest/auth_spec.rb#L683)
       * when implicit as a result of using :client id
         * and requests to the Ably server are mocked
-          * [will send a token request to the server](./spec/acceptance/rest/auth_spec.rb#L621)
+          * [will send a token request to the server](./spec/acceptance/rest/auth_spec.rb#L711)
         * a token is created
-          * [before a request is made](./spec/acceptance/rest/auth_spec.rb#L630)
-          * [when a message is published](./spec/acceptance/rest/auth_spec.rb#L634)
-          * [with capability and TTL defaults](./spec/acceptance/rest/auth_spec.rb#L638)
+          * [before a request is made](./spec/acceptance/rest/auth_spec.rb#L720)
+          * [when a message is published](./spec/acceptance/rest/auth_spec.rb#L724)
+          * [with capability and TTL defaults](./spec/acceptance/rest/auth_spec.rb#L728)
     * when using an :key and basic auth
-      * [#using_token_auth? is false](./spec/acceptance/rest/auth_spec.rb#L653)
-      * [#key attribute contains the key string](./spec/acceptance/rest/auth_spec.rb#L657)
-      * [#using_basic_auth? is true](./spec/acceptance/rest/auth_spec.rb#L661)
-    * when using legacy :api_key option and basic auth
-      * [#using_token_auth? is false](./spec/acceptance/rest/auth_spec.rb#L671)
-      * [#key attribute contains the key string](./spec/acceptance/rest/auth_spec.rb#L675)
+      * [#using_token_auth? is false](./spec/acceptance/rest/auth_spec.rb#L743)
+      * [#key attribute contains the key string](./spec/acceptance/rest/auth_spec.rb#L747)
+      * [#using_basic_auth? is true](./spec/acceptance/rest/auth_spec.rb#L751)
 
 ### Ably::Rest
 _(see [spec/acceptance/rest/base_spec.rb](./spec/acceptance/rest/base_spec.rb))_
@@ -739,7 +741,7 @@ _(see [spec/acceptance/rest/base_spec.rb](./spec/acceptance/rest/base_spec.rb))_
       * when auth#token_renewable?
         * [should automatically reissue a token](./spec/acceptance/rest/base_spec.rb#L143)
       * when NOT auth#token_renewable?
-        * [should raise an InvalidToken exception](./spec/acceptance/rest/base_spec.rb#L156)
+        * [should raise an InvalidToken exception](./spec/acceptance/rest/base_spec.rb#L158)
 
 ### Ably::Rest::Channel
 _(see [spec/acceptance/rest/channel_spec.rb](./spec/acceptance/rest/channel_spec.rb))_
@@ -1017,6 +1019,10 @@ _(see [spec/unit/auth_spec.rb](./spec/unit/auth_spec.rb))_
       * [is compatible with original encoding](./spec/unit/auth_spec.rb#L55)
     * as Integer
       * [raises an argument error](./spec/unit/auth_spec.rb#L63)
+  * defaults
+    * [should default TTL to 1 hour](./spec/unit/auth_spec.rb#L73)
+    * [should default capability to all](./spec/unit/auth_spec.rb#L77)
+    * [should only have defaults for :ttl and :capability](./spec/unit/auth_spec.rb#L81)
 
 ### Ably::Logger
 _(see [spec/unit/logger_spec.rb](./spec/unit/logger_spec.rb))_
@@ -1590,18 +1596,16 @@ _(see [spec/unit/models/stat_spec.rb](./spec/unit/models/stat_spec.rb))_
       * [returns a :minute interval_id for 2014-02-03:05:06](./spec/unit/models/stat_spec.rb#L280)
       * [fails with an invalid interval_id 14-20](./spec/unit/models/stat_spec.rb#L284)
 
-### Ably::Models::Token
-_(see [spec/unit/models/token_spec.rb](./spec/unit/models/token_spec.rb))_
+### Ably::Models::TokenDetails
+_(see [spec/unit/models/token_details_spec.rb](./spec/unit/models/token_details_spec.rb))_
   * behaves like a model
     * attributes
-      * #id
-        * [retrieves attribute :id](./spec/shared/model_behaviour.rb#L15)
-      * #capability
-        * [retrieves attribute :capability](./spec/shared/model_behaviour.rb#L15)
+      * #token
+        * [retrieves attribute :token](./spec/shared/model_behaviour.rb#L15)
+      * #key_name
+        * [retrieves attribute :key_name](./spec/shared/model_behaviour.rb#L15)
       * #client_id
         * [retrieves attribute :client_id](./spec/shared/model_behaviour.rb#L15)
-      * #nonce
-        * [retrieves attribute :nonce](./spec/shared/model_behaviour.rb#L15)
     * #==
       * [is true when attributes are the same](./spec/shared/model_behaviour.rb#L41)
       * [is false when attributes are not the same](./spec/shared/model_behaviour.rb#L46)
@@ -1609,26 +1613,69 @@ _(see [spec/unit/models/token_spec.rb](./spec/unit/models/token_spec.rb))_
     * is immutable
       * [prevents changes](./spec/shared/model_behaviour.rb#L76)
       * [dups options](./spec/shared/model_behaviour.rb#L80)
-  * defaults
-    * [should default TTL to 1 hour](./spec/unit/models/token_spec.rb#L14)
-    * [should default capability to all](./spec/unit/models/token_spec.rb#L18)
-    * [should only have defaults for :ttl and :capability](./spec/unit/models/token_spec.rb#L22)
   * attributes
-    * #key_id
-      * [retrieves attribute :key](./spec/unit/models/token_spec.rb#L32)
-    * #issued_at
-      * [retrieves attribute :issued_at as Time](./spec/unit/models/token_spec.rb#L42)
-    * #expires_at
-      * [retrieves attribute :expires as Time](./spec/unit/models/token_spec.rb#L42)
+    * #capability
+      * [retrieves attribute :capability as parsed JSON](./spec/unit/models/token_details_spec.rb#L21)
+    * #issued with :issued option as milliseconds in constructor
+      * [retrieves attribute :issued as Time](./spec/unit/models/token_details_spec.rb#L31)
+    * #issued with :issued option as a Time in constructor
+      * [retrieves attribute :issued as Time](./spec/unit/models/token_details_spec.rb#L40)
+    * #issued when converted to JSON
+      * [is in milliseconds](./spec/unit/models/token_details_spec.rb#L49)
+    * #expires with :expires option as milliseconds in constructor
+      * [retrieves attribute :expires as Time](./spec/unit/models/token_details_spec.rb#L31)
+    * #expires with :expires option as a Time in constructor
+      * [retrieves attribute :expires as Time](./spec/unit/models/token_details_spec.rb#L40)
+    * #expires when converted to JSON
+      * [is in milliseconds](./spec/unit/models/token_details_spec.rb#L49)
     * #expired?
       * once grace period buffer has passed
-        * [is true](./spec/unit/models/token_spec.rb#L55)
+        * [is true](./spec/unit/models/token_details_spec.rb#L61)
       * within grace period buffer
-        * [is false](./spec/unit/models/token_spec.rb#L63)
+        * [is false](./spec/unit/models/token_details_spec.rb#L69)
   * ==
-    * [is true when attributes are the same](./spec/unit/models/token_spec.rb#L73)
-    * [is false when attributes are not the same](./spec/unit/models/token_spec.rb#L78)
-    * [is false when class type differs](./spec/unit/models/token_spec.rb#L82)
+    * [is true when attributes are the same](./spec/unit/models/token_details_spec.rb#L79)
+    * [is false when attributes are not the same](./spec/unit/models/token_details_spec.rb#L84)
+    * [is false when class type differs](./spec/unit/models/token_details_spec.rb#L88)
+
+### Ably::Models::TokenRequest
+_(see [spec/unit/models/token_request_spec.rb](./spec/unit/models/token_request_spec.rb))_
+  * behaves like a model
+    * attributes
+      * #key_name
+        * [retrieves attribute :key_name](./spec/shared/model_behaviour.rb#L15)
+      * #client_id
+        * [retrieves attribute :client_id](./spec/shared/model_behaviour.rb#L15)
+      * #nonce
+        * [retrieves attribute :nonce](./spec/shared/model_behaviour.rb#L15)
+      * #mac
+        * [retrieves attribute :mac](./spec/shared/model_behaviour.rb#L15)
+    * #==
+      * [is true when attributes are the same](./spec/shared/model_behaviour.rb#L41)
+      * [is false when attributes are not the same](./spec/shared/model_behaviour.rb#L46)
+      * [is false when class type differs](./spec/shared/model_behaviour.rb#L50)
+    * is immutable
+      * [prevents changes](./spec/shared/model_behaviour.rb#L76)
+      * [dups options](./spec/shared/model_behaviour.rb#L80)
+  * attributes
+    * #capability
+      * [retrieves attribute :capability as parsed JSON](./spec/unit/models/token_request_spec.rb#L18)
+    * #timestamp
+      * with :timestamp option as milliseconds in constructor
+        * [retrieves attribute :timestamp as Time](./spec/unit/models/token_request_spec.rb#L29)
+      * with :timestamp option as Time in constructor
+        * [retrieves attribute :timestamp as Time](./spec/unit/models/token_request_spec.rb#L38)
+      * when converted to JSON
+        * [is in milliseconds since epoch](./spec/unit/models/token_request_spec.rb#L47)
+    * #ttl
+      * with :ttl option as milliseconds in constructor
+        * [retrieves attribute :ttl as seconds](./spec/unit/models/token_request_spec.rb#L59)
+      * when converted to JSON
+        * [is in milliseconds since epoch](./spec/unit/models/token_request_spec.rb#L68)
+  * ==
+    * [is true when attributes are the same](./spec/unit/models/token_request_spec.rb#L78)
+    * [is false when attributes are not the same](./spec/unit/models/token_request_spec.rb#L83)
+    * [is false when class type differs](./spec/unit/models/token_request_spec.rb#L87)
 
 ### Ably::Modules::EventEmitter
 _(see [spec/unit/modules/event_emitter_spec.rb](./spec/unit/modules/event_emitter_spec.rb))_
@@ -1751,7 +1798,7 @@ _(see [spec/unit/realtime/client_spec.rb](./spec/unit/realtime/client_spec.rb))_
         * [raises an exception](./spec/shared/client_initializer_behaviour.rb#L44)
       * key: "invalid:asdad"
         * [raises an exception](./spec/shared/client_initializer_behaviour.rb#L52)
-      * key and key_id
+      * key and key_name
         * [raises an exception](./spec/shared/client_initializer_behaviour.rb#L60)
       * key and key_secret
         * [raises an exception](./spec/shared/client_initializer_behaviour.rb#L68)
@@ -1760,40 +1807,37 @@ _(see [spec/unit/realtime/client_spec.rb](./spec/unit/realtime/client_spec.rb))_
     * with valid arguments
       * key only
         * [connects to the Ably service](./spec/shared/client_initializer_behaviour.rb#L87)
-      * with legacy :api_key only
-        * [connects to the Ably service](./spec/shared/client_initializer_behaviour.rb#L94)
-        * [sets the Auth#key](./spec/shared/client_initializer_behaviour.rb#L98)
-      * key_id and key_secret
-        * [constructs an key](./spec/shared/client_initializer_behaviour.rb#L106)
       * with a string key instead of options hash
-        * [sets the key](./spec/shared/client_initializer_behaviour.rb#L114)
-        * [sets the key_id](./spec/shared/client_initializer_behaviour.rb#L118)
-        * [sets the key_secret](./spec/shared/client_initializer_behaviour.rb#L122)
+        * [sets the key](./spec/shared/client_initializer_behaviour.rb#L103)
+        * [sets the key_name](./spec/shared/client_initializer_behaviour.rb#L107)
+        * [sets the key_secret](./spec/shared/client_initializer_behaviour.rb#L111)
       * with a string token key instead of options hash
-        * [sets the token_id](./spec/shared/client_initializer_behaviour.rb#L130)
+        * [sets the token](./spec/shared/client_initializer_behaviour.rb#L119)
       * with token
-        * [sets the token_id](./spec/shared/client_initializer_behaviour.rb#L138)
+        * [sets the token](./spec/shared/client_initializer_behaviour.rb#L127)
+      * with token_details
+        * [sets the token](./spec/shared/client_initializer_behaviour.rb#L135)
       * endpoint
-        * [defaults to production](./spec/shared/client_initializer_behaviour.rb#L144)
+        * [defaults to production](./spec/shared/client_initializer_behaviour.rb#L141)
         * with environment option
-          * [uses an alternate endpoint](./spec/shared/client_initializer_behaviour.rb#L151)
+          * [uses an alternate endpoint](./spec/shared/client_initializer_behaviour.rb#L148)
       * tls
-        * [defaults to TLS](./spec/shared/client_initializer_behaviour.rb#L170)
+        * [defaults to TLS](./spec/shared/client_initializer_behaviour.rb#L167)
         * set to false
-          * [uses plain text](./spec/shared/client_initializer_behaviour.rb#L161)
-          * [uses HTTP](./spec/shared/client_initializer_behaviour.rb#L165)
+          * [uses plain text](./spec/shared/client_initializer_behaviour.rb#L158)
+          * [uses HTTP](./spec/shared/client_initializer_behaviour.rb#L162)
       * logger
         * default
-          * [uses Ruby Logger](./spec/shared/client_initializer_behaviour.rb#L177)
-          * [specifies Logger::ERROR log level](./spec/shared/client_initializer_behaviour.rb#L181)
+          * [uses Ruby Logger](./spec/shared/client_initializer_behaviour.rb#L174)
+          * [specifies Logger::ERROR log level](./spec/shared/client_initializer_behaviour.rb#L178)
         * with log_level :none
-          * [silences all logging with a NilLogger](./spec/shared/client_initializer_behaviour.rb#L189)
+          * [silences all logging with a NilLogger](./spec/shared/client_initializer_behaviour.rb#L186)
         * with custom logger and log_level
-          * [uses the custom logger](./spec/shared/client_initializer_behaviour.rb#L207)
-          * [sets the custom log level](./spec/shared/client_initializer_behaviour.rb#L211)
+          * [uses the custom logger](./spec/shared/client_initializer_behaviour.rb#L204)
+          * [sets the custom log level](./spec/shared/client_initializer_behaviour.rb#L208)
     * delegators
-      * [delegates :client_id to .auth](./spec/shared/client_initializer_behaviour.rb#L221)
-      * [delegates :auth_options to .auth](./spec/shared/client_initializer_behaviour.rb#L226)
+      * [delegates :client_id to .auth](./spec/shared/client_initializer_behaviour.rb#L218)
+      * [delegates :auth_options to .auth](./spec/shared/client_initializer_behaviour.rb#L223)
   * delegation to the REST Client
     * [passes on the options to the initializer](./spec/unit/realtime/client_spec.rb#L15)
     * for attribute
@@ -1931,7 +1975,7 @@ _(see [spec/unit/rest/client_spec.rb](./spec/unit/rest/client_spec.rb))_
         * [raises an exception](./spec/shared/client_initializer_behaviour.rb#L44)
       * key: "invalid:asdad"
         * [raises an exception](./spec/shared/client_initializer_behaviour.rb#L52)
-      * key and key_id
+      * key and key_name
         * [raises an exception](./spec/shared/client_initializer_behaviour.rb#L60)
       * key and key_secret
         * [raises an exception](./spec/shared/client_initializer_behaviour.rb#L68)
@@ -1940,40 +1984,37 @@ _(see [spec/unit/rest/client_spec.rb](./spec/unit/rest/client_spec.rb))_
     * with valid arguments
       * key only
         * [connects to the Ably service](./spec/shared/client_initializer_behaviour.rb#L87)
-      * with legacy :api_key only
-        * [connects to the Ably service](./spec/shared/client_initializer_behaviour.rb#L94)
-        * [sets the Auth#key](./spec/shared/client_initializer_behaviour.rb#L98)
-      * key_id and key_secret
-        * [constructs an key](./spec/shared/client_initializer_behaviour.rb#L106)
       * with a string key instead of options hash
-        * [sets the key](./spec/shared/client_initializer_behaviour.rb#L114)
-        * [sets the key_id](./spec/shared/client_initializer_behaviour.rb#L118)
-        * [sets the key_secret](./spec/shared/client_initializer_behaviour.rb#L122)
+        * [sets the key](./spec/shared/client_initializer_behaviour.rb#L103)
+        * [sets the key_name](./spec/shared/client_initializer_behaviour.rb#L107)
+        * [sets the key_secret](./spec/shared/client_initializer_behaviour.rb#L111)
       * with a string token key instead of options hash
-        * [sets the token_id](./spec/shared/client_initializer_behaviour.rb#L130)
+        * [sets the token](./spec/shared/client_initializer_behaviour.rb#L119)
       * with token
-        * [sets the token_id](./spec/shared/client_initializer_behaviour.rb#L138)
+        * [sets the token](./spec/shared/client_initializer_behaviour.rb#L127)
+      * with token_details
+        * [sets the token](./spec/shared/client_initializer_behaviour.rb#L135)
       * endpoint
-        * [defaults to production](./spec/shared/client_initializer_behaviour.rb#L144)
+        * [defaults to production](./spec/shared/client_initializer_behaviour.rb#L141)
         * with environment option
-          * [uses an alternate endpoint](./spec/shared/client_initializer_behaviour.rb#L151)
+          * [uses an alternate endpoint](./spec/shared/client_initializer_behaviour.rb#L148)
       * tls
-        * [defaults to TLS](./spec/shared/client_initializer_behaviour.rb#L170)
+        * [defaults to TLS](./spec/shared/client_initializer_behaviour.rb#L167)
         * set to false
-          * [uses plain text](./spec/shared/client_initializer_behaviour.rb#L161)
-          * [uses HTTP](./spec/shared/client_initializer_behaviour.rb#L165)
+          * [uses plain text](./spec/shared/client_initializer_behaviour.rb#L158)
+          * [uses HTTP](./spec/shared/client_initializer_behaviour.rb#L162)
       * logger
         * default
-          * [uses Ruby Logger](./spec/shared/client_initializer_behaviour.rb#L177)
-          * [specifies Logger::ERROR log level](./spec/shared/client_initializer_behaviour.rb#L181)
+          * [uses Ruby Logger](./spec/shared/client_initializer_behaviour.rb#L174)
+          * [specifies Logger::ERROR log level](./spec/shared/client_initializer_behaviour.rb#L178)
         * with log_level :none
-          * [silences all logging with a NilLogger](./spec/shared/client_initializer_behaviour.rb#L189)
+          * [silences all logging with a NilLogger](./spec/shared/client_initializer_behaviour.rb#L186)
         * with custom logger and log_level
-          * [uses the custom logger](./spec/shared/client_initializer_behaviour.rb#L207)
-          * [sets the custom log level](./spec/shared/client_initializer_behaviour.rb#L211)
+          * [uses the custom logger](./spec/shared/client_initializer_behaviour.rb#L204)
+          * [sets the custom log level](./spec/shared/client_initializer_behaviour.rb#L208)
     * delegators
-      * [delegates :client_id to .auth](./spec/shared/client_initializer_behaviour.rb#L221)
-      * [delegates :auth_options to .auth](./spec/shared/client_initializer_behaviour.rb#L226)
+      * [delegates :client_id to .auth](./spec/shared/client_initializer_behaviour.rb#L218)
+      * [delegates :auth_options to .auth](./spec/shared/client_initializer_behaviour.rb#L223)
   * initializer options
     * TLS
       * disabled
@@ -1985,7 +2026,7 @@ _(see [spec/unit/rest/client_spec.rb](./spec/unit/rest/client_spec.rb))_
         * without an key
           * [fails as an key is required if not using token auth](./spec/unit/rest/client_spec.rb#L36)
       * set to true
-        * without an key or token_id
+        * without an key or token
           * [fails as an key is required to issue tokens](./spec/unit/rest/client_spec.rb#L46)
 
 ### Ably::Rest
@@ -2027,6 +2068,6 @@ _(see [spec/unit/util/pub_sub_spec.rb](./spec/unit/util/pub_sub_spec.rb))_
 
   ## Test summary
 
-  * Passing tests: 1011
+  * Passing tests: 1027
   * Pending tests: 7
   * Failing tests: 0

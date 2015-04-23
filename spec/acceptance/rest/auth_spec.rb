@@ -4,17 +4,17 @@ require 'spec_helper'
 describe Ably::Auth do
   include Ably::Modules::Conversions
 
-  def hmac_for(token_request, secret)
-    ruby_named_token_request = Ably::Models::IdiomaticRubyWrapper.new(token_request)
+  def hmac_for(token_request_attributes, secret)
+    token_request= Ably::Models::IdiomaticRubyWrapper.new(token_request_attributes)
 
     text = [
-      :id,
+      :key_name,
       :ttl,
       :capability,
       :client_id,
       :timestamp,
       :nonce
-    ].map { |key| "#{ruby_named_token_request[key]}\n" }.join("")
+    ].map { |key| "#{token_request.hash[key]}\n" }.join("")
 
     encode64(
       OpenSSL::HMAC.digest(OpenSSL::Digest::SHA256.new, secret, text)
@@ -52,37 +52,42 @@ describe Ably::Auth do
     end
 
     it 'has immutable options' do
-      expect { auth.options['key_id'] = 'new_id' }.to raise_error RuntimeError, /can't modify frozen.*Hash/
+      expect { auth.options['key_name'] = 'new_name' }.to raise_error RuntimeError, /can't modify frozen.*Hash/
     end
 
     describe '#request_token' do
       let(:ttl)        { 30 * 60 }
       let(:capability) { { :foo => ['publish'] } }
 
-      let(:token) do
+      let(:token_details) do
         auth.request_token(
           ttl:        ttl,
           capability: capability
         )
       end
 
-      it 'returns a valid requested token in the expected format with valid issued_at and expires_at attributes' do
-        expect(token.id).to match(/^#{app_id}\.[\w-]+$/)
-        expect(token.key_id).to match(/^#{key_id}$/)
-        expect(token.issued_at).to be_within(2).of(Time.now)
-        expect(token.expires_at).to be_within(2).of(Time.now + ttl)
+      it 'returns a valid requested token in the expected format with valid issued and expires attributes' do
+        expect(token_details.token).to match(/^#{app_id}\.[\w-]+$/)
+        expect(token_details.key_name).to match(/^#{key_name}$/)
+        expect(token_details.issued).to be_within(2).of(Time.now)
+        expect(token_details.expires).to be_within(2).of(Time.now + ttl)
       end
 
       %w(client_id capability nonce timestamp ttl).each do |option|
         context "with option :#{option}", :webmock do
-          let(:random)         { random_int_str }
+          def coerce_if_time_value(field_name, value, multiply: false)
+            return value unless %w(timestamp ttl).include?(field_name)
+            value.to_i * (multiply ? multiply : 1)
+          end
+
+          let(:random)         { coerce_if_time_value(option, random_int_str) }
           let(:options)        { { option.to_sym => random } }
 
-          let(:token_response) { { access_token: {} } }
+          let(:token_response) { {} }
           let!(:request_token_stub) do
-            stub_request(:post, "#{client.endpoint}/keys/#{key_id}/requestToken").
+            stub_request(:post, "#{client.endpoint}/keys/#{key_name}/requestToken").
               with do |request|
-                request_body_includes(request, protocol, option, random)
+                request_body_includes(request, protocol, option, coerce_if_time_value(option, random, multiply: 1000))
               end.to_return(
                 :status => 201,
                 :body => serialize(token_response, protocol),
@@ -92,25 +97,25 @@ describe Ably::Auth do
 
           before { auth.request_token options }
 
-          it 'overrides default and uses camelCase notation for all attributes' do
+          it "overrides default and uses camelCase notation for attributes" do
             expect(request_token_stub).to have_been_requested
           end
         end
       end
 
-      context 'with :key_id & :key_secret options', :webmock do
-        let(:key_id)        { random_str }
+      context 'with :key option', :webmock do
+        let(:key_name)      { "app.#{random_str}" }
         let(:key_secret)    { random_str }
         let(:nonce)         { random_str }
-        let(:token_options) { { key_id: key_id, key_secret: key_secret, nonce: nonce, timestamp: Time.now } }
+        let(:token_options) { { key: "#{key_name}:#{key_secret}", nonce: nonce, timestamp: Time.now } }
         let(:token_request) { auth.create_token_request(token_options) }
         let(:mac) do
           hmac_for(token_request, key_secret)
         end
 
-        let(:token_response) { { access_token: {} } }
+        let(:token_response) { {} }
         let!(:request_token_stub) do
-          stub_request(:post, "#{client.endpoint}/keys/#{key_id}/requestToken").
+          stub_request(:post, "#{client.endpoint}/keys/#{key_name}/requestToken").
             with do |request|
               request_body_includes(request, protocol, 'mac', mac)
             end.to_return(
@@ -119,9 +124,38 @@ describe Ably::Auth do
               :headers => { 'Content-Type' => content_type })
         end
 
-        let!(:token) { auth.request_token(token_options) }
+        let!(:token) { puts token_options; auth.request_token(token_options) }
 
-        specify 'key_id is used in request and signing uses key_secret' do
+        specify 'key_name is used in request and signing uses key_secret' do
+          expect(request_token_stub).to have_been_requested
+        end
+      end
+
+      context 'with :key_name & :key_secret options', :webmock do
+        let(:key_name)      { "app.#{random_str}" }
+        let(:key_secret)    { random_str }
+        let(:nonce)         { random_str }
+
+        let(:name_secret_token_options) { { key_name: key_name, key_secret: key_secret, nonce: nonce, timestamp: Time.now } }
+        let(:token_request) { auth.create_token_request(name_secret_token_options) }
+        let(:mac) do
+          hmac_for(token_request, key_secret)
+        end
+
+        let(:token_response) { {} }
+        let!(:request_token_stub) do
+          stub_request(:post, "#{client.endpoint}/keys/#{key_name}/requestToken").
+            with do |request|
+              request_body_includes(request, protocol, 'mac', mac)
+            end.to_return(
+              :status => 201,
+              :body => serialize(token_response, protocol),
+              :headers => { 'Content-Type' => content_type })
+        end
+
+        let!(:token) { auth.request_token(name_secret_token_options); }
+
+        specify 'key_name is used in request and signing uses key_secret' do
           expect(request_token_stub).to have_been_requested
         end
       end
@@ -146,8 +180,8 @@ describe Ably::Auth do
 
       context 'with :auth_url option', :webmock do
         let(:auth_url)          { 'https://www.fictitious.com/get_token' }
-        let(:auth_url_response) { { id: key_id } }
-        let(:token_response)    { { access_token: { } } }
+        let(:auth_url_response) { { keyName: key_name }.to_json }
+        let(:token_response)    { {} }
         let(:query_params)      { nil }
         let(:headers)           { nil }
         let(:auth_method)       { :get }
@@ -166,15 +200,16 @@ describe Ably::Auth do
           stub.with(:headers => headers) unless headers.nil?
           stub.to_return(
             :status => 201,
-            :body => auth_url_response.to_json,
-            :headers => { 'Content-Type' => 'application/json' }
+            :body => auth_url_response,
+            :headers => { 'Content-Type' => auth_url_content_type }
           )
         end
+        let(:auth_url_content_type) { 'application/json' }
 
         let!(:request_token_stub) do
-          stub_request(:post, "#{client.endpoint}/keys/#{key_id}/requestToken").
+          stub_request(:post, "#{client.endpoint}/keys/#{key_name}/requestToken").
             with do |request|
-              request_body_includes(request, protocol, 'id', key_id)
+              request_body_includes(request, protocol, 'key_name', key_name)
             end.to_return(
               :status => 201,
               :body => serialize(token_response, protocol),
@@ -191,7 +226,7 @@ describe Ably::Auth do
           end
 
           it 'returns a valid token generated from the token request' do
-            expect(token).to be_a(Ably::Models::Token)
+            expect(token).to be_a(Ably::Models::TokenDetails)
           end
 
           context 'with :query_params' do
@@ -220,29 +255,45 @@ describe Ably::Auth do
           end
         end
 
-        context 'when response from :auth_url is a token' do
-          let(:token_id) { 'J_0Tlg.D7AVZkdOZW-PqNNGvCSp38' }
-          let(:issued_at) { Time.now }
+        context 'when response from :auth_url is a token details object' do
+          let(:token) { 'J_0Tlg.D7AVZkdOZW-PqNNGvCSp38' }
+          let(:issued) { Time.now }
           let(:expires) { Time.now + 60}
           let(:capability) { {'foo'=>['publish']} }
+          let(:capability_str) { JSON.dump(capability) }
           let(:auth_url_response) do
             {
-              'id' => token_id,
-              'key' => 'J_0Tlg.NxCRig',
-              'issued_at' => issued_at.to_i,
-              'expires' => expires.to_i,
-              'capability'=> capability
-            }
+              'token' => token,
+              'key_name' => 'J_0Tlg.NxCRig',
+              'issued' => issued.to_i * 1000,
+              'expires' => expires.to_i  * 1000,
+              'capability'=> capability_str
+            }.to_json
           end
 
-          let!(:token) { auth.request_token(options) }
+          let!(:token_details) { auth.request_token(options) }
 
-          it 'returns a Token created from the token JSON' do
+          it 'returns TokenDetails created from the token JSON' do
             expect(request_token_stub).to_not have_been_requested
-            expect(token.id).to eql(token_id)
-            expect(token.expires_at).to be_within(1).of(expires)
-            expect(token.issued_at).to be_within(1).of(issued_at)
-            expect(token.capability.to_json).to eql(capability.to_json)
+            expect(token_details).to be_a(Ably::Models::TokenDetails)
+            expect(token_details.token).to eql(token)
+            expect(token_details.expires).to be_within(1).of(expires)
+            expect(token_details.issued).to be_within(1).of(issued)
+            expect(token_details.capability).to eql(capability)
+          end
+        end
+
+        context 'when response from :auth_url is text/plain content type and a token string' do
+          let(:token) { 'J_0Tlg.D7AVZkdOZW-PqNNGvCSp38' }
+          let(:auth_url_content_type) { 'text/plain' }
+          let(:auth_url_response) { token }
+
+          let!(:token_details) { auth.request_token(options) }
+
+          it 'returns TokenDetails created from the token JSON' do
+            expect(request_token_stub).to_not have_been_requested
+            expect(token_details).to be_a(Ably::Models::TokenDetails)
+            expect(token_details.token).to eql(token)
           end
         end
 
@@ -270,99 +321,135 @@ describe Ably::Auth do
         end
       end
 
-      context 'with token_request_block that returns a token request' do
-        let(:client_id) { random_str }
-        let(:options) { { client_id: client_id } }
-        let!(:request_token) do
-          auth.request_token(options) do |block_options|
-            @block_called = true
-            @block_options = block_options
-            auth.create_token_request(client_id: client_id)
+      context 'with a token_request_block' do
+        context 'that returns a TokenRequest' do
+          let(:client_id) { random_str }
+          let(:options) { { client_id: client_id } }
+          let!(:request_token) do
+            auth.request_token(options) do |block_options|
+              @block_called = true
+              @block_options = block_options
+              auth.create_token_request(client_id: client_id)
+            end
+          end
+
+          it 'calls the block when authenticating to obtain the request token' do
+            expect(@block_called).to eql(true)
+            expect(@block_options).to include(options)
+          end
+
+          it 'uses the token request from the block when requesting a new token' do
+            expect(request_token.client_id).to eql(client_id)
           end
         end
 
-        it 'calls the block when authenticating to obtain the request token' do
-          expect(@block_called).to eql(true)
-          expect(@block_options).to include(options)
-        end
+        context 'that returns a TokenDetails JSON object' do
+          let(:client_id)   { random_str }
+          let(:options)     { { client_id: client_id } }
+          let(:token)       { 'J_0Tlg.D7AVZkdOZW-PqNNGvCSp38' }
+          let(:issued)      { Time.now }
+          let(:expires)     { Time.now + 60}
+          let(:capability)  { {'foo'=>['publish']} }
+          let(:capability_str) { JSON.dump(capability) }
 
-        it 'uses the token request from the block when requesting a new token' do
-          expect(request_token.client_id).to eql(client_id)
-        end
-      end
+          let!(:token_details) do
+            auth.request_token(options) do |block_options|
+              @block_called = true
+              @block_options = block_options
+              {
+                'token' => token,
+                'keyName' => 'J_0Tlg.NxCRig',
+                'clientId' => client_id,
+                'issued' => issued.to_i * 1000,
+                'expires' => expires.to_i * 1000,
+                'capability'=> capability_str
+              }
+            end
+          end
 
-      context 'with token_request_block that returns a token' do
-        let(:client_id)   { random_str }
-        let(:options)     { { client_id: client_id } }
-        let(:token_id)    { 'J_0Tlg.D7AVZkdOZW-PqNNGvCSp38' }
-        let(:issued_at)   { Time.now }
-        let(:expires)     { Time.now + 60}
-        let(:capability)  { {'foo'=>['publish']} }
+          it 'calls the block when authenticating to obtain the request token' do
+            expect(@block_called).to eql(true)
+            expect(@block_options).to include(options)
+          end
 
-        let!(:request_token) do
-          auth.request_token(options) do |block_options|
-            @block_called = true
-            @block_options = block_options
-            {
-              'id' => token_id,
-              'key' => 'J_0Tlg.NxCRig',
-              'client_id' => client_id,
-              'issued_at' => issued_at.to_i,
-              'expires' => expires.to_i,
-              'capability'=> capability
-            }
+          it 'uses the token request from the block when requesting a new token' do
+            expect(token_details).to be_a(Ably::Models::TokenDetails)
+            expect(token_details.token).to eql(token)
+            expect(token_details.client_id).to eql(client_id)
+            expect(token_details.expires).to be_within(1).of(expires)
+            expect(token_details.issued).to be_within(1).of(issued)
+            expect(token_details.capability).to eql(capability)
           end
         end
 
-        it 'calls the block when authenticating to obtain the request token' do
-          expect(@block_called).to eql(true)
-          expect(@block_options).to include(options)
+        context 'that returns a TokenDetails object' do
+          let(:client_id)   { random_str }
+
+          let!(:token_details) do
+            auth.request_token do |block_options|
+              auth.create_token_request({
+                client_id: client_id
+              })
+            end
+          end
+
+          it 'uses the token request from the block when requesting a new token' do
+            expect(token_details).to be_a(Ably::Models::TokenDetails)
+            expect(token_details.client_id).to eql(client_id)
+          end
         end
 
-        it 'uses the token request from the block when requesting a new token' do
-          expect(request_token).to be_a(Ably::Models::Token)
-          expect(request_token.id).to eql(token_id)
-          expect(request_token.client_id).to eql(client_id)
-          expect(request_token.expires_at).to be_within(1).of(expires)
-          expect(request_token.issued_at).to be_within(1).of(issued_at)
-          expect(request_token.capability.to_json).to eql(capability.to_json)
+        context 'that returns a Token string' do
+          let(:second_client) { Ably::Rest::Client.new(key: api_key, environment: environment, protocol: protocol) }
+          let(:token) { second_client.auth.request_token.token }
+
+          let!(:token_details) do
+            auth.request_token do |block_options|
+              token
+            end
+          end
+
+          it 'uses the token request from the block when requesting a new token' do
+            expect(token_details).to be_a(Ably::Models::TokenDetails)
+            expect(token_details.token).to eql(token)
+          end
         end
       end
 
       context 'persisted option', api_private: true do
         context 'when set to true', api_private: true do
           let(:options) { { persisted: true } }
-          let(:token) { auth.request_token(options) }
+          let(:token_details) { auth.request_token(options) }
 
           it 'returns a token with a short token ID that is used to look up the token details' do
-            expect(token.id.length).to be < 64
-            expect(token.id).to match(/^#{app_id}\.A/)
+            expect(token_details.token.length).to be < 64
+            expect(token_details.token).to match(/^#{app_id}\.A/)
           end
         end
 
         context 'when omitted', api_private: true do
           let(:options) { { } }
-          let(:token) { auth.request_token(options) }
+          let(:token_details) { auth.request_token(options) }
 
           it 'returns a literal token' do
-            expect(token.id.length).to be > 64
+            expect(token_details.token.length).to be > 64
           end
         end
       end
 
       context 'with client_id' do
         let(:client_id) { random_str }
-        let(:token) { auth.request_token(client_id: client_id) }
+        let(:token_details) { auth.request_token(client_id: client_id) }
 
         it 'returns a token with the client_id' do
-          expect(token.client_id).to eql(client_id)
+          expect(token_details.client_id).to eql(client_id)
         end
       end
     end
 
     context 'before #authorise has been called' do
-      it 'has no current_token' do
-        expect(auth.current_token).to be_nil
+      it 'has no current_token_details' do
+        expect(auth.current_token_details).to be_nil
       end
     end
 
@@ -378,37 +465,37 @@ describe Ably::Auth do
         end
 
         it 'returns a valid token' do
-          expect(auth.authorise).to be_a(Ably::Models::Token)
+          expect(auth.authorise).to be_a(Ably::Models::TokenDetails)
         end
 
         it 'issues a new token if option :force => true' do
-          expect { auth.authorise(force: true) }.to change { auth.current_token }
+          expect { auth.authorise(force: true) }.to change { auth.current_token_details }
         end
       end
 
       context 'with previous authorisation' do
         before do
           auth.authorise
-          expect(auth.current_token).to_not be_expired
+          expect(auth.current_token_details).to_not be_expired
         end
 
-        it 'does not request a token if current_token has not expired' do
+        it 'does not request a token if current_token_details has not expired' do
           expect(auth).to_not receive(:request_token)
           auth.authorise
         end
 
         it 'requests a new token if token is expired' do
-          allow(auth.current_token).to receive(:expired?).and_return(true)
+          allow(auth.current_token_details).to receive(:expired?).and_return(true)
           expect(auth).to receive(:request_token)
-          expect { auth.authorise }.to change { auth.current_token }
+          expect { auth.authorise }.to change { auth.current_token_details }
         end
 
         it 'issues a new token if option :force => true' do
-          expect { auth.authorise(force: true) }.to change { auth.current_token }
+          expect { auth.authorise(force: true) }.to change { auth.current_token_details }
         end
       end
 
-      it 'updates the persisted auth options thare are then used for subsequent authorise requests' do
+      it 'updates the persisted auth options that are then used for subsequent authorise requests' do
         expect(auth.options[:ttl]).to_not eql(26)
         auth.authorise(ttl: 26)
         expect(auth.options[:ttl]).to eql(26)
@@ -454,19 +541,19 @@ describe Ably::Auth do
     describe '#create_token_request' do
       let(:ttl)           { 60 * 60 }
       let(:capability)    { { :foo => ["publish"] } }
-      let(:options)       { Hash.new }
-      subject { auth.create_token_request(options) }
+      let(:token_request_options)       { Hash.new }
+      subject { auth.create_token_request(token_request_options) }
 
-      it 'uses the key ID from the client' do
-        expect(subject['id']).to eql(key_id)
+      it 'uses the key name from the client' do
+        expect(subject['keyName']).to eql(key_name)
       end
 
       it 'uses the default TTL' do
-        expect(subject['ttl']).to eql(Ably::Models::Token::DEFAULTS[:ttl])
+        expect(subject['ttl']).to eql(Ably::Auth::TOKEN_DEFAULTS.fetch(:ttl) * 1000)
       end
 
       it 'uses the default capability' do
-        expect(subject['capability']).to eql(Ably::Models::Token::DEFAULTS[:capability].to_json)
+        expect(subject['capability']).to eql(Ably::Auth::TOKEN_DEFAULTS.fetch(:capability).to_json)
       end
 
       context 'the nonce' do
@@ -480,25 +567,25 @@ describe Ably::Auth do
         end
       end
 
-      %w(ttl capability nonce timestamp client_id).each do |attribute|
+      %w(ttl nonce client_id).each do |attribute|
         context "with option :#{attribute}" do
-          let(:option_value) { random_int_str(1_000_000_000) }
+          let(:option_value) { random_int_str(1_000_000_000).to_i }
           before do
-            options[attribute.to_sym] = option_value
+            token_request_options[attribute.to_sym] = option_value
           end
           it "overrides default" do
-            expect(subject[convert_to_mixed_case(attribute)].to_s).to eql(option_value.to_s)
+            expect(subject.public_send(attribute).to_s).to eql(option_value.to_s)
           end
         end
       end
 
       context 'with additional invalid attributes' do
-        let(:options) { { nonce: 'valid', is_not_used_by_token_request: 'invalid' } }
+        let(:token_request_options) { { nonce: 'valid', is_not_used_by_token_request: 'invalid' } }
         specify 'are ignored' do
-          expect(subject.keys).to_not include(:is_not_used_by_token_request)
-          expect(subject.keys).to_not include(convert_to_mixed_case(:is_not_used_by_token_request))
-          expect(subject.keys).to include('nonce')
-          expect(subject['nonce']).to eql('valid')
+          expect(subject.hash.keys).to_not include(:is_not_used_by_token_request)
+          expect(subject.hash.keys).to_not include(convert_to_mixed_case(:is_not_used_by_token_request))
+          expect(subject.hash.keys).to include(:nonce)
+          expect(subject.nonce).to eql('valid')
         end
       end
 
@@ -506,47 +593,52 @@ describe Ably::Auth do
         let(:client) { Ably::Rest::Client.new(auth_url: 'http://example.com', protocol: protocol) }
 
         it 'should raise an exception if key secret is missing' do
-          expect { auth.create_token_request(key_id: 'id') }.to raise_error Ably::Exceptions::TokenRequestError
+          expect { auth.create_token_request(key_name: 'name') }.to raise_error Ably::Exceptions::TokenRequestError
         end
 
-        it 'should raise an exception if key id is missing' do
+        it 'should raise an exception if key name is missing' do
           expect { auth.create_token_request(key_secret: 'secret') }.to raise_error Ably::Exceptions::TokenRequestError
         end
       end
 
       context 'with :query_time option' do
         let(:time)    { Time.now - 30 }
-        let(:options) { { query_time: true } }
+        let(:token_request_options) { { query_time: true } }
 
         it 'queries the server for the timestamp' do
           expect(client).to receive(:time).and_return(time)
-          expect(subject['timestamp']).to eql(time.to_i)
+          expect(subject['timestamp']).to be_within(1).of(time.to_f * 1000)
         end
       end
 
       context 'with :timestamp option' do
         let(:token_request_time) { Time.now + 5 }
-        let(:options) { { timestamp: token_request_time } }
+        let(:token_request_options) { { timestamp: token_request_time } }
 
         it 'uses the provided timestamp in the token request' do
-          expect(subject['timestamp']).to eql(token_request_time.to_i)
+          expect(subject['timestamp']).to be_within(1).of(token_request_time.to_f * 1000)
         end
       end
 
       context 'signing' do
-        let(:options) do
+        let(:token_request_options) do
           {
-            id:         random_str,
-            ttl:        random_str,
+            key_name:   random_str,
+            ttl:        random_int_str.to_i,
             capability: random_str,
             client_id:  random_str,
-            timestamp:  random_int_str,
+            timestamp:  random_int_str.to_i,
             nonce:      random_str
           }
         end
 
+        # TokenRequest expects times in milliseconds, whereas create_token_request assumes Ruby default of seconds
+        let(:token_request_attributes) do
+          token_request_options.merge(timestamp: token_request_options[:timestamp] * 1000, ttl: token_request_options[:ttl] * 1000)
+        end
+
         it 'generates a valid HMAC' do
-          hmac = hmac_for(options, key_secret)
+          hmac = hmac_for(Ably::Models::TokenRequest(token_request_attributes).hash, key_secret)
           expect(subject['mac']).to eql(hmac)
         end
       end
@@ -555,20 +647,20 @@ describe Ably::Auth do
     context 'using token authentication' do
       let(:capability) { { :foo => ["publish"] } }
 
-      describe 'with :token_id option' do
+      describe 'with :token option' do
         let(:ttl) { 60 * 60 }
-        let(:token) do
+        let(:token_details) do
           auth.request_token(
             ttl:        ttl,
             capability: capability
           )
         end
-        let(:token_id) { token.id }
+        let(:token) { token_details.token }
         let(:token_auth_client) do
-          Ably::Rest::Client.new(token_id: token_id, environment: environment, protocol: protocol)
+          Ably::Rest::Client.new(token: token, environment: environment, protocol: protocol)
         end
 
-        it 'authenticates successfully using the provided :token_id' do
+        it 'authenticates successfully using the provided :token' do
           expect(token_auth_client.channel('foo').publish('event', 'data')).to be_truthy
         end
 
@@ -598,23 +690,21 @@ describe Ably::Auth do
         let(:client) do
           Ably::Rest::Client.new(key: api_key, client_id: client_id, environment: environment, protocol: protocol)
         end
-        let(:token_id) { 'unique-token-id' }
+        let(:token) { 'unique-token' }
         let(:token_response) do
           {
-            access_token: {
-              id: token_id
-            }
+            token: token
           }.to_json
         end
 
         context 'and requests to the Ably server are mocked', :webmock do
           let!(:request_token_stub) do
-            stub_request(:post, "#{client.endpoint}/keys/#{key_id}/requestToken").
+            stub_request(:post, "#{client.endpoint}/keys/#{key_name}/requestToken").
               to_return(:status => 201, :body => token_response, :headers => { 'Content-Type' => 'application/json' })
           end
           let!(:publish_message_stub) do
             stub_request(:post, "#{client.endpoint}/channels/foo/publish").
-              with(headers: { 'Authorization' => "Bearer #{encode64(token_id)}" }).
+              with(headers: { 'Authorization' => "Bearer #{encode64(token)}" }).
               to_return(status: 201, body: '{}', headers: { 'Content-Type' => 'application/json' })
           end
 
@@ -625,7 +715,7 @@ describe Ably::Auth do
         end
 
         describe 'a token is created' do
-          let(:token) { client.auth.current_token }
+          let(:token) { client.auth.current_token_details }
 
           it 'before a request is made' do
             expect(token).to be_nil
@@ -638,11 +728,11 @@ describe Ably::Auth do
           it 'with capability and TTL defaults' do
             client.channel('foo').publish('event', 'data')
 
-            expect(token).to be_a(Ably::Models::Token)
-            capability_with_str_key = Ably::Models::Token::DEFAULTS[:capability]
-            capability = Hash[capability_with_str_key.keys.map(&:to_sym).zip(capability_with_str_key.values)]
-            expect(token.capability).to eq(JSON.dump(capability))
-            expect(token.expires_at.to_i).to be_within(2).of(Time.now.to_i + Ably::Models::Token::DEFAULTS[:ttl])
+            expect(token).to be_a(Ably::Models::TokenDetails)
+            capability_with_str_key = Ably::Auth::TOKEN_DEFAULTS.fetch(:capability)
+            capability = Hash[capability_with_str_key.keys.map(&:to_s).zip(capability_with_str_key.values)]
+            expect(token.capability).to eq(capability)
+            expect(token.expires.to_i).to be_within(2).of(Time.now.to_i + Ably::Auth::TOKEN_DEFAULTS.fetch(:ttl))
             expect(token.client_id).to eq(client_id)
           end
         end
@@ -660,20 +750,6 @@ describe Ably::Auth do
 
       specify '#using_basic_auth? is true' do
         expect(auth).to be_using_basic_auth
-      end
-    end
-
-    context 'when using legacy :api_key option and basic auth' do
-      let(:client) do
-        Ably::Rest::Client.new(api_key: api_key, environment: environment, protocol: protocol)
-      end
-
-      specify '#using_token_auth? is false' do
-        expect(auth).to_not be_using_token_auth
-      end
-
-      specify '#key attribute contains the key string' do
-        expect(auth.key).to eql(api_key)
       end
     end
   end

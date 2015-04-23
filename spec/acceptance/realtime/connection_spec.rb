@@ -52,7 +52,7 @@ describe Ably::Realtime::Connection, :event_machine do
         before do
           # Reduce token expiry buffer to zero so that a token expired? predicate is exact
           # Normally there is a buffer so that a token expiring soon is considered expired
-          stub_const 'Ably::Models::Token::TOKEN_EXPIRY_BUFFER', 0
+          stub_const 'Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER', 0
         end
 
         context 'for renewable tokens' do
@@ -93,17 +93,17 @@ describe Ably::Realtime::Connection, :event_machine do
 
                 it 'renews the token on connect' do
                   sleep ttl + 0.1
-                  expect(client.auth.current_token).to be_expired
+                  expect(client.auth.current_token_details).to be_expired
                   expect(client.auth).to receive(:authorise).at_least(:once).and_call_original
                   connection.once(:connected) do
-                    expect(client.auth.current_token).to_not be_expired
+                    expect(client.auth.current_token_details).to_not be_expired
                     stop_reactor
                   end
                 end
               end
 
               context 'with immediately expiring token' do
-                let(:ttl) { 0.01 }
+                let(:ttl) { 0.001 }
 
                 it 'renews the token on connect, and only makes one subsequent attempt to obtain a new token' do
                   expect(client.auth).to receive(:authorise).at_least(:twice).and_call_original
@@ -143,14 +143,14 @@ describe Ably::Realtime::Connection, :event_machine do
 
                 context 'the server' do
                   it 'disconnects the client, and the client automatically renews the token and then reconnects', em_timeout: 15 do
-                    original_token = client.auth.current_token
+                    original_token = client.auth.current_token_details
                     expect(original_token).to_not be_expired
 
                     connection.once(:connected) do
                       started_at = Time.now
                       connection.once(:disconnected) do |error|
                         connection.once(:connected) do
-                          expect(client.auth.current_token).to_not be_expired
+                          expect(client.auth.current_token_details).to_not be_expired
                           expect(Time.now - started_at >= ttl)
                           expect(original_token).to be_expired
                           expect(error.code).to eql(40140) # token expired
@@ -172,16 +172,16 @@ describe Ably::Realtime::Connection, :event_machine do
 
         context 'for non-renewable tokens' do
           context 'that are expired' do
-            let!(:expired_token) do
+            let!(:expired_token_details) do
               Ably::Realtime::Client.new(default_options).auth.request_token(ttl: 0.01)
             end
 
             context 'opening a new connection' do
-              let(:client_options) { default_options.merge(key: nil, token_id: expired_token.id, log_level: :none) }
+              let(:client_options) { default_options.merge(key: nil, token: expired_token_details.token, log_level: :none) }
 
               it 'transitions state to failed', em_timeout: 10 do
                 EventMachine.add_timer(1) do # wait for token to expire
-                  expect(expired_token).to be_expired
+                  expect(expired_token_details).to be_expired
                   connection.once(:connected) { raise 'Connection should never connect as token has expired' }
                   connection.once(:failed) do
                     expect(client.connection.error_reason.code).to eql(40140)
