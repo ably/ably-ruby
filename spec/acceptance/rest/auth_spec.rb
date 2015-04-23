@@ -75,7 +75,8 @@ describe Ably::Auth do
 
       %w(client_id capability nonce timestamp ttl).each do |option|
         context "with option :#{option}", :webmock do
-          def coerce_if_time_value(field_name, value, multiply: false)
+          def coerce_if_time_value(field_name, value, options = {})
+            multiply = options[:multiply]
             return value unless %w(timestamp ttl).include?(field_name)
             value.to_i * (multiply ? multiply : 1)
           end
