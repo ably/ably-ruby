@@ -219,7 +219,7 @@ module Ably
         ttl:        ((token_options[:ttl] || TOKEN_DEFAULTS.fetch(:ttl)) * 1000).to_i,
         timestamp:  (timestamp.to_f * 1000).round,
         capability: token_options[:capability] || TOKEN_DEFAULTS.fetch(:capability),
-        nonce:      token_options[:nonce] || SecureRandom.hex
+        nonce:      token_options[:nonce] || SecureRandom.hex.force_encoding('UTF-8')
       }
 
       token_request[:capability] = JSON.dump(token_request[:capability]) if token_request[:capability].is_a?(Hash)
