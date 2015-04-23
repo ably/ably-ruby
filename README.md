@@ -1,14 +1,14 @@
-# [Ably](https://ably.io)
+# [Ably](https://www.ably.io)
 
 [![Build Status](https://travis-ci.org/ably/ably-ruby.png)](https://travis-ci.org/ably/ably-ruby)
 [![Gem Version](https://badge.fury.io/rb/ably.svg)](http://badge.fury.io/rb/ably)
 [![Coverage Status](https://coveralls.io/repos/ably/ably-ruby/badge.svg)](https://coveralls.io/r/ably/ably-ruby)
 
-A Ruby client library for [ably.io](https://ably.io), the realtime messaging service.
+A Ruby client library for [ably.io](https://www.ably.io), the realtime messaging service.
 
 ## Documentation
 
-Visit https://ably.io/documentation for a complete API reference and more examples.
+Visit https://www.ably.io/documentation for a complete API reference and more examples.
 
 ## Installation
 

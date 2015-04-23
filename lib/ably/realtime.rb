@@ -39,10 +39,6 @@ module Ably
     # @param (see Ably::Realtime::Client#initialize)
     # @option options (see Ably::Realtime::Client#initialize)
     #
-    # @yield (see Ably::Realtime::Client#initialize)
-    # @yieldparam (see Ably::Realtime::Client#initialize)
-    # @yieldreturn (see Ably::Realtime::Client#initialize)
-    #
     # @return [Ably::Realtime::Client]
     #
     # @example
@@ -52,8 +48,8 @@ module Ably
     #    # create a new client authenticating with basic auth and a client_id
     #    client = Ably::Realtime.new(key: 'key.id:secret', client_id: 'john')
     #
-    def self.new(options, &token_request_block)
-      Ably::Realtime::Client.new(options, &token_request_block)
+    def self.new(options)
+      Ably::Realtime::Client.new(options)
     end
   end
 end

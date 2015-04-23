@@ -88,25 +88,25 @@ describe Ably::Realtime::Client, :event_machine do
           end
         end
 
-        context 'with token_request_block' do
+        context 'with a Proc for the :auth_callback option' do
           let(:client_id) { random_str }
           let(:auth)      { subject.auth }
 
           subject do
-            Ably::Realtime::Client.new(client_options) do
+            Ably::Realtime::Client.new(client_options.merge(auth_callback: Proc.new do
               @block_called = true
               auth.create_token_request(client_id: client_id)
-            end
+            end))
           end
 
-          it 'calls the block' do
+          it 'calls the Proc' do
             connection.on(:connected) do
               expect(@block_called).to eql(true)
               stop_reactor
             end
           end
 
-          it 'uses the token request when requesting a new token' do
+          it 'uses the token request returned from the callback when requesting a new token' do
             connection.on(:connected) do
               expect(auth.current_token_details.client_id).to eql(client_id)
               stop_reactor

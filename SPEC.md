@@ -128,9 +128,9 @@ _(see [spec/acceptance/realtime/client_spec.rb](./spec/acceptance/realtime/clien
             * [automatically authorises on connect and generates a token](./spec/acceptance/realtime/client_spec.rb#L64)
           * with client_id
             * [connects using token auth](./spec/acceptance/realtime/client_spec.rb#L77)
-        * with token_request_block
-          * [calls the block](./spec/acceptance/realtime/client_spec.rb#L102)
-          * [uses the token request when requesting a new token](./spec/acceptance/realtime/client_spec.rb#L109)
+        * with a Proc for the :auth_callback option
+          * [calls the Proc](./spec/acceptance/realtime/client_spec.rb#L102)
+          * [uses the token request returned from the callback when requesting a new token](./spec/acceptance/realtime/client_spec.rb#L109)
 
 ### Ably::Realtime::Connection failures
 _(see [spec/acceptance/realtime/connection_failures_spec.rb](./spec/acceptance/realtime/connection_failures_spec.rb))_
@@ -139,7 +139,7 @@ _(see [spec/acceptance/realtime/connection_failures_spec.rb](./spec/acceptance/r
       * when API key is invalid
         * with invalid app part of the key
           * [enters the failed state and returns a not found error](./spec/acceptance/realtime/connection_failures_spec.rb#L26)
-        * with invalid key ID part of the key
+        * with invalid key name part of the key
           * [enters the failed state and returns an authorization error](./spec/acceptance/realtime/connection_failures_spec.rb#L40)
     * automatic connection retry
       * with invalid WebSocket host
@@ -641,17 +641,17 @@ _(see [spec/acceptance/rest/auth_spec.rb](./spec/acceptance/rest/auth_spec.rb))_
             * [raises ServerError](./spec/acceptance/rest/auth_spec.rb#L306)
           * XML
             * [raises InvalidResponseBody](./spec/acceptance/rest/auth_spec.rb#L317)
-      * with a token_request_block
+      * with a Proc for the :auth_callback option
         * that returns a TokenRequest
-          * [calls the block when authenticating to obtain the request token](./spec/acceptance/rest/auth_spec.rb#L336)
-          * [uses the token request from the block when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L341)
+          * [calls the Proc when authenticating to obtain the request token](./spec/acceptance/rest/auth_spec.rb#L336)
+          * [uses the token request returned from the callback when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L341)
         * that returns a TokenDetails JSON object
-          * [calls the block when authenticating to obtain the request token](./spec/acceptance/rest/auth_spec.rb#L370)
-          * [uses the token request from the block when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L375)
+          * [calls the Proc when authenticating to obtain the request token](./spec/acceptance/rest/auth_spec.rb#L370)
+          * [uses the token request returned from the callback when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L375)
         * that returns a TokenDetails object
-          * [uses the token request from the block when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L396)
+          * [uses the token request returned from the callback when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L396)
         * that returns a Token string
-          * [uses the token request from the block when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L412)
+          * [uses the token request returned from the callback when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L412)
       * with client_id
         * [returns a token with the client_id](./spec/acceptance/rest/auth_spec.rb#L444)
     * before #authorise has been called
@@ -666,14 +666,14 @@ _(see [spec/acceptance/rest/auth_spec.rb](./spec/acceptance/rest/auth_spec.rb))_
         * [does not request a token if current_token_details has not expired](./spec/acceptance/rest/auth_spec.rb#L482)
         * [requests a new token if token is expired](./spec/acceptance/rest/auth_spec.rb#L487)
         * [issues a new token if option :force => true](./spec/acceptance/rest/auth_spec.rb#L493)
-      * with token_request_block
-        * [calls the block](./spec/acceptance/rest/auth_spec.rb#L514)
-        * [uses the token request returned from the block when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L518)
+      * with a Proc for the :auth_callback option
+        * [calls the Proc](./spec/acceptance/rest/auth_spec.rb#L514)
+        * [uses the token request returned from the callback when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L518)
         * for every subsequent #request_token
-          * without a provided block
+          * without a :auth_callback Proc
             * [calls the originally provided block](./spec/acceptance/rest/auth_spec.rb#L524)
           * with a provided block
-            * [does not call the originally provided block and calls the new #request_token block](./spec/acceptance/rest/auth_spec.rb#L531)
+            * [does not call the originally provided Proc and calls the new #request_token :auth_callback Proc](./spec/acceptance/rest/auth_spec.rb#L531)
     * #create_token_request
       * [uses the key name from the client](./spec/acceptance/rest/auth_spec.rb#L547)
       * [uses the default TTL](./spec/acceptance/rest/auth_spec.rb#L551)
@@ -787,8 +787,8 @@ _(see [spec/acceptance/rest/channels_spec.rb](./spec/acceptance/rest/channels_sp
 _(see [spec/acceptance/rest/client_spec.rb](./spec/acceptance/rest/client_spec.rb))_
   * using JSON and MsgPack protocol
     * #initialize
-      * with an auth block
-        * [calls the block to get a new token](./spec/acceptance/rest/client_spec.rb#L20)
+      * with a :auth_callback Proc
+        * [calls the auth Proc to get a new token](./spec/acceptance/rest/client_spec.rb#L20)
       * with an auth URL
         * [sends an HTTP request to the provided URL to get a new token](./spec/acceptance/rest/client_spec.rb#L34)
     * using tokens
