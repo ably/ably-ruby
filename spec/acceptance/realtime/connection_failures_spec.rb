@@ -319,7 +319,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                         disconnected: { retry_every: retry_every, max_time_in_state: 60 })
           end
 
-          it "retries every CONNECT_RETRY_CONFIG[:disconnected][:retry_every] seconds" do
+          it "retries every #{Ably::Realtime::Connection::ConnectionManager::CONNECT_RETRY_CONFIG[:disconnected][:retry_every]} seconds" do
             fail_if_suspended_or_failed
 
             stubbed_first_attempt = false

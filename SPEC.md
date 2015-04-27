@@ -1,4 +1,4 @@
-# Ably Realtime & REST Client Library 0.8.0 Specification
+# Ably Realtime & REST Client Library 0.8.1 Specification
 
 ### Ably::Realtime::Channel#history
 _(see [spec/acceptance/realtime/channel_history_spec.rb](./spec/acceptance/realtime/channel_history_spec.rb))_
@@ -170,7 +170,7 @@ _(see [spec/acceptance/realtime/connection_failures_spec.rb](./spec/acceptance/r
       * when DISCONNECTED ProtocolMessage received from the server
         * [reconnects automatically and immediately](./spec/acceptance/realtime/connection_failures_spec.rb#L292)
         * and subsequently fails to reconnect
-          * [retries every CONNECT_RETRY_CONFIG[:disconnected][:retry_every] seconds](./spec/acceptance/realtime/connection_failures_spec.rb#L322)
+          * [retries every 15 seconds](./spec/acceptance/realtime/connection_failures_spec.rb#L322)
       * when websocket transport is closed
         * [reconnects automatically](./spec/acceptance/realtime/connection_failures_spec.rb#L365)
       * after successfully reconnecting and resuming
@@ -605,116 +605,116 @@ _(see [spec/acceptance/rest/auth_spec.rb](./spec/acceptance/rest/auth_spec.rb))_
     * #request_token
       * [returns a valid requested token in the expected format with valid issued and expires attributes](./spec/acceptance/rest/auth_spec.rb#L69)
       * with option :client_id
-        * [overrides default and uses camelCase notation for attributes](./spec/acceptance/rest/auth_spec.rb#L100)
+        * [overrides default and uses camelCase notation for attributes](./spec/acceptance/rest/auth_spec.rb#L101)
       * with option :capability
-        * [overrides default and uses camelCase notation for attributes](./spec/acceptance/rest/auth_spec.rb#L100)
+        * [overrides default and uses camelCase notation for attributes](./spec/acceptance/rest/auth_spec.rb#L101)
       * with option :nonce
-        * [overrides default and uses camelCase notation for attributes](./spec/acceptance/rest/auth_spec.rb#L100)
+        * [overrides default and uses camelCase notation for attributes](./spec/acceptance/rest/auth_spec.rb#L101)
       * with option :timestamp
-        * [overrides default and uses camelCase notation for attributes](./spec/acceptance/rest/auth_spec.rb#L100)
+        * [overrides default and uses camelCase notation for attributes](./spec/acceptance/rest/auth_spec.rb#L101)
       * with option :ttl
-        * [overrides default and uses camelCase notation for attributes](./spec/acceptance/rest/auth_spec.rb#L100)
+        * [overrides default and uses camelCase notation for attributes](./spec/acceptance/rest/auth_spec.rb#L101)
       * with :key option
-        * [key_name is used in request and signing uses key_secret](./spec/acceptance/rest/auth_spec.rb#L129)
+        * [key_name is used in request and signing uses key_secret](./spec/acceptance/rest/auth_spec.rb#L130)
       * with :key_name & :key_secret options
-        * [key_name is used in request and signing uses key_secret](./spec/acceptance/rest/auth_spec.rb#L158)
+        * [key_name is used in request and signing uses key_secret](./spec/acceptance/rest/auth_spec.rb#L159)
       * with :query_time option
-        * [queries the server for the time](./spec/acceptance/rest/auth_spec.rb#L166)
+        * [queries the server for the time](./spec/acceptance/rest/auth_spec.rb#L167)
       * without :query_time option
-        * [does not query the server for the time](./spec/acceptance/rest/auth_spec.rb#L175)
+        * [does not query the server for the time](./spec/acceptance/rest/auth_spec.rb#L176)
       * with :auth_url option
         * when response from :auth_url is a valid token request
-          * [requests a token from :auth_url using an HTTP GET request](./spec/acceptance/rest/auth_spec.rb#L223)
-          * [returns a valid token generated from the token request](./spec/acceptance/rest/auth_spec.rb#L228)
+          * [requests a token from :auth_url using an HTTP GET request](./spec/acceptance/rest/auth_spec.rb#L224)
+          * [returns a valid token generated from the token request](./spec/acceptance/rest/auth_spec.rb#L229)
           * with :query_params
-            * [requests a token from :auth_url with the :query_params](./spec/acceptance/rest/auth_spec.rb#L235)
+            * [requests a token from :auth_url with the :query_params](./spec/acceptance/rest/auth_spec.rb#L236)
           * with :headers
-            * [requests a token from :auth_url with the HTTP headers set](./spec/acceptance/rest/auth_spec.rb#L243)
+            * [requests a token from :auth_url with the HTTP headers set](./spec/acceptance/rest/auth_spec.rb#L244)
           * with POST
-            * [requests a token from :auth_url using an HTTP POST instead of the default GET](./spec/acceptance/rest/auth_spec.rb#L251)
+            * [requests a token from :auth_url using an HTTP POST instead of the default GET](./spec/acceptance/rest/auth_spec.rb#L252)
         * when response from :auth_url is a token details object
-          * [returns TokenDetails created from the token JSON](./spec/acceptance/rest/auth_spec.rb#L276)
+          * [returns TokenDetails created from the token JSON](./spec/acceptance/rest/auth_spec.rb#L277)
         * when response from :auth_url is text/plain content type and a token string
-          * [returns TokenDetails created from the token JSON](./spec/acceptance/rest/auth_spec.rb#L293)
+          * [returns TokenDetails created from the token JSON](./spec/acceptance/rest/auth_spec.rb#L294)
         * when response is invalid
           * 500
-            * [raises ServerError](./spec/acceptance/rest/auth_spec.rb#L306)
+            * [raises ServerError](./spec/acceptance/rest/auth_spec.rb#L307)
           * XML
-            * [raises InvalidResponseBody](./spec/acceptance/rest/auth_spec.rb#L317)
+            * [raises InvalidResponseBody](./spec/acceptance/rest/auth_spec.rb#L318)
       * with a Proc for the :auth_callback option
         * that returns a TokenRequest
-          * [calls the Proc when authenticating to obtain the request token](./spec/acceptance/rest/auth_spec.rb#L336)
-          * [uses the token request returned from the callback when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L341)
+          * [calls the Proc when authenticating to obtain the request token](./spec/acceptance/rest/auth_spec.rb#L337)
+          * [uses the token request returned from the callback when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L342)
         * that returns a TokenDetails JSON object
-          * [calls the Proc when authenticating to obtain the request token](./spec/acceptance/rest/auth_spec.rb#L370)
-          * [uses the token request returned from the callback when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L375)
+          * [calls the Proc when authenticating to obtain the request token](./spec/acceptance/rest/auth_spec.rb#L371)
+          * [uses the token request returned from the callback when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L376)
         * that returns a TokenDetails object
-          * [uses the token request returned from the callback when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L396)
+          * [uses the token request returned from the callback when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L397)
         * that returns a Token string
-          * [uses the token request returned from the callback when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L412)
+          * [uses the token request returned from the callback when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L413)
       * with client_id
-        * [returns a token with the client_id](./spec/acceptance/rest/auth_spec.rb#L444)
+        * [returns a token with the client_id](./spec/acceptance/rest/auth_spec.rb#L445)
     * before #authorise has been called
-      * [has no current_token_details](./spec/acceptance/rest/auth_spec.rb#L451)
+      * [has no current_token_details](./spec/acceptance/rest/auth_spec.rb#L452)
     * #authorise
-      * [updates the persisted auth options that are then used for subsequent authorise requests](./spec/acceptance/rest/auth_spec.rb#L498)
+      * [updates the persisted auth options that are then used for subsequent authorise requests](./spec/acceptance/rest/auth_spec.rb#L499)
       * when called for the first time since the client has been instantiated
-        * [passes all options to #request_token](./spec/acceptance/rest/auth_spec.rb#L462)
-        * [returns a valid token](./spec/acceptance/rest/auth_spec.rb#L467)
-        * [issues a new token if option :force => true](./spec/acceptance/rest/auth_spec.rb#L471)
+        * [passes all options to #request_token](./spec/acceptance/rest/auth_spec.rb#L463)
+        * [returns a valid token](./spec/acceptance/rest/auth_spec.rb#L468)
+        * [issues a new token if option :force => true](./spec/acceptance/rest/auth_spec.rb#L472)
       * with previous authorisation
-        * [does not request a token if current_token_details has not expired](./spec/acceptance/rest/auth_spec.rb#L482)
-        * [requests a new token if token is expired](./spec/acceptance/rest/auth_spec.rb#L487)
-        * [issues a new token if option :force => true](./spec/acceptance/rest/auth_spec.rb#L493)
+        * [does not request a token if current_token_details has not expired](./spec/acceptance/rest/auth_spec.rb#L483)
+        * [requests a new token if token is expired](./spec/acceptance/rest/auth_spec.rb#L488)
+        * [issues a new token if option :force => true](./spec/acceptance/rest/auth_spec.rb#L494)
       * with a Proc for the :auth_callback option
-        * [calls the Proc](./spec/acceptance/rest/auth_spec.rb#L514)
-        * [uses the token request returned from the callback when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L518)
+        * [calls the Proc](./spec/acceptance/rest/auth_spec.rb#L515)
+        * [uses the token request returned from the callback when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L519)
         * for every subsequent #request_token
           * without a :auth_callback Proc
-            * [calls the originally provided block](./spec/acceptance/rest/auth_spec.rb#L524)
+            * [calls the originally provided block](./spec/acceptance/rest/auth_spec.rb#L525)
           * with a provided block
-            * [does not call the originally provided Proc and calls the new #request_token :auth_callback Proc](./spec/acceptance/rest/auth_spec.rb#L531)
+            * [does not call the originally provided Proc and calls the new #request_token :auth_callback Proc](./spec/acceptance/rest/auth_spec.rb#L532)
     * #create_token_request
-      * [uses the key name from the client](./spec/acceptance/rest/auth_spec.rb#L547)
-      * [uses the default TTL](./spec/acceptance/rest/auth_spec.rb#L551)
-      * [uses the default capability](./spec/acceptance/rest/auth_spec.rb#L555)
+      * [uses the key name from the client](./spec/acceptance/rest/auth_spec.rb#L548)
+      * [uses the default TTL](./spec/acceptance/rest/auth_spec.rb#L552)
+      * [uses the default capability](./spec/acceptance/rest/auth_spec.rb#L556)
       * the nonce
-        * [is unique for every request](./spec/acceptance/rest/auth_spec.rb#L560)
-        * [is at least 16 characters](./spec/acceptance/rest/auth_spec.rb#L565)
+        * [is unique for every request](./spec/acceptance/rest/auth_spec.rb#L561)
+        * [is at least 16 characters](./spec/acceptance/rest/auth_spec.rb#L566)
       * with option :ttl
-        * [overrides default](./spec/acceptance/rest/auth_spec.rb#L576)
+        * [overrides default](./spec/acceptance/rest/auth_spec.rb#L577)
       * with option :nonce
-        * [overrides default](./spec/acceptance/rest/auth_spec.rb#L576)
+        * [overrides default](./spec/acceptance/rest/auth_spec.rb#L577)
       * with option :client_id
-        * [overrides default](./spec/acceptance/rest/auth_spec.rb#L576)
+        * [overrides default](./spec/acceptance/rest/auth_spec.rb#L577)
       * with additional invalid attributes
-        * [are ignored](./spec/acceptance/rest/auth_spec.rb#L584)
+        * [are ignored](./spec/acceptance/rest/auth_spec.rb#L585)
       * when required fields are missing
-        * [should raise an exception if key secret is missing](./spec/acceptance/rest/auth_spec.rb#L595)
-        * [should raise an exception if key name is missing](./spec/acceptance/rest/auth_spec.rb#L599)
+        * [should raise an exception if key secret is missing](./spec/acceptance/rest/auth_spec.rb#L596)
+        * [should raise an exception if key name is missing](./spec/acceptance/rest/auth_spec.rb#L600)
       * with :query_time option
-        * [queries the server for the timestamp](./spec/acceptance/rest/auth_spec.rb#L608)
+        * [queries the server for the timestamp](./spec/acceptance/rest/auth_spec.rb#L609)
       * with :timestamp option
-        * [uses the provided timestamp in the token request](./spec/acceptance/rest/auth_spec.rb#L618)
+        * [uses the provided timestamp in the token request](./spec/acceptance/rest/auth_spec.rb#L619)
       * signing
-        * [generates a valid HMAC](./spec/acceptance/rest/auth_spec.rb#L640)
+        * [generates a valid HMAC](./spec/acceptance/rest/auth_spec.rb#L641)
     * using token authentication
       * with :token option
-        * [authenticates successfully using the provided :token](./spec/acceptance/rest/auth_spec.rb#L663)
-        * [disallows publishing on unspecified capability channels](./spec/acceptance/rest/auth_spec.rb#L667)
-        * [fails if timestamp is invalid](./spec/acceptance/rest/auth_spec.rb#L675)
-        * [cannot be renewed automatically](./spec/acceptance/rest/auth_spec.rb#L683)
+        * [authenticates successfully using the provided :token](./spec/acceptance/rest/auth_spec.rb#L664)
+        * [disallows publishing on unspecified capability channels](./spec/acceptance/rest/auth_spec.rb#L668)
+        * [fails if timestamp is invalid](./spec/acceptance/rest/auth_spec.rb#L676)
+        * [cannot be renewed automatically](./spec/acceptance/rest/auth_spec.rb#L684)
       * when implicit as a result of using :client id
         * and requests to the Ably server are mocked
-          * [will send a token request to the server](./spec/acceptance/rest/auth_spec.rb#L711)
+          * [will send a token request to the server](./spec/acceptance/rest/auth_spec.rb#L712)
         * a token is created
-          * [before a request is made](./spec/acceptance/rest/auth_spec.rb#L720)
-          * [when a message is published](./spec/acceptance/rest/auth_spec.rb#L724)
-          * [with capability and TTL defaults](./spec/acceptance/rest/auth_spec.rb#L728)
+          * [before a request is made](./spec/acceptance/rest/auth_spec.rb#L721)
+          * [when a message is published](./spec/acceptance/rest/auth_spec.rb#L725)
+          * [with capability and TTL defaults](./spec/acceptance/rest/auth_spec.rb#L729)
     * when using an :key and basic auth
-      * [#using_token_auth? is false](./spec/acceptance/rest/auth_spec.rb#L743)
-      * [#key attribute contains the key string](./spec/acceptance/rest/auth_spec.rb#L747)
-      * [#using_basic_auth? is true](./spec/acceptance/rest/auth_spec.rb#L751)
+      * [#using_token_auth? is false](./spec/acceptance/rest/auth_spec.rb#L744)
+      * [#key attribute contains the key string](./spec/acceptance/rest/auth_spec.rb#L748)
+      * [#using_basic_auth? is true](./spec/acceptance/rest/auth_spec.rb#L752)
 
 ### Ably::Rest
 _(see [spec/acceptance/rest/base_spec.rb](./spec/acceptance/rest/base_spec.rb))_
