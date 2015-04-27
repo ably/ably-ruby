@@ -276,43 +276,43 @@ _(see [spec/acceptance/realtime/connection_spec.rb](./spec/acceptance/realtime/c
         * [catches the exception and logs the error](./spec/acceptance/realtime/connection_spec.rb#L508)
     * recovery
       * #recovery_key
-        * [is composed of connection id and serial that is kept up to date with each message ACK received](./spec/acceptance/realtime/connection_spec.rb#L545)
-        * [is available when connection is in one of the states: connecting, connected, disconnected, suspended, failed](./spec/acceptance/realtime/connection_spec.rb#L566)
-        * [is nil when connection is explicitly CLOSED](./spec/acceptance/realtime/connection_spec.rb#L590)
+        * [is composed of connection key and serial that is kept up to date with each message ACK received](./spec/acceptance/realtime/connection_spec.rb#L545)
+        * [is available when connection is in one of the states: connecting, connected, disconnected, suspended, failed](./spec/acceptance/realtime/connection_spec.rb#L568)
+        * [is nil when connection is explicitly CLOSED](./spec/acceptance/realtime/connection_spec.rb#L592)
       * opening a new connection using a recently disconnected connection's #recovery_key
         * connection#id and connection#key after recovery
-          * [remains the same](./spec/acceptance/realtime/connection_spec.rb#L604)
+          * [remains the same](./spec/acceptance/realtime/connection_spec.rb#L606)
         * when messages have been sent whilst the old connection is disconnected
           * the new connection
-            * [recovers server-side queued messages](./spec/acceptance/realtime/connection_spec.rb#L645)
+            * [recovers server-side queued messages](./spec/acceptance/realtime/connection_spec.rb#L647)
       * with :recover option
         * with invalid syntax
-          * [raises an exception](./spec/acceptance/realtime/connection_spec.rb#L670)
+          * [raises an exception](./spec/acceptance/realtime/connection_spec.rb#L672)
         * with invalid formatted value sent to server
-          * [triggers a fatal error on the connection object, sets the #error_reason and disconnects](./spec/acceptance/realtime/connection_spec.rb#L679)
+          * [triggers a fatal error on the connection object, sets the #error_reason and disconnects](./spec/acceptance/realtime/connection_spec.rb#L681)
         * with expired (missing) value sent to server
-          * [triggers an error on the connection object, sets the #error_reason, yet will connect anyway](./spec/acceptance/realtime/connection_spec.rb#L694)
+          * [triggers an error on the connection object, sets the #error_reason, yet will connect anyway](./spec/acceptance/realtime/connection_spec.rb#L696)
     * with many connections simultaneously
-      * [opens each with a unique connection#id and connection#key](./spec/acceptance/realtime/connection_spec.rb#L713)
+      * [opens each with a unique connection#id and connection#key](./spec/acceptance/realtime/connection_spec.rb#L715)
     * when a state transition is unsupported
-      * [emits a StateChangeError](./spec/acceptance/realtime/connection_spec.rb#L733)
+      * [emits a StateChangeError](./spec/acceptance/realtime/connection_spec.rb#L735)
     * protocol failure
       * receiving an invalid ProtocolMessage
-        * [emits an error on the connection and logs a fatal error message](./spec/acceptance/realtime/connection_spec.rb#L749)
+        * [emits an error on the connection and logs a fatal error message](./spec/acceptance/realtime/connection_spec.rb#L751)
     * undocumented method
       * #internet_up?
-        * [returns a Deferrable](./spec/acceptance/realtime/connection_spec.rb#L765)
+        * [returns a Deferrable](./spec/acceptance/realtime/connection_spec.rb#L767)
         * internet up URL protocol
           * when using TLS for the connection
-            * [uses TLS for the Internet check to https://internet-up.ably-realtime.com/is-the-internet-up.txt](./spec/acceptance/realtime/connection_spec.rb#L776)
+            * [uses TLS for the Internet check to https://internet-up.ably-realtime.com/is-the-internet-up.txt](./spec/acceptance/realtime/connection_spec.rb#L778)
           * when using a non-secured connection
-            * [uses TLS for the Internet check to http://internet-up.ably-realtime.com/is-the-internet-up.txt](./spec/acceptance/realtime/connection_spec.rb#L786)
+            * [uses TLS for the Internet check to http://internet-up.ably-realtime.com/is-the-internet-up.txt](./spec/acceptance/realtime/connection_spec.rb#L788)
         * when the Internet is up
-          * [calls the block with true](./spec/acceptance/realtime/connection_spec.rb#L795)
-          * [calls the success callback of the Deferrable](./spec/acceptance/realtime/connection_spec.rb#L802)
+          * [calls the block with true](./spec/acceptance/realtime/connection_spec.rb#L797)
+          * [calls the success callback of the Deferrable](./spec/acceptance/realtime/connection_spec.rb#L804)
         * when the Internet is down
-          * [calls the block with false](./spec/acceptance/realtime/connection_spec.rb#L814)
-          * [calls the failure callback of the Deferrable](./spec/acceptance/realtime/connection_spec.rb#L821)
+          * [calls the block with false](./spec/acceptance/realtime/connection_spec.rb#L816)
+          * [calls the failure callback of the Deferrable](./spec/acceptance/realtime/connection_spec.rb#L823)
 
 ### Ably::Realtime::Channel Message
 _(see [spec/acceptance/realtime/message_spec.rb](./spec/acceptance/realtime/message_spec.rb))_
