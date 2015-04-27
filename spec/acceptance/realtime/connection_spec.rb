@@ -542,10 +542,10 @@ describe Ably::Realtime::Connection, :event_machine do
         let(:states)           { Hash.new }
         let(:client_options)   { default_options.merge(log_level: :none) }
 
-        it 'is composed of connection id and serial that is kept up to date with each message ACK received' do
+        it 'is composed of connection key and serial that is kept up to date with each message ACK received' do
           connection.on(:connected) do
             expected_serial = -1
-            expect(connection.id).to_not be_nil
+            expect(connection.key).to_not be_nil
             expect(connection.serial).to eql(expected_serial)
 
             client.channel('test').attach do |channel|
@@ -556,6 +556,8 @@ describe Ably::Realtime::Connection, :event_machine do
                 channel.publish('event', 'data') do
                   expected_serial += 1 # attach message received
                   expect(connection.serial).to eql(expected_serial)
+
+                  expect(connection.recovery_key).to eql("#{connection.key}:#{connection.serial}")
                   stop_reactor
                 end
               end
