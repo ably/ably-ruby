@@ -582,7 +582,7 @@ _(see [spec/acceptance/realtime/presence_spec.rb](./spec/acceptance/realtime/pre
       * [expect :left event once underlying connection is closed](./spec/acceptance/realtime/presence_spec.rb#L1310)
       * [expect :left event with client data from enter event](./spec/acceptance/realtime/presence_spec.rb#L1320)
     * connection failure mid-way through a large member sync
-      * PENDING: *[resumes the SYNC operation](./spec/acceptance/realtime/presence_spec.rb#L1339)*
+      * [resumes the SYNC operation](./spec/acceptance/realtime/presence_spec.rb#L1339)
 
 ### Ably::Realtime::Client#stats
 _(see [spec/acceptance/realtime/stats_spec.rb](./spec/acceptance/realtime/stats_spec.rb))_
@@ -2068,6 +2068,6 @@ _(see [spec/unit/util/pub_sub_spec.rb](./spec/unit/util/pub_sub_spec.rb))_
 
   ## Test summary
 
-  * Passing tests: 1028
-  * Pending tests: 7
+  * Passing tests: 1029
+  * Pending tests: 6
   * Failing tests: 0

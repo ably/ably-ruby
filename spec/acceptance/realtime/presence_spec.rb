@@ -1335,8 +1335,7 @@ describe Ably::Realtime::Presence, :event_machine do
       let(:members_count) { 400 }
       let(:sync_pages_received) { [] }
 
-      # Will re-enable once https://github.com/ably/realtime/issues/91 is resolved
-      skip 'resumes the SYNC operation', em_timeout: 15 do
+      it 'resumes the SYNC operation', em_timeout: 15 do
         when_all(*members_count.times.map do |index|
           presence_client_one.enter_client("client:#{index}")
         end) do
