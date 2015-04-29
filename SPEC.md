@@ -473,7 +473,7 @@ _(see [spec/acceptance/realtime/presence_spec.rb](./spec/acceptance/realtime/pre
         * when set to a string
           * [emits the new data for the leave event](./spec/acceptance/realtime/presence_spec.rb#L561)
         * when set to nil
-          * [emits the previously defined value as a convenience](./spec/acceptance/realtime/presence_spec.rb#L574)
+          * [emits a nil value for the data attribute when leaving](./spec/acceptance/realtime/presence_spec.rb#L574)
         * when not passed as an argument
           * [emits the previously defined value as a convenience](./spec/acceptance/realtime/presence_spec.rb#L587)
       * it should behave like a public presence method

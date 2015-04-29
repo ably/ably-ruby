@@ -571,7 +571,7 @@ describe Ably::Realtime::Presence, :event_machine do
         end
 
         context 'when set to nil' do
-          it 'emits the previously defined value as a convenience' do
+          it 'emits a nil value for the data attribute when leaving' do
             presence_client_one.enter data: enter_data do
               presence_client_one.leave data: nil
             end
