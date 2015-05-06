@@ -20,7 +20,7 @@ module Ably::Models
   # via the Ably Realtime service.
   #
   # @!attribute [r] action
-  #   @return [STATE] the state change event signified by a PresenceMessage
+  #   @return [ACTION] the state change event signified by a PresenceMessage
   # @!attribute [r] client_id
   #   @return [String] The client_id associated with this presence state
   # @!attribute [r] connection_id
