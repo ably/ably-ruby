@@ -162,7 +162,7 @@ describe Ably::Models::MessageEncoders do
       context 'with binary data' do
         let(:published_data) { binary_data }
 
-        it 'applies cipher and base64 encoding and sets the encoding attribute to "utf-8/cipher+aes-128-cbc/base64"' do
+        it 'applies cipher and base64 encoding and sets the encoding attribute to "cipher+aes-128-cbc/base64"' do
           on_publish do |encoding, encoded_data|
             expect(encoding).to eql('cipher+aes-128-cbc/base64')
             expect(decrypted(encoded_data, base64: true)).to eql(published_data)

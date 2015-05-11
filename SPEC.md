@@ -582,7 +582,7 @@ _(see [spec/acceptance/realtime/presence_spec.rb](./spec/acceptance/realtime/pre
       * [expect :left event once underlying connection is closed](./spec/acceptance/realtime/presence_spec.rb#L1310)
       * [expect :left event with client data from enter event](./spec/acceptance/realtime/presence_spec.rb#L1320)
     * connection failure mid-way through a large member sync
-      * [resumes the SYNC operation](./spec/acceptance/realtime/presence_spec.rb#L1339)
+      * [resumes the SYNC operation](./spec/acceptance/realtime/presence_spec.rb#L1338)
 
 ### Ably::Realtime::Client#stats
 _(see [spec/acceptance/realtime/stats_spec.rb](./spec/acceptance/realtime/stats_spec.rb))_
@@ -854,7 +854,7 @@ _(see [spec/acceptance/rest/encoders_spec.rb](./spec/acceptance/rest/encoders_sp
       * with UTF-8 data
         * [applies utf-8, cipher and base64 encodings and sets the encoding attribute to "utf-8/cipher+aes-128-cbc/base64"](./spec/acceptance/rest/encoders_spec.rb#L154)
       * with binary data
-        * [applies cipher and base64 encoding and sets the encoding attribute to "utf-8/cipher+aes-128-cbc/base64"](./spec/acceptance/rest/encoders_spec.rb#L165)
+        * [applies cipher and base64 encoding and sets the encoding attribute to "cipher+aes-128-cbc/base64"](./spec/acceptance/rest/encoders_spec.rb#L165)
       * with JSON data
         * [applies json, utf-8, cipher and base64 encoding and sets the encoding attribute to "json/utf-8/cipher+aes-128-cbc/base64"](./spec/acceptance/rest/encoders_spec.rb#L176)
 
