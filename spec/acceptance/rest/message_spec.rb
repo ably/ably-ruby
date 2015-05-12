@@ -10,7 +10,7 @@ describe Ably::Rest::Channel, 'messages' do
     let(:client_options)         { default_client_options }
     let(:client)                 { Ably::Rest::Client.new(client_options) }
     let(:other_client)           { Ably::Rest::Client.new(client_options) }
-    let(:channel)                { client.channel('test') }
+    let(:channel)                { client.channel(random_str) }
 
     context 'publishing with an ASCII_8BIT message name' do
       let(:message_name) { random_str.encode(Encoding::ASCII_8BIT) }
@@ -20,6 +20,78 @@ describe Ably::Rest::Channel, 'messages' do
         message = channel.history.items.first
         expect(message.name.encoding).to eql(Encoding::UTF_8)
         expect(message.name.encode(Encoding::ASCII_8BIT)).to eql(message_name)
+      end
+    end
+
+    context 'with supported data payload content type' do
+      context 'JSON Object (Hash)' do
+        let(:data) { { 'Hash' => 'true' } }
+
+        it 'is encoded and decoded to the same hash' do
+          channel.publish 'event', data
+          expect(channel.history.items.first.data).to eql(data)
+        end
+      end
+
+      context 'JSON Array' do
+        let(:data) { [ nil, true, false, 55, 'string', { 'Hash' => true }, ['array'] ] }
+
+        it 'is encoded and decoded to the same Array' do
+          channel.publish 'event', data
+          expect(channel.history.items.first.data).to eql(data)
+        end
+      end
+
+      context 'String' do
+        let(:data) { random_str }
+
+        it 'is encoded and decoded to the same Array' do
+          channel.publish 'event', data
+          expect(channel.history.items.first.data).to eql(data)
+        end
+      end
+
+      context 'Binary' do
+        let(:data) { Base64.encode64(random_str) }
+
+        it 'is encoded and decoded to the same Array' do
+          channel.publish 'event', data
+          expect(channel.history.items.first.data).to eql(data)
+        end
+      end
+    end
+
+    context 'with unsupported data payload content type' do
+      context 'Integer' do
+        let(:data) { 1 }
+
+        it 'is raises an UnsupportedDataTypeError 40011 exception' do
+          expect { channel.publish 'event', data }.to raise_error(Ably::Exceptions::UnsupportedDataTypeError)
+        end
+      end
+
+      context 'Float' do
+        let(:data) { 1.1 }
+
+        it 'is raises an UnsupportedDataTypeError 40011 exception' do
+          expect { channel.publish 'event', data }.to raise_error(Ably::Exceptions::UnsupportedDataTypeError)
+        end
+      end
+
+      context 'Boolean' do
+        let(:data) { true }
+
+        it 'is raises an UnsupportedDataTypeError 40011 exception' do
+          expect { channel.publish 'event', data }.to raise_error(Ably::Exceptions::UnsupportedDataTypeError)
+        end
+      end
+
+      context 'False' do
+        let(:data) { false }
+
+        it 'is raises an UnsupportedDataTypeError 40011 exception' do
+          expect { channel.publish 'event', data }.to raise_error(Ably::Exceptions::UnsupportedDataTypeError)
+        end
       end
     end
 

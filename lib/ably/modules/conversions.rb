@@ -96,5 +96,20 @@ module Ably::Modules
     rescue Encoding::UndefinedConversionError, Encoding::InvalidByteSequenceError => e
       raise ArgumentError, "#{field_name} could not be converted to UTF-8: #{e.message}"
     end
+
+    # Ensures that the payload is a type supported by all Ably client libraries.
+    # Ably guarantees interoperability between client libraries and subsequently
+    # client libraries must reject unsupported types
+    #
+    # @return <void>
+    #
+    def ensure_supported_payload(payload)
+      return if payload.kind_of?(String) ||
+        payload.kind_of?(Hash) ||
+        payload.kind_of?(Array) ||
+        payload.nil?
+
+      raise Ably::Exceptions::UnsupportedDataTypeError.new('Invalid data payload', 400, 40011)
+    end
   end
 end

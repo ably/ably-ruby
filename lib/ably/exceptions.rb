@@ -74,5 +74,8 @@ module Ably
 
     # The message could not be delivered to the server
     class MessageDeliveryError < BaseAblyException; end
+
+    # The data payload type is not supported
+    class UnsupportedDataTypeError < BaseAblyException; end
   end
 end

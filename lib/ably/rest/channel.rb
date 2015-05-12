@@ -37,6 +37,7 @@ module Ably
       # @return [Boolean] true if the message was published, otherwise false
       def publish(name, data)
         ensure_utf_8 :name, name
+        ensure_supported_payload data
 
         payload = {
           name: name,
