@@ -5,7 +5,7 @@ describe Ably::Rest::Presence do
   include Ably::Modules::Conversions
 
   vary_by_protocol do
-    let(:default_options) { { key: api_key, environment: environment, protocol: protocol } }
+    let(:default_options) { { key: api_key, environment: environment, protocol: protocol, log_level: :debug } }
     let(:client_options) { default_options }
     let(:client) do
       Ably::Rest::Client.new(client_options)
@@ -54,6 +54,7 @@ describe Ably::Rest::Presence do
 
           it 'returns a paged response limiting number of members per page' do
             expect(presence_page.items.size).to eql(page_size)
+            expect(presence_page).to be_first
             next_page = presence_page.next
             expect(next_page.items.size).to eql(page_size)
             expect(next_page).to be_last
