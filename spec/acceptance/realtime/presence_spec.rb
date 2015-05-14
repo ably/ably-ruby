@@ -53,6 +53,107 @@ describe Ably::Realtime::Presence, :event_machine do
         end
       end
 
+      context 'with supported data payload content type' do
+        def register_presence_and_check_data(method_name, data)
+          if method_name.to_s.match(/_client/)
+            presence_client_one.public_send(method_name, 'client_id', data: data)
+          else
+            presence_client_one.public_send(method_name, data: data)
+          end
+
+          presence_client_one.subscribe do |presence_message|
+            expect(presence_message.data).to eql(data)
+            stop_reactor
+          end
+        end
+
+        context 'JSON Object (Hash)' do
+          let(:data) { { 'Hash' => 'true' } }
+
+          it 'is encoded and decoded to the same hash' do
+            setup_test(method_name, args, options) do
+              register_presence_and_check_data method_name, data
+            end
+          end
+        end
+
+        context 'JSON Array' do
+          let(:data) { [ nil, true, false, 55, 'string', { 'Hash' => true }, ['array'] ] }
+
+          it 'is encoded and decoded to the same Array' do
+            setup_test(method_name, args, options) do
+              register_presence_and_check_data method_name, data
+            end
+          end
+        end
+
+        context 'String' do
+          let(:data) { random_str }
+
+          it 'is encoded and decoded to the same Array' do
+            setup_test(method_name, args, options) do
+              register_presence_and_check_data method_name, data
+            end
+          end
+        end
+
+        context 'Binary' do
+          let(:data) { Base64.encode64(random_str) }
+
+          it 'is encoded and decoded to the same Array' do
+            setup_test(method_name, args, options) do
+              register_presence_and_check_data method_name, data
+            end
+          end
+        end
+      end
+
+      context 'with unsupported data payload content type' do
+        def presence_action(method_name, data)
+          if method_name.to_s.match(/_client/)
+            presence_client_one.public_send(method_name, 'client_id', data: data)
+          else
+            presence_client_one.public_send(method_name, data: data)
+          end
+        end
+
+        context 'Integer' do
+          let(:data) { 1 }
+
+          it 'raises an UnsupportedDataTypeError 40011 exception' do
+            expect { presence_action(method_name, data) }.to raise_error(Ably::Exceptions::UnsupportedDataTypeError)
+            stop_reactor
+          end
+        end
+
+        context 'Float' do
+          let(:data) { 1.1 }
+
+          it 'raises an UnsupportedDataTypeError 40011 exception' do
+            expect { presence_action(method_name, data) }.to raise_error(Ably::Exceptions::UnsupportedDataTypeError)
+            stop_reactor
+          end
+        end
+
+        context 'Boolean' do
+          let(:data) { true }
+
+          it 'raises an UnsupportedDataTypeError 40011 exception' do
+            expect { presence_action(method_name, data) }.to raise_error(Ably::Exceptions::UnsupportedDataTypeError)
+            stop_reactor
+          end
+        end
+
+        context 'False' do
+          let(:data) { false }
+
+          it 'raises an UnsupportedDataTypeError 40011 exception' do
+            expect { presence_action(method_name, data) }.to raise_error(Ably::Exceptions::UnsupportedDataTypeError)
+            stop_reactor
+          end
+        end
+      end
+
       it 'returns a SafeDeferrable that catches exceptions in callbacks and logs them' do
         setup_test(method_name, args, options) do
           expect(presence_client_one.public_send(method_name, args)).to be_a(Ably::Util::SafeDeferrable)

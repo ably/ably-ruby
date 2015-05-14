@@ -122,6 +122,7 @@ module Ably
       #
       def publish(name, data, &success_block)
         ensure_utf_8 :name, name
+        ensure_supported_payload data
 
         create_message(name, data).tap do |message|
           message.callback(&success_block) if block_given?

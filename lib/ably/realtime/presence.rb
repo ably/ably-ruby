@@ -1,6 +1,7 @@
 module Ably::Realtime
   # Presence provides access to presence operations and state for the associated Channel
   class Presence
+    include Ably::Modules::Conversions
     include Ably::Modules::EventEmitter
     include Ably::Modules::AsyncWrapper
     include Ably::Modules::MessageEmitter
@@ -69,11 +70,16 @@ module Ably::Realtime
     # @return [Ably::Util::SafeDeferrable] Deferrable that supports both success (callback) and failure (errback) callbacks
     #
     def enter(options = {}, &success_block)
-      @client_id = options.fetch(:client_id, client_id)
-      @data      = options.fetch(:data, nil)
+      client_id  = options.fetch(:client_id, self.client_id)
+      data       = options.fetch(:data, nil)
       deferrable = create_deferrable
 
+      ensure_supported_payload data unless data.nil?
       raise Ably::Exceptions::Standard.new('Unable to enter presence channel without a client_id', 400, 91000) unless client_id
+
+      @data = data
+      @client_id = client_id
+
       return deferrable_succeed(deferrable, &success_block) if state == STATE.Entered
 
       ensure_channel_attached(deferrable) do
@@ -113,6 +119,7 @@ module Ably::Realtime
     #
     def enter_client(client_id, options = {}, &success_block)
       raise ArgumentError, 'options must be a Hash' unless options.kind_of?(Hash)
+      ensure_supported_payload options[:data] if options.has_key?(:data)
       raise Ably::Exceptions::Standard.new('Unable to enter presence channel without a client_id', 400, 91000) unless client_id
 
       send_presence_action_for_client(Ably::Models::PresenceMessage::ACTION.Enter, client_id, options, &success_block)
@@ -128,10 +135,14 @@ module Ably::Realtime
     # @return (see Presence#enter)
     #
     def leave(options = {}, &success_block)
-      @data      = options.fetch(:data, data) # nil value defaults leave data to existing value
+      data       = options.fetch(:data, self.data) # nil value defaults leave data to existing value
       deferrable = create_deferrable
 
+      ensure_supported_payload data unless data.nil?
       raise Ably::Exceptions::Standard.new('Unable to leave presence channel that is not entered', 400, 91002) unless able_to_leave?
+
+      @data = data
+
       return deferrable_succeed(deferrable, &success_block) if state == STATE.Left
 
       ensure_channel_attached(deferrable) do
@@ -165,6 +176,7 @@ module Ably::Realtime
     #
     def leave_client(client_id, options = {}, &success_block)
       raise ArgumentError, 'options must be a Hash' unless options.kind_of?(Hash)
+      ensure_supported_payload options[:data] if options.has_key?(:data)
       raise Ably::Exceptions::Standard.new('Unable to leave presence channel without a client_id', 400, 91000) unless client_id
 
       send_presence_action_for_client(Ably::Models::PresenceMessage::ACTION.Leave, client_id, options, &success_block)
@@ -181,8 +193,13 @@ module Ably::Realtime
     # @return (see Presence#enter)
     #
     def update(options = {}, &success_block)
-      @data      = options.fetch(:data, nil)
+      data       = options.fetch(:data, nil)
       deferrable = create_deferrable
+
+      ensure_supported_payload data unless data.nil?
+      raise Ably::Exceptions::Standard.new('Unable to update presence channel without a client_id', 400, 91000) unless client_id
+
+      @data = data
 
       ensure_channel_attached(deferrable) do
         send_protocol_message_and_transition_state_to(
@@ -210,6 +227,7 @@ module Ably::Realtime
     #
     def update_client(client_id, options = {}, &success_block)
       raise ArgumentError, 'options must be a Hash' unless options.kind_of?(Hash)
+      ensure_supported_payload options[:data] if options.has_key?(:data)
       raise Ably::Exceptions::Standard.new('Unable to enter presence channel without a client_id', 400, 91000) unless client_id
 
       send_presence_action_for_client(Ably::Models::PresenceMessage::ACTION.Update, client_id, options, &success_block)
