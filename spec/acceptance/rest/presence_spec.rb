@@ -54,7 +54,8 @@ describe Ably::Rest::Presence do
 
           it 'returns a paged response limiting number of members per page' do
             expect(presence_page.items.size).to eql(page_size)
-            expect(presence_page).to be_first
+            # TODO: To be enabled once Realtime Presence issue #164 is resolved
+            # expect(presence_page).to be_first
             next_page = presence_page.next
             expect(next_page.items.size).to eql(page_size)
             expect(next_page).to be_last
