@@ -3,7 +3,7 @@ require 'eventmachine'
 module Ably::Modules
   # SafeDeferrable module provides an EventMachine::Deferrable interface to the object it is included in
   # and is safe to use for for public interfaces of this client library.
-  # Any exceptions raised in the success or failure callbacks is caught and logged to #logger
+  # Any exceptions raised in the success or failure callbacks are caught and logged to #logger
   #
   # An exception in a callback provided by a developer should not break this client library
   # and stop further execution of code.
