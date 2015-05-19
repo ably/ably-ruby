@@ -18,6 +18,9 @@ module Ably::Modules
     # Specify a block to be executed if and when the Deferrable object receives
     # a status of :succeeded.
     # See http://www.rubydoc.info/gems/eventmachine/1.0.7/EventMachine/Deferrable#callback-instance_method
+    #
+    # @return [void]
+    #
     def callback(&block)
       super do |*args|
         safe_deferrable_block(*args, &block)
@@ -27,20 +30,29 @@ module Ably::Modules
     # Specify a block to be executed if and when the Deferrable object receives
     # a status of :failed.
     # See http://www.rubydoc.info/gems/eventmachine/1.0.7/EventMachine/Deferrable#errback-instance_method
+    #
+    # @return [void]
+    #
     def errback(&block)
       super do |*args|
         safe_deferrable_block(*args, &block)
       end
     end
 
-    # Mark the Deferrable as succeeded and trigger all callbacks
+    # Mark the Deferrable as succeeded and trigger all callbacks.
     # See http://www.rubydoc.info/gems/eventmachine/1.0.7/EventMachine/Deferrable#succeed-instance_method
+    #
+    # @return [void]
+    #
     def succeed(*args)
       super(*args)
     end
 
-    # Mark the Deferrable as failed and trigger all callbacks
+    # Mark the Deferrable as failed and trigger all callbacks.
     # See http://www.rubydoc.info/gems/eventmachine/1.0.7/EventMachine/Deferrable#fail-instance_method
+    #
+    # @return [void]
+    #
     def fail(*args)
       super(*args)
     end
