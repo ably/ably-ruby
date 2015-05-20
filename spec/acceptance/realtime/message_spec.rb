@@ -81,6 +81,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
 
         it 'is raises an UnsupportedDataTypeError 40011 exception' do
           expect { channel.publish 'event', data }.to raise_error(Ably::Exceptions::UnsupportedDataTypeError)
+          stop_reactor
         end
       end
 
@@ -89,6 +90,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
 
         it 'is raises an UnsupportedDataTypeError 40011 exception' do
           expect { channel.publish 'event', data }.to raise_error(Ably::Exceptions::UnsupportedDataTypeError)
+          stop_reactor
         end
       end
 
@@ -97,6 +99,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
 
         it 'is raises an UnsupportedDataTypeError 40011 exception' do
           expect { channel.publish 'event', data }.to raise_error(Ably::Exceptions::UnsupportedDataTypeError)
+          stop_reactor
         end
       end
 
@@ -105,6 +108,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
 
         it 'is raises an UnsupportedDataTypeError 40011 exception' do
           expect { channel.publish 'event', data }.to raise_error(Ably::Exceptions::UnsupportedDataTypeError)
+          stop_reactor
         end
       end
     end
