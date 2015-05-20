@@ -696,6 +696,22 @@ describe Ably::Realtime::Presence, :event_machine do
             end
           end
         end
+
+        context 'and sync is complete' do
+          it 'does not cache members that have left' do
+            presence_client_one.enter data: enter_data do
+              expect(presence_client_one.members).to be_in_sync
+              expect(presence_client_one.members.send(:members).count).to eql(1)
+              presence_client_one.leave data: data
+            end
+
+            presence_client_one.subscribe(:leave) do |presence_message|
+              expect(presence_message.data).to eql(data)
+              expect(presence_client_one.members.send(:members).count).to eql(0)
+              stop_reactor
+            end
+          end
+        end
       end
 
       it 'raises an exception if not entered' do

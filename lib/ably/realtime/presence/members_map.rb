@@ -26,10 +26,6 @@ module Ably::Realtime
       )
       include Ably::Modules::StateEmitter
 
-      # Number of absent members to cache internally whilst channel is in sync.
-      # Cache is unlimited until initial sync is complete ensuring users who have left are never reported as present.
-      MAX_ABSENT_MEMBER_CACHE = 100
-
       def initialize(presence)
         @presence = presence
 
@@ -164,6 +160,10 @@ module Ably::Realtime
         once(:in_sync, :failed) do
           connection.off_resume &resume_sync_proc
         end
+
+        once(:in_sync) do
+          clean_up_absent_members
+        end
       end
 
       # Trigger a manual SYNC operation to resume member synchronisation from last known cursor position
@@ -198,8 +198,6 @@ module Ably::Realtime
         else
           Ably::Exceptions::ProtocolError.new("Protocol error, unknown presence action #{presence_message.action}", 400, 80013)
         end
-
-        clean_up_absent_members
       end
 
       def ensure_presence_message_is_valid(presence_message)
@@ -234,8 +232,14 @@ module Ably::Realtime
 
       def remove_presence_member(presence_message)
         logger.debug "#{self.class.name}: Member '#{presence_message.member_key}' removed.\n#{presence_message.to_json}"
-        members[presence_message.member_key] = { present: false, message: presence_message }
-        absent_member_cleanup_queue << presence_message.member_key
+
+        if in_sync?
+          members.delete presence_message.member_key
+        else
+          members[presence_message.member_key] = { present: false, message: presence_message }
+          absent_member_cleanup_queue << presence_message.member_key
+        end
+
         presence.emit_message presence_message.action, presence_message
       end
 
@@ -256,8 +260,7 @@ module Ably::Realtime
       end
 
       def clean_up_absent_members
-        return unless sync_complete?
-        members.delete absent_member_cleanup_queue.shift until absent_member_cleanup_queue.count <= MAX_ABSENT_MEMBER_CACHE
+        members.delete absent_member_cleanup_queue.shift
       end
     end
   end
