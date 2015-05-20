@@ -1,8 +1,8 @@
 require 'spec_helper'
 require 'ostruct'
 
-describe Ably::Models::PaginatedResource do
-  let(:paginated_resource_class) { Ably::Models::PaginatedResource }
+describe Ably::Models::PaginatedResult do
+  let(:paginated_result_class) { Ably::Models::PaginatedResult }
   let(:headers) { Hash.new }
   let(:client) do
     instance_double('Ably::Rest::Client', logger: Ably::Models::NilLogger.new).tap do |client|
@@ -23,8 +23,8 @@ describe Ably::Models::PaginatedResource do
   end
   let(:base_url) { 'http://rest.ably.io/channels/channel_name' }
   let(:full_url) { "#{base_url}/whatever?param=exists" }
-  let(:paginated_resource_options) { Hash.new }
-  let(:first_paged_request) { paginated_resource_class.new(http_response, full_url, client, paginated_resource_options) }
+  let(:paginated_result_options) { Hash.new }
+  let(:first_paged_request) { paginated_result_class.new(http_response, full_url, client, paginated_result_options) }
   subject { first_paged_request }
 
   context '#items' do
@@ -69,7 +69,7 @@ describe Ably::Models::PaginatedResource do
     end
 
     context 'with coercion', :api_private do
-      let(:paginated_resource_options) { { coerce_into: 'OpenStruct' } }
+      let(:paginated_result_options) { { coerce_into: 'OpenStruct' } }
 
       it 'returns coerced objects' do
         expect(subject.items.first).to be_a(OpenStruct)
@@ -106,17 +106,17 @@ describe Ably::Models::PaginatedResource do
 
     context 'with each block' do
       subject do
-        paginated_resource_class.new(http_response, full_url, paged_client, paginated_resource_options) do |resource|
-          resource[:added_attribute_from_block] = "id:#{resource[:id]}"
-          resource
+        paginated_result_class.new(http_response, full_url, paged_client, paginated_result_options) do |result|
+          result[:added_attribute_from_block] = "id:#{result[:id]}"
+          result
         end
       end
 
-      it 'calls the block for each resource after retrieving the resources' do
+      it 'calls the block for each result after retrieving the results' do
         expect(subject.items[0][:added_attribute_from_block]).to eql("id:#{body[0][:id]}")
       end
 
-      it 'calls the block for each resource on second page after retrieving the resources' do
+      it 'calls the block for each result on second page after retrieving the results' do
         page_1_first_id = subject.items[0][:id]
         next_page = subject.next
 
@@ -130,7 +130,7 @@ describe Ably::Models::PaginatedResource do
         include RSpec::EventMachine
 
         subject do
-          paginated_resource_class.new(http_response, full_url, paged_client, async_blocking_operations: true)
+          paginated_result_class.new(http_response, full_url, paged_client, async_blocking_operations: true)
         end
 
         context '#next' do
@@ -143,8 +143,8 @@ describe Ably::Models::PaginatedResource do
 
           it 'allows a success callback block to be added' do
             run_reactor do
-              subject.next do |paginated_resource|
-                expect(paginated_resource).to be_a(Ably::Models::PaginatedResource)
+              subject.next do |paginated_result|
+                expect(paginated_result).to be_a(Ably::Models::PaginatedResult)
                 stop_reactor
               end
             end
@@ -154,7 +154,7 @@ describe Ably::Models::PaginatedResource do
         context '#first' do
           it 'calls the errback callback when first page headers are missing' do
             run_reactor do
-              subject.next do |paginated_resource|
+              subject.next do |paginated_result|
                 deferrable = subject.first
                 deferrable.errback do |error|
                   expect(error).to be_a(Ably::Exceptions::InvalidPageError)
@@ -247,8 +247,8 @@ describe Ably::Models::PaginatedResource do
         expect(client).to receive(:get).with("#{base_url}/history?index=1").and_return(next_http_response).once
       end
 
-      it 'returns another PaginatedResource' do
-        expect(subject).to be_a(paginated_resource_class)
+      it 'returns another PaginatedResult' do
+        expect(subject).to be_a(paginated_result_class)
       end
 
       it 'retrieves the next page of results' do
@@ -279,8 +279,8 @@ describe Ably::Models::PaginatedResource do
         end
         subject { first_paged_request.next.first }
 
-        it 'returns a PaginatedResource' do
-          expect(subject).to be_a(paginated_resource_class)
+        it 'returns a PaginatedResult' do
+          expect(subject).to be_a(paginated_result_class)
         end
 
         it 'retrieves the first page of results' do

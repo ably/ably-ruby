@@ -292,7 +292,7 @@ module Ably::Realtime
     # @option options (see Ably::Rest::Presence#history)
     # @option options [Boolean]  :until_attach  When true, request for history will be limited only to messages published before the associated channel was attached. The associated channel must be attached.
     #
-    # @yield [Ably::Models::PaginatedResource<Ably::Models::PresenceMessage>] First {Ably::Models::PaginatedResource page} of {Ably::Models::PresenceMessage} objects accessible with {Ably::Models::PaginatedResource#items #items}.
+    # @yield [Ably::Models::PaginatedResult<Ably::Models::PresenceMessage>] First {Ably::Models::PaginatedResult page} of {Ably::Models::PresenceMessage} objects accessible with {Ably::Models::PaginatedResult#items #items}.
     #
     # @return [Ably::Util::SafeDeferrable]
     #

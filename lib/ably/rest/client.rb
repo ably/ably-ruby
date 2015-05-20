@@ -150,7 +150,7 @@ module Ably
       # @option options [Integer]      :limit      Maximum number of messages to retrieve up to 1,000, defaults to 100
       # @option options [Symbol]       :unit       `:minute`, `:hour`, `:day` or `:month`. Defaults to `:minute`
       #
-      # @return [Ably::Models::PaginatedResource<Ably::Models::Stats>] An Array of Stats
+      # @return [Ably::Models::PaginatedResult<Ably::Models::Stats>] An Array of Stats
       #
       def stats(options = {})
         options = {
@@ -168,7 +168,7 @@ module Ably
         url = '/stats'
         response = get(url, options)
 
-        Ably::Models::PaginatedResource.new(response, url, self, paginated_options)
+        Ably::Models::PaginatedResult.new(response, url, self, paginated_options)
       end
 
       # Retrieve the Ably service time

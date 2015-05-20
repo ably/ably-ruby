@@ -103,11 +103,11 @@ channel.publish('greeting', 'Hello World!')
 
 ```ruby
 channel.history do |messages_page|
-  messages_page #=> #<Ably::Models::PaginatedResource ...>
+  messages_page #=> #<Ably::Models::PaginatedResult ...>
   messages_page.items.first # #<Ably::Models::Message ...>
   messages_page.items.first.data # payload for the message
   messages_page.items.length # number of messages in the current page of history
-  messages_page.next # retrieves the next page => #<Ably::Models::PaginatedResource ...>
+  messages_page.next # retrieves the next page => #<Ably::Models::PaginatedResult ...>
   messages_page.has_next? # false, there are more pages
 end
 ```
@@ -127,7 +127,7 @@ channel.presence.history do |presence_page|
   presence_page.items.first.action # Any of :enter, :update or :leave
   presence_page.items.first.client_id # client ID of member
   presence_page.items.first.data # optional data payload of member
-  presence_page.next # retrieves the next page => #<Ably::Models::PaginatedResource ...>
+  presence_page.next # retrieves the next page => #<Ably::Models::PaginatedResult ...>
 end
 ```
 
@@ -153,30 +153,30 @@ channel.publish('myEvent', 'Hello!') #=> true
 ### Querying the History
 
 ```ruby
-messages_page = channel.history #=> #<Ably::Models::PaginatedResource ...>
+messages_page = channel.history #=> #<Ably::Models::PaginatedResult ...>
 messages_page.items.first #=> #<Ably::Models::Message ...>
 messages_page.items.first.data # payload for the message
-messages_page.next # retrieves the next page => #<Ably::Models::PaginatedResource ...>
+messages_page.next # retrieves the next page => #<Ably::Models::PaginatedResult ...>
 messages_page.has_next? # false, there are more pages
 ```
 
 ### Presence on a channel
 
 ```ruby
-members_page = channel.presence.get # => #<Ably::Models::PaginatedResource ...>
+members_page = channel.presence.get # => #<Ably::Models::PaginatedResult ...>
 members_page.items.first # first member present in this page => #<Ably::Models::PresenceMessage ...>
 members_page.items.first.client_id # client ID of first member present
-members_page.next # retrieves the next page => #<Ably::Models::PaginatedResource ...>
+members_page.next # retrieves the next page => #<Ably::Models::PaginatedResult ...>
 members_page.has_next? # false, there are more pages
 ```
 
 ### Querying the Presence History
 
 ```ruby
-presence_page = channel.presence.history #=> #<Ably::Models::PaginatedResource ...>
+presence_page = channel.presence.history #=> #<Ably::Models::PaginatedResult ...>
 presence_page.items.first #=> #<Ably::Models::PresenceMessage ...>
 presence_page.items.first.client_id # client ID of first member
-presence_page.next # retrieves the next page => #<Ably::Models::PaginatedResource ...>
+presence_page.next # retrieves the next page => #<Ably::Models::PaginatedResult ...>
 ```
 
 ### Generate Token and Token Request
@@ -200,9 +200,9 @@ token = client.auth.create_token_request
 ### Fetching your application's stats
 
 ```ruby
-stats_page = client.stats #=> #<Ably::Models::PaginatedResource ...>
+stats_page = client.stats #=> #<Ably::Models::PaginatedResult ...>
 stats_page.items.first = #<Ably::Models::Stats ...>
-stats_page.next # retrieves the next page => #<Ably::Models::PaginatedResource ...>
+stats_page.next # retrieves the next page => #<Ably::Models::PaginatedResult ...>
 ```
 
 ### Fetching the Ably service time

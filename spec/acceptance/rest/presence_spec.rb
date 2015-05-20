@@ -83,7 +83,7 @@ describe Ably::Rest::Presence do
             let(:paged_history_forward) { fixtures_channel.presence.history(limit: page_size, direction: :forwards) }
 
             it 'returns recent presence activity forwards with most recent history last' do
-              expect(paged_history_forward).to be_a(Ably::Models::PaginatedResource)
+              expect(paged_history_forward).to be_a(Ably::Models::PaginatedResult)
               expect(paged_history_forward.items.size).to eql(page_size)
 
               next_page = paged_history_forward.next
@@ -98,7 +98,7 @@ describe Ably::Rest::Presence do
             let(:paged_history_backward) { fixtures_channel.presence.history(limit: page_size, direction: :backwards) }
 
             it 'returns recent presence activity backwards with most recent history first' do
-              expect(paged_history_backward).to be_a(Ably::Models::PaginatedResource)
+              expect(paged_history_backward).to be_a(Ably::Models::PaginatedResult)
               expect(paged_history_backward.items.size).to eql(page_size)
 
               next_page = paged_history_backward.next

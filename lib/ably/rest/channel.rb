@@ -61,7 +61,7 @@ module Ably
       # @option options [Symbol]       :direction  +:forwards+ or +:backwards+, defaults to +:backwards+
       # @option options [Integer]      :limit      Maximum number of messages to retrieve up to 1,000, defaults to 100
       #
-      # @return [Ably::Models::PaginatedResource<Ably::Models::Message>] First {Ably::Models::PaginatedResource page} of {Ably::Models::Message} objects accessible with {Ably::Models::PaginatedResource#items #items}.
+      # @return [Ably::Models::PaginatedResult<Ably::Models::Message>] First {Ably::Models::PaginatedResult page} of {Ably::Models::Message} objects accessible with {Ably::Models::PaginatedResult#items #items}.
       #
       def history(options = {})
         url = "#{base_path}/messages"
@@ -79,7 +79,7 @@ module Ably
 
         response = client.get(url, options)
 
-        Ably::Models::PaginatedResource.new(response, url, client, paginated_options) do |message|
+        Ably::Models::PaginatedResult.new(response, url, client, paginated_options) do |message|
           message.tap do |message|
             decode_message message
           end

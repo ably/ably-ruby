@@ -6,10 +6,10 @@ module Ably::Models
   #
   # Paging information is provided by Ably in the LINK HTTP headers
   #
-  class PaginatedResource
+  class PaginatedResult
     include Ably::Modules::AsyncWrapper if defined?(Ably::Realtime)
 
-    # The items contained within this {PaginatedResource}
+    # The items contained within this {PaginatedResult}
     # @return [Array]
     attr_reader :items
 
@@ -17,11 +17,11 @@ module Ably::Models
     # @param [String] base_url Base URL for request that generated the http_response so that subsequent paged requests can be made
     # @param [Client] client {Ably::Client} used to make the request to Ably
     # @param [Hash] options Options for this paged resource
-    # @option options [Symbol,String] :coerce_into symbol or string representing class that should be used to create each item in the PaginatedResource
+    # @option options [Symbol,String] :coerce_into symbol or string representing class that should be used to create each item in the PaginatedResult
     #
     # @yield [Object] block will be called for each resource object for the current page.  This is a useful way to apply a transformation to any page resources after they are retrieved
     #
-    # @return [PaginatedResource]
+    # @return [PaginatedResult]
     def initialize(http_response, base_url, client, options = {}, &each_block)
       @http_response = http_response
       @client        = client
@@ -40,11 +40,11 @@ module Ably::Models
     # When used as part of the {Ably::Realtime} library, it will return a {Ably::Util::SafeDeferrable} object,
     #   and allows an optional success callback block to be provided.
     #
-    # @return [PaginatedResource,Ably::Util::SafeDeferrable]
+    # @return [PaginatedResult,Ably::Util::SafeDeferrable]
     def first(&success_callback)
       async_wrap_if_realtime(success_callback) do
         return nil unless supports_pagination?
-        PaginatedResource.new(client.get(pagination_url('first')), base_url, client, pagination_options, &each_block)
+        PaginatedResult.new(client.get(pagination_url('first')), base_url, client, pagination_options, &each_block)
       end
     end
 
@@ -52,11 +52,11 @@ module Ably::Models
     # When used as part of the {Ably::Realtime} library, it will return a {Ably::Util::SafeDeferrable} object,
     #   and allows an optional success callback block to be provided.
     #
-    # @return [PaginatedResource,Ably::Util::SafeDeferrable]
+    # @return [PaginatedResult,Ably::Util::SafeDeferrable]
     def next(&success_callback)
       async_wrap_if_realtime(success_callback) do
         return nil unless has_next?
-        PaginatedResource.new(client.get(pagination_url('next')), base_url, client, pagination_options, &each_block)
+        PaginatedResult.new(client.get(pagination_url('next')), base_url, client, pagination_options, &each_block)
       end
     end
 

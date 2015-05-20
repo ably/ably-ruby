@@ -25,7 +25,7 @@ module Ably
       # @param [Hash] options the options for the set of members present
       # @option options [Integer]      :limit      Maximum number of members to retrieve up to 1,000, defaults to 100
       #
-      # @return [Ably::Models::PaginatedResource<Ably::Models::PresenceMessage>] First {Ably::Models::PaginatedResource page} of {Ably::Models::PresenceMessage} objects accessible with {Ably::Models::PaginatedResource#items #items}.
+      # @return [Ably::Models::PaginatedResult<Ably::Models::PresenceMessage>] First {Ably::Models::PaginatedResult page} of {Ably::Models::PresenceMessage} objects accessible with {Ably::Models::PaginatedResult#items #items}.
       #
       def get(options = {})
         options = options = {
@@ -39,7 +39,7 @@ module Ably
 
         response = client.get(base_path, options)
 
-        Ably::Models::PaginatedResource.new(response, base_path, client, paginated_options) do |presence_message|
+        Ably::Models::PaginatedResult.new(response, base_path, client, paginated_options) do |presence_message|
           presence_message.tap do |presence_message|
             decode_message presence_message
           end
@@ -54,7 +54,7 @@ module Ably
       # @option options [Symbol]       :direction  +:forwards+ or +:backwards+, defaults to +:backwards+
       # @option options [Integer]      :limit      Maximum number of messages to retrieve up to 1,000, defaults to 100
       #
-      # @return [Ably::Models::PaginatedResource<Ably::Models::PresenceMessage>] First {Ably::Models::PaginatedResource page} of {Ably::Models::PresenceMessage} objects accessible with {Ably::Models::PaginatedResource#items #items}.
+      # @return [Ably::Models::PaginatedResult<Ably::Models::PresenceMessage>] First {Ably::Models::PaginatedResult page} of {Ably::Models::PresenceMessage} objects accessible with {Ably::Models::PaginatedResult#items #items}.
       #
       def history(options = {})
         url = "#{base_path}/history"
@@ -72,7 +72,7 @@ module Ably
 
         response = client.get(url, options)
 
-        Ably::Models::PaginatedResource.new(response, url, client, paginated_options) do |presence_message|
+        Ably::Models::PaginatedResult.new(response, url, client, paginated_options) do |presence_message|
           presence_message.tap do |presence_message|
             decode_message presence_message
           end

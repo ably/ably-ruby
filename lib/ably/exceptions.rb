@@ -60,7 +60,7 @@ module Ably
     # The HTTP request has returned a 500 error
     class ServerError < BaseAblyException; end
 
-    # PaginatedResource cannot retrieve the page
+    # PaginatedResult cannot retrieve the page
     class InvalidPageError < BaseAblyException; end
 
     # The expected response from the server was invalid

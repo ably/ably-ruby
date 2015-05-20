@@ -64,7 +64,7 @@ describe Ably::Rest::Channel do
         end
       end
 
-      it 'should return paged history using the PaginatedResource model' do
+      it 'should return paged history using the PaginatedResult model' do
         page_1 = channel.history(limit: 1)
         page_2 = page_1.next
         page_3 = page_2.next

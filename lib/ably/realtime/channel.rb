@@ -201,7 +201,7 @@ module Ably
       # @option options (see Ably::Rest::Channel#history)
       # @option options [Boolean]  :until_attach  When true, the history request will be limited only to messages published before this channel was attached. Channel must be attached
       #
-      # @yield [Ably::Models::PaginatedResource<Ably::Models::Message>] First {Ably::Models::PaginatedResource page} of {Ably::Models::Message} objects accessible with {Ably::Models::PaginatedResource#items #items}.
+      # @yield [Ably::Models::PaginatedResult<Ably::Models::Message>] First {Ably::Models::PaginatedResult page} of {Ably::Models::Message} objects accessible with {Ably::Models::PaginatedResult#items #items}.
       #
       # @return [Ably::Util::SafeDeferrable]
       #

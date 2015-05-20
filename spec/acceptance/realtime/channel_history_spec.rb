@@ -24,7 +24,7 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
         expect(history).to be_a(Ably::Util::SafeDeferrable)
         history.callback do |page|
           expect(page.items.count).to eql(1)
-          expect(page).to be_a(Ably::Models::PaginatedResource)
+          expect(page).to be_a(Ably::Models::PaginatedResult)
           stop_reactor
         end
       end
