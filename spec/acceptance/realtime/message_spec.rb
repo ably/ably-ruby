@@ -545,11 +545,13 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
         let(:payload) { MessagePack.pack({ 'key' => random_str }) }
 
         it 'delivers the message but still encrypted with the cipher details in the #encoding attribute' do
-          encrypted_channel_client1.publish 'example', payload
-          encrypted_channel_client2.subscribe do |message|
-            expect(message.data).to_not eql(payload)
-            expect(message.encoding).to match(/^cipher\+aes-256-cbc/)
-            stop_reactor
+          encrypted_channel_client2.attach do
+            encrypted_channel_client1.publish 'example', payload
+            encrypted_channel_client2.subscribe do |message|
+              expect(message.data).to_not eql(payload)
+              expect(message.encoding).to match(/^cipher\+aes-256-cbc/)
+              stop_reactor
+            end
           end
         end
 
