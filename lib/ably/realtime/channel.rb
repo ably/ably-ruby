@@ -182,12 +182,9 @@ module Ably
       # presence on the channel and may also be used to obtain presence information
       # and change events for other members of the channel.
       #
-      # When accessing presence, if the channel is not attached, the channel is implicitly attached
-      #
       # @return {Ably::Realtime::Presence}
       #
       def presence
-        attach if initialized?
         @presence
       end
 

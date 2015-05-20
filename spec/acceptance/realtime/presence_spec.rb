@@ -261,6 +261,8 @@ describe Ably::Realtime::Presence, :event_machine do
         presence_anonymous_client.members.once(:in_sync) do
           stop_reactor
         end
+
+        channel_anonymous_client.attach
       end
 
       context 'before server sync complete' do
@@ -281,6 +283,8 @@ describe Ably::Realtime::Presence, :event_machine do
               expect(member_ids.uniq.count).to eql(2)
               stop_reactor
             end
+
+            channel_anonymous_client.attach
           end
         end
       end
@@ -500,30 +504,6 @@ describe Ably::Realtime::Presence, :event_machine do
                   end
                 end
               end
-            end
-          end
-        end
-      end
-    end
-
-    context 'automatic attachment of channel on access to presence object' do
-      it 'is implicit if presence state is initialized' do
-        channel_client_one.presence
-        channel_client_one.on(:attached) do
-          expect(channel_client_one.state).to eq(:attached)
-          stop_reactor
-        end
-      end
-
-      it 'is disabled if presence state is not initialized' do
-        channel_client_one.attach do
-          channel_client_one.detach do
-            expect(channel_client_one.state).to eq(:detached)
-
-            channel_client_one.presence # access the presence object
-            EventMachine.add_timer(1) do
-              expect(channel_client_one.state).to eq(:detached)
-              stop_reactor
             end
           end
         end

@@ -32,16 +32,6 @@ describe Ably::Realtime::Channel, :event_machine do
             stop_reactor
           end
         end
-
-        it 'opens a connection implicitly when accessing #presence' do
-          client.channel('test').tap do |channel|
-            channel.on(:attached) do
-              expect(client.connection).to be_connected
-              stop_reactor
-            end
-            channel.presence
-          end
-        end
       end
     end
 
