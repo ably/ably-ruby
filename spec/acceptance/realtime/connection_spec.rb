@@ -201,10 +201,10 @@ describe Ably::Realtime::Connection, :event_machine do
 
     context 'initialization state changes' do
       let(:phases) { [:connecting, :connected] }
-      let(:events_triggered) { [] }
+      let(:events_emitted) { [] }
       let(:test_expectation) do
         Proc.new do
-          expect(events_triggered).to eq(phases)
+          expect(events_emitted).to eq(phases)
           stop_reactor
         end
       end
@@ -212,20 +212,20 @@ describe Ably::Realtime::Connection, :event_machine do
       def expect_ordered_phases
         phases.each do |phase|
           connection.on(phase) do
-            events_triggered << phase
-            test_expectation.call if events_triggered.length == phases.length
+            events_emitted << phase
+            test_expectation.call if events_emitted.length == phases.length
           end
         end
       end
 
       context 'with implicit #connect' do
-        it 'are triggered in order' do
+        it 'are emitted in order' do
           expect_ordered_phases
         end
       end
 
       context 'with explicit #connect' do
-        it 'are triggered in order' do
+        it 'are emitted in order' do
           expect_ordered_phases
           connection.connect
         end
@@ -623,7 +623,7 @@ describe Ably::Realtime::Connection, :event_machine do
             end
           end
 
-          it 'does not trigger a resume callback', api_private: true do
+          it 'does not call a resume callback', api_private: true do
             connection.once(:connected) do
               connection.transition_state_machine! :failed
             end
@@ -631,7 +631,7 @@ describe Ably::Realtime::Connection, :event_machine do
             connection.once(:failed) do
               recover_client = Ably::Realtime::Client.new(default_options.merge(recover: client.connection.recovery_key))
               recover_client.connection.on_resume do
-                raise 'Should not trigger resume callback'
+                raise 'Should not call the resume callback'
               end
               recover_client.connection.on(:connected) do
                 EventMachine.add_timer(0.5) { stop_reactor }
@@ -678,7 +678,7 @@ describe Ably::Realtime::Connection, :event_machine do
         context 'with invalid formatted value sent to server' do
           let(:client_options) { default_options.merge(recover: 'not-a-valid-connection-key:1', log_level: :none) }
 
-          it 'triggers a fatal error on the connection object, sets the #error_reason and disconnects' do
+          it 'emits a fatal error on the connection object, sets the #error_reason and disconnects' do
             connection.once(:error) do |error|
               expect(connection.state).to eq(:failed)
               expect(error.message).to match(/Invalid connection key/)
@@ -693,7 +693,7 @@ describe Ably::Realtime::Connection, :event_machine do
         context 'with expired (missing) value sent to server' do
           let(:client_options) { default_options.merge(recover: '0123456789abcdef:0', log_level: :fatal) }
 
-          it 'triggers an error on the connection object, sets the #error_reason, yet will connect anyway' do
+          it 'emits an error on the connection object, sets the #error_reason, yet will connect anyway' do
             connection.once(:error) do |error|
               expect(connection.state).to eq(:connected)
               expect(error.message).to match(/Invalid connection key/i)

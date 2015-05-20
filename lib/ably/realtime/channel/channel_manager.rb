@@ -46,7 +46,7 @@ module Ably::Realtime
       # An error has occurred on the channel
       def emit_error(error)
         logger.error "ChannelManager: Channel '#{channel.name}' error: #{error}"
-        channel.trigger :error, error
+        channel.emit :error, error
       end
 
       # Detach a channel as a result of an error

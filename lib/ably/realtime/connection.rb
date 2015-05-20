@@ -370,7 +370,7 @@ module Ably
         @error_reason = nil
       end
 
-      # Triggers registered callbacks for a successful connection resume event
+      # Executes registered callbacks for a successful connection resume event
       # @api private
       def resumed
         resume_callbacks.each(&:call)

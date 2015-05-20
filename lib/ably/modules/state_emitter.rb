@@ -26,7 +26,7 @@ module Ably::Modules
   #   connection.connecting?             # => true
   #   connection.state                   # => STATE.Connecting
   #   connection.state = :invalid        # raises an Exception as only a valid state can be defined
-  #   connection.trigger :invalid        # raises an Exception as only a valid state can be used for EventEmitter
+  #   connection.emit :invalid           # raises an Exception as only a valid state can be used for EventEmitter
   #   connection.change_state :connected # emits :connected event via EventEmitter, returns STATE.Connected
   #   connection.once_or_if(:connected) { puts 'block called once when state is connected or becomes connected' }
   #
@@ -53,7 +53,7 @@ module Ably::Modules
       if state != new_state
         logger.debug("#{self.class}: StateEmitter changed from #{state} => #{new_state}") if respond_to?(:logger, true)
         @state = STATE(new_state)
-        trigger @state, *args
+        emit @state, *args
       end
     end
     alias_method :change_state, :state=

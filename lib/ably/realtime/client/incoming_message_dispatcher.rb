@@ -49,7 +49,7 @@ module Ably::Realtime
               connection
             end
             error_message = "Protocol error, duplicate message received for serial #{protocol_message.connection_serial}"
-            error_target.trigger :error, Ably::Exceptions::ProtocolError.new(error_message, 400, 80013)
+            error_target.emit :error, Ably::Exceptions::ProtocolError.new(error_message, 400, 80013)
             logger.error error_message
             return
           end
@@ -117,7 +117,7 @@ module Ably::Realtime
 
           else
             error = Ably::Exceptions::ProtocolError.new("Protocol Message Action #{protocol_message.action} is unsupported by this MessageDispatcher", 400, 80013)
-            client.connection.trigger :error, error
+            client.connection.emit :error, error
             logger.fatal error.message
         end
       end

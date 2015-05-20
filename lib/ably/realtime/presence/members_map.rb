@@ -205,7 +205,7 @@ module Ably::Realtime
 
         error = Ably::Exceptions::ProtocolError.new("Protocol error, presence message is missing connectionId", 400, 80013)
         logger.error "PresenceMap: On channel '#{channel.name}' error: #{error}"
-        channel.trigger :error, error
+        channel.emit :error, error
       end
 
       # If the message received is older than the last known event for presence

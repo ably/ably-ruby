@@ -144,7 +144,7 @@ module Ably::Realtime
       def fail(error)
         connection.logger.fatal "ConnectionManager: Connection failed - #{error}"
         connection.manager.destroy_transport
-        connection.unsafe_once(:failed) { connection.trigger :error, error }
+        connection.unsafe_once(:failed) { connection.emit :error, error }
       end
 
       # When a connection is disconnected whilst connecting, attempt reconnect and/or set state to :suspended or :failed
@@ -178,7 +178,7 @@ module Ably::Realtime
 
         error = current_transition.metadata
         if error.kind_of?(Ably::Models::ErrorInfo) && error.code != RESOLVABLE_ERROR_CODES.fetch(:token_expired)
-          connection.trigger :error, error
+          connection.emit :error, error
           logger.error "ConnectionManager: Error in Disconnected ProtocolMessage received from the server - #{error}"
         end
 

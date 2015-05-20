@@ -152,7 +152,7 @@ describe Ably::Realtime::Channel, :event_machine do
         end
         let(:restricted_channel) { restricted_client.channel("cannot_subscribe") }
 
-        it 'triggers failed event' do
+        it 'emits failed event' do
           restricted_channel.attach
           restricted_channel.on(:failed) do |error|
             expect(restricted_channel.state).to eq(:failed)
@@ -169,7 +169,7 @@ describe Ably::Realtime::Channel, :event_machine do
           end
         end
 
-        it 'triggers an error event' do
+        it 'emits an error event' do
           restricted_channel.attach
           restricted_channel.on(:error) do |error|
             expect(restricted_channel.state).to eq(:failed)
@@ -448,7 +448,7 @@ describe Ably::Realtime::Channel, :event_machine do
             end
           end
 
-          it 'triggers an error event on the channel' do
+          it 'emits an error event on the channel' do
             channel.attach do
               channel.on(:error) do |error|
                 expect(error).to eql(connection_error)

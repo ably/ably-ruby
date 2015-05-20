@@ -15,23 +15,23 @@ describe Ably::Modules::EventEmitter do
 
   subject { klass.new }
 
-  context '#trigger event fan out' do
+  context '#emit event fan out' do
     it 'should emit an event for any number of subscribers' do
       2.times do
         subject.on(:message) { |msg| obj.received_message msg }
       end
 
       expect(obj).to receive(:received_message).with(msg).twice
-      subject.trigger :message, msg
+      subject.emit :message, msg
     end
 
     it 'sends only messages to matching event names' do
       subject.on(:valid) { |msg| obj.received_message msg }
 
       expect(obj).to receive(:received_message).with(msg).once
-      subject.trigger :valid, msg
-      subject.trigger :ignored, msg
-      subject.trigger 'valid', msg
+      subject.emit :valid, msg
+      subject.emit :ignored, msg
+      subject.emit 'valid', msg
     end
 
     context 'with coercion', :api_private do
@@ -43,7 +43,7 @@ describe Ably::Modules::EventEmitter do
         subject.on('valid') { |msg| obj.received_message msg }
 
         expect(obj).to receive(:received_message).with(msg).once
-        subject.trigger :valid, msg
+        subject.emit :valid, msg
       end
     end
 
@@ -52,7 +52,7 @@ describe Ably::Modules::EventEmitter do
         subject.on('valid') { |msg| obj.received_message msg }
 
         expect(obj).to_not receive(:received_message).with(msg)
-        subject.trigger :valid, msg
+        subject.emit :valid, msg
       end
     end
 
@@ -62,8 +62,8 @@ describe Ably::Modules::EventEmitter do
 
         expect(obj).to receive(:received_message).with(msg).twice
 
-        subject.trigger :click, msg
-        subject.trigger :hover, msg
+        subject.emit :click, msg
+        subject.emit :hover, msg
       end
     end
 
@@ -84,17 +84,17 @@ describe Ably::Modules::EventEmitter do
         it 'is unaffected and processes the prior event callbacks once' do
           expect(obj).to receive(:received_message).with(msg).twice
           expect(obj).to_not receive(:received_message_from_new_callbacks).with(msg)
-          subject.trigger :message, msg
+          subject.emit :message, msg
         end
 
         it 'adds them for the next emitted event' do
           expect(obj).to receive(:received_message_from_new_callbacks).with(msg).twice
 
-          # New callbacks are added in this trigger
-          subject.trigger :message, msg
+          # New callbacks are added in this emit
+          subject.emit :message, msg
 
           # New callbacks are now called with second event emitted
-          subject.trigger :message, msg
+          subject.emit :message, msg
         end
       end
 
@@ -110,16 +110,16 @@ describe Ably::Modules::EventEmitter do
 
         it 'is unaffected and processes the prior event callbacks once' do
           expect(obj).to receive(:received_message).with(msg).twice
-          subject.trigger :message, msg
+          subject.emit :message, msg
         end
 
         it 'removes them for the next emitted event' do
           expect(obj).to receive(:received_message).with(msg).twice
 
-          # Callbacks are removed in this trigger
-          subject.trigger :message, msg
+          # Callbacks are removed in this emit
+          subject.emit :message, msg
           # No callbacks should exist now
-          subject.trigger :message, msg
+          subject.emit :message, msg
         end
       end
     end
@@ -129,14 +129,14 @@ describe Ably::Modules::EventEmitter do
     it 'calls the block every time an event is emitted only' do
       block_called = 0
       subject.on('event') { block_called += 1 }
-      3.times { subject.trigger 'event', 'data' }
+      3.times { subject.emit 'event', 'data' }
       expect(block_called).to eql(3)
     end
 
     it 'catches exceptions in the provided block, logs the error and continues' do
       expect(subject.logger).to receive(:error).with(/Intentional exception/)
       subject.on(:event) { raise 'Intentional exception' }
-      subject.trigger :event
+      subject.emit :event
     end
   end
 
@@ -144,13 +144,13 @@ describe Ably::Modules::EventEmitter do
     it 'calls the block every time an event is emitted only' do
       block_called = 0
       subject.unsafe_on('event') { block_called += 1 }
-      3.times { subject.trigger 'event', 'data' }
+      3.times { subject.emit 'event', 'data' }
       expect(block_called).to eql(3)
     end
 
     it 'does not catch exceptions in provided blocks' do
       subject.unsafe_on(:event) { raise 'Intentional exception' }
-      expect { subject.trigger :event }.to raise_error(/Intentional exception/)
+      expect { subject.emit :event }.to raise_error(/Intentional exception/)
     end
   end
 
@@ -158,7 +158,7 @@ describe Ably::Modules::EventEmitter do
     it 'calls the block the first time an event is emitted only' do
       block_called = 0
       subject.once('event') { block_called += 1 }
-      3.times { subject.trigger 'event', 'data' }
+      3.times { subject.emit 'event', 'data' }
       expect(block_called).to eql(1)
     end
 
@@ -166,14 +166,14 @@ describe Ably::Modules::EventEmitter do
       block_called = 0
       subject.once('event') { block_called += 1 }
       subject.on('event')   { block_called += 1 }
-      3.times { subject.trigger 'event', 'data' }
+      3.times { subject.emit 'event', 'data' }
       expect(block_called).to eql(4)
     end
 
     it 'catches exceptions in the provided block, logs the error and continues' do
       expect(subject.logger).to receive(:error).with(/Intentional exception/)
       subject.once(:event) { raise 'Intentional exception' }
-      subject.trigger :event
+      subject.emit :event
     end
   end
 
@@ -181,13 +181,13 @@ describe Ably::Modules::EventEmitter do
     it 'calls the block the first time an event is emitted only' do
       block_called = 0
       subject.unsafe_once('event') { block_called += 1 }
-      3.times { subject.trigger 'event', 'data' }
+      3.times { subject.emit 'event', 'data' }
       expect(block_called).to eql(1)
     end
 
     it 'does not catch exceptions in provided blocks' do
       subject.unsafe_once(:event) { raise 'Intentional exception' }
-      expect { subject.trigger :event }.to raise_error(/Intentional exception/)
+      expect { subject.emit :event }.to raise_error(/Intentional exception/)
     end
   end
 
@@ -199,7 +199,7 @@ describe Ably::Modules::EventEmitter do
     end
 
     after do
-      subject.trigger :message, msg
+      subject.emit :message, msg
     end
 
     context 'with event names as arguments' do

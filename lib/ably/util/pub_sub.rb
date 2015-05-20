@@ -37,7 +37,7 @@ module Ably::Util
         configure_event_emitter options
 
         alias_method :subscribe, :unsafe_on
-        alias_method :publish, :trigger
+        alias_method :publish, :emit
         alias_method :unsubscribe, :off
       end
     end

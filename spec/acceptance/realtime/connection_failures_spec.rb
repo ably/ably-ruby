@@ -415,7 +415,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
 
-        it 'triggers the resume callback', api_private: true do
+        it 'executes the resume callback', api_private: true do
           channel.attach do
             connection.transport.close_connection_after_writing
             connection.on_resume do

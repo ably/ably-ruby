@@ -48,7 +48,7 @@ module Ably::Realtime
         protocol_message = current_transition.metadata
         if is_error_type?(protocol_message.error)
           connection.logger.warn "ConnectionManager: Connected with error - #{protocol_message.error.message}"
-          connection.trigger :error, protocol_message.error
+          connection.emit :error, protocol_message.error
         end
       end
 

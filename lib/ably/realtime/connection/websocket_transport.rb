@@ -25,7 +25,7 @@ module Ably::Realtime
       end
 
       # Disconnect the socket transport connection and write all pending text.
-      # If Disconnected state is not automatically triggered, it will be triggered automatically
+      # If Disconnected state is not automatically emitted, it will be emitted automatically
       # @return [void]
       # @api public
       def disconnect
@@ -149,7 +149,7 @@ module Ably::Realtime
 
           if protocol_message.invalid?
             error = Ably::Exceptions::ProtocolError.new("Invalid Protocol Message received: #{event_data}\nMessage has been discarded", 400, 80013)
-            connection.trigger :error, error
+            connection.emit :error, error
             logger.fatal "WebsocketTransport: #{error.message}"
           else
             __incoming_protocol_msgbus__.publish :protocol_message, protocol_message

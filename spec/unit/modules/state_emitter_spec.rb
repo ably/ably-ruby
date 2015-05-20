@@ -41,7 +41,7 @@ describe Ably::Modules::StateEmitter do
     let(:args) { [5,3,1] }
     let(:callback_status) { { called: false } }
 
-    it 'passes the arguments through to the triggered callback' do
+    it 'passes the arguments through to the executed callback' do
       subject.on(:connecting) do |*callback_args|
         expect(callback_args).to eql(args)
         callback_status[:called] = true

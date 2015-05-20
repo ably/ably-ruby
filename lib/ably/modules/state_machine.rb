@@ -24,7 +24,7 @@ module Ably::Modules
     def transition_state(state, *args)
       unless result = transition_to(state, *args)
         exception = exception_for_state_change_to(state)
-        object.trigger :error, exception
+        object.emit :error, exception
         logger.fatal "#{self.class}: #{exception.message}"
       end
       result

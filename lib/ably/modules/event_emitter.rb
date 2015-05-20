@@ -2,7 +2,7 @@ require 'ably/modules/safe_yield'
 
 module Ably
   module Modules
-    # EventEmitter provides methods to attach to public events and trigger events on any class instance
+    # EventEmitter provides methods to attach to public events and emit events on any class instance
     #
     # EventEmitter are typically used for public interfaces, and as such, may be overriden in
     # the classes to enforce `event` names match expected values.
@@ -16,7 +16,7 @@ module Ably
     #
     #   event_emitter = Example.new
     #   event_emitter.on(:signal) { |name| puts "Signal #{name} received" }
-    #   event_emitter.trigger :signal, "Test"
+    #   event_emitter.emit :signal, "Test"
     #   #=> "Signal Test received"
     #
     module EventEmitter
@@ -84,15 +84,15 @@ module Ably
         end
       end
 
-      # Trigger an event with event_name that will in turn call all matching callbacks setup with `on`
-      def trigger(event_name, *args)
+      # Emit an event with event_name that will in turn call all matching callbacks setup with `on`
+      def emit(event_name, *args)
         callbacks[callbacks_event_coerced(event_name)].
           clone.
           select do |proc_hash|
             if proc_hash[:unsafe]
-              proc_hash[:trigger_proc].call *args
+              proc_hash[:emit_proc].call *args
             else
-              safe_yield proc_hash[:trigger_proc], *args
+              safe_yield proc_hash[:emit_proc], *args
             end
           end.each do |callback|
             callbacks[callbacks_event_coerced(event_name)].delete callback
@@ -129,10 +129,10 @@ module Ably
       end
 
       # Create a Hash with a proc that calls the provided block and returns true if option :delete_once_run is set to true.
-      # #trigger automatically deletes any blocks that return true thus allowing a block to be run once
+      # #emit automatically deletes any blocks that return true thus allowing a block to be run once
       def proc_for_block(block, options = {})
         {
-          trigger_proc: Proc.new do |*args|
+          emit_proc: Proc.new do |*args|
             block.call *args
             true if options[:delete_once_run]
           end,

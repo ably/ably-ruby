@@ -254,7 +254,7 @@ describe Ably::Realtime::Presence, :event_machine do
         stop_reactor
       end
 
-      it 'will trigger an :in_sync event when synchronisation is complete' do
+      it 'will emit an :in_sync event when synchronisation is complete' do
         presence_client_one.enter
         presence_client_two.enter
 

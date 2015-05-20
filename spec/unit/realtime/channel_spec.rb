@@ -118,12 +118,12 @@ describe Ably::Realtime::Channel do
     specify 'are supported for valid STATE events' do
       state = nil
       subject.on(:initialized) { state = :ready }
-      expect { subject.trigger(:initialized) }.to change { state }.to(:ready)
+      expect { subject.emit(:initialized) }.to change { state }.to(:ready)
     end
 
     specify 'fail with unacceptable STATE event names' do
       expect { subject.on(:invalid) }.to raise_error KeyError
-      expect { subject.trigger(:invalid) }.to raise_error KeyError
+      expect { subject.emit(:invalid) }.to raise_error KeyError
       expect { subject.off(:invalid) }.to raise_error KeyError
     end
   end

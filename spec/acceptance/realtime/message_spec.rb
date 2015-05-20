@@ -491,7 +491,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
           end
         end
 
-        it 'triggers a Cipher error on the channel' do
+        it 'emits a Cipher error on the channel' do
           unencrypted_channel_client2.attach do
             encrypted_channel_client1.publish 'example', payload
             unencrypted_channel_client2.on(:error) do |error|
@@ -522,7 +522,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
           end
         end
 
-        it 'triggers a Cipher error on the channel' do
+        it 'emits a Cipher error on the channel' do
           encrypted_channel_client2.attach do
             encrypted_channel_client1.publish 'example', payload
             encrypted_channel_client2.on(:error) do |error|
@@ -555,7 +555,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
           end
         end
 
-        it 'triggers a Cipher error on the channel' do
+        it 'emits a Cipher error on the channel' do
           encrypted_channel_client2.attach do
             encrypted_channel_client1.publish 'example', payload
             encrypted_channel_client2.on(:error) do |error|
