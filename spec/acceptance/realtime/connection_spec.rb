@@ -27,9 +27,9 @@ describe Ably::Realtime::Connection, :event_machine do
         end
       end
 
-      context 'with :connect_automatically option set to false' do
+      context 'with :auto_connect option set to false' do
         let(:client) do
-          Ably::Realtime::Client.new(default_options.merge(connect_automatically: false))
+          Ably::Realtime::Client.new(default_options.merge(auto_connect: false))
         end
 
         it 'does not connect automatically' do

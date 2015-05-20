@@ -44,7 +44,7 @@ module Ably
 
       # When true, as soon as the client library is instantiated it will connect to Ably.  If this attribute is false, a connection must be opened explicitly
       # @return [Boolean]
-      attr_reader :connect_automatically
+      attr_reader :auto_connect
 
       # When a recover option is specified a connection inherits the state of a previous connection that may have existed under a different instance of the Realtime library, please refer to the API documentation for further information on connection state recovery
       # @return [String,Nil]
@@ -62,7 +62,7 @@ module Ably
       # @option options [Boolean] :queue_messages If false, this disables the default behaviour whereby the library queues messages on a connection in the disconnected or connecting states
       # @option options [Boolean] :echo_messages  If false, prevents messages originating from this connection being echoed back on the same connection
       # @option options [String]  :recover        When a recover option is specified a connection inherits the state of a previous connection that may have existed under a different instance of the Realtime library, please refer to the API documentation for further information on connection state recovery
-      # @option options [Boolean] :connect_automatically  By default as soon as the client library is instantiated it will connect to Ably. You can optionally set this to false and explicitly connect.
+      # @option options [Boolean] :auto_connect   By default as soon as the client library is instantiated it will connect to Ably. You can optionally set this to false and explicitly connect.
       #
       # @return [Ably::Realtime::Client]
       #
@@ -79,7 +79,7 @@ module Ably
         @channels              = Ably::Realtime::Channels.new(self)
         @echo_messages         = @rest_client.options.fetch(:echo_messages, true) == false ? false : true
         @custom_realtime_host  = @rest_client.options[:realtime_host] || @rest_client.options[:ws_host]
-        @connect_automatically = @rest_client.options.fetch(:connect_automatically, true) == false ? false : true
+        @auto_connect          = @rest_client.options.fetch(:auto_connect, true) == false ? false : true
         @recover               = @rest_client.options[:recover]
 
         raise ArgumentError, "Recovery key is invalid" if @recover && !@recover.match(Connection::RECOVER_REGEX)

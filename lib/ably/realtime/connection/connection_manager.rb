@@ -39,7 +39,7 @@ module Ably::Realtime
 
         EventMachine.next_tick do
           # Connect once Connection object is initialised
-          connection.connect if client.connect_automatically
+          connection.connect if client.auto_connect
         end
       end
 
