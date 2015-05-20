@@ -301,7 +301,7 @@ describe Ably::Realtime::Presence, :event_machine do
           presence_client_one.enter do
             channel_anonymous_client.attach do
               expect(channel_anonymous_client.presence).to_not be_sync_complete
-              channel_anonymous_client.presence.get do
+              channel_anonymous_client.presence.get(wait_for_sync: true) do
                 expect(channel_anonymous_client.presence).to be_sync_complete
                 stop_reactor
               end
@@ -420,7 +420,7 @@ describe Ably::Realtime::Presence, :event_machine do
               end
             end
 
-            it 'does not emit :present after the :leave event has been emitted, and that member is not included in the list of members via #get' do
+            it 'does not emit :present after the :leave event has been emitted, and that member is not included in the list of members via #get with :wait_for_sync' do
               left_client = 10
               left_client_id = "client:#{left_client}"
 
@@ -442,7 +442,7 @@ describe Ably::Realtime::Presence, :event_machine do
                   member_left_emitted = true
                 end
 
-                presence_anonymous_client.get do |members|
+                presence_anonymous_client.get(wait_for_sync: true) do |members|
                   expect(members.count).to eql(enter_expected_count - 1)
                   expect(member_left_emitted).to eql(true)
                   expect(members.map(&:client_id)).to_not include(left_client_id)
@@ -466,16 +466,37 @@ describe Ably::Realtime::Presence, :event_machine do
           end
 
           context '#get' do
-            it 'waits until sync is complete', event_machine: 15 do
-              enter_expected_count.times do |index|
-                presence_client_one.enter_client("client:#{index}") do |message|
-                  entered << message
-                  next unless entered.count == enter_expected_count
+            context 'with :wait_for_sync option set to true' do
+              it 'waits until sync is complete', event_machine: 15 do
+                enter_expected_count.times do |index|
+                  presence_client_one.enter_client("client:#{index}") do |message|
+                    entered << message
+                    next unless entered.count == enter_expected_count
 
-                  presence_anonymous_client.get do |members|
-                    expect(members.map(&:client_id).uniq.count).to eql(enter_expected_count)
-                    expect(members.count).to eql(enter_expected_count)
-                    stop_reactor
+                    presence_anonymous_client.get(wait_for_sync: true) do |members|
+                      expect(members.map(&:client_id).uniq.count).to eql(enter_expected_count)
+                      expect(members.count).to eql(enter_expected_count)
+                      stop_reactor
+                    end
+                  end
+                end
+              end
+            end
+
+            context 'by default' do
+              it 'it does not wait for sync', event_machine: 15 do
+                enter_expected_count.times do |index|
+                  presence_client_one.enter_client("client:#{index}") do |message|
+                    entered << message
+                    next unless entered.count == enter_expected_count
+
+                    channel_anonymous_client.attach do
+                      presence_anonymous_client.get do |members|
+                        expect(presence_anonymous_client.members).to_not be_in_sync
+                        expect(members.count).to eql(0)
+                        stop_reactor
+                      end
+                    end
                   end
                 end
               end
@@ -1028,43 +1049,45 @@ describe Ably::Realtime::Presence, :event_machine do
                       )
         end
 
-        it 'fails if the connection fails' do
-          when_all(*connect_members_deferrables) do
-            channel_client_two.attach do
-              client_two.connection.transport.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
-                if protocol_message.action == :sync
-                  sync_pages_received << protocol_message
-                  force_connection_failure client_two if sync_pages_received.count == 1
+        context 'when :wait_for_sync is true' do
+          it 'fails if the connection fails' do
+            when_all(*connect_members_deferrables) do
+              channel_client_two.attach do
+                client_two.connection.transport.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                  if protocol_message.action == :sync
+                    sync_pages_received << protocol_message
+                    force_connection_failure client_two if sync_pages_received.count == 1
+                  end
                 end
               end
-            end
 
-            presence_client_two.get.tap do |deferrable|
-              deferrable.callback { raise 'Get should not succeed' }
-              deferrable.errback do |error|
-                stop_reactor
+              presence_client_two.get(wait_for_sync: true).tap do |deferrable|
+                deferrable.callback { raise 'Get should not succeed' }
+                deferrable.errback do |error|
+                  stop_reactor
+                end
               end
             end
           end
-        end
 
-        it 'fails if the channel is detached' do
-          when_all(*connect_members_deferrables) do
-            channel_client_two.attach do
-              client_two.connection.transport.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
-                if protocol_message.action == :sync
-                  # prevent any more SYNC messages coming through
-                  client_two.connection.transport.__incoming_protocol_msgbus__.unsubscribe
-                  channel_client_two.change_state :detaching
-                  channel_client_two.change_state :detached
+          it 'fails if the channel is detached' do
+            when_all(*connect_members_deferrables) do
+              channel_client_two.attach do
+                client_two.connection.transport.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                  if protocol_message.action == :sync
+                    # prevent any more SYNC messages coming through
+                    client_two.connection.transport.__incoming_protocol_msgbus__.unsubscribe
+                    channel_client_two.change_state :detaching
+                    channel_client_two.change_state :detached
+                  end
                 end
               end
-            end
 
-            presence_client_two.get.tap do |deferrable|
-              deferrable.callback { raise 'Get should not succeed' }
-              deferrable.errback do |error|
-                stop_reactor
+              presence_client_two.get(wait_for_sync: true).tap do |deferrable|
+                deferrable.callback { raise 'Get should not succeed' }
+                deferrable.errback do |error|
+                  stop_reactor
+                end
               end
             end
           end
@@ -1176,12 +1199,12 @@ describe Ably::Realtime::Presence, :event_machine do
           end
 
           wait_until(proc { clients_entered[:client_one] + clients_entered[:client_two] == total_members * 2 }) do
-            presence_anonymous_client.get do |anonymous_members|
+            presence_anonymous_client.get(wait_for_sync: true) do |anonymous_members|
               expect(anonymous_members.count).to eq(total_members)
               expect(anonymous_members.map(&:client_id).uniq.count).to eq(total_members)
 
-              presence_client_one.get do |client_one_members|
-                presence_client_two.get do |client_two_members|
+              presence_client_one.get(wait_for_sync: true) do |client_one_members|
+                presence_client_two.get(wait_for_sync: true) do |client_two_members|
                   expect(client_one_members.count).to eq(total_members)
                   expect(client_one_members.count).to eq(client_two_members.count)
                   stop_reactor
@@ -1436,7 +1459,7 @@ describe Ably::Realtime::Presence, :event_machine do
 
       specify 'expect :left event with client data from enter event' do
         presence_client_one.subscribe(:leave) do |message|
-          presence_client_one.get do |members|
+          presence_client_one.get(wait_for_sync: true) do |members|
             expect(members.count).to eq(0)
             expect(message.data).to eql(data_payload)
             stop_reactor
@@ -1465,7 +1488,7 @@ describe Ably::Realtime::Presence, :event_machine do
             end
           end
 
-          presence_client_two.get do |members|
+          presence_client_two.get(wait_for_sync: true) do |members|
             expect(members.count).to eql(members_count)
             expect(members.map(&:member_key).uniq.count).to eql(members_count)
             stop_reactor

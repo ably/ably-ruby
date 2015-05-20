@@ -62,14 +62,14 @@ module Ably::Realtime
       # @param [Hash,String] options an options Hash to filter members
       # @option options [String] :client_id      optional client_id for the member
       # @option options [String] :connection_id  optional connection_id for the member
-      # @option options [String] :wait_for_sync  defaults to true, if false the get method returns the current list of members and does not wait for the presence sync to complete
+      # @option options [String] :wait_for_sync  defaults to false, if true the get method waits for the initial presence sync following channel attachment to complete before returning the members present
       #
       # @yield [Array<Ably::Models::PresenceMessage>] array of present members
       #
       # @return [Ably::Util::SafeDeferrable] Deferrable that supports both success (callback) and failure (errback) callbacks
       #
       def get(options = {}, &block)
-        wait_for_sync = options.fetch(:wait_for_sync, true)
+        wait_for_sync = options.fetch(:wait_for_sync, false)
         deferrable    = Ably::Util::SafeDeferrable.new(logger)
 
         result_block = proc do
