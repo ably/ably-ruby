@@ -200,7 +200,7 @@ module Ably
       end
 
       # @!attribute [r] recovery_key
-      #   @return [String] recovery key that can be used by another client to recover this connection with the :recover option
+      # @return [String] recovery key that can be used by another client to recover this connection with the :recover option
       def recovery_key
         "#{key}:#{serial}" if connection_resumable?
       end
