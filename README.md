@@ -217,7 +217,7 @@ If you only need to use the REST features of this library and do not want EventM
 
 ## Support and feedback
 
-Please visit https://support.ably.io/ for access to our knowledgebase and to ask for any assistance.
+Please visit http://support.ably.io/ for access to our knowledgebase and to ask for any assistance.
 
 ## Contributing
 
@@ -230,4 +230,4 @@ Please visit https://support.ably.io/ for access to our knowledgebase and to ask
 
 ## License
 
-Copyright (c) 2015 Ably, Licensed under an MIT license.  Refer to [LICENSE.txt](LICENSE.txt) for the license terms.
+Copyright (c) 2015 Ably Real-time Ltd, Licensed under the Apache License, Versopm 2.0.  Refer to [LICENSE.txt](LICENSE.txt) for the license terms.
