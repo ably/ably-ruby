@@ -215,9 +215,13 @@ client.time #=> 2013-12-12 14:23:34 +0000
 
 If you only need to use the REST features of this library and do not want EventMachine as a dependency, then you should use the [Ably Ruby REST gem](https://rubygems.org/gems/ably-rest).
 
-## Support and feedback
+## Support, feedback and troubleshooting
 
 Please visit http://support.ably.io/ for access to our knowledgebase and to ask for any assistance.
+
+You can also view the [community reported Github issues](issues).
+
+To see what has changed in recent versions of Bundler, see the [CHANGELOG](CHANGELOG.md).
 
 ## Contributing
 
