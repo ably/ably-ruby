@@ -234,4 +234,4 @@ To see what has changed in recent versions of Bundler, see the [CHANGELOG](CHANG
 
 ## License
 
-Copyright (c) 2015 Ably Real-time Ltd, Licensed under the Apache License, Versopm 2.0.  Refer to [LICENSE.txt](LICENSE.txt) for the license terms.
+Copyright (c) 2015 Ably Real-time Ltd, Licensed under the Apache License, Version 2.0.  Refer to [LICENSE.txt](LICENSE.txt) for the license terms.
