@@ -219,7 +219,7 @@ If you only need to use the REST features of this library and do not want EventM
 
 Please visit http://support.ably.io/ for access to our knowledgebase and to ask for any assistance.
 
-You can also view the [community reported Github issues](issues).
+You can also view the [community reported Github issues](https://github.com/ably/ably-ruby/issues).
 
 To see what has changed in recent versions of Bundler, see the [CHANGELOG](CHANGELOG.md).
 
