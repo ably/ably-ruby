@@ -38,7 +38,7 @@
 
 ## [v0.8.0](https://github.com/ably/ably-ruby/tree/v0.8.0) (2015-04-23)
 
-- [Initial implementation of client library specification 0.8](http://docs.ably.io/client-lib-development-guide/features/)
+[Initial implementation of client library specification 0.8](http://docs.ably.io/client-lib-development-guide/features/)
 
 [Full Changelog](https://github.com/ably/ably-ruby/compare/v0.7.6...v0.8.0)
 
