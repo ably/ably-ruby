@@ -133,7 +133,7 @@ describe Ably::Rest::Client, '#stats' do
         end
 
         context 'with :end set to last interval, :limit set to 1 and direction :backwards' do
-          let(:subject)        { client.stats(:end => as_since_epoch(LAST_INTERVAL), end: LAST_INTERVAL, unit: :minute, direction: :backwards, limit: 1) }
+          let(:subject)        { client.stats(end: LAST_INTERVAL, unit: :minute, direction: :backwards, limit: 1) }
           let(:stat)           { subject.items.first }
 
           it 'returns the 3rd interval stats first as stats are provided backwards from :end' do
