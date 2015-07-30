@@ -7,6 +7,11 @@ describe Ably::Rest::Client, '#stats' do
   LAST_YEAR = Time.now.year - 1
   LAST_INTERVAL = Time.new(LAST_YEAR, 2, 3, 15, 5, 0) # 3rd Feb 20(x) 16:05:00
 
+  # Ensure metrics in previous year do not impact on tests for last year
+  PREVIOUS_YEAR = Time.now.year - 2
+  PREVIOUS_INTERVAL = Time.new(PREVIOUS_YEAR, 2, 3, 15, 5, 0)
+  PREVIOUS_YEAR_STATS = 120
+
   STATS_FIXTURES = [
     {
       intervalId: Ably::Models::Stats.to_interval_id(LAST_INTERVAL - 120, :minute),
@@ -30,9 +35,16 @@ describe Ably::Rest::Client, '#stats' do
     }
   ]
 
+  PREVIOUS_YEAR_STATS_FIXTURES = PREVIOUS_YEAR_STATS.times.map do |index|
+    {
+      intervalId: Ably::Models::Stats.to_interval_id(PREVIOUS_INTERVAL - (index * 60), :minute),
+      inbound:       { realtime: { messages: { count: index } } }
+    }
+  end
+
   before(:context) do
     reload_test_app # ensure no previous stats interfere
-    TestApp.instance.create_test_stats(STATS_FIXTURES)
+    TestApp.instance.create_test_stats(STATS_FIXTURES + PREVIOUS_YEAR_STATS_FIXTURES)
   end
 
   vary_by_protocol do
@@ -152,13 +164,28 @@ describe Ably::Rest::Client, '#stats' do
           end
         end
 
-        context 'with :end set to last interval' do
-          let(:subject) { client.stats(end: LAST_INTERVAL, unit: :minute) }
+        context 'with :end set to last interval and :limit set to 3 to ensure only last years stats are included' do
+          let(:subject) { client.stats(end: LAST_INTERVAL, unit: :minute, limit: 3) }
           let(:stats)   { subject.items }
 
-          it 'defaults to direction :backwards' do
-            expect(stats.first.inbound.realtime.messages.count).to eql(70) # current minute
-            expect(stats.last.inbound.realtime.messages.count).to eql(50) # 2 minutes back
+          context 'the REST API' do
+            it 'defaults to direction :backwards' do
+              expect(stats.first.inbound.realtime.messages.count).to eql(70) # current minute
+              expect(stats.last.inbound.realtime.messages.count).to eql(50) # 2 minutes back
+            end
+          end
+        end
+
+        context 'with :end set to previous year interval' do
+          let(:subject) { client.stats(end: PREVIOUS_INTERVAL, unit: :minute) }
+          let(:stats)   { subject.items }
+
+          context 'the REST API' do
+            it 'defaults to 100 items for pagination' do
+              expect(stats.count).to eql(100)
+              next_page_of_stats = subject.next.items
+              expect(next_page_of_stats.count).to eql(PREVIOUS_YEAR_STATS - 100)
+            end
           end
         end
       end
