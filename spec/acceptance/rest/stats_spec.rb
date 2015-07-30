@@ -151,6 +151,16 @@ describe Ably::Rest::Client, '#stats' do
             expect(page3.items.first.inbound.realtime.all.count).to eql(first_inbound_realtime_count)
           end
         end
+
+        context 'with :end set to last interval' do
+          let(:subject) { client.stats(end: LAST_INTERVAL, unit: :minute) }
+          let(:stats)   { subject.items }
+
+          it 'defaults to direction :backwards' do
+            expect(stats.first.inbound.realtime.messages.count).to eql(70) # current minute
+            expect(stats.last.inbound.realtime.messages.count).to eql(50) # 2 minutes back
+          end
+        end
       end
 
       [:hour, :day, :month].each do |interval|
