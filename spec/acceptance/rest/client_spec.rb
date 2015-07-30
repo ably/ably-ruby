@@ -272,5 +272,21 @@ describe Ably::Rest::Client do
         end
       end
     end
+
+    context '#auth' do
+      let(:dummy_auth_url) { 'http://dummy.url' }
+      let(:unique_ttl)     { 1234 }
+      let(:client_options) { default_options.merge(auth_url: dummy_auth_url, ttl: unique_ttl) }
+
+
+      it 'is provides access to the Auth object' do
+        expect(client.auth).to be_kind_of(Ably::Auth)
+      end
+
+      it 'configures the Auth object with all ClientOptions passed to client in the initializer' do
+        expect(client.auth.options[:ttl]).to eql(unique_ttl)
+        expect(client.auth.options[:auth_url]).to eql(dummy_auth_url)
+      end
+    end
   end
 end
