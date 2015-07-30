@@ -59,6 +59,15 @@ describe Ably::Rest::Client, '#stats' do
         let(:first_inbound_realtime_count) { STATS_FIXTURES.first[:inbound][:realtime][:messages][:count] }
         let(:last_inbound_realtime_count)  { STATS_FIXTURES.last[:inbound][:realtime][:messages][:count] }
 
+        context 'with no options' do
+          let(:subject) { client.stats(end: LAST_INTERVAL) } # end is needed to ensure no other tests have effected the stats
+          let(:stat)    { subject.items.first }
+
+          it 'uses the minute interval by default' do
+            expect(stat.interval_granularity).to eq(:minute)
+          end
+        end
+
         context 'with :from set to last interval and :limit set to 1' do
           let(:subject) { client.stats(start: as_since_epoch(LAST_INTERVAL), end: LAST_INTERVAL, unit: :minute, limit: 1) }
           let(:stat)    { subject.items.first }
