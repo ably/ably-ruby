@@ -77,7 +77,7 @@ module Ably
       # @option options [String]                  :environment         Specify 'sandbox' when testing the client library against an alternate Ably environment
       # @option options [Symbol]                  :protocol            Protocol used to communicate with Ably, :json and :msgpack currently supported. Defaults to :msgpack
       # @option options [Boolean]                 :use_binary_protocol Protocol used to communicate with Ably, defaults to true and uses MessagePack protocol.  This option will overide :protocol option
-      # @option options [Logger::Severity,Symbol] :log_level           Log level for the standard Logger that outputs to STDOUT.  Defaults to Logger::ERROR, can be set to :fatal (Logger::FATAL), :error (Logger::ERROR), :warn (Logger::WARN), :info (Logger::INFO), :debug (Logger::DEBUG) or :none
+      # @option options [Logger::Severity,Symbol] :log_level           Log level for the standard Logger that outputs to STDOUT.  Defaults to Logger::WARN, can be set to :fatal (Logger::FATAL), :error (Logger::ERROR), :warn (Logger::WARN), :info (Logger::INFO), :debug (Logger::DEBUG) or :none
       # @option options [Logger]                  :logger              A custom logger can be used however it must adhere to the Ruby Logger interface, see http://www.ruby-doc.org/stdlib-1.9.3/libdoc/logger/rdoc/Logger.html
       #
       # @return [Ably::Rest::Client]
@@ -105,7 +105,7 @@ module Ably
         @environment   = options.delete(:environment) # nil is production
         @protocol      = options.delete(:protocol) || :msgpack
         @debug_http    = options.delete(:debug_http)
-        @log_level     = options.delete(:log_level) || ::Logger::ERROR
+        @log_level     = options.delete(:log_level) || ::Logger::WARN
         @custom_logger = options.delete(:logger)
         @custom_host   = options.delete(:rest_host)
 

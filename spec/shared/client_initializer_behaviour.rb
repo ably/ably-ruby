@@ -175,8 +175,8 @@ shared_examples 'a client initializer' do
           expect(subject.logger.logger).to be_a(::Logger)
         end
 
-        it 'specifies Logger::ERROR log level' do
-          expect(subject.logger.log_level).to eql(::Logger::ERROR)
+        it 'specifies Logger::WARN log level' do
+          expect(subject.logger.log_level).to eql(::Logger::WARN)
         end
       end
 
