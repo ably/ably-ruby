@@ -39,6 +39,10 @@ describe Ably::Rest::Client, '#stats' do
     let(:client) {  Ably::Rest::Client.new(key: api_key, environment: environment, protocol: protocol) }
 
     describe 'fetching application stats' do
+      it 'returns a PaginatedResult object' do
+        expect(client.stats).to be_kind_of(Ably::Models::PaginatedResult)
+      end
+
       context 'by minute' do
         let(:first_inbound_realtime_count) { STATS_FIXTURES.first[:inbound][:realtime][:messages][:count] }
         let(:last_inbound_realtime_count)  { STATS_FIXTURES.last[:inbound][:realtime][:messages][:count] }
