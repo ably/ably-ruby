@@ -176,6 +176,14 @@ describe Ably::Rest::Client, '#stats' do
           end
         end
       end
+
+      context 'when argument start is after end' do
+        let(:subject) { client.stats(start: as_since_epoch(LAST_INTERVAL), end: LAST_INTERVAL - 120, unit: :minute) }
+
+        it 'should raise an exception' do
+          expect { subject.items }.to raise_error ArgumentError
+        end
+      end
     end
   end
 end

@@ -136,6 +136,14 @@ describe Ably::Rest::Channel do
           end
         end
       end
+
+      context 'when argument start is after end' do
+        let(:subject) { channel.history(start: as_since_epoch(Time.now), end: Time.now - 120) }
+
+        it 'should raise an exception' do
+          expect { subject.items }.to raise_error ArgumentError
+        end
+      end
     end
   end
 end

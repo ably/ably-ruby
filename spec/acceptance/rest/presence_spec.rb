@@ -166,6 +166,15 @@ describe Ably::Rest::Presence do
           end
         end
       end
+
+      context 'when argument start is after end' do
+        let(:presence) { client.channel(random_str).presence }
+        let(:subject) { presence.history(start: as_since_epoch(Time.now), end: Time.now - 120) }
+
+        it 'should raise an exception' do
+          expect { subject.items }.to raise_error ArgumentError
+        end
+      end
     end
 
     describe 'decoding' do

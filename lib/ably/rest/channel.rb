@@ -71,6 +71,7 @@ module Ably
         }.merge(options)
 
         [:start, :end].each { |option| options[option] = as_since_epoch(options[option]) if options.has_key?(option) }
+        raise ArgumentError, ":end must be equal to or after :start" if options[:start] && options[:end] && (options[:start] > options[:end])
 
         paginated_options = {
           coerce_into: 'Ably::Models::Message',
