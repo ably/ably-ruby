@@ -130,7 +130,7 @@ describe Ably::Rest do
           if [1, 3].include?(@publish_attempts)
             { status: 201, :body => '[]', :headers => { 'Content-Type' => 'application/json' } }
           else
-            raise Ably::Exceptions::InvalidRequest.new('Authentication failure', 401, 40140)
+            raise Ably::Exceptions::TokenExpired.new('Authentication failure', 401, 40140)
           end
         end
       end
@@ -155,10 +155,10 @@ describe Ably::Rest do
       context 'when NOT auth#token_renewable?' do
         let(:client) { Ably::Rest::Client.new(token: 'token ID cannot be used to create a new token', environment: environment, protocol: protocol) }
 
-        it 'should raise an InvalidToken exception' do
+        it 'should raise an TokenExpired exception' do
           client.channel(channel).publish('evt', 'msg')
           expect(@publish_attempts).to eql(1)
-          expect { client.channel(channel).publish('evt', 'msg') }.to raise_error Ably::Exceptions::InvalidToken
+          expect { client.channel(channel).publish('evt', 'msg') }.to raise_error Ably::Exceptions::TokenExpired
           expect(@token_requests).to eql(0)
         end
       end
