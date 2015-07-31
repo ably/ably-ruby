@@ -212,10 +212,10 @@ describe Ably::Rest::Client do
               headers: { 'Content-Type' => 'application/json' },
               status: status,
               body: {
-	              "error": {
-		              "statusCode": 401,
-		              "code": 40101,
-		              "message": "Invalid credentials"
+	              "error" => {
+		              "statusCode" => 401,
+		              "code" => 40101,
+		              "message" => "Invalid credentials"
 	              }
               }.to_json
             )
