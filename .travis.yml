@@ -1,3 +1,4 @@
+sudo: false
 env: RSPEC_RETRY=true
 language: ruby
 rvm:
