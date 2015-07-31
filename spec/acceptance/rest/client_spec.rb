@@ -139,6 +139,7 @@ describe Ably::Rest::Client do
         let(:max_attempts)       { 2 }
         let(:cumulative_timeout) { 0.5 }
         let(:client_options)     { default_options.merge(environment: nil, key: api_key) }
+        let(:fallback_block)     { Proc.new { raise Faraday::SSLError.new('ssl error message') } }
 
         before do
           stub_const 'Ably::FALLBACK_HOSTS', custom_hosts
@@ -151,15 +152,11 @@ describe Ably::Rest::Client do
         end
 
         let!(:first_fallback_request_stub) do
-          stub_request(:post, "https://#{api_key}@#{custom_hosts[0]}#{path}").to_return do
-            raise Faraday::SSLError.new('ssl error message')
-          end
+          stub_request(:post, "https://#{api_key}@#{custom_hosts[0]}#{path}").to_return(&fallback_block)
         end
 
         let!(:second_fallback_request_stub) do
-          stub_request(:post, "https://#{api_key}@#{custom_hosts[1]}#{path}").to_return do
-            raise Faraday::SSLError.new('ssl error message')
-          end
+          stub_request(:post, "https://#{api_key}@#{custom_hosts[1]}#{path}").to_return(&fallback_block)
         end
 
         context 'and connection times out' do
@@ -202,6 +199,52 @@ describe Ably::Rest::Client do
 
           it "tries fallback hosts #{connection_retry[:max_retry_attempts]} times" do
             expect { publish_block.call }.to raise_error Ably::Exceptions::ConnectionError, /ssl error message/
+            expect(default_host_request_stub).to have_been_requested
+            expect(first_fallback_request_stub).to have_been_requested
+            expect(second_fallback_request_stub).to have_been_requested
+          end
+        end
+
+        context 'and basic authentication fails' do
+          let(:status) { 401 }
+          let!(:default_host_request_stub) do
+            stub_request(:post, "https://#{api_key}@#{Ably::Rest::Client::DOMAIN}#{path}").to_return(
+              headers: { 'Content-Type' => 'application/json' },
+              status: status,
+              body: {
+	              "error": {
+		              "statusCode": 401,
+		              "code": 40101,
+		              "message": "Invalid credentials"
+	              }
+              }.to_json
+            )
+          end
+
+          it 'does not attempt the fallback hosts as this is an authentication failure' do
+            expect { publish_block.call }.to raise_error(Ably::Exceptions::InvalidRequest)
+            expect(default_host_request_stub).to have_been_requested
+            expect(first_fallback_request_stub).to_not have_been_requested
+            expect(second_fallback_request_stub).to_not have_been_requested
+          end
+        end
+
+        context 'and server returns a 50x error' do
+          let(:status) { 502 }
+          let(:fallback_block) do
+            Proc.new do
+              {
+                headers: { 'Content-Type' => 'text/html' },
+                status: status
+              }
+            end
+          end
+          let!(:default_host_request_stub) do
+            stub_request(:post, "https://#{api_key}@#{Ably::Rest::Client::DOMAIN}#{path}").to_return(&fallback_block)
+          end
+
+          it 'attempts the fallback hosts as this is an authentication failure' do
+            expect { publish_block.call }.to raise_error(Ably::Exceptions::ServerError)
             expect(default_host_request_stub).to have_been_requested
             expect(first_fallback_request_stub).to have_been_requested
             expect(second_fallback_request_stub).to have_been_requested

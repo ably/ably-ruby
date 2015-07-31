@@ -125,7 +125,7 @@ describe Ably::Auth do
               :headers => { 'Content-Type' => content_type })
         end
 
-        let!(:token) { puts token_options; auth.request_token(token_options) }
+        let!(:token) { auth.request_token(token_options) }
 
         specify 'key_name is used in request and signing uses key_secret' do
           expect(request_token_stub).to have_been_requested

@@ -29,7 +29,9 @@ module Ably
             message = 'Unknown server error' if message.to_s.strip == ''
 
             if env.status >= 500
-              raise Ably::Exceptions::ServerError, message
+              raise Ably::Exceptions::ServerError.new(message, error_status_code, error_code)
+            elsif env.status == 401 && error_code == 40140
+              raise Ably::Exceptions::TokenExpired.new(message, error_status_code, error_code)
             else
               raise Ably::Exceptions::InvalidRequest.new(message, error_status_code, error_code)
             end

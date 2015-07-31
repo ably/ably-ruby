@@ -21,9 +21,6 @@ module Ably
     # An invalid request was received by Ably
     class InvalidRequest < BaseAblyException; end
 
-    # The token is invalid
-    class InvalidToken < BaseAblyException; end
-
     # Ably Protocol message received that is invalid
     class ProtocolError < BaseAblyException; end
 
@@ -71,6 +68,9 @@ module Ably
 
     # The token request could not be created
     class TokenRequestError < BaseAblyException; end
+
+    # The token has expired
+    class TokenExpired < BaseAblyException; end
 
     # The message could not be delivered to the server
     class MessageDeliveryError < BaseAblyException; end

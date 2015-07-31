@@ -315,7 +315,7 @@ module Ably
             end
           end
 
-        rescue Faraday::TimeoutError, Faraday::ClientError => error
+        rescue Faraday::TimeoutError, Faraday::ClientError, Ably::Exceptions::ServerError => error
           time_passed = Time.now - requested_at
           if can_fallback_to_alternate_ably_host? && retry_count < max_retry_attempts && time_passed <= cumulative_timeout
             retry_count += 1
@@ -327,20 +327,18 @@ module Ably
               raise Ably::Exceptions::ConnectionTimeoutError.new(error.message, nil, 80014, error)
             when Faraday::ClientError
               raise Ably::Exceptions::ConnectionError.new(error.message, nil, 80000, error)
+            else
+              raise error
           end
         end
       end
 
       def reauthorise_on_authorisation_failure
         yield
-      rescue Ably::Exceptions::InvalidRequest => e
-        if e.code == 40140
-          if auth.token_renewable?
-            auth.authorise force: true
-            yield
-          else
-            raise Ably::Exceptions::InvalidToken.new(e.message, e.status, e.code)
-          end
+      rescue Ably::Exceptions::TokenExpired => e
+        if auth.token_renewable?
+          auth.authorise force: true
+          yield
         else
           raise e
         end
