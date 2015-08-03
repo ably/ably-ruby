@@ -22,8 +22,9 @@ describe Ably::Auth do
   end
 
   vary_by_protocol do
+    let(:default_options) { { environment: environment, protocol: protocol } }
     let(:client) do
-      Ably::Rest::Client.new(key: api_key, environment: environment, protocol: protocol)
+      Ably::Rest::Client.new(default_options.merge(key: api_key))
     end
     let(:auth) { client.auth }
     let(:content_type) do
@@ -550,10 +551,21 @@ describe Ably::Auth do
     end
 
     describe '#create_token_request' do
-      let(:ttl)           { 60 * 60 }
-      let(:capability)    { { :foo => ["publish"] } }
-      let(:token_request_options)       { Hash.new }
+      let(:ttl)                   { 60 * 60 }
+      let(:capability)            { { :foo => ["publish"] } }
+      let(:token_request_options) { Hash.new }
+      
       subject { auth.create_token_request(token_request_options) }
+
+      it 'returns a TokenRequest object' do
+        expect(subject).to be_a(Ably::Models::TokenRequest)
+      end
+
+      it 'returns a TokenRequest that can be passed to a client that can use it for authentication without an API key' do
+        client_without_api_key = Ably::Rest::Client.new(default_options.merge(token: subject))
+        expect(client_without_api_key.auth).to be_using_token_auth
+        expect { client.stats }.to_not raise_error
+      end
 
       it 'uses the key name from the client' do
         expect(subject['keyName']).to eql(key_name)
