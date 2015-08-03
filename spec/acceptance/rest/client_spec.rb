@@ -18,12 +18,48 @@ describe Ably::Rest::Client do
       let(:client_id)     { random_str }
       let(:token_request) { client.auth.create_token_request(key_name: key_name, key_secret: key_secret, client_id: client_id) }
 
+      context 'with only an API key' do
+        let(:client) { Ably::Rest::Client.new(client_options.merge(key: api_key)) }
+
+        it 'uses basic authentication' do
+          expect(client.auth).to be_using_basic_auth
+        end
+      end
+
+      context 'with an explicit string :token' do
+        let(:client) { Ably::Rest::Client.new(client_options.merge(token: random_str)) }
+
+        it 'uses token authentication' do
+          expect(client.auth).to be_using_token_auth
+        end
+      end
+
+      context 'with :use_token_auth set to true' do
+        let(:client) { Ably::Rest::Client.new(client_options.merge(key: api_key, use_token_auth: true)) }
+
+        it 'uses token authentication' do
+          expect(client.auth).to be_using_token_auth
+        end
+      end
+
+      context 'with a :client_id configured' do
+        let(:client) { Ably::Rest::Client.new(client_options.merge(key: api_key, client_id: random_str)) }
+
+        it 'uses token authentication' do
+          expect(client.auth).to be_using_token_auth
+        end
+      end
+
       context 'with an :auth_callback Proc' do
         let(:client) { Ably::Rest::Client.new(client_options.merge(auth_callback: Proc.new { token_request })) }
 
         it 'calls the auth Proc to get a new token' do
           expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token_details }
           expect(client.auth.current_token_details.client_id).to eql(client_id)
+        end
+
+        it 'uses token authentication' do
+          expect(client.auth).to be_using_token_auth
         end
       end
 
@@ -38,6 +74,10 @@ describe Ably::Rest::Client do
         it 'sends an HTTP request to the provided URL to get a new token' do
           expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token_details }
           expect(client.auth.current_token_details.client_id).to eql(client_id)
+        end
+
+        it 'uses token authentication' do
+          expect(client.auth).to be_using_token_auth
         end
       end
 
