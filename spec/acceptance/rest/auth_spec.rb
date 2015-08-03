@@ -552,7 +552,7 @@ describe Ably::Auth do
 
     describe '#create_token_request' do
       let(:ttl)                   { 60 * 60 }
-      let(:capability)            { { :foo => ["publish"] } }
+      let(:capability)            { { "foo" => ["publish"] } }
       let(:token_request_options) { Hash.new }
 
       subject { auth.create_token_request(token_request_options) }
@@ -562,9 +562,10 @@ describe Ably::Auth do
       end
 
       it 'returns a TokenRequest that can be passed to a client that can use it for authentication without an API key' do
-        client_without_api_key = Ably::Rest::Client.new(default_options.merge(token: subject))
+        auth_callback = Proc.new { subject }
+        client_without_api_key = Ably::Rest::Client.new(default_options.merge(auth_callback: auth_callback))
         expect(client_without_api_key.auth).to be_using_token_auth
-        expect { client.stats }.to_not raise_error
+        expect { client_without_api_key.auth.authorise }.to_not raise_error
       end
 
       it 'uses the key name from the client' do
@@ -599,6 +600,23 @@ describe Ably::Auth do
           it "overrides default" do
             expect(subject.public_send(attribute).to_s).to eql(option_value.to_s)
           end
+        end
+      end
+
+      context 'when specifying capability' do
+        before do
+          token_request_options[:capability] = capability
+        end
+
+        it 'overrides the default' do
+          expect(subject.capability).to eql(capability)
+        end
+
+        it 'uses these capabilities when Ably issues an actual token' do
+          auth_callback = Proc.new { subject }
+          client_without_api_key = Ably::Rest::Client.new(default_options.merge(auth_callback: auth_callback))
+          client_without_api_key.auth.authorise
+          expect(client_without_api_key.auth.current_token_details.capability).to eql(capability)
         end
       end
 
