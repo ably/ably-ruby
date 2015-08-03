@@ -92,7 +92,7 @@ shared_examples 'a client initializer' do
     context 'key_name and key_secret', api_private: true do
       let(:client_options) { { key_name: 'id', key_secret: 'secret' } }
 
-      it 'constructs an key' do
+      it 'constructs a key' do
         expect(subject.auth.key).to eql('id:secret')
       end
     end

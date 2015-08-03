@@ -22,7 +22,7 @@ describe Ably::Rest::Client do
 
     context ':use_token_auth' do
       context 'set to false' do
-        context 'with an key with :tls => false' do
+        context 'with a key and :tls => false' do
           let(:client_options) { { use_token_auth: false, key: 'appid.keyuid:keysecret', tls: false } }
 
           it 'fails for any operation with basic auth and attempting to send an API key over a non-secure connection' do
@@ -30,20 +30,20 @@ describe Ably::Rest::Client do
           end
         end
 
-        context 'without an key' do
+        context 'without a key' do
           let(:client_options) { { use_token_auth: false } }
 
-          it 'fails as an key is required if not using token auth' do
+          it 'fails as a key is required if not using token auth' do
             expect { subject.channel('a').publish('event', 'message') }.to raise_error(ArgumentError)
           end
         end
       end
 
       context 'set to true' do
-        context 'without an key or token' do
+        context 'without a key or token' do
           let(:client_options) { { use_token_auth: true, key: true } }
 
-          it 'fails as an key is required to issue tokens' do
+          it 'fails as a key is required to issue tokens' do
             expect { subject.channel('a').publish('event', 'message') }.to raise_error(ArgumentError)
           end
         end

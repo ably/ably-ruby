@@ -14,7 +14,7 @@ describe Ably::Rest::Client do
       let(:client_id)     { random_str }
       let(:token_request) { client.auth.create_token_request(key_name: key_name, key_secret: key_secret, client_id: client_id) }
 
-      context 'with a :auth_callback Proc' do
+      context 'with an :auth_callback Proc' do
         let(:client) { Ably::Rest::Client.new(client_options.merge(auth_callback: Proc.new { token_request })) }
 
         it 'calls the auth Proc to get a new token' do
