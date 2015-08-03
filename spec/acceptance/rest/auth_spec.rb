@@ -45,9 +45,9 @@ describe Ably::Auth do
 
     def serialize(object, protocol)
       if protocol == :msgpack
-        MessagePack.pack(token_response)
+        MessagePack.pack(object)
       else
-        JSON.dump(token_response)
+        JSON.dump(object)
       end
     end
 
@@ -66,7 +66,17 @@ describe Ably::Auth do
         )
       end
 
-      it 'returns a valid requested token in the expected format with valid issued and expires attributes' do
+      it 'creates a TokenRequest automatically and sends it to Ably to obtain a token', webmock: true do
+        token_request_stub = stub_request(:post, "#{client.endpoint}/keys/#{key_name}/requestToken").
+          to_return(status: 201, body: serialize({}, protocol), headers: { 'Content-Type' => content_type })
+        expect(auth).to receive(:create_token_request).and_call_original
+        auth.request_token
+
+        expect(token_request_stub).to have_been_requested
+      end
+
+      it 'returns a valid TokenDetails object in the expected format with valid issued and expires attributes' do
+        expect(token_details).to be_a(Ably::Models::TokenDetails)
         expect(token_details.token).to match(/^#{app_id}\.[\w-]+$/)
         expect(token_details.key_name).to match(/^#{key_name}$/)
         expect(token_details.issued).to be_within(2).of(Time.now)
