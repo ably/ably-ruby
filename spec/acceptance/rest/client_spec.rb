@@ -65,14 +65,28 @@ describe Ably::Rest::Client do
           let(:client_options) { default_options.merge(token: token_string) }
 
           let!(:get_message_history_stub) do
-            stub_request(:get, "https://#{environment}-#{Ably::Rest::Client::DOMAIN}/channels/#{channel_name}/messages?#{history_querystring}").
+            stub_request(:get, "#{http_protocol}://#{environment}-#{Ably::Rest::Client::DOMAIN}/channels/#{channel_name}/messages?#{history_querystring}").
               with(headers: { 'Authorization' => "Bearer #{encode64(token_string)}" }).
               to_return(body: [], headers: { 'Content-Type' => 'application/json' })
           end
 
-          it 'sends the token string in the Authorization Bearer header with Base64 encoding' do
-            client.channel(channel_name).history history_params
-            expect(get_message_history_stub).to have_been_requested
+          context 'without specifying protocol' do
+            let(:http_protocol) { 'https' }
+
+            it 'sends the token string over HTTPS in the Authorization Bearer header with Base64 encoding' do
+              client.channel(channel_name).history history_params
+              expect(get_message_history_stub).to have_been_requested
+            end
+          end
+
+          context 'when setting constructor ClientOption :tls to false' do
+            let(:client_options) { default_options.merge(token: token_string, tls: false) }
+            let(:http_protocol)  { 'http' }
+
+            it 'sends the token string over HTTP in the Authorization Bearer header with Base64 encoding' do
+              client.channel(channel_name).history history_params
+              expect(get_message_history_stub).to have_been_requested
+            end
           end
         end
       end
