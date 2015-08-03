@@ -87,6 +87,10 @@ shared_examples 'a client initializer' do
       it 'connects to the Ably service' do
         expect { subject }.to_not raise_error
       end
+
+      it 'uses basic auth' do
+        expect(subject.auth).to be_using_basic_auth
+      end
     end
 
     context 'key_name and key_secret', api_private: true do
@@ -110,6 +114,10 @@ shared_examples 'a client initializer' do
 
       it 'sets the key_secret' do
         expect(subject.auth.key_secret).to eql('secret')
+      end
+
+      it 'uses basic auth' do
+        expect(subject.auth).to be_using_basic_auth
       end
     end
 
