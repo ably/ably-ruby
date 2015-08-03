@@ -10,6 +10,10 @@ describe Ably::Rest::Client do
 
     connection_retry = Ably::Rest::Client::CONNECTION_RETRY
 
+    def encode64(text)
+      Base64.encode64(text).gsub("\n", '')
+    end
+
     context '#initialize' do
       let(:client_id)     { random_str }
       let(:token_request) { client.auth.create_token_request(key_name: key_name, key_secret: key_secret, client_id: client_id) }
@@ -34,6 +38,42 @@ describe Ably::Rest::Client do
         it 'sends an HTTP request to the provided URL to get a new token' do
           expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token_details }
           expect(client.auth.current_token_details.client_id).to eql(client_id)
+        end
+      end
+
+      context 'auth headers', webmock: true do
+        let(:channel_name)        { random_str }
+        let(:history_params)      { { 'direction' => 'backwards', 'limit' => 100 } }
+        let(:history_querystring) { history_params.map { |k, v| "#{k}=#{v}" }.join("&") }
+
+        context 'with basic auth', webmock: true do
+          let(:client_options)      { default_options.merge(key: api_key) }
+
+          let!(:get_message_history_stub) do
+            stub_request(:get, "https://#{api_key}@#{environment}-#{Ably::Rest::Client::DOMAIN}/channels/#{channel_name}/messages?#{history_querystring}").
+              to_return(body: [], headers: { 'Content-Type' => 'application/json' })
+          end
+
+          it 'sends the API key in authentication part of the secure URL (the Authorization: Basic header is not used with the Faraday HTTP library by default)' do
+            client.channel(channel_name).history history_params
+            expect(get_message_history_stub).to have_been_requested
+          end
+        end
+
+        context 'with token auth', webmock: true do
+          let(:token_string)   { random_str }
+          let(:client_options) { default_options.merge(token: token_string) }
+
+          let!(:get_message_history_stub) do
+            stub_request(:get, "https://#{environment}-#{Ably::Rest::Client::DOMAIN}/channels/#{channel_name}/messages?#{history_querystring}").
+              with(headers: { 'Authorization' => "Bearer #{encode64(token_string)}" }).
+              to_return(body: [], headers: { 'Content-Type' => 'application/json' })
+          end
+
+          it 'sends the token string in the Authorization Bearer header with Base64 encoding' do
+            client.channel(channel_name).history history_params
+            expect(get_message_history_stub).to have_been_requested
+          end
         end
       end
     end
