@@ -554,7 +554,7 @@ describe Ably::Auth do
       let(:ttl)                   { 60 * 60 }
       let(:capability)            { { :foo => ["publish"] } }
       let(:token_request_options) { Hash.new }
-      
+
       subject { auth.create_token_request(token_request_options) }
 
       it 'returns a TokenRequest object' do
@@ -624,22 +624,28 @@ describe Ably::Auth do
         end
       end
 
-      context 'with :query_time option' do
-        let(:time)    { Time.now - 30 }
-        let(:token_request_options) { { query_time: true } }
+      context 'timestamp attribute' do
+        context 'with :query_time option' do
+          let(:time)    { Time.now - 30 }
+          let(:token_request_options) { { query_time: true } }
 
-        it 'queries the server for the timestamp' do
-          expect(client).to receive(:time).and_return(time)
-          expect(subject['timestamp']).to be_within(1).of(time.to_f * 1000)
+          it 'queries the server for the timestamp' do
+            expect(client).to receive(:time).and_return(time)
+            expect(subject['timestamp']).to be_within(1).of(time.to_f * 1000)
+          end
         end
-      end
 
-      context 'with :timestamp option' do
-        let(:token_request_time) { Time.now + 5 }
-        let(:token_request_options) { { timestamp: token_request_time } }
+        context 'with :timestamp option' do
+          let(:token_request_time) { Time.now + 5 }
+          let(:token_request_options) { { timestamp: token_request_time } }
 
-        it 'uses the provided timestamp in the token request' do
-          expect(subject['timestamp']).to be_within(1).of(token_request_time.to_f * 1000)
+          it 'uses the provided timestamp in the token request' do
+            expect(subject['timestamp']).to be_within(1).of(token_request_time.to_f * 1000)
+          end
+        end
+
+        it 'is a Time object in Ruby and is set to the local time' do
+          expect(subject.timestamp.to_f).to be_within(1).of(Time.now.to_f)
         end
       end
 
