@@ -10,15 +10,34 @@ describe Ably::Realtime::Channels do
   subject { Ably::Realtime::Channels.new(client) }
 
   context 'creating channels' do
-    it '#get creates a channel' do
-      expect(Ably::Realtime::Channel).to receive(:new).with(client, channel_name, options)
-      subject.get(channel_name, options)
-    end
+    context '#get' do
+      it 'creates a channel if it does not exist' do
+        expect(Ably::Realtime::Channel).to receive(:new).with(client, channel_name, options)
+        subject.get(channel_name, options)
+      end
 
-    it '#get will reuse the channel object' do
-      channel = subject.get(channel_name, options)
-      expect(channel).to be_a(Ably::Realtime::Channel)
-      expect(subject.get(channel_name, options).object_id).to eql(channel.object_id)
+      context 'when an existing channel exists' do
+        it 'will reuse a channel object if it exists' do
+          channel = subject.get(channel_name, options)
+          expect(channel).to be_a(Ably::Realtime::Channel)
+          expect(subject.get(channel_name, options).object_id).to eql(channel.object_id)
+        end
+
+        it 'will update the options on the channel if provided' do
+          channel = subject.get(channel_name, options)
+          expect(channel.options).to eql(options)
+          expect(channel.options).to_not include(:encrypted)
+          subject.get(channel_name, encrypted: true)
+          expect(channel.options[:encrypted]).to eql(true)
+        end
+
+        it 'will leave the options intact on the channel if not provided' do
+          channel = subject.get(channel_name, options)
+          expect(channel.options).to eql(options)
+          subject.get(channel_name)
+          expect(channel.options).to eql(options)
+        end
+      end
     end
 
     it '[] creates a channel' do

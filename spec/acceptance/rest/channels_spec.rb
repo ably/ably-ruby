@@ -48,10 +48,10 @@ describe Ably::Rest::Channels do
       let(:original_channel) { client.channels.get(channel_name, options) }
 
       it 'returns the existing channel without modifying the channel options' do
-        expect(original_channel.options).to_not include(:encrypted)
+        expect(original_channel.options).to eql(options)
         new_channel = client.channels.get(channel_name)
         expect(new_channel).to be_a(Ably::Rest::Channel)
-        expect(original_channel.options).to_not include(:encrypted)
+        expect(original_channel.options).to eql(options)
       end
     end
 

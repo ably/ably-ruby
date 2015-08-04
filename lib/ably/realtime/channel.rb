@@ -87,9 +87,9 @@ module Ably
       def initialize(client, name, channel_options = {})
         ensure_utf_8 :name, name
 
+        update_options channel_options
         @client        = client
         @name          = name
-        @options       = channel_options.clone.freeze
         @queue         = []
 
         @state_machine = ChannelStateMachine.new(self)
@@ -235,6 +235,11 @@ module Ably
       # @api private
       def set_attached_serial(serial)
         @attached_serial = serial
+      end
+
+      # @api private
+      def update_options(channel_options)
+        @options = channel_options.clone.freeze
       end
 
       # Used by {Ably::Modules::StateEmitter} to debug state changes
