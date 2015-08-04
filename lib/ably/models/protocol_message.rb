@@ -37,6 +37,7 @@ module Ably::Models
   #
   class ProtocolMessage
     include Ably::Modules::ModelCommon
+    include Ably::Modules::Encodeable
     include Ably::Modules::SafeDeferrable if defined?(Ably::Realtime)
     extend Ably::Modules::Enum
 
@@ -203,7 +204,18 @@ module Ably::Models
     end
 
     def to_s
-      to_json
+      json_hash = as_json
+
+      # Decode any binary data to before converting to a JSON string representation
+      %w(messages presence).each do |message_type|
+        if json_hash[message_type] && !json_hash[message_type].empty?
+          json_hash[message_type].each do |message|
+            decode_binary_data_before_to_json message
+          end
+        end
+      end
+
+      json_hash.to_json
     end
 
     # True if the ProtocolMessage appears to be invalid, however this is not a guarantee

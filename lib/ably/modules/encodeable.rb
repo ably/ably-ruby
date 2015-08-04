@@ -35,9 +35,12 @@ module Ably::Modules
 
     private
     def decode_binary_data_before_to_json(message)
-      if message[:data].kind_of?(String) && message[:data].encoding == ::Encoding::ASCII_8BIT
-        message[:data] = ::Base64.encode64(message[:data])
-        message[:encoding] = [message[:encoding], 'base64'].compact.join('/')
+      data_key = message[:data] ? :data : 'data'
+      encoding_key = message[:encoding] ? :encoding : 'encoding'
+
+      if message[data_key].kind_of?(String) && message[data_key].encoding == ::Encoding::ASCII_8BIT
+        message[data_key] = ::Base64.encode64(message[data_key])
+        message[encoding_key] = [message[encoding_key], 'base64'].compact.join('/')
       end
     end
 
