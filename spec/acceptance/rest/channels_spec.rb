@@ -32,6 +32,29 @@ describe Ably::Rest::Channels do
       it_behaves_like 'a channel'
     end
 
+    describe 'accessing an existing channel object with different options' do
+      let(:new_channel_options) { { encrypted: true } }
+      let(:original_channel)    { client.channels.get(channel_name, options) }
+
+      it 'overrides the existing channel options and returns the channel object' do
+        expect(original_channel.options).to_not include(:encrypted)
+        new_channel = client.channels.get(channel_name, new_channel_options)
+        expect(new_channel).to be_a(Ably::Rest::Channel)
+        expect(new_channel.options[:encrypted]).to eql(true)
+      end
+    end
+
+    describe 'accessing an existing channel object without specifying any channel options' do
+      let(:original_channel) { client.channels.get(channel_name, options) }
+
+      it 'returns the existing channel without modifying the channel options' do
+        expect(original_channel.options).to_not include(:encrypted)
+        new_channel = client.channels.get(channel_name)
+        expect(new_channel).to be_a(Ably::Rest::Channel)
+        expect(original_channel.options).to_not include(:encrypted)
+      end
+    end
+
     describe 'using undocumented array accessor [] method on client#channels' do
       let(:channel) { client.channels[channel_name] }
       let(:channel_with_options) { client.channels[channel_name, options] }

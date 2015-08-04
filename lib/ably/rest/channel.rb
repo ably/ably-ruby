@@ -25,9 +25,9 @@ module Ably
       def initialize(client, name, channel_options = {})
         ensure_utf_8 :name, name
 
+        update_options channel_options
         @client  = client
         @name    = name
-        @options = channel_options.clone.freeze
       end
 
       # Publish a message to the channel
@@ -115,6 +115,11 @@ module Ably
       # @return [Ably::Rest::Presence]
       def presence
         @presence ||= Presence.new(client, self)
+      end
+
+      # @api private
+      def update_options(channel_options)
+        @options = channel_options.clone.freeze
       end
 
       private
