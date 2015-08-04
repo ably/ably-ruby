@@ -5,8 +5,10 @@ describe Ably::Rest::Channel do
   include Ably::Modules::Conversions
 
   vary_by_protocol do
+    let(:default_options) { { key: api_key, environment: environment, protocol: protocol} }
+    let(:client_options)  { default_options }
     let(:client) do
-      Ably::Rest::Client.new(key: api_key, environment: environment, protocol: protocol)
+      Ably::Rest::Client.new(client_options)
     end
 
     describe '#publish' do
@@ -17,6 +19,7 @@ describe Ably::Rest::Channel do
       context 'with name and data arguments' do
         it 'should publish the message and return true indicating success' do
           expect(channel.publish(name, data)).to eql(true)
+          expect(channel.history.items.first.name).to eql(name)
           expect(channel.history.items.first.data).to eql(data)
         end
       end
@@ -48,6 +51,15 @@ describe Ably::Rest::Channel do
           expect(channel.publish(messages)).to eql(true)
           expect(channel.history.items.map(&:name)).to match_array(messages.map(&:name))
           expect(channel.history.items.map(&:data)).to match_array(messages.map(&:data))
+        end
+      end
+
+      context 'without adequate permissions on the channel' do
+        let(:capability)     { { onlyChannel: ['subscribe'] } }
+        let(:client_options) { default_options.merge(use_token_auth: true, capability: capability) }
+
+        it 'should raise a permission error when publishing' do
+          expect { channel.publish(name, data) }.to raise_error(Ably::Exceptions::InvalidRequest, /not permitted/)
         end
       end
     end
