@@ -17,7 +17,7 @@ describe Ably::Rest::Channel do
       let(:data)    { 'woop!' }
 
       context 'with name and data arguments' do
-        it 'should publish the message and return true indicating success' do
+        it 'publishes the message and return true indicating success' do
           expect(channel.publish(name, data)).to eql(true)
           expect(channel.history.items.first.name).to eql(name)
           expect(channel.history.items.first.data).to eql(data)
@@ -31,7 +31,7 @@ describe Ably::Rest::Channel do
           end
         end
 
-        it 'should publish an array of messages in one HTTP request' do
+        it 'publishes an array of messages in one HTTP request' do
           expect(client).to receive(:post).once.and_call_original
           expect(channel.publish(messages)).to eql(true)
           expect(channel.history.items.map(&:name)).to match_array(messages.map { |message| message[:name] })
@@ -46,7 +46,7 @@ describe Ably::Rest::Channel do
           end
         end
 
-        it 'should publish an array of messages in one HTTP request' do
+        it 'publishes an array of messages in one HTTP request' do
           expect(client).to receive(:post).once.and_call_original
           expect(channel.publish(messages)).to eql(true)
           expect(channel.history.items.map(&:name)).to match_array(messages.map(&:name))
@@ -58,7 +58,7 @@ describe Ably::Rest::Channel do
         let(:capability)     { { onlyChannel: ['subscribe'] } }
         let(:client_options) { default_options.merge(use_token_auth: true, capability: capability) }
 
-        it 'should raise a permission error when publishing' do
+        it 'raises a permission error when publishing' do
           expect { channel.publish(name, data) }.to raise_error(Ably::Exceptions::InvalidRequest, /not permitted/)
         end
       end
@@ -67,7 +67,7 @@ describe Ably::Rest::Channel do
         context 'when name is null' do
           let(:data) { random_str }
 
-          it 'should publish the message without a name attribute in the payload' do
+          it 'publishes the message without a name attribute in the payload' do
             expect(client).to receive(:post).with(anything, { "data" => data }).once.and_call_original
             expect(channel.publish(nil, data)).to eql(true)
             expect(channel.history.items.first.name).to be_nil
@@ -78,7 +78,7 @@ describe Ably::Rest::Channel do
         context 'when data is null' do
           let(:name) { random_str }
 
-          it 'should publish the message without a data attribute in the payload' do
+          it 'publishes the message without a data attribute in the payload' do
             expect(client).to receive(:post).with(anything, { "name" => name }).once.and_call_original
             expect(channel.publish(name)).to eql(true)
             expect(channel.history.items.first.name).to eql(name)
@@ -89,7 +89,7 @@ describe Ably::Rest::Channel do
         context 'with neither name or data attributes' do
           let(:name) { random_str }
 
-          it 'should publish the message without any attributes in the payload' do
+          it 'publishes the message without any attributes in the payload' do
             expect(client).to receive(:post).with(anything, {}).once.and_call_original
             expect(channel.publish(nil)).to eql(true)
             expect(channel.history.items.first.name).to be_nil
@@ -116,7 +116,11 @@ describe Ably::Rest::Channel do
         end
       end
 
-      it 'should return the current message history for the channel' do
+      it 'returns a PaginatedResult model' do
+        expect(channel.history).to be_a(Ably::Models::PaginatedResult)
+      end
+
+      it 'returns the current message history for the channel' do
         actual_history_items = channel.history.items
 
         expect(actual_history_items.size).to eql(3)
@@ -129,7 +133,7 @@ describe Ably::Rest::Channel do
       end
 
       context 'message timestamps' do
-        it 'should all be after the messages were published' do
+        specify 'are after the messages were published' do
           channel.history.items.each do |message|
             expect(before_published.to_f).to be < message.timestamp.to_f
           end
@@ -137,14 +141,14 @@ describe Ably::Rest::Channel do
       end
 
       context 'message IDs' do
-        it 'should be unique' do
+        it 'is unique' do
           message_ids = channel.history.items.map(&:id).compact
           expect(message_ids.count).to eql(3)
           expect(message_ids.uniq.count).to eql(3)
         end
       end
 
-      it 'should return paged history using the PaginatedResult model' do
+      it 'returns paged history using the PaginatedResult model' do
         page_1 = channel.history(limit: 1)
         page_2 = page_1.next
         page_3 = page_2.next
@@ -165,6 +169,34 @@ describe Ably::Rest::Channel do
         expect(page_3.items.size).to eql(1)
         expect(page_3).to be_last
         expect(page_3).to_not be_first
+      end
+
+      context 'direction' do
+        it 'returns paged history backwards by default' do
+          items = channel.history.items
+          expect(items.first.name).to eql(expected_history.last.fetch(:name))
+          expect(items.last.name).to eql(expected_history.first.fetch(:name))
+        end
+
+        it 'returns history forward if specified in the options' do
+          items = channel.history(direction: :forwards).items
+          expect(items.first.name).to eql(expected_history.first.fetch(:name))
+          expect(items.last.name).to eql(expected_history.last.fetch(:name))
+        end
+      end
+
+      context 'limit' do
+        before do
+          channel.publish 120.times.to_a.map { |i| { name: 'event' } }
+        end
+
+        it 'defaults to 100' do
+          page = channel.history
+          expect(page.items.count).to eql(100)
+          next_page = page.next
+          expect(next_page.items.count).to be >= 20
+          expect(next_page.items.count).to be < 100
+        end
       end
     end
 
@@ -187,7 +219,8 @@ describe Ably::Rest::Channel do
       [:start, :end].each do |option|
         describe ":#{option}", :webmock do
           let!(:history_stub) {
-            query_params = default_history_options.merge(option => milliseconds).map { |k, v| "#{k}=#{v}" }.join('&')
+            query_params = default_history_options
+            .merge(option => milliseconds).map { |k, v| "#{k}=#{v}" }.join('&')
             stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/messages?#{query_params}").
               to_return(:body => '{}', :headers => { 'Content-Type' => 'application/json' })
           }
