@@ -92,10 +92,10 @@ module Ably::Models
       @hash_object
     end
 
-    def as_json(*args)
-      hash.dup.tap do |message|
+    def to_json(*args)
+      as_json(*args).tap do |message|
         decode_binary_data_before_to_json message
-      end.as_json
+      end.to_json
     end
 
     # Assign this message to a ProtocolMessage before delivery to the Ably system

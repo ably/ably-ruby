@@ -109,11 +109,17 @@ module Ably::Models
     def as_json(*args)
       hash.dup.tap do |presence_message|
         presence_message['action'] = action.to_i
-        decode_binary_data_before_to_json presence_message
       end.as_json
     rescue KeyError
       raise KeyError, ':action is missing or invalid, cannot generate a valid Hash for ProtocolMessage'
     end
+
+    def to_json(*args)
+      as_json(*args).tap do |presence_message|
+        decode_binary_data_before_to_json presence_message
+      end.to_json
+    end
+
 
     # Assign this presence message to a ProtocolMessage before delivery to the Ably system
     # @api private
