@@ -258,5 +258,14 @@ describe Ably::Rest::Channel do
         end
       end
     end
+
+    context '#presence' do
+      let(:channel_name) { "persisted:#{random_str(4)}" }
+      let(:channel) { client.channel(channel_name) }
+
+      it 'returns a REST Presence object' do
+        expect(channel.presence).to be_a(Ably::Rest::Presence)
+      end
+    end
   end
 end
