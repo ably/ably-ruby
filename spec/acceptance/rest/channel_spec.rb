@@ -10,12 +10,45 @@ describe Ably::Rest::Channel do
     end
 
     describe '#publish' do
-      let(:channel) { client.channel('test') }
-      let(:event)   { 'foo' }
-      let(:message) { 'woop!' }
+      let(:channel) { client.channel(random_str) }
+      let(:name)   { 'foo' }
+      let(:data)    { 'woop!' }
 
-      it 'should publish the message and return true indicating success' do
-        expect(channel.publish(event, message)).to eql(true)
+      context 'with name and data arguments' do
+        it 'should publish the message and return true indicating success' do
+          expect(channel.publish(name, data)).to eql(true)
+          expect(channel.history.items.first.data).to eql(data)
+        end
+      end
+
+      context 'with an array of Hash objects with :name and :data attributes' do
+        let(:messages) do
+          10.times.map do |index|
+            { name: index.to_s, data: { "index" => index + 10 } }
+          end
+        end
+
+        it 'should publish an array of messages in one HTTP request' do
+          expect(client).to receive(:post).once.and_call_original
+          expect(channel.publish(messages)).to eql(true)
+          expect(channel.history.items.map(&:name)).to match_array(messages.map { |message| message[:name] })
+          expect(channel.history.items.map(&:data)).to match_array(messages.map { |message| message[:data] })
+        end
+      end
+
+      context 'with an array of Message objects' do
+        let(:messages) do
+          10.times.map do |index|
+            Ably::Models::Message(name: index.to_s, data: { "index" => index + 10 })
+          end
+        end
+
+        it 'should publish an array of messages in one HTTP request' do
+          expect(client).to receive(:post).once.and_call_original
+          expect(channel.publish(messages)).to eql(true)
+          expect(channel.history.items.map(&:name)).to match_array(messages.map(&:name))
+          expect(channel.history.items.map(&:data)).to match_array(messages.map(&:data))
+        end
       end
     end
 

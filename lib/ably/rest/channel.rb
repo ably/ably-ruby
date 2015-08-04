@@ -32,23 +32,44 @@ module Ably
 
       # Publish a message to the channel
       #
-      # @param name [String] The event name of the message to publish
-      # @param data [String] The message payload
-      # @return [Boolean] true if the message was published, otherwise false
-      def publish(name, data)
-        ensure_utf_8 :name, name
-        ensure_supported_payload data
-
-        payload = {
-          name: name,
-          data: data
-        }
-
-        message = Ably::Models::Message.new(payload).tap do |message|
-          message.encode self
+      # @param name [String, Array<Ably::Models::Message|Hash>]   The event name of the message to publish, or an Array of [Ably::Model::Message]  objects or [Hash] objects with +:name+ and +:data+ pairs
+      # @param data [String, nil]   The message payload unless an Array of [Ably::Model::Message] objects passed in the first argument
+      # @return [Boolean]  true if the message was published, otherwise false
+      #
+      # @example
+      #   # Publish a single message
+      #   channel.publish 'click', { x: 1, y: 2 }
+      #
+      #   # Publish an array of message Hashes
+      #   messages = [
+      #     { name: 'click', { x: 1, y: 2 } },
+      #     { name: 'click', { x: 2, y: 3 } }
+      #   ]
+      #   channel.publish messages
+      #
+      #   # Publish an array of Ably::Models::Message objects
+      #   messages = [
+      #     Ably::Models::Message(name: 'click', { x: 1, y: 2 })
+      #     Ably::Models::Message(name: 'click', { x: 2, y: 3 })
+      #   ]
+      #   channel.publish messages
+      #
+      def publish(name, data = nil)
+        messages = if name.kind_of?(Enumerable)
+          name
+        else
+          ensure_utf_8 :name, name
+          ensure_supported_payload data
+          [{ name: name, data: data }]
         end
 
-        response = client.post("#{base_path}/publish", message)
+        payload = messages.map do |message|
+          Ably::Models::Message(message.dup).tap do |message|
+            message.encode self
+          end
+        end
+
+        response = client.post("#{base_path}/publish", payload.length == 1 ? payload.first : payload)
 
         [201, 204].include?(response.status)
       end
