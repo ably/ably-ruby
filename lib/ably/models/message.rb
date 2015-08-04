@@ -93,8 +93,6 @@ module Ably::Models
     end
 
     def as_json(*args)
-      raise RuntimeError, ':name is missing, cannot generate a valid Hash for Message' unless name
-
       hash.dup.tap do |message|
         decode_binary_data_before_to_json message
       end.as_json

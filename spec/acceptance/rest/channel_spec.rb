@@ -62,6 +62,41 @@ describe Ably::Rest::Channel do
           expect { channel.publish(name, data) }.to raise_error(Ably::Exceptions::InvalidRequest, /not permitted/)
         end
       end
+
+      context 'null attributes' do
+        context 'when name is null' do
+          let(:data) { random_str }
+
+          it 'should publish the message without a name attribute in the payload' do
+            expect(client).to receive(:post).with(anything, { "data" => data }).once.and_call_original
+            expect(channel.publish(nil, data)).to eql(true)
+            expect(channel.history.items.first.name).to be_nil
+            expect(channel.history.items.first.data).to eql(data)
+          end
+        end
+
+        context 'when data is null' do
+          let(:name) { random_str }
+
+          it 'should publish the message without a data attribute in the payload' do
+            expect(client).to receive(:post).with(anything, { "name" => name }).once.and_call_original
+            expect(channel.publish(name)).to eql(true)
+            expect(channel.history.items.first.name).to eql(name)
+            expect(channel.history.items.first.data).to be_nil
+          end
+        end
+
+        context 'with neither name or data attributes' do
+          let(:name) { random_str }
+
+          it 'should publish the message without any attributes in the payload' do
+            expect(client).to receive(:post).with(anything, {}).once.and_call_original
+            expect(channel.publish(nil)).to eql(true)
+            expect(channel.history.items.first.name).to be_nil
+            expect(channel.history.items.first.data).to be_nil
+          end
+        end
+      end
     end
 
     describe '#history' do
@@ -142,7 +177,7 @@ describe Ably::Rest::Channel do
           client_end_point.password = key_secret
         end
       end
-      let(:default_options) do
+      let(:default_history_options) do
           {
             direction: :backwards,
             limit: 100
@@ -152,7 +187,7 @@ describe Ably::Rest::Channel do
       [:start, :end].each do |option|
         describe ":#{option}", :webmock do
           let!(:history_stub) {
-            query_params = default_options.merge(option => milliseconds).map { |k, v| "#{k}=#{v}" }.join('&')
+            query_params = default_history_options.merge(option => milliseconds).map { |k, v| "#{k}=#{v}" }.join('&')
             stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/messages?#{query_params}").
               to_return(:body => '{}', :headers => { 'Content-Type' => 'application/json' })
           }

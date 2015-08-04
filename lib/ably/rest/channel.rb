@@ -58,7 +58,7 @@ module Ably
         messages = if name.kind_of?(Enumerable)
           name
         else
-          ensure_utf_8 :name, name
+          ensure_utf_8 :name, name, allow_nil: true
           ensure_supported_payload data
           [{ name: name, data: data }]
         end
@@ -66,7 +66,9 @@ module Ably
         payload = messages.map do |message|
           Ably::Models::Message(message.dup).tap do |message|
             message.encode self
-          end
+          end.as_json
+        end.map do |object|
+          object.reject { |key, val| val.nil? }
         end
 
         response = client.post("#{base_path}/publish", payload.length == 1 ? payload.first : payload)

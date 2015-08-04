@@ -97,13 +97,5 @@ describe Ably::Rest::Channel do
         expect { subject.publish(encoded_value, 'data') }.to raise_error ArgumentError, /must be a String/
       end
     end
-
-    context 'as Nil' do
-      let(:encoded_value) { nil }
-
-      it 'raises an argument error' do
-        expect { subject.publish(encoded_value, 'data') }.to raise_error ArgumentError, /must be a String/
-      end
-    end
   end
 end

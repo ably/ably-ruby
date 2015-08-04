@@ -150,14 +150,6 @@ describe Ably::Models::Message do
       end
     end
 
-    context 'with invalid data' do
-      let(:model) { subject.new({ clientId: 'joe' }, protocol_message: protocol_message) }
-
-      it 'raises an exception' do
-        expect { model.to_json }.to raise_error RuntimeError, /cannot generate a valid Hash/
-      end
-    end
-
     context 'with binary data' do
       let(:data) { MessagePack.pack(random_str(32)) }
       let(:model) { subject.new({ name: 'test', data: data }, protocol_message: protocol_message) }
