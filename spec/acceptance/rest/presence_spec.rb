@@ -174,7 +174,7 @@ describe Ably::Rest::Presence do
     end
 
     describe '#history' do
-      context 'with time range options' do
+      context 'with options' do
         let(:channel_name) { "persisted:#{random_str(4)}" }
         let(:presence) { client.channel(channel_name).presence }
         let(:user) { 'appid.keyuid' }
@@ -188,53 +188,93 @@ describe Ably::Rest::Presence do
         let(:client) do
           Ably::Rest::Client.new(key: "#{user}:#{secret}")
         end
-        let(:default_options) do
+        let(:history_options) do
           {
             direction: :backwards,
             limit: 100
           }
         end
 
-        [:start, :end].each do |option|
-          describe ":#{option}", :webmock do
-            let!(:history_stub) {
-              query_params = default_options.merge(option => milliseconds).map { |k, v| "#{k}=#{v}" }.join('&')
-              stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence/history?#{query_params}").
-                to_return(:body => '{}', :headers => { 'Content-Type' => 'application/json' })
-            }
+        context 'limit options', :webmock do
+          let!(:history_stub) {
+            query_params = history_options.map { |k, v| "#{k}=#{v}" }.join('&')
+            stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence/history?#{query_params}").
+              to_return(:body => '{}', :headers => { 'Content-Type' => 'application/json' })
+          }
 
-            before do
-              presence.history(options)
+          before do
+            presence.history(history_options)
+          end
+
+          context 'default' do
+            it 'is set to 100' do
+              expect(history_stub).to have_been_requested
+            end
+          end
+
+          context 'set to 1000' do
+            let(:history_options) do
+              {
+                direction: :backwards,
+                limit: 1000
+              }
             end
 
-            context 'with milliseconds since epoch value' do
-              let(:milliseconds) { as_since_epoch(Time.now) }
-              let(:options) { { option => milliseconds } }
-
-              it 'uses this value in the history request' do
-                expect(history_stub).to have_been_requested
-              end
-            end
-
-            context 'with Time object value' do
-              let(:time) { Time.now }
-              let(:milliseconds) { as_since_epoch(time) }
-              let(:options) { { option => time } }
-
-              it 'converts the value to milliseconds since epoch in the hisotry request' do
-                expect(history_stub).to have_been_requested
-              end
+            it 'is passes the limit query param value 1000' do
+              expect(history_stub).to have_been_requested
             end
           end
         end
-      end
 
-      context 'when argument start is after end' do
-        let(:presence) { client.channel(random_str).presence }
-        let(:subject) { presence.history(start: as_since_epoch(Time.now), end: Time.now - 120) }
+        context 'with time range options' do
+          [:start, :end].each do |option|
+            describe ":#{option}", :webmock do
+              let(:history_options) {
+                {
+                  direction: :backwards,
+                  limit: 100,
+                  option => milliseconds
+                }
+              }
+              let!(:history_stub) {
+                query_params = history_options.map { |k, v| "#{k}=#{v}" }.join('&')
+                stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence/history?#{query_params}").
+                  to_return(:body => '{}', :headers => { 'Content-Type' => 'application/json' })
+              }
 
-        it 'should raise an exception' do
-          expect { subject.items }.to raise_error ArgumentError
+              before do
+                presence.history(history_options)
+              end
+
+              context 'with milliseconds since epoch value' do
+                let(:milliseconds) { as_since_epoch(Time.now) }
+                let(:options) { { option => milliseconds } }
+
+                it 'uses this value in the history request' do
+                  expect(history_stub).to have_been_requested
+                end
+              end
+
+              context 'with Time object value' do
+                let(:time) { Time.now }
+                let(:milliseconds) { as_since_epoch(time) }
+                let(:options) { { option => time } }
+
+                it 'converts the value to milliseconds since epoch in the hisotry request' do
+                  expect(history_stub).to have_been_requested
+                end
+              end
+            end
+          end
+
+          context 'when argument start is after end' do
+            let(:presence) { client.channel(random_str).presence }
+            let(:subject) { presence.history(start: as_since_epoch(Time.now), end: Time.now - 120) }
+
+            it 'should raise an exception' do
+              expect { subject.items }.to raise_error ArgumentError
+            end
+          end
         end
       end
     end
