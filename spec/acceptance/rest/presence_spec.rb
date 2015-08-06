@@ -128,6 +128,15 @@ describe Ably::Rest::Presence do
           end
         end
 
+        context 'default behaviour' do
+          let(:default_page)   { fixtures_channel.presence.history }
+          let(:backwards_page) { fixtures_channel.presence.history(direction: :backwards) }
+
+          it 'uses backwards direction' do
+            expect(default_page.items).to eq(backwards_page.items)
+          end
+        end
+
         context 'with options' do
           let(:page_size) { 3 }
 
