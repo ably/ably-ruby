@@ -576,6 +576,15 @@ describe Ably::Auth do
         expect(subject['ttl']).to eql(Ably::Auth::TOKEN_DEFAULTS.fetch(:ttl) * 1000)
       end
 
+      context 'with a :ttl option below the Token expiry buffer that ensures tokens are renewed 15s before they expire as they are considered expired' do
+        let(:ttl)        { 1 }
+
+        it 'uses the Token expiry buffer default + 10s to allow for a token request in flight' do
+          expect(subject.ttl).to be > 1
+          expect(subject.ttl).to be > Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER
+        end
+      end
+
       it 'uses the default capability' do
         expect(subject['capability']).to eql(Ably::Auth::TOKEN_DEFAULTS.fetch(:capability).to_json)
       end

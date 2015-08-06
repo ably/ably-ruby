@@ -356,12 +356,15 @@ module Ably::Realtime
             begin
               client.auth.authorise
             rescue StandardError => auth_error
+              logger.error "ConnectionManager: Error authorising following token expiry: #{auth_error}"
               connection.transition_state_machine :failed, auth_error
               nil
             end
           end
 
           callback = proc do |token|
+            logger.info 'ConnectionManager: Token renewed succesfully following expiration'
+
             state_changed_callback = proc do
               @renewing_token = false
               connection.off &state_changed_callback

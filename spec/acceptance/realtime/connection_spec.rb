@@ -52,8 +52,11 @@ describe Ably::Realtime::Connection, :event_machine do
         before do
           # Reduce token expiry buffer to zero so that a token expired? predicate is exact
           # Normally there is a buffer so that a token expiring soon is considered expired
+          @original_token_expiry_buffer = Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER
           stub_const 'Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER', 0
         end
+
+        let(:original_token_expiry_buffer) { @original_token_expiry_buffer }
 
         context 'for renewable tokens' do
           context 'that are valid for the duration of the test' do
@@ -138,7 +141,7 @@ describe Ably::Realtime::Connection, :event_machine do
 
             context 'when connected with a valid non-expired token' do
               context 'that then expires following the connection being opened' do
-                let(:ttl)     { 6 }
+                let(:ttl)     { 5 }
                 let(:channel) { client.channel('test') }
 
                 context 'the server' do
@@ -149,8 +152,10 @@ describe Ably::Realtime::Connection, :event_machine do
                     connection.once(:connected) do
                       started_at = Time.now
                       connection.once(:disconnected) do |error|
+                        expect(error.code).to eq(40140) # Token expired
+
                         # Token has expired, so now ensure it is not used again
-                        stub_const 'Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER', ttl
+                        stub_const 'Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER', original_token_expiry_buffer
 
                         connection.once(:connected) do
                           expect(client.auth.current_token_details).to_not be_expired
@@ -162,7 +167,7 @@ describe Ably::Realtime::Connection, :event_machine do
                       end
                     end
 
-                    connection.once(:failed) { |error| fail error.inspect }
+                    connection.unsafe_once(:failed) { |error| fail error.inspect }
 
                     channel.attach
                   end

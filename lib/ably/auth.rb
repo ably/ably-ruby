@@ -213,10 +213,15 @@ module Ably
       end
       timestamp = Time.at(timestamp) if timestamp.kind_of?(Integer)
 
+      ttl = [
+        (token_options[:ttl] || TOKEN_DEFAULTS.fetch(:ttl)).to_i,
+        Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER + 10 # never issue a token that will be immediately considered expired due to the buffer
+      ].max
+
       token_request = {
         keyName:    token_options[:key_name] || request_key_name,
         clientId:   token_options[:client_id] || client_id,
-        ttl:        ((token_options[:ttl] || TOKEN_DEFAULTS.fetch(:ttl)) * 1000).to_i,
+        ttl:        ttl * 1000,
         timestamp:  (timestamp.to_f * 1000).round,
         capability: token_options[:capability] || TOKEN_DEFAULTS.fetch(:capability),
         nonce:      token_options[:nonce] || SecureRandom.hex.force_encoding('UTF-8')
