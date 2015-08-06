@@ -25,7 +25,7 @@ module Ably::Models
 
     # Buffer in seconds before a token is considered unusable
     # For example, if buffer is 10s, the token can no longer be used for new requests 9s before it expires
-    TOKEN_EXPIRY_BUFFER = 5
+    TOKEN_EXPIRY_BUFFER = 15
 
     def initialize(attributes)
       @hash_object = IdiomaticRubyWrapper(attributes.clone.freeze)

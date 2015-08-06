@@ -138,7 +138,7 @@ describe Ably::Realtime::Connection, :event_machine do
 
             context 'when connected with a valid non-expired token' do
               context 'that then expires following the connection being opened' do
-                let(:ttl)     { 5 }
+                let(:ttl)     { 6 }
                 let(:channel) { client.channel('test') }
 
                 context 'the server' do
@@ -149,6 +149,9 @@ describe Ably::Realtime::Connection, :event_machine do
                     connection.once(:connected) do
                       started_at = Time.now
                       connection.once(:disconnected) do |error|
+                        # Token has expired, so now ensure it is not used again
+                        stub_const 'Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER', ttl
+
                         connection.once(:connected) do
                           expect(client.auth.current_token_details).to_not be_expired
                           expect(Time.now - started_at >= ttl)
@@ -158,6 +161,8 @@ describe Ably::Realtime::Connection, :event_machine do
                         end
                       end
                     end
+
+                    connection.once(:failed) { |error| fail error.inspect }
 
                     channel.attach
                   end
