@@ -62,6 +62,35 @@ describe Ably::Rest::Presence do
           end
         end
 
+        context 'default :limit', webmock: true do
+          let(:query_options) do
+            {
+              limit: 100
+            }
+          end
+          let(:endpoint) do
+            client.endpoint.tap do |client_end_point|
+              client_end_point.user = key_name
+              client_end_point.password = key_secret
+            end
+          end
+          let!(:get_stub) {
+            query_params = query_options.map { |k, v| "#{k}=#{v}" }.join('&')
+            stub_request(:get, "#{endpoint}/channels/#{CGI.escape(channel_name)}/presence?#{query_params}").
+              to_return(:body => '{}', :headers => { 'Content-Type' => 'application/json' })
+          }
+          let(:channel_name) { random_str }
+          let(:channel)      { client.channels.get(channel_name) }
+
+          before do
+            channel.presence.get
+          end
+
+          it 'defaults to a limit of 100' do
+            expect(get_stub).to have_been_requested
+          end
+        end
+
         context 'with :client_id option' do
           let(:client_id) { non_encoded_fixtures.first[:client_id] }
           let(:presence_page)  { fixtures_channel.presence.get(client_id: client_id) }
