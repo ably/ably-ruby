@@ -44,6 +44,7 @@ describe Ably::Rest::Presence do
 
           non_encoded_fixtures.each do |fixture|
             presence_message = presence_page.items.find { |client| client.client_id == fixture[:client_id] }
+            expect(presence_message).to be_a(Ably::Models::PresenceMessage)
             expect(presence_message.data).to eq(fixture[:data])
             expect(presence_message.action).to eq(:present)
           end
@@ -88,10 +89,12 @@ describe Ably::Rest::Presence do
         let(:history_page) { fixtures_channel.presence.history }
 
         it 'returns recent presence activity' do
+          expect(history_page).to be_a(Ably::Models::PaginatedResult)
           expect(history_page.items.size).to eql(fixtures.count)
 
           non_encoded_fixtures.each do |fixture|
             presence_message = history_page.items.find { |client| client.client_id == fixture['clientId'] }
+            expect(presence_message).to be_a(Ably::Models::PresenceMessage)
             expect(presence_message.data).to eq(fixture[:data])
           end
         end
