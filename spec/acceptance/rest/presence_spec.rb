@@ -39,6 +39,7 @@ describe Ably::Rest::Presence do
         let(:presence_page) { fixtures_channel.presence.get }
 
         it 'returns current members on the channel with their action set to :present' do
+          expect(presence_page).to be_a(Ably::Models::PaginatedResult)
           expect(presence_page.items.size).to eql(fixtures.count)
 
           non_encoded_fixtures.each do |fixture|
@@ -54,11 +55,31 @@ describe Ably::Rest::Presence do
 
           it 'returns a paged response limiting number of members per page' do
             expect(presence_page.items.size).to eql(page_size)
-            # TODO: To be enabled once Realtime Presence issue #164 is resolved
-            # expect(presence_page).to be_first
             next_page = presence_page.next
             expect(next_page.items.size).to eql(page_size)
             expect(next_page).to be_last
+          end
+        end
+
+        context 'with :client_id option' do
+          let(:client_id) { non_encoded_fixtures.first[:client_id] }
+          let(:presence_page)  { fixtures_channel.presence.get(client_id: client_id) }
+
+          it 'returns a list members filtered by the provided client ID' do
+            pending 'not implemented in the REST API yet' # TODO realtime/issues/243
+            expect(presence_page.items.count).to eql(1)
+            expect(presence_page.items.first.client_id).to eql(client_id)
+          end
+        end
+
+        context 'with :connection_id option' do
+          let(:connection_id) { fixtures_channel.presence.get.first.connection_id }
+          let(:presence_page)  { fixtures_channel.presence.get(connection_id: connection_id) }
+
+          it 'returns a list members filtered by the provided connection ID' do
+            pending 'not implemented in the REST API yet' # TODO realtime/issues/243
+            expect(presence_page.items.count).to eql(1)
+            expect(presence_page.items.first.connetion_id).to eql(connetion_id)
           end
         end
       end
