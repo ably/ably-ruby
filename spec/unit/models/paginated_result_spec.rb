@@ -169,10 +169,6 @@ describe Ably::Models::PaginatedResult do
   end
 
   context 'with non paged http response' do
-    it 'is the first page' do
-      expect(subject).to be_first
-    end
-
     it 'is the last page' do
       expect(subject).to be_last
     end
@@ -205,10 +201,6 @@ describe Ably::Models::PaginatedResult do
           '<./history?index=1>; rel="next"'
         ].join(', ')
       }
-    end
-
-    it 'is the first page' do
-      expect(subject).to be_first
     end
 
     it 'has next page' do
@@ -256,10 +248,6 @@ describe Ably::Models::PaginatedResult do
         expect(subject.items[0][:id]).to eql(next_body[0][:id])
       end
 
-      it 'is not the first page' do
-        expect(subject).to_not be_first
-      end
-
       it 'does not have a next page' do
         expect(subject).to_not have_next
       end
@@ -286,12 +274,7 @@ describe Ably::Models::PaginatedResult do
         it 'retrieves the first page of results' do
           expect(subject.items.length).to eql(body.length)
         end
-
-        it 'is the first page' do
-          expect(subject).to be_first
-        end
       end
     end
   end
 end
-

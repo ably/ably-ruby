@@ -158,17 +158,14 @@ describe Ably::Rest::Channel do
 
         expect(page_1.items.size).to eql(1)
         expect(page_1).to_not be_last
-        expect(page_1).to be_first
 
         # Page 2
         expect(page_2.items.size).to eql(1)
         expect(page_2).to_not be_last
-        expect(page_2).to_not be_first
 
         # Page 3
         expect(page_3.items.size).to eql(1)
         expect(page_3).to be_last
-        expect(page_3).to_not be_first
       end
 
       context 'direction' do

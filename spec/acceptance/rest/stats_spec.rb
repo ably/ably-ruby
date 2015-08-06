@@ -149,7 +149,6 @@ describe Ably::Rest::Client, '#stats' do
           end
 
           it 'returns 3 pages of stats' do
-            expect(subject).to be_first
             expect(subject).to_not be_last
             page3 = subject.next.next
             expect(page3).to be_last
@@ -166,7 +165,6 @@ describe Ably::Rest::Client, '#stats' do
           end
 
           it 'returns 3 pages of stats' do
-            expect(subject).to be_first
             expect(subject).to_not be_last
             page3 = subject.next.next
             expect(page3.items.first.inbound.realtime.all.count).to eql(first_inbound_realtime_count)

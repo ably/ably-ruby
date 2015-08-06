@@ -1,6 +1,6 @@
 module Ably::Models
   # Wraps any Ably HTTP response that supports paging and provides methods to iterate through
-  # the pages using {#first}, {#next}, {#first?}, {#has_next?} and {#last?}
+  # the pages using {#first}, {#next}, {#has_next?} and {#last?}
   #
   # All items in the HTTP response are available in the Array returned from {#items}
   #
@@ -68,14 +68,6 @@ module Ably::Models
         pagination_header('next').nil?
     end
 
-    # True if this is the first page in the paged resource set
-    #
-    # @return [Boolean]
-    def first?
-      !supports_pagination? ||
-        pagination_header('first') == pagination_header('current')
-    end
-
     # True if there is a subsequent page in this paginated set available with {#next}
     #
     # @return [Boolean]
@@ -94,8 +86,7 @@ module Ably::Models
       <<-EOF.gsub(/^        /, '')
         #<#{self.class.name}:#{self.object_id}
          @base_url="#{base_url}",
-         @first?=#{!!first?},
-         @last?=#{!!first?},
+         @last?=#{!!last?},
          @has_next?=#{!!has_next?},
          @items=
            #{items.map { |item| item.inspect }.join(",\n           ") }
