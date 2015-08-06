@@ -147,6 +147,11 @@ describe Ably::Rest::Client do
       let(:token_request_next) { client.auth.create_token_request(token_request_options.merge(client_id: random_str)) }
 
       context 'when expired' do
+        before do
+          # Ensure tokens issued expire immediately after issue
+          stub_const 'Ably::Auth::TOKEN_DEFAULTS', Ably::Auth::TOKEN_DEFAULTS.merge(renew_token_buffer: 0)
+        end
+
         let(:token_request_options) { { key_name: key_name, key_secret: key_secret, ttl: Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER } }
 
         it 'creates a new token automatically when the old token expires' do

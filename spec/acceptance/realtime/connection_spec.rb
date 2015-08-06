@@ -87,8 +87,13 @@ describe Ably::Realtime::Connection, :event_machine do
             let(:client_options) { default_options.merge(log_level: :none) }
 
             before do
+              # Ensure tokens issued expire immediately after issue
+              @original_renew_token_buffer = Ably::Auth::TOKEN_DEFAULTS.fetch(:renew_token_buffer)
+              stub_const 'Ably::Auth::TOKEN_DEFAULTS', Ably::Auth::TOKEN_DEFAULTS.merge(renew_token_buffer: 0)
               client.auth.authorise(ttl: ttl)
             end
+
+            let(:original_renew_token_buffer) { @original_renew_token_buffer }
 
             context 'opening a new connection' do
               context 'with recently expired token' do
@@ -156,6 +161,7 @@ describe Ably::Realtime::Connection, :event_machine do
 
                         # Token has expired, so now ensure it is not used again
                         stub_const 'Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER', original_token_expiry_buffer
+                        stub_const 'Ably::Auth::TOKEN_DEFAULTS', Ably::Auth::TOKEN_DEFAULTS.merge(renew_token_buffer: original_renew_token_buffer)
 
                         connection.once(:connected) do
                           expect(client.auth.current_token_details).to_not be_expired
@@ -182,6 +188,10 @@ describe Ably::Realtime::Connection, :event_machine do
 
         context 'for non-renewable tokens' do
           context 'that are expired' do
+            before do
+              stub_const 'Ably::Auth::TOKEN_DEFAULTS', Ably::Auth::TOKEN_DEFAULTS.merge(renew_token_buffer: 0)
+            end
+
             let!(:expired_token_details) do
               Ably::Realtime::Client.new(default_options).auth.request_token(ttl: 0.01)
             end

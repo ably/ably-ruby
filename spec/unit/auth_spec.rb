@@ -78,8 +78,8 @@ describe Ably::Auth do
       expect(Ably::Auth::TOKEN_DEFAULTS.fetch(:capability)).to eql(all_capabilities)
     end
 
-    it 'should only have defaults for :ttl and :capability' do
-      expect(Ably::Auth::TOKEN_DEFAULTS.keys).to contain_exactly(:ttl, :capability)
+    it 'should have defaults for :ttl and :capability' do
+      expect(Ably::Auth::TOKEN_DEFAULTS.keys).to include(:ttl, :capability)
     end
   end
 end

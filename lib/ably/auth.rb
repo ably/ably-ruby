@@ -30,9 +30,10 @@ module Ably
 
     # Default capability Hash object and TTL in seconds for issued tokens
     TOKEN_DEFAULTS = {
-      capability: { '*' => ['*'] },
-      ttl:        60 * 60 # 1 hour in seconds
-    }
+      capability:         { '*' => ['*'] },
+      ttl:                60 * 60, # 1 hour in seconds
+      renew_token_buffer: 10 # buffer to allow a token to be reissued before the token is considered expired (Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER)
+    }.freeze
 
     attr_reader :options, :current_token_details
     alias_method :auth_options, :options
@@ -214,14 +215,14 @@ module Ably
       timestamp = Time.at(timestamp) if timestamp.kind_of?(Integer)
 
       ttl = [
-        (token_options[:ttl] || TOKEN_DEFAULTS.fetch(:ttl)).to_i,
-        Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER + 10 # never issue a token that will be immediately considered expired due to the buffer
+        (token_options[:ttl] || TOKEN_DEFAULTS.fetch(:ttl)),
+        Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER + TOKEN_DEFAULTS.fetch(:renew_token_buffer) # never issue a token that will be immediately considered expired due to the buffer
       ].max
 
       token_request = {
         keyName:    token_options[:key_name] || request_key_name,
         clientId:   token_options[:client_id] || client_id,
-        ttl:        ttl * 1000,
+        ttl:        (ttl * 1000).to_i,
         timestamp:  (timestamp.to_f * 1000).round,
         capability: token_options[:capability] || TOKEN_DEFAULTS.fetch(:capability),
         nonce:      token_options[:nonce] || SecureRandom.hex.force_encoding('UTF-8')
