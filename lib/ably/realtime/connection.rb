@@ -341,8 +341,8 @@ module Ably
         callback = proc do |url|
           determine_host do |host|
             begin
-              logger.debug "Connection: Opening socket connection to #{client.endpoint} and URL '#{url}'"
-              @transport = EventMachine.connect(client.endpoint.host, client.endpoint.port || port, WebsocketTransport, self, url) do |websocket_transport|
+              logger.debug "Connection: Opening socket connection to #{host}:#{port} and URL '#{url}'"
+              @transport = EventMachine.connect(host, port, WebsocketTransport, self, url) do |websocket_transport|
                 yield websocket_transport if block_given?
               end
             rescue EventMachine::ConnectionError => error
@@ -451,8 +451,24 @@ module Ably
         client.recover.to_s.match(RECOVER_REGEX)
       end
 
+      def production?
+        client.environment.nil? || client.environment == :production
+      end
+
+      def custom_port?
+        if client.use_tls?
+          !!client.custom_tls_port
+        else
+          !!client.custom_port
+        end
+      end
+
+      def custom_host?
+        !!client.custom_realtime_host
+      end
+
       def can_use_fallback_hosts?
-        if client.environment.nil? && client.custom_realtime_host.nil?
+        if production? && !custom_port? && !custom_host?
           if connecting? && previous_state
             use_fallback_if_disconnected? || use_fallback_if_suspended?
           end

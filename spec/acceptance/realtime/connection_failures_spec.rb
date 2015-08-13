@@ -228,6 +228,8 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         end
 
         context 'connection opening times out' do
+          let(:client_options) { client_failure_options }
+
           it 'attempts to reconnect' do
             started_at = Time.now
 
@@ -249,8 +251,6 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
 
           context 'when retry intervals are stubbed to attempt reconnection quickly' do
-            let(:client_options) { client_failure_options }
-
             before do
               # Reconfigure client library retry periods and timeouts so that tests run quickly
               stub_const 'Ably::Realtime::Connection::ConnectionManager::CONNECT_RETRY_CONFIG',
@@ -537,11 +537,27 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
       context 'with custom realtime websocket host option' do
         let(:expected_host) { 'this.host.does.not.exist' }
-        let(:client_options) { default_options.merge(realtime_host: expected_host, log_level: :none) }
+        let(:client_options) { default_options.merge(realtime_host: expected_host, :environment => :production, log_level: :none) }
 
         it 'never uses a fallback host' do
           expect(EventMachine).to receive(:connect).exactly(retry_count_for_all_states).times do |host|
             expect(host).to eql(expected_host)
+            raise EventMachine::ConnectionError
+          end
+
+          connection.on(:failed) do
+            stop_reactor
+          end
+        end
+      end
+
+      context 'with custom realtime websocket port option' do
+        let(:custom_port) { 666}
+        let(:client_options) { default_options.merge(tls_port: custom_port, :environment => :production, log_level: :none) }
+
+        it 'never uses a fallback host' do
+          expect(EventMachine).to receive(:connect).exactly(retry_count_for_all_states).times do |host, port|
+            expect(port).to eql(custom_port)
             raise EventMachine::ConnectionError
           end
 
