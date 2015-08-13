@@ -157,6 +157,24 @@ shared_examples 'a client initializer' do
           expect(subject.endpoint.to_s).to eql("#{protocol}s://sandbox-#{subdomain}.ably.io")
         end
       end
+
+      context 'with rest_host option' do
+        let(:client_options) { default_options.merge(rest_host: 'custom-rest.host.com') }
+
+        it 'uses an alternate endpoint for REST clients' do
+          skip 'does not apply as testing a Realtime client' unless rest?
+          expect(subject.endpoint.to_s).to eql("#{protocol}s://custom-rest.host.com")
+        end
+      end
+
+      context 'with realtime_host option' do
+        let(:client_options) { default_options.merge(realtime_host: 'custom-realtime.host.com') }
+
+        it 'uses an alternate endpoint for Realtime clients' do
+          skip 'does not apply as testing a REST client' if rest?
+          expect(subject.endpoint.to_s).to eql("#{protocol}s://custom-realtime.host.com")
+        end
+      end
     end
 
     context 'tls' do
