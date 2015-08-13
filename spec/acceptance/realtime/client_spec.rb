@@ -25,7 +25,7 @@ describe Ably::Realtime::Client, :event_machine do
         end
 
         context ':tls option' do
-          context 'set to false to forec a plain-text connection' do
+          context 'set to false to force a plain-text connection' do
             let(:client_options) { default_options.merge(tls: false, log_level: :none) }
 
             it 'fails to connect because a private key cannot be sent over a non-secure connection' do
@@ -113,6 +113,27 @@ describe Ably::Realtime::Client, :event_machine do
             end
           end
         end
+      end
+    end
+
+    context '#connection' do
+      it 'provides access to the Connection object' do
+        expect(subject.connection).to be_a(Ably::Realtime::Connection)
+        stop_reactor
+      end
+    end
+
+    context '#channels' do
+      it 'provides access to the Channels collection object' do
+        expect(subject.channels).to be_a(Ably::Realtime::Channels)
+        stop_reactor
+      end
+    end
+
+    context '#auth' do
+      it 'provides access to the Auth object' do
+        expect(subject.auth).to be_a(Ably::Auth)
+        stop_reactor
       end
     end
   end
