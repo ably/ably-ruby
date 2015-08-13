@@ -52,7 +52,8 @@ module Ably
 
       def_delegators :auth, :client_id, :auth_options
       def_delegators :@rest_client, :encoders
-      def_delegators :@rest_client, :environment, :use_tls?, :protocol, :protocol_binary?, :custom_host
+      def_delegators :@rest_client, :use_tls?, :protocol, :protocol_binary?
+      def_delegators :@rest_client, :environment, :custom_host, :custom_port, :custom_tls_port
       def_delegators :@rest_client, :log_level
 
       # Creates a {Ably::Realtime::Client Realtime Client} and configures the {Ably::Auth} object for the connection.
@@ -174,12 +175,22 @@ module Ably
 
       private
       def endpoint_for_host(host)
-        URI::Generic.build(
+        port = if use_tls?
+          custom_tls_port
+        else
+          custom_port
+        end
+
+        raise ArgumentError, "Custom port must be an Integer or nil" if port && !port.kind_of?(Integer)
+
+        options = {
           scheme: use_tls? ? 'wss' : 'ws',
           host:   host
-        )
+        }
+        options.merge!(port: port) if port
+
+        URI::Generic.build(options)
       end
     end
   end
 end
-

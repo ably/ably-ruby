@@ -175,6 +175,22 @@ shared_examples 'a client initializer' do
           expect(subject.endpoint.to_s).to eql("#{protocol}s://custom-realtime.host.com")
         end
       end
+
+      context 'with port option and non-TLS connections' do
+        let(:client_options) { default_options.merge(port: 999, tls: false) }
+
+        it 'uses the custom port for non-TLS requests' do
+          expect(subject.endpoint.to_s).to include(":999")
+        end
+      end
+
+      context 'with tls_port option and a TLS connection' do
+        let(:client_options) { default_options.merge(tls_port: 666, tls: true) }
+
+        it 'uses the custom port for TLS requests' do
+          expect(subject.endpoint.to_s).to include(":666")
+        end
+      end
     end
 
     context 'tls' do

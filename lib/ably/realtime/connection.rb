@@ -275,7 +275,7 @@ module Ably
       # @!attribute [r] port
       # @return [Integer] The default port used for this connection
       def port
-        client.use_tls? ? 443 : 80
+        client.use_tls? ? client.custom_tls_port || 443 : client.custom_port || 80
       end
 
       # @!attribute [r] logger
@@ -341,8 +341,8 @@ module Ably
         callback = proc do |url|
           determine_host do |host|
             begin
-              logger.debug "Connection: Opening socket connection to #{host}:#{port} and URL '#{url}'"
-              @transport = EventMachine.connect(host, port, WebsocketTransport, self, url) do |websocket_transport|
+              logger.debug "Connection: Opening socket connection to #{client.endpoint} and URL '#{url}'"
+              @transport = EventMachine.connect(client.endpoint.host, client.endpoint.port || port, WebsocketTransport, self, url) do |websocket_transport|
                 yield websocket_transport if block_given?
               end
             rescue EventMachine::ConnectionError => error

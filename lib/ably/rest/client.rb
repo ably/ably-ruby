@@ -55,6 +55,14 @@ module Ably
       # @return [String,Nil]
       attr_reader :custom_host
 
+      # The custom port for non-TLS requests if it was provided with the option `:port` when the {Client} was created
+      # @return [Integer,Nil]
+      attr_reader :custom_port
+
+      # The custom TLS port for TLS requests if it was provided with the option `:tls_port` when the {Client} was created
+      # @return [Integer,Nil]
+      attr_reader :custom_tls_port
+
       # The registered encoders that are used to encode and decode message payloads
       # @return [Array<Ably::Models::MessageEncoder::Base>]
       # @api private
@@ -101,13 +109,15 @@ module Ably
           end
         end
 
-        @tls           = options.delete(:tls) == false ? false : true
-        @environment   = options.delete(:environment) # nil is production
-        @protocol      = options.delete(:protocol) || :msgpack
-        @debug_http    = options.delete(:debug_http)
-        @log_level     = options.delete(:log_level) || ::Logger::WARN
-        @custom_logger = options.delete(:logger)
-        @custom_host   = options.delete(:rest_host)
+        @tls              = options.delete(:tls) == false ? false : true
+        @environment      = options.delete(:environment) # nil is production
+        @protocol         = options.delete(:protocol) || :msgpack
+        @debug_http       = options.delete(:debug_http)
+        @log_level        = options.delete(:log_level) || ::Logger::WARN
+        @custom_logger    = options.delete(:logger)
+        @custom_host      = options.delete(:rest_host)
+        @custom_port      = options.delete(:port)
+        @custom_tls_port  = options.delete(:tls_port)
 
         if @log_level == :none
           @custom_logger = Ably::Models::NilLogger.new
@@ -345,10 +355,21 @@ module Ably
       end
 
       def endpoint_for_host(host)
-        URI::Generic.build(
+        port = if use_tls?
+          custom_tls_port
+        else
+          custom_port
+        end
+
+        raise ArgumentError, "Custom port must be an Integer or nil" if port && !port.kind_of?(Integer)
+
+        options = {
           scheme: use_tls? ? 'https' : 'http',
           host:   host
-        )
+        }
+        options.merge!(port: port) if port
+
+        URI::Generic.build(options)
       end
 
       # Return a Hash of connection options to initiate the Faraday::Connection with
