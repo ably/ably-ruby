@@ -87,6 +87,10 @@ describe Ably::Realtime::Connection, :event_machine do
             let(:client_options) { default_options.merge(log_level: :none) }
 
             before do
+              expect(client.rest_client.time.to_f).to be_within(1.5).of(Time.now.to_i), "Local clock is out of sync with Ably"
+            end
+
+            before do
               # Ensure tokens issued expire immediately after issue
               @original_renew_token_buffer = Ably::Auth::TOKEN_DEFAULTS.fetch(:renew_token_buffer)
               stub_const 'Ably::Auth::TOKEN_DEFAULTS', Ably::Auth::TOKEN_DEFAULTS.merge(renew_token_buffer: 0)
