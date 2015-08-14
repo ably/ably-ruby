@@ -311,48 +311,51 @@ module Ably
         __outgoing_protocol_msgbus__.publish :protocol_message, protocol_message
       end
 
+      # @return [EventMachine::Deferrable]
       # @api private
       def create_websocket_transport
-        raise ArgumentError, 'Block required' unless block_given?
+        EventMachine::DefaultDeferrable.new.tap do |websocket_deferrable|
+          # Getting auth params can be blocking so uses a Deferrable
+          client.auth.auth_params.tap do |auth_deferrable|
+            auth_deferrable.callback do |auth_params|
+              url_params = auth_params.merge(
+                timestamp: as_since_epoch(Time.now),
+                format:    client.protocol,
+                echo:      client.echo_messages
+              )
 
-        blocking_operation = proc do
-          URI(client.endpoint).tap do |endpoint|
-            url_params = client.auth.auth_params.merge(
-              timestamp: as_since_epoch(Time.now),
-              format:    client.protocol,
-              echo:      client.echo_messages
-            )
+              if connection_resumable?
+                url_params.merge! resume: key, connection_serial: serial
+                logger.debug "Resuming connection key #{key} with serial #{serial}"
+              elsif connection_recoverable?
+                url_params.merge! recover: connection_recover_parts[:recover], connection_serial: connection_recover_parts[:connection_serial]
+                logger.debug "Recovering connection with key #{client.recover}"
+                once(:connected, :closed, :failed) do
+                  client.disable_automatic_connection_recovery
+                end
+              end
 
-            if connection_resumable?
-              url_params.merge! resume: key, connection_serial: serial
-              logger.debug "Resuming connection key #{key} with serial #{serial}"
-            elsif connection_recoverable?
-              url_params.merge! recover: connection_recover_parts[:recover], connection_serial: connection_recover_parts[:connection_serial]
-              logger.debug "Recovering connection with key #{client.recover}"
-              once(:connected, :closed, :failed) do
-                client.disable_automatic_connection_recovery
+              url = URI(client.endpoint).tap do |endpoint|
+                endpoint.query = URI.encode_www_form(url_params)
+              end.to_s
+
+              determine_host do |host|
+                begin
+                  logger.debug "Connection: Opening socket connection to #{host}:#{port} and URL '#{url}'"
+                  @transport = EventMachine.connect(host, port, WebsocketTransport, self, url) do |websocket_transport|
+                    websocket_deferrable.succeed websocket_transport
+                  end
+                rescue EventMachine::ConnectionError => error
+                  websocket_deferrable.fail error
+                end
               end
             end
 
-            endpoint.query = URI.encode_www_form(url_params)
-          end.to_s
-        end
-
-        callback = proc do |url|
-          determine_host do |host|
-            begin
-              logger.debug "Connection: Opening socket connection to #{host}:#{port} and URL '#{url}'"
-              @transport = EventMachine.connect(host, port, WebsocketTransport, self, url) do |websocket_transport|
-                yield websocket_transport if block_given?
-              end
-            rescue EventMachine::ConnectionError => error
-              manager.connection_opening_failed error
+            auth_deferrable.errback do |error|
+              websocket_deferrable.fail error
             end
           end
         end
-
-        # client.auth.auth_params is a blocking call, so defer this into a thread
-        EventMachine.defer blocking_operation, callback
       end
 
       # @api private

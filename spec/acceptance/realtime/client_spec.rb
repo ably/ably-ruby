@@ -9,7 +9,7 @@ describe Ably::Realtime::Client, :event_machine do
 
     let(:client_options) { default_options }
     let(:connection)     { subject.connection }
-    let(:auth_params)    { subject.auth.auth_params }
+    let(:auth_params)    { subject.auth.auth_params_sync }
 
     subject              { Ably::Realtime::Client.new(client_options) }
 
@@ -44,7 +44,7 @@ describe Ably::Realtime::Client, :event_machine do
         [true, false].each do |tls_enabled|
           context "with TLS #{tls_enabled ? 'enabled' : 'disabled'}" do
             let(:capability)      { { :foo => ["publish"] } }
-            let(:token_details)   { Ably::Realtime::Client.new(default_options).auth.request_token(capability: capability) }
+            let(:token_details)   { Ably::Realtime::Client.new(default_options).auth.request_token_sync(capability: capability) }
             let(:client_options)  { default_options.merge(token: token_details.token) }
 
             context 'and a pre-generated Token provided with the :token option' do
@@ -95,7 +95,7 @@ describe Ably::Realtime::Client, :event_machine do
           subject do
             Ably::Realtime::Client.new(client_options.merge(auth_callback: Proc.new do
               @block_called = true
-              auth.create_token_request(client_id: client_id)
+              auth.create_token_request_sync(client_id: client_id)
             end))
           end
 
@@ -131,8 +131,8 @@ describe Ably::Realtime::Client, :event_machine do
     end
 
     context '#auth' do
-      it 'provides access to the Auth object' do
-        expect(subject.auth).to be_a(Ably::Auth)
+      it 'provides access to the Realtime::Auth object' do
+        expect(subject.auth).to be_a(Ably::Realtime::Auth)
         stop_reactor
       end
     end

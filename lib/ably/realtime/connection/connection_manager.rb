@@ -59,9 +59,14 @@ module Ably::Realtime
 
         logger.debug 'ConnectionManager: Opening a websocket transport connection'
 
-        connection.create_websocket_transport do |websocket_transport|
-          subscribe_to_transport_events websocket_transport
-          yield websocket_transport if block_given?
+        connection.create_websocket_transport.tap do |socket_deferrable|
+          socket_deferrable.callback do |websocket_transport|
+            subscribe_to_transport_events websocket_transport
+            yield websocket_transport if block_given?
+          end
+          socket_deferrable.errback do |error|
+            connection_opening_failed error
+          end
         end
 
         logger.debug "ConnectionManager: Setting up automatic connection timeout timer for #{TIMEOUTS.fetch(:open)}s"
@@ -350,38 +355,33 @@ module Ably::Realtime
           end
 
           @renewing_token = true
-          logger.warn "ConnectionManager: Token has expired and is renewable, renewing token now"
+          logger.info "ConnectionManager: Token has expired and is renewable, renewing token now"
 
-          operation = proc do
-            begin
-              client.auth.authorise
-            rescue StandardError => auth_error
+          client.auth.authorise.tap do |authorise_deferrable|
+            authorise_deferrable.callback do |token_details|
+              logger.info 'ConnectionManager: Token renewed succesfully following expiration'
+
+              state_changed_callback = proc do
+                @renewing_token = false
+                connection.off &state_changed_callback
+              end
+
+              connection.unsafe_once :connected, :closed, :failed, &state_changed_callback
+
+              if token_details && !token_details.expired?
+                connection.connect
+              else
+                connection.transition_state_machine :failed, error unless connection.failed?
+              end
+            end
+
+            authorise_deferrable.errback do |auth_error|
               logger.error "ConnectionManager: Error authorising following token expiry: #{auth_error}"
               connection.transition_state_machine :failed, auth_error
-              nil
             end
           end
-
-          callback = proc do |token|
-            logger.info 'ConnectionManager: Token renewed succesfully following expiration'
-
-            state_changed_callback = proc do
-              @renewing_token = false
-              connection.off &state_changed_callback
-            end
-
-            connection.unsafe_once :connected, :closed, :failed, &state_changed_callback
-
-            if token && !token.expired?
-              connection.connect
-            else
-              connection.transition_state_machine :failed, error unless connection.failed?
-            end
-          end
-
-          EventMachine.defer operation, callback
         else
-          logger.error "ConnectionManager: Token has expired and is not renewable"
+          logger.error "ConnectionManager: Token has expired and is not renewable - #{error}"
           connection.transition_state_machine :failed, error
         end
       end

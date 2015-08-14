@@ -74,7 +74,7 @@ describe Ably::Realtime::Connection, :event_machine do
               let(:client_options) { default_options.merge(client_id: 'force_token_auth') }
 
               it 'uses the token created by the implicit authorisation' do
-                expect(client.auth).to receive(:request_token).once.and_call_original
+                expect(client.rest_client.auth).to receive(:request_token).once.and_call_original
 
                 connection.once(:connected) do
                   stop_reactor
@@ -87,14 +87,16 @@ describe Ably::Realtime::Connection, :event_machine do
             let(:client_options) { default_options.merge(log_level: :none) }
 
             before do
-              expect(client.rest_client.time.to_f).to be_within(1.5).of(Time.now.to_i), "Local clock is out of sync with Ably"
+              expect(client.rest_client.time.to_f).to be_within(2).of(Time.now.to_i), "Local clock is out of sync with Ably"
             end
 
             before do
               # Ensure tokens issued expire immediately after issue
               @original_renew_token_buffer = Ably::Auth::TOKEN_DEFAULTS.fetch(:renew_token_buffer)
               stub_const 'Ably::Auth::TOKEN_DEFAULTS', Ably::Auth::TOKEN_DEFAULTS.merge(renew_token_buffer: 0)
-              client.auth.authorise(ttl: ttl)
+
+              # Authorise synchronously to ensure token has been issued
+              client.auth.authorise_sync(ttl: ttl)
             end
 
             let(:original_renew_token_buffer) { @original_renew_token_buffer }
@@ -106,7 +108,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 it 'renews the token on connect' do
                   sleep ttl + 0.1
                   expect(client.auth.current_token_details).to be_expired
-                  expect(client.auth).to receive(:authorise).at_least(:once).and_call_original
+                  expect(client.rest_client.auth).to receive(:authorise).at_least(:once).and_call_original
                   connection.once(:connected) do
                     expect(client.auth.current_token_details).to_not be_expired
                     stop_reactor
@@ -118,7 +120,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 let(:ttl) { 0.001 }
 
                 it 'renews the token on connect, and only makes one subsequent attempt to obtain a new token' do
-                  expect(client.auth).to receive(:authorise).at_least(:twice).and_call_original
+                  expect(client.rest_client.auth).to receive(:authorise).at_least(:twice).and_call_original
                   connection.once(:disconnected) do
                     connection.once(:failed) do |error|
                       expect(error.code).to eql(40140) # token expired
@@ -197,7 +199,8 @@ describe Ably::Realtime::Connection, :event_machine do
             end
 
             let!(:expired_token_details) do
-              Ably::Realtime::Client.new(default_options).auth.request_token(ttl: 0.01)
+              # Request a token synchronously
+              Ably::Realtime::Client.new(default_options).auth.request_token_sync(ttl: 0.01)
             end
 
             context 'opening a new connection' do
@@ -828,6 +831,9 @@ describe Ably::Realtime::Connection, :event_machine do
           it 'calls the success callback of the Deferrable' do
             connection.internet_up?.callback do
               stop_reactor
+            end
+            connection.internet_up?.errback do
+              raise 'Could not perform the Internet up check. Are you connected to the Internet?'
             end
           end
         end

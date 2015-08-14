@@ -76,7 +76,7 @@ module Ably
       #
       def initialize(options)
         @rest_client           = Ably::Rest::Client.new(options)
-        @auth                  = @rest_client.auth
+        @auth                  = Ably::Realtime::Auth.new(self)
         @channels              = Ably::Realtime::Channels.new(self)
         @echo_messages         = @rest_client.options.fetch(:echo_messages, true) == false ? false : true
         @custom_realtime_host  = @rest_client.options[:realtime_host] || @rest_client.options[:ws_host]

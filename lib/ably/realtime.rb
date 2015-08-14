@@ -3,6 +3,7 @@ require 'websocket/driver'
 
 require 'ably/modules/event_emitter'
 
+require 'ably/realtime/auth'
 require 'ably/realtime/channel'
 require 'ably/realtime/channels'
 require 'ably/realtime/client'

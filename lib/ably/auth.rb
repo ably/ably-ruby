@@ -23,7 +23,7 @@ module Ably
   #   @return [String] Key secret (private secure part of the API key), if present
   # @!attribute [r] options
   #   @return [Hash] {Ably::Auth} options configured for this client
-
+  #
   class Auth
     include Ably::Modules::Conversions
     include Ably::Modules::HttpHelpers
@@ -76,7 +76,7 @@ module Ably
 
     # Ensures valid auth credentials are present for the library instance. This may rely on an already-known and valid token, and will obtain a new token if necessary.
     #
-    # In the event that a new token request is made, the specified options are used.
+    # In the event that a new token request is made, the provided options are used.
     #
     # @param [Hash] options the options for the token request
     # @option options (see #request_token)
@@ -88,10 +88,10 @@ module Ably
     # @example
     #    # will issue a simple token request using basic auth
     #    client = Ably::Rest::Client.new(key: 'key.id:secret')
-    #    token = client.auth.authorise
+    #    token_details = client.auth.authorise
     #
     #    # will use token request from block to authorise if not already authorised
-    #    token = client.auth.authorise do |options|
+    #    token_details = client.auth.authorise auth_callback: Proc.new do
     #      # create token_request object
     #      token_request
     #    end
@@ -132,10 +132,10 @@ module Ably
     # @example
     #    # simple token request using basic auth
     #    client = Ably::Rest::Client.new(key: 'key.id:secret')
-    #    token = client.auth.request_token
+    #    token_details = client.auth.request_token
     #
     #    # token request using auth block
-    #    token = client.auth.request_token do |options|
+    #    token_details = client.auth.request_token auth_callback: Proc.new do
     #      # create token_request object
     #      token_request
     #    end
@@ -258,7 +258,7 @@ module Ably
     # True when Token Auth is being used to authenticate with Ably
     def using_token_auth?
       return options[:use_token_auth] if options.has_key?(:use_token_auth)
-      token || current_token_details || has_client_id? || token_creatable_externally?
+      !!(token || current_token_details || has_client_id? || token_creatable_externally?)
     end
 
     def client_id
@@ -276,6 +276,7 @@ module Ably
     end
 
     # Auth header string used in HTTP requests to Ably
+    # Will reauthorise implicitly if required and capable
     #
     # @return [String] HTTP authentication value used in HTTP_AUTHORIZATION header
     def auth_header
@@ -287,6 +288,7 @@ module Ably
     end
 
     # Auth params used in URI endpoint for Realtime connections
+    # Will reauthorise implicitly if required and capable
     #
     # @return [Hash] Auth params for a new Realtime connection
     def auth_params
