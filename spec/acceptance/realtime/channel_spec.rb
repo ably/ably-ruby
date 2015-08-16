@@ -435,6 +435,7 @@ describe Ably::Realtime::Channel, :event_machine do
           end
 
           it 'calls the errback once' do
+            skip 'Waiting for issue #256 to be resolved'
             channel.publish(messages + invalid_messages).tap do |deferrable|
               deferrable.callback do
                 raise 'Publish should have failed'
@@ -460,6 +461,7 @@ describe Ably::Realtime::Channel, :event_machine do
           end
 
           it 'calls the errback once' do
+            skip 'Waiting for issue #256 to be resolved'
             channel.publish(invalid_messages).tap do |deferrable|
               deferrable.callback do
                 raise 'Publish should have failed'
