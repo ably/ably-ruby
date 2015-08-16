@@ -100,17 +100,33 @@ module Ably
         setup_presence
       end
 
-      # Publish a message on the channel.
+      # Publish one or more messages to the channel.
       #
       # When publishing a message, if the channel is not attached, the channel is implicitly attached
       #
-      # @param name [String] The event name of the message
-      # @param data [String,ByteArray] payload for the message
-      # @yield [Ably::Models::Message] On success, will call the block with the {Ably::Models::Message}
-      # @return [Ably::Models::Message] Deferrable {Ably::Models::Message} that supports both success (callback) and failure (errback) callbacks
+      # @param name [String, Array<Ably::Models::Message|Hash>, nil]   The event name of the message to publish, or an Array of [Ably::Model::Message] objects or [Hash] objects with +:name+ and +:data+ pairs
+      # @param data [String, ByteArray, nil]   The message payload unless an Array of [Ably::Model::Message] objects passed in the first argument
+      #
+      # @yield [Ably::Models::Message,Array<Ably::Models::Message>] On success, will call the block with the {Ably::Models::Message} if a single message is publishde, or an Array of {Ably::Models::Message} when multiple messages are published
+      # @return [Ably::Util::SafeDeferrable] Deferrable that supports both success (callback) and failure (errback) callbacks
       #
       # @example
-      #   channel.publish('click', 'body')
+      #   # Publish a single message
+      #   channel.publish 'click', { x: 1, y: 2 }
+      #
+      #   # Publish an array of message Hashes
+      #   messages = [
+      #     { name: 'click', { x: 1, y: 2 } },
+      #     { name: 'click', { x: 2, y: 3 } }
+      #   ]
+      #   channel.publish messages
+      #
+      #   # Publish an array of Ably::Models::Message objects
+      #   messages = [
+      #     Ably::Models::Message(name: 'click', { x: 1, y: 2 })
+      #     Ably::Models::Message(name: 'click', { x: 2, y: 3 })
+      #   ]
+      #   channel.publish messages
       #
       #   channel.publish('click', 'body') do |message|
       #     puts "#{message.name} event received with #{message.data}"
@@ -120,13 +136,17 @@ module Ably
       #     puts "#{message.name} was not received, error #{error.message}"
       #   end
       #
-      def publish(name, data, &success_block)
-        ensure_utf_8 :name, name
-        ensure_supported_payload data
+      def publish(name, data = nil, &success_block)
+        messages = if name.kind_of?(Enumerable)
+          name
+        else
+          ensure_utf_8 :name, name, allow_nil: true
+          ensure_supported_payload data
+          [{ name: name, data: data }]
+        end
 
-        create_message(name, data).tap do |message|
-          message.callback(&success_block) if block_given?
-          queue_message message
+        queue_messages(messages).tap do |deferrable|
+          deferrable.callback &success_block if block_given?
         end
       end
 
@@ -262,15 +282,49 @@ module Ably
         end
       end
 
-      # Queue message and process queue if channel is attached.
+      # Queue messages and process queue if channel is attached.
       # If channel is not yet attached, attempt to attach it before the message queue is processed.
-      def queue_message(message)
-        queue << message
+      # @returns [Ably::Util::SafeDeferrable]
+      def queue_messages(raw_messages)
+        messages = Array(raw_messages).map { |msg| create_message(msg) }
+        queue.push *messages
 
         if attached?
           process_queue
         else
           attach
+        end
+
+        if messages.count == 1
+          # A message is a Deferrable so, if publishing only one message, simply return that Deferrable
+          messages.first
+        else
+          deferrable_for_multiple_messages(messages)
+        end
+      end
+
+      # A deferrable object that calls the success callback once all messages are delivered
+      # If any message fails, the errback is called immediately
+      # Only one callback or errback is ever called i.e. if a group of messages all fail, only once
+      # errback will be invoked
+      def deferrable_for_multiple_messages(messages)
+        expected_deliveries = messages.count
+        actual_deliveries = 0
+        failed = false
+
+        Ably::Util::SafeDeferrable.new(logger).tap do |deferrable|
+          messages.each do |message|
+            message.callback do
+              return if failed
+              actual_deliveries += 1
+              deferrable.succeed messages if actual_deliveries == expected_deliveries
+            end
+            message.errback do |error|
+              return if failed
+              failed = true
+              deferrable.fail error, message
+            end
+          end
         end
       end
 
@@ -294,12 +348,8 @@ module Ably
         )
       end
 
-      def create_message(name, data)
-        message = { name: name }
-        message.merge!(data: data) unless data.nil?
-        message.merge!(clientId: client.client_id) if client.client_id
-
-        Ably::Models::Message.new(message, logger: logger).tap do |message|
+      def create_message(message)
+        Ably::Models::Message(message.dup).tap do |message|
           message.encode self
         end
       end

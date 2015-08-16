@@ -315,6 +315,9 @@ describe Ably::Realtime::Channel, :event_machine do
     end
 
     context '#publish' do
+      let(:name)    { random_str }
+      let(:data)    { random_str }
+
       context 'when attached' do
         it 'publishes messages' do
           channel.attach do
@@ -352,6 +355,123 @@ describe Ably::Realtime::Channel, :event_machine do
             message_indexes = messages.map { |msg| msg.id.split(':')[1] }
             expect(message_indexes).to include("0", "1", "2")
             stop_reactor
+          end
+        end
+      end
+
+      context 'with name and data arguments' do
+        it 'publishes the message and return true indicating success' do
+          channel.publish(name, data) do
+            channel.history do |page|
+              expect(page.items.first.name).to eql(name)
+              expect(page.items.first.data).to eql(data)
+              stop_reactor
+            end
+          end
+        end
+      end
+
+      context 'with an array of Hash objects with :name and :data attributes' do
+        let(:messages) do
+          10.times.map do |index|
+            { name: index.to_s, data: { "index" => index + 10 } }
+          end
+        end
+
+        it 'publishes an array of messages in one ProtocolMessage' do
+          published = false
+
+          channel.attach do
+            client.connection.__outgoing_protocol_msgbus__.once(:protocol_message) do |protocol_message|
+              expect(protocol_message.messages.count).to eql(messages.count)
+              published = true
+            end
+
+            channel.publish(messages).callback do
+              channel.history do |page|
+                expect(page.items.map(&:name)).to match_array(messages.map { |message| message[:name] })
+                expect(page.items.map(&:data)).to match_array(messages.map { |message| message[:data] })
+                expect(published).to eql(true)
+                stop_reactor
+              end
+            end
+          end
+        end
+      end
+
+      context 'with an array of Message objects' do
+        let(:messages) do
+          10.times.map do |index|
+            Ably::Models::Message(name: index.to_s, data: { "index" => index + 10 })
+          end
+        end
+
+        it 'publishes an array of messages in one ProtocolMessage' do
+          published = false
+
+          channel.attach do
+            client.connection.__outgoing_protocol_msgbus__.once(:protocol_message) do |protocol_message|
+              expect(protocol_message.messages.count).to eql(messages.count)
+              published = true
+            end
+
+            channel.publish(messages).callback do
+              channel.history do |page|
+                expect(page.items.map(&:name)).to match_array(messages.map { |message| message[:name] })
+                expect(page.items.map(&:data)).to match_array(messages.map { |message| message[:data] })
+                expect(published).to eql(true)
+                stop_reactor
+              end
+            end
+          end
+        end
+
+        context 'with two invalid message out of 12' do
+          let(:client_options) { default_options.merge(client_id: 'valid') }
+          let(:invalid_messages) do
+            2.times.map do |index|
+              Ably::Models::Message(name: index.to_s, data: { "index" => index + 10 }, client_id: 'prohibited')
+            end
+          end
+
+          it 'calls the errback once' do
+            channel.publish(messages + invalid_messages).tap do |deferrable|
+              deferrable.callback do
+                raise 'Publish should have failed'
+              end
+
+              deferrable.errback do |error, message|
+                # TODO: Review whether we should fail once or multiple times
+                channel.history do |page|
+                  expect(page.items.count).to eql(0)
+                  stop_reactor
+                end
+              end
+            end
+          end
+        end
+
+        context 'only invalid messages' do
+          let(:client_options) { default_options.merge(client_id: 'valid') }
+          let(:invalid_messages) do
+            10.times.map do |index|
+              Ably::Models::Message(name: index.to_s, data: { "index" => index + 10 }, client_id: 'prohibited')
+            end
+          end
+
+          it 'calls the errback once' do
+            channel.publish(invalid_messages).tap do |deferrable|
+              deferrable.callback do
+                raise 'Publish should have failed'
+              end
+
+              deferrable.errback do |error, message|
+                channel.history do |page|
+                  expect(page.items.count).to eql(0)
+                  stop_reactor
+                end
+              end
+            end
           end
         end
       end

@@ -30,10 +30,10 @@ module Ably
         @name    = name
       end
 
-      # Publish a message to the channel
+      # Publish one or more messages to the channel.
       #
-      # @param name [String, Array<Ably::Models::Message|Hash>]   The event name of the message to publish, or an Array of [Ably::Model::Message]  objects or [Hash] objects with +:name+ and +:data+ pairs
-      # @param data [String, nil]   The message payload unless an Array of [Ably::Model::Message] objects passed in the first argument
+      # @param name [String, Array<Ably::Models::Message|Hash>, nil]   The event name of the message to publish, or an Array of [Ably::Model::Message] objects or [Hash] objects with +:name+ and +:data+ pairs
+      # @param data [String, ByteArray, nil]   The message payload unless an Array of [Ably::Model::Message] objects passed in the first argument
       # @return [Boolean]  true if the message was published, otherwise false
       #
       # @example
@@ -67,8 +67,6 @@ module Ably
           Ably::Models::Message(message.dup).tap do |message|
             message.encode self
           end.as_json
-        end.map do |object|
-          object.reject { |key, val| val.nil? }
         end
 
         response = client.post("#{base_path}/publish", payload.length == 1 ? payload.first : payload)
