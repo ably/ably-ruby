@@ -189,7 +189,7 @@ module Ably
           EventMachine::HttpRequest.new(url).get.tap do |http|
             http.errback do
               yield false if block_given?
-              deferrable.fail
+              deferrable.fail "Unable to connect to #{url}"
             end
             http.callback do
               result = http.response_header.status == 200 && http.response.strip == Ably::INTERNET_CHECK.fetch(:ok_text)
@@ -197,7 +197,7 @@ module Ably
               if result
                 deferrable.succeed
               else
-                deferrable.fail
+                deferrable.fail "Unexpected response from #{url}"
               end
             end
           end
