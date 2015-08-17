@@ -287,6 +287,20 @@ describe Ably::Realtime::Connection, :event_machine do
         end
       end
 
+      describe 'connection#id' do
+        it 'is null before connecting' do
+          expect(connection.id).to be_nil
+          stop_reactor
+        end
+      end
+
+      describe 'connection#key' do
+        it 'is null before connecting' do
+          expect(connection.key).to be_nil
+          stop_reactor
+        end
+      end
+
       describe 'once connected' do
         let(:connection2) {  Ably::Realtime::Client.new(client_options).connection }
 
@@ -366,7 +380,6 @@ describe Ably::Realtime::Connection, :event_machine do
       end
 
       context 'when a message is sent but the ACK has not yet been received' do
-
         it 'the sent message msgSerial is 0 but the connection serial remains at -1' do
           channel.attach do
             connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
