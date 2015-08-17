@@ -145,6 +145,15 @@ shared_examples 'a client initializer' do
       end
     end
 
+    context 'with token_params' do
+      let(:client_options) { { token_params: { ttl: 777, client_id: 'john' }, token: 'token' } }
+
+      it 'configures the default token_params' do
+        expect(subject.auth.token_params.fetch(:ttl)).to eql(777)
+        expect(subject.auth.token_params.fetch(:client_id)).to eql('john')
+      end
+    end
+
     context 'endpoint' do
       it 'defaults to production' do
         expect(subject.endpoint.to_s).to eql("#{protocol}s://#{subdomain}.ably.io")

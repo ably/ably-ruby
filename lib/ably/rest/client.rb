@@ -76,17 +76,25 @@ module Ably
       # Creates a {Ably::Rest::Client Rest Client} and configures the {Ably::Auth} object for the connection.
       #
       # @param [Hash,String] options an options Hash used to configure the client and the authentication, or String with an API key or Token ID
-      # @option options (see Ably::Auth#authorise)
-      # @option options [Boolean]                 :tls                 TLS is used by default, providing a value of false disables TLS.  Please note Basic Auth is disallowed without TLS as secrets cannot be transmitted over unsecured connections.
+      # @option options [Boolean]                 :tls                (true) When fales, TLS is disabled. Please note Basic Auth is disallowed without TLS as secrets cannot be transmitted over unsecured connections.
       # @option options [String]                  :key                 API key comprising the key name and key secret in a single string
       # @option options [String]                  :token               Token string or {Models::TokenDetails} used to authenticate requests
       # @option options [String]                  :token_details       {Models::TokenDetails} used to authenticate requests
       # @option options [Boolean]                 :use_token_auth      Will force Basic Auth if set to false, and Token auth if set to true
       # @option options [String]                  :environment         Specify 'sandbox' when testing the client library against an alternate Ably environment
-      # @option options [Symbol]                  :protocol            Protocol used to communicate with Ably, :json and :msgpack currently supported. Defaults to :msgpack
-      # @option options [Boolean]                 :use_binary_protocol Protocol used to communicate with Ably, defaults to true and uses MessagePack protocol.  This option will overide :protocol option
-      # @option options [Logger::Severity,Symbol] :log_level           Log level for the standard Logger that outputs to STDOUT.  Defaults to Logger::WARN, can be set to :fatal (Logger::FATAL), :error (Logger::ERROR), :warn (Logger::WARN), :info (Logger::INFO), :debug (Logger::DEBUG) or :none
+      # @option options [Symbol]                  :protocol            (:msgpack) Protocol used to communicate with Ably, :json and :msgpack currently supported
+      # @option options [Boolean]                 :use_binary_protocol (true) When true will use the MessagePack binary protocol, when false it will use JSON encoding. This option will overide :protocol option
+      # @option options [Logger::Severity,Symbol] :log_level           (Logger::WARN) Log level for the standard Logger that outputs to STDOUT. Can be set to :fatal (Logger::FATAL), :error (Logger::ERROR), :warn (Logger::WARN), :info (Logger::INFO), :debug (Logger::DEBUG) or :none
       # @option options [Logger]                  :logger              A custom logger can be used however it must adhere to the Ruby Logger interface, see http://www.ruby-doc.org/stdlib-1.9.3/libdoc/logger/rdoc/Logger.html
+      # @option options [String]                  :client_id           client ID identifying this connection to other clients
+      # @option options [String]                  :auth_url            a URL to be used to GET or POST a set of token request params, to obtain a signed token request
+      # @option options [Hash]                    :auth_headers        a set of application-specific headers to be added to any request made to the +auth_url+
+      # @option options [Hash]                    :auth_params         a set of application-specific query params to be added to any request made to the +auth_url+
+      # @option options [Symbol]                  :auth_method         (:get) HTTP method to use with +auth_url+, must be either +:get+ or +:post+
+      # @option options [Proc]                    :auth_callback       when provided, the Proc will be called with the token params hash as the first argument, whenever a new token is required.
+      #                                                                The Proc should return a token string, {Ably::Models::TokenDetails} or JSON equivalent, {Ably::Models::TokenRequest} or JSON equivalent
+      # @option options [Boolean]                 :query_time          when true will query the {https://www.ably.io Ably} system for the current time instead of using the local time
+      # @option options [Hash]                    :token_params        convenience to pass in +token_params+ that will be used as a default for all token requests. See {Auth#create_token_request}
       #
       # @return [Ably::Rest::Client]
       #
@@ -134,10 +142,13 @@ module Ably
         end
         raise ArgumentError, 'Protocol is invalid.  Must be either :msgpack or :json' unless [:msgpack, :json].include?(@protocol)
 
-        @options  = options.freeze
-        @auth     = Auth.new(self, options)
+        token_params = options.delete(:token_params) || {}
+        @options  = options
+        @auth     = Auth.new(self, options, token_params)
         @channels = Ably::Rest::Channels.new(self)
         @encoders = []
+
+        options.freeze
 
         initialize_default_encoders
       end

@@ -21,6 +21,8 @@ module Ably
     #   (see Ably::Auth#key_secret)
     # @!attribute [r] options
     #   (see Ably::Auth#options)
+    # @!attribute [r] token_params
+    #   (see Ably::Auth#options)
     # @!attribute [r] using_basic_auth?
     #   (see Ably::Auth#using_basic_auth?)
     # @!attribute [r] using_token_auth?
@@ -36,7 +38,7 @@ module Ably
 
       def_delegators :auth_sync, :client_id
       def_delegators :auth_sync, :current_token_details, :token
-      def_delegators :auth_sync, :key, :key_name, :key_secret, :options
+      def_delegators :auth_sync, :key, :key_name, :key_secret, :options, :auth_options, :token_params
       def_delegators :auth_sync, :using_basic_auth?, :using_token_auth?
       def_delegators :auth_sync, :token_renewable?, :authentication_security_requirements_met?
       def_delegators :client, :logger
@@ -63,9 +65,9 @@ module Ably
       #      token_details #=> Ably::Models::TokenDetails
       #    end
       #
-      def authorise(options = {}, &success_callback)
+      def authorise(auth_options = {}, token_params = {}, &success_callback)
         async_wrap(success_callback) do
-          auth_sync.authorise(options)
+          auth_sync.authorise(auth_options, token_params)
         end
       end
 
@@ -74,8 +76,8 @@ module Ably
       # @option (see Ably::Auth#authorise)
       # @return [Ably::Models::TokenDetails]
       #
-      def authorise_sync(options = {})
-        auth_sync.authorise(options)
+      def authorise_sync(auth_options = {}, token_params = {})
+        auth_sync.authorise(auth_options, token_params)
       end
 
       # def_delegator :auth_sync, :request_token, :request_token_sync
@@ -98,9 +100,9 @@ module Ably
       #      token_details #=> Ably::Models::TokenDetails
       #    end
       #
-      def request_token(options = {}, &success_callback)
+      def request_token(auth_options = {}, token_params = {}, &success_callback)
         async_wrap(success_callback) do
-          request_token_sync(options)
+          request_token_sync(auth_options, token_params)
         end
       end
 
@@ -109,8 +111,8 @@ module Ably
       # @option (see Ably::Auth#authorise)
       # @return [Ably::Models::TokenDetails]
       #
-      def request_token_sync(options = {})
-        auth_sync.request_token(options)
+      def request_token_sync(auth_options = {}, token_params = {})
+        auth_sync.request_token(auth_options, token_params)
       end
 
       # Creates and signs a token request that can then subsequently be used by any client to request a token
@@ -125,9 +127,9 @@ module Ably
       #   client.auth.create_token_request(id: 'asd.asd', ttl: 3600) do |token_request|
       #     token_request #=> Ably::Models::TokenRequest
       #   end
-      def create_token_request(options = {}, &success_callback)
+      def create_token_request(auth_options = {}, token_params = {}, &success_callback)
         async_wrap(success_callback) do
-          create_token_request_sync(options)
+          create_token_request_sync(auth_options, token_params)
         end
       end
 
@@ -136,8 +138,8 @@ module Ably
       # @option (see Ably::Auth#authorise)
       # @return [Ably::Models::TokenRequest]
       #
-      def create_token_request_sync(options = {})
-        auth_sync.create_token_request(options)
+      def create_token_request_sync(auth_options = {}, token_params = {})
+        auth_sync.create_token_request(auth_options, token_params)
       end
 
       # Auth header string used in HTTP requests to Ably

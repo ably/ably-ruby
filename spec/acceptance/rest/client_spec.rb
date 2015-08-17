@@ -64,20 +64,24 @@ describe Ably::Rest::Client do
       end
 
       context 'with an auth URL' do
-        let(:client_options) { default_options.merge(auth_url: token_request_url, auth_method: :get) }
+        let(:client_options)    { default_options.merge(key: api_key, auth_url: token_request_url, auth_method: :get) }
         let(:token_request_url) { 'http://get.token.request.com/' }
-
-        before do
-          allow(client.auth).to receive(:token_request_from_auth_url).with(token_request_url, :auth_method => :get).and_return(token_request)
-        end
-
-        it 'sends an HTTP request to the provided URL to get a new token' do
-          expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token_details }
-          expect(client.auth.current_token_details.client_id).to eql(client_id)
-        end
 
         it 'uses token authentication' do
           expect(client.auth).to be_using_token_auth
+        end
+
+        context 'before any REST request' do
+          before do
+            expect(client.auth).to receive(:token_request_from_auth_url).with(token_request_url, hash_including(:auth_method => :get)).once do
+              client.auth.create_token_request(token_params: { client_id: client_id })
+            end
+          end
+
+          it 'sends an HTTP request to the provided auth URL to get a new token' do
+            expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token_details }
+            expect(client.auth.current_token_details.client_id).to eql(client_id)
+          end
         end
       end
 
@@ -152,7 +156,7 @@ describe Ably::Rest::Client do
           stub_const 'Ably::Auth::TOKEN_DEFAULTS', Ably::Auth::TOKEN_DEFAULTS.merge(renew_token_buffer: 0)
         end
 
-        let(:token_request_options) { { key_name: key_name, key_secret: key_secret, ttl: Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER } }
+        let(:token_request_options) { { key_name: key_name, key_secret: key_secret, token_params: { ttl: Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER } } }
 
         it 'creates a new token automatically when the old token expires' do
           expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token_details }

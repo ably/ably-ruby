@@ -2,12 +2,13 @@ require 'spec_helper'
 require 'shared/protocol_msgbus_behaviour'
 
 describe Ably::Auth do
-  let(:client)    { double('client').as_null_object }
-  let(:client_id) { nil }
-  let(:options)   { { key: 'appid.keyuid:keysecret', client_id: client_id } }
+  let(:client)        { double('client').as_null_object }
+  let(:client_id)     { nil }
+  let(:auth_options)  { { key: 'appid.keyuid:keysecret', client_id: client_id } }
+  let(:token_params)  { { } }
 
   subject do
-    Ably::Auth.new(client, options)
+    Ably::Auth.new(client, auth_options, token_params)
   end
 
   describe 'client_id option' do

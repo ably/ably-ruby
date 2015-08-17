@@ -56,7 +56,7 @@ describe Ably::Rest::Channel do
 
       context 'without adequate permissions on the channel' do
         let(:capability)     { { onlyChannel: ['subscribe'] } }
-        let(:client_options) { default_options.merge(use_token_auth: true, capability: capability) }
+        let(:client_options) { default_options.merge(use_token_auth: true, token_params: { capability: capability }) }
 
         it 'raises a permission error when publishing' do
           expect { channel.publish(name, data) }.to raise_error(Ably::Exceptions::InvalidRequest, /not permitted/)

@@ -187,7 +187,7 @@ token_details = client.auth.request_token
 token_details.token # => "xVLyHw.CLchevH3hF....MDh9ZC_Q"
 client = Ably::Rest.new(token: token_details.token)
 
-token = client.auth.create_token_request
+token = client.auth.create_token_request(token_params: { ttl: 3600 })
 # => {"id"=>...,
 #     "clientId"=>nil,
 #     "ttl"=>3600,
