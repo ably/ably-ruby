@@ -204,12 +204,12 @@ describe Ably::Auth do
         let(:query_params)      { nil }
         let(:headers)           { nil }
         let(:auth_method)       { :get }
-        let(:token_params) do
+        let(:auth_options) do
           {
-            auth_url: auth_url,
-            auth_params: query_params,
+            auth_url:     auth_url,
+            auth_params:  query_params,
             auth_headers: headers,
-            auth_method: auth_method
+            auth_method:  auth_method
           }
         end
 
@@ -237,7 +237,7 @@ describe Ably::Auth do
         end
 
         context 'when response from :auth_url is a valid token request' do
-          let!(:token) { auth.request_token(token_params: token_params) }
+          let!(:token) { auth.request_token(auth_options) }
 
           it 'requests a token from :auth_url using an HTTP GET request' do
             expect(request_token_stub).to have_been_requested
@@ -290,9 +290,10 @@ describe Ably::Auth do
             }.to_json
           end
 
-          let!(:token_details) { auth.request_token({}, token_params) }
+          let!(:token_details) { auth.request_token(auth_options) }
 
           it 'returns TokenDetails created from the token JSON' do
+            expect(auth_url_request_stub).to have_been_requested
             expect(request_token_stub).to_not have_been_requested
             expect(token_details).to be_a(Ably::Models::TokenDetails)
             expect(token_details.token).to eql(token)
@@ -307,9 +308,10 @@ describe Ably::Auth do
           let(:auth_url_content_type) { 'text/plain' }
           let(:auth_url_response) { token }
 
-          let!(:token_details) { auth.request_token(token_params: token_params) }
+          let!(:token_details) { auth.request_token(auth_options) }
 
           it 'returns TokenDetails created from the token JSON' do
+            expect(auth_url_request_stub).to have_been_requested
             expect(request_token_stub).to_not have_been_requested
             expect(token_details).to be_a(Ably::Models::TokenDetails)
             expect(token_details.token).to eql(token)
@@ -323,7 +325,7 @@ describe Ably::Auth do
             end
 
             it 'raises ServerError' do
-              expect { auth.request_token token_params: token_params }.to raise_error(Ably::Exceptions::ServerError)
+              expect { auth.request_token auth_options }.to raise_error(Ably::Exceptions::ServerError)
             end
           end
 
@@ -334,7 +336,7 @@ describe Ably::Auth do
             end
 
             it 'raises InvalidResponseBody' do
-              expect { auth.request_token token_params: token_params }.to raise_error(Ably::Exceptions::InvalidResponseBody)
+              expect { auth.request_token auth_options }.to raise_error(Ably::Exceptions::InvalidResponseBody)
             end
           end
         end
