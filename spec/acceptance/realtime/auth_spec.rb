@@ -97,10 +97,11 @@ describe Ably::Realtime::Auth, :event_machine do
       end
 
       context '#options (auth_options)' do
-        let(:auth_url) { random_str }
+        let(:auth_url) { "https://echo.ably.io/?type=text" }
+        let(:auth_params) { { :body => random_str } }
 
         it 'contains the configured auth options' do
-          auth.authorise(auth_url: auth_url) do
+          auth.authorise(auth_url: auth_url, auth_params: auth_params) do
             expect(auth.options[:auth_url]).to eql(auth_url)
             stop_reactor
           end

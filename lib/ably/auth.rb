@@ -458,11 +458,11 @@ module Ably
 
       response = connection.send(method) do |request|
         request.url uri.path
-        request.params = options[:auth_params] || {}
-        request.headers = options[:auth_headers] || {}
+        request.params = CGI.parse(uri.query || '').merge(auth_options[:auth_params] || {})
+        request.headers = auth_options[:auth_headers] || {}
       end
 
-      if !response.body.kind_of?(Hash) && response.headers['Content-Type'] != 'text/plain'
+      if !response.body.kind_of?(Hash) && !response.headers['Content-Type'].to_s.match(%r{text/plain}i)
         raise Ably::Exceptions::InvalidResponseBody,
               "Content Type #{response.headers['Content-Type']} is not supported by this client library"
       end
