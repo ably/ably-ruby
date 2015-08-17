@@ -22,7 +22,9 @@ module Ably
   # @!attribute [r] key_secret
   #   @return [String] Key secret (private secure part of the API key), if present
   # @!attribute [r] options
-  #   @return [Hash] {Ably::Auth} options configured for this client
+  #   @return [Hash] Default {Ably::Auth} options configured for this client
+  # @!attribute [r] token_params
+  #   @return [Hash] Default token params used for token requests, see {#request_token}
   #
   class Auth
     include Ably::Modules::Conversions
@@ -35,32 +37,38 @@ module Ably
       renew_token_buffer: 10 # buffer to allow a token to be reissued before the token is considered expired (Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER)
     }.freeze
 
-    attr_reader :options, :current_token_details
+    attr_reader :options, :token_params, :current_token_details
     alias_method :auth_options, :options
 
     # Creates an Auth object
     #
     # @param [Ably::Rest::Client] client  {Ably::Rest::Client} this Auth object uses
-    # @param [Hash] options (see Ably::Rest::Client#initialize)
-    # @option (see Ably::Rest::Client#initialize)
+    # @param [Hash] auth_options the authentication options used as a default future token requests
+    # @param [Hash] token_params the token params used as a default for future token requests
+    # @option (see #request_token)
     #
-    def initialize(client, options)
-      ensure_valid_auth_attributes options
-
-      auth_options = options.dup
-
-      @client              = client
-      @options             = auth_options
-
+    def initialize(client, auth_options, token_params)
       unless auth_options.kind_of?(Hash)
         raise ArgumentError, 'Expected auth_options to be a Hash'
       end
 
-      if auth_options[:key] && (auth_options[:key_secret] || auth_options[:key_name])
+      unless token_params.kind_of?(Hash)
+        raise ArgumentError, 'Expected token_params to be a Hash'
+      end
+
+      ensure_valid_auth_attributes auth_options
+
+      @client              = client
+      @options             = auth_options.dup
+      @token_params        = token_params.dup
+
+      @options.delete :force # Forcing token auth for every request is not a valid default
+
+      if options[:key] && (options[:key_secret] || options[:key_name])
         raise ArgumentError, 'key and key_name or key_secret are mutually exclusive. Provider either a key or key_name & key_secret'
       end
 
-      split_api_key_into_key_and_secret! auth_options if auth_options[:key]
+      split_api_key_into_key_and_secret! options if options[:key]
 
       if using_basic_auth? && !api_key_present?
         raise ArgumentError, 'key is missing. Either an API key, token, or token auth method must be provided'
@@ -72,18 +80,19 @@ module Ably
       end
 
       @options.freeze
+      @token_params.freeze
     end
 
     # Ensures valid auth credentials are present for the library instance. This may rely on an already-known and valid token, and will obtain a new token if necessary.
     #
     # In the event that a new token request is made, the provided options are used.
     #
-    # @param [Hash] options the options for the token request
-    # @option options (see #request_token)
-    # @option options [String]  :key            API key comprising the key name and key secret in a single string
-    # @option options [Boolean] :force          obtains a new token even if the current token is valid
+    # @param [Hash] auth_options the authentication options used for future token requests
+    # @param [Hash] token_params the token params used for future token requests
+    # @option auth_options [Boolean]   :force   obtains a new token even if the current token is valid
+    # @option (see #request_token)
     #
-    # @return (see #request_token)
+    # @return (see #create_token_request)
     #
     # @example
     #    # will issue a simple token request using basic auth
@@ -96,36 +105,35 @@ module Ably
     #      token_request
     #    end
     #
-    def authorise(options = {})
-      ensure_valid_auth_attributes options
+    def authorise(auth_options = {}, token_params = {})
+      ensure_valid_auth_attributes auth_options
 
-      if current_token_details && !options[:force]
+      auth_options = auth_options.clone
+
+      if current_token_details && !auth_options.delete(:force)
         return current_token_details unless current_token_details.expired?
       end
 
-      options = options.clone
-      split_api_key_into_key_and_secret! options if options[:key]
-      @options = @options.merge(options) # update default options
+      split_api_key_into_key_and_secret! auth_options if auth_options[:key]
+      @options = @options.merge(auth_options) # update defaults
 
-      @current_token_details = request_token(options)
+      token_params = (auth_options.delete(:token_params) || {}).merge(token_params)
+      @token_params = @token_params.merge(token_params) # update defaults
+
+      @current_token_details = request_token(auth_options, token_params)
     end
 
     # Request a {Ably::Models::TokenDetails} which can be used to make authenticated token based requests
     #
-    # @param [Hash] options the options for the token request
-    # @option options [String]  :key           complete API key for the designated application
-    # @option options [String]  :client_id     client ID identifying this connection to other clients (defaults to client client_id if configured)
-    # @option options [String]  :auth_url      a URL to be used to GET or POST a set of token request params, to obtain a signed token request.
-    # @option options [Hash]    :auth_headers  a set of application-specific headers to be added to any request made to the authUrl
-    # @option options [Hash]    :auth_params   a set of application-specific query params to be added to any request made to the authUrl
-    # @option options [Symbol]  :auth_method   HTTP method to use with auth_url, must be either `:get` or `:post` (defaults to :get)
-    # @option options [Proc]    :auth_callback this Proc / block will be called with the {#auth_options Auth#auth_options Hash} as the first argument whenever a new token is required.
-    #                                          The Proc should return a token string, {Ably::Models::TokenDetails} or JSON equivalent, {Ably::Models::TokenRequest} or JSON equivalent
-    # @option options [Integer] :ttl           validity time in seconds for the requested {Ably::Models::TokenDetails}.  Limits may apply, see {https://www.ably.io/documentation/other/authentication}
-    # @option options [Hash]    :capability    canonicalised representation of the resource paths and associated operations
-    # @option options [Boolean] :query_time    when true will query the {https://www.ably.io Ably} system for the current time instead of using the local time
-    # @option options [Time]    :timestamp     the time of the of the request
-    # @option options [String]  :nonce         an unquoted, unescaped random string of at least 16 characters
+    # @param [Hash] auth_options (see #create_token_request)
+    # @option auth_options [String]  :auth_url      a URL to be used to GET or POST a set of token request params, to obtain a signed token request
+    # @option auth_options [Hash]    :auth_headers  a set of application-specific headers to be added to any request made to the +auth_url+
+    # @option auth_options [Hash]    :auth_params   a set of application-specific query params to be added to any request made to the +auth_url+
+    # @option auth_options [Symbol]  :auth_method   (:get) HTTP method to use with +auth_url+, must be either +:get+ or +:post+
+    # @option auth_options [Proc]    :auth_callback when provided, the Proc will be called with the token params hash as the first argument, whenever a new token is required.
+    #                                               The Proc should return a token string, {Ably::Models::TokenDetails} or JSON equivalent, {Ably::Models::TokenRequest} or JSON equivalent
+    # @param [Hash] token_params (see #create_token_request)
+    # @option (see #create_token_request)
     #
     # @return [Ably::Models::TokenDetails]
     #
@@ -134,23 +142,28 @@ module Ably
     #    client = Ably::Rest::Client.new(key: 'key.id:secret')
     #    token_details = client.auth.request_token
     #
+    #    # token request with token params
+    #    client.auth.request_token token_params: { ttl: 1.hour }
+    #
     #    # token request using auth block
     #    token_details = client.auth.request_token auth_callback: Proc.new do
     #      # create token_request object
     #      token_request
     #    end
     #
-    def request_token(options = {})
-      ensure_valid_auth_attributes options
+    def request_token(auth_options = {}, token_params = {})
+      ensure_valid_auth_attributes auth_options
 
-      token_options = auth_options.merge(options)
+      token_params = (auth_options[:token_params] || {}).merge(token_params)
+      token_params = self.token_params.merge(token_params)
+      auth_options = self.options.merge(auth_options)
 
-      token_request = if auth_callback = token_options.delete(:auth_callback)
-        auth_callback.call(token_options)
-      elsif auth_url = token_options.delete(:auth_url)
-        token_request_from_auth_url(auth_url, token_options)
+      token_request = if auth_callback = auth_options.delete(:auth_callback)
+        auth_callback.call(token_params)
+      elsif auth_url = token_params.delete(:auth_url)
+        token_request_from_auth_url(auth_url, token_params)
       else
-        create_token_request(token_options)
+        create_token_request(auth_options, token_params)
       end
 
       case token_request
@@ -173,19 +186,23 @@ module Ably
 
     # Creates and signs a token request that can then subsequently be used by any client to request a token
     #
-    # @param [Hash] options the options for the token request
-    # @option options [String]  :key        complete API key for the designated application
-    # @option options [String]  :client_id  client ID identifying this connection to other clients
-    # @option options [Integer] :ttl        validity time in seconds for the requested {Ably::Models::TokenDetails}.  Limits may apply, see {https://www.ably.io/documentation/other/authentication}
-    # @option options [Hash]    :capability canonicalised representation of the resource paths and associated operations
-    # @option options [Boolean] :query_time when true will query the {https://www.ably.io Ably} system for the current time instead of using the local time
-    # @option options [Time]    :timestamp  the time of the of the request
-    # @option options [String]  :nonce      an unquoted, unescaped random string of at least 16 characters
+    # @param [Hash] auth_options the authentication options for the token request
+    # @option auth_options [String]  :key           API key comprising the key name and key secret in a single string
+    # @option auth_options [String]  :client_id     client ID identifying this connection to other clients (will use +client_id+ specified when library was instanced if provided)
+    # @option auth_options [Boolean] :query_time    when true will query the {https://www.ably.io Ably} system for the current time instead of using the local time
+    # @option auth_options [Hash]    :token_params   convenience to pass in +token_params+ within the +auth_options+ argument, this helps avoid the following +authorise({key: key}, {ttl: 23})+ by allowing +authorise(key:key,token_params:{ttl:23})+
+    #
+    # @param [Hash] token_params the token params used in the token request
+    # @option token_params [String]  :client_id     A client ID to associate with this token. The generated token may be used to authenticate as this +client_id+
+    # @option token_params [Integer] :ttl           validity time in seconds for the requested {Ably::Models::TokenDetails}.  Limits may apply, see {https://www.ably.io/documentation/other/authentication}
+    # @option token_params [Hash]    :capability    canonicalised representation of the resource paths and associated operations
+    # @option token_params [Time]    :timestamp     the time of the request
+    # @option token_params [String]  :nonce         an unquoted, unescaped random string of at least 16 characters
     #
     # @return [Models::TokenRequest]
     #
     # @example
-    #    client.auth.create_token_request(id: 'asd.asd', ttl: 3600)
+    #    client.auth.create_token_request(id: 'asd.asd', token_params: { ttl: 3600 })
     #    #<Ably::Models::TokenRequest:0x007fd5d919df78
     #    #  @hash={
     #    #   :id=>"asds.adsa",
@@ -197,35 +214,37 @@ module Ably
     #    #   :mac=>"881oZHeFo6oMim7....uE56a8gUxHw="
     #    #  }
     #    #>>
-    def create_token_request(options = {})
-      ensure_valid_auth_attributes options
+    def create_token_request(auth_options = {}, token_params = {})
+      ensure_valid_auth_attributes auth_options
 
-      token_options = options.clone
+      auth_options = auth_options.clone
+      token_params = (auth_options[:token_params] || {}).merge(token_params)
 
-      split_api_key_into_key_and_secret! token_options if token_options[:key]
-      request_key_name   = token_options.delete(:key_name) || key_name
-      request_key_secret = token_options.delete(:key_secret) || key_secret
+      split_api_key_into_key_and_secret! auth_options if auth_options[:key]
+      request_key_name   = auth_options.delete(:key_name) || key_name
+      request_key_secret = auth_options.delete(:key_secret) || key_secret
+
       raise Ably::Exceptions::TokenRequestError, 'Key Name and Key Secret are required to generate a new token request' unless request_key_name && request_key_secret
 
-      timestamp = if token_options[:query_time]
+      timestamp = if auth_options[:query_time]
         client.time
       else
-        token_options.delete(:timestamp) || Time.now
+        token_params.delete(:timestamp) || Time.now
       end
       timestamp = Time.at(timestamp) if timestamp.kind_of?(Integer)
 
       ttl = [
-        (token_options[:ttl] || TOKEN_DEFAULTS.fetch(:ttl)),
+        (token_params[:ttl] || TOKEN_DEFAULTS.fetch(:ttl)),
         Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER + TOKEN_DEFAULTS.fetch(:renew_token_buffer) # never issue a token that will be immediately considered expired due to the buffer
       ].max
 
       token_request = {
-        keyName:    token_options[:key_name] || request_key_name,
-        clientId:   token_options[:client_id] || client_id,
+        keyName:    request_key_name,
+        clientId:   token_params[:client_id] || auth_options[:client_id] || client_id,
         ttl:        (ttl * 1000).to_i,
         timestamp:  (timestamp.to_f * 1000).round,
-        capability: token_options[:capability] || TOKEN_DEFAULTS.fetch(:capability),
-        nonce:      token_options[:nonce] || SecureRandom.hex.force_encoding('UTF-8')
+        capability: token_params[:capability] || TOKEN_DEFAULTS.fetch(:capability),
+        nonce:      token_params[:nonce] || SecureRandom.hex.force_encoding('UTF-8')
       }
 
       token_request[:capability] = JSON.dump(token_request[:capability]) if token_request[:capability].is_a?(Hash)
@@ -233,7 +252,7 @@ module Ably
       token_request[:mac] = sign_params(token_request, request_key_secret)
 
       # Undocumented feature to request a persisted token
-      token_request[:persisted] = options[:persisted] if options[:persisted]
+      token_request[:persisted] = token_params[:persisted] if token_params[:persisted]
 
       Models::TokenRequest.new(token_request)
     end

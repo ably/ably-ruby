@@ -96,12 +96,23 @@ describe Ably::Realtime::Auth, :event_machine do
         end
       end
 
-      context '#options' do
+      context '#options (auth_options)' do
+        let(:auth_url) { random_str }
+
+        it 'contains the configured auth options' do
+          auth.authorise(auth_url: auth_url) do
+            expect(auth.options[:auth_url]).to eql(auth_url)
+            stop_reactor
+          end
+        end
+      end
+
+      context '#token_params' do
         let(:custom_ttl) { 33 }
 
         it 'contains the configured auth options' do
-          auth.authorise(ttl: custom_ttl) do
-            expect(auth.options[:ttl]).to eql(custom_ttl)
+          auth.authorise({}, ttl: custom_ttl) do
+            expect(auth.token_params[:ttl]).to eql(custom_ttl)
             stop_reactor
           end
         end
@@ -126,51 +137,72 @@ describe Ably::Realtime::Auth, :event_machine do
       end
     end
 
-    context '#create_token_request' do
-      it 'returns a token request asynchronously' do
-        auth.create_token_request do |token_request|
-          expect(token_request).to be_a(Ably::Models::TokenRequest)
-          stop_reactor
+    context do
+      let(:custom_ttl)       { 33 }
+      let(:custom_client_id) { random_str }
+
+      context '#create_token_request' do
+        it 'returns a token request asynchronously' do
+          auth.create_token_request({}, { ttl: custom_ttl }) do |token_request|
+            expect(token_request).to be_a(Ably::Models::TokenRequest)
+            expect(token_request.ttl).to eql(custom_ttl)
+            stop_reactor
+          end
         end
       end
-    end
 
-    context '#create_token_request_async' do
-      it 'returns a token request synchronously' do
-        expect(auth.create_token_request_sync).to be_a(Ably::Models::TokenRequest)
-        stop_reactor
-      end
-    end
-
-    context '#request_token' do
-      it 'returns a token asynchronously' do
-        auth.request_token do |token_details|
-          expect(token_details).to be_a(Ably::Models::TokenDetails)
-          stop_reactor
+      context '#create_token_request_async' do
+        it 'returns a token request synchronously' do
+          auth.create_token_request_sync(token_params: { ttl: custom_ttl }).tap do |token_request|
+            expect(token_request).to be_a(Ably::Models::TokenRequest)
+            expect(token_request.ttl).to eql(custom_ttl)
+            stop_reactor
+          end
         end
       end
-    end
 
-    context '#request_token_async' do
-      it 'returns a token synchronously' do
-        expect(auth.request_token_sync).to be_a(Ably::Models::TokenDetails)
-        stop_reactor
-      end
-    end
-
-    context '#authorise' do
-      it 'returns a token asynchronously' do
-        auth.authorise do |token_details|
-          expect(token_details).to be_a(Ably::Models::TokenDetails)
-          stop_reactor
+      context '#request_token' do
+        it 'returns a token asynchronously' do
+          auth.request_token({ client_id: custom_client_id }, ttl: custom_ttl) do |token_details|
+            expect(token_details).to be_a(Ably::Models::TokenDetails)
+            expect(token_details.expires.to_i).to be_within(3).of(Time.now.to_i + custom_ttl)
+            expect(token_details.client_id).to eql(custom_client_id)
+            stop_reactor
+          end
         end
       end
-    end
 
-    context '#authorise_async' do
-      it 'returns a token synchronously' do
-        expect(auth.authorise_sync).to be_a(Ably::Models::TokenDetails)
-        stop_reactor
+      context '#request_token_async' do
+        it 'returns a token synchronously' do
+          auth.request_token_sync(client_id: custom_client_id, token_params: { ttl: custom_ttl }).tap do |token_details|
+            expect(token_details).to be_a(Ably::Models::TokenDetails)
+            expect(token_details.expires.to_i).to be_within(3).of(Time.now.to_i + custom_ttl)
+            expect(token_details.client_id).to eql(custom_client_id)
+            stop_reactor
+          end
+        end
+      end
+
+      context '#authorise' do
+        it 'returns a token asynchronously' do
+          auth.authorise({ client_id: custom_client_id }, ttl: custom_ttl) do |token_details|
+            expect(token_details).to be_a(Ably::Models::TokenDetails)
+            expect(token_details.expires.to_i).to be_within(3).of(Time.now.to_i + custom_ttl)
+            expect(token_details.client_id).to eql(custom_client_id)
+            stop_reactor
+          end
+        end
+      end
+
+      context '#authorise_async' do
+        it 'returns a token synchronously' do
+          auth.authorise_sync(client_id: custom_client_id, token_params: { ttl: custom_ttl }).tap do |token_details|
+            expect(auth.authorise_sync).to be_a(Ably::Models::TokenDetails)
+            expect(token_details.expires.to_i).to be_within(3).of(Time.now.to_i + custom_ttl)
+            expect(token_details.client_id).to eql(custom_client_id)
+            stop_reactor
+          end
+        end
       end
     end
 
