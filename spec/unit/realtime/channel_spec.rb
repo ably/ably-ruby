@@ -108,8 +108,8 @@ describe Ably::Realtime::Channel do
     context 'as Nil' do
       let(:encoded_value) { nil }
 
-      it 'raises an argument error' do
-        expect { subject.publish(encoded_value, 'data') }.to raise_error ArgumentError, /must be a String/
+      it 'is permitted' do
+        expect { subject.publish(encoded_value, 'data') }.to ql('message_stubbed')
       end
     end
   end
