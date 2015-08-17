@@ -67,19 +67,21 @@ describe Ably::Rest::Client do
         let(:client_options)    { default_options.merge(key: api_key, auth_url: token_request_url, auth_method: :get) }
         let(:token_request_url) { 'http://get.token.request.com/' }
 
-        before do
-          expect(client.auth).to receive(:token_request_from_auth_url).with(token_request_url, :auth_method => :get).once do
-            client.auth.create_token_request(token_params: { client_id: client_id })
-          end
-        end
-
-        it 'sends an HTTP request to the provided URL to get a new token' do
-          expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token_details }
-          expect(client.auth.current_token_details.client_id).to eql(client_id)
-        end
-
         it 'uses token authentication' do
           expect(client.auth).to be_using_token_auth
+        end
+
+        context 'before any REST request' do
+          before do
+            expect(client.auth).to receive(:token_request_from_auth_url).with(token_request_url, hash_including(:auth_method => :get)).once do
+              client.auth.create_token_request(token_params: { client_id: client_id })
+            end
+          end
+
+          it 'sends an HTTP request to the provided auth URL to get a new token' do
+            expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token_details }
+            expect(client.auth.current_token_details.client_id).to eql(client_id)
+          end
         end
       end
 

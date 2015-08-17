@@ -160,8 +160,8 @@ module Ably
 
       token_request = if auth_callback = auth_options.delete(:auth_callback)
         auth_callback.call(token_params)
-      elsif auth_url = token_params.delete(:auth_url)
-        token_request_from_auth_url(auth_url, token_params)
+      elsif auth_url = auth_options.delete(:auth_url)
+        token_request_from_auth_url(auth_url, auth_options)
       else
         create_token_request(auth_options, token_params)
       end
@@ -451,10 +451,10 @@ module Ably
     # Retrieve a token request from a specified URL, expects a JSON response
     #
     # @return [Hash]
-    def token_request_from_auth_url(auth_url, options = {})
+    def token_request_from_auth_url(auth_url, auth_options)
       uri = URI.parse(auth_url)
       connection = Faraday.new("#{uri.scheme}://#{uri.host}", connection_options)
-      method = options[:auth_method] || :get
+      method = auth_options[:auth_method] || :get
 
       response = connection.send(method) do |request|
         request.url uri.path
