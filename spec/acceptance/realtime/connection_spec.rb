@@ -367,6 +367,18 @@ describe Ably::Realtime::Connection, :event_machine do
           end
         end
       end
+
+      context 'when closing' do
+        it 'raises an exception before the connection is closed' do
+          connection.connect do
+            connection.once(:closing) do
+              expect { connection.connect }.to raise_error Ably::Exceptions::StateChangeError
+              stop_reactor
+            end
+            connection.close
+          end
+        end
+      end
     end
 
     describe '#serial connection serial' do
