@@ -105,13 +105,18 @@ describe Ably::Realtime::Connection, :event_machine do
               context 'with recently expired token' do
                 let(:ttl) { 2 }
 
-                it 'renews the token on connect' do
-                  sleep ttl + 0.1
-                  expect(client.auth.current_token_details).to be_expired
-                  expect(client.rest_client.auth).to receive(:authorise).at_least(:once).and_call_original
-                  connection.once(:connected) do
-                    expect(client.auth.current_token_details).to_not be_expired
-                    stop_reactor
+                it 'renews the token on connect without changing connection state' do
+                  connection.once(:connecting) do
+                    sleep ttl + 0.1
+                    expect(client.auth.current_token_details).to be_expired
+                    expect(client.rest_client.auth).to receive(:authorise).at_least(:once).and_call_original
+                    connection.once(:connected) do
+                      expect(client.auth.current_token_details).to_not be_expired
+                      stop_reactor
+                    end
+                    connection.once_state_changed do
+                      raise "Invalid state #{connection.state}" unless connection.state == :connected
+                    end
                   end
                 end
               end
