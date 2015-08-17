@@ -191,7 +191,7 @@ module Ably::Models
     end
 
     def as_json(*args)
-      hash.as_json(*args)
+      hash.as_json(*args).reject { |key, val| val.nil? }
     end
 
     private

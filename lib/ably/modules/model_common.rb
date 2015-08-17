@@ -22,7 +22,7 @@ module Ably::Modules
 
     # Return a JSON ready object from the underlying #hash using Ably naming conventions for keys
     def as_json
-      hash.as_json.dup
+      hash.as_json.reject { |key, val| val.nil? }
     end
 
     # Stringify the JSON representation of this object from the underlying #hash

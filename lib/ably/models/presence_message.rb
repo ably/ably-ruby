@@ -109,7 +109,7 @@ module Ably::Models
     def as_json(*args)
       hash.dup.tap do |presence_message|
         presence_message['action'] = action.to_i
-      end.as_json
+      end.as_json.reject { |key, val| val.nil? }
     rescue KeyError
       raise KeyError, ':action is missing or invalid, cannot generate a valid Hash for ProtocolMessage'
     end
