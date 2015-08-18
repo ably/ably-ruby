@@ -375,6 +375,52 @@ describe Ably::Realtime::Channel, :event_machine do
             stop_reactor
           end
         end
+
+        context 'with :queue_messages client option set to false' do
+          let(:client_options)  { default_options.merge(queue_messages: false) }
+
+          context 'and connection state initialized' do
+            it 'raises an exception' do
+              expect { channel.publish('event') }.to raise_error Ably::Exceptions::MessageQueueingDisabled
+              expect(client.connection).to be_initialized
+              stop_reactor
+            end
+          end
+
+          context 'and connection state connecting' do
+            it 'raises an exception' do
+              client.connect
+              EventMachine.next_tick do
+                expect { channel.publish('event') }.to raise_error Ably::Exceptions::MessageQueueingDisabled
+                expect(client.connection).to be_connecting
+                stop_reactor
+              end
+            end
+          end
+
+          context 'and connection state disconnected' do
+            let(:client_options)  { default_options.merge(queue_messages: false, :log_level => :error ) }
+            it 'raises an exception' do
+              client.connection.once(:connected) do
+                client.connection.once(:disconnected) do
+                  expect { channel.publish('event') }.to raise_error Ably::Exceptions::MessageQueueingDisabled
+                  expect(client.connection).to be_disconnected
+                  stop_reactor
+                end
+                client.connection.transition_state_machine :disconnected
+              end
+            end
+          end
+
+          context 'and connection state connected' do
+            it 'publishes the message' do
+              client.connection.once(:connected) do
+                channel.publish('event')
+                stop_reactor
+              end
+            end
+          end
+        end
       end
 
       context 'with name and data arguments' do

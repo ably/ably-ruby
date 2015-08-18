@@ -140,6 +140,10 @@ module Ably
         raise Ably::Exceptions::ChannelInactive.new('Cannot publish messages on a detached channel') if detached? || detaching?
         raise Ably::Exceptions::ChannelInactive.new('Cannot publish messages on a failed channel') if failed?
 
+        if !client.connection.can_publish_messages?
+          raise Ably::Exceptions::MessageQueueingDisabled.new("Message cannot be published. Client is configured to disallow queueing of messages and connection is currently #{client.connection.state}")
+        end
+
         messages = if name.kind_of?(Enumerable)
           name
         else

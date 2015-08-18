@@ -34,9 +34,13 @@ module Ably
       # @return [Ably::Rest::Client]
       attr_reader :rest_client
 
-      # When false the client suppresses messages originating from this connection being echoed back on the same connection.  Defaults to true
+      # When false the client suppresses messages originating from this connection being echoed back on the same connection. Defaults to true
       # @return [Boolean]
       attr_reader :echo_messages
+
+      # If false, this disables the default behaviour whereby the library queues messages on a connection in the disconnected or connecting states. Defaults to true
+      # @return [Boolean]
+      attr_reader :queue_messages
 
       # The custom realtime websocket host that is being used if it was provided with the option `:ws_host` when the {Client} was created
       # @return [String,Nil]
@@ -79,6 +83,7 @@ module Ably
         @auth                  = Ably::Realtime::Auth.new(self)
         @channels              = Ably::Realtime::Channels.new(self)
         @echo_messages         = @rest_client.options.fetch(:echo_messages, true) == false ? false : true
+        @queue_messages        = @rest_client.options.fetch(:queue_messages, true) == false ? false : true
         @custom_realtime_host  = @rest_client.options[:realtime_host] || @rest_client.options[:ws_host]
         @auto_connect          = @rest_client.options.fetch(:auto_connect, true) == false ? false : true
         @recover               = @rest_client.options[:recover]

@@ -95,6 +95,9 @@ module Ably
     # The message could not be delivered to the server
     class MessageDeliveryFailed < BaseAblyException; end
 
+    # The client has been configured to not queue messages i.e. only publish down an active connection
+    class MessageQueueingDisabled < BaseAblyException; end
+
     # The data payload type is not supported
     class UnsupportedDataType < BaseAblyException; end
 

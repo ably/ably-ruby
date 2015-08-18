@@ -396,6 +396,13 @@ module Ably
         resume_callbacks.delete(callback)
       end
 
+      # Returns false if messages cannot be published as a result of message queueing being disabled
+      # @api private
+      def can_publish_messages?
+        connected? ||
+          ( (initialized? || connecting? || disconnected?) && client.queue_messages )
+      end
+
       # As we are using a state machine, do not allow change_state to be used
       # #transition_state_machine must be used instead
       private :change_state
