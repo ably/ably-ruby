@@ -490,6 +490,20 @@ describe Ably::Realtime::Channel, :event_machine do
         end
       end
 
+      context 'before attach' do
+        it 'receives messages as soon as attached' do
+          channel.subscribe('click') do |message|
+            expect(channel).to be_attached
+            expect(message.data).to eql('data')
+            stop_reactor
+          end
+
+          channel.publish('click', 'data')
+
+          expect(channel).to be_attaching
+        end
+      end
+
       context 'with no event argument' do
         it 'subscribes for all events' do
           channel.subscribe do |message|
