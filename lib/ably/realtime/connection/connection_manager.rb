@@ -166,10 +166,10 @@ module Ably::Realtime
         end
 
         unless connection_retry_from_suspended_state?
-          return if connection_retry_for(:disconnected, ignore_states: [:connecting])
+          return if connection_retry_for(:disconnected)
         end
 
-        return if connection_retry_for(:suspended, ignore_states: [:connecting])
+        return if connection_retry_for(:suspended)
 
         # Fallback if no other criteria met
         connection.transition_state_machine :failed, current_transition.metadata
@@ -269,10 +269,10 @@ module Ably::Realtime
       #
       # @return [Boolean] True if a connection attempt has been set up, false if no further connection attempts can be made for this state
       #
-      def connection_retry_for(from_state, options = {})
+      def connection_retry_for(from_state)
         retry_params = CONNECT_RETRY_CONFIG.fetch(from_state)
 
-        if time_spent_attempting_state(from_state, options) < retry_params.fetch(:max_time_in_state)
+        if can_reattempt_connect_for_state?(from_state)
           if retries_for_state(from_state, ignore_states: [:connecting]).empty?
             logger.debug "ConnectionManager: Will attempt reconnect immediately as no previous reconnect attempts made in this state"
             EventMachine.next_tick { connection.connect }
@@ -284,6 +284,14 @@ module Ably::Realtime
           end
           true
         end
+      end
+
+      # True if the client library has not exceeded the configured max_time_in_state for the current State
+      # For example, if the state is disconnected, and has been in a cycle of disconnected > connect > disconnected
+      #  so long as the time in this cycle of states is less than max_time_in_state, this will return true
+      def can_reattempt_connect_for_state?(state)
+        retry_params = CONNECT_RETRY_CONFIG.fetch(state)
+        time_spent_attempting_state(state, ignore_states: [:connecting]) < retry_params.fetch(:max_time_in_state)
       end
 
       # Returns a float representing the amount of time passed since the first consecutive attempt of this state
@@ -342,7 +350,11 @@ module Ably::Realtime
             exception = if reason
               Ably::Exceptions::ConnectionClosedError.new(reason)
             end
-            connection.transition_state_machine :disconnected, exception
+            if connection_retry_from_suspended_state? || !can_reattempt_connect_for_state?(:disconnected)
+              connection.transition_state_machine :suspended, exception
+            else
+              connection.transition_state_machine :disconnected, exception
+            end
           end
         end
       end

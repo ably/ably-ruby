@@ -44,6 +44,12 @@ module Ably
     # Connection closed unexpectedly
     class ConnectionClosedError < ConnectionError; end
 
+    # Connection suspended
+    class ConnectionSuspended < ConnectionError; end
+
+    # Connection failed
+    class ConnectionFailed < ConnectionError; end
+
     # Invalid State Change error on a {https://github.com/gocardless/statesman Statesman State Machine}
     class StateChangeError < BaseAblyException; end
 
@@ -77,5 +83,8 @@ module Ably
 
     # The data payload type is not supported
     class UnsupportedDataTypeError < BaseAblyException; end
+
+    # When a channel is detached / failed, certain operations are not permitted such as publishing messages
+    class ChannelInactive < BaseAblyException; end
   end
 end

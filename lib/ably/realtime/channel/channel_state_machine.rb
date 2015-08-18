@@ -44,7 +44,6 @@ module Ably::Realtime
 
       after_transition(to: [:detached]) do |channel, current_transition|
         channel.manager.fail_messages_awaiting_ack nil_unless_error(current_transition.metadata)
-        channel.manager.emit_error current_transition.metadata if is_error_type?(current_transition.metadata)
       end
 
       after_transition(to: [:failed]) do |channel, current_transition|

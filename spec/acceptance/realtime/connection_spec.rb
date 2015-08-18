@@ -888,5 +888,74 @@ describe Ably::Realtime::Connection, :event_machine do
         end
       end
     end
+
+    describe 'state change side effects' do
+      let(:channel)        { client.channels.get(random_str) }
+      let(:client_options) { default_options.merge(:log_level => :error) }
+
+      context 'when connection enters the :disconnected state' do
+        it 'queues messages to be sent and all channels remain attached' do
+          channel.attach do
+            connection.once(:disconnected) do
+              expect(connection.__outgoing_message_queue__).to be_empty
+              channel.publish 'test'
+
+              EventMachine.add_timer(0.02) do
+                expect(connection.__outgoing_message_queue__).to_not be_empty
+              end
+
+              connection.once(:connected) do
+                EventMachine.add_timer(0.02) do
+                  expect(connection.__outgoing_message_queue__).to be_empty
+                  stop_reactor
+                end
+              end
+            end
+
+            connection.transport.close_connection_after_writing
+          end
+        end
+      end
+
+      context 'when connection enters the :suspended state' do
+        before do
+          # Reconfigure client library retry periods so that client stays in suspended state
+          stub_const 'Ably::Realtime::Connection::ConnectionManager::CONNECT_RETRY_CONFIG',
+                      Ably::Realtime::Connection::ConnectionManager::CONNECT_RETRY_CONFIG.merge(
+                        disconnected: { retry_every: 0.01, max_time_in_state: 0.05 },
+                        suspended: { retry_every: 60, max_time_in_state: 60 }
+                      )
+        end
+
+        it 'detaches the channels and prevents publishing of messages on those channels' do
+          channel.attach do
+            channel.once(:detached) do
+              expect { channel.publish 'test' }.to raise_error(Ably::Exceptions::ChannelInactive)
+              stop_reactor
+            end
+
+            # Keep disconnecting the websocket transport after it attempts reconnection
+            connection.transport.close_connection_after_writing
+            connection.on(:connecting) do
+              EventMachine.add_timer(0.03) do
+                connection.transport.close_connection_after_writing
+              end
+            end
+          end
+        end
+      end
+
+      context 'when connection enters the :failed state' do
+        let(:client_options) { default_options.merge(:key => 'will.not:authenticate', log_level: :none) }
+
+        it 'sets all channels to failed and prevents publishing of messages on those channels' do
+          channel.attach
+          channel.once(:failed) do
+            expect { channel.publish 'test' }.to raise_error(Ably::Exceptions::ChannelInactive)
+            stop_reactor
+          end
+        end
+      end
+    end
   end
 end

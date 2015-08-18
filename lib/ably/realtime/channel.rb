@@ -137,6 +137,9 @@ module Ably
       #   end
       #
       def publish(name, data = nil, &success_block)
+        raise Ably::Exceptions::ChannelInactive.new('Cannot publish messages on a detached channel') if detached? || detaching?
+        raise Ably::Exceptions::ChannelInactive.new('Cannot publish messages on a failed channel') if failed?
+
         messages = if name.kind_of?(Enumerable)
           name
         else
