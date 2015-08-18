@@ -82,6 +82,7 @@ module Ably::Realtime
 
       return deferrable_succeed(deferrable, &success_block) if state == STATE.Entered
 
+      ensure_presence_publishable_on_connection
       ensure_channel_attached(deferrable) do
         if entering?
           once_or_if(STATE.Entered, else: proc { |args| deferrable_fail deferrable, *args }) do
@@ -145,6 +146,7 @@ module Ably::Realtime
 
       return deferrable_succeed(deferrable, &success_block) if state == STATE.Left
 
+      ensure_presence_publishable_on_connection
       ensure_channel_attached(deferrable) do
         if leaving?
           once_or_if(STATE.Left, else: proc { |error|deferrable_fail deferrable, *args }) do
@@ -201,6 +203,7 @@ module Ably::Realtime
 
       @data = data
 
+      ensure_presence_publishable_on_connection
       ensure_channel_attached(deferrable) do
         send_protocol_message_and_transition_state_to(
           Ably::Models::PresenceMessage::ACTION.Update,
@@ -369,6 +372,12 @@ module Ably::Realtime
       end
     end
 
+    def ensure_presence_publishable_on_connection
+      if !connection.can_publish_messages?
+        raise Ably::Exceptions::MessageQueueingDisabled.new("Message cannot be published. Client is configured to disallow queueing of messages and connection is currently #{connection.state}")
+      end
+    end
+
     def ensure_channel_attached(deferrable = nil)
       if channel.attached?
         yield
@@ -413,11 +422,12 @@ module Ably::Realtime
       safe_yield block, self, *args if block_given?
       EventMachine.next_tick { deferrable.fail self, *args } # allow errback to be added to the returned Deferrable
       deferrable
-      end
+    end
 
     def send_presence_action_for_client(action, client_id, options = {}, &success_block)
-      deferrable = create_deferrable
+      ensure_presence_publishable_on_connection
 
+      deferrable = create_deferrable
       ensure_channel_attached(deferrable) do
         send_presence_protocol_message(action, client_id, options).tap do |protocol_message|
           protocol_message.callback { |message| deferrable_succeed deferrable, &success_block }
@@ -437,6 +447,10 @@ module Ably::Realtime
 
     def client
       channel.client
+    end
+
+    def connection
+      client.connection
     end
 
     def rest_presence

@@ -51,6 +51,53 @@ describe Ably::Realtime::Presence, :event_machine do
             end
           end
         end
+
+        context 'when :queue_messages client option is false' do
+          let(:client_one) { Ably::Realtime::Client.new(default_options.merge(queue_messages: false, client_id: random_str)) }
+
+          context 'and connection state initialized' do
+            it 'raises an exception' do
+              expect { presence_client_one.public_send(method_name, args) }.to raise_error Ably::Exceptions::MessageQueueingDisabled
+              expect(client_one.connection).to be_initialized
+              stop_reactor
+            end
+          end
+
+          context 'and connection state connecting' do
+            it 'raises an exception' do
+              client_one.connect
+              EventMachine.next_tick do
+                expect { presence_client_one.public_send(method_name, args) }.to raise_error Ably::Exceptions::MessageQueueingDisabled
+                expect(client_one.connection).to be_connecting
+                stop_reactor
+              end
+            end
+          end
+
+          context 'and connection state disconnected' do
+            let(:client_one) { Ably::Realtime::Client.new(default_options.merge(queue_messages: false, client_id: random_str, :log_level => :error)) }
+
+            it 'raises an exception' do
+              client_one.connection.once(:connected) do
+                client_one.connection.once(:disconnected) do
+                  expect { presence_client_one.public_send(method_name, args) }.to raise_error Ably::Exceptions::MessageQueueingDisabled
+                  expect(client_one.connection).to be_disconnected
+                  stop_reactor
+                end
+                client_one.connection.transition_state_machine :disconnected
+              end
+            end
+          end
+
+          context 'and connection state connected' do
+            it 'publishes the message' do
+              client_one.connection.once(:connected) do
+                presence_client_one.public_send(method_name, args)
+                stop_reactor
+              end
+            end
+          end
+        end
       end
 
       context 'with supported data payload content type' do
