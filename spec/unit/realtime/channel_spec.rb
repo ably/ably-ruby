@@ -71,6 +71,7 @@ describe Ably::Realtime::Channel do
 
     before do
       allow(subject).to receive(:create_message).and_return('message_stubbed')
+      allow(subject).to receive(:attach).and_return(:true)
     end
 
     context 'as UTF_8 string' do
@@ -109,7 +110,7 @@ describe Ably::Realtime::Channel do
       let(:encoded_value) { nil }
 
       it 'is permitted' do
-        expect { subject.publish(encoded_value, 'data') }.to ql('message_stubbed')
+        expect(subject.publish(encoded_value, 'data')).to eql('message_stubbed')
       end
     end
   end
@@ -159,6 +160,10 @@ describe Ably::Realtime::Channel do
     let(:blur_message) { instance_double('Ably::Models::Message', name: 'blur', encode: nil, decode: nil) }
 
     context '#subscribe' do
+      before do
+        allow(subject).to receive(:attach).and_return(:true)
+      end
+
       specify 'without a block raises an invalid ArgumentError' do
         expect { subject.subscribe }.to raise_error ArgumentError
       end
@@ -199,8 +204,10 @@ describe Ably::Realtime::Channel do
       let(:callback) do
         Proc.new { |message| message_history[:received] += 1 }
       end
+
       before do
-        subject.subscribe(click_event, &callback)
+        allow(subject).to receive(:attach).and_return(:true)
+        subject.subscribe click_event, &callback
       end
 
       specify 'with no event name specified unsubscribes that block from all events' do
