@@ -566,7 +566,7 @@ describe Ably::Realtime::Channel, :event_machine do
 
     context 'when connection state changes to' do
       context ':failed' do
-        let(:connection_error) { Ably::Exceptions::ConnectionError.new('forced failure', 500, 50000) }
+        let(:connection_error) { Ably::Exceptions::ConnectionFailed.new('forced failure', 500, 50000) }
         let(:client_options)   { default_options.merge(log_level: :none) }
 
         def fake_error(error)
@@ -577,7 +577,8 @@ describe Ably::Realtime::Channel, :event_machine do
           it 'transitions state to :failed' do
             channel.attach do
               channel.on(:failed) do |error|
-                expect(error).to eql(connection_error)
+                expect(error).to be_a(Ably::Exceptions::ConnectionFailed)
+                expect(error.code).to eql(80002)
                 stop_reactor
               end
               fake_error connection_error
@@ -587,7 +588,8 @@ describe Ably::Realtime::Channel, :event_machine do
           it 'emits an error event on the channel' do
             channel.attach do
               channel.on(:error) do |error|
-                expect(error).to eql(connection_error)
+                expect(error).to be_a(Ably::Exceptions::ConnectionFailed)
+                expect(error.code).to eql(80002)
                 stop_reactor
               end
               fake_error connection_error
@@ -597,7 +599,8 @@ describe Ably::Realtime::Channel, :event_machine do
           it 'updates the channel error_reason' do
             channel.attach do
               channel.on(:failed) do |error|
-                expect(channel.error_reason).to eql(connection_error)
+                expect(error).to be_a(Ably::Exceptions::ConnectionFailed)
+                expect(error.code).to eql(80002)
                 stop_reactor
               end
               fake_error connection_error
