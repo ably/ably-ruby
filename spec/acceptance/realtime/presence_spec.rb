@@ -1265,6 +1265,16 @@ describe Ably::Realtime::Presence, :event_machine do
           end
         end
       end
+
+      it 'implicitly attaches' do
+        expect(client_one.connection).to be_initialized
+        presence_client_one.subscribe { true }
+        channel_client_one.on(:attached) do
+          expect(client_one.connection).to be_connected
+          expect(channel_client_one).to be_attached
+          stop_reactor
+        end
+      end
     end
 
     context '#unsubscribe' do
