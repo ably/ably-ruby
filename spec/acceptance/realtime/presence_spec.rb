@@ -52,6 +52,14 @@ describe Ably::Realtime::Presence, :event_machine do
           end
         end
 
+        it 'implicitly attaches the channel' do
+          expect(channel_client_one).to_not be_attached
+          presence_client_one.public_send(method_name, args) do
+            expect(channel_client_one).to be_attached
+            stop_reactor
+          end
+        end
+
         context 'when :queue_messages client option is false' do
           let(:client_one) { Ably::Realtime::Client.new(default_options.merge(queue_messages: false, client_id: random_str)) }
 
