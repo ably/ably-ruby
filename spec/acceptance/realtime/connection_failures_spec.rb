@@ -488,7 +488,8 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             when_all(*channels.map(&:attach)) do
               detached_channels = []
               channels.each do |channel|
-                channel.on(:detached) do
+                channel.on(:detached) do |error|
+                  expect(error.message).to match(/Invalid connection key/i)
                   detached_channels << channel
                   next unless detached_channels.count == channel_count
                   expect(detached_channels.count).to eql(channel_count)

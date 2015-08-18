@@ -132,6 +132,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       let(:client_options)  { default_options.merge(client_id: client_id) }
 
       it 'contains a #client_id attribute' do
+        skip 'Waiting for issue #256 to be resolved'
         when_all(channel.attach, other_client_channel.attach) do
           other_client_channel.subscribe('event') do |message|
             expect(message.client_id).to eql(client_id)
