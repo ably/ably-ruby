@@ -195,10 +195,16 @@ module Ably
       # Detach this channel, and call the block if provided when in a Detached or Failed state
       #
       # @yield [Ably::Realtime::Channel] Block is called as soon as this channel is in the Detached or Failed state
-      # @return [void]
+      # @return [Ably::Util::SafeDeferrable] Deferrable that supports both success (callback) and failure (errback) callback
       #
       def detach(&success_block)
-        return success_block.call if initialized?
+        if initialized?
+          success_block.call if block_given?
+          return Ably::Util::SafeDeferrable.new(logger).tap do |deferrable|
+            EventMachine.next_tick { deferrable.succeed }
+          end
+        end
+
         raise exception_for_state_change_to(:detaching) if failed?
 
         transition_state_machine :detaching if can_transition_to?(:detaching)

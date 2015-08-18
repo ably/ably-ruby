@@ -313,6 +313,14 @@ describe Ably::Realtime::Channel, :event_machine do
             stop_reactor
           end
         end
+
+        it 'returns a valid deferrable' do
+          expect(channel).to be_initialized
+          channel.detach.callback do
+            expect(channel).to be_initialized
+            stop_reactor
+          end
+        end
       end
     end
 
