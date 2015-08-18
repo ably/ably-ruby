@@ -15,7 +15,7 @@ describe Ably::Rest::Client do
         let(:client_options) { { key: 'appid.keyuid:keysecret', tls: false } }
 
         it 'fails for any operation with basic auth and attempting to send an API key over a non-secure connection' do
-          expect { subject.channel('a').publish('event', 'message') }.to raise_error(Ably::Exceptions::InsecureRequestError)
+          expect { subject.channel('a').publish('event', 'message') }.to raise_error(Ably::Exceptions::InsecureRequest)
         end
       end
     end
@@ -26,7 +26,7 @@ describe Ably::Rest::Client do
           let(:client_options) { { use_token_auth: false, key: 'appid.keyuid:keysecret', tls: false } }
 
           it 'fails for any operation with basic auth and attempting to send an API key over a non-secure connection' do
-            expect { subject.channel('a').publish('event', 'message') }.to raise_error(Ably::Exceptions::InsecureRequestError)
+            expect { subject.channel('a').publish('event', 'message') }.to raise_error(Ably::Exceptions::InsecureRequest)
           end
         end
 

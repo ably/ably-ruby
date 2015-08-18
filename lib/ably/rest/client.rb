@@ -345,7 +345,7 @@ module Ably
 
           case error
             when Faraday::TimeoutError
-              raise Ably::Exceptions::ConnectionTimeoutError.new(error.message, nil, 80014, error)
+              raise Ably::Exceptions::ConnectionTimeout.new(error.message, nil, 80014, error)
             when Faraday::ClientError
               raise Ably::Exceptions::ConnectionError.new(error.message, nil, 80000, error)
             else

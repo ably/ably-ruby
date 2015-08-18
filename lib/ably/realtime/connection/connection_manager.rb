@@ -53,7 +53,7 @@ module Ably::Realtime
         end
 
         unless client.auth.authentication_security_requirements_met?
-          connection.transition_state_machine :failed, Ably::Exceptions::InsecureRequestError.new('Cannot use Basic Auth over non-TLS connections', 401, 40103)
+          connection.transition_state_machine :failed, Ably::Exceptions::InsecureRequest.new('Cannot use Basic Auth over non-TLS connections', 401, 40103)
           return
         end
 
@@ -71,7 +71,7 @@ module Ably::Realtime
 
         logger.debug "ConnectionManager: Setting up automatic connection timeout timer for #{TIMEOUTS.fetch(:open)}s"
         create_timeout_timer_whilst_in_state(:connect, TIMEOUTS.fetch(:open)) do
-          connection_opening_failed Ably::Exceptions::ConnectionTimeoutError.new("Connection to Ably timed out after #{TIMEOUTS.fetch(:open)}s", nil, 80014)
+          connection_opening_failed Ably::Exceptions::ConnectionTimeout.new("Connection to Ably timed out after #{TIMEOUTS.fetch(:open)}s", nil, 80014)
         end
       end
 
@@ -348,7 +348,7 @@ module Ably::Realtime
             connection.transition_state_machine :closed
           elsif !connection.closed? && !connection.disconnected?
             exception = if reason
-              Ably::Exceptions::ConnectionClosedError.new(reason)
+              Ably::Exceptions::ConnectionClosed.new(reason)
             end
             if connection_retry_from_suspended_state? || !can_reattempt_connect_for_state?(:disconnected)
               connection.transition_state_machine :suspended, exception

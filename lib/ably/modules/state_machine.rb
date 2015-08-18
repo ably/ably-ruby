@@ -40,10 +40,10 @@ module Ably::Modules
       previous_transition.to_state if previous_transition
     end
 
-    # @return [Ably::Exceptions::StateChangeError]
+    # @return [Ably::Exceptions::InvalidStateChange]
     def exception_for_state_change_to(state)
       error_message = "#{self.class}: Unable to transition from #{current_state} => #{state}"
-      Ably::Exceptions::StateChangeError.new(error_message, nil, 80020)
+      Ably::Exceptions::InvalidStateChange.new(error_message, nil, 80020)
     end
 
     module ClassMethods

@@ -56,10 +56,10 @@ module Ably
     end
 
     # Connection Timeout accessing Realtime or REST service
-    class ConnectionTimeoutError < ConnectionError; end
+    class ConnectionTimeout < ConnectionError; end
 
     # Connection closed unexpectedly
-    class ConnectionClosedError < ConnectionError; end
+    class ConnectionClosed < ConnectionError; end
 
     # Connection suspended
     class ConnectionSuspended < ConnectionError; end
@@ -68,10 +68,7 @@ module Ably
     class ConnectionFailed < ConnectionError; end
 
     # Invalid State Change error on a {https://github.com/gocardless/statesman Statesman State Machine}
-    class StateChangeError < BaseAblyException; end
-
-    # The state of the object is not suitable for this operation
-    class IncompatibleStateForOperation < BaseAblyException; end
+    class InvalidStateChange < BaseAblyException; end
 
     # A generic Ably exception taht supports a status & code.
     # See https://github.com/ably/ably-common/blob/master/protocol/errors.json for a list of Ably errors
@@ -81,25 +78,25 @@ module Ably
     class ServerError < BaseAblyException; end
 
     # PaginatedResult cannot retrieve the page
-    class InvalidPageError < BaseAblyException; end
+    class PageMissing < BaseAblyException; end
 
     # The expected response from the server was invalid
     class InvalidResponseBody < BaseAblyException; end
 
     # The request cannot be performed because it is insecure
-    class InsecureRequestError < BaseAblyException; end
+    class InsecureRequest < BaseAblyException; end
 
     # The token request could not be created
-    class TokenRequestError < BaseAblyException; end
+    class TokenRequestFailed < BaseAblyException; end
 
     # The token has expired
     class TokenExpired < BaseAblyException; end
 
     # The message could not be delivered to the server
-    class MessageDeliveryError < BaseAblyException; end
+    class MessageDeliveryFailed < BaseAblyException; end
 
     # The data payload type is not supported
-    class UnsupportedDataTypeError < BaseAblyException; end
+    class UnsupportedDataType < BaseAblyException; end
 
     # When a channel is detached / failed, certain operations are not permitted such as publishing messages
     class ChannelInactive < BaseAblyException; end

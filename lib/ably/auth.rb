@@ -224,7 +224,7 @@ module Ably
       request_key_name   = auth_options.delete(:key_name) || key_name
       request_key_secret = auth_options.delete(:key_secret) || key_secret
 
-      raise Ably::Exceptions::TokenRequestError, 'Key Name and Key Secret are required to generate a new token request' unless request_key_name && request_key_secret
+      raise Ably::Exceptions::TokenRequestFailed, 'Key Name and Key Secret are required to generate a new token request' unless request_key_name && request_key_secret
 
       timestamp = if auth_options[:query_time]
         client.time
@@ -380,7 +380,7 @@ module Ably
     end
 
     def ensure_api_key_sent_over_secure_connection
-      raise Ably::Exceptions::InsecureRequestError, 'Cannot use Basic Auth over non-TLS connections' unless authentication_security_requirements_met?
+      raise Ably::Exceptions::InsecureRequest, 'Cannot use Basic Auth over non-TLS connections' unless authentication_security_requirements_met?
     end
 
     # Basic Auth HTTP Authorization header value

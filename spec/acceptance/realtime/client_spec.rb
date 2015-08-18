@@ -32,7 +32,7 @@ describe Ably::Realtime::Client, :event_machine do
               connection.on(:connected) { raise 'Should not have connected' }
 
               connection.on(:failed) do |error|
-                expect(error).to be_a(Ably::Exceptions::InsecureRequestError)
+                expect(error).to be_a(Ably::Exceptions::InsecureRequest)
                 stop_reactor
               end
             end

@@ -109,7 +109,7 @@ module Ably::Modules
         payload.kind_of?(Array) ||
         payload.nil?
 
-      raise Ably::Exceptions::UnsupportedDataTypeError.new('Invalid data payload', 400, 40011)
+      raise Ably::Exceptions::UnsupportedDataType.new('Invalid data payload', 400, 40011)
     end
   end
 end

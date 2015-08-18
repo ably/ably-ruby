@@ -65,32 +65,32 @@ describe Ably::Rest::Channel, 'messages' do
       context 'Integer' do
         let(:data) { 1 }
 
-        it 'is raises an UnsupportedDataTypeError 40011 exception' do
-          expect { channel.publish 'event', data }.to raise_error(Ably::Exceptions::UnsupportedDataTypeError)
+        it 'is raises an UnsupportedDataType 40011 exception' do
+          expect { channel.publish 'event', data }.to raise_error(Ably::Exceptions::UnsupportedDataType)
         end
       end
 
       context 'Float' do
         let(:data) { 1.1 }
 
-        it 'is raises an UnsupportedDataTypeError 40011 exception' do
-          expect { channel.publish 'event', data }.to raise_error(Ably::Exceptions::UnsupportedDataTypeError)
+        it 'is raises an UnsupportedDataType 40011 exception' do
+          expect { channel.publish 'event', data }.to raise_error(Ably::Exceptions::UnsupportedDataType)
         end
       end
 
       context 'Boolean' do
         let(:data) { true }
 
-        it 'is raises an UnsupportedDataTypeError 40011 exception' do
-          expect { channel.publish 'event', data }.to raise_error(Ably::Exceptions::UnsupportedDataTypeError)
+        it 'is raises an UnsupportedDataType 40011 exception' do
+          expect { channel.publish 'event', data }.to raise_error(Ably::Exceptions::UnsupportedDataType)
         end
       end
 
       context 'False' do
         let(:data) { false }
 
-        it 'is raises an UnsupportedDataTypeError 40011 exception' do
-          expect { channel.publish 'event', data }.to raise_error(Ably::Exceptions::UnsupportedDataTypeError)
+        it 'is raises an UnsupportedDataType 40011 exception' do
+          expect { channel.publish 'event', data }.to raise_error(Ably::Exceptions::UnsupportedDataType)
         end
       end
     end

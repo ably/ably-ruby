@@ -79,8 +79,8 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       context 'Integer' do
         let(:data) { 1 }
 
-        it 'is raises an UnsupportedDataTypeError 40011 exception' do
-          expect { channel.publish 'event', data }.to raise_error(Ably::Exceptions::UnsupportedDataTypeError)
+        it 'is raises an UnsupportedDataType 40011 exception' do
+          expect { channel.publish 'event', data }.to raise_error(Ably::Exceptions::UnsupportedDataType)
           stop_reactor
         end
       end
@@ -88,8 +88,8 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       context 'Float' do
         let(:data) { 1.1 }
 
-        it 'is raises an UnsupportedDataTypeError 40011 exception' do
-          expect { channel.publish 'event', data }.to raise_error(Ably::Exceptions::UnsupportedDataTypeError)
+        it 'is raises an UnsupportedDataType 40011 exception' do
+          expect { channel.publish 'event', data }.to raise_error(Ably::Exceptions::UnsupportedDataType)
           stop_reactor
         end
       end
@@ -97,8 +97,8 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       context 'Boolean' do
         let(:data) { true }
 
-        it 'is raises an UnsupportedDataTypeError 40011 exception' do
-          expect { channel.publish 'event', data }.to raise_error(Ably::Exceptions::UnsupportedDataTypeError)
+        it 'is raises an UnsupportedDataType 40011 exception' do
+          expect { channel.publish 'event', data }.to raise_error(Ably::Exceptions::UnsupportedDataType)
           stop_reactor
         end
       end
@@ -106,8 +106,8 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       context 'False' do
         let(:data) { false }
 
-        it 'is raises an UnsupportedDataTypeError 40011 exception' do
-          expect { channel.publish 'event', data }.to raise_error(Ably::Exceptions::UnsupportedDataTypeError)
+        it 'is raises an UnsupportedDataType 40011 exception' do
+          expect { channel.publish 'event', data }.to raise_error(Ably::Exceptions::UnsupportedDataType)
           stop_reactor
         end
       end

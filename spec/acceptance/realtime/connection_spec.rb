@@ -377,7 +377,7 @@ describe Ably::Realtime::Connection, :event_machine do
         it 'raises an exception before the connection is closed' do
           connection.connect do
             connection.once(:closing) do
-              expect { connection.connect }.to raise_error Ably::Exceptions::StateChangeError
+              expect { connection.connect }.to raise_error Ably::Exceptions::InvalidStateChange
               stop_reactor
             end
             connection.close
@@ -789,13 +789,13 @@ describe Ably::Realtime::Connection, :event_machine do
     context 'when a state transition is unsupported' do
       let(:client_options) { default_options.merge(log_level: :none) } # silence FATAL errors
 
-      it 'emits a StateChangeError' do
+      it 'emits a InvalidStateChange' do
         connection.connect do
           connection.transition_state_machine :initialized
         end
 
         connection.on(:error) do |error|
-          expect(error).to be_a(Ably::Exceptions::StateChangeError)
+          expect(error).to be_a(Ably::Exceptions::InvalidStateChange)
           stop_reactor
         end
       end

@@ -157,7 +157,7 @@ describe Ably::Models::PaginatedResult do
               subject.next do |paginated_result|
                 deferrable = subject.first
                 deferrable.errback do |error|
-                  expect(error).to be_a(Ably::Exceptions::InvalidPageError)
+                  expect(error).to be_a(Ably::Exceptions::PageMissing)
                   stop_reactor
                 end
               end

@@ -45,7 +45,7 @@ describe Ably::Realtime::Presence, :event_machine do
             setup_test(method_name, args, options) do
               channel_client_one.attach do
                 channel_client_one.change_state state.to_sym
-                expect { presence_client_one.public_send(method_name, args) }.to raise_error Ably::Exceptions::IncompatibleStateForOperation, /Operation is not allowed when channel is in STATE.#{state}/i
+                expect { presence_client_one.public_send(method_name, args) }.to raise_error Ably::Exceptions::InvalidStateChange, /Operation is not allowed when channel is in STATE.#{state}/i
                 stop_reactor
               end
             end
@@ -120,8 +120,8 @@ describe Ably::Realtime::Presence, :event_machine do
         context 'Integer' do
           let(:data) { 1 }
 
-          it 'raises an UnsupportedDataTypeError 40011 exception' do
-            expect { presence_action(method_name, data) }.to raise_error(Ably::Exceptions::UnsupportedDataTypeError)
+          it 'raises an UnsupportedDataType 40011 exception' do
+            expect { presence_action(method_name, data) }.to raise_error(Ably::Exceptions::UnsupportedDataType)
             stop_reactor
           end
         end
@@ -129,8 +129,8 @@ describe Ably::Realtime::Presence, :event_machine do
         context 'Float' do
           let(:data) { 1.1 }
 
-          it 'raises an UnsupportedDataTypeError 40011 exception' do
-            expect { presence_action(method_name, data) }.to raise_error(Ably::Exceptions::UnsupportedDataTypeError)
+          it 'raises an UnsupportedDataType 40011 exception' do
+            expect { presence_action(method_name, data) }.to raise_error(Ably::Exceptions::UnsupportedDataType)
             stop_reactor
           end
         end
@@ -138,8 +138,8 @@ describe Ably::Realtime::Presence, :event_machine do
         context 'Boolean' do
           let(:data) { true }
 
-          it 'raises an UnsupportedDataTypeError 40011 exception' do
-            expect { presence_action(method_name, data) }.to raise_error(Ably::Exceptions::UnsupportedDataTypeError)
+          it 'raises an UnsupportedDataType 40011 exception' do
+            expect { presence_action(method_name, data) }.to raise_error(Ably::Exceptions::UnsupportedDataType)
             stop_reactor
           end
         end
@@ -147,8 +147,8 @@ describe Ably::Realtime::Presence, :event_machine do
         context 'False' do
           let(:data) { false }
 
-          it 'raises an UnsupportedDataTypeError 40011 exception' do
-            expect { presence_action(method_name, data) }.to raise_error(Ably::Exceptions::UnsupportedDataTypeError)
+          it 'raises an UnsupportedDataType 40011 exception' do
+            expect { presence_action(method_name, data) }.to raise_error(Ably::Exceptions::UnsupportedDataType)
             stop_reactor
           end
         end
@@ -1002,7 +1002,7 @@ describe Ably::Realtime::Presence, :event_machine do
         it "raise an exception if the channel is #{state}" do
           channel_client_one.attach do
             channel_client_one.change_state state.to_sym
-            expect { presence_client_one.get }.to raise_error Ably::Exceptions::IncompatibleStateForOperation, /Operation is not allowed when channel is in STATE.#{state}/i
+            expect { presence_client_one.get }.to raise_error Ably::Exceptions::InvalidStateChange, /Operation is not allowed when channel is in STATE.#{state}/i
             stop_reactor
           end
         end

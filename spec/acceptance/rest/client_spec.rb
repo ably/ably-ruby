@@ -233,7 +233,7 @@ describe Ably::Rest::Client do
         end
 
         it 'does not retry failed requests with fallback hosts when there is a connection error' do
-          expect { publish_block.call }.to raise_error Ably::Exceptions::ConnectionTimeoutError
+          expect { publish_block.call }.to raise_error Ably::Exceptions::ConnectionTimeout
         end
       end
 
@@ -285,7 +285,7 @@ describe Ably::Rest::Client do
             end
 
             it 'makes no further attempts to any fallback hosts' do
-              expect { publish_block.call }.to raise_error Ably::Exceptions::ConnectionTimeoutError
+              expect { publish_block.call }.to raise_error Ably::Exceptions::ConnectionTimeout
               expect(default_host_request_stub).to have_been_requested
               expect(first_fallback_request_stub).to_not have_been_requested
               expect(second_fallback_request_stub).to_not have_been_requested
@@ -399,7 +399,7 @@ describe Ably::Rest::Client do
         end
 
         it 'fails immediately and raises a Faraday Error' do
-          expect { client.auth.request_token }.to raise_error Ably::Exceptions::ConnectionTimeoutError
+          expect { client.auth.request_token }.to raise_error Ably::Exceptions::ConnectionTimeout
         end
 
         context 'fallback hosts' do
@@ -412,7 +412,7 @@ describe Ably::Rest::Client do
           end
 
           specify 'are never used' do
-            expect { client.auth.request_token }.to raise_error Ably::Exceptions::ConnectionTimeoutError
+            expect { client.auth.request_token }.to raise_error Ably::Exceptions::ConnectionTimeout
             expect(custom_host_request_stub).to have_been_requested
           end
         end

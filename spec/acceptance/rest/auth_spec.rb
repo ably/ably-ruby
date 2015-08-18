@@ -666,11 +666,11 @@ describe Ably::Auth do
         let(:client) { Ably::Rest::Client.new(auth_url: 'http://example.com', protocol: protocol) }
 
         it 'should raise an exception if key secret is missing' do
-          expect { auth.create_token_request(key_name: 'name') }.to raise_error Ably::Exceptions::TokenRequestError
+          expect { auth.create_token_request(key_name: 'name') }.to raise_error Ably::Exceptions::TokenRequestFailed
         end
 
         it 'should raise an exception if key name is missing' do
-          expect { auth.create_token_request(key_secret: 'secret') }.to raise_error Ably::Exceptions::TokenRequestError
+          expect { auth.create_token_request(key_secret: 'secret') }.to raise_error Ably::Exceptions::TokenRequestFailed
         end
       end
 

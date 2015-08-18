@@ -59,7 +59,7 @@ module Ably::Realtime
       def fail_messages_awaiting_ack(error)
         # Allow a short time for other queued operations to complete before failing all messages
         EventMachine.add_timer(0.1) do
-          error = Ably::Exceptions::MessageDeliveryError.new('Channel is no longer in a state suitable to deliver this message to the server') unless error
+          error = Ably::Exceptions::MessageDeliveryFailed.new("Channel cannot publish messages whilst state is '#{channel.state}'") unless error
           fail_messages_in_queue connection.__pending_message_ack_queue__, error
           fail_messages_in_queue connection.__outgoing_message_queue__, error
         end
@@ -131,7 +131,7 @@ module Ably::Realtime
 
         connection.unsafe_on(:failed) do |error|
           if can_transition_to?(:failed)
-            channel.transition_state_machine :failed, Ably::Exceptions::ConnectionSuspended.new('Connection failed', nil, 80002, error)
+            channel.transition_state_machine :failed, Ably::Exceptions::ConnectionFailed.new('Connection failed', nil, 80002, error)
           end
         end
       end

@@ -264,7 +264,7 @@ describe Ably::Realtime::Channel, :event_machine do
           channel.attach do
             channel.transition_state_machine :failed, RuntimeError.new
             expect(channel).to be_failed
-            expect { channel.detach }.to raise_error Ably::Exceptions::StateChangeError
+            expect { channel.detach }.to raise_error Ably::Exceptions::InvalidStateChange
             stop_reactor
           end
         end
