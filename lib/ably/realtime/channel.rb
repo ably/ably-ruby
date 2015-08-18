@@ -198,7 +198,9 @@ module Ably
       # @return [void]
       #
       def detach(&success_block)
-        raise exception_for_state_change_to(:detaching) if failed? || initialized?
+        return success_block.call if initialized?
+        raise exception_for_state_change_to(:detaching) if failed?
+
         transition_state_machine :detaching if can_transition_to?(:detaching)
         deferrable_for_state_change_to(STATE.Detached, &success_block)
       end

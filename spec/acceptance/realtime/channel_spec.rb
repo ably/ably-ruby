@@ -304,6 +304,16 @@ describe Ably::Realtime::Channel, :event_machine do
           end
         end
       end
+
+      context 'when state is :initialized' do
+        it 'does nothing as there is no channel to detach' do
+          expect(channel).to be_initialized
+          channel.detach do
+            expect(channel).to be_initialized
+            stop_reactor
+          end
+        end
+      end
     end
 
     describe 'channel recovery in :attaching state' do
