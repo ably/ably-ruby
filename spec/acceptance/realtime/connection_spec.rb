@@ -851,19 +851,41 @@ describe Ably::Realtime::Connection, :event_machine do
         end
 
         context 'when the Internet is up' do
+          let(:client_options) { default_options.merge(tls: false, use_token_auth: true) }
+
+          context 'with a TLS connection' do
+            let(:client_options) { default_options.merge(tls: true) }
+
+            it 'checks the Internet up URL over TLS' do
+              expect(EventMachine::HttpRequest).to receive(:new).with("https:#{Ably::INTERNET_CHECK.fetch(:url)}").and_return(double('request', get: EventMachine::DefaultDeferrable.new))
+              connection.internet_up?
+              stop_reactor
+            end
+          end
+
+          context 'with a non-TLS connection' do
+            let(:client_options) { default_options.merge(tls: false, use_token_auth: true) }
+
+            it 'checks the Internet up URL over TLS' do
+              expect(EventMachine::HttpRequest).to receive(:new).with("http:#{Ably::INTERNET_CHECK.fetch(:url)}").and_return(double('request', get: EventMachine::DefaultDeferrable.new))
+              connection.internet_up?
+              stop_reactor
+            end
+          end
+
           it 'calls the block with true' do
             connection.internet_up? do |result|
               expect(result).to be_truthy
-              stop_reactor
+              EventMachine.add_timer(0.2) { stop_reactor }
             end
           end
 
           it 'calls the success callback of the Deferrable' do
             connection.internet_up?.callback do
-              stop_reactor
+              EventMachine.add_timer(0.2) { stop_reactor }
             end
-            connection.internet_up?.errback do
-              raise 'Could not perform the Internet up check. Are you connected to the Internet?'
+            connection.internet_up?.errback do |error|
+              raise "Could not perform the Internet up check. Are you connected to the Internet? #{error}"
             end
           end
         end

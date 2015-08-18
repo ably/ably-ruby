@@ -192,12 +192,14 @@ module Ably
               deferrable.fail "Unable to connect to #{url}"
             end
             http.callback do
-              result = http.response_header.status == 200 && http.response.strip == Ably::INTERNET_CHECK.fetch(:ok_text)
-              yield result if block_given?
-              if result
-                deferrable.succeed
-              else
-                deferrable.fail "Unexpected response from #{url}"
+              EventMachine.next_tick do
+                result = http.response_header.status == 200 && http.response.strip == Ably::INTERNET_CHECK.fetch(:ok_text)
+                yield result if block_given?
+                if result
+                  deferrable.succeed
+                else
+                  deferrable.fail "Unexpected response from #{url} (#{http.response_header.status})"
+                end
               end
             end
           end
