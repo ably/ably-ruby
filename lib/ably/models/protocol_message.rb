@@ -27,9 +27,9 @@ module Ably::Models
   # @!attribute [r] timestamp
   #   @return [Time] An optional timestamp, applied by the service in messages sent to the client, to indicate the system time at which the message was sent (milliseconds past epoch)
   # @!attribute [r] messages
-  #   @return [Message] A {ProtocolMessage} with a `:message` action contains one or more messages belonging to a channel
+  #   @return [Array<Message>] A {ProtocolMessage} with a `:message` action contains one or more messages belonging to the channel
   # @!attribute [r] presence
-  #   @return [PresenceMessage] A {ProtocolMessage} with a `:presence` action contains one or more presence updates belonging to a channel
+  #   @return [Array<PresenceMessage>] A {ProtocolMessage} with a `:presence` action contains one or more presence updates belonging to the channel
   # @!attribute [r] flags
   #   @return [Integer] Flags indicating special ProtocolMessage states
   # @!attribute [r] hash

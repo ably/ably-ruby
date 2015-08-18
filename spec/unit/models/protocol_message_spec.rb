@@ -11,7 +11,7 @@ describe Ably::Models::ProtocolMessage do
   end
 
   it_behaves_like 'a model',
-    with_simple_attributes: %w(id channel channel_serial connection_id),
+    with_simple_attributes: %w(id channel channel_serial connection_id connection_key),
     base_model_options: { action: 1 } do
 
     let(:model_args) { [] }
@@ -262,6 +262,26 @@ describe Ably::Models::ProtocolMessage do
           expect(protocol_message.error).to be_a(Ably::Models::ErrorInfo)
           expect(protocol_message.error.message).to eql('test_error')
         end
+      end
+    end
+
+    context '#messages' do
+      let(:protocol_message) { new_protocol_message(messages: [{ name: 'test' }]) }
+
+      it 'contains Message objects' do
+        expect(protocol_message.messages.count).to eql(1)
+        expect(protocol_message.messages.first).to be_a(Ably::Models::Message)
+        expect(protocol_message.messages.first.name).to eql('test')
+      end
+    end
+
+    context '#presence' do
+      let(:protocol_message) { new_protocol_message(presence: [{ action: 1, data: 'test' }]) }
+
+      it 'contains PresenceMessage objects' do
+        expect(protocol_message.presence.count).to eql(1)
+        expect(protocol_message.presence.first).to be_a(Ably::Models::PresenceMessage)
+        expect(protocol_message.presence.first.data).to eql('test')
       end
     end
   end
