@@ -495,6 +495,32 @@ describe Ably::Realtime::Channel, :event_machine do
           end
         end
       end
+
+      context 'with many many messages and many connections simultaneously' do
+        let(:connection_count) { 5 }
+        let(:messages)         { 5.times.map { |index| { name: "test", data: "message-#{index}" } } }
+        let(:published)        { [] }
+        let(:channel_name)     { random_str }
+
+        it 'publishes all messages, all success callbacks are called, and a history request confirms all messages were published' do
+          connection_count.times.map do
+            Ably::Realtime::Client.new(client_options)
+          end.each do |client|
+            channel = client.channels.get(channel_name)
+            messages.each do |message|
+              channel.publish(message.fetch(:name), message.fetch(:data)) do
+                published << message
+                if published.count == connection_count * messages.count
+                  channel.history do |history_page|
+                    expect(history_page.items.count).to eql(connection_count * messages.count)
+                    stop_reactor
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
     end
 
     describe '#subscribe' do
