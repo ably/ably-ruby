@@ -1266,6 +1266,26 @@ describe Ably::Realtime::Presence, :event_machine do
         end
       end
 
+      context 'with event name' do
+        it 'calls the callback for specified presence event' do
+          when_all(channel_client_one.attach, channel_client_two.attach) do
+            presence_client_two.subscribe(:leave) do |presence_message|
+              messages << presence_message
+              next unless messages.count == 1
+
+              expect(messages.map(&:action).map(&:to_sym)).to contain_exactly(:leave)
+              stop_reactor
+            end
+
+            presence_client_one.enter do
+              presence_client_one.update do
+                presence_client_one.leave
+              end
+            end
+          end
+        end
+      end
+
       it 'implicitly attaches' do
         expect(client_one.connection).to be_initialized
         presence_client_one.subscribe { true }
@@ -1290,6 +1310,24 @@ describe Ably::Realtime::Presence, :event_machine do
             presence_client_one.leave do
               EventMachine.add_timer(1) do
                 stop_reactor
+              end
+            end
+          end
+        end
+      end
+
+      context 'with event name' do
+        it 'removes the callback for specified presence event' do
+          when_all(channel_client_one.attach, channel_client_two.attach) do
+            subscribe_callback = proc { raise 'Should not be called' }
+            presence_client_two.subscribe :leave, &subscribe_callback
+            presence_client_two.unsubscribe :leave, &subscribe_callback
+
+            presence_client_one.enter do
+              presence_client_one.leave do
+                EventMachine.add_timer(1) do
+                  stop_reactor
+                end
               end
             end
           end
