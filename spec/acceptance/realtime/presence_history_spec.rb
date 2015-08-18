@@ -22,6 +22,7 @@ describe Ably::Realtime::Presence, 'history', :event_machine do
       presence_client_one.enter(data: data) do
         presence_client_one.leave(data: leave_data) do
           presence_client_one.history do |history_page|
+            expect(history_page).to be_a(Ably::Models::PaginatedResult)
             expect(history_page.items.count).to eql(2)
 
             expect(history_page.items[1].action).to eq(:enter)
