@@ -648,6 +648,18 @@ describe Ably::Realtime::Channel, :event_machine do
             end
           end
         end
+
+        context 'a channel ATTACH request' do
+          it 'raises an exception' do
+            client.connect do
+              client.connection.once(:failed) do
+                expect { channel.attach }.to raise_error Ably::Exceptions::InvalidStateChange
+                stop_reactor
+              end
+              fake_error connection_error
+            end
+          end
+        end
       end
 
       context ':closed' do
@@ -700,6 +712,30 @@ describe Ably::Realtime::Channel, :event_machine do
               end
 
               channel.transition_state_machine :failed, original_error
+            end
+          end
+        end
+
+        context 'a channel ATTACH request when connection CLOSED' do
+          it 'raises an exception' do
+            client.connect do
+              client.connection.once(:closed) do
+                expect { channel.attach }.to raise_error Ably::Exceptions::InvalidStateChange
+                stop_reactor
+              end
+              client.close
+            end
+          end
+        end
+
+        context 'a channel ATTACH request when connection CLOSING' do
+          it 'raises an exception' do
+            client.connect do
+              client.connection.once(:closing) do
+                expect { channel.attach }.to raise_error Ably::Exceptions::InvalidStateChange
+                stop_reactor
+              end
+              client.close
             end
           end
         end

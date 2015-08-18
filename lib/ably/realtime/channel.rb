@@ -186,6 +186,8 @@ module Ably
       # @return [Ably::Util::SafeDeferrable] Deferrable that supports both success (callback) and failure (errback) callback
       #
       def attach(&success_block)
+        raise Ably::Exceptions::InvalidStateChange.new("Cannot ATTACH channel when the connection is in a closed, suspended or failed state. Connection state: #{connection.state}") if connection.closing? || connection.closed? || connection.suspended? || connection.failed?
+
         transition_state_machine :attaching if can_transition_to?(:attaching)
         deferrable_for_state_change_to(STATE.Attached, &success_block)
       end
@@ -344,7 +346,7 @@ module Ably
       end
 
       def send_messages_within_protocol_message(messages)
-        client.connection.send_protocol_message(
+        connection.send_protocol_message(
           action:   Ably::Models::ProtocolMessage::ACTION.Message.to_i,
           channel:  name,
           messages: messages
