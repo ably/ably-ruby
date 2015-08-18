@@ -831,5 +831,12 @@ describe Ably::Realtime::Channel, :event_machine do
         end
       end
     end
+
+    describe '#presence' do
+      it 'returns a Ably::Realtime::Presence object' do
+        expect(channel.presence).to be_a(Ably::Realtime::Presence)
+        stop_reactor
+      end
+    end
   end
 end
