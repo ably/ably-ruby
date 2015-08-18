@@ -216,6 +216,14 @@ describe Ably::Realtime::Presence, :event_machine do
         end
       end
 
+      it 'allows a block to be passed in that is executed upon success' do
+        setup_test(method_name, args, options) do
+          presence_client_one.public_send(method_name, args) do
+            stop_reactor
+          end
+        end
+      end
+
       it 'calls the Deferrable callback on success' do
         setup_test(method_name, args, options) do
           presence_client_one.public_send(method_name, args).callback do |presence|
