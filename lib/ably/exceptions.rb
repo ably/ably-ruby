@@ -16,6 +16,17 @@ module Ably
         @status = status
         @code = code
       end
+
+      def to_s
+        message = [super]
+        if status || code
+          additional_info = []
+          additional_info << "code: #{code}" if code
+          additional_info << "http status: #{status}" if status
+          message << "(#{additional_info.join(', ')})"
+        end
+        message.join(' ')
+      end
     end
 
     # An invalid request was received by Ably
@@ -35,6 +46,12 @@ module Ably
       def initialize(message, status = nil, code = nil, base_error = nil)
         super message, status, code
         @base_error = base_error
+      end
+
+      def to_s
+        message = [super]
+        message << "#{@base_error}" if @base_error
+        message.join(' < ')
       end
     end
 
