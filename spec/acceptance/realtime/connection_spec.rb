@@ -956,13 +956,21 @@ describe Ably::Realtime::Connection, :event_machine do
               stop_reactor
             end
 
-            # Keep disconnecting the websocket transport after it attempts reconnection
-            connection.transport.close_connection_after_writing
-            connection.on(:connecting) do
-              EventMachine.add_timer(0.03) do
-                connection.transport.close_connection_after_writing
+            close_connection_proc = Proc.new do
+              EventMachine.add_timer(0.02) do
+                if connection.transport.nil?
+                  close_connection_proc.call
+                else
+                  connection.transport.close_connection_after_writing
+                end
               end
             end
+
+            # Keep disconnecting the websocket transport after it attempts reconnection
+            connection.on(:connecting) do
+              close_connection_proc.call
+            end
+            close_connection_proc.call
           end
         end
       end
