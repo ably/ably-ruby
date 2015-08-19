@@ -1,5 +1,60 @@
 # Ably Realtime & REST Client Library 0.8.2 Specification
 
+### Ably::Realtime::Auth
+_(see [spec/acceptance/realtime/auth_spec.rb](./spec/acceptance/realtime/auth_spec.rb))_
+  * using JSON and MsgPack protocol
+    * with basic auth
+      * #authentication_security_requirements_met?
+        * [returns true](./spec/acceptance/realtime/auth_spec.rb#L20)
+      * #key
+        * [contains the API key](./spec/acceptance/realtime/auth_spec.rb#L27)
+      * #key_name
+        * [contains the API key name](./spec/acceptance/realtime/auth_spec.rb#L34)
+      * #key_secret
+        * [contains the API key secret](./spec/acceptance/realtime/auth_spec.rb#L41)
+      * #using_basic_auth?
+        * [is true when using Basic Auth](./spec/acceptance/realtime/auth_spec.rb#L48)
+      * #using_token_auth?
+        * [is false when using Basic Auth](./spec/acceptance/realtime/auth_spec.rb#L55)
+    * with token auth
+      * #client_id
+        * [contains the ClientOptions client ID](./spec/acceptance/realtime/auth_spec.rb#L67)
+      * #token
+        * [contains the current token after auth](./spec/acceptance/realtime/auth_spec.rb#L76)
+      * #current_token_details
+        * [contains the current token after auth](./spec/acceptance/realtime/auth_spec.rb#L83)
+      * #token_renewable?
+        * [is true when an API key exists](./spec/acceptance/realtime/auth_spec.rb#L93)
+      * #options (auth_options)
+        * [contains the configured auth options](./spec/acceptance/realtime/auth_spec.rb#L103)
+      * #token_params
+        * [contains the configured auth options](./spec/acceptance/realtime/auth_spec.rb#L114)
+      * #using_basic_auth?
+        * [is false when using Token Auth](./spec/acceptance/realtime/auth_spec.rb#L123)
+      * #using_token_auth?
+        * [is true when using Token Auth](./spec/acceptance/realtime/auth_spec.rb#L132)
+    * 
+      * #create_token_request
+        * [returns a token request asynchronously](./spec/acceptance/realtime/auth_spec.rb#L146)
+      * #create_token_request_async
+        * [returns a token request synchronously](./spec/acceptance/realtime/auth_spec.rb#L156)
+      * #request_token
+        * [returns a token asynchronously](./spec/acceptance/realtime/auth_spec.rb#L166)
+      * #request_token_async
+        * [returns a token synchronously](./spec/acceptance/realtime/auth_spec.rb#L177)
+      * #authorise
+        * [returns a token asynchronously](./spec/acceptance/realtime/auth_spec.rb#L188)
+      * #authorise_async
+        * [returns a token synchronously](./spec/acceptance/realtime/auth_spec.rb#L199)
+    * #auth_params
+      * [returns the auth params asynchronously](./spec/acceptance/realtime/auth_spec.rb#L211)
+    * #auth_params
+      * [returns the auth params synchronously](./spec/acceptance/realtime/auth_spec.rb#L220)
+    * #auth_header
+      * [returns an auth header asynchronously](./spec/acceptance/realtime/auth_spec.rb#L227)
+    * #auth_header
+      * [returns an auth header synchronously](./spec/acceptance/realtime/auth_spec.rb#L236)
+
 ### Ably::Realtime::Channel#history
 _(see [spec/acceptance/realtime/channel_history_spec.rb](./spec/acceptance/realtime/channel_history_spec.rb))_
   * using JSON and MsgPack protocol
@@ -62,46 +117,100 @@ _(see [spec/acceptance/realtime/channel_spec.rb](./spec/acceptance/realtime/chan
         * [moves straight to :detaching state and skips :attached](./spec/acceptance/realtime/channel_spec.rb#L274)
       * when state is :detaching
         * [ignores subsequent #detach calls but calls the callback if provided](./spec/acceptance/realtime/channel_spec.rb#L292)
+      * when state is :initialized
+        * [does nothing as there is no channel to detach](./spec/acceptance/realtime/channel_spec.rb#L309)
+        * [returns a valid deferrable](./spec/acceptance/realtime/channel_spec.rb#L317)
     * channel recovery in :attaching state
       * the transport is disconnected before the ATTACHED protocol message is received
-        * PENDING: *[attach times out and fails if not ATTACHED protocol message received](./spec/acceptance/realtime/channel_spec.rb#L311)*
-        * PENDING: *[channel is ATTACHED if ATTACHED protocol message is later received](./spec/acceptance/realtime/channel_spec.rb#L312)*
-        * PENDING: *[sends an ATTACH protocol message in response to a channel message being received on the attaching channel](./spec/acceptance/realtime/channel_spec.rb#L313)*
+        * PENDING: *[attach times out and fails if not ATTACHED protocol message received](./spec/acceptance/realtime/channel_spec.rb#L329)*
+        * PENDING: *[channel is ATTACHED if ATTACHED protocol message is later received](./spec/acceptance/realtime/channel_spec.rb#L330)*
+        * PENDING: *[sends an ATTACH protocol message in response to a channel message being received on the attaching channel](./spec/acceptance/realtime/channel_spec.rb#L331)*
     * #publish
       * when attached
-        * [publishes messages](./spec/acceptance/realtime/channel_spec.rb#L319)
+        * [publishes messages](./spec/acceptance/realtime/channel_spec.rb#L340)
       * when not yet attached
-        * [publishes queued messages once attached](./spec/acceptance/realtime/channel_spec.rb#L331)
-        * [publishes queued messages within a single protocol message](./spec/acceptance/realtime/channel_spec.rb#L339)
+        * [publishes queued messages once attached](./spec/acceptance/realtime/channel_spec.rb#L352)
+        * [publishes queued messages within a single protocol message](./spec/acceptance/realtime/channel_spec.rb#L360)
+        * with :queue_messages client option set to false
+          * and connection state initialized
+            * [raises an exception](./spec/acceptance/realtime/channel_spec.rb#L383)
+          * and connection state connecting
+            * [raises an exception](./spec/acceptance/realtime/channel_spec.rb#L391)
+          * and connection state disconnected
+            * [raises an exception](./spec/acceptance/realtime/channel_spec.rb#L403)
+          * and connection state connected
+            * [publishes the message](./spec/acceptance/realtime/channel_spec.rb#L416)
+      * with name and data arguments
+        * [publishes the message and return true indicating success](./spec/acceptance/realtime/channel_spec.rb#L427)
+      * with an array of Hash objects with :name and :data attributes
+        * [publishes an array of messages in one ProtocolMessage](./spec/acceptance/realtime/channel_spec.rb#L445)
+      * with an array of Message objects
+        * [publishes an array of messages in one ProtocolMessage](./spec/acceptance/realtime/channel_spec.rb#L473)
+        * with two invalid message out of 12
+          * PENDING: *[calls the errback once](./spec/acceptance/realtime/channel_spec.rb#L501)*
+        * only invalid messages
+          * PENDING: *[calls the errback once](./spec/acceptance/realtime/channel_spec.rb#L527)*
+      * with many many messages and many connections simultaneously
+        * [publishes all messages, all success callbacks are called, and a history request confirms all messages were published](./spec/acceptance/realtime/channel_spec.rb#L551)
     * #subscribe
       * with an event argument
-        * [subscribes for a single event](./spec/acceptance/realtime/channel_spec.rb#L362)
+        * [subscribes for a single event](./spec/acceptance/realtime/channel_spec.rb#L574)
+      * before attach
+        * [receives messages as soon as attached](./spec/acceptance/realtime/channel_spec.rb#L584)
       * with no event argument
-        * [subscribes for all events](./spec/acceptance/realtime/channel_spec.rb#L372)
+        * [subscribes for all events](./spec/acceptance/realtime/channel_spec.rb#L598)
       * many times with different event names
-        * [filters events accordingly to each callback](./spec/acceptance/realtime/channel_spec.rb#L382)
+        * [filters events accordingly to each callback](./spec/acceptance/realtime/channel_spec.rb#L608)
     * #unsubscribe
       * with an event argument
-        * [unsubscribes for a single event](./spec/acceptance/realtime/channel_spec.rb#L405)
+        * [unsubscribes for a single event](./spec/acceptance/realtime/channel_spec.rb#L631)
       * with no event argument
-        * [unsubscribes for a single event](./spec/acceptance/realtime/channel_spec.rb#L418)
+        * [unsubscribes for a single event](./spec/acceptance/realtime/channel_spec.rb#L644)
     * when connection state changes to
       * :failed
         * an :attached channel
-          * [transitions state to :failed](./spec/acceptance/realtime/channel_spec.rb#L441)
-          * [emits an error event on the channel](./spec/acceptance/realtime/channel_spec.rb#L451)
-          * [updates the channel error_reason](./spec/acceptance/realtime/channel_spec.rb#L461)
+          * [transitions state to :failed](./spec/acceptance/realtime/channel_spec.rb#L667)
+          * [emits an error event on the channel](./spec/acceptance/realtime/channel_spec.rb#L678)
+          * [updates the channel error_reason](./spec/acceptance/realtime/channel_spec.rb#L689)
         * a :detached channel
-          * [remains in the :detached state](./spec/acceptance/realtime/channel_spec.rb#L473)
+          * [remains in the :detached state](./spec/acceptance/realtime/channel_spec.rb#L702)
         * a :failed channel
-          * [remains in the :failed state and ignores the failure error](./spec/acceptance/realtime/channel_spec.rb#L493)
+          * [remains in the :failed state and ignores the failure error](./spec/acceptance/realtime/channel_spec.rb#L722)
+        * a channel ATTACH request
+          * [raises an exception](./spec/acceptance/realtime/channel_spec.rb#L743)
       * :closed
         * an :attached channel
-          * [transitions state to :detached](./spec/acceptance/realtime/channel_spec.rb#L516)
+          * [transitions state to :detached](./spec/acceptance/realtime/channel_spec.rb#L757)
         * a :detached channel
-          * [remains in the :detached state](./spec/acceptance/realtime/channel_spec.rb#L527)
+          * [remains in the :detached state](./spec/acceptance/realtime/channel_spec.rb#L768)
         * a :failed channel
-          * [remains in the :failed state and retains the error_reason](./spec/acceptance/realtime/channel_spec.rb#L548)
+          * [remains in the :failed state and retains the error_reason](./spec/acceptance/realtime/channel_spec.rb#L789)
+        * a channel ATTACH request when connection CLOSED
+          * [raises an exception](./spec/acceptance/realtime/channel_spec.rb#L810)
+        * a channel ATTACH request when connection CLOSING
+          * [raises an exception](./spec/acceptance/realtime/channel_spec.rb#L822)
+    * #presence
+      * [returns a Ably::Realtime::Presence object](./spec/acceptance/realtime/channel_spec.rb#L836)
+
+### Ably::Realtime::Channels
+_(see [spec/acceptance/realtime/channels_spec.rb](./spec/acceptance/realtime/channels_spec.rb))_
+  * using JSON and MsgPack protocol
+    * using shortcut method #channel on the client object
+      * behaves like a channel
+        * [returns a channel object](./spec/acceptance/realtime/channels_spec.rb#L6)
+        * [returns channel object and passes the provided options](./spec/acceptance/realtime/channels_spec.rb#L11)
+    * using #get method on client#channels
+      * behaves like a channel
+        * [returns a channel object](./spec/acceptance/realtime/channels_spec.rb#L6)
+        * [returns channel object and passes the provided options](./spec/acceptance/realtime/channels_spec.rb#L11)
+    * accessing an existing channel object with different options
+      * [overrides the existing channel options and returns the channel object](./spec/acceptance/realtime/channels_spec.rb#L39)
+    * accessing an existing channel object without specifying any channel options
+      * [returns the existing channel without modifying the channel options](./spec/acceptance/realtime/channels_spec.rb#L50)
+    * using undocumented array accessor [] method on client#channels
+      * behaves like a channel
+        * [returns a channel object](./spec/acceptance/realtime/channels_spec.rb#L6)
+        * [returns channel object and passes the provided options](./spec/acceptance/realtime/channels_spec.rb#L11)
 
 ### Ably::Realtime::Client
 _(see [spec/acceptance/realtime/client_spec.rb](./spec/acceptance/realtime/client_spec.rb))_
@@ -110,7 +219,7 @@ _(see [spec/acceptance/realtime/client_spec.rb](./spec/acceptance/realtime/clien
       * basic auth
         * [is enabled by default with a provided :key option](./spec/acceptance/realtime/client_spec.rb#L18)
         * :tls option
-          * set to false to forec a plain-text connection
+          * set to false to force a plain-text connection
             * [fails to connect because a private key cannot be sent over a non-secure connection](./spec/acceptance/realtime/client_spec.rb#L31)
       * token auth
         * with TLS enabled
@@ -130,6 +239,12 @@ _(see [spec/acceptance/realtime/client_spec.rb](./spec/acceptance/realtime/clien
         * with a Proc for the :auth_callback option
           * [calls the Proc](./spec/acceptance/realtime/client_spec.rb#L102)
           * [uses the token request returned from the callback when requesting a new token](./spec/acceptance/realtime/client_spec.rb#L109)
+    * #connection
+      * [provides access to the Connection object](./spec/acceptance/realtime/client_spec.rb#L120)
+    * #channels
+      * [provides access to the Channels collection object](./spec/acceptance/realtime/client_spec.rb#L127)
+    * #auth
+      * [provides access to the Realtime::Auth object](./spec/acceptance/realtime/client_spec.rb#L134)
 
 ### Ably::Realtime::Connection failures
 _(see [spec/acceptance/realtime/connection_failures_spec.rb](./spec/acceptance/realtime/connection_failures_spec.rb))_
@@ -152,7 +267,7 @@ _(see [spec/acceptance/realtime/connection_failures_spec.rb](./spec/acceptance/r
             * [transitions connection state to :closed](./spec/acceptance/realtime/connection_failures_spec.rb#L151)
         * when connection state is :failed
           * #close
-            * [will not transition state to :close and raises a StateChangeError exception](./spec/acceptance/realtime/connection_failures_spec.rb#L170)
+            * [will not transition state to :close and raises a InvalidStateChange exception](./spec/acceptance/realtime/connection_failures_spec.rb#L170)
         * #error_reason
           * [contains the error when state is disconnected](./spec/acceptance/realtime/connection_failures_spec.rb#L184)
           * [contains the error when state is suspended](./spec/acceptance/realtime/connection_failures_spec.rb#L184)
@@ -161,8 +276,8 @@ _(see [spec/acceptance/realtime/connection_failures_spec.rb](./spec/acceptance/r
           * [is reset to nil when :closed](./spec/acceptance/realtime/connection_failures_spec.rb#L204)
       * #connect
         * connection opening times out
-          * [attempts to reconnect](./spec/acceptance/realtime/connection_failures_spec.rb#L231)
-          * [calls the errback of the returned Deferrable object when first connection attempt fails](./spec/acceptance/realtime/connection_failures_spec.rb#L244)
+          * [attempts to reconnect](./spec/acceptance/realtime/connection_failures_spec.rb#L233)
+          * [calls the errback of the returned Deferrable object when first connection attempt fails](./spec/acceptance/realtime/connection_failures_spec.rb#L246)
           * when retry intervals are stubbed to attempt reconnection quickly
             * [never calls the provided success block](./spec/acceptance/realtime/connection_failures_spec.rb#L263)
     * connection resume
@@ -181,18 +296,20 @@ _(see [spec/acceptance/realtime/connection_failures_spec.rb](./spec/acceptance/r
         * because the connection_key is not or no longer valid
           * [updates the connection_id and connection_key](./spec/acceptance/realtime/connection_failures_spec.rb#L470)
           * [detaches all channels](./spec/acceptance/realtime/connection_failures_spec.rb#L485)
-          * [emits an error on the channel and sets the error reason](./spec/acceptance/realtime/connection_failures_spec.rb#L503)
+          * [emits an error on the channel and sets the error reason](./spec/acceptance/realtime/connection_failures_spec.rb#L504)
     * fallback host feature
       * with custom realtime websocket host option
-        * [never uses a fallback host](./spec/acceptance/realtime/connection_failures_spec.rb#L542)
-      * with non-production environment
+        * [never uses a fallback host](./spec/acceptance/realtime/connection_failures_spec.rb#L543)
+      * with custom realtime websocket port option
         * [never uses a fallback host](./spec/acceptance/realtime/connection_failures_spec.rb#L559)
+      * with non-production environment
+        * [never uses a fallback host](./spec/acceptance/realtime/connection_failures_spec.rb#L576)
       * with production environment
         * when the Internet is down
-          * [never uses a fallback host](./spec/acceptance/realtime/connection_failures_spec.rb#L587)
+          * [never uses a fallback host](./spec/acceptance/realtime/connection_failures_spec.rb#L604)
         * when the Internet is up
-          * [uses a fallback host on every subsequent disconnected attempt until suspended](./spec/acceptance/realtime/connection_failures_spec.rb#L604)
-          * [uses the primary host when suspended, and a fallback host on every subsequent suspended attempt](./spec/acceptance/realtime/connection_failures_spec.rb#L623)
+          * [uses a fallback host on every subsequent disconnected attempt until suspended](./spec/acceptance/realtime/connection_failures_spec.rb#L621)
+          * [uses the primary host when suspended, and a fallback host on every subsequent suspended attempt](./spec/acceptance/realtime/connection_failures_spec.rb#L640)
 
 ### Ably::Realtime::Connection
 _(see [spec/acceptance/realtime/connection_spec.rb](./spec/acceptance/realtime/connection_spec.rb))_
@@ -206,112 +323,129 @@ _(see [spec/acceptance/realtime/connection_spec.rb](./spec/acceptance/realtime/c
         * for renewable tokens
           * that are valid for the duration of the test
             * with valid pre authorised token expiring in the future
-              * [uses the existing token created by Auth](./spec/acceptance/realtime/connection_spec.rb#L61)
+              * [uses the existing token created by Auth](./spec/acceptance/realtime/connection_spec.rb#L64)
             * with implicit authorisation
-              * [uses the token created by the implicit authorisation](./spec/acceptance/realtime/connection_spec.rb#L73)
+              * [uses the token created by the implicit authorisation](./spec/acceptance/realtime/connection_spec.rb#L76)
           * that expire
             * opening a new connection
               * with recently expired token
-                * [renews the token on connect](./spec/acceptance/realtime/connection_spec.rb#L94)
+                * [renews the token on connect without changing connection state](./spec/acceptance/realtime/connection_spec.rb#L108)
               * with immediately expiring token
-                * [renews the token on connect, and only makes one subsequent attempt to obtain a new token](./spec/acceptance/realtime/connection_spec.rb#L108)
-                * [uses the primary host for subsequent connection and auth requests](./spec/acceptance/realtime/connection_spec.rb#L118)
+                * [renews the token on connect, and only makes one subsequent attempt to obtain a new token](./spec/acceptance/realtime/connection_spec.rb#L127)
+                * [uses the primary host for subsequent connection and auth requests](./spec/acceptance/realtime/connection_spec.rb#L137)
             * when connected with a valid non-expired token
               * that then expires following the connection being opened
-                * PENDING: *[retains connection state](./spec/acceptance/realtime/connection_spec.rb#L166)*
-                * PENDING: *[changes state to failed if a new token cannot be issued](./spec/acceptance/realtime/connection_spec.rb#L167)*
+                * PENDING: *[retains connection state](./spec/acceptance/realtime/connection_spec.rb#L193)*
+                * PENDING: *[changes state to failed if a new token cannot be issued](./spec/acceptance/realtime/connection_spec.rb#L194)*
                 * the server
-                  * [disconnects the client, and the client automatically renews the token and then reconnects](./spec/acceptance/realtime/connection_spec.rb#L145)
+                  * [disconnects the client, and the client automatically renews the token and then reconnects](./spec/acceptance/realtime/connection_spec.rb#L164)
         * for non-renewable tokens
           * that are expired
             * opening a new connection
-              * [transitions state to failed](./spec/acceptance/realtime/connection_spec.rb#L182)
+              * [transitions state to failed](./spec/acceptance/realtime/connection_spec.rb#L214)
             * when connected
-              * PENDING: *[transitions state to failed](./spec/acceptance/realtime/connection_spec.rb#L195)*
+              * PENDING: *[transitions state to failed](./spec/acceptance/realtime/connection_spec.rb#L227)*
     * initialization state changes
       * with implicit #connect
-        * [are emitted in order](./spec/acceptance/realtime/connection_spec.rb#L222)
+        * [are emitted in order](./spec/acceptance/realtime/connection_spec.rb#L254)
       * with explicit #connect
-        * [are emitted in order](./spec/acceptance/realtime/connection_spec.rb#L228)
+        * [are emitted in order](./spec/acceptance/realtime/connection_spec.rb#L260)
     * #connect
-      * [returns a SafeDeferrable that catches exceptions in callbacks and logs them](./spec/acceptance/realtime/connection_spec.rb#L236)
-      * [calls the Deferrable callback on success](./spec/acceptance/realtime/connection_spec.rb#L241)
+      * [returns a SafeDeferrable that catches exceptions in callbacks and logs them](./spec/acceptance/realtime/connection_spec.rb#L268)
+      * [calls the Deferrable callback on success](./spec/acceptance/realtime/connection_spec.rb#L273)
       * when already connected
-        * [does nothing and no further state changes are emitted](./spec/acceptance/realtime/connection_spec.rb#L250)
+        * [does nothing and no further state changes are emitted](./spec/acceptance/realtime/connection_spec.rb#L282)
+      * connection#id
+        * [is null before connecting](./spec/acceptance/realtime/connection_spec.rb#L296)
+      * connection#key
+        * [is null before connecting](./spec/acceptance/realtime/connection_spec.rb#L303)
       * once connected
         * connection#id
-          * [is a string](./spec/acceptance/realtime/connection_spec.rb#L267)
-          * [is unique from the connection#key](./spec/acceptance/realtime/connection_spec.rb#L274)
-          * [is unique for every connection](./spec/acceptance/realtime/connection_spec.rb#L281)
+          * [is a string](./spec/acceptance/realtime/connection_spec.rb#L313)
+          * [is unique from the connection#key](./spec/acceptance/realtime/connection_spec.rb#L320)
+          * [is unique for every connection](./spec/acceptance/realtime/connection_spec.rb#L327)
         * connection#key
-          * [is a string](./spec/acceptance/realtime/connection_spec.rb#L290)
-          * [is unique from the connection#id](./spec/acceptance/realtime/connection_spec.rb#L297)
-          * [is unique for every connection](./spec/acceptance/realtime/connection_spec.rb#L304)
+          * [is a string](./spec/acceptance/realtime/connection_spec.rb#L336)
+          * [is unique from the connection#id](./spec/acceptance/realtime/connection_spec.rb#L343)
+          * [is unique for every connection](./spec/acceptance/realtime/connection_spec.rb#L350)
       * following a previous connection being opened and closed
-        * [reconnects and is provided with a new connection ID and connection key from the server](./spec/acceptance/realtime/connection_spec.rb#L314)
+        * [reconnects and is provided with a new connection ID and connection key from the server](./spec/acceptance/realtime/connection_spec.rb#L360)
+      * when closing
+        * [raises an exception before the connection is closed](./spec/acceptance/realtime/connection_spec.rb#L377)
     * #serial connection serial
-      * [is set to -1 when a new connection is opened](./spec/acceptance/realtime/connection_spec.rb#L334)
-      * [is set to 0 when a message sent ACK is received](./spec/acceptance/realtime/connection_spec.rb#L356)
-      * [is set to 1 when the second message sent ACK is received](./spec/acceptance/realtime/connection_spec.rb#L363)
+      * [is set to -1 when a new connection is opened](./spec/acceptance/realtime/connection_spec.rb#L392)
+      * [is set to 0 when a message sent ACK is received](./spec/acceptance/realtime/connection_spec.rb#L413)
+      * [is set to 1 when the second message sent ACK is received](./spec/acceptance/realtime/connection_spec.rb#L420)
       * when a message is sent but the ACK has not yet been received
-        * [the sent message msgSerial is 0 but the connection serial remains at -1](./spec/acceptance/realtime/connection_spec.rb#L343)
+        * [the sent message msgSerial is 0 but the connection serial remains at -1](./spec/acceptance/realtime/connection_spec.rb#L400)
     * #close
-      * [returns a SafeDeferrable that catches exceptions in callbacks and logs them](./spec/acceptance/realtime/connection_spec.rb#L374)
-      * [calls the Deferrable callback on success](./spec/acceptance/realtime/connection_spec.rb#L381)
+      * [returns a SafeDeferrable that catches exceptions in callbacks and logs them](./spec/acceptance/realtime/connection_spec.rb#L431)
+      * [calls the Deferrable callback on success](./spec/acceptance/realtime/connection_spec.rb#L438)
       * when already closed
-        * [does nothing and no further state changes are emitted](./spec/acceptance/realtime/connection_spec.rb#L392)
+        * [does nothing and no further state changes are emitted](./spec/acceptance/realtime/connection_spec.rb#L449)
       * when connection state is
         * :initialized
-          * [changes the connection state to :closing and then immediately :closed without sending a ProtocolMessage CLOSE](./spec/acceptance/realtime/connection_spec.rb#L420)
+          * [changes the connection state to :closing and then immediately :closed without sending a ProtocolMessage CLOSE](./spec/acceptance/realtime/connection_spec.rb#L477)
         * :connected
-          * [changes the connection state to :closing and waits for the server to confirm connection is :closed with a ProtocolMessage](./spec/acceptance/realtime/connection_spec.rb#L438)
+          * [changes the connection state to :closing and waits for the server to confirm connection is :closed with a ProtocolMessage](./spec/acceptance/realtime/connection_spec.rb#L495)
           * with an unresponsive connection
-            * [force closes the connection when a :closed ProtocolMessage response is not received](./spec/acceptance/realtime/connection_spec.rb#L468)
+            * [force closes the connection when a :closed ProtocolMessage response is not received](./spec/acceptance/realtime/connection_spec.rb#L525)
     * #ping
-      * [echoes a heart beat](./spec/acceptance/realtime/connection_spec.rb#L491)
+      * [echoes a heart beat](./spec/acceptance/realtime/connection_spec.rb#L548)
       * when not connected
-        * [raises an exception](./spec/acceptance/realtime/connection_spec.rb#L501)
+        * [raises an exception](./spec/acceptance/realtime/connection_spec.rb#L558)
       * with a success block that raises an exception
-        * [catches the exception and logs the error](./spec/acceptance/realtime/connection_spec.rb#L508)
+        * [catches the exception and logs the error](./spec/acceptance/realtime/connection_spec.rb#L565)
     * recovery
       * #recovery_key
-        * [is composed of connection key and serial that is kept up to date with each message ACK received](./spec/acceptance/realtime/connection_spec.rb#L545)
-        * [is available when connection is in one of the states: connecting, connected, disconnected, suspended, failed](./spec/acceptance/realtime/connection_spec.rb#L568)
-        * [is nil when connection is explicitly CLOSED](./spec/acceptance/realtime/connection_spec.rb#L592)
+        * [is composed of connection key and serial that is kept up to date with each message ACK received](./spec/acceptance/realtime/connection_spec.rb#L602)
+        * [is available when connection is in one of the states: connecting, connected, disconnected, suspended, failed](./spec/acceptance/realtime/connection_spec.rb#L625)
+        * [is nil when connection is explicitly CLOSED](./spec/acceptance/realtime/connection_spec.rb#L649)
       * opening a new connection using a recently disconnected connection's #recovery_key
         * connection#id and connection#key after recovery
-          * [remains the same](./spec/acceptance/realtime/connection_spec.rb#L606)
+          * [remains the same](./spec/acceptance/realtime/connection_spec.rb#L663)
         * when messages have been sent whilst the old connection is disconnected
           * the new connection
-            * [recovers server-side queued messages](./spec/acceptance/realtime/connection_spec.rb#L647)
+            * [recovers server-side queued messages](./spec/acceptance/realtime/connection_spec.rb#L704)
       * with :recover option
         * with invalid syntax
-          * [raises an exception](./spec/acceptance/realtime/connection_spec.rb#L672)
+          * [raises an exception](./spec/acceptance/realtime/connection_spec.rb#L729)
         * with invalid formatted value sent to server
-          * [emits a fatal error on the connection object, sets the #error_reason and disconnects](./spec/acceptance/realtime/connection_spec.rb#L681)
+          * [emits a fatal error on the connection object, sets the #error_reason and disconnects](./spec/acceptance/realtime/connection_spec.rb#L738)
         * with expired (missing) value sent to server
-          * [emits an error on the connection object, sets the #error_reason, yet will connect anyway](./spec/acceptance/realtime/connection_spec.rb#L696)
+          * [emits an error on the connection object, sets the #error_reason, yet will connect anyway](./spec/acceptance/realtime/connection_spec.rb#L753)
     * with many connections simultaneously
-      * [opens each with a unique connection#id and connection#key](./spec/acceptance/realtime/connection_spec.rb#L715)
+      * [opens each with a unique connection#id and connection#key](./spec/acceptance/realtime/connection_spec.rb#L772)
     * when a state transition is unsupported
-      * [emits a StateChangeError](./spec/acceptance/realtime/connection_spec.rb#L735)
+      * [emits a InvalidStateChange](./spec/acceptance/realtime/connection_spec.rb#L792)
     * protocol failure
       * receiving an invalid ProtocolMessage
-        * [emits an error on the connection and logs a fatal error message](./spec/acceptance/realtime/connection_spec.rb#L751)
+        * [emits an error on the connection and logs a fatal error message](./spec/acceptance/realtime/connection_spec.rb#L808)
     * undocumented method
       * #internet_up?
-        * [returns a Deferrable](./spec/acceptance/realtime/connection_spec.rb#L767)
+        * [returns a Deferrable](./spec/acceptance/realtime/connection_spec.rb#L824)
         * internet up URL protocol
           * when using TLS for the connection
-            * [uses TLS for the Internet check to https://internet-up.ably-realtime.com/is-the-internet-up.txt](./spec/acceptance/realtime/connection_spec.rb#L778)
+            * [uses TLS for the Internet check to https://internet-up.ably-realtime.com/is-the-internet-up.txt](./spec/acceptance/realtime/connection_spec.rb#L835)
           * when using a non-secured connection
-            * [uses TLS for the Internet check to http://internet-up.ably-realtime.com/is-the-internet-up.txt](./spec/acceptance/realtime/connection_spec.rb#L788)
+            * [uses TLS for the Internet check to http://internet-up.ably-realtime.com/is-the-internet-up.txt](./spec/acceptance/realtime/connection_spec.rb#L845)
         * when the Internet is up
-          * [calls the block with true](./spec/acceptance/realtime/connection_spec.rb#L797)
-          * [calls the success callback of the Deferrable](./spec/acceptance/realtime/connection_spec.rb#L804)
+          * [calls the block with true](./spec/acceptance/realtime/connection_spec.rb#L876)
+          * [calls the success callback of the Deferrable](./spec/acceptance/realtime/connection_spec.rb#L883)
+          * with a TLS connection
+            * [checks the Internet up URL over TLS](./spec/acceptance/realtime/connection_spec.rb#L859)
+          * with a non-TLS connection
+            * [checks the Internet up URL over TLS](./spec/acceptance/realtime/connection_spec.rb#L869)
         * when the Internet is down
-          * [calls the block with false](./spec/acceptance/realtime/connection_spec.rb#L816)
-          * [calls the failure callback of the Deferrable](./spec/acceptance/realtime/connection_spec.rb#L823)
+          * [calls the block with false](./spec/acceptance/realtime/connection_spec.rb#L898)
+          * [calls the failure callback of the Deferrable](./spec/acceptance/realtime/connection_spec.rb#L905)
+    * state change side effects
+      * when connection enters the :disconnected state
+        * [queues messages to be sent and all channels remain attached](./spec/acceptance/realtime/connection_spec.rb#L919)
+      * when connection enters the :suspended state
+        * [detaches the channels and prevents publishing of messages on those channels](./spec/acceptance/realtime/connection_spec.rb#L952)
+      * when connection enters the :failed state
+        * [sets all channels to failed and prevents publishing of messages on those channels](./spec/acceptance/realtime/connection_spec.rb#L973)
 
 ### Ably::Realtime::Channel Message
 _(see [spec/acceptance/realtime/message_spec.rb](./spec/acceptance/realtime/message_spec.rb))_
@@ -328,396 +462,459 @@ _(see [spec/acceptance/realtime/message_spec.rb](./spec/acceptance/realtime/mess
         * [is encoded and decoded to the same Array](./spec/acceptance/realtime/message_spec.rb#L72)
     * with unsupported data payload content type
       * Integer
-        * [is raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/realtime/message_spec.rb#L82)
+        * [is raises an UnsupportedDataType 40011 exception](./spec/acceptance/realtime/message_spec.rb#L82)
       * Float
-        * [is raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/realtime/message_spec.rb#L91)
+        * [is raises an UnsupportedDataType 40011 exception](./spec/acceptance/realtime/message_spec.rb#L91)
       * Boolean
-        * [is raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/realtime/message_spec.rb#L100)
+        * [is raises an UnsupportedDataType 40011 exception](./spec/acceptance/realtime/message_spec.rb#L100)
       * False
-        * [is raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/realtime/message_spec.rb#L109)
+        * [is raises an UnsupportedDataType 40011 exception](./spec/acceptance/realtime/message_spec.rb#L109)
     * with ASCII_8BIT message name
       * [is converted into UTF_8](./spec/acceptance/realtime/message_spec.rb#L118)
     * when the message publisher has a client_id
-      * [contains a #client_id attribute](./spec/acceptance/realtime/message_spec.rb#L134)
+      * PENDING: *[contains a #client_id attribute](./spec/acceptance/realtime/message_spec.rb#L134)*
     * #connection_id attribute
       * over realtime
-        * [matches the sender connection#id](./spec/acceptance/realtime/message_spec.rb#L147)
+        * [matches the sender connection#id](./spec/acceptance/realtime/message_spec.rb#L148)
       * when retrieved over REST
-        * [matches the sender connection#id](./spec/acceptance/realtime/message_spec.rb#L159)
+        * [matches the sender connection#id](./spec/acceptance/realtime/message_spec.rb#L160)
     * local echo when published
-      * [is enabled by default](./spec/acceptance/realtime/message_spec.rb#L171)
+      * [is enabled by default](./spec/acceptance/realtime/message_spec.rb#L172)
       * with :echo_messages option set to false
-        * [will not echo messages to the client but will still broadcast messages to other connected clients](./spec/acceptance/realtime/message_spec.rb#L187)
+        * [will not echo messages to the client but will still broadcast messages to other connected clients](./spec/acceptance/realtime/message_spec.rb#L188)
     * publishing lots of messages across two connections
-      * [sends and receives the messages on both opened connections and calls the success callbacks for each message published](./spec/acceptance/realtime/message_spec.rb#L219)
+      * [sends and receives the messages on both opened connections and calls the success callbacks for each message published](./spec/acceptance/realtime/message_spec.rb#L220)
     * without suitable publishing permissions
-      * [calls the error callback](./spec/acceptance/realtime/message_spec.rb#L264)
+      * [calls the error callback](./spec/acceptance/realtime/message_spec.rb#L265)
     * server incorrectly resends a message that was already received by the client library
-      * [discards the message and logs it as an error to the channel](./spec/acceptance/realtime/message_spec.rb#L284)
+      * [discards the message and logs it as an error to the channel](./spec/acceptance/realtime/message_spec.rb#L285)
     * encoding and decoding encrypted messages
       * with AES-128-CBC using crypto-data-128.json fixtures
         * item 0 with encrypted encoding utf-8/cipher+aes-128-cbc/base64
           * behaves like an Ably encrypter and decrypter
             * with #publish and #subscribe
-              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L348)
-              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L366)
+              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L349)
+              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L367)
         * item 1 with encrypted encoding cipher+aes-128-cbc/base64
           * behaves like an Ably encrypter and decrypter
             * with #publish and #subscribe
-              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L348)
-              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L366)
+              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L349)
+              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L367)
         * item 2 with encrypted encoding json/utf-8/cipher+aes-128-cbc/base64
           * behaves like an Ably encrypter and decrypter
             * with #publish and #subscribe
-              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L348)
-              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L366)
+              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L349)
+              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L367)
         * item 3 with encrypted encoding json/utf-8/cipher+aes-128-cbc/base64
           * behaves like an Ably encrypter and decrypter
             * with #publish and #subscribe
-              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L348)
-              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L366)
+              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L349)
+              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L367)
       * with AES-256-CBC using crypto-data-256.json fixtures
         * item 0 with encrypted encoding utf-8/cipher+aes-256-cbc/base64
           * behaves like an Ably encrypter and decrypter
             * with #publish and #subscribe
-              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L348)
-              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L366)
+              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L349)
+              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L367)
         * item 1 with encrypted encoding cipher+aes-256-cbc/base64
           * behaves like an Ably encrypter and decrypter
             * with #publish and #subscribe
-              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L348)
-              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L366)
+              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L349)
+              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L367)
         * item 2 with encrypted encoding json/utf-8/cipher+aes-256-cbc/base64
           * behaves like an Ably encrypter and decrypter
             * with #publish and #subscribe
-              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L348)
-              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L366)
+              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L349)
+              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L367)
         * item 3 with encrypted encoding json/utf-8/cipher+aes-256-cbc/base64
           * behaves like an Ably encrypter and decrypter
             * with #publish and #subscribe
-              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L348)
-              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L366)
+              * [encrypts message automatically before they are pushed to the server](./spec/acceptance/realtime/message_spec.rb#L349)
+              * [sends and receives messages that are encrypted & decrypted by the Ably library](./spec/acceptance/realtime/message_spec.rb#L367)
       * with multiple sends from one client to another
-        * [encrypts and decrypts all messages](./spec/acceptance/realtime/message_spec.rb#L405)
+        * [encrypts and decrypts all messages](./spec/acceptance/realtime/message_spec.rb#L406)
       * subscribing with a different transport protocol
-        * [delivers a String ASCII-8BIT payload to the receiver](./spec/acceptance/realtime/message_spec.rb#L448)
-        * [delivers a String UTF-8 payload to the receiver](./spec/acceptance/realtime/message_spec.rb#L448)
-        * [delivers a Hash payload to the receiver](./spec/acceptance/realtime/message_spec.rb#L448)
+        * [delivers a String ASCII-8BIT payload to the receiver](./spec/acceptance/realtime/message_spec.rb#L449)
+        * [delivers a String UTF-8 payload to the receiver](./spec/acceptance/realtime/message_spec.rb#L449)
+        * [delivers a Hash payload to the receiver](./spec/acceptance/realtime/message_spec.rb#L449)
       * publishing on an unencrypted channel and subscribing on an encrypted channel with another client
-        * [does not attempt to decrypt the message](./spec/acceptance/realtime/message_spec.rb#L467)
+        * [does not attempt to decrypt the message](./spec/acceptance/realtime/message_spec.rb#L468)
       * publishing on an encrypted channel and subscribing on an unencrypted channel with another client
-        * [delivers the message but still encrypted with a value in the #encoding attribute](./spec/acceptance/realtime/message_spec.rb#L485)
-        * [emits a Cipher error on the channel](./spec/acceptance/realtime/message_spec.rb#L494)
+        * [delivers the message but still encrypted with a value in the #encoding attribute](./spec/acceptance/realtime/message_spec.rb#L486)
+        * [emits a Cipher error on the channel](./spec/acceptance/realtime/message_spec.rb#L495)
       * publishing on an encrypted channel and subscribing with a different algorithm on another client
-        * [delivers the message but still encrypted with the cipher detials in the #encoding attribute](./spec/acceptance/realtime/message_spec.rb#L516)
-        * [emits a Cipher error on the channel](./spec/acceptance/realtime/message_spec.rb#L525)
+        * [delivers the message but still encrypted with the cipher detials in the #encoding attribute](./spec/acceptance/realtime/message_spec.rb#L517)
+        * [emits a Cipher error on the channel](./spec/acceptance/realtime/message_spec.rb#L526)
       * publishing on an encrypted channel and subscribing with a different key on another client
-        * [delivers the message but still encrypted with the cipher details in the #encoding attribute](./spec/acceptance/realtime/message_spec.rb#L547)
-        * [emits a Cipher error on the channel](./spec/acceptance/realtime/message_spec.rb#L558)
+        * [delivers the message but still encrypted with the cipher details in the #encoding attribute](./spec/acceptance/realtime/message_spec.rb#L548)
+        * [emits a Cipher error on the channel](./spec/acceptance/realtime/message_spec.rb#L559)
 
 ### Ably::Realtime::Presence history
 _(see [spec/acceptance/realtime/presence_history_spec.rb](./spec/acceptance/realtime/presence_history_spec.rb))_
   * using JSON and MsgPack protocol
     * [provides up to the moment presence history](./spec/acceptance/realtime/presence_history_spec.rb#L21)
-    * [ensures REST presence history message IDs match ProtocolMessage wrapped message and connection IDs via Realtime](./spec/acceptance/realtime/presence_history_spec.rb#L41)
+    * [ensures REST presence history message IDs match ProtocolMessage wrapped message and connection IDs via Realtime](./spec/acceptance/realtime/presence_history_spec.rb#L42)
     * with option until_attach: true
-      * [retrieves all presence messages before channel was attached](./spec/acceptance/realtime/presence_history_spec.rb#L60)
-      * [raises an exception unless state is attached](./spec/acceptance/realtime/presence_history_spec.rb#L92)
+      * [retrieves all presence messages before channel was attached](./spec/acceptance/realtime/presence_history_spec.rb#L61)
+      * [raises an exception unless state is attached](./spec/acceptance/realtime/presence_history_spec.rb#L93)
       * and two pages of messages
-        * [retrieves two pages of messages before channel was attached](./spec/acceptance/realtime/presence_history_spec.rb#L73)
+        * [retrieves two pages of messages before channel was attached](./spec/acceptance/realtime/presence_history_spec.rb#L74)
 
 ### Ably::Realtime::Presence
 _(see [spec/acceptance/realtime/presence_spec.rb](./spec/acceptance/realtime/presence_spec.rb))_
   * using JSON and MsgPack protocol
     * when attached (but not present) on a presence channel with an anonymous client (no client ID)
-      * [maintains state as other clients enter and leave the channel](./spec/acceptance/realtime/presence_spec.rb#L219)
+      * [maintains state as other clients enter and leave the channel](./spec/acceptance/realtime/presence_spec.rb#L282)
     * #sync_complete?
       * when attaching to a channel without any members present
-        * [is true and the presence channel is considered synced immediately](./spec/acceptance/realtime/presence_spec.rb#L295)
+        * [is true and the presence channel is considered synced immediately](./spec/acceptance/realtime/presence_spec.rb#L358)
       * when attaching to a channel with members present
-        * [is false and the presence channel will subsequently be synced](./spec/acceptance/realtime/presence_spec.rb#L304)
+        * [is false and the presence channel will subsequently be synced](./spec/acceptance/realtime/presence_spec.rb#L367)
     * 250 existing (present) members on a channel (3 SYNC pages)
       * requires at least 3 SYNC ProtocolMessages
         * when a client attaches to the presence channel
-          * [emits :present for each member](./spec/acceptance/realtime/presence_spec.rb#L336)
+          * [emits :present for each member](./spec/acceptance/realtime/presence_spec.rb#L399)
           * and a member leaves before the SYNC operation is complete
-            * [emits :leave immediately as the member leaves](./spec/acceptance/realtime/presence_spec.rb#L350)
-            * [ignores presence events with timestamps prior to the current :present event in the MembersMap](./spec/acceptance/realtime/presence_spec.rb#L388)
-            * [does not emit :present after the :leave event has been emitted, and that member is not included in the list of members via #get with :wait_for_sync](./spec/acceptance/realtime/presence_spec.rb#L427)
+            * [emits :leave immediately as the member leaves](./spec/acceptance/realtime/presence_spec.rb#L413)
+            * [ignores presence events with timestamps prior to the current :present event in the MembersMap](./spec/acceptance/realtime/presence_spec.rb#L451)
+            * [does not emit :present after the :leave event has been emitted, and that member is not included in the list of members via #get with :wait_for_sync](./spec/acceptance/realtime/presence_spec.rb#L490)
           * #get
             * with :wait_for_sync option set to true
-              * [waits until sync is complete](./spec/acceptance/realtime/presence_spec.rb#L474)
+              * [waits until sync is complete](./spec/acceptance/realtime/presence_spec.rb#L537)
             * by default
-              * [it does not wait for sync](./spec/acceptance/realtime/presence_spec.rb#L491)
+              * [it does not wait for sync](./spec/acceptance/realtime/presence_spec.rb#L554)
     * state
       * once opened
-        * [once opened, enters the :left state if the channel detaches](./spec/acceptance/realtime/presence_spec.rb#L515)
+        * [once opened, enters the :left state if the channel detaches](./spec/acceptance/realtime/presence_spec.rb#L578)
     * #enter
-      * [allows client_id to be set on enter for anonymous clients](./spec/acceptance/realtime/presence_spec.rb#L538)
-      * [raises an exception if client_id is not set](./spec/acceptance/realtime/presence_spec.rb#L585)
+      * [allows client_id to be set on enter for anonymous clients](./spec/acceptance/realtime/presence_spec.rb#L601)
+      * [raises an exception if client_id is not set](./spec/acceptance/realtime/presence_spec.rb#L648)
       * data attribute
         * when provided as argument option to #enter
-          * [remains intact following #leave](./spec/acceptance/realtime/presence_spec.rb#L549)
+          * [remains intact following #leave](./spec/acceptance/realtime/presence_spec.rb#L612)
       * message #connection_id
-        * [matches the current client connection_id](./spec/acceptance/realtime/presence_spec.rb#L573)
+        * [matches the current client connection_id](./spec/acceptance/realtime/presence_spec.rb#L636)
       * without necessary capabilities to join presence
-        * [calls the Deferrable errback on capabilities failure](./spec/acceptance/realtime/presence_spec.rb#L597)
+        * [calls the Deferrable errback on capabilities failure](./spec/acceptance/realtime/presence_spec.rb#L660)
       * it should behave like a public presence method
         * [raise an exception if the channel is detached](./spec/acceptance/realtime/presence_spec.rb#L44)
         * [raise an exception if the channel is failed](./spec/acceptance/realtime/presence_spec.rb#L44)
-        * [returns a SafeDeferrable that catches exceptions in callbacks and logs them](./spec/acceptance/realtime/presence_spec.rb#L157)
-        * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L164)
-        * [catches exceptions in the provided method block and logs them to the logger](./spec/acceptance/realtime/presence_spec.rb#L174)
+        * [implicitly attaches the channel](./spec/acceptance/realtime/presence_spec.rb#L55)
+        * [returns a SafeDeferrable that catches exceptions in callbacks and logs them](./spec/acceptance/realtime/presence_spec.rb#L212)
+        * [allows a block to be passed in that is executed upon success](./spec/acceptance/realtime/presence_spec.rb#L219)
+        * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L227)
+        * [catches exceptions in the provided method block and logs them to the logger](./spec/acceptance/realtime/presence_spec.rb#L237)
+        * when :queue_messages client option is false
+          * and connection state initialized
+            * [raises an exception](./spec/acceptance/realtime/presence_spec.rb#L67)
+          * and connection state connecting
+            * [raises an exception](./spec/acceptance/realtime/presence_spec.rb#L75)
+          * and connection state disconnected
+            * [raises an exception](./spec/acceptance/realtime/presence_spec.rb#L88)
+          * and connection state connected
+            * [publishes the message](./spec/acceptance/realtime/presence_spec.rb#L101)
         * with supported data payload content type
           * JSON Object (Hash)
-            * [is encoded and decoded to the same hash](./spec/acceptance/realtime/presence_spec.rb#L73)
+            * [is encoded and decoded to the same hash](./spec/acceptance/realtime/presence_spec.rb#L128)
           * JSON Array
-            * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L83)
+            * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L138)
           * String
-            * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L93)
+            * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L148)
           * Binary
-            * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L103)
+            * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L158)
         * with unsupported data payload content type
           * Integer
-            * [raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L123)
+            * [raises an UnsupportedDataType 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L178)
           * Float
-            * [raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L132)
+            * [raises an UnsupportedDataType 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L187)
           * Boolean
-            * [raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L141)
+            * [raises an UnsupportedDataType 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L196)
           * False
-            * [raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L150)
+            * [raises an UnsupportedDataType 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L205)
         * if connection fails before success
-          * [calls the Deferrable errback if channel is detached](./spec/acceptance/realtime/presence_spec.rb#L195)
+          * [calls the Deferrable errback if channel is detached](./spec/acceptance/realtime/presence_spec.rb#L258)
     * #update
-      * [without previous #enter automatically enters](./spec/acceptance/realtime/presence_spec.rb#L609)
-      * [updates the data if :data argument provided](./spec/acceptance/realtime/presence_spec.rb#L634)
-      * [updates the data to nil if :data argument is not provided (assumes nil value)](./spec/acceptance/realtime/presence_spec.rb#L644)
+      * [without previous #enter automatically enters](./spec/acceptance/realtime/presence_spec.rb#L672)
+      * [updates the data if :data argument provided](./spec/acceptance/realtime/presence_spec.rb#L697)
+      * [updates the data to nil if :data argument is not provided (assumes nil value)](./spec/acceptance/realtime/presence_spec.rb#L707)
       * when ENTERED
-        * [has no effect on the state](./spec/acceptance/realtime/presence_spec.rb#L619)
+        * [has no effect on the state](./spec/acceptance/realtime/presence_spec.rb#L682)
       * it should behave like a public presence method
         * [raise an exception if the channel is detached](./spec/acceptance/realtime/presence_spec.rb#L44)
         * [raise an exception if the channel is failed](./spec/acceptance/realtime/presence_spec.rb#L44)
-        * [returns a SafeDeferrable that catches exceptions in callbacks and logs them](./spec/acceptance/realtime/presence_spec.rb#L157)
-        * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L164)
-        * [catches exceptions in the provided method block and logs them to the logger](./spec/acceptance/realtime/presence_spec.rb#L174)
+        * [implicitly attaches the channel](./spec/acceptance/realtime/presence_spec.rb#L55)
+        * [returns a SafeDeferrable that catches exceptions in callbacks and logs them](./spec/acceptance/realtime/presence_spec.rb#L212)
+        * [allows a block to be passed in that is executed upon success](./spec/acceptance/realtime/presence_spec.rb#L219)
+        * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L227)
+        * [catches exceptions in the provided method block and logs them to the logger](./spec/acceptance/realtime/presence_spec.rb#L237)
+        * when :queue_messages client option is false
+          * and connection state initialized
+            * [raises an exception](./spec/acceptance/realtime/presence_spec.rb#L67)
+          * and connection state connecting
+            * [raises an exception](./spec/acceptance/realtime/presence_spec.rb#L75)
+          * and connection state disconnected
+            * [raises an exception](./spec/acceptance/realtime/presence_spec.rb#L88)
+          * and connection state connected
+            * [publishes the message](./spec/acceptance/realtime/presence_spec.rb#L101)
         * with supported data payload content type
           * JSON Object (Hash)
-            * [is encoded and decoded to the same hash](./spec/acceptance/realtime/presence_spec.rb#L73)
+            * [is encoded and decoded to the same hash](./spec/acceptance/realtime/presence_spec.rb#L128)
           * JSON Array
-            * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L83)
+            * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L138)
           * String
-            * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L93)
+            * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L148)
           * Binary
-            * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L103)
+            * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L158)
         * with unsupported data payload content type
           * Integer
-            * [raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L123)
+            * [raises an UnsupportedDataType 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L178)
           * Float
-            * [raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L132)
+            * [raises an UnsupportedDataType 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L187)
           * Boolean
-            * [raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L141)
+            * [raises an UnsupportedDataType 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L196)
           * False
-            * [raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L150)
+            * [raises an UnsupportedDataType 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L205)
         * if connection fails before success
-          * [calls the Deferrable errback if channel is detached](./spec/acceptance/realtime/presence_spec.rb#L195)
+          * [calls the Deferrable errback if channel is detached](./spec/acceptance/realtime/presence_spec.rb#L258)
     * #leave
-      * [raises an exception if not entered](./spec/acceptance/realtime/presence_spec.rb#L718)
+      * [raises an exception if not entered](./spec/acceptance/realtime/presence_spec.rb#L781)
       * :data option
         * when set to a string
-          * [emits the new data for the leave event](./spec/acceptance/realtime/presence_spec.rb#L663)
+          * [emits the new data for the leave event](./spec/acceptance/realtime/presence_spec.rb#L726)
         * when set to nil
-          * [emits a nil value for the data attribute when leaving](./spec/acceptance/realtime/presence_spec.rb#L676)
+          * [emits a nil value for the data attribute when leaving](./spec/acceptance/realtime/presence_spec.rb#L739)
         * when not passed as an argument
-          * [emits the previously defined value as a convenience](./spec/acceptance/realtime/presence_spec.rb#L689)
+          * [emits the previously defined value as a convenience](./spec/acceptance/realtime/presence_spec.rb#L752)
         * and sync is complete
-          * [does not cache members that have left](./spec/acceptance/realtime/presence_spec.rb#L702)
+          * [does not cache members that have left](./spec/acceptance/realtime/presence_spec.rb#L765)
       * it should behave like a public presence method
-        * [returns a SafeDeferrable that catches exceptions in callbacks and logs them](./spec/acceptance/realtime/presence_spec.rb#L157)
-        * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L164)
-        * [catches exceptions in the provided method block and logs them to the logger](./spec/acceptance/realtime/presence_spec.rb#L174)
+        * [returns a SafeDeferrable that catches exceptions in callbacks and logs them](./spec/acceptance/realtime/presence_spec.rb#L212)
+        * [allows a block to be passed in that is executed upon success](./spec/acceptance/realtime/presence_spec.rb#L219)
+        * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L227)
+        * [catches exceptions in the provided method block and logs them to the logger](./spec/acceptance/realtime/presence_spec.rb#L237)
         * with supported data payload content type
           * JSON Object (Hash)
-            * [is encoded and decoded to the same hash](./spec/acceptance/realtime/presence_spec.rb#L73)
+            * [is encoded and decoded to the same hash](./spec/acceptance/realtime/presence_spec.rb#L128)
           * JSON Array
-            * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L83)
+            * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L138)
           * String
-            * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L93)
+            * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L148)
           * Binary
-            * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L103)
+            * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L158)
         * with unsupported data payload content type
           * Integer
-            * [raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L123)
+            * [raises an UnsupportedDataType 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L178)
           * Float
-            * [raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L132)
+            * [raises an UnsupportedDataType 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L187)
           * Boolean
-            * [raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L141)
+            * [raises an UnsupportedDataType 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L196)
           * False
-            * [raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L150)
+            * [raises an UnsupportedDataType 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L205)
         * if connection fails before success
-          * [calls the Deferrable errback if channel is detached](./spec/acceptance/realtime/presence_spec.rb#L195)
+          * [calls the Deferrable errback if channel is detached](./spec/acceptance/realtime/presence_spec.rb#L258)
     * :left event
-      * [emits the data defined in enter](./spec/acceptance/realtime/presence_spec.rb#L727)
-      * [emits the data defined in update](./spec/acceptance/realtime/presence_spec.rb#L738)
+      * [emits the data defined in enter](./spec/acceptance/realtime/presence_spec.rb#L790)
+      * [emits the data defined in update](./spec/acceptance/realtime/presence_spec.rb#L801)
     * entering/updating/leaving presence state on behalf of another client_id
       * #enter_client
         * multiple times on the same channel with different client_ids
-          * [has no affect on the client's presence state and only enters on behalf of the provided client_id](./spec/acceptance/realtime/presence_spec.rb#L759)
-          * [enters a channel and sets the data based on the provided :data option](./spec/acceptance/realtime/presence_spec.rb#L773)
+          * [has no affect on the client's presence state and only enters on behalf of the provided client_id](./spec/acceptance/realtime/presence_spec.rb#L822)
+          * [enters a channel and sets the data based on the provided :data option](./spec/acceptance/realtime/presence_spec.rb#L836)
         * message #connection_id
-          * [matches the current client connection_id](./spec/acceptance/realtime/presence_spec.rb#L792)
+          * [matches the current client connection_id](./spec/acceptance/realtime/presence_spec.rb#L855)
         * it should behave like a public presence method
           * [raise an exception if the channel is detached](./spec/acceptance/realtime/presence_spec.rb#L44)
           * [raise an exception if the channel is failed](./spec/acceptance/realtime/presence_spec.rb#L44)
-          * [returns a SafeDeferrable that catches exceptions in callbacks and logs them](./spec/acceptance/realtime/presence_spec.rb#L157)
-          * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L164)
-          * [catches exceptions in the provided method block and logs them to the logger](./spec/acceptance/realtime/presence_spec.rb#L174)
+          * [implicitly attaches the channel](./spec/acceptance/realtime/presence_spec.rb#L55)
+          * [returns a SafeDeferrable that catches exceptions in callbacks and logs them](./spec/acceptance/realtime/presence_spec.rb#L212)
+          * [allows a block to be passed in that is executed upon success](./spec/acceptance/realtime/presence_spec.rb#L219)
+          * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L227)
+          * [catches exceptions in the provided method block and logs them to the logger](./spec/acceptance/realtime/presence_spec.rb#L237)
+          * when :queue_messages client option is false
+            * and connection state initialized
+              * [raises an exception](./spec/acceptance/realtime/presence_spec.rb#L67)
+            * and connection state connecting
+              * [raises an exception](./spec/acceptance/realtime/presence_spec.rb#L75)
+            * and connection state disconnected
+              * [raises an exception](./spec/acceptance/realtime/presence_spec.rb#L88)
+            * and connection state connected
+              * [publishes the message](./spec/acceptance/realtime/presence_spec.rb#L101)
           * with supported data payload content type
             * JSON Object (Hash)
-              * [is encoded and decoded to the same hash](./spec/acceptance/realtime/presence_spec.rb#L73)
+              * [is encoded and decoded to the same hash](./spec/acceptance/realtime/presence_spec.rb#L128)
             * JSON Array
-              * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L83)
+              * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L138)
             * String
-              * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L93)
+              * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L148)
             * Binary
-              * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L103)
+              * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L158)
           * with unsupported data payload content type
             * Integer
-              * [raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L123)
+              * [raises an UnsupportedDataType 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L178)
             * Float
-              * [raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L132)
+              * [raises an UnsupportedDataType 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L187)
             * Boolean
-              * [raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L141)
+              * [raises an UnsupportedDataType 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L196)
             * False
-              * [raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L150)
+              * [raises an UnsupportedDataType 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L205)
           * if connection fails before success
-            * [calls the Deferrable errback if channel is detached](./spec/acceptance/realtime/presence_spec.rb#L195)
+            * [calls the Deferrable errback if channel is detached](./spec/acceptance/realtime/presence_spec.rb#L258)
         * without necessary capabilities to enter on behalf of another client
-          * [calls the Deferrable errback on capabilities failure](./spec/acceptance/realtime/presence_spec.rb#L814)
+          * [calls the Deferrable errback on capabilities failure](./spec/acceptance/realtime/presence_spec.rb#L877)
       * #update_client
         * multiple times on the same channel with different client_ids
-          * [updates the data attribute for the member when :data option provided](./spec/acceptance/realtime/presence_spec.rb#L825)
-          * [updates the data attribute to null for the member when :data option is not provided (assumed null)](./spec/acceptance/realtime/presence_spec.rb#L849)
-          * [enters if not already entered](./spec/acceptance/realtime/presence_spec.rb#L861)
+          * [updates the data attribute for the member when :data option provided](./spec/acceptance/realtime/presence_spec.rb#L888)
+          * [updates the data attribute to null for the member when :data option is not provided (assumed null)](./spec/acceptance/realtime/presence_spec.rb#L912)
+          * [enters if not already entered](./spec/acceptance/realtime/presence_spec.rb#L924)
         * it should behave like a public presence method
           * [raise an exception if the channel is detached](./spec/acceptance/realtime/presence_spec.rb#L44)
           * [raise an exception if the channel is failed](./spec/acceptance/realtime/presence_spec.rb#L44)
-          * [returns a SafeDeferrable that catches exceptions in callbacks and logs them](./spec/acceptance/realtime/presence_spec.rb#L157)
-          * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L164)
-          * [catches exceptions in the provided method block and logs them to the logger](./spec/acceptance/realtime/presence_spec.rb#L174)
+          * [implicitly attaches the channel](./spec/acceptance/realtime/presence_spec.rb#L55)
+          * [returns a SafeDeferrable that catches exceptions in callbacks and logs them](./spec/acceptance/realtime/presence_spec.rb#L212)
+          * [allows a block to be passed in that is executed upon success](./spec/acceptance/realtime/presence_spec.rb#L219)
+          * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L227)
+          * [catches exceptions in the provided method block and logs them to the logger](./spec/acceptance/realtime/presence_spec.rb#L237)
+          * when :queue_messages client option is false
+            * and connection state initialized
+              * [raises an exception](./spec/acceptance/realtime/presence_spec.rb#L67)
+            * and connection state connecting
+              * [raises an exception](./spec/acceptance/realtime/presence_spec.rb#L75)
+            * and connection state disconnected
+              * [raises an exception](./spec/acceptance/realtime/presence_spec.rb#L88)
+            * and connection state connected
+              * [publishes the message](./spec/acceptance/realtime/presence_spec.rb#L101)
           * with supported data payload content type
             * JSON Object (Hash)
-              * [is encoded and decoded to the same hash](./spec/acceptance/realtime/presence_spec.rb#L73)
+              * [is encoded and decoded to the same hash](./spec/acceptance/realtime/presence_spec.rb#L128)
             * JSON Array
-              * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L83)
+              * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L138)
             * String
-              * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L93)
+              * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L148)
             * Binary
-              * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L103)
+              * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L158)
           * with unsupported data payload content type
             * Integer
-              * [raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L123)
+              * [raises an UnsupportedDataType 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L178)
             * Float
-              * [raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L132)
+              * [raises an UnsupportedDataType 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L187)
             * Boolean
-              * [raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L141)
+              * [raises an UnsupportedDataType 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L196)
             * False
-              * [raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L150)
+              * [raises an UnsupportedDataType 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L205)
           * if connection fails before success
-            * [calls the Deferrable errback if channel is detached](./spec/acceptance/realtime/presence_spec.rb#L195)
+            * [calls the Deferrable errback if channel is detached](./spec/acceptance/realtime/presence_spec.rb#L258)
       * #leave_client
         * leaves a channel
           * multiple times on the same channel with different client_ids
-            * [emits the :leave event for each client_id](./spec/acceptance/realtime/presence_spec.rb#L890)
-            * [succeeds if that client_id has not previously entered the channel](./spec/acceptance/realtime/presence_spec.rb#L914)
+            * [emits the :leave event for each client_id](./spec/acceptance/realtime/presence_spec.rb#L953)
+            * [succeeds if that client_id has not previously entered the channel](./spec/acceptance/realtime/presence_spec.rb#L977)
           * with a new value in :data option
-            * [emits the leave event with the new data value](./spec/acceptance/realtime/presence_spec.rb#L938)
+            * [emits the leave event with the new data value](./spec/acceptance/realtime/presence_spec.rb#L1001)
           * with a nil value in :data option
-            * [emits the leave event with the previous value as a convenience](./spec/acceptance/realtime/presence_spec.rb#L951)
+            * [emits the leave event with the previous value as a convenience](./spec/acceptance/realtime/presence_spec.rb#L1014)
           * with no :data option
-            * [emits the leave event with the previous value as a convenience](./spec/acceptance/realtime/presence_spec.rb#L964)
+            * [emits the leave event with the previous value as a convenience](./spec/acceptance/realtime/presence_spec.rb#L1027)
         * it should behave like a public presence method
           * [raise an exception if the channel is detached](./spec/acceptance/realtime/presence_spec.rb#L44)
           * [raise an exception if the channel is failed](./spec/acceptance/realtime/presence_spec.rb#L44)
-          * [returns a SafeDeferrable that catches exceptions in callbacks and logs them](./spec/acceptance/realtime/presence_spec.rb#L157)
-          * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L164)
-          * [catches exceptions in the provided method block and logs them to the logger](./spec/acceptance/realtime/presence_spec.rb#L174)
+          * [implicitly attaches the channel](./spec/acceptance/realtime/presence_spec.rb#L55)
+          * [returns a SafeDeferrable that catches exceptions in callbacks and logs them](./spec/acceptance/realtime/presence_spec.rb#L212)
+          * [allows a block to be passed in that is executed upon success](./spec/acceptance/realtime/presence_spec.rb#L219)
+          * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L227)
+          * [catches exceptions in the provided method block and logs them to the logger](./spec/acceptance/realtime/presence_spec.rb#L237)
+          * when :queue_messages client option is false
+            * and connection state initialized
+              * [raises an exception](./spec/acceptance/realtime/presence_spec.rb#L67)
+            * and connection state connecting
+              * [raises an exception](./spec/acceptance/realtime/presence_spec.rb#L75)
+            * and connection state disconnected
+              * [raises an exception](./spec/acceptance/realtime/presence_spec.rb#L88)
+            * and connection state connected
+              * [publishes the message](./spec/acceptance/realtime/presence_spec.rb#L101)
           * with supported data payload content type
             * JSON Object (Hash)
-              * [is encoded and decoded to the same hash](./spec/acceptance/realtime/presence_spec.rb#L73)
+              * [is encoded and decoded to the same hash](./spec/acceptance/realtime/presence_spec.rb#L128)
             * JSON Array
-              * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L83)
+              * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L138)
             * String
-              * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L93)
+              * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L148)
             * Binary
-              * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L103)
+              * [is encoded and decoded to the same Array](./spec/acceptance/realtime/presence_spec.rb#L158)
           * with unsupported data payload content type
             * Integer
-              * [raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L123)
+              * [raises an UnsupportedDataType 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L178)
             * Float
-              * [raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L132)
+              * [raises an UnsupportedDataType 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L187)
             * Boolean
-              * [raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L141)
+              * [raises an UnsupportedDataType 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L196)
             * False
-              * [raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L150)
+              * [raises an UnsupportedDataType 40011 exception](./spec/acceptance/realtime/presence_spec.rb#L205)
           * if connection fails before success
-            * [calls the Deferrable errback if channel is detached](./spec/acceptance/realtime/presence_spec.rb#L195)
+            * [calls the Deferrable errback if channel is detached](./spec/acceptance/realtime/presence_spec.rb#L258)
     * #get
-      * [returns a SafeDeferrable that catches exceptions in callbacks and logs them](./spec/acceptance/realtime/presence_spec.rb#L982)
-      * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L987)
-      * [catches exceptions in the provided method block](./spec/acceptance/realtime/presence_spec.rb#L994)
-      * [raise an exception if the channel is detached](./spec/acceptance/realtime/presence_spec.rb#L1002)
-      * [raise an exception if the channel is failed](./spec/acceptance/realtime/presence_spec.rb#L1002)
-      * [returns the current members on the channel](./spec/acceptance/realtime/presence_spec.rb#L1079)
-      * [filters by connection_id option if provided](./spec/acceptance/realtime/presence_spec.rb#L1094)
-      * [filters by client_id option if provided](./spec/acceptance/realtime/presence_spec.rb#L1116)
-      * [does not wait for SYNC to complete if :wait_for_sync option is false](./spec/acceptance/realtime/presence_spec.rb#L1140)
+      * [returns a SafeDeferrable that catches exceptions in callbacks and logs them](./spec/acceptance/realtime/presence_spec.rb#L1045)
+      * [calls the Deferrable callback on success](./spec/acceptance/realtime/presence_spec.rb#L1050)
+      * [catches exceptions in the provided method block](./spec/acceptance/realtime/presence_spec.rb#L1057)
+      * [raise an exception if the channel is detached](./spec/acceptance/realtime/presence_spec.rb#L1065)
+      * [raise an exception if the channel is failed](./spec/acceptance/realtime/presence_spec.rb#L1065)
+      * [returns the current members on the channel](./spec/acceptance/realtime/presence_spec.rb#L1142)
+      * [filters by connection_id option if provided](./spec/acceptance/realtime/presence_spec.rb#L1157)
+      * [filters by client_id option if provided](./spec/acceptance/realtime/presence_spec.rb#L1179)
+      * [does not wait for SYNC to complete if :wait_for_sync option is false](./spec/acceptance/realtime/presence_spec.rb#L1203)
       * during a sync
         * when :wait_for_sync is true
-          * [fails if the connection fails](./spec/acceptance/realtime/presence_spec.rb#L1033)
-          * [fails if the channel is detached](./spec/acceptance/realtime/presence_spec.rb#L1053)
+          * [fails if the connection fails](./spec/acceptance/realtime/presence_spec.rb#L1096)
+          * [fails if the channel is detached](./spec/acceptance/realtime/presence_spec.rb#L1116)
       * when a member enters and then leaves
-        * [has no members](./spec/acceptance/realtime/presence_spec.rb#L1150)
+        * [has no members](./spec/acceptance/realtime/presence_spec.rb#L1213)
       * with lots of members on different clients
-        * [returns a complete list of members on all clients](./spec/acceptance/realtime/presence_spec.rb#L1167)
+        * [returns a complete list of members on all clients](./spec/acceptance/realtime/presence_spec.rb#L1230)
     * #subscribe
+      * [implicitly attaches](./spec/acceptance/realtime/presence_spec.rb#L1305)
       * with no arguments
-        * [calls the callback for all presence events](./spec/acceptance/realtime/presence_spec.rb#L1203)
+        * [calls the callback for all presence events](./spec/acceptance/realtime/presence_spec.rb#L1266)
+      * with event name
+        * [calls the callback for specified presence event](./spec/acceptance/realtime/presence_spec.rb#L1286)
     * #unsubscribe
       * with no arguments
-        * [removes the callback for all presence events](./spec/acceptance/realtime/presence_spec.rb#L1225)
+        * [removes the callback for all presence events](./spec/acceptance/realtime/presence_spec.rb#L1318)
+      * with event name
+        * [removes the callback for specified presence event](./spec/acceptance/realtime/presence_spec.rb#L1336)
     * REST #get
-      * [returns current members](./spec/acceptance/realtime/presence_spec.rb#L1244)
-      * [returns no members once left](./spec/acceptance/realtime/presence_spec.rb#L1257)
+      * [returns current members](./spec/acceptance/realtime/presence_spec.rb#L1355)
+      * [returns no members once left](./spec/acceptance/realtime/presence_spec.rb#L1368)
     * client_id with ASCII_8BIT
       * in connection set up
-        * [is converted into UTF_8](./spec/acceptance/realtime/presence_spec.rb#L1274)
+        * [is converted into UTF_8](./spec/acceptance/realtime/presence_spec.rb#L1385)
       * in channel options
-        * [is converted into UTF_8](./spec/acceptance/realtime/presence_spec.rb#L1287)
+        * [is converted into UTF_8](./spec/acceptance/realtime/presence_spec.rb#L1398)
     * encoding and decoding of presence message data
-      * [encrypts presence message data](./spec/acceptance/realtime/presence_spec.rb#L1311)
+      * [encrypts presence message data](./spec/acceptance/realtime/presence_spec.rb#L1422)
       * #subscribe
-        * [emits decrypted enter events](./spec/acceptance/realtime/presence_spec.rb#L1330)
-        * [emits decrypted update events](./spec/acceptance/realtime/presence_spec.rb#L1342)
-        * [emits previously set data for leave events](./spec/acceptance/realtime/presence_spec.rb#L1356)
+        * [emits decrypted enter events](./spec/acceptance/realtime/presence_spec.rb#L1441)
+        * [emits decrypted update events](./spec/acceptance/realtime/presence_spec.rb#L1453)
+        * [emits previously set data for leave events](./spec/acceptance/realtime/presence_spec.rb#L1467)
       * #get
-        * [returns a list of members with decrypted data](./spec/acceptance/realtime/presence_spec.rb#L1372)
+        * [returns a list of members with decrypted data](./spec/acceptance/realtime/presence_spec.rb#L1483)
       * REST #get
-        * [returns a list of members with decrypted data](./spec/acceptance/realtime/presence_spec.rb#L1385)
+        * [returns a list of members with decrypted data](./spec/acceptance/realtime/presence_spec.rb#L1496)
       * when cipher settings do not match publisher
-        * [delivers an unencoded presence message left with encoding value](./spec/acceptance/realtime/presence_spec.rb#L1400)
-        * [emits an error when cipher does not match and presence data cannot be decoded](./spec/acceptance/realtime/presence_spec.rb#L1413)
+        * [delivers an unencoded presence message left with encoding value](./spec/acceptance/realtime/presence_spec.rb#L1511)
+        * [emits an error when cipher does not match and presence data cannot be decoded](./spec/acceptance/realtime/presence_spec.rb#L1524)
     * leaving
-      * [expect :left event once underlying connection is closed](./spec/acceptance/realtime/presence_spec.rb#L1430)
-      * [expect :left event with client data from enter event](./spec/acceptance/realtime/presence_spec.rb#L1440)
+      * [expect :left event once underlying connection is closed](./spec/acceptance/realtime/presence_spec.rb#L1541)
+      * [expect :left event with client data from enter event](./spec/acceptance/realtime/presence_spec.rb#L1551)
     * connection failure mid-way through a large member sync
-      * [resumes the SYNC operation](./spec/acceptance/realtime/presence_spec.rb#L1458)
+      * [resumes the SYNC operation](./spec/acceptance/realtime/presence_spec.rb#L1569)
 
 ### Ably::Realtime::Client#stats
 _(see [spec/acceptance/realtime/stats_spec.rb](./spec/acceptance/realtime/stats_spec.rb))_
   * using JSON and MsgPack protocol
     * fetching stats
-      * [should return a PaginatedResult](./spec/acceptance/realtime/stats_spec.rb#L10)
-      * [returns a SafeDeferrable that catches exceptions in callbacks and logs them](./spec/acceptance/realtime/stats_spec.rb#L17)
+      * [returns a PaginatedResult](./spec/acceptance/realtime/stats_spec.rb#L10)
+      * [returns a SafeDeferrable that catches exceptions in callbacks and logs them](./spec/acceptance/realtime/stats_spec.rb#L29)
+      * with options
+        * [passes the option arguments to the REST stat method](./spec/acceptance/realtime/stats_spec.rb#L20)
 
 ### Ably::Realtime::Client#time
 _(see [spec/acceptance/realtime/time_spec.rb](./spec/acceptance/realtime/time_spec.rb))_
@@ -729,120 +926,132 @@ _(see [spec/acceptance/realtime/time_spec.rb](./spec/acceptance/realtime/time_sp
 ### Ably::Auth
 _(see [spec/acceptance/rest/auth_spec.rb](./spec/acceptance/rest/auth_spec.rb))_
   * using JSON and MsgPack protocol
-    * [has immutable options](./spec/acceptance/rest/auth_spec.rb#L54)
+    * [has immutable options](./spec/acceptance/rest/auth_spec.rb#L60)
     * #request_token
-      * [returns a valid requested token in the expected format with valid issued and expires attributes](./spec/acceptance/rest/auth_spec.rb#L69)
-      * with option :client_id
-        * [overrides default and uses camelCase notation for attributes](./spec/acceptance/rest/auth_spec.rb#L101)
-      * with option :capability
-        * [overrides default and uses camelCase notation for attributes](./spec/acceptance/rest/auth_spec.rb#L101)
-      * with option :nonce
-        * [overrides default and uses camelCase notation for attributes](./spec/acceptance/rest/auth_spec.rb#L101)
-      * with option :timestamp
-        * [overrides default and uses camelCase notation for attributes](./spec/acceptance/rest/auth_spec.rb#L101)
-      * with option :ttl
-        * [overrides default and uses camelCase notation for attributes](./spec/acceptance/rest/auth_spec.rb#L101)
+      * [creates a TokenRequest automatically and sends it to Ably to obtain a token](./spec/acceptance/rest/auth_spec.rb#L75)
+      * [returns a valid TokenDetails object in the expected format with valid issued and expires attributes](./spec/acceptance/rest/auth_spec.rb#L84)
+      * with token_param :client_id
+        * [overrides default and uses camelCase notation for attributes](./spec/acceptance/rest/auth_spec.rb#L117)
+      * with token_param :capability
+        * [overrides default and uses camelCase notation for attributes](./spec/acceptance/rest/auth_spec.rb#L117)
+      * with token_param :nonce
+        * [overrides default and uses camelCase notation for attributes](./spec/acceptance/rest/auth_spec.rb#L117)
+      * with token_param :timestamp
+        * [overrides default and uses camelCase notation for attributes](./spec/acceptance/rest/auth_spec.rb#L117)
+      * with token_param :ttl
+        * [overrides default and uses camelCase notation for attributes](./spec/acceptance/rest/auth_spec.rb#L117)
       * with :key option
-        * [key_name is used in request and signing uses key_secret](./spec/acceptance/rest/auth_spec.rb#L130)
+        * [key_name is used in request and signing uses key_secret](./spec/acceptance/rest/auth_spec.rb#L147)
       * with :key_name & :key_secret options
-        * [key_name is used in request and signing uses key_secret](./spec/acceptance/rest/auth_spec.rb#L159)
+        * [key_name is used in request and signing uses key_secret](./spec/acceptance/rest/auth_spec.rb#L177)
       * with :query_time option
-        * [queries the server for the time](./spec/acceptance/rest/auth_spec.rb#L167)
+        * [queries the server for the time](./spec/acceptance/rest/auth_spec.rb#L185)
       * without :query_time option
-        * [does not query the server for the time](./spec/acceptance/rest/auth_spec.rb#L176)
+        * [does not query the server for the time](./spec/acceptance/rest/auth_spec.rb#L194)
       * with :auth_url option
         * when response from :auth_url is a valid token request
-          * [requests a token from :auth_url using an HTTP GET request](./spec/acceptance/rest/auth_spec.rb#L224)
-          * [returns a valid token generated from the token request](./spec/acceptance/rest/auth_spec.rb#L229)
+          * [requests a token from :auth_url using an HTTP GET request](./spec/acceptance/rest/auth_spec.rb#L242)
+          * [returns a valid token generated from the token request](./spec/acceptance/rest/auth_spec.rb#L247)
           * with :query_params
-            * [requests a token from :auth_url with the :query_params](./spec/acceptance/rest/auth_spec.rb#L236)
+            * [requests a token from :auth_url with the :query_params](./spec/acceptance/rest/auth_spec.rb#L254)
           * with :headers
-            * [requests a token from :auth_url with the HTTP headers set](./spec/acceptance/rest/auth_spec.rb#L244)
+            * [requests a token from :auth_url with the HTTP headers set](./spec/acceptance/rest/auth_spec.rb#L262)
           * with POST
-            * [requests a token from :auth_url using an HTTP POST instead of the default GET](./spec/acceptance/rest/auth_spec.rb#L252)
+            * [requests a token from :auth_url using an HTTP POST instead of the default GET](./spec/acceptance/rest/auth_spec.rb#L270)
         * when response from :auth_url is a token details object
-          * [returns TokenDetails created from the token JSON](./spec/acceptance/rest/auth_spec.rb#L277)
+          * [returns TokenDetails created from the token JSON](./spec/acceptance/rest/auth_spec.rb#L295)
         * when response from :auth_url is text/plain content type and a token string
-          * [returns TokenDetails created from the token JSON](./spec/acceptance/rest/auth_spec.rb#L294)
+          * [returns TokenDetails created from the token JSON](./spec/acceptance/rest/auth_spec.rb#L313)
         * when response is invalid
           * 500
-            * [raises ServerError](./spec/acceptance/rest/auth_spec.rb#L307)
+            * [raises ServerError](./spec/acceptance/rest/auth_spec.rb#L327)
           * XML
-            * [raises InvalidResponseBody](./spec/acceptance/rest/auth_spec.rb#L318)
+            * [raises InvalidResponseBody](./spec/acceptance/rest/auth_spec.rb#L338)
       * with a Proc for the :auth_callback option
         * that returns a TokenRequest
-          * [calls the Proc when authenticating to obtain the request token](./spec/acceptance/rest/auth_spec.rb#L337)
-          * [uses the token request returned from the callback when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L342)
+          * [calls the Proc with token_params when authenticating to obtain the request token](./spec/acceptance/rest/auth_spec.rb#L361)
+          * [uses the token request returned from the callback when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L365)
         * that returns a TokenDetails JSON object
-          * [calls the Proc when authenticating to obtain the request token](./spec/acceptance/rest/auth_spec.rb#L371)
-          * [uses the token request returned from the callback when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L376)
+          * [calls the Proc when authenticating to obtain the request token](./spec/acceptance/rest/auth_spec.rb#L394)
+          * [uses the token request returned from the callback when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L399)
         * that returns a TokenDetails object
-          * [uses the token request returned from the callback when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L397)
+          * [uses the token request returned from the callback when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L420)
         * that returns a Token string
-          * [uses the token request returned from the callback when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L413)
-      * with client_id
-        * [returns a token with the client_id](./spec/acceptance/rest/auth_spec.rb#L445)
+          * [uses the token request returned from the callback when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L436)
+      * with auth_option :client_id
+        * [returns a token with the client_id](./spec/acceptance/rest/auth_spec.rb#L467)
+      * with token_param :client_id
+        * [returns a token with the client_id](./spec/acceptance/rest/auth_spec.rb#L476)
     * before #authorise has been called
-      * [has no current_token_details](./spec/acceptance/rest/auth_spec.rb#L452)
+      * [has no current_token_details](./spec/acceptance/rest/auth_spec.rb#L483)
     * #authorise
-      * [updates the persisted auth options that are then used for subsequent authorise requests](./spec/acceptance/rest/auth_spec.rb#L499)
+      * [updates the persisted auth options that are then used for subsequent authorise requests](./spec/acceptance/rest/auth_spec.rb#L533)
       * when called for the first time since the client has been instantiated
-        * [passes all options to #request_token](./spec/acceptance/rest/auth_spec.rb#L463)
-        * [returns a valid token](./spec/acceptance/rest/auth_spec.rb#L468)
-        * [issues a new token if option :force => true](./spec/acceptance/rest/auth_spec.rb#L472)
+        * [passes all auth_options and token_params to #request_token](./spec/acceptance/rest/auth_spec.rb#L497)
+        * [returns a valid token](./spec/acceptance/rest/auth_spec.rb#L502)
+        * [issues a new token if option :force => true](./spec/acceptance/rest/auth_spec.rb#L506)
       * with previous authorisation
-        * [does not request a token if current_token_details has not expired](./spec/acceptance/rest/auth_spec.rb#L483)
-        * [requests a new token if token is expired](./spec/acceptance/rest/auth_spec.rb#L488)
-        * [issues a new token if option :force => true](./spec/acceptance/rest/auth_spec.rb#L494)
+        * [does not request a token if current_token_details has not expired](./spec/acceptance/rest/auth_spec.rb#L517)
+        * [requests a new token if token is expired](./spec/acceptance/rest/auth_spec.rb#L522)
+        * [issues a new token if option :force => true](./spec/acceptance/rest/auth_spec.rb#L528)
       * with a Proc for the :auth_callback option
-        * [calls the Proc](./spec/acceptance/rest/auth_spec.rb#L515)
-        * [uses the token request returned from the callback when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L519)
+        * [calls the Proc](./spec/acceptance/rest/auth_spec.rb#L549)
+        * [uses the token request returned from the callback when requesting a new token](./spec/acceptance/rest/auth_spec.rb#L553)
         * for every subsequent #request_token
           * without a :auth_callback Proc
-            * [calls the originally provided block](./spec/acceptance/rest/auth_spec.rb#L525)
+            * [calls the originally provided block](./spec/acceptance/rest/auth_spec.rb#L559)
           * with a provided block
-            * [does not call the originally provided Proc and calls the new #request_token :auth_callback Proc](./spec/acceptance/rest/auth_spec.rb#L532)
+            * [does not call the originally provided Proc and calls the new #request_token :auth_callback Proc](./spec/acceptance/rest/auth_spec.rb#L566)
     * #create_token_request
-      * [uses the key name from the client](./spec/acceptance/rest/auth_spec.rb#L548)
-      * [uses the default TTL](./spec/acceptance/rest/auth_spec.rb#L552)
-      * [uses the default capability](./spec/acceptance/rest/auth_spec.rb#L556)
+      * [returns a TokenRequest object](./spec/acceptance/rest/auth_spec.rb#L583)
+      * [returns a TokenRequest that can be passed to a client that can use it for authentication without an API key](./spec/acceptance/rest/auth_spec.rb#L587)
+      * [uses the key name from the client](./spec/acceptance/rest/auth_spec.rb#L594)
+      * [uses the default TTL](./spec/acceptance/rest/auth_spec.rb#L598)
+      * [uses the default capability](./spec/acceptance/rest/auth_spec.rb#L611)
+      * with a :ttl option below the Token expiry buffer that ensures tokens are renewed 15s before they expire as they are considered expired
+        * [uses the Token expiry buffer default + 10s to allow for a token request in flight](./spec/acceptance/rest/auth_spec.rb#L605)
       * the nonce
-        * [is unique for every request](./spec/acceptance/rest/auth_spec.rb#L561)
-        * [is at least 16 characters](./spec/acceptance/rest/auth_spec.rb#L566)
-      * with option :ttl
-        * [overrides default](./spec/acceptance/rest/auth_spec.rb#L577)
-      * with option :nonce
-        * [overrides default](./spec/acceptance/rest/auth_spec.rb#L577)
-      * with option :client_id
-        * [overrides default](./spec/acceptance/rest/auth_spec.rb#L577)
+        * [is unique for every request](./spec/acceptance/rest/auth_spec.rb#L616)
+        * [is at least 16 characters](./spec/acceptance/rest/auth_spec.rb#L621)
+      * with token param :ttl
+        * [overrides default](./spec/acceptance/rest/auth_spec.rb#L632)
+      * with token param :nonce
+        * [overrides default](./spec/acceptance/rest/auth_spec.rb#L632)
+      * with token param :client_id
+        * [overrides default](./spec/acceptance/rest/auth_spec.rb#L632)
+      * when specifying capability
+        * [overrides the default](./spec/acceptance/rest/auth_spec.rb#L643)
+        * [uses these capabilities when Ably issues an actual token](./spec/acceptance/rest/auth_spec.rb#L647)
       * with additional invalid attributes
-        * [are ignored](./spec/acceptance/rest/auth_spec.rb#L585)
+        * [are ignored](./spec/acceptance/rest/auth_spec.rb#L657)
       * when required fields are missing
-        * [should raise an exception if key secret is missing](./spec/acceptance/rest/auth_spec.rb#L596)
-        * [should raise an exception if key name is missing](./spec/acceptance/rest/auth_spec.rb#L600)
-      * with :query_time option
-        * [queries the server for the timestamp](./spec/acceptance/rest/auth_spec.rb#L609)
-      * with :timestamp option
-        * [uses the provided timestamp in the token request](./spec/acceptance/rest/auth_spec.rb#L619)
+        * [should raise an exception if key secret is missing](./spec/acceptance/rest/auth_spec.rb#L668)
+        * [should raise an exception if key name is missing](./spec/acceptance/rest/auth_spec.rb#L672)
+      * timestamp attribute
+        * [is a Time object in Ruby and is set to the local time](./spec/acceptance/rest/auth_spec.rb#L699)
+        * with :query_time auth_option
+          * [queries the server for the timestamp](./spec/acceptance/rest/auth_spec.rb#L684)
+        * with :timestamp option
+          * [uses the provided timestamp in the token request](./spec/acceptance/rest/auth_spec.rb#L694)
       * signing
-        * [generates a valid HMAC](./spec/acceptance/rest/auth_spec.rb#L641)
+        * [generates a valid HMAC](./spec/acceptance/rest/auth_spec.rb#L723)
     * using token authentication
       * with :token option
-        * [authenticates successfully using the provided :token](./spec/acceptance/rest/auth_spec.rb#L664)
-        * [disallows publishing on unspecified capability channels](./spec/acceptance/rest/auth_spec.rb#L668)
-        * [fails if timestamp is invalid](./spec/acceptance/rest/auth_spec.rb#L676)
-        * [cannot be renewed automatically](./spec/acceptance/rest/auth_spec.rb#L684)
+        * [authenticates successfully using the provided :token](./spec/acceptance/rest/auth_spec.rb#L746)
+        * [disallows publishing on unspecified capability channels](./spec/acceptance/rest/auth_spec.rb#L750)
+        * [fails if timestamp is invalid](./spec/acceptance/rest/auth_spec.rb#L758)
+        * [cannot be renewed automatically](./spec/acceptance/rest/auth_spec.rb#L766)
       * when implicit as a result of using :client id
         * and requests to the Ably server are mocked
-          * [will send a token request to the server](./spec/acceptance/rest/auth_spec.rb#L712)
+          * [will send a token request to the server](./spec/acceptance/rest/auth_spec.rb#L794)
         * a token is created
-          * [before a request is made](./spec/acceptance/rest/auth_spec.rb#L721)
-          * [when a message is published](./spec/acceptance/rest/auth_spec.rb#L725)
-          * [with capability and TTL defaults](./spec/acceptance/rest/auth_spec.rb#L729)
+          * [before a request is made](./spec/acceptance/rest/auth_spec.rb#L803)
+          * [when a message is published](./spec/acceptance/rest/auth_spec.rb#L807)
+          * [with capability and TTL defaults](./spec/acceptance/rest/auth_spec.rb#L811)
     * when using an :key and basic auth
-      * [#using_token_auth? is false](./spec/acceptance/rest/auth_spec.rb#L744)
-      * [#key attribute contains the key string](./spec/acceptance/rest/auth_spec.rb#L748)
-      * [#using_basic_auth? is true](./spec/acceptance/rest/auth_spec.rb#L752)
+      * [#using_token_auth? is false](./spec/acceptance/rest/auth_spec.rb#L826)
+      * [#key attribute contains the key string](./spec/acceptance/rest/auth_spec.rb#L830)
+      * [#using_basic_auth? is true](./spec/acceptance/rest/auth_spec.rb#L834)
 
 ### Ably::Rest
 _(see [spec/acceptance/rest/base_spec.rb](./spec/acceptance/rest/base_spec.rb))_
@@ -869,31 +1078,55 @@ _(see [spec/acceptance/rest/base_spec.rb](./spec/acceptance/rest/base_spec.rb))_
       * when auth#token_renewable?
         * [should automatically reissue a token](./spec/acceptance/rest/base_spec.rb#L143)
       * when NOT auth#token_renewable?
-        * [should raise an InvalidToken exception](./spec/acceptance/rest/base_spec.rb#L158)
+        * [should raise an TokenExpired exception](./spec/acceptance/rest/base_spec.rb#L158)
 
 ### Ably::Rest::Channel
 _(see [spec/acceptance/rest/channel_spec.rb](./spec/acceptance/rest/channel_spec.rb))_
   * using JSON and MsgPack protocol
     * #publish
-      * FAILED: ~~[should publish the message and return true indicating success](./spec/acceptance/rest/channel_spec.rb#L17)~~
+      * with name and data arguments
+        * [publishes the message and return true indicating success](./spec/acceptance/rest/channel_spec.rb#L20)
+      * with an array of Hash objects with :name and :data attributes
+        * [publishes an array of messages in one HTTP request](./spec/acceptance/rest/channel_spec.rb#L34)
+      * with an array of Message objects
+        * [publishes an array of messages in one HTTP request](./spec/acceptance/rest/channel_spec.rb#L49)
+      * without adequate permissions on the channel
+        * [raises a permission error when publishing](./spec/acceptance/rest/channel_spec.rb#L61)
+      * null attributes
+        * when name is null
+          * [publishes the message without a name attribute in the payload](./spec/acceptance/rest/channel_spec.rb#L70)
+        * when data is null
+          * [publishes the message without a data attribute in the payload](./spec/acceptance/rest/channel_spec.rb#L81)
+        * with neither name or data attributes
+          * [publishes the message without any attributes in the payload](./spec/acceptance/rest/channel_spec.rb#L92)
     * #history
-      * [should return the current message history for the channel](./spec/acceptance/rest/channel_spec.rb#L39)
-      * [should return paged history using the PaginatedResult model](./spec/acceptance/rest/channel_spec.rb#L67)
+      * [returns a PaginatedResult model](./spec/acceptance/rest/channel_spec.rb#L119)
+      * [returns the current message history for the channel](./spec/acceptance/rest/channel_spec.rb#L123)
+      * [returns paged history using the PaginatedResult model](./spec/acceptance/rest/channel_spec.rb#L151)
       * message timestamps
-        * [should all be after the messages were published](./spec/acceptance/rest/channel_spec.rb#L52)
+        * [are after the messages were published](./spec/acceptance/rest/channel_spec.rb#L136)
       * message IDs
-        * [should be unique](./spec/acceptance/rest/channel_spec.rb#L60)
+        * [is unique](./spec/acceptance/rest/channel_spec.rb#L144)
+      * direction
+        * [returns paged history backwards by default](./spec/acceptance/rest/channel_spec.rb#L172)
+        * [returns history forward if specified in the options](./spec/acceptance/rest/channel_spec.rb#L178)
+      * limit
+        * [defaults to 100](./spec/acceptance/rest/channel_spec.rb#L190)
     * #history option
       * :start
         * with milliseconds since epoch value
-          * [uses this value in the history request](./spec/acceptance/rest/channel_spec.rb#L123)
+          * [uses this value in the history request](./spec/acceptance/rest/channel_spec.rb#L233)
         * with a Time object value
-          * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/channel_spec.rb#L133)
+          * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/channel_spec.rb#L243)
       * :end
         * with milliseconds since epoch value
-          * [uses this value in the history request](./spec/acceptance/rest/channel_spec.rb#L123)
+          * [uses this value in the history request](./spec/acceptance/rest/channel_spec.rb#L233)
         * with a Time object value
-          * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/channel_spec.rb#L133)
+          * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/channel_spec.rb#L243)
+      * when argument start is after end
+        * [should raise an exception](./spec/acceptance/rest/channel_spec.rb#L253)
+    * #presence
+      * [returns a REST Presence object](./spec/acceptance/rest/channel_spec.rb#L263)
 
 ### Ably::Rest::Channels
 _(see [spec/acceptance/rest/channels_spec.rb](./spec/acceptance/rest/channels_spec.rb))_
@@ -906,6 +1139,10 @@ _(see [spec/acceptance/rest/channels_spec.rb](./spec/acceptance/rest/channels_sp
       * behaves like a channel
         * [returns a channel object](./spec/acceptance/rest/channels_spec.rb#L6)
         * [returns channel object and passes the provided options](./spec/acceptance/rest/channels_spec.rb#L11)
+    * accessing an existing channel object with different options
+      * [overrides the existing channel options and returns the channel object](./spec/acceptance/rest/channels_spec.rb#L39)
+    * accessing an existing channel object without specifying any channel options
+      * [returns the existing channel without modifying the channel options](./spec/acceptance/rest/channels_spec.rb#L50)
     * using undocumented array accessor [] method on client#channels
       * behaves like a channel
         * [returns a channel object](./spec/acceptance/rest/channels_spec.rb#L6)
@@ -915,43 +1152,69 @@ _(see [spec/acceptance/rest/channels_spec.rb](./spec/acceptance/rest/channels_sp
 _(see [spec/acceptance/rest/client_spec.rb](./spec/acceptance/rest/client_spec.rb))_
   * using JSON and MsgPack protocol
     * #initialize
-      * with a :auth_callback Proc
-        * [calls the auth Proc to get a new token](./spec/acceptance/rest/client_spec.rb#L20)
+      * with only an API key
+        * [uses basic authentication](./spec/acceptance/rest/client_spec.rb#L24)
+      * with an explicit string :token
+        * [uses token authentication](./spec/acceptance/rest/client_spec.rb#L32)
+      * with :use_token_auth set to true
+        * [uses token authentication](./spec/acceptance/rest/client_spec.rb#L40)
+      * with a :client_id configured
+        * [uses token authentication](./spec/acceptance/rest/client_spec.rb#L48)
+      * with an :auth_callback Proc
+        * [calls the auth Proc to get a new token](./spec/acceptance/rest/client_spec.rb#L56)
+        * [uses token authentication](./spec/acceptance/rest/client_spec.rb#L61)
       * with an auth URL
-        * [sends an HTTP request to the provided URL to get a new token](./spec/acceptance/rest/client_spec.rb#L34)
+        * [uses token authentication](./spec/acceptance/rest/client_spec.rb#L70)
+        * before any REST request
+          * [sends an HTTP request to the provided auth URL to get a new token](./spec/acceptance/rest/client_spec.rb#L81)
+      * auth headers
+        * with basic auth
+          * [sends the API key in authentication part of the secure URL (the Authorization: Basic header is not used with the Faraday HTTP library by default)](./spec/acceptance/rest/client_spec.rb#L101)
+        * with token auth
+          * without specifying protocol
+            * [sends the token string over HTTPS in the Authorization Bearer header with Base64 encoding](./spec/acceptance/rest/client_spec.rb#L120)
+          * when setting constructor ClientOption :tls to false
+            * [sends the token string over HTTP in the Authorization Bearer header with Base64 encoding](./spec/acceptance/rest/client_spec.rb#L130)
     * using tokens
       * when expired
-        * [creates a new token automatically when the old token expires](./spec/acceptance/rest/client_spec.rb#L58)
+        * [creates a new token automatically when the old token expires](./spec/acceptance/rest/client_spec.rb#L161)
       * when token has not expired
-        * [reuses the existing token for every request](./spec/acceptance/rest/client_spec.rb#L72)
+        * [reuses the existing token for every request](./spec/acceptance/rest/client_spec.rb#L175)
     * connection transport
       * for default host
-        * [is configured to timeout connection opening in 4 seconds](./spec/acceptance/rest/client_spec.rb#L88)
-        * [is configured to timeout connection requests in 15 seconds](./spec/acceptance/rest/client_spec.rb#L92)
+        * [is configured to timeout connection opening in 4 seconds](./spec/acceptance/rest/client_spec.rb#L191)
+        * [is configured to timeout connection requests in 15 seconds](./spec/acceptance/rest/client_spec.rb#L195)
       * for the fallback hosts
-        * [is configured to timeout connection opening in 4 seconds](./spec/acceptance/rest/client_spec.rb#L98)
-        * [is configured to timeout connection requests in 15 seconds](./spec/acceptance/rest/client_spec.rb#L102)
+        * [is configured to timeout connection opening in 4 seconds](./spec/acceptance/rest/client_spec.rb#L201)
+        * [is configured to timeout connection requests in 15 seconds](./spec/acceptance/rest/client_spec.rb#L205)
     * fallback hosts
       * configured
-        * [should make connection attempts to A.ably-realtime.com, B.ably-realtime.com, C.ably-realtime.com, D.ably-realtime.com, E.ably-realtime.com](./spec/acceptance/rest/client_spec.rb#L115)
+        * [should make connection attempts to A.ably-realtime.com, B.ably-realtime.com, C.ably-realtime.com, D.ably-realtime.com, E.ably-realtime.com](./spec/acceptance/rest/client_spec.rb#L218)
       * when environment is NOT production
-        * [does not retry failed requests with fallback hosts when there is a connection error](./spec/acceptance/rest/client_spec.rb#L132)
+        * [does not retry failed requests with fallback hosts when there is a connection error](./spec/acceptance/rest/client_spec.rb#L235)
       * when environment is production
         * and connection times out
-          * [tries fallback hosts 3 times](./spec/acceptance/rest/client_spec.rb#L172)
+          * [tries fallback hosts 3 times](./spec/acceptance/rest/client_spec.rb#L272)
           * and the total request time exeeds 10 seconds
-            * [makes no further attempts to any fallback hosts](./spec/acceptance/rest/client_spec.rb#L187)
+            * [makes no further attempts to any fallback hosts](./spec/acceptance/rest/client_spec.rb#L287)
         * and connection fails
-          * [tries fallback hosts 3 times](./spec/acceptance/rest/client_spec.rb#L203)
+          * [tries fallback hosts 3 times](./spec/acceptance/rest/client_spec.rb#L303)
+        * and basic authentication fails
+          * [does not attempt the fallback hosts as this is an authentication failure](./spec/acceptance/rest/client_spec.rb#L327)
+        * and server returns a 50x error
+          * [attempts the fallback hosts as this is an authentication failure](./spec/acceptance/rest/client_spec.rb#L349)
     * with a custom host
       * that does not exist
-        * [fails immediately and raises a Faraday Error](./spec/acceptance/rest/client_spec.rb#L219)
+        * [fails immediately and raises a Faraday Error](./spec/acceptance/rest/client_spec.rb#L365)
         * fallback hosts
-          * [are never used](./spec/acceptance/rest/client_spec.rb#L240)
+          * [are never used](./spec/acceptance/rest/client_spec.rb#L386)
       * that times out
-        * [fails immediately and raises a Faraday Error](./spec/acceptance/rest/client_spec.rb#L255)
+        * [fails immediately and raises a Faraday Error](./spec/acceptance/rest/client_spec.rb#L401)
         * fallback hosts
-          * [are never used](./spec/acceptance/rest/client_spec.rb#L268)
+          * [are never used](./spec/acceptance/rest/client_spec.rb#L414)
+    * #auth
+      * [is provides access to the Auth object](./spec/acceptance/rest/client_spec.rb#L428)
+      * [configures the Auth object with all ClientOptions passed to client in the initializer](./spec/acceptance/rest/client_spec.rb#L432)
 
 ### Ably::Models::MessageEncoders
 _(see [spec/acceptance/rest/encoders_spec.rb](./spec/acceptance/rest/encoders_spec.rb))_
@@ -1002,13 +1265,13 @@ _(see [spec/acceptance/rest/message_spec.rb](./spec/acceptance/rest/message_spec
         * [is encoded and decoded to the same Array](./spec/acceptance/rest/message_spec.rb#L57)
     * with unsupported data payload content type
       * Integer
-        * [is raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/rest/message_spec.rb#L68)
+        * [is raises an UnsupportedDataType 40011 exception](./spec/acceptance/rest/message_spec.rb#L68)
       * Float
-        * [is raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/rest/message_spec.rb#L76)
+        * [is raises an UnsupportedDataType 40011 exception](./spec/acceptance/rest/message_spec.rb#L76)
       * Boolean
-        * [is raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/rest/message_spec.rb#L84)
+        * [is raises an UnsupportedDataType 40011 exception](./spec/acceptance/rest/message_spec.rb#L84)
       * False
-        * [is raises an UnsupportedDataTypeError 40011 exception](./spec/acceptance/rest/message_spec.rb#L92)
+        * [is raises an UnsupportedDataType 40011 exception](./spec/acceptance/rest/message_spec.rb#L92)
     * encryption and encoding
       * with #publish and #history
         * with AES-128-CBC using crypto-data-128.json fixtures
@@ -1070,78 +1333,105 @@ _(see [spec/acceptance/rest/presence_spec.rb](./spec/acceptance/rest/presence_sp
       * #get
         * [returns current members on the channel with their action set to :present](./spec/acceptance/rest/presence_spec.rb#L41)
         * with :limit option
-          * [returns a paged response limiting number of members per page](./spec/acceptance/rest/presence_spec.rb#L55)
+          * [returns a paged response limiting number of members per page](./spec/acceptance/rest/presence_spec.rb#L57)
+        * default :limit
+          * [defaults to a limit of 100](./spec/acceptance/rest/presence_spec.rb#L89)
+        * with :client_id option
+          * PENDING: *[returns a list members filtered by the provided client ID](./spec/acceptance/rest/presence_spec.rb#L98)*
+        * with :connection_id option
+          * PENDING: *[returns a list members filtered by the provided connection ID](./spec/acceptance/rest/presence_spec.rb#L109)*
       * #history
-        * [returns recent presence activity](./spec/acceptance/rest/presence_spec.rb#L69)
+        * [returns recent presence activity](./spec/acceptance/rest/presence_spec.rb#L120)
+        * default behaviour
+          * [uses backwards direction](./spec/acceptance/rest/presence_spec.rb#L135)
         * with options
           * direction: :forwards
-            * [returns recent presence activity forwards with most recent history last](./spec/acceptance/rest/presence_spec.rb#L85)
+            * [returns recent presence activity forwards with most recent history last](./spec/acceptance/rest/presence_spec.rb#L147)
           * direction: :backwards
-            * [returns recent presence activity backwards with most recent history first](./spec/acceptance/rest/presence_spec.rb#L100)
+            * [returns recent presence activity backwards with most recent history first](./spec/acceptance/rest/presence_spec.rb#L162)
     * #history
-      * with time range options
-        * :start
-          * with milliseconds since epoch value
-            * [uses this value in the history request](./spec/acceptance/rest/presence_spec.rb#L152)
-          * with Time object value
-            * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/presence_spec.rb#L162)
-        * :end
-          * with milliseconds since epoch value
-            * [uses this value in the history request](./spec/acceptance/rest/presence_spec.rb#L152)
-          * with Time object value
-            * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/presence_spec.rb#L162)
+      * with options
+        * limit options
+          * default
+            * [is set to 100](./spec/acceptance/rest/presence_spec.rb#L210)
+          * set to 1000
+            * [is passes the limit query param value 1000](./spec/acceptance/rest/presence_spec.rb#L223)
+        * with time range options
+          * :start
+            * with milliseconds since epoch value
+              * [uses this value in the history request](./spec/acceptance/rest/presence_spec.rb#L253)
+            * with Time object value
+              * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/presence_spec.rb#L263)
+          * :end
+            * with milliseconds since epoch value
+              * [uses this value in the history request](./spec/acceptance/rest/presence_spec.rb#L253)
+            * with Time object value
+              * [converts the value to milliseconds since epoch in the hisotry request](./spec/acceptance/rest/presence_spec.rb#L263)
+          * when argument start is after end
+            * [should raise an exception](./spec/acceptance/rest/presence_spec.rb#L274)
     * decoding
       * with encoded fixture data
         * #history
-          * [decodes encoded and encryped presence fixture data automatically](./spec/acceptance/rest/presence_spec.rb#L182)
+          * [decodes encoded and encryped presence fixture data automatically](./spec/acceptance/rest/presence_spec.rb#L293)
         * #get
-          * [decodes encoded and encryped presence fixture data automatically](./spec/acceptance/rest/presence_spec.rb#L189)
+          * [decodes encoded and encryped presence fixture data automatically](./spec/acceptance/rest/presence_spec.rb#L300)
     * decoding permutations using mocked #history
       * valid decodeable content
         * #get
-          * [automaticaly decodes presence messages](./spec/acceptance/rest/presence_spec.rb#L245)
+          * [automaticaly decodes presence messages](./spec/acceptance/rest/presence_spec.rb#L356)
         * #history
-          * [automaticaly decodes presence messages](./spec/acceptance/rest/presence_spec.rb#L262)
+          * [automaticaly decodes presence messages](./spec/acceptance/rest/presence_spec.rb#L373)
       * invalid data
         * #get
-          * [returns the messages still encoded](./spec/acceptance/rest/presence_spec.rb#L293)
-          * [logs a cipher error](./spec/acceptance/rest/presence_spec.rb#L297)
+          * [returns the messages still encoded](./spec/acceptance/rest/presence_spec.rb#L404)
+          * [logs a cipher error](./spec/acceptance/rest/presence_spec.rb#L408)
         * #history
-          * [returns the messages still encoded](./spec/acceptance/rest/presence_spec.rb#L317)
-          * [logs a cipher error](./spec/acceptance/rest/presence_spec.rb#L321)
+          * [returns the messages still encoded](./spec/acceptance/rest/presence_spec.rb#L428)
+          * [logs a cipher error](./spec/acceptance/rest/presence_spec.rb#L432)
 
 ### Ably::Rest::Client#stats
 _(see [spec/acceptance/rest/stats_spec.rb](./spec/acceptance/rest/stats_spec.rb))_
   * using JSON and MsgPack protocol
     * fetching application stats
+      * [returns a PaginatedResult object](./spec/acceptance/rest/stats_spec.rb#L54)
       * by minute
+        * with no options
+          * [uses the minute interval by default](./spec/acceptance/rest/stats_spec.rb#L66)
         * with :from set to last interval and :limit set to 1
-          * [retrieves only one stat](./spec/acceptance/rest/stats_spec.rb#L50)
-          * [returns zero value for any missing metrics](./spec/acceptance/rest/stats_spec.rb#L54)
-          * [returns all aggregated message data](./spec/acceptance/rest/stats_spec.rb#L59)
-          * [returns inbound realtime all data](./spec/acceptance/rest/stats_spec.rb#L64)
-          * [returns inbound realtime message data](./spec/acceptance/rest/stats_spec.rb#L69)
-          * [returns outbound realtime all data](./spec/acceptance/rest/stats_spec.rb#L74)
-          * [returns persisted presence all data](./spec/acceptance/rest/stats_spec.rb#L79)
-          * [returns connections all data](./spec/acceptance/rest/stats_spec.rb#L84)
-          * [returns channels all data](./spec/acceptance/rest/stats_spec.rb#L89)
-          * [returns api_requests data](./spec/acceptance/rest/stats_spec.rb#L94)
-          * [returns token_requests data](./spec/acceptance/rest/stats_spec.rb#L99)
-          * [returns stat objects with #interval_granularity equal to :minute](./spec/acceptance/rest/stats_spec.rb#L104)
-          * [returns stat objects with #interval_id matching :start](./spec/acceptance/rest/stats_spec.rb#L108)
-          * [returns stat objects with #interval_time matching :start Time](./spec/acceptance/rest/stats_spec.rb#L112)
+          * [retrieves only one stat](./spec/acceptance/rest/stats_spec.rb#L75)
+          * [returns zero value for any missing metrics](./spec/acceptance/rest/stats_spec.rb#L79)
+          * [returns all aggregated message data](./spec/acceptance/rest/stats_spec.rb#L84)
+          * [returns inbound realtime all data](./spec/acceptance/rest/stats_spec.rb#L89)
+          * [returns inbound realtime message data](./spec/acceptance/rest/stats_spec.rb#L94)
+          * [returns outbound realtime all data](./spec/acceptance/rest/stats_spec.rb#L99)
+          * [returns persisted presence all data](./spec/acceptance/rest/stats_spec.rb#L104)
+          * [returns connections all data](./spec/acceptance/rest/stats_spec.rb#L109)
+          * [returns channels all data](./spec/acceptance/rest/stats_spec.rb#L114)
+          * [returns api_requests data](./spec/acceptance/rest/stats_spec.rb#L119)
+          * [returns token_requests data](./spec/acceptance/rest/stats_spec.rb#L124)
+          * [returns stat objects with #interval_granularity equal to :minute](./spec/acceptance/rest/stats_spec.rb#L129)
+          * [returns stat objects with #interval_id matching :start](./spec/acceptance/rest/stats_spec.rb#L133)
+          * [returns stat objects with #interval_time matching :start Time](./spec/acceptance/rest/stats_spec.rb#L137)
         * with :start set to first interval, :limit set to 1 and direction :forwards
-          * [returns the first interval stats as stats are provided forwards from :start](./spec/acceptance/rest/stats_spec.rb#L122)
-          * [returns 3 pages of stats](./spec/acceptance/rest/stats_spec.rb#L126)
+          * [returns the first interval stats as stats are provided forwards from :start](./spec/acceptance/rest/stats_spec.rb#L147)
+          * [returns 3 pages of stats](./spec/acceptance/rest/stats_spec.rb#L151)
         * with :end set to last interval, :limit set to 1 and direction :backwards
-          * [returns the 3rd interval stats first as stats are provided backwards from :end](./spec/acceptance/rest/stats_spec.rb#L139)
-          * [returns 3 pages of stats](./spec/acceptance/rest/stats_spec.rb#L143)
+          * [returns the 3rd interval stats first as stats are provided backwards from :end](./spec/acceptance/rest/stats_spec.rb#L163)
+          * [returns 3 pages of stats](./spec/acceptance/rest/stats_spec.rb#L167)
+        * with :end set to last interval and :limit set to 3 to ensure only last years stats are included
+          * the REST API
+            * [defaults to direction :backwards](./spec/acceptance/rest/stats_spec.rb#L179)
+        * with :end set to previous year interval
+          * the REST API
+            * [defaults to 100 items for pagination](./spec/acceptance/rest/stats_spec.rb#L191)
       * by hour
-        * [should aggregate the stats for that period](./spec/acceptance/rest/stats_spec.rb#L167)
+        * [should aggregate the stats for that period](./spec/acceptance/rest/stats_spec.rb#L215)
       * by day
-        * [should aggregate the stats for that period](./spec/acceptance/rest/stats_spec.rb#L167)
+        * [should aggregate the stats for that period](./spec/acceptance/rest/stats_spec.rb#L215)
       * by month
-        * [should aggregate the stats for that period](./spec/acceptance/rest/stats_spec.rb#L167)
+        * [should aggregate the stats for that period](./spec/acceptance/rest/stats_spec.rb#L215)
+      * when argument start is after end
+        * [should raise an exception](./spec/acceptance/rest/stats_spec.rb#L227)
 
 ### Ably::Rest::Client#time
 _(see [spec/acceptance/rest/time_spec.rb](./spec/acceptance/rest/time_spec.rb))_
@@ -1153,22 +1443,22 @@ _(see [spec/acceptance/rest/time_spec.rb](./spec/acceptance/rest/time_spec.rb))_
 _(see [spec/unit/auth_spec.rb](./spec/unit/auth_spec.rb))_
   * client_id option
     * with nil value
-      * [is permitted](./spec/unit/auth_spec.rb#L19)
+      * [is permitted](./spec/unit/auth_spec.rb#L20)
     * as UTF_8 string
-      * [is permitted](./spec/unit/auth_spec.rb#L27)
-      * [remains as UTF-8](./spec/unit/auth_spec.rb#L31)
+      * [is permitted](./spec/unit/auth_spec.rb#L28)
+      * [remains as UTF-8](./spec/unit/auth_spec.rb#L32)
     * as SHIFT_JIS string
-      * [gets converted to UTF-8](./spec/unit/auth_spec.rb#L39)
-      * [is compatible with original encoding](./spec/unit/auth_spec.rb#L43)
+      * [gets converted to UTF-8](./spec/unit/auth_spec.rb#L40)
+      * [is compatible with original encoding](./spec/unit/auth_spec.rb#L44)
     * as ASCII_8BIT string
-      * [gets converted to UTF-8](./spec/unit/auth_spec.rb#L51)
-      * [is compatible with original encoding](./spec/unit/auth_spec.rb#L55)
+      * [gets converted to UTF-8](./spec/unit/auth_spec.rb#L52)
+      * [is compatible with original encoding](./spec/unit/auth_spec.rb#L56)
     * as Integer
-      * [raises an argument error](./spec/unit/auth_spec.rb#L63)
+      * [raises an argument error](./spec/unit/auth_spec.rb#L64)
   * defaults
-    * [should default TTL to 1 hour](./spec/unit/auth_spec.rb#L73)
-    * [should default capability to all](./spec/unit/auth_spec.rb#L77)
-    * [should only have defaults for :ttl and :capability](./spec/unit/auth_spec.rb#L81)
+    * [should default TTL to 1 hour](./spec/unit/auth_spec.rb#L74)
+    * [should default capability to all](./spec/unit/auth_spec.rb#L78)
+    * [should have defaults for :ttl and :capability](./spec/unit/auth_spec.rb#L82)
 
 ### Ably::Logger
 _(see [spec/unit/logger_spec.rb](./spec/unit/logger_spec.rb))_
@@ -1350,6 +1640,8 @@ _(see [spec/unit/models/message_encoders/utf8_spec.rb](./spec/unit/models/messag
 _(see [spec/unit/models/message_spec.rb](./spec/unit/models/message_spec.rb))_
   * behaves like a model
     * attributes
+      * #id
+        * [retrieves attribute :id](./spec/shared/model_behaviour.rb#L15)
       * #name
         * [retrieves attribute :name](./spec/shared/model_behaviour.rb#L15)
       * #client_id
@@ -1435,33 +1727,31 @@ _(see [spec/unit/models/paginated_result_spec.rb](./spec/unit/models/paginated_r
       * [returns an enumerator](./spec/unit/models/paginated_result_spec.rb#L44)
       * [yields each item](./spec/unit/models/paginated_result_spec.rb#L48)
   * with non paged http response
-    * [is the first page](./spec/unit/models/paginated_result_spec.rb#L172)
-    * [is the last page](./spec/unit/models/paginated_result_spec.rb#L176)
-    * [does not have next page](./spec/unit/models/paginated_result_spec.rb#L180)
-    * [does not support pagination](./spec/unit/models/paginated_result_spec.rb#L184)
-    * [returns nil when accessing next page](./spec/unit/models/paginated_result_spec.rb#L188)
-    * [returns nil when accessing first page](./spec/unit/models/paginated_result_spec.rb#L192)
+    * [is the last page](./spec/unit/models/paginated_result_spec.rb#L172)
+    * [does not have next page](./spec/unit/models/paginated_result_spec.rb#L176)
+    * [does not support pagination](./spec/unit/models/paginated_result_spec.rb#L180)
+    * [returns nil when accessing next page](./spec/unit/models/paginated_result_spec.rb#L184)
+    * [returns nil when accessing first page](./spec/unit/models/paginated_result_spec.rb#L188)
   * with paged http response
-    * [is the first page](./spec/unit/models/paginated_result_spec.rb#L210)
-    * [has next page](./spec/unit/models/paginated_result_spec.rb#L214)
-    * [is not the last page](./spec/unit/models/paginated_result_spec.rb#L218)
-    * [supports pagination](./spec/unit/models/paginated_result_spec.rb#L222)
+    * [has next page](./spec/unit/models/paginated_result_spec.rb#L206)
+    * [is not the last page](./spec/unit/models/paginated_result_spec.rb#L210)
+    * [supports pagination](./spec/unit/models/paginated_result_spec.rb#L214)
     * accessing next page
-      * [returns another PaginatedResult](./spec/unit/models/paginated_result_spec.rb#L250)
-      * [retrieves the next page of results](./spec/unit/models/paginated_result_spec.rb#L254)
-      * [is not the first page](./spec/unit/models/paginated_result_spec.rb#L259)
-      * [does not have a next page](./spec/unit/models/paginated_result_spec.rb#L263)
-      * [is the last page](./spec/unit/models/paginated_result_spec.rb#L267)
-      * [returns nil when trying to access the last page when it is the last page](./spec/unit/models/paginated_result_spec.rb#L271)
+      * [returns another PaginatedResult](./spec/unit/models/paginated_result_spec.rb#L242)
+      * [retrieves the next page of results](./spec/unit/models/paginated_result_spec.rb#L246)
+      * [does not have a next page](./spec/unit/models/paginated_result_spec.rb#L251)
+      * [is the last page](./spec/unit/models/paginated_result_spec.rb#L255)
+      * [returns nil when trying to access the last page when it is the last page](./spec/unit/models/paginated_result_spec.rb#L259)
       * and then first page
-        * [returns a PaginatedResult](./spec/unit/models/paginated_result_spec.rb#L282)
-        * [retrieves the first page of results](./spec/unit/models/paginated_result_spec.rb#L286)
-        * [is the first page](./spec/unit/models/paginated_result_spec.rb#L290)
+        * [returns a PaginatedResult](./spec/unit/models/paginated_result_spec.rb#L270)
+        * [retrieves the first page of results](./spec/unit/models/paginated_result_spec.rb#L274)
 
 ### Ably::Models::PresenceMessage
 _(see [spec/unit/models/presence_message_spec.rb](./spec/unit/models/presence_message_spec.rb))_
   * behaves like a model
     * attributes
+      * #id
+        * [retrieves attribute :id](./spec/shared/model_behaviour.rb#L15)
       * #client_id
         * [retrieves attribute :client_id](./spec/shared/model_behaviour.rb#L15)
       * #data
@@ -1550,6 +1840,8 @@ _(see [spec/unit/models/protocol_message_spec.rb](./spec/unit/models/protocol_me
         * [retrieves attribute :channel_serial](./spec/shared/model_behaviour.rb#L15)
       * #connection_id
         * [retrieves attribute :connection_id](./spec/shared/model_behaviour.rb#L15)
+      * #connection_key
+        * [retrieves attribute :connection_key](./spec/shared/model_behaviour.rb#L15)
     * #==
       * [is true when attributes are the same](./spec/shared/model_behaviour.rb#L41)
       * [is false when attributes are not the same](./spec/shared/model_behaviour.rb#L46)
@@ -1611,6 +1903,10 @@ _(see [spec/unit/models/protocol_message_spec.rb](./spec/unit/models/protocol_me
         * [returns nil](./spec/unit/models/protocol_message_spec.rb#L253)
       * with error
         * [returns a valid ErrorInfo object](./spec/unit/models/protocol_message_spec.rb#L261)
+    * #messages
+      * [contains Message objects](./spec/unit/models/protocol_message_spec.rb#L271)
+    * #presence
+      * [contains PresenceMessage objects](./spec/unit/models/protocol_message_spec.rb#L281)
 
 ### Ably::Models::Stats
 _(see [spec/unit/models/stats_spec.rb](./spec/unit/models/stats_spec.rb))_
@@ -1888,49 +2184,53 @@ _(see [spec/unit/realtime/channel_spec.rb](./spec/unit/realtime/channel_spec.rb)
       * [raises an argument error](./spec/unit/realtime/channel_spec.rb#L63)
   * #publish name argument
     * as UTF_8 string
-      * [is permitted](./spec/unit/realtime/channel_spec.rb#L79)
+      * [is permitted](./spec/unit/realtime/channel_spec.rb#L80)
     * as SHIFT_JIS string
-      * [is permitted](./spec/unit/realtime/channel_spec.rb#L87)
+      * [is permitted](./spec/unit/realtime/channel_spec.rb#L88)
     * as ASCII_8BIT string
-      * [is permitted](./spec/unit/realtime/channel_spec.rb#L95)
+      * [is permitted](./spec/unit/realtime/channel_spec.rb#L96)
     * as Integer
-      * [raises an argument error](./spec/unit/realtime/channel_spec.rb#L103)
+      * [raises an argument error](./spec/unit/realtime/channel_spec.rb#L104)
     * as Nil
-      * [raises an argument error](./spec/unit/realtime/channel_spec.rb#L111)
+      * [is permitted](./spec/unit/realtime/channel_spec.rb#L112)
   * callbacks
-    * [are supported for valid STATE events](./spec/unit/realtime/channel_spec.rb#L118)
-    * [fail with unacceptable STATE event names](./spec/unit/realtime/channel_spec.rb#L124)
+    * [are supported for valid STATE events](./spec/unit/realtime/channel_spec.rb#L119)
+    * [fail with unacceptable STATE event names](./spec/unit/realtime/channel_spec.rb#L125)
   * subscriptions
     * #subscribe
-      * [without a block raises an invalid ArgumentError](./spec/unit/realtime/channel_spec.rb#L162)
-      * [with no event name specified subscribes the provided block to all events](./spec/unit/realtime/channel_spec.rb#L166)
-      * [with a single event name subscribes that block to matching events](./spec/unit/realtime/channel_spec.rb#L172)
-      * [with a multiple event name arguments subscribes that block to all of those event names](./spec/unit/realtime/channel_spec.rb#L179)
-      * [with a multiple duplicate event name arguments subscribes that block to all of those unique event names once](./spec/unit/realtime/channel_spec.rb#L191)
+      * [without a block raises an invalid ArgumentError](./spec/unit/realtime/channel_spec.rb#L167)
+      * [with no event name specified subscribes the provided block to all events](./spec/unit/realtime/channel_spec.rb#L171)
+      * [with a single event name subscribes that block to matching events](./spec/unit/realtime/channel_spec.rb#L177)
+      * [with a multiple event name arguments subscribes that block to all of those event names](./spec/unit/realtime/channel_spec.rb#L184)
+      * [with a multiple duplicate event name arguments subscribes that block to all of those unique event names once](./spec/unit/realtime/channel_spec.rb#L196)
     * #unsubscribe
-      * [with no event name specified unsubscribes that block from all events](./spec/unit/realtime/channel_spec.rb#L206)
-      * [with a single event name argument unsubscribes the provided block with the matching event name](./spec/unit/realtime/channel_spec.rb#L212)
-      * [with multiple event name arguments unsubscribes each of those matching event names with the provided block](./spec/unit/realtime/channel_spec.rb#L218)
-      * [with a non-matching event name argument has no effect](./spec/unit/realtime/channel_spec.rb#L224)
-      * [with no block argument unsubscribes all blocks for the event name argument](./spec/unit/realtime/channel_spec.rb#L230)
+      * [with no event name specified unsubscribes that block from all events](./spec/unit/realtime/channel_spec.rb#L213)
+      * [with a single event name argument unsubscribes the provided block with the matching event name](./spec/unit/realtime/channel_spec.rb#L219)
+      * [with multiple event name arguments unsubscribes each of those matching event names with the provided block](./spec/unit/realtime/channel_spec.rb#L225)
+      * [with a non-matching event name argument has no effect](./spec/unit/realtime/channel_spec.rb#L231)
+      * [with no block argument unsubscribes all blocks for the event name argument](./spec/unit/realtime/channel_spec.rb#L237)
 
 ### Ably::Realtime::Channels
 _(see [spec/unit/realtime/channels_spec.rb](./spec/unit/realtime/channels_spec.rb))_
   * creating channels
-    * [#get creates a channel](./spec/unit/realtime/channels_spec.rb#L13)
-    * [#get will reuse the channel object](./spec/unit/realtime/channels_spec.rb#L18)
-    * [[] creates a channel](./spec/unit/realtime/channels_spec.rb#L24)
+    * [[] creates a channel](./spec/unit/realtime/channels_spec.rb#L43)
+    * #get
+      * [creates a channel if it does not exist](./spec/unit/realtime/channels_spec.rb#L14)
+      * when an existing channel exists
+        * [will reuse a channel object if it exists](./spec/unit/realtime/channels_spec.rb#L20)
+        * [will update the options on the channel if provided](./spec/unit/realtime/channels_spec.rb#L26)
+        * [will leave the options intact on the channel if not provided](./spec/unit/realtime/channels_spec.rb#L34)
   * #fetch
-    * [retrieves a channel if it exists](./spec/unit/realtime/channels_spec.rb#L31)
-    * [calls the block if channel is missing](./spec/unit/realtime/channels_spec.rb#L36)
+    * [retrieves a channel if it exists](./spec/unit/realtime/channels_spec.rb#L50)
+    * [calls the block if channel is missing](./spec/unit/realtime/channels_spec.rb#L55)
   * destroying channels
-    * [#release detaches and then releases the channel resources](./spec/unit/realtime/channels_spec.rb#L44)
+    * [#release detaches and then releases the channel resources](./spec/unit/realtime/channels_spec.rb#L63)
   * is Enumerable
-    * [allows enumeration](./spec/unit/realtime/channels_spec.rb#L61)
-    * [provides #length](./spec/unit/realtime/channels_spec.rb#L77)
+    * [allows enumeration](./spec/unit/realtime/channels_spec.rb#L80)
+    * [provides #length](./spec/unit/realtime/channels_spec.rb#L96)
     * #each
-      * [returns an enumerator](./spec/unit/realtime/channels_spec.rb#L66)
-      * [yields each channel](./spec/unit/realtime/channels_spec.rb#L70)
+      * [returns an enumerator](./spec/unit/realtime/channels_spec.rb#L85)
+      * [yields each channel](./spec/unit/realtime/channels_spec.rb#L89)
 
 ### Ably::Realtime::Client
 _(see [spec/unit/realtime/client_spec.rb](./spec/unit/realtime/client_spec.rb))_
@@ -1953,37 +2253,49 @@ _(see [spec/unit/realtime/client_spec.rb](./spec/unit/realtime/client_spec.rb))_
     * with valid arguments
       * key only
         * [connects to the Ably service](./spec/shared/client_initializer_behaviour.rb#L87)
+        * [uses basic auth](./spec/shared/client_initializer_behaviour.rb#L91)
       * with a string key instead of options hash
-        * [sets the key](./spec/shared/client_initializer_behaviour.rb#L103)
-        * [sets the key_name](./spec/shared/client_initializer_behaviour.rb#L107)
-        * [sets the key_secret](./spec/shared/client_initializer_behaviour.rb#L111)
+        * [sets the key](./spec/shared/client_initializer_behaviour.rb#L107)
+        * [sets the key_name](./spec/shared/client_initializer_behaviour.rb#L111)
+        * [sets the key_secret](./spec/shared/client_initializer_behaviour.rb#L115)
+        * [uses basic auth](./spec/shared/client_initializer_behaviour.rb#L119)
       * with a string token key instead of options hash
-        * [sets the token](./spec/shared/client_initializer_behaviour.rb#L119)
-      * with token
         * [sets the token](./spec/shared/client_initializer_behaviour.rb#L127)
-      * with token_details
+      * with token
         * [sets the token](./spec/shared/client_initializer_behaviour.rb#L135)
+      * with token_details
+        * [sets the token](./spec/shared/client_initializer_behaviour.rb#L143)
+      * with token_params
+        * [configures the default token_params](./spec/shared/client_initializer_behaviour.rb#L151)
       * endpoint
-        * [defaults to production](./spec/shared/client_initializer_behaviour.rb#L141)
+        * [defaults to production](./spec/shared/client_initializer_behaviour.rb#L158)
         * with environment option
-          * [uses an alternate endpoint](./spec/shared/client_initializer_behaviour.rb#L148)
+          * [uses an alternate endpoint](./spec/shared/client_initializer_behaviour.rb#L165)
+        * with rest_host option
+          * PENDING: *[uses an alternate endpoint for REST clients](./spec/shared/client_initializer_behaviour.rb#L173)*
+        * with realtime_host option
+          * [uses an alternate endpoint for Realtime clients](./spec/shared/client_initializer_behaviour.rb#L182)
+        * with port option and non-TLS connections
+          * [uses the custom port for non-TLS requests](./spec/shared/client_initializer_behaviour.rb#L191)
+        * with tls_port option and a TLS connection
+          * [uses the custom port for TLS requests](./spec/shared/client_initializer_behaviour.rb#L199)
       * tls
-        * [defaults to TLS](./spec/shared/client_initializer_behaviour.rb#L167)
+        * [defaults to TLS](./spec/shared/client_initializer_behaviour.rb#L218)
         * set to false
-          * [uses plain text](./spec/shared/client_initializer_behaviour.rb#L158)
-          * [uses HTTP](./spec/shared/client_initializer_behaviour.rb#L162)
+          * [uses plain text](./spec/shared/client_initializer_behaviour.rb#L209)
+          * [uses HTTP](./spec/shared/client_initializer_behaviour.rb#L213)
       * logger
         * default
-          * [uses Ruby Logger](./spec/shared/client_initializer_behaviour.rb#L174)
-          * [specifies Logger::ERROR log level](./spec/shared/client_initializer_behaviour.rb#L178)
+          * [uses Ruby Logger](./spec/shared/client_initializer_behaviour.rb#L225)
+          * [specifies Logger::WARN log level](./spec/shared/client_initializer_behaviour.rb#L229)
         * with log_level :none
-          * [silences all logging with a NilLogger](./spec/shared/client_initializer_behaviour.rb#L186)
+          * [silences all logging with a NilLogger](./spec/shared/client_initializer_behaviour.rb#L237)
         * with custom logger and log_level
-          * [uses the custom logger](./spec/shared/client_initializer_behaviour.rb#L204)
-          * [sets the custom log level](./spec/shared/client_initializer_behaviour.rb#L208)
+          * [uses the custom logger](./spec/shared/client_initializer_behaviour.rb#L255)
+          * [sets the custom log level](./spec/shared/client_initializer_behaviour.rb#L259)
     * delegators
-      * [delegates :client_id to .auth](./spec/shared/client_initializer_behaviour.rb#L218)
-      * [delegates :auth_options to .auth](./spec/shared/client_initializer_behaviour.rb#L223)
+      * [delegates :client_id to .auth](./spec/shared/client_initializer_behaviour.rb#L269)
+      * [delegates :auth_options to .auth](./spec/shared/client_initializer_behaviour.rb#L274)
   * delegation to the REST Client
     * [passes on the options to the initializer](./spec/unit/realtime/client_spec.rb#L15)
     * for attribute
@@ -2088,8 +2400,6 @@ _(see [spec/unit/rest/channel_spec.rb](./spec/unit/rest/channel_spec.rb))_
       * [is permitted](./spec/unit/rest/channel_spec.rb#L88)
     * as Integer
       * [raises an argument error](./spec/unit/rest/channel_spec.rb#L96)
-    * as Nil
-      * [raises an argument error](./spec/unit/rest/channel_spec.rb#L104)
 
 ### Ably::Rest::Channels
 _(see [spec/unit/rest/channels_spec.rb](./spec/unit/rest/channels_spec.rb))_
@@ -2130,50 +2440,62 @@ _(see [spec/unit/rest/client_spec.rb](./spec/unit/rest/client_spec.rb))_
     * with valid arguments
       * key only
         * [connects to the Ably service](./spec/shared/client_initializer_behaviour.rb#L87)
+        * [uses basic auth](./spec/shared/client_initializer_behaviour.rb#L91)
       * with a string key instead of options hash
-        * [sets the key](./spec/shared/client_initializer_behaviour.rb#L103)
-        * [sets the key_name](./spec/shared/client_initializer_behaviour.rb#L107)
-        * [sets the key_secret](./spec/shared/client_initializer_behaviour.rb#L111)
+        * [sets the key](./spec/shared/client_initializer_behaviour.rb#L107)
+        * [sets the key_name](./spec/shared/client_initializer_behaviour.rb#L111)
+        * [sets the key_secret](./spec/shared/client_initializer_behaviour.rb#L115)
+        * [uses basic auth](./spec/shared/client_initializer_behaviour.rb#L119)
       * with a string token key instead of options hash
-        * [sets the token](./spec/shared/client_initializer_behaviour.rb#L119)
-      * with token
         * [sets the token](./spec/shared/client_initializer_behaviour.rb#L127)
-      * with token_details
+      * with token
         * [sets the token](./spec/shared/client_initializer_behaviour.rb#L135)
+      * with token_details
+        * [sets the token](./spec/shared/client_initializer_behaviour.rb#L143)
+      * with token_params
+        * [configures the default token_params](./spec/shared/client_initializer_behaviour.rb#L151)
       * endpoint
-        * [defaults to production](./spec/shared/client_initializer_behaviour.rb#L141)
+        * [defaults to production](./spec/shared/client_initializer_behaviour.rb#L158)
         * with environment option
-          * [uses an alternate endpoint](./spec/shared/client_initializer_behaviour.rb#L148)
+          * [uses an alternate endpoint](./spec/shared/client_initializer_behaviour.rb#L165)
+        * with rest_host option
+          * [uses an alternate endpoint for REST clients](./spec/shared/client_initializer_behaviour.rb#L173)
+        * with realtime_host option
+          * PENDING: *[uses an alternate endpoint for Realtime clients](./spec/shared/client_initializer_behaviour.rb#L182)*
+        * with port option and non-TLS connections
+          * [uses the custom port for non-TLS requests](./spec/shared/client_initializer_behaviour.rb#L191)
+        * with tls_port option and a TLS connection
+          * [uses the custom port for TLS requests](./spec/shared/client_initializer_behaviour.rb#L199)
       * tls
-        * [defaults to TLS](./spec/shared/client_initializer_behaviour.rb#L167)
+        * [defaults to TLS](./spec/shared/client_initializer_behaviour.rb#L218)
         * set to false
-          * [uses plain text](./spec/shared/client_initializer_behaviour.rb#L158)
-          * [uses HTTP](./spec/shared/client_initializer_behaviour.rb#L162)
+          * [uses plain text](./spec/shared/client_initializer_behaviour.rb#L209)
+          * [uses HTTP](./spec/shared/client_initializer_behaviour.rb#L213)
       * logger
         * default
-          * [uses Ruby Logger](./spec/shared/client_initializer_behaviour.rb#L174)
-          * [specifies Logger::ERROR log level](./spec/shared/client_initializer_behaviour.rb#L178)
+          * [uses Ruby Logger](./spec/shared/client_initializer_behaviour.rb#L225)
+          * [specifies Logger::WARN log level](./spec/shared/client_initializer_behaviour.rb#L229)
         * with log_level :none
-          * [silences all logging with a NilLogger](./spec/shared/client_initializer_behaviour.rb#L186)
+          * [silences all logging with a NilLogger](./spec/shared/client_initializer_behaviour.rb#L237)
         * with custom logger and log_level
-          * [uses the custom logger](./spec/shared/client_initializer_behaviour.rb#L204)
-          * [sets the custom log level](./spec/shared/client_initializer_behaviour.rb#L208)
+          * [uses the custom logger](./spec/shared/client_initializer_behaviour.rb#L255)
+          * [sets the custom log level](./spec/shared/client_initializer_behaviour.rb#L259)
     * delegators
-      * [delegates :client_id to .auth](./spec/shared/client_initializer_behaviour.rb#L218)
-      * [delegates :auth_options to .auth](./spec/shared/client_initializer_behaviour.rb#L223)
+      * [delegates :client_id to .auth](./spec/shared/client_initializer_behaviour.rb#L269)
+      * [delegates :auth_options to .auth](./spec/shared/client_initializer_behaviour.rb#L274)
   * initializer options
     * TLS
       * disabled
         * [fails for any operation with basic auth and attempting to send an API key over a non-secure connection](./spec/unit/rest/client_spec.rb#L17)
     * :use_token_auth
       * set to false
-        * with an key with :tls => false
+        * with a key and :tls => false
           * [fails for any operation with basic auth and attempting to send an API key over a non-secure connection](./spec/unit/rest/client_spec.rb#L28)
-        * without an key
-          * [fails as an key is required if not using token auth](./spec/unit/rest/client_spec.rb#L36)
+        * without a key
+          * [fails as a key is required if not using token auth](./spec/unit/rest/client_spec.rb#L36)
       * set to true
-        * without an key or token
-          * [fails as an key is required to issue tokens](./spec/unit/rest/client_spec.rb#L46)
+        * without a key or token
+          * [fails as a key is required to issue tokens](./spec/unit/rest/client_spec.rb#L46)
 
 ### Ably::Rest
 _(see [spec/unit/rest/rest_spec.rb](./spec/unit/rest/rest_spec.rb))_
@@ -2214,6 +2536,6 @@ _(see [spec/unit/util/pub_sub_spec.rb](./spec/unit/util/pub_sub_spec.rb))_
 
   ## Test summary
 
-  * Passing tests: 1092
-  * Pending tests: 6
+  * Passing tests: 1244
+  * Pending tests: 13
   * Failing tests: 0
