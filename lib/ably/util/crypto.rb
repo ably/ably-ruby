@@ -37,6 +37,21 @@ module Ably::Util
       @options = DEFAULTS.merge(options).freeze
     end
 
+    # Obtain a default CipherParams. This uses default algorithm, mode and
+    # padding and key length. A key and IV are generated using the default
+    # system SecureRandom; the key may be obtained from the returned CipherParams
+    # for out-of-band distribution to other clients.
+    #
+    # @return [Hash]   CipherParam options Hash with attributes :key, :algorithn, :mode, :key_length
+    #
+    def self.get_default_params(key = nil)
+      params = DEFAULTS.merge(key: key)
+      params[:key_length] = key.unpack('b*').first.length if params[:key]
+      cipher_type = "#{params[:algorithm]}-#{params[:key_length]}-#{params[:mode]}"
+      params[:key] = OpenSSL::Cipher.new(cipher_type.upcase).random_key unless params[:key]
+      params
+    end
+
     # Encrypt payload using configured Cipher
     #
     # @param [String] payload           the payload to be encrypted

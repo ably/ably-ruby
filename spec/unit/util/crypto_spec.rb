@@ -21,6 +21,24 @@ describe Ably::Util::Crypto do
     end
   end
 
+  context 'get_default_params' do
+    it 'uses the defaults and generates a key if not provided' do
+      expect(Ably::Util::Crypto.get_default_params[:algorithm]).to eql('AES')
+      expect(Ably::Util::Crypto.get_default_params[:mode]).to eql('CBC')
+      expect(Ably::Util::Crypto.get_default_params[:key_length]).to eql(128)
+      expect(Ably::Util::Crypto.get_default_params[:key].unpack('b*').first.length).to eql(128)
+    end
+
+    it 'uses the defaults and sets the key size when key is provided' do
+      key_192 = '123456781234567812345678'
+      params = Ably::Util::Crypto.get_default_params(key_192)
+      expect(params[:algorithm]).to eql('AES')
+      expect(params[:mode]).to eql('CBC')
+      expect(params[:key_length]).to eql(192)
+      expect(params[:key]).to eql(key_192)
+    end
+  end
+
   context 'encrypts & decrypt' do
     let(:string) { random_str }
     let(:byte_array) { random_str.to_msgpack.unpack('C*') }
