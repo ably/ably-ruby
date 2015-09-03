@@ -190,7 +190,9 @@ module Ably
       # @return [Ably::Util::SafeDeferrable] Deferrable that supports both success (callback) and failure (errback) callback
       #
       def attach(&success_block)
-        raise Ably::Exceptions::InvalidStateChange.new("Cannot ATTACH channel when the connection is in a closed, suspended or failed state. Connection state: #{connection.state}") if connection.closing? || connection.closed? || connection.suspended? || connection.failed?
+        if connection.closing? || connection.closed? || connection.suspended? || connection.failed?
+          raise Ably::Exceptions::InvalidStateChange.new("Cannot ATTACH channel when the connection is in a closed, suspended or failed state. Connection state: #{connection.state}")
+        end
 
         transition_state_machine :attaching if can_transition_to?(:attaching)
         deferrable_for_state_change_to(STATE.Attached, &success_block)

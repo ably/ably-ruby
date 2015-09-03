@@ -830,6 +830,73 @@ describe Ably::Realtime::Channel, :event_machine do
           end
         end
       end
+
+      context ':suspended' do
+        context 'an :attached channel' do
+          it 'transitions state to :detached' do
+            channel.attach do
+              channel.on(:detached) do
+                stop_reactor
+              end
+              client.connection.transition_state_machine :suspended
+            end
+          end
+        end
+
+        context 'a :detached channel' do
+          it 'remains in the :detached state' do
+            channel.attach do
+              channel.detach do
+                channel.on(:detached) { raise 'Detached state should not have been reached' }
+                channel.on(:error)    { raise 'Error should not have been emitted' }
+
+                EventMachine.add_timer(1) do
+                  expect(channel).to be_detached
+                  stop_reactor
+                end
+
+                client.connection.transition_state_machine :suspended
+              end
+            end
+          end
+        end
+
+        context 'a :failed channel' do
+          let(:original_error) { RuntimeError.new }
+          let(:client_options)   { default_options.merge(log_level: :fatal) }
+
+          it 'remains in the :failed state and retains the error_reason' do
+            channel.attach do
+              channel.once(:error) do
+                channel.on(:detached) { raise 'Detached state should not have been reached' }
+                channel.on(:error)    { raise 'Error should not have been emitted' }
+
+                EventMachine.add_timer(1) do
+                  expect(channel).to be_failed
+                  expect(channel.error_reason).to eql(original_error)
+                  stop_reactor
+                end
+
+                client.connection.transition_state_machine :suspended
+              end
+
+              channel.transition_state_machine :failed, original_error
+            end
+          end
+        end
+
+        context 'a channel ATTACH request when connection SUSPENDED' do
+          it 'raises an exception' do
+            client.connect do
+              client.connection.once(:suspended) do
+                expect { channel.attach }.to raise_error Ably::Exceptions::InvalidStateChange
+                stop_reactor
+              end
+              client.connection.transition_state_machine :suspended
+            end
+          end
+        end
+      end
     end
 
     describe '#presence' do
