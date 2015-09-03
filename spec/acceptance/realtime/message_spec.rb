@@ -575,12 +575,14 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       let(:message_state)  { [] }
       let(:connection)     { client.connection }
       let(:client_options) { default_options.merge(:log_level => :fatal) }
+      let(:msgs_received)  { [] }
 
-      it 'publishes the message again and later receives the ACK' do
+      it 'publishes the message again, later receives the ACK and only one message is ever received from Ably' do
         on_reconnected = Proc.new do
           expect(message_state).to be_empty
           EventMachine.add_timer(2) do
             expect(message_state).to contain_exactly(:delivered)
+            expect(msgs_received.length).to eql(1)
             stop_reactor
           end
         end
@@ -602,6 +604,10 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
           deferrable.errback do
             raise 'Message delivery should not fail'
           end
+        end
+
+        channel.subscribe do |message|
+          msgs_received << message
         end
       end
     end
