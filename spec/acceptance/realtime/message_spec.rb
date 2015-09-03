@@ -257,7 +257,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
 
     context 'without suitable publishing permissions' do
       let(:restricted_client) do
-        Ably::Realtime::Client.new(options.merge(key: restricted_api_key, environment: environment, protocol: protocol))
+        Ably::Realtime::Client.new(options.merge(key: restricted_api_key, environment: environment, protocol: protocol, :log_level => :error))
       end
       let(:restricted_channel) { restricted_client.channel("cansubscribe:example") }
       let(:payload)            { 'Test message without permission to publish' }
@@ -563,6 +563,97 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
               expect(error).to be_a(Ably::Exceptions::CipherError)
               expect(error.code).to eql(92003)
               expect(error.message).to match(/CipherError decrypting data/)
+              stop_reactor
+            end
+          end
+        end
+      end
+    end
+
+    describe 'when message is published, the connection disconnects before the ACK is received, and the connection is resumed' do
+      let(:event_name)     { random_str }
+      let(:message_state)  { [] }
+      let(:connection)     { client.connection }
+      let(:client_options) { default_options.merge(:log_level => :fatal) }
+
+      it 'publishes the message again and later receives the ACK' do
+        on_reconnected = Proc.new do
+          expect(message_state).to be_empty
+          EventMachine.add_timer(2) do
+            expect(message_state).to contain_exactly(:delivered)
+            stop_reactor
+          end
+        end
+
+        connection.once(:connected) do
+          connection.transport.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+            if protocol_message.messages.find { |message| message.name == event_name }
+              EventMachine.add_timer(0.02) do
+                connection.transport.unbind # trigger failure
+                expect(message_state).to be_empty
+                connection.once :connected, &on_reconnected
+              end
+            end
+          end
+        end
+
+        channel.publish(event_name).tap do |deferrable|
+          deferrable.callback { message_state << :delivered }
+          deferrable.errback do
+            raise 'Message delivery should not fail'
+          end
+        end
+      end
+    end
+
+    describe 'when message is published, the connection disconnects before the ACK is received' do
+      let(:connection) { client.connection }
+      let(:event_name) { random_str }
+
+      describe 'the connection becomes suspended' do
+        let(:client_options) { default_options.merge(:log_level => :fatal) }
+
+        it 'calls the errback for all messages' do
+          connection.once(:connected) do
+            connection.transport.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+              if protocol_message.messages.find { |message| message.name == event_name }
+                EventMachine.add_timer(0.02) do
+                  connection.transition_state_machine :suspended
+                end
+              end
+            end
+          end
+
+          channel.publish(event_name).tap do |deferrable|
+            deferrable.callback do
+              raise 'Message delivery should not happen'
+            end
+            deferrable.errback do
+              stop_reactor
+            end
+          end
+        end
+      end
+
+      describe 'the connection becomes failed' do
+        let(:client_options) { default_options.merge(:log_level => :none) }
+
+        it 'calls the errback for all messages' do
+          connection.once(:connected) do
+            connection.transport.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+              if protocol_message.messages.find { |message| message.name == event_name }
+                EventMachine.add_timer(0.02) do
+                  connection.transition_state_machine :failed, RuntimeError.new
+                end
+              end
+            end
+          end
+
+          channel.publish(event_name).tap do |deferrable|
+            deferrable.callback do
+              raise 'Message delivery should not happen'
+            end
+            deferrable.errback do
               stop_reactor
             end
           end

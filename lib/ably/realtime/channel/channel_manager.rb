@@ -118,6 +118,22 @@ module Ably::Realtime
         )
       end
 
+      # Any message sent before an ACK/NACK was received on the previous transport
+      # needs to be resent to the Ably service so that a subsequent ACK/NACK is received.
+      # It is up to Ably to ensure that duplicate messages are not retransmitted on the channel
+      # base on the serial numbers
+      #
+      # @api private
+      def resend_pending_message_ack_queue
+        connection.__pending_message_ack_queue__.delete_if do |protocol_message|
+          if protocol_message.channel == channel.name
+            connection.__outgoing_message_queue__ << protocol_message
+            connection.__outgoing_protocol_msgbus__.publish :protocol_message
+            true
+          end
+        end
+      end
+
       def setup_connection_event_handlers
         connection.unsafe_on(:closed) do
           channel.transition_state_machine :detaching if can_transition_to?(:detaching)
@@ -133,6 +149,10 @@ module Ably::Realtime
           if can_transition_to?(:failed)
             channel.transition_state_machine :failed, Ably::Exceptions::ConnectionFailed.new('Connection failed', nil, 80002, error)
           end
+        end
+
+        connection.unsafe_on(:connected) do |error|
+          resend_pending_message_ack_queue
         end
       end
 
