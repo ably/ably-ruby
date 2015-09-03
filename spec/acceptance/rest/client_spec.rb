@@ -63,6 +63,16 @@ describe Ably::Rest::Client do
         end
       end
 
+      context 'with an :auth_callback Proc (clientId provided in library options instead of as a token_request param)' do
+        let(:client) { Ably::Rest::Client.new(client_options.merge(client_id: client_id, auth_callback: Proc.new { token_request })) }
+        let(:token_request) { client.auth.create_token_request(key_name: key_name, key_secret: key_secret) }
+
+        it 'correctly sets the clientId on the token' do
+          expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token_details }
+          expect(client.auth.current_token_details.client_id).to eql(client_id)
+        end
+      end
+
       context 'with an auth URL' do
         let(:client_options)    { default_options.merge(key: api_key, auth_url: token_request_url, auth_method: :get) }
         let(:token_request_url) { 'http://get.token.request.com/' }

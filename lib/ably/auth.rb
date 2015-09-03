@@ -74,7 +74,7 @@ module Ably
         raise ArgumentError, 'key is missing. Either an API key, token, or token auth method must be provided'
       end
 
-      if has_client_id?
+      if has_client_id? && !token_creatable_externally?
         raise ArgumentError, 'client_id cannot be provided without a complete API key. Key name & Secret is needed to authenticate with Ably and obtain a token' unless api_key_present?
         ensure_utf_8 :client_id, client_id
       end
