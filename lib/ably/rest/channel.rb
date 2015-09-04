@@ -34,6 +34,7 @@ module Ably
       #
       # @param name [String, Array<Ably::Models::Message|Hash>, nil]   The event name of the message to publish, or an Array of [Ably::Model::Message] objects or [Hash] objects with +:name+ and +:data+ pairs
       # @param data [String, ByteArray, nil]   The message payload unless an Array of [Ably::Model::Message] objects passed in the first argument
+      # @param attributes [Hash, nil]   Optional additional message attributes such as :client_id or :connection_id, applied when name attribute is nil or a string
       # @return [Boolean]  true if the message was published, otherwise false
       #
       # @example
@@ -54,13 +55,13 @@ module Ably
       #   ]
       #   channel.publish messages
       #
-      def publish(name, data = nil)
+      def publish(name, data = nil, attributes = {})
         messages = if name.kind_of?(Enumerable)
           name
         else
           ensure_utf_8 :name, name, allow_nil: true
           ensure_supported_payload data
-          [{ name: name, data: data }]
+          [{ name: name, data: data }.merge(attributes)]
         end
 
         payload = messages.map do |message|

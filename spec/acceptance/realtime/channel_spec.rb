@@ -433,6 +433,19 @@ describe Ably::Realtime::Channel, :event_machine do
             end
           end
         end
+
+        context 'and additional attributes' do
+          let(:client_id) { random_str }
+
+          it 'publishes the message with the attributes and return true indicating success' do
+            channel.publish(name, data, client_id: client_id) do
+              channel.history do |page|
+                expect(page.items.first.client_id).to eql(client_id)
+                stop_reactor
+              end
+            end
+          end
+        end
       end
 
       context 'with an array of Hash objects with :name and :data attributes' do

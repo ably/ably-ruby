@@ -107,6 +107,7 @@ module Ably
       #
       # @param name [String, Array<Ably::Models::Message|Hash>, nil]   The event name of the message to publish, or an Array of [Ably::Model::Message] objects or [Hash] objects with +:name+ and +:data+ pairs
       # @param data [String, ByteArray, nil]   The message payload unless an Array of [Ably::Model::Message] objects passed in the first argument
+      # @param attributes [Hash, nil]   Optional additional message attributes such as :client_id or :connection_id, applied when name attribute is nil or a string
       #
       # @yield [Ably::Models::Message,Array<Ably::Models::Message>] On success, will call the block with the {Ably::Models::Message} if a single message is publishde, or an Array of {Ably::Models::Message} when multiple messages are published
       # @return [Ably::Util::SafeDeferrable] Deferrable that supports both success (callback) and failure (errback) callbacks
@@ -137,7 +138,7 @@ module Ably
       #     puts "#{message.name} was not received, error #{error.message}"
       #   end
       #
-      def publish(name, data = nil, &success_block)
+      def publish(name, data = nil, attributes = {}, &success_block)
         raise Ably::Exceptions::ChannelInactive.new('Cannot publish messages on a detached channel') if detached? || detaching?
         raise Ably::Exceptions::ChannelInactive.new('Cannot publish messages on a failed channel') if failed?
 
@@ -150,7 +151,7 @@ module Ably
         else
           ensure_utf_8 :name, name, allow_nil: true
           ensure_supported_payload data
-          [{ name: name, data: data }]
+          [{ name: name, data: data }.merge(attributes)]
         end
 
         queue_messages(messages).tap do |deferrable|

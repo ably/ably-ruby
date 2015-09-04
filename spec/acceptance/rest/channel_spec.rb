@@ -22,6 +22,15 @@ describe Ably::Rest::Channel do
           expect(channel.history.items.first.name).to eql(name)
           expect(channel.history.items.first.data).to eql(data)
         end
+
+        context 'and additional attributes' do
+          let(:client_id) { random_str }
+
+          it 'publishes the message with the attributes and return true indicating success' do
+            expect(channel.publish(name, data, client_id: client_id)).to eql(true)
+            expect(channel.history.items.first.client_id).to eql(client_id)
+          end
+        end
       end
 
       context 'with an array of Hash objects with :name and :data attributes' do
