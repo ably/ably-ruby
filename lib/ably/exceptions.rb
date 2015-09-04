@@ -58,6 +58,9 @@ module Ably
     # Connection Timeout accessing Realtime or REST service
     class ConnectionTimeout < ConnectionError; end
 
+    # Transport closed unexpectedly
+    class TransportClosed < ConnectionError; end
+
     # Connection closed unexpectedly
     class ConnectionClosed < ConnectionError; end
 

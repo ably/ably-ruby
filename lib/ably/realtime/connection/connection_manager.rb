@@ -80,7 +80,8 @@ module Ably::Realtime
       # @api private
       def connection_opening_failed(error)
         logger.warn "ConnectionManager: Connection to #{connection.current_host}:#{connection.port} failed; #{error.message}"
-        connection.transition_state_machine next_retry_state, reason: Ably::Exceptions::ConnectionError.new("Connection failed: #{error.message}", nil, 80000)
+        next_state = get_next_retry_state_info
+        connection.transition_state_machine next_state.fetch(:state), retry_in: next_state.fetch(:pause), reason: Ably::Exceptions::ConnectionError.new("Connection failed: #{error.message}", nil, 80000)
       end
 
       # Called whenever a new connection is made
@@ -196,7 +197,7 @@ module Ably::Realtime
       def error_received_from_server(error)
         case error.code
         when RESOLVABLE_ERROR_CODES.fetch(:token_expired)
-          connection.transition_state_machine :disconnected
+          connection.transition_state_machine :disconnected, retry_in: 0
           connection.unsafe_once_or_if(:disconnected) do
             renew_token_and_reconnect error
           end
@@ -247,11 +248,25 @@ module Ably::Realtime
         timers.fetch(key, []).each(&:cancel)
       end
 
-      def next_retry_state
-        if connection_retry_from_suspended_state? || time_passed_since_disconnected > CONNECT_RETRY_CONFIG.fetch(:disconnected).fetch(:max_time_in_state)
+      def get_next_retry_state_info
+        retry_state = if connection_retry_from_suspended_state? || !can_reattempt_connect_for_state?(:disconnected)
           :suspended
         else
           :disconnected
+        end
+        {
+          state: retry_state,
+          pause: next_retry_pause(retry_state)
+        }
+      end
+
+      def next_retry_pause(retry_state)
+        return nil unless CONNECT_RETRY_CONFIG.fetch(retry_state)
+
+        if retries_for_state(retry_state, ignore_states: [:connecting]).empty?
+          0
+        else
+          CONNECT_RETRY_CONFIG.fetch(retry_state).fetch(:retry_every)
         end
       end
 
@@ -346,13 +361,12 @@ module Ably::Realtime
             connection.transition_state_machine :closed
           elsif !connection.closed? && !connection.disconnected?
             exception = if reason
-              Ably::Exceptions::ConnectionClosed.new(reason)
-            end
-            if connection_retry_from_suspended_state? || !can_reattempt_connect_for_state?(:disconnected)
-              connection.transition_state_machine :suspended, reason: exception
+              Ably::Exceptions::TransportClosed.new(reason, nil, 80003)
             else
-              connection.transition_state_machine :disconnected, reason: exception
+              Ably::Exceptions::TransportClosed.new('Transport disconnected unexpectedly', nil, 80003)
             end
+            next_state = get_next_retry_state_info
+            connection.transition_state_machine next_state.fetch(:state), retry_in: next_state.fetch(:pause), reason: exception
           end
         end
       end

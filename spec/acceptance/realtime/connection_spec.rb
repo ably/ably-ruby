@@ -1044,6 +1044,50 @@ describe Ably::Realtime::Connection, :event_machine do
             end
           end
         end
+
+        context 'retry_in' do
+          let(:client_options) { default_options.merge(log_level: :debug) }
+
+          it 'is nil when a retry is not required' do
+            connection.on(:connected) do |connection_state_change|
+              expect(connection_state_change.retry_in).to be_nil
+              stop_reactor
+            end
+          end
+
+          it 'is 0 when first attempt to connect fails' do
+            connection.once(:connecting) do
+              connection.once(:disconnected) do |connection_state_change|
+                expect(connection_state_change.retry_in).to eql(0)
+                stop_reactor
+              end
+              EventMachine.add_timer(0.02) { connection.transport.unbind }
+            end
+          end
+
+          it 'is 0 when an immediate reconnect will occur' do
+            connection.once(:connected) do
+              connection.once(:disconnected) do |connection_state_change|
+                expect(connection_state_change.retry_in).to eql(0)
+                stop_reactor
+              end
+              connection.transport.unbind
+            end
+          end
+
+          it 'contains the next retry period when an immediate reconnect will not occur' do
+            connection.once(:connected) do
+              connection.once(:connecting) do
+                connection.once(:disconnected) do |connection_state_change|
+                  expect(connection_state_change.retry_in).to be > 0
+                  stop_reactor
+                end
+                EventMachine.add_timer(0.02) { connection.transport.unbind }
+              end
+              connection.transport.unbind
+            end
+          end
+        end
       end
     end
   end
