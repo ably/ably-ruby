@@ -40,14 +40,25 @@ describe Ably::Realtime::Presence, :event_machine do
       end
 
       unless expected_state == :left
-        %w(detached failed).each do |state|
-          it "raise an exception if the channel is #{state}" do
-            setup_test(method_name, args, options) do
-              channel_client_one.attach do
-                channel_client_one.change_state state.to_sym
-                expect { presence_client_one.public_send(method_name, args) }.to raise_error Ably::Exceptions::InvalidStateChange, /Operation is not allowed when channel is in STATE.#{state}/i
+        it 'raise an exception if the channel is detached' do
+          setup_test(method_name, args, options) do
+            channel_client_one.attach do
+              channel_client_one.transition_state_machine :detaching
+              channel_client_one.once(:detached) do
+                expect { presence_client_one.public_send(method_name, args) }.to raise_error Ably::Exceptions::InvalidStateChange, /Operation is not allowed when channel is in STATE.detached/i
                 stop_reactor
               end
+            end
+          end
+        end
+
+        it 'raise an exception if the channel is failed' do
+          setup_test(method_name, args, options) do
+            channel_client_one.attach do
+              channel_client_one.transition_state_machine :failed
+              expect(channel_client_one.state).to eq(:failed)
+              expect { presence_client_one.public_send(method_name, args) }.to raise_error Ably::Exceptions::InvalidStateChange, /Operation is not allowed when channel is in STATE.failed/i
+              stop_reactor
             end
           end
         end
@@ -1061,13 +1072,22 @@ describe Ably::Realtime::Presence, :event_machine do
         presence_client_one.get { raise 'Intentional exception' }
       end
 
-      %w(detached failed).each do |state|
-        it "raise an exception if the channel is #{state}" do
-          channel_client_one.attach do
-            channel_client_one.change_state state.to_sym
-            expect { presence_client_one.get }.to raise_error Ably::Exceptions::InvalidStateChange, /Operation is not allowed when channel is in STATE.#{state}/i
+      it 'raise an exception if the channel is detached' do
+        channel_client_one.attach do
+          channel_client_one.transition_state_machine :detaching
+          channel_client_one.once(:detached) do
+            expect { presence_client_one.get }.to raise_error Ably::Exceptions::InvalidStateChange, /Operation is not allowed when channel is in STATE.detached/i
             stop_reactor
           end
+        end
+      end
+
+      it 'raise an exception if the channel is failed' do
+        channel_client_one.attach do
+          channel_client_one.transition_state_machine :failed
+          expect(channel_client_one.state).to eq(:failed)
+          expect { presence_client_one.get }.to raise_error Ably::Exceptions::InvalidStateChange, /Operation is not allowed when channel is in STATE.failed/i
+          stop_reactor
         end
       end
 
@@ -1120,8 +1140,8 @@ describe Ably::Realtime::Presence, :event_machine do
                   if protocol_message.action == :sync
                     # prevent any more SYNC messages coming through
                     client_two.connection.transport.__incoming_protocol_msgbus__.unsubscribe
-                    channel_client_two.change_state :detaching
-                    channel_client_two.change_state :detached
+                    channel_client_two.transition_state_machine :detaching
+                    channel_client_two.transition_state_machine :detached
                   end
                 end
               end
@@ -1565,6 +1585,7 @@ describe Ably::Realtime::Presence, :event_machine do
     context 'connection failure mid-way through a large member sync' do
       let(:members_count) { 400 }
       let(:sync_pages_received) { [] }
+      let(:client_options)  { default_options.merge(log_level: :error) }
 
       it 'resumes the SYNC operation', em_timeout: 15 do
         when_all(*members_count.times.map do |index|

@@ -46,6 +46,7 @@ module Ably
       )
       include Ably::Modules::StateEmitter
       include Ably::Modules::UsesStateMachine
+      ensure_state_machine_emits 'Ably::Models::ChannelStateChange'
 
       # Max number of messages to bundle in a single ProtocolMessage
       MAX_PROTOCOL_MESSAGE_BATCH_SIZE = 50
@@ -286,6 +287,10 @@ module Ably
       def logger
         client.logger
       end
+
+      # As we are using a state machine, do not allow change_state to be used
+      # #transition_state_machine must be used instead
+      private :change_state
 
       private
       attr_reader :queue

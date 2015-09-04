@@ -24,7 +24,8 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           let(:invalid_key) { 'not_an_app.invalid_key_name:invalid_key_value' }
 
           it 'enters the failed state and returns a not found error' do
-            connection.on(:failed) do |error|
+            connection.on(:failed) do |connection_state_change|
+              error = connection_state_change.reason
               expect(connection.state).to eq(:failed)
               # TODO: Check error type is an InvalidToken exception
               expect(error.status).to eq(404)
@@ -38,7 +39,8 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           let(:invalid_key) { "#{app_id}.invalid_key_name:invalid_key_value" }
 
           it 'enters the failed state and returns an authorization error' do
-            connection.on(:failed) do |error|
+            connection.on(:failed) do |connection_state_change|
+              error = connection_state_change.reason
               expect(connection.state).to eq(:failed)
               # TODO: Check error type is a TokenNotFOund exception
               expect(error.status).to eq(401)
@@ -182,7 +184,8 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         context '#error_reason' do
           [:disconnected, :suspended, :failed].each do |state|
             it "contains the error when state is #{state}" do
-              connection.on(state) do |error|
+              connection.on(state) do |connection_state_change|
+                error = connection_state_change.reason
                 expect(connection.error_reason).to eq(error)
                 expect(connection.error_reason.code).to eql(80000)
                 stop_reactor
@@ -488,7 +491,8 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             when_all(*channels.map(&:attach)) do
               detached_channels = []
               channels.each do |channel|
-                channel.on(:detached) do |error|
+                channel.on(:detached) do |channel_state_change|
+                  error = channel_state_change.reason
                   expect(error.message).to match(/Invalid connection key/i)
                   detached_channels << channel
                   next unless detached_channels.count == channel_count

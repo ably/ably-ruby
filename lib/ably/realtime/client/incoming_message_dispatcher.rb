@@ -68,10 +68,10 @@ module Ably::Realtime
 
           when ACTION.Connect
           when ACTION.Connected
-            connection.transition_state_machine :connected, protocol_message unless connection.connected?
+            connection.transition_state_machine :connected, reason: protocol_message unless connection.connected?
 
           when ACTION.Disconnect, ACTION.Disconnected
-            connection.transition_state_machine :disconnected, protocol_message.error unless connection.disconnected?
+            connection.transition_state_machine :disconnected, reason: protocol_message.error unless connection.disconnected?
 
           when ACTION.Close
           when ACTION.Closed
@@ -87,7 +87,7 @@ module Ably::Realtime
           when ACTION.Attach
           when ACTION.Attached
             get_channel(protocol_message.channel).tap do |channel|
-              channel.transition_state_machine :attached, protocol_message unless channel.attached?
+              channel.transition_state_machine :attached, reason: protocol_message unless channel.attached?
             end
 
           when ACTION.Detach
@@ -125,7 +125,7 @@ module Ably::Realtime
       def dispatch_channel_error(protocol_message)
         logger.warn "Channel Error message received: #{protocol_message.error}"
         if !protocol_message.has_message_serial?
-          get_channel(protocol_message.channel).transition_state_machine :failed, protocol_message.error
+          get_channel(protocol_message.channel).transition_state_machine :failed, reason: protocol_message.error
         else
           logger.fatal "Cannot process ProtocolMessage as not yet implemented: #{protocol_message}"
         end

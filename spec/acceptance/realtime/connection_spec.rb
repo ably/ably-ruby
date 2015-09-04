@@ -127,8 +127,8 @@ describe Ably::Realtime::Connection, :event_machine do
                 it 'renews the token on connect, and only makes one subsequent attempt to obtain a new token' do
                   expect(client.rest_client.auth).to receive(:authorise).at_least(:twice).and_call_original
                   connection.once(:disconnected) do
-                    connection.once(:failed) do |error|
-                      expect(error.code).to eql(40140) # token expired
+                    connection.once(:failed) do |connection_state_change|
+                      expect(connection_state_change.reason.code).to eql(40140) # token expired
                       stop_reactor
                     end
                   end
@@ -167,8 +167,8 @@ describe Ably::Realtime::Connection, :event_machine do
 
                     connection.once(:connected) do
                       started_at = Time.now
-                      connection.once(:disconnected) do |error|
-                        expect(error.code).to eq(40140) # Token expired
+                      connection.once(:disconnected) do |connection_state_change|
+                        expect(connection_state_change.reason.code).to eq(40140) # Token expired
 
                         # Token has expired, so now ensure it is not used again
                         stub_const 'Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER', original_token_expiry_buffer
@@ -178,7 +178,6 @@ describe Ably::Realtime::Connection, :event_machine do
                           expect(client.auth.current_token_details).to_not be_expired
                           expect(Time.now - started_at >= ttl)
                           expect(original_token).to be_expired
-                          expect(error.code).to eql(40140) # token expired
                           stop_reactor
                         end
                       end

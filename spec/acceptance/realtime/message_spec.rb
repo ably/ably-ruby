@@ -650,7 +650,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
             connection.transport.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
               if protocol_message.messages.find { |message| message.name == event_name }
                 EventMachine.add_timer(0.02) do
-                  connection.transition_state_machine :failed, RuntimeError.new
+                  connection.transition_state_machine :failed, reason: RuntimeError.new
                 end
               end
             end

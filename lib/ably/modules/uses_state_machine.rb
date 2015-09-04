@@ -13,8 +13,8 @@ module Ably::Modules
     #
     # @return [Boolean] true if new_state can be transitioned to by state machine
     # @api private
-    def transition_state_machine(new_state, emit_object = nil)
-      state_machine.transition_state(new_state, emit_object)
+    def transition_state_machine(new_state, emit_params = {})
+      state_machine.transition_state(new_state, emit_object(new_state, emit_params))
     end
 
     # Call #transition_to! on the StateMachine
@@ -22,8 +22,8 @@ module Ably::Modules
     #
     # @return [void]
     # @api private
-    def transition_state_machine!(new_state, emit_object = nil)
-      state_machine.transition_to!(new_state, emit_object)
+    def transition_state_machine!(new_state, emit_params = {})
+      state_machine.transition_to!(new_state, emit_object(new_state, emit_params))
     end
 
     # Provides an internal method for this object's state to match the StateMachine's current state.
@@ -68,6 +68,30 @@ module Ably::Modules
         logger.debug "#{self.class.name}: Transitioned from #{state_machine.previous_state} => #{state_machine.current_state}"
       else
         logger.debug "#{self.class.name}: Transitioned to #{state_machine.current_state}"
+      end
+    end
+
+    def emit_object(new_state, emit_params)
+      if self.class.emits_klass
+        self.class.emits_klass.new((emit_params || {}).merge(current: STATE(new_state), previous: STATE(state_machine.current_state)))
+      else
+        emit_params
+      end
+    end
+
+    def self.included(base)
+      base.extend(ClassMethods)
+    end
+
+    module ClassMethods
+      def emits_klass
+        @emits_klass ||= if @emits_klass_name
+          Object.const_get @emits_klass_name
+        end
+      end
+
+      def ensure_state_machine_emits(klass)
+        @emits_klass_name = klass
       end
     end
   end

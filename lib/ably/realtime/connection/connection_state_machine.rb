@@ -41,11 +41,11 @@ module Ably::Realtime
       end
 
       before_transition(to: [:connected]) do |connection, current_transition|
-        connection.manager.connected current_transition.metadata
+        connection.manager.connected current_transition.metadata.reason
       end
 
       after_transition(to: [:connected]) do |connection, current_transition|
-        protocol_message = current_transition.metadata
+        protocol_message = current_transition.metadata.reason
         if is_error_type?(protocol_message.error)
           connection.logger.warn "ConnectionManager: Connected with error - #{protocol_message.error.message}"
           connection.emit :error, protocol_message.error
@@ -53,11 +53,13 @@ module Ably::Realtime
       end
 
       after_transition(to: [:disconnected, :suspended], from: [:connecting]) do |connection, current_transition|
-        connection.manager.respond_to_transport_disconnected_when_connecting current_transition
+        err = error_from_state_change(current_transition)
+        connection.manager.respond_to_transport_disconnected_when_connecting err
       end
 
       after_transition(to: [:disconnected], from: [:connected]) do |connection, current_transition|
-        connection.manager.respond_to_transport_disconnected_whilst_connected current_transition
+        err = error_from_state_change(current_transition)
+        connection.manager.respond_to_transport_disconnected_whilst_connected err
       end
 
       after_transition(to: [:disconnected, :suspended]) do |connection|
@@ -65,7 +67,8 @@ module Ably::Realtime
       end
 
       before_transition(to: [:failed]) do |connection, current_transition|
-        connection.manager.fail current_transition.metadata
+        err = error_from_state_change(current_transition)
+        connection.manager.fail err
       end
 
       after_transition(to: [:closing], from: [:initialized, :disconnected, :suspended]) do |connection|
@@ -82,22 +85,29 @@ module Ably::Realtime
 
       # Transitions responsible for updating connection#error_reason
       before_transition(to: [:disconnected, :suspended, :failed]) do |connection, current_transition|
-        connection.set_failed_connection_error_reason current_transition.metadata
+        err = error_from_state_change(current_transition)
+        connection.set_failed_connection_error_reason err
       end
 
       before_transition(to: [:connected, :closed]) do |connection, current_transition|
-        error = if current_transition.metadata.kind_of?(Ably::Models::ProtocolMessage)
-          current_transition.metadata.error
-        else
-          current_transition.metadata
-        end
+        err = error_from_state_change(current_transition)
 
-        if is_error_type?(error)
-          connection.set_failed_connection_error_reason error
+        if err
+          connection.set_failed_connection_error_reason err
         else
           # Connected & Closed are "healthy" final states so reset the error reason
           connection.clear_error_reason
         end
+      end
+
+      def self.error_from_state_change(current_transition)
+        # ConnectionStateChange object is always passed in current_transition metadata object
+        connection_state_change = current_transition.metadata
+        # Reason attribute contains errors
+        err = connection_state_change && connection_state_change.reason
+        # If a ProtocolMessage is passed in the Reason attribute, then use the error object of that ProtocolMesage
+        err = err.error if err.kind_of?(Ably::Models::ProtocolMessage)
+        err if is_error_type?(err)
       end
 
       private
