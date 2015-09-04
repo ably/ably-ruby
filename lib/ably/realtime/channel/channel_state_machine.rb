@@ -35,7 +35,7 @@ module Ably::Realtime
       end
 
       before_transition(to: [:attached]) do |channel, current_transition|
-        channel.manager.attached current_transition.metadata.reason
+        channel.manager.attached current_transition.metadata.protocol_message
       end
 
       after_transition(to: [:detaching]) do |channel, current_transition|

@@ -936,6 +936,15 @@ describe Ably::Realtime::Channel, :event_machine do
           channel.attach
         end
 
+        it 'contains a private API protocol_message attribute that is used for special state change events', :api_private do
+          channel.on(:attached) do |channel_state_change|
+            expect(channel_state_change.protocol_message).to be_a(Ably::Models::ProtocolMessage)
+            expect(channel_state_change.reason).to be_nil
+            stop_reactor
+          end
+          channel.attach
+        end
+
         it 'has an empty reason when there is no error' do
           channel.on(:detached) do |channel_state_change|
             expect(channel_state_change.reason).to be_nil

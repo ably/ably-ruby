@@ -939,6 +939,8 @@ describe Ably::Realtime::Connection, :event_machine do
       end
 
       context 'when connection enters the :suspended state' do
+        let(:client_options) { default_options.merge(:log_level => :fatal) }
+
         before do
           # Reconfigure client library retry periods so that client stays in suspended state
           stub_const 'Ably::Realtime::Connection::ConnectionManager::CONNECT_RETRY_CONFIG',
@@ -1006,6 +1008,14 @@ describe Ably::Realtime::Connection, :event_machine do
         it 'has a previous state' do
           connection.on(:connected) do |connection_state_change|
             expect(connection_state_change.previous).to eq(:connecting)
+            stop_reactor
+          end
+        end
+
+        it 'contains a private API protocol_message attribute that is used for special state change events', :api_private do
+          connection.on(:connected) do |connection_state_change|
+            expect(connection_state_change.protocol_message).to be_a(Ably::Models::ProtocolMessage)
+            expect(connection_state_change.reason).to be_nil
             stop_reactor
           end
         end

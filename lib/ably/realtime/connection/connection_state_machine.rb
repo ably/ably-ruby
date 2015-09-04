@@ -41,14 +41,14 @@ module Ably::Realtime
       end
 
       before_transition(to: [:connected]) do |connection, current_transition|
-        connection.manager.connected current_transition.metadata.reason
+        connection.manager.connected current_transition.metadata.protocol_message
       end
 
       after_transition(to: [:connected]) do |connection, current_transition|
-        protocol_message = current_transition.metadata.reason
-        if is_error_type?(protocol_message.error)
-          connection.logger.warn "ConnectionManager: Connected with error - #{protocol_message.error.message}"
-          connection.emit :error, protocol_message.error
+        error = current_transition.metadata.reason
+        if is_error_type?(error)
+          connection.logger.warn "ConnectionManager: Connected with error - #{error.message}"
+          connection.emit :error, error
         end
       end
 
@@ -105,8 +105,6 @@ module Ably::Realtime
         connection_state_change = current_transition.metadata
         # Reason attribute contains errors
         err = connection_state_change && connection_state_change.reason
-        # If a ProtocolMessage is passed in the Reason attribute, then use the error object of that ProtocolMesage
-        err = err.error if err.kind_of?(Ably::Models::ProtocolMessage)
         err if is_error_type?(err)
       end
 

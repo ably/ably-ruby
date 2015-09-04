@@ -68,7 +68,7 @@ module Ably::Realtime
 
           when ACTION.Connect
           when ACTION.Connected
-            connection.transition_state_machine :connected, reason: protocol_message unless connection.connected?
+            connection.transition_state_machine :connected, reason: protocol_message.error, protocol_message: protocol_message unless connection.connected?
 
           when ACTION.Disconnect, ACTION.Disconnected
             connection.transition_state_machine :disconnected, reason: protocol_message.error unless connection.disconnected?
@@ -87,7 +87,7 @@ module Ably::Realtime
           when ACTION.Attach
           when ACTION.Attached
             get_channel(protocol_message.channel).tap do |channel|
-              channel.transition_state_machine :attached, reason: protocol_message unless channel.attached?
+              channel.transition_state_machine :attached, reason: protocol_message.error, protocol_message: protocol_message unless channel.attached?
             end
 
           when ACTION.Detach
