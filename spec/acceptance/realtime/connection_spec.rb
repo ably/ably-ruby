@@ -986,5 +986,55 @@ describe Ably::Realtime::Connection, :event_machine do
         end
       end
     end
+
+    context 'connection state change' do
+      it 'emits a ConnectionStateChange object' do
+        connection.on(:connected) do |connection_state_change|
+          expect(connection_state_change).to be_a(Ably::Models::ConnectionStateChange)
+          stop_reactor
+        end
+      end
+
+      context 'ConnectionStateChange object' do
+        it 'has current state' do
+          connection.on(:connected) do |connection_state_change|
+            expect(connection_state_change.current).to eq(:connected)
+            stop_reactor
+          end
+        end
+
+        it 'has a previous state' do
+          connection.on(:connected) do |connection_state_change|
+            expect(connection_state_change.previous).to eq(:connecting)
+            stop_reactor
+          end
+        end
+
+        it 'has an empty reason when there is no error' do
+          connection.on(:closed) do |connection_state_change|
+            expect(connection_state_change.reason).to be_nil
+            stop_reactor
+          end
+          connection.connect do
+            connection.close
+          end
+        end
+
+        context 'on failure' do
+          let(:client_options) { default_options.merge(log_level: :none) }
+
+          it 'has a reason Error object when there is an error on the connection' do
+            connection.on(:failed) do |connection_state_change|
+              expect(connection_state_change.reason).to be_a(Ably::Exceptions::BaseAblyException)
+              stop_reactor
+            end
+            connection.connect do
+              error = Ably::Exceptions::ConnectionFailed.new('forced failure', 500, 50000)
+              client.connection.manager.error_received_from_server error
+            end
+          end
+        end
+      end
+    end
   end
 end

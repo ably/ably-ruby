@@ -835,6 +835,8 @@ describe Ably::Realtime::Channel, :event_machine do
 
       context ':suspended' do
         context 'an :attached channel' do
+          let(:client_options) { default_options.merge(log_level: :fatal) }
+
           it 'transitions state to :detached' do
             channel.attach do
               channel.on(:detached) do
@@ -905,6 +907,59 @@ describe Ably::Realtime::Channel, :event_machine do
       it 'returns a Ably::Realtime::Presence object' do
         expect(channel.presence).to be_a(Ably::Realtime::Presence)
         stop_reactor
+      end
+    end
+
+    context 'channel state change' do
+      it 'emits a ChannelStateChange object' do
+        channel.on(:attached) do |channel_state_change|
+          expect(channel_state_change).to be_a(Ably::Models::ChannelStateChange)
+          stop_reactor
+        end
+        channel.attach
+      end
+
+      context 'ChannelStateChange object' do
+        it 'has current state' do
+          channel.on(:attached) do |channel_state_change|
+            expect(channel_state_change.current).to eq(:attached)
+            stop_reactor
+          end
+          channel.attach
+        end
+
+        it 'has a previous state' do
+          channel.on(:attached) do |channel_state_change|
+            expect(channel_state_change.previous).to eq(:attaching)
+            stop_reactor
+          end
+          channel.attach
+        end
+
+        it 'has an empty reason when there is no error' do
+          channel.on(:detached) do |channel_state_change|
+            expect(channel_state_change.reason).to be_nil
+            stop_reactor
+          end
+          channel.attach do
+            channel.detach
+          end
+        end
+
+        context 'on failure' do
+          let(:client_options) { default_options.merge(log_level: :none) }
+
+          it 'has a reason Error object when there is an error on the channel' do
+            channel.on(:failed) do |channel_state_change|
+              expect(channel_state_change.reason).to be_a(Ably::Exceptions::BaseAblyException)
+              stop_reactor
+            end
+            channel.attach do
+              error = Ably::Exceptions::ConnectionFailed.new('forced failure', 500, 50000)
+              client.connection.manager.error_received_from_server error
+            end
+          end
+        end
       end
     end
   end
