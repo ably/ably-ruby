@@ -921,12 +921,12 @@ describe Ably::Realtime::Connection, :event_machine do
               expect(connection.__outgoing_message_queue__).to be_empty
               channel.publish 'test'
 
-              EventMachine.add_timer(0.02) do
+              EventMachine.next_tick do
                 expect(connection.__outgoing_message_queue__).to_not be_empty
               end
 
               connection.once(:connected) do
-                EventMachine.add_timer(0.02) do
+                EventMachine.add_timer(0.1) do
                   expect(connection.__outgoing_message_queue__).to be_empty
                   stop_reactor
                 end
@@ -958,7 +958,7 @@ describe Ably::Realtime::Connection, :event_machine do
             end
 
             close_connection_proc = Proc.new do
-              EventMachine.add_timer(0.02) do
+              EventMachine.add_timer(0.001) do
                 if connection.transport.nil?
                   close_connection_proc.call
                 else
@@ -1061,7 +1061,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 expect(connection_state_change.retry_in).to eql(0)
                 stop_reactor
               end
-              EventMachine.add_timer(0.02) { connection.transport.unbind }
+              EventMachine.add_timer(0.001) { connection.transport.unbind }
             end
           end
 
@@ -1082,7 +1082,7 @@ describe Ably::Realtime::Connection, :event_machine do
                   expect(connection_state_change.retry_in).to be > 0
                   stop_reactor
                 end
-                EventMachine.add_timer(0.02) { connection.transport.unbind }
+                EventMachine.add_timer(0.001) { connection.transport.unbind }
               end
               connection.transport.unbind
             end

@@ -609,7 +609,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
         connection.once(:connected) do
           connection.transport.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
             if protocol_message.messages.find { |message| message.name == event_name }
-              EventMachine.add_timer(0.02) do
+              EventMachine.add_timer(0.001) do
                 connection.transport.unbind # trigger failure
                 expect(message_state).to be_empty
                 connection.once :connected, &on_reconnected
@@ -642,7 +642,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
           connection.once(:connected) do
             connection.transport.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
               if protocol_message.messages.find { |message| message.name == event_name }
-                EventMachine.add_timer(0.02) do
+                EventMachine.add_timer(0.001) do
                   connection.transition_state_machine :suspended
                 end
               end
@@ -667,7 +667,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
           connection.once(:connected) do
             connection.transport.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
               if protocol_message.messages.find { |message| message.name == event_name }
-                EventMachine.add_timer(0.02) do
+                EventMachine.add_timer(0.001) do
                   connection.transition_state_machine :failed, reason: RuntimeError.new
                 end
               end
