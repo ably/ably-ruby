@@ -209,6 +209,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
         end
 
         it 'will not echo messages to the client from other REST clients publishing using that connection_ID', em_timeout: 10 do
+          skip 'Waiting on realtime#285 to be resolved'
           no_echo_channel.attach do
             no_echo_channel.subscribe('test_event') do |message|
               fail "Message should not have been echoed back"
