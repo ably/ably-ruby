@@ -6,6 +6,12 @@
 
 **Implemented enhancements:**
 
+- Add compatibility support for default Crypto params [\#53](https://github.com/ably/ably-ruby/issues/53)
+
+- EventEmitter on connection [\#52](https://github.com/ably/ably-ruby/issues/52)
+
+- Add test for connectionId attribute for a message sent over REST [\#50](https://github.com/ably/ably-ruby/issues/50)
+
 - Implement :queue\_messages option [\#36](https://github.com/ably/ably-ruby/issues/36)
 
 - Check that a non 200-299 status code for REST requests uses fallback hosts [\#35](https://github.com/ably/ably-ruby/issues/35)
@@ -31,6 +37,10 @@
 - Channel options can be reset when accessing a channel with \#get [\#46](https://github.com/ably/ably-ruby/issues/46)
 
 **Merged pull requests:**
+
+- Spec update to fix a number of issues [\#60](https://github.com/ably/ably-ruby/pull/60) ([mattheworiordan](https://github.com/mattheworiordan))
+
+- Allow clientId to be provided on init if using externally created token [\#58](https://github.com/ably/ably-ruby/pull/58) ([SimonWoolf](https://github.com/SimonWoolf))
 
 - Separate token params for auth [\#57](https://github.com/ably/ably-ruby/pull/57) ([mattheworiordan](https://github.com/mattheworiordan))
 
