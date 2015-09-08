@@ -92,7 +92,7 @@ describe Ably::Realtime::Channel, :event_machine do
 
         it 'reattaches' do
           channel.attach do
-            channel.transition_state_machine :failed, RuntimeError.new
+            channel.transition_state_machine :failed, reason: RuntimeError.new
             expect(channel).to be_failed
             channel.attach do
               expect(channel).to be_attached
@@ -154,9 +154,9 @@ describe Ably::Realtime::Channel, :event_machine do
 
         it 'emits failed event' do
           restricted_channel.attach
-          restricted_channel.on(:failed) do |error|
+          restricted_channel.on(:failed) do |connection_state|
             expect(restricted_channel.state).to eq(:failed)
-            expect(error.status).to eq(401)
+            expect(connection_state.reason.status).to eq(401)
             stop_reactor
           end
         end
@@ -262,7 +262,7 @@ describe Ably::Realtime::Channel, :event_machine do
 
         it 'raises an exception' do
           channel.attach do
-            channel.transition_state_machine :failed, RuntimeError.new
+            channel.transition_state_machine :failed, reason: RuntimeError.new
             expect(channel).to be_failed
             expect { channel.detach }.to raise_error Ably::Exceptions::InvalidStateChange
             stop_reactor
@@ -430,6 +430,19 @@ describe Ably::Realtime::Channel, :event_machine do
               expect(page.items.first.name).to eql(name)
               expect(page.items.first.data).to eql(data)
               stop_reactor
+            end
+          end
+        end
+
+        context 'and additional attributes' do
+          let(:client_id) { random_str }
+
+          it 'publishes the message with the attributes and return true indicating success' do
+            channel.publish(name, data, client_id: client_id) do
+              channel.history do |page|
+                expect(page.items.first.client_id).to eql(client_id)
+                stop_reactor
+              end
             end
           end
         end
@@ -666,7 +679,8 @@ describe Ably::Realtime::Channel, :event_machine do
         context 'an :attached channel' do
           it 'transitions state to :failed' do
             channel.attach do
-              channel.on(:failed) do |error|
+              channel.on(:failed) do |connection_state_change|
+                error = connection_state_change.reason
                 expect(error).to be_a(Ably::Exceptions::ConnectionFailed)
                 expect(error.code).to eql(80002)
                 stop_reactor
@@ -688,7 +702,8 @@ describe Ably::Realtime::Channel, :event_machine do
 
           it 'updates the channel error_reason' do
             channel.attach do
-              channel.on(:failed) do |error|
+              channel.on(:failed) do |connection_state_change|
+                error = connection_state_change.reason
                 expect(error).to be_a(Ably::Exceptions::ConnectionFailed)
                 expect(error.code).to eql(80002)
                 stop_reactor
@@ -734,7 +749,7 @@ describe Ably::Realtime::Channel, :event_machine do
                 fake_error connection_error
               end
 
-              channel.transition_state_machine :failed, original_error
+              channel.transition_state_machine :failed, reason: original_error
             end
           end
         end
@@ -783,8 +798,8 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'a :failed channel' do
-          let(:original_error) { RuntimeError.new }
           let(:client_options)   { default_options.merge(log_level: :fatal) }
+          let(:original_error) { Ably::Models::ErrorInfo.new(message: 'Error') }
 
           it 'remains in the :failed state and retains the error_reason' do
             channel.attach do
@@ -801,7 +816,7 @@ describe Ably::Realtime::Channel, :event_machine do
                 client.connection.close
               end
 
-              channel.transition_state_machine :failed, original_error
+              channel.transition_state_machine :failed, reason: original_error
             end
           end
         end
@@ -833,6 +848,8 @@ describe Ably::Realtime::Channel, :event_machine do
 
       context ':suspended' do
         context 'an :attached channel' do
+          let(:client_options) { default_options.merge(log_level: :fatal) }
+
           it 'transitions state to :detached' do
             channel.attach do
               channel.on(:detached) do
@@ -880,7 +897,7 @@ describe Ably::Realtime::Channel, :event_machine do
                 client.connection.transition_state_machine :suspended
               end
 
-              channel.transition_state_machine :failed, original_error
+              channel.transition_state_machine :failed, reason: original_error
             end
           end
         end
@@ -903,6 +920,68 @@ describe Ably::Realtime::Channel, :event_machine do
       it 'returns a Ably::Realtime::Presence object' do
         expect(channel.presence).to be_a(Ably::Realtime::Presence)
         stop_reactor
+      end
+    end
+
+    context 'channel state change' do
+      it 'emits a ChannelStateChange object' do
+        channel.on(:attached) do |channel_state_change|
+          expect(channel_state_change).to be_a(Ably::Models::ChannelStateChange)
+          stop_reactor
+        end
+        channel.attach
+      end
+
+      context 'ChannelStateChange object' do
+        it 'has current state' do
+          channel.on(:attached) do |channel_state_change|
+            expect(channel_state_change.current).to eq(:attached)
+            stop_reactor
+          end
+          channel.attach
+        end
+
+        it 'has a previous state' do
+          channel.on(:attached) do |channel_state_change|
+            expect(channel_state_change.previous).to eq(:attaching)
+            stop_reactor
+          end
+          channel.attach
+        end
+
+        it 'contains a private API protocol_message attribute that is used for special state change events', :api_private do
+          channel.on(:attached) do |channel_state_change|
+            expect(channel_state_change.protocol_message).to be_a(Ably::Models::ProtocolMessage)
+            expect(channel_state_change.reason).to be_nil
+            stop_reactor
+          end
+          channel.attach
+        end
+
+        it 'has an empty reason when there is no error' do
+          channel.on(:detached) do |channel_state_change|
+            expect(channel_state_change.reason).to be_nil
+            stop_reactor
+          end
+          channel.attach do
+            channel.detach
+          end
+        end
+
+        context 'on failure' do
+          let(:client_options) { default_options.merge(log_level: :none) }
+
+          it 'has a reason Error object when there is an error on the channel' do
+            channel.on(:failed) do |channel_state_change|
+              expect(channel_state_change.reason).to be_a(Ably::Exceptions::BaseAblyException)
+              stop_reactor
+            end
+            channel.attach do
+              error = Ably::Exceptions::ConnectionFailed.new('forced failure', 500, 50000)
+              client.connection.manager.error_received_from_server error
+            end
+          end
+        end
       end
     end
   end

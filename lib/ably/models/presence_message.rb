@@ -154,7 +154,7 @@ module Ably::Models
     end
 
     def logger
-      return logger if logger
+      return @logger if @logger
       protocol_message.logger if protocol_message
     end
   end

@@ -226,7 +226,8 @@ module Ably::Models
       !action_enum || (ack_required? && !has_serial?)
     end
 
-    private
+    # @!attribute [r] logger
+    # @api private
     attr_reader :logger
   end
 end

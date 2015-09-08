@@ -35,39 +35,48 @@ module Ably::Realtime
       end
 
       before_transition(to: [:attached]) do |channel, current_transition|
-        channel.manager.attached current_transition.metadata
+        channel.manager.attached current_transition.metadata.protocol_message
       end
 
       after_transition(to: [:detaching]) do |channel, current_transition|
-        channel.manager.detach current_transition.metadata
+        err = error_from_state_change(current_transition)
+        channel.manager.detach err
       end
 
       after_transition(to: [:detached]) do |channel, current_transition|
-        channel.manager.fail_messages_awaiting_ack nil_unless_error(current_transition.metadata)
-        channel.manager.emit_error current_transition.metadata if is_error_type?(current_transition.metadata)
+        err = error_from_state_change(current_transition)
+        channel.manager.fail_messages_awaiting_ack err
+        channel.manager.emit_error err if err
       end
 
       after_transition(to: [:failed]) do |channel, current_transition|
-        channel.manager.fail_messages_awaiting_ack nil_unless_error(current_transition.metadata)
-        channel.manager.emit_error current_transition.metadata if is_error_type?(current_transition.metadata)
+        err = error_from_state_change(current_transition)
+        channel.manager.fail_messages_awaiting_ack err
+        channel.manager.emit_error err if err
       end
 
       # Transitions responsible for updating channel#error_reason
       before_transition(to: [:failed]) do |channel, current_transition|
-        channel.set_failed_channel_error_reason current_transition.metadata if is_error_type?(current_transition.metadata)
+        err = error_from_state_change(current_transition)
+        channel.set_failed_channel_error_reason err if err
       end
 
       before_transition(to: [:attached, :detached]) do |channel, current_transition|
-        if is_error_type?(current_transition.metadata)
-          channel.set_failed_channel_error_reason current_transition.metadata
+        err = error_from_state_change(current_transition)
+        if err
+          channel.set_failed_channel_error_reason err
         else
           # Attached & Detached are "healthy" final states so reset the error reason
           channel.clear_error_reason
         end
       end
 
-      def self.nil_unless_error(error_object)
-        error_object if is_error_type?(error_object)
+      def self.error_from_state_change(current_transition)
+        # ChannelStateChange object is always passed in current_transition metadata object
+        connection_state_change = current_transition.metadata
+        # Reason attribute contains errors
+        err = connection_state_change && connection_state_change.reason
+        err if is_error_type?(err)
       end
 
       private

@@ -127,8 +127,8 @@ describe Ably::Realtime::Connection, :event_machine do
                 it 'renews the token on connect, and only makes one subsequent attempt to obtain a new token' do
                   expect(client.rest_client.auth).to receive(:authorise).at_least(:twice).and_call_original
                   connection.once(:disconnected) do
-                    connection.once(:failed) do |error|
-                      expect(error.code).to eql(40140) # token expired
+                    connection.once(:failed) do |connection_state_change|
+                      expect(connection_state_change.reason.code).to eql(40140) # token expired
                       stop_reactor
                     end
                   end
@@ -167,8 +167,8 @@ describe Ably::Realtime::Connection, :event_machine do
 
                     connection.once(:connected) do
                       started_at = Time.now
-                      connection.once(:disconnected) do |error|
-                        expect(error.code).to eq(40140) # Token expired
+                      connection.once(:disconnected) do |connection_state_change|
+                        expect(connection_state_change.reason.code).to eq(40140) # Token expired
 
                         # Token has expired, so now ensure it is not used again
                         stub_const 'Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER', original_token_expiry_buffer
@@ -178,7 +178,6 @@ describe Ably::Realtime::Connection, :event_machine do
                           expect(client.auth.current_token_details).to_not be_expired
                           expect(Time.now - started_at >= ttl)
                           expect(original_token).to be_expired
-                          expect(error.code).to eql(40140) # token expired
                           stop_reactor
                         end
                       end
@@ -922,12 +921,12 @@ describe Ably::Realtime::Connection, :event_machine do
               expect(connection.__outgoing_message_queue__).to be_empty
               channel.publish 'test'
 
-              EventMachine.add_timer(0.02) do
+              EventMachine.next_tick do
                 expect(connection.__outgoing_message_queue__).to_not be_empty
               end
 
               connection.once(:connected) do
-                EventMachine.add_timer(0.02) do
+                EventMachine.add_timer(0.1) do
                   expect(connection.__outgoing_message_queue__).to be_empty
                   stop_reactor
                 end
@@ -940,6 +939,8 @@ describe Ably::Realtime::Connection, :event_machine do
       end
 
       context 'when connection enters the :suspended state' do
+        let(:client_options) { default_options.merge(:log_level => :fatal) }
+
         before do
           # Reconfigure client library retry periods so that client stays in suspended state
           stub_const 'Ably::Realtime::Connection::ConnectionManager::CONNECT_RETRY_CONFIG',
@@ -957,7 +958,7 @@ describe Ably::Realtime::Connection, :event_machine do
             end
 
             close_connection_proc = Proc.new do
-              EventMachine.add_timer(0.02) do
+              EventMachine.add_timer(0.001) do
                 if connection.transport.nil?
                   close_connection_proc.call
                 else
@@ -983,6 +984,108 @@ describe Ably::Realtime::Connection, :event_machine do
           channel.once(:failed) do
             expect { channel.publish 'test' }.to raise_error(Ably::Exceptions::ChannelInactive)
             stop_reactor
+          end
+        end
+      end
+    end
+
+    context 'connection state change' do
+      it 'emits a ConnectionStateChange object' do
+        connection.on(:connected) do |connection_state_change|
+          expect(connection_state_change).to be_a(Ably::Models::ConnectionStateChange)
+          stop_reactor
+        end
+      end
+
+      context 'ConnectionStateChange object' do
+        it 'has current state' do
+          connection.on(:connected) do |connection_state_change|
+            expect(connection_state_change.current).to eq(:connected)
+            stop_reactor
+          end
+        end
+
+        it 'has a previous state' do
+          connection.on(:connected) do |connection_state_change|
+            expect(connection_state_change.previous).to eq(:connecting)
+            stop_reactor
+          end
+        end
+
+        it 'contains a private API protocol_message attribute that is used for special state change events', :api_private do
+          connection.on(:connected) do |connection_state_change|
+            expect(connection_state_change.protocol_message).to be_a(Ably::Models::ProtocolMessage)
+            expect(connection_state_change.reason).to be_nil
+            stop_reactor
+          end
+        end
+
+        it 'has an empty reason when there is no error' do
+          connection.on(:closed) do |connection_state_change|
+            expect(connection_state_change.reason).to be_nil
+            stop_reactor
+          end
+          connection.connect do
+            connection.close
+          end
+        end
+
+        context 'on failure' do
+          let(:client_options) { default_options.merge(log_level: :none) }
+
+          it 'has a reason Error object when there is an error on the connection' do
+            connection.on(:failed) do |connection_state_change|
+              expect(connection_state_change.reason).to be_a(Ably::Exceptions::BaseAblyException)
+              stop_reactor
+            end
+            connection.connect do
+              error = Ably::Exceptions::ConnectionFailed.new('forced failure', 500, 50000)
+              client.connection.manager.error_received_from_server error
+            end
+          end
+        end
+
+        context 'retry_in' do
+          let(:client_options) { default_options.merge(log_level: :debug) }
+
+          it 'is nil when a retry is not required' do
+            connection.on(:connected) do |connection_state_change|
+              expect(connection_state_change.retry_in).to be_nil
+              stop_reactor
+            end
+          end
+
+          it 'is 0 when first attempt to connect fails' do
+            connection.once(:connecting) do
+              connection.once(:disconnected) do |connection_state_change|
+                expect(connection_state_change.retry_in).to eql(0)
+                stop_reactor
+              end
+              EventMachine.add_timer(0.001) { connection.transport.unbind }
+            end
+          end
+
+          it 'is 0 when an immediate reconnect will occur' do
+            connection.once(:connected) do
+              connection.once(:disconnected) do |connection_state_change|
+                expect(connection_state_change.retry_in).to eql(0)
+                stop_reactor
+              end
+              connection.transport.unbind
+            end
+          end
+
+          it 'contains the next retry period when an immediate reconnect will not occur' do
+            connection.once(:connected) do
+              connection.once(:connecting) do
+                connection.once(:disconnected) do |connection_state_change|
+                  expect(connection_state_change.retry_in).to be > 0
+                  stop_reactor
+                end
+                EventMachine.add_timer(0.001) { connection.transport.unbind }
+              end
+              connection.transport.unbind
+            end
           end
         end
       end

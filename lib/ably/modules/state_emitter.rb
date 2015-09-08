@@ -141,7 +141,10 @@ module Ably::Modules
     #
     def deferrable_for_state_change_to(target_state)
       Ably::Util::SafeDeferrable.new(logger).tap do |deferrable|
-        once_or_if(target_state, else: proc { |*args| deferrable.fail self, *args }) do
+        fail_proc = Proc.new do |state_change|
+          deferrable.fail self, state_change.reason
+        end
+        once_or_if(target_state, else: fail_proc) do
           yield self if block_given?
           deferrable.succeed self
         end

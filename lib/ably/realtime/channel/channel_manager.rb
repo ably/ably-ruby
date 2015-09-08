@@ -27,7 +27,7 @@ module Ably::Realtime
       # Commence attachment
       def detach(error = nil)
         if connection.closed? || connection.connecting? || connection.suspended?
-          channel.transition_state_machine :detached, error
+          channel.transition_state_machine :detached, reason: error
         elsif can_transition_to?(:detached)
           send_detach_protocol_message
         end
@@ -51,7 +51,7 @@ module Ably::Realtime
 
       # Detach a channel as a result of an error
       def suspend(error)
-        channel.transition_state_machine! :detaching, error
+        channel.transition_state_machine! :detaching, reason: error
       end
 
       # When a channel is no longer attached or has failed,
@@ -141,13 +141,13 @@ module Ably::Realtime
 
         connection.unsafe_on(:suspended) do |error|
           if can_transition_to?(:detaching)
-            channel.transition_state_machine :detaching, Ably::Exceptions::ConnectionSuspended.new('Connection suspended', nil, 80002, error)
+            channel.transition_state_machine :detaching, reason: Ably::Exceptions::ConnectionSuspended.new('Connection suspended', nil, 80002, error)
           end
         end
 
         connection.unsafe_on(:failed) do |error|
           if can_transition_to?(:failed)
-            channel.transition_state_machine :failed, Ably::Exceptions::ConnectionFailed.new('Connection failed', nil, 80002, error)
+            channel.transition_state_machine :failed, reason: Ably::Exceptions::ConnectionFailed.new('Connection failed', nil, 80002, error)
           end
         end
 

@@ -31,8 +31,8 @@ describe Ably::Realtime::Client, :event_machine do
             it 'fails to connect because a private key cannot be sent over a non-secure connection' do
               connection.on(:connected) { raise 'Should not have connected' }
 
-              connection.on(:failed) do |error|
-                expect(error).to be_a(Ably::Exceptions::InsecureRequest)
+              connection.on(:failed) do |connection_state_change|
+                expect(connection_state_change.reason).to be_a(Ably::Exceptions::InsecureRequest)
                 stop_reactor
               end
             end

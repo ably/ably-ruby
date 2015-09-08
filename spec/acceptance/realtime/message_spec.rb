@@ -181,9 +181,13 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
 
       context 'with :echo_messages option set to false' do
         let(:no_echo_client) do
-          Ably::Realtime::Client.new(default_options.merge(echo_messages: false))
+          Ably::Realtime::Client.new(default_options.merge(echo_messages: false, log_level: :debug))
         end
         let(:no_echo_channel) { no_echo_client.channel(channel_name) }
+
+        let(:rest_client) do
+          Ably::Rest::Client.new(default_options.merge(log_level: :debug))
+        end
 
         it 'will not echo messages to the client but will still broadcast messages to other connected clients', em_timeout: 10 do
           channel.attach do |echo_channel|
@@ -196,10 +200,24 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
 
               echo_channel.subscribe('test_event') do |message|
                 expect(message.data).to eql(payload)
-                EventMachine.add_timer(1) do
+                EventMachine.add_timer(1.5) do
                   stop_reactor
                 end
               end
+            end
+          end
+        end
+
+        it 'will not echo messages to the client from other REST clients publishing using that connection_ID', em_timeout: 10 do
+          skip 'Waiting on realtime#285 to be resolved'
+          no_echo_channel.attach do
+            no_echo_channel.subscribe('test_event') do |message|
+              fail "Message should not have been echoed back"
+            end
+
+            rest_client.channel(channel_name).publish('test_event', nil, connection_id: no_echo_client.connection.id)
+            EventMachine.add_timer(1.5) do
+              stop_reactor
             end
           end
         end
@@ -574,13 +592,16 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       let(:event_name)     { random_str }
       let(:message_state)  { [] }
       let(:connection)     { client.connection }
-      let(:client_options) { default_options.merge(:log_level => :fatal) }
+      let(:client_options) { default_options.merge(:log_level => :debug) }
+      let(:msgs_received)  { [] }
 
-      it 'publishes the message again and later receives the ACK' do
+      it 'publishes the message again, later receives the ACK and only one message is ever received from Ably' do
         on_reconnected = Proc.new do
           expect(message_state).to be_empty
           EventMachine.add_timer(2) do
             expect(message_state).to contain_exactly(:delivered)
+            # TODO: Uncomment once issue realtime#42 is resolved
+            # expect(msgs_received.length).to eql(1)
             stop_reactor
           end
         end
@@ -588,7 +609,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
         connection.once(:connected) do
           connection.transport.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
             if protocol_message.messages.find { |message| message.name == event_name }
-              EventMachine.add_timer(0.02) do
+              EventMachine.add_timer(0.001) do
                 connection.transport.unbind # trigger failure
                 expect(message_state).to be_empty
                 connection.once :connected, &on_reconnected
@@ -602,6 +623,10 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
           deferrable.errback do
             raise 'Message delivery should not fail'
           end
+        end
+
+        channel.subscribe do |message|
+          msgs_received << message
         end
       end
     end
@@ -617,7 +642,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
           connection.once(:connected) do
             connection.transport.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
               if protocol_message.messages.find { |message| message.name == event_name }
-                EventMachine.add_timer(0.02) do
+                EventMachine.add_timer(0.001) do
                   connection.transition_state_machine :suspended
                 end
               end
@@ -642,8 +667,8 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
           connection.once(:connected) do
             connection.transport.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
               if protocol_message.messages.find { |message| message.name == event_name }
-                EventMachine.add_timer(0.02) do
-                  connection.transition_state_machine :failed, RuntimeError.new
+                EventMachine.add_timer(0.001) do
+                  connection.transition_state_machine :failed, reason: RuntimeError.new
                 end
               end
             end

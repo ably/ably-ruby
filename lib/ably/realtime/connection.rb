@@ -55,6 +55,7 @@ module Ably
       )
       include Ably::Modules::StateEmitter
       include Ably::Modules::UsesStateMachine
+      ensure_state_machine_emits 'Ably::Models::ConnectionStateChange'
 
       # Expected format for a connection recover key
       RECOVER_REGEX = /^(?<recover>[\w-]+):(?<connection_serial>\-?\w+)$/
