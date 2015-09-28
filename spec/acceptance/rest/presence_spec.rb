@@ -5,7 +5,7 @@ describe Ably::Rest::Presence do
   include Ably::Modules::Conversions
 
   vary_by_protocol do
-    let(:default_options) { { key: api_key, environment: environment, protocol: protocol } }
+    let(:default_options) { { key: api_key, environment: environment, protocol: protocol, log_level: :debug } }
     let(:client_options) { default_options }
     let(:client) do
       Ably::Rest::Client.new(client_options)
@@ -93,23 +93,25 @@ describe Ably::Rest::Presence do
 
         context 'with :client_id option' do
           let(:client_id) { non_encoded_fixtures.first[:client_id] }
-          let(:presence_page)  { fixtures_channel.presence.get(client_id: client_id) }
+          let(:presence_page) { fixtures_channel.presence.get(client_id: client_id) }
 
           it 'returns a list members filtered by the provided client ID' do
-            pending 'not implemented in the REST API yet' # TODO realtime/issues/243
             expect(presence_page.items.count).to eql(1)
             expect(presence_page.items.first.client_id).to eql(client_id)
           end
         end
 
         context 'with :connection_id option' do
-          let(:connection_id) { fixtures_channel.presence.get.first.connection_id }
-          let(:presence_page)  { fixtures_channel.presence.get(connection_id: connection_id) }
+          let(:all_members)   { fixtures_channel.presence.get.items }
+          let(:connection_id) { all_members.first.connection_id }
+          let(:presence_page) { fixtures_channel.presence.get(connection_id: connection_id) }
 
           it 'returns a list members filtered by the provided connection ID' do
-            pending 'not implemented in the REST API yet' # TODO realtime/issues/243
-            expect(presence_page.items.count).to eql(1)
-            expect(presence_page.items.first.connetion_id).to eql(connetion_id)
+            expect(presence_page.items.all? { |member| member.connection_id == connection_id }).to eql(true)
+          end
+
+          it 'returns a list members filtered by the provided connection ID' do
+            expect(fixtures_channel.presence.get(connection_id: 'does.not.exist').items).to be_empty
           end
         end
       end
