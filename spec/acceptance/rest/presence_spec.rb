@@ -5,7 +5,7 @@ describe Ably::Rest::Presence do
   include Ably::Modules::Conversions
 
   vary_by_protocol do
-    let(:default_options) { { key: api_key, environment: environment, protocol: protocol, log_level: :debug } }
+    let(:default_options) { { key: api_key, environment: environment, protocol: protocol } }
     let(:client_options) { default_options }
     let(:client) do
       Ably::Rest::Client.new(client_options)

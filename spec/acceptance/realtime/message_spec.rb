@@ -181,12 +181,12 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
 
       context 'with :echo_messages option set to false' do
         let(:no_echo_client) do
-          Ably::Realtime::Client.new(default_options.merge(echo_messages: false, log_level: :debug))
+          Ably::Realtime::Client.new(default_options.merge(echo_messages: false))
         end
         let(:no_echo_channel) { no_echo_client.channel(channel_name) }
 
         let(:rest_client) do
-          Ably::Rest::Client.new(default_options.merge(log_level: :debug))
+          Ably::Rest::Client.new(default_options)
         end
 
         it 'will not echo messages to the client but will still broadcast messages to other connected clients', em_timeout: 10 do
@@ -592,7 +592,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       let(:event_name)     { random_str }
       let(:message_state)  { [] }
       let(:connection)     { client.connection }
-      let(:client_options) { default_options.merge(:log_level => :debug) }
+      let(:client_options) { default_options.merge(:log_level => :none) }
       let(:msgs_received)  { [] }
 
       it 'publishes the message again, later receives the ACK and only one message is ever received from Ably' do
