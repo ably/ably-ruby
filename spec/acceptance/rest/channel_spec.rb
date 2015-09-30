@@ -12,9 +12,10 @@ describe Ably::Rest::Channel do
     end
 
     describe '#publish' do
-      let(:channel) { client.channel(random_str) }
-      let(:name)   { 'foo' }
-      let(:data)    { 'woop!' }
+      let(:channel_name) { random_str }
+      let(:channel)      { client.channel(channel_name) }
+      let(:name)         { 'foo' }
+      let(:data)         { 'woop!' }
 
       context 'with name and data arguments' do
         it 'publishes the message and return true indicating success' do
@@ -30,6 +31,24 @@ describe Ably::Rest::Channel do
             expect(channel.publish(name, data, client_id: client_id)).to eql(true)
             expect(channel.history.items.first.client_id).to eql(client_id)
           end
+        end
+      end
+
+      context 'with a client_id configured in the ClientOptions' do
+        let(:client_id)      { random_str }
+        let(:client_options) { default_options.merge(client_id: client_id) }
+
+        it 'publishes the message without a client_id' do
+          expect(client).to receive(:post).
+            with("/channels/#{channel_name}/publish", hash_excluding(client_id: client_id)).
+            and_return(double('response', status: 201))
+
+          expect(channel.publish(name, data)).to eql(true)
+        end
+
+        it 'expects a client_id to be added by the realtime service' do
+          channel.publish name, data
+          expect(channel.history.items.first.client_id).to eql(client_id)
         end
       end
 
