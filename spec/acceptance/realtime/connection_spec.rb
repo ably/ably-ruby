@@ -1061,7 +1061,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 expect(connection_state_change.retry_in).to eql(0)
                 stop_reactor
               end
-              EventMachine.add_timer(0.001) { connection.transport.unbind }
+              EventMachine.add_timer(0.005) { connection.transport.unbind }
             end
           end
 
@@ -1082,7 +1082,7 @@ describe Ably::Realtime::Connection, :event_machine do
                   expect(connection_state_change.retry_in).to be > 0
                   stop_reactor
                 end
-                EventMachine.add_timer(0.001) { connection.transport.unbind }
+                EventMachine.add_timer(0.005) { connection.transport.unbind }
               end
               connection.transport.unbind
             end
