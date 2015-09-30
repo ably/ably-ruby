@@ -22,7 +22,7 @@ module Ably::Realtime
 
       transition :from => :initialized,  :to => [:attaching]
       transition :from => :attaching,    :to => [:attached, :detaching, :failed]
-      transition :from => :attached,     :to => [:detaching, :failed]
+      transition :from => :attached,     :to => [:detaching, :detached, :failed]
       transition :from => :detaching,    :to => [:detached, :attaching, :failed]
       transition :from => :failed,       :to => [:attaching]
 
