@@ -144,7 +144,7 @@ module Ably
 
         token_params = options.delete(:token_params) || {}
         @options  = options
-        @auth     = Auth.new(self, options, token_params)
+        @auth     = Auth.new(self, token_params, options)
         @channels = Ably::Rest::Channels.new(self)
         @encoders = []
 
@@ -358,7 +358,7 @@ module Ably
         yield
       rescue Ably::Exceptions::TokenExpired => e
         if auth.token_renewable?
-          auth.authorise force: true
+          auth.authorise({}, force: true)
           yield
         else
           raise e

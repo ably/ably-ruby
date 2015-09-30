@@ -16,7 +16,7 @@ describe Ably::Rest::Client do
 
     context '#initialize' do
       let(:client_id)     { random_str }
-      let(:token_request) { client.auth.create_token_request(key_name: key_name, key_secret: key_secret, client_id: client_id) }
+      let(:token_request) { client.auth.create_token_request({}, key_name: key_name, key_secret: key_secret, client_id: client_id) }
 
       context 'with only an API key' do
         let(:client) { Ably::Rest::Client.new(client_options.merge(key: api_key)) }
@@ -65,7 +65,7 @@ describe Ably::Rest::Client do
 
       context 'with an :auth_callback Proc (clientId provided in library options instead of as a token_request param)' do
         let(:client) { Ably::Rest::Client.new(client_options.merge(client_id: client_id, auth_callback: Proc.new { token_request })) }
-        let(:token_request) { client.auth.create_token_request(key_name: key_name, key_secret: key_secret) }
+        let(:token_request) { client.auth.create_token_request({}, key_name: key_name, key_secret: key_secret) }
 
         it 'correctly sets the clientId on the token' do
           expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token_details }
@@ -84,7 +84,7 @@ describe Ably::Rest::Client do
         context 'before any REST request' do
           before do
             expect(client.auth).to receive(:token_request_from_auth_url).with(token_request_url, hash_including(:auth_method => :get)).once do
-              client.auth.create_token_request(token_params: { client_id: client_id })
+              client.auth.create_token_request(client_id: client_id)
             end
           end
 
@@ -154,11 +154,11 @@ describe Ably::Rest::Client do
           send("token_request_#{@request_index > 2 ? 'next' : @request_index}")
         end))
       end
-      let(:token_request_1) { client.auth.create_token_request(token_request_options.merge(client_id: random_str)) }
-      let(:token_request_2) { client.auth.create_token_request(token_request_options.merge(client_id: random_str)) }
+      let(:token_request_1) { client.auth.create_token_request({}, token_request_options.merge(client_id: random_str)) }
+      let(:token_request_2) { client.auth.create_token_request({}, token_request_options.merge(client_id: random_str)) }
 
       # If token expires against whilst runnig tests in a slower CI environment then use this token
-      let(:token_request_next) { client.auth.create_token_request(token_request_options.merge(client_id: random_str)) }
+      let(:token_request_next) { client.auth.create_token_request({}, token_request_options.merge(client_id: random_str)) }
 
       context 'when expired' do
         before do

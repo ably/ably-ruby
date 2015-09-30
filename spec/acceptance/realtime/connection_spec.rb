@@ -96,7 +96,7 @@ describe Ably::Realtime::Connection, :event_machine do
               stub_const 'Ably::Auth::TOKEN_DEFAULTS', Ably::Auth::TOKEN_DEFAULTS.merge(renew_token_buffer: 0)
 
               # Authorise synchronously to ensure token has been issued
-              client.auth.authorise_sync(token_params: { ttl: ttl })
+              client.auth.authorise_sync(ttl: ttl)
             end
 
             let(:original_renew_token_buffer) { @original_renew_token_buffer }
@@ -204,7 +204,7 @@ describe Ably::Realtime::Connection, :event_machine do
 
             let!(:expired_token_details) do
               # Request a token synchronously
-              Ably::Realtime::Client.new(default_options).auth.request_token_sync(token_params: { ttl: 0.01 })
+              Ably::Realtime::Client.new(default_options).auth.request_token_sync(ttl: 0.01)
             end
 
             context 'opening a new connection' do

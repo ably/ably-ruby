@@ -8,7 +8,7 @@ describe Ably::Auth do
   let(:token_params)  { { } }
 
   subject do
-    Ably::Auth.new(client, auth_options, token_params)
+    Ably::Auth.new(client, token_params, auth_options)
   end
 
   describe 'client_id option' do

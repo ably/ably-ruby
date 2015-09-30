@@ -43,11 +43,11 @@ module Ably
     # Creates an Auth object
     #
     # @param [Ably::Rest::Client] client  {Ably::Rest::Client} this Auth object uses
-    # @param [Hash] auth_options the authentication options used as a default future token requests
     # @param [Hash] token_params the token params used as a default for future token requests
+    # @param [Hash] auth_options the authentication options used as a default future token requests
     # @option (see #request_token)
     #
-    def initialize(client, auth_options, token_params)
+    def initialize(client, token_params, auth_options)
       unless auth_options.kind_of?(Hash)
         raise ArgumentError, 'Expected auth_options to be a Hash'
       end
@@ -87,8 +87,8 @@ module Ably
     #
     # In the event that a new token request is made, the provided options are used.
     #
-    # @param [Hash] auth_options the authentication options used for future token requests
     # @param [Hash] token_params the token params used for future token requests
+    # @param [Hash] auth_options the authentication options used for future token requests
     # @option auth_options [Boolean]   :force   obtains a new token even if the current token is valid
     # @option (see #request_token)
     #
@@ -100,12 +100,12 @@ module Ably
     #    token_details = client.auth.authorise
     #
     #    # will use token request from block to authorise if not already authorised
-    #    token_details = client.auth.authorise auth_callback: Proc.new do
+    #    token_details = client.auth.authorise {}, auth_callback: Proc.new do
     #      # create token_request object
     #      token_request
     #    end
     #
-    def authorise(auth_options = {}, token_params = {})
+    def authorise(token_params = {}, auth_options = {})
       ensure_valid_auth_attributes auth_options
 
       auth_options = auth_options.clone
@@ -120,7 +120,7 @@ module Ably
       token_params = (auth_options.delete(:token_params) || {}).merge(token_params)
       @token_params = @token_params.merge(token_params) # update defaults
 
-      @current_token_details = request_token(auth_options, token_params)
+      @current_token_details = request_token(token_params, auth_options)
     end
 
     # Request a {Ably::Models::TokenDetails} which can be used to make authenticated token based requests
@@ -143,15 +143,15 @@ module Ably
     #    token_details = client.auth.request_token
     #
     #    # token request with token params
-    #    client.auth.request_token token_params: { ttl: 1.hour }
+    #    client.auth.request_token ttl: 1.hour
     #
     #    # token request using auth block
-    #    token_details = client.auth.request_token auth_callback: Proc.new do
+    #    token_details = client.auth.request_token {}, auth_callback: Proc.new do
     #      # create token_request object
     #      token_request
     #    end
     #
-    def request_token(auth_options = {}, token_params = {})
+    def request_token(token_params = {}, auth_options = {})
       ensure_valid_auth_attributes auth_options
 
       token_params = (auth_options[:token_params] || {}).merge(token_params)
@@ -163,7 +163,7 @@ module Ably
       elsif auth_url = auth_options.delete(:auth_url)
         token_request_from_auth_url(auth_url, auth_options)
       else
-        create_token_request(auth_options, token_params)
+        create_token_request(token_params, auth_options)
       end
 
       case token_request
@@ -186,12 +186,6 @@ module Ably
 
     # Creates and signs a token request that can then subsequently be used by any client to request a token
     #
-    # @param [Hash] auth_options the authentication options for the token request
-    # @option auth_options [String]  :key           API key comprising the key name and key secret in a single string
-    # @option auth_options [String]  :client_id     client ID identifying this connection to other clients (will use +client_id+ specified when library was instanced if provided)
-    # @option auth_options [Boolean] :query_time    when true will query the {https://www.ably.io Ably} system for the current time instead of using the local time
-    # @option auth_options [Hash]    :token_params   convenience to pass in +token_params+ within the +auth_options+ argument, this helps avoid the following +authorise({key: key}, {ttl: 23})+ by allowing +authorise(key:key,token_params:{ttl:23})+
-    #
     # @param [Hash] token_params the token params used in the token request
     # @option token_params [String]  :client_id     A client ID to associate with this token. The generated token may be used to authenticate as this +client_id+
     # @option token_params [Integer] :ttl           validity time in seconds for the requested {Ably::Models::TokenDetails}.  Limits may apply, see {https://www.ably.io/documentation/other/authentication}
@@ -199,10 +193,16 @@ module Ably
     # @option token_params [Time]    :timestamp     the time of the request
     # @option token_params [String]  :nonce         an unquoted, unescaped random string of at least 16 characters
     #
+    # @param [Hash] auth_options the authentication options for the token request
+    # @option auth_options [String]  :key           API key comprising the key name and key secret in a single string
+    # @option auth_options [String]  :client_id     client ID identifying this connection to other clients (will use +client_id+ specified when library was instanced if provided)
+    # @option auth_options [Boolean] :query_time    when true will query the {https://www.ably.io Ably} system for the current time instead of using the local time
+    # @option auth_options [Hash]    :token_params  convenience to pass in +token_params+ within the +auth_options+ argument, especially useful when setting default token_params in the client constructor
+    #
     # @return [Models::TokenRequest]
     #
     # @example
-    #    client.auth.create_token_request(id: 'asd.asd', token_params: { ttl: 3600 })
+    #    client.auth.create_token_request({ ttl: 3600 }, { id: 'asd.asd' })
     #    #<Ably::Models::TokenRequest:0x007fd5d919df78
     #    #  @hash={
     #    #   :id=>"asds.adsa",
@@ -214,7 +214,7 @@ module Ably
     #    #   :mac=>"881oZHeFo6oMim7....uE56a8gUxHw="
     #    #  }
     #    #>>
-    def create_token_request(auth_options = {}, token_params = {})
+    def create_token_request(token_params = {}, auth_options = {})
       ensure_valid_auth_attributes auth_options
 
       auth_options = auth_options.clone

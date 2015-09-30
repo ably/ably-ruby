@@ -192,7 +192,7 @@ describe Ably::Realtime::Channel, :event_machine do
             restricted_channel.once(:failed) do
               restricted_client.close do
                 # A direct call to #authorise is synchronous
-                restricted_client.auth.authorise(key: api_key)
+                restricted_client.auth.authorise({}, key: api_key)
 
                 restricted_client.connect do
                   restricted_channel.once(:attached) do
