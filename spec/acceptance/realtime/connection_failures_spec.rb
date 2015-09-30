@@ -392,7 +392,10 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             connection.transport.close_connection_after_writing
 
             connection.once(:connected) do
-              expect(connection.key).to eql(previous_connection_key)
+              # Connection key left part should match new connection key left part i.e.
+              # wVIsgTHAB1UvXh7z-1991d8586 becomes wVIsgTHAB1UvXh7z-1990d8586 after resume
+              expect(connection.key[/^\w{5,}-/, 0]).to_not be_nil
+              expect(connection.key[/^\w{5,}-/, 0]).to eql(previous_connection_key[/^\w{5,}-/, 0])
               expect(connection.id).to eql(previous_connection_id)
               stop_reactor
             end
@@ -467,7 +470,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         context 'because the connection_key is not or no longer valid' do
           def kill_connection_transport_and_prevent_valid_resume
             connection.transport.close_connection_after_writing
-            connection.configure_new '0123456789abcdef', '0123456789abcdef', -1 # force the resume connection key to be invalid
+            connection.configure_new '0123456789abcdef', 'wVIsgTHAB1UvXh7z-1991d8586', -1 # force the resume connection key to be invalid
           end
 
           it 'updates the connection_id and connection_key' do
@@ -493,7 +496,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               channels.each do |channel|
                 channel.on(:detached) do |channel_state_change|
                   error = channel_state_change.reason
-                  expect(error.message).to match(/Invalid connection key/i)
+                  expect(error.message).to match(/Unable to recover connection/i)
                   detached_channels << channel
                   next unless detached_channels.count == channel_count
                   expect(detached_channels.count).to eql(channel_count)
@@ -508,7 +511,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           it 'emits an error on the channel and sets the error reason' do
             client.channel(random_str).attach do |channel|
               channel.on(:error) do |error|
-                expect(error.message).to match(/Invalid connection key/i)
+                expect(error.message).to match(/Unable to recover connection/i)
                 expect(error.code).to eql(80008)
                 expect(channel.error_reason).to eql(error)
                 stop_reactor

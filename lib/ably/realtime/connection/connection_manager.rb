@@ -89,7 +89,7 @@ module Ably::Realtime
       # @api private
       def connected(protocol_message)
         if connection.key
-          if protocol_message.connection_key == connection.key
+          if connection_key_shared(protocol_message.connection_key) == connection_key_shared(connection.key)
             logger.debug "ConnectionManager: Connection resumed successfully - ID #{connection.id} and key #{connection.key}"
             EventMachine.next_tick { connection.resumed }
           else
@@ -231,6 +231,12 @@ module Ably::Realtime
 
       def channels
         client.channels
+      end
+
+      # Connection key left part is consistent between connection resumes
+      # i.e. wVIsgTHAB1UvXh7z-1991d8586 becomes wVIsgTHAB1UvXh7z-1990d8586 after a resume
+      def connection_key_shared(connection_key)
+        (connection_key || '')[/^\w{5,}-/, 0]
       end
 
       # Create a timer that will execute in timeout_in seconds.

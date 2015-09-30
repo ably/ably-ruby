@@ -672,7 +672,8 @@ describe Ably::Realtime::Connection, :event_machine do
             connection.once(:failed) do
               recover_client = Ably::Realtime::Client.new(default_options.merge(recover: client.connection.recovery_key))
               recover_client.connection.on(:connected) do
-                expect(recover_client.connection.key).to eql(previous_connection_key)
+                expect(recover_client.connection.key[/^\w{5,}-/, 0]).to_not be_nil
+                expect(recover_client.connection.key[/^\w{5,}-/, 0]).to eql(previous_connection_key[/^\w{5,}-/, 0])
                 expect(recover_client.connection.id).to eql(previous_connection_id)
                 stop_reactor
               end
@@ -737,9 +738,9 @@ describe Ably::Realtime::Connection, :event_machine do
           it 'emits a fatal error on the connection object, sets the #error_reason and disconnects' do
             connection.once(:error) do |error|
               expect(connection.state).to eq(:failed)
-              expect(error.message).to match(/Invalid connection key/)
-              expect(connection.error_reason.message).to match(/Invalid connection key/)
-              expect(connection.error_reason.code).to eql(40006)
+              expect(error.message).to match(/Invalid connectionKey/i)
+              expect(connection.error_reason.message).to match(/Invalid connectionKey/i)
+              expect(connection.error_reason.code).to eql(80018)
               expect(connection.error_reason).to eql(error)
               stop_reactor
             end
@@ -747,13 +748,13 @@ describe Ably::Realtime::Connection, :event_machine do
         end
 
         context 'with expired (missing) value sent to server' do
-          let(:client_options) { default_options.merge(recover: '0123456789abcdef:0', log_level: :fatal) }
+          let(:client_options) { default_options.merge(recover: 'wVIsgTHAB1UvXh7z-1991d8586:0', log_level: :fatal) }
 
           it 'emits an error on the connection object, sets the #error_reason, yet will connect anyway' do
             connection.once(:error) do |error|
               expect(connection.state).to eq(:connected)
-              expect(error.message).to match(/Invalid connection key/i)
-              expect(connection.error_reason.message).to match(/Invalid connection key/i)
+              expect(error.message).to match(/Unable to recover connection/i)
+              expect(connection.error_reason.message).to match(/Unable to recover connection/i)
               expect(connection.error_reason.code).to eql(80008)
               expect(connection.error_reason).to eql(error)
               stop_reactor
