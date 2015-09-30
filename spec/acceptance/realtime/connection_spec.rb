@@ -1046,7 +1046,7 @@ describe Ably::Realtime::Connection, :event_machine do
         end
 
         context 'retry_in' do
-          let(:client_options) { default_options.merge(log_level: :debug) }
+          let(:client_options) { default_options.merge(log_level: :error) }
 
           it 'is nil when a retry is not required' do
             connection.on(:connected) do |connection_state_change|
