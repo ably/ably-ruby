@@ -1,12 +1,15 @@
 module RSpec
   module ProtocolHelper
-    PROTOCOLS = if ENV['TEST_LIMIT_PROTOCOLS']
-      JSON.parse(ENV['TEST_LIMIT_PROTOCOLS'])
+    SUPPORTED_PROTOCOLS = {
+      json:    'JSON',
+      msgpack: 'MsgPack'
+    }
+
+    PROTOCOLS = if ENV['PROTOCOL']
+      protocol = ENV['PROTOCOL'].downcase.to_sym
+      { protocol => SUPPORTED_PROTOCOLS[protocol] }
     else
-      {
-        json:    'JSON',
-        msgpack: 'MsgPack'
-      }
+      SUPPORTED_PROTOCOLS
     end
 
     def vary_by_protocol(&block)

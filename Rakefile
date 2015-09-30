@@ -16,7 +16,7 @@ begin
   namespace :doc do
     desc 'Generate Markdown Specification from the RSpec public API tests'
     task :spec do
-      ENV['TEST_LIMIT_PROTOCOLS'] = JSON.dump({ msgpack: 'JSON and MsgPack' })
+      ENV['PROTOCOL'] = 'json'
 
       rspec_task.rspec_opts = %w(
         --require ./spec/support/markdown_spec_formatter
