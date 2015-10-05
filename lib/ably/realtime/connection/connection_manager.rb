@@ -39,7 +39,7 @@ module Ably::Realtime
 
         EventMachine.next_tick do
           # Connect once Connection object is initialised
-          connection.connect if client.auto_connect
+          connection.connect if client.auto_connect && connection.can_transition_to?(:connecting)
         end
       end
 
@@ -179,7 +179,7 @@ module Ably::Realtime
       #
       # @api private
       def respond_to_transport_disconnected_whilst_connected(error)
-        logger.warn "ConnectionManager: Connection to #{connection.transport.url} was disconnected unexpectedly"
+        logger.warn "ConnectionManager: Connection #{"to #{connection.transport.url}" if connection.transport} was disconnected unexpectedly"
 
         if error.kind_of?(Ably::Models::ErrorInfo) && error.code != RESOLVABLE_ERROR_CODES.fetch(:token_expired)
           connection.emit :error, error

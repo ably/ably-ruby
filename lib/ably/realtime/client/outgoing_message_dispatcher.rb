@@ -44,6 +44,12 @@ module Ably::Realtime
 
         non_blocking_loop_while(condition) do
           protocol_message = outgoing_queue.shift
+
+          if (!connection.transport)
+            protocol_message.fail Ably::Exceptions::TransportClosed.new('Transport disconnected unexpectedly', nil, 80003)
+            next
+          end
+
           current_transport_outgoing_message_bus.publish :protocol_message, protocol_message
 
           if protocol_message.ack_required?
