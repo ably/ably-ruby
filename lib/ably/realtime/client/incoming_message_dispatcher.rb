@@ -68,7 +68,13 @@ module Ably::Realtime
 
           when ACTION.Connect
           when ACTION.Connected
-            connection.transition_state_machine :connected, reason: protocol_message.error, protocol_message: protocol_message unless connection.connected?
+            if connection.disconnected? || connection.closing? || connection.closed? || connection.failed?
+              logger.debug "Incoming CONNECTED ProtocolMessage discarded as connection has moved on and is in state: #{connection.state}"
+            elsif connection.connected?
+              logger.error "CONNECTED ProtocolMessage should not have been received when the connection is in the CONNECTED state"
+            else
+              connection.transition_state_machine :connected, reason: protocol_message.error, protocol_message: protocol_message
+            end
 
           when ACTION.Disconnect, ACTION.Disconnected
             connection.transition_state_machine :disconnected, reason: protocol_message.error unless connection.disconnected?
