@@ -6,6 +6,8 @@ module Ably::Modules
 
     private
     def as_since_epoch(time, options = {})
+      return nil if options[:allow_nil] && !time
+
       granularity = options.fetch(:granularity, :ms)
 
       case time
@@ -19,6 +21,8 @@ module Ably::Modules
     end
 
     def as_time_from_epoch(time, options = {})
+      return nil if options[:allow_nil] && !time
+
       granularity = options.fetch(:granularity, :ms)
 
       case time

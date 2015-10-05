@@ -70,6 +70,14 @@ describe Ably::Models::TokenDetails do
           expect(subject.expired?).to eql(false)
         end
       end
+
+      context 'when expires is not available (i.e. string tokens)' do
+        subject { Ably::Models::TokenDetails.new() }
+
+        it 'is always false' do
+          expect(subject.expired?).to eql(false)
+        end
+      end
     end
   end
 

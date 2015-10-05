@@ -27,7 +27,7 @@ describe Ably::Auth do
 
   vary_by_protocol do
     let(:default_options) { { environment: environment, protocol: protocol } }
-    let(:client_options) { default_options.merge(key: api_key) }
+    let(:client_options)  { default_options.merge(key: api_key) }
     let(:client) do
       Ably::Rest::Client.new(client_options)
     end
@@ -571,6 +571,34 @@ describe Ably::Auth do
               expect(@block_called).to eql(1)
               expect(@request_block_called).to eql(true)
             end
+          end
+        end
+      end
+
+      context 'with an explicit token string that expires' do
+        context 'and a Proc for the :auth_callback option to provide a means to renew the token' do
+          before do
+            # Ensure a soon to expire token is not treated as expired
+            stub_const 'Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER', 0
+            old_token_defaults = Ably::Auth::TOKEN_DEFAULTS
+            stub_const 'Ably::Auth::TOKEN_DEFAULTS', old_token_defaults.merge(renew_token_buffer: 0)
+          end
+
+          let(:token_client)   { Ably::Rest::Client.new(default_options.merge(key: api_key, token_params: { ttl: 3 })) }
+          let(:client_options) {
+            default_options.merge(token: token_client.auth.request_token.token, auth_callback: Proc.new do
+              @block_called ||= 0
+              @block_called += 1
+              token_client.auth.create_token_request
+            end)
+          }
+
+          it 'calls the Proc once the token has expired and the new token is used' do
+            client.stats
+            expect(@block_called).to be_nil
+            sleep 3.5
+            expect { client.stats }.to change { client.auth.current_token_details }
+            expect(@block_called).to eql(1)
           end
         end
       end

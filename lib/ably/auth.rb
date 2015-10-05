@@ -401,7 +401,11 @@ module Ably
 
     # Returns the current token if it exists or authorises and retrieves a token
     def token_auth_string
-      if token
+      # If a TokenDetails object has been issued by this library
+      # then that Token will take precedence
+      if @current_token_details
+        authorise.token
+      elsif token # token string was configured in the options
         token
       else
         authorise.token

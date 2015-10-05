@@ -34,7 +34,7 @@ module Ably::Models
     # @param attributes
     # @option attributes [String]       :token      token used to authenticate requests
     # @option attributes [String]       :key_name   API key name used to create this token
-    # @option attributes [Time,Integer] :issued  Time the token was issued as Time or Integer in milliseconds
+    # @option attributes [Time,Integer] :issued     Time the token was issued as Time or Integer in milliseconds
     # @option attributes [Time,Integer] :expires    Time the token expires as Time or Integer in milliseconds
     # @option attributes [String]       :capability JSON stringified capabilities assigned to this token
     # @option attributes [String]       :client_id  client ID assigned to this token
@@ -52,31 +52,31 @@ module Ably::Models
     # @!attribute [r] token
     # @return [String] Token used to authenticate requests
     def token
-      hash.fetch(:token)
+      hash[:token]
     end
 
     # @!attribute [r] key_name
     # @return [String] API key name used to create this token.  An API key is made up of an API key name and secret delimited by a +:+
     def key_name
-      hash.fetch(:key_name)
+      hash[:key_name]
     end
 
     # @!attribute [r] issued
     # @return [Time] Time the token was issued
     def issued
-      as_time_from_epoch(hash.fetch(:issued), granularity: :ms)
+      as_time_from_epoch(hash[:issued], granularity: :ms, allow_nil: :true)
     end
 
     # @!attribute [r] expires
     # @return [Time] Time the token expires
     def expires
-      as_time_from_epoch(hash.fetch(:expires), granularity: :ms)
+      as_time_from_epoch(hash[:expires], granularity: :ms, allow_nil: :true)
     end
 
     # @!attribute [r] capability
     # @return [Hash] Capabilities assigned to this token
     def capability
-      JSON.parse(hash.fetch(:capability))
+      JSON.parse(hash.fetch(:capability)) if hash.fetch(:capability)
     end
 
     # @!attribute [r] client_id
@@ -86,9 +86,11 @@ module Ably::Models
     end
 
     # Returns true if token is expired or about to expire
+    # For tokens that have not got an explicit expires attribute expired? will always return true
     #
     # @return [Boolean]
     def expired?
+      return false if !expires
       expires < Time.now + TOKEN_EXPIRY_BUFFER
     end
 
