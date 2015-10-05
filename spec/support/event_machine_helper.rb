@@ -17,9 +17,32 @@ module RSpec
     end
 
     def stop_reactor
+      unless realtime_clients.empty?
+        realtime_clients.pop.tap do |client|
+          # Ensure close appens outside of the caller as this can cause errbacks on Deferrables
+          # e.g. connection.connect { connection.close } => # Error as calling close within the connected callback
+          ::EventMachine.add_timer(0.05) do
+            client.close if client.connection.can_transition_to?(:closing)
+            ::EventMachine.add_timer(0.1) { stop_reactor }
+          end
+        end
+        return
+      end
+
       ::EventMachine.next_tick do
         ::EventMachine.stop
       end
+    end
+
+    # Ensures that any clients used in tests will have their connections
+    # explicitly closed when stop_reactor is called
+    def auto_close(realtime_client)
+      realtime_clients << realtime_client
+      realtime_client
+    end
+
+    def realtime_clients
+      @realtime_clients ||= []
     end
 
     # Allows multiple Deferrables to be passed in and calls the provided block when
@@ -48,7 +71,7 @@ module RSpec
         end
 
         deferrable.errback do |error|
-          raise RuntimeError, "Deferrable failed: #{error.message}"
+          raise RuntimeError, "Error: Deferrable failed: #{error}"
         end
       end
     end

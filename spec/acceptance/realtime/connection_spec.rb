@@ -11,7 +11,7 @@ describe Ably::Realtime::Connection, :event_machine do
     end
 
     let(:client_options) { default_options }
-    let(:client)         { Ably::Realtime::Client.new(client_options) }
+    let(:client)         { auto_close Ably::Realtime::Client.new(client_options) }
 
     before(:example) do
       EventMachine.add_shutdown_hook do
@@ -29,7 +29,7 @@ describe Ably::Realtime::Connection, :event_machine do
 
       context 'with :auto_connect option set to false' do
         let(:client) do
-          Ably::Realtime::Client.new(default_options.merge(auto_connect: false))
+          auto_close Ably::Realtime::Client.new(default_options.merge(auto_connect: false))
         end
 
         it 'does not connect automatically' do
@@ -204,7 +204,8 @@ describe Ably::Realtime::Connection, :event_machine do
 
             let!(:expired_token_details) do
               # Request a token synchronously
-              Ably::Realtime::Client.new(default_options).auth.request_token_sync(ttl: 0.01)
+              token_client = auto_close Ably::Realtime::Client.new(default_options)
+              token_client.auth.request_token_sync(ttl: 0.01)
             end
 
             context 'opening a new connection' do
@@ -306,7 +307,8 @@ describe Ably::Realtime::Connection, :event_machine do
       end
 
       describe 'once connected' do
-        let(:connection2) {  Ably::Realtime::Client.new(client_options).connection }
+        let(:client2)     { auto_close Ably::Realtime::Client.new(client_options) }
+        let(:connection2) { client2.connection }
 
         describe 'connection#id' do
           it 'is a string' do
@@ -576,7 +578,7 @@ describe Ably::Realtime::Connection, :event_machine do
       let(:channel_name) { random_str }
       let(:channel) { client.channel(channel_name) }
       let(:publishing_client) do
-        Ably::Realtime::Client.new(client_options)
+        auto_close Ably::Realtime::Client.new(client_options)
       end
       let(:publishing_client_channel) { publishing_client.channel(channel_name) }
       let(:client_options) { default_options.merge(log_level: :fatal) }
@@ -670,7 +672,7 @@ describe Ably::Realtime::Connection, :event_machine do
             end
 
             connection.once(:failed) do
-              recover_client = Ably::Realtime::Client.new(default_options.merge(recover: client.connection.recovery_key))
+              recover_client = auto_close Ably::Realtime::Client.new(default_options.merge(recover: client.connection.recovery_key))
               recover_client.connection.on(:connected) do
                 expect(recover_client.connection.key[/^\w{5,}-/, 0]).to_not be_nil
                 expect(recover_client.connection.key[/^\w{5,}-/, 0]).to eql(previous_connection_key[/^\w{5,}-/, 0])
@@ -686,7 +688,7 @@ describe Ably::Realtime::Connection, :event_machine do
             end
 
             connection.once(:failed) do
-              recover_client = Ably::Realtime::Client.new(default_options.merge(recover: client.connection.recovery_key))
+              recover_client = auto_close Ably::Realtime::Client.new(default_options.merge(recover: client.connection.recovery_key))
               recover_client.connection.on_resume do
                 raise 'Should not call the resume callback'
               end
@@ -708,8 +710,8 @@ describe Ably::Realtime::Connection, :event_machine do
 
               connection.on(:failed) do
                 publishing_client_channel.publish('event', 'message') do
-                  recover_client = Ably::Realtime::Client.new(default_options.merge(recover: client.connection.recovery_key))
                   recover_client.channel(channel_name).attach do |recover_client_channel|
+                  recover_client = auto_close Ably::Realtime::Client.new(default_options.merge(recover: client.connection.recovery_key))
                     recover_client_channel.subscribe('event') do |message|
                       expect(message.data).to eql('message')
                       stop_reactor

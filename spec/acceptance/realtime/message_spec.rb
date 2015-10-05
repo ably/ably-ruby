@@ -9,12 +9,12 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
     let(:default_options) { options.merge(key: api_key, environment: environment, protocol: protocol) }
     let(:client_options)  { default_options }
     let(:client) do
-      Ably::Realtime::Client.new(client_options)
+      auto_close Ably::Realtime::Client.new(client_options)
     end
     let(:channel) { client.channel(channel_name) }
 
     let(:other_client) do
-      Ably::Realtime::Client.new(client_options)
+      auto_close Ably::Realtime::Client.new(client_options)
     end
     let(:other_client_channel) { other_client.channel(channel_name) }
 
@@ -181,7 +181,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
 
       context 'with :echo_messages option set to false' do
         let(:no_echo_client) do
-          Ably::Realtime::Client.new(default_options.merge(echo_messages: false))
+          auto_close Ably::Realtime::Client.new(default_options.merge(echo_messages: false))
         end
         let(:no_echo_channel) { no_echo_client.channel(channel_name) }
 
@@ -275,7 +275,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
 
     context 'without suitable publishing permissions' do
       let(:restricted_client) do
-        Ably::Realtime::Client.new(options.merge(key: restricted_api_key, environment: environment, protocol: protocol, :log_level => :error))
+        auto_close Ably::Realtime::Client.new(options.merge(key: restricted_api_key, environment: environment, protocol: protocol, :log_level => :error))
       end
       let(:restricted_channel) { restricted_client.channel("cansubscribe:example") }
       let(:payload)            { 'Test message without permission to publish' }
@@ -450,7 +450,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       context 'subscribing with a different transport protocol' do
         let(:other_protocol) { protocol == :msgpack ? :json : :msgpack }
         let(:other_client) do
-          Ably::Realtime::Client.new(default_options.merge(protocol: other_protocol))
+          auto_close Ably::Realtime::Client.new(default_options.merge(protocol: other_protocol))
         end
 
         let(:cipher_options)            { { key: random_str(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }

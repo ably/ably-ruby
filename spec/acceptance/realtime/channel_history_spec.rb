@@ -5,11 +5,11 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
   vary_by_protocol do
     let(:default_options) { options.merge(key: api_key, environment: environment, protocol: protocol) }
 
-    let(:client)       { Ably::Realtime::Client.new(default_options) }
+    let(:client)       { auto_close Ably::Realtime::Client.new(default_options) }
     let(:channel)      { client.channel(channel_name) }
     let(:rest_channel) { client.rest_client.channel(channel_name) }
 
-    let(:client2)      { Ably::Realtime::Client.new(default_options) }
+    let(:client2)      { auto_close Ably::Realtime::Client.new(default_options) }
     let(:channel2)     { client2.channel(channel_name) }
 
     let(:channel_name) { "persisted:#{random_str(2)}" }
