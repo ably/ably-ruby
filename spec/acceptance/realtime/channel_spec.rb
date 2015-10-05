@@ -80,7 +80,7 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       it 'calls the SafeDeferrable callback on success' do
-        channel.attach.callback do |channel|
+        channel.attach.callback do
           expect(channel).to be_a(Ably::Realtime::Channel)
           expect(channel.state).to eq(:attached)
           stop_reactor
@@ -162,7 +162,7 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         it 'calls the errback of the returned Deferrable' do
-          restricted_channel.attach.errback do |channel, error|
+          restricted_channel.attach.errback do |error|
             expect(restricted_channel.state).to eq(:failed)
             expect(error.status).to eq(401)
             stop_reactor
@@ -220,9 +220,10 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       it 'detaches from a channel and calls the provided block' do
-        channel.attach do |chan|
-          chan.detach do |detached_chan|
-            expect(detached_chan.state).to eq(:detached)
+        channel.attach do
+          expect(channel.state).to eq(:attached)
+          channel.detach do
+            expect(channel.state).to eq(:detached)
             stop_reactor
           end
         end
@@ -249,7 +250,7 @@ describe Ably::Realtime::Channel, :event_machine do
 
       it 'calls the Deferrable callback on success' do
         channel.attach do
-          channel.detach.callback do |channel|
+          channel.detach.callback do
             expect(channel).to be_a(Ably::Realtime::Channel)
             expect(channel.state).to eq(:detached)
             stop_reactor

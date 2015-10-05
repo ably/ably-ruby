@@ -119,7 +119,7 @@ module Ably
       # the failed state. Once closed, the library will not attempt to re-establish the
       # connection without a call to {Connection#connect}.
       #
-      # @yield [Ably::Realtime::Connection] block is called as soon as this connection is in the Closed state
+      # @yield block is called as soon as this connection is in the Closed state
       #
       # @return [EventMachine::Deferrable]
       #
@@ -134,7 +134,7 @@ module Ably
       # Causes the library to attempt connection.  If it was previously explicitly
       # closed by the user, or was closed as a result of an unrecoverable error, a new connection will be opened.
       #
-      # @yield [Ably::Realtime::Connection] block is called as soon as this connection is in the Connected state
+      # @yield block is called as soon as this connection is in the Connected state
       #
       # @return [EventMachine::Deferrable]
       #
@@ -190,7 +190,7 @@ module Ably
           EventMachine::HttpRequest.new(url).get.tap do |http|
             http.errback do
               yield false if block_given?
-              deferrable.fail "Unable to connect to #{url}"
+              deferrable.fail Ably::Exceptions::ConnectionFailed.new("Unable to connect to #{url}", nil, 80000)
             end
             http.callback do
               EventMachine.next_tick do
@@ -199,7 +199,7 @@ module Ably
                 if result
                   deferrable.succeed
                 else
-                  deferrable.fail "Unexpected response from #{url} (#{http.response_header.status})"
+                  deferrable.fail Ably::Exceptions::ConnectionFailed.new("Unexpected response from #{url} (#{http.response_header.status})", 400, 40000)
                 end
               end
             end

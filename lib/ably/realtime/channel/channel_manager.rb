@@ -77,10 +77,10 @@ module Ably::Realtime
       def nack_messages(protocol_message, error)
         (protocol_message.messages + protocol_message.presence).each do |message|
           logger.debug "Calling NACK failure callbacks for #{message.class.name} - #{message.to_json}, protocol message: #{protocol_message}"
-          message.fail message, error
+          message.fail error
         end
         logger.debug "Calling NACK failure callbacks for #{protocol_message.class.name} - #{protocol_message.to_json}"
-        protocol_message.fail protocol_message, error
+        protocol_message.fail error
       end
 
       def drop_pending_queue_from_ack(ack_protocol_message)

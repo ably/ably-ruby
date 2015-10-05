@@ -277,8 +277,7 @@ describe Ably::Realtime::Presence, :event_machine do
 
               presence_client_one.public_send(method_name, args).tap do |deferrable|
                 deferrable.callback { raise 'Should not succeed' }
-                deferrable.errback do |presence, error|
-                  expect(presence).to be_a(Ably::Realtime::Presence)
+                deferrable.errback do |error|
                   expect(error).to be_kind_of(Ably::Exceptions::BaseAblyException)
                   stop_reactor
                 end

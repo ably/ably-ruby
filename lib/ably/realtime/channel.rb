@@ -134,7 +134,7 @@ module Ably
       #     puts "#{message.name} event received with #{message.data}"
       #   end
       #
-      #   channel.publish('click', 'body').errback do |message, error|
+      #   channel.publish('click', 'body').errback do |error, message|
       #     puts "#{message.name} was not received, error #{error.message}"
       #   end
       #
@@ -155,7 +155,7 @@ module Ably
         end
 
         queue_messages(messages).tap do |deferrable|
-          deferrable.callback &success_block if block_given?
+          deferrable.callback(&success_block) if block_given?
         end
       end
 

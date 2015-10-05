@@ -82,7 +82,7 @@ describe Ably::Modules::AsyncWrapper, :api_private do
             expect(result).to eql(result)
             EventMachine.add_timer(sleep_time * 2) { stop_reactor }
           end
-          deferrable.errback do |result|
+          deferrable.errback do |error|
             raise 'Errback should not have been called'
           end
         end

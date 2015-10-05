@@ -283,8 +283,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       it 'calls the error callback' do
         restricted_channel.attach do
           deferrable = restricted_channel.publish('test_event', payload)
-          deferrable.errback do |message, error|
-            expect(message.data).to eql(payload)
+          deferrable.errback do |error|
             expect(error.status).to eql(401)
             stop_reactor
           end

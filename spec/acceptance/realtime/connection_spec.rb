@@ -158,7 +158,7 @@ describe Ably::Realtime::Connection, :event_machine do
             context 'when connected with a valid non-expired token' do
               context 'that then expires following the connection being opened' do
                 let(:ttl)     { 5 }
-                let(:channel) { client.channel('test') }
+                let(:channel) { client.channel(random_str) }
 
                 context 'the server' do
                   it 'disconnects the client, and the client automatically renews the token and then reconnects', em_timeout: 15 do
@@ -271,8 +271,7 @@ describe Ably::Realtime::Connection, :event_machine do
       end
 
       it 'calls the Deferrable callback on success' do
-        connection.connect.callback do |connection|
-          expect(connection).to be_a(Ably::Realtime::Connection)
+        connection.connect.callback do
           expect(connection.state).to eq(:connected)
           stop_reactor
         end
@@ -438,7 +437,7 @@ describe Ably::Realtime::Connection, :event_machine do
 
       it 'calls the Deferrable callback on success' do
         connection.connect do
-          connection.close.callback do |connection|
+          connection.close.callback do
             expect(connection).to be_a(Ably::Realtime::Connection)
             expect(connection.state).to eq(:closed)
             stop_reactor
@@ -596,9 +595,10 @@ describe Ably::Realtime::Connection, :event_machine do
         def self.available_states
           [:connecting, :connected, :disconnected, :suspended, :failed]
         end
-        let(:available_states) { self.class.available_states}
+        let(:available_states) { self.class.available_states }
         let(:states)           { Hash.new }
         let(:client_options)   { default_options.merge(log_level: :none) }
+        let(:channel)          { client.channel(random_str) }
 
         it 'is composed of connection key and serial that is kept up to date with each message ACK received' do
           connection.on(:connected) do
@@ -606,7 +606,7 @@ describe Ably::Realtime::Connection, :event_machine do
             expect(connection.key).to_not be_nil
             expect(connection.serial).to eql(expected_serial)
 
-            client.channel('test').attach do |channel|
+            channel.attach do
               channel.publish('event', 'data') do
                 expected_serial += 1 # attach message received
                 expect(connection.serial).to eql(expected_serial)
@@ -704,14 +704,15 @@ describe Ably::Realtime::Connection, :event_machine do
             let(:client_options)   { default_options.merge(log_level: :none) }
 
             it 'recovers server-side queued messages' do
-              channel.attach do |message|
+              channel.attach do
                 connection.transition_state_machine! :failed
               end
 
               connection.on(:failed) do
                 publishing_client_channel.publish('event', 'message') do
-                  recover_client.channel(channel_name).attach do |recover_client_channel|
                   recover_client = auto_close Ably::Realtime::Client.new(default_options.merge(recover: client.connection.recovery_key))
+                  recover_client_channel = recover_client.channel(channel_name)
+                  recover_client_channel.attach do
                     recover_client_channel.subscribe('event') do |message|
                       expect(message.data).to eql('message')
                       stop_reactor

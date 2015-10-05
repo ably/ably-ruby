@@ -405,7 +405,7 @@ module Ably::Realtime
           deferrable_succeed deferrable, &success_block
         end
 
-        protocol_message.errback do |message, error|
+        protocol_message.errback do |error|
           change_state failed_state, error if failed_state
           deferrable_fail deferrable, error
         end
@@ -419,8 +419,8 @@ module Ably::Realtime
     end
 
     def deferrable_fail(deferrable, *args, &block)
-      safe_yield block, self, *args if block_given?
-      EventMachine.next_tick { deferrable.fail self, *args } # allow errback to be added to the returned Deferrable
+      safe_yield block, *args if block_given?
+      EventMachine.next_tick { deferrable.fail *args } # allow errback to be added to the returned Deferrable
       deferrable
     end
 
@@ -431,7 +431,7 @@ module Ably::Realtime
       ensure_channel_attached(deferrable) do
         send_presence_protocol_message(action, client_id, options).tap do |protocol_message|
           protocol_message.callback { |message| deferrable_succeed deferrable, &success_block }
-          protocol_message.errback  { |message, error| deferrable_fail deferrable, error }
+          protocol_message.errback  { |error| deferrable_fail deferrable, error }
         end
       end
     end
