@@ -24,6 +24,7 @@ module Ably::Realtime
       transition :from => :attaching,    :to => [:attached, :detaching, :failed]
       transition :from => :attached,     :to => [:detaching, :detached, :failed]
       transition :from => :detaching,    :to => [:detached, :attaching, :failed]
+      transition :from => :detached,     :to => [:attaching, :attached, :failed]
       transition :from => :failed,       :to => [:attaching]
 
       after_transition do |channel, transition|
