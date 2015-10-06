@@ -417,31 +417,39 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
         let(:encrypted_channel_client1) { client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
         let(:encrypted_channel_client2) { other_client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
 
-        let(:data) { MessagePack.pack({ 'key' => random_str }) }
+        let(:data) { { 'key' => random_str } }
         let(:message_count) { 50 }
 
         it 'encrypts and decrypts all messages' do
-          messages_received = {
-            decrypted: 0,
-            encrypted: 0
-          }
+          messages_received = []
 
-          encrypted_channel_client2.attach do
-            encrypted_channel_client2.subscribe do |message|
-              expect(message.data).to eql("#{message.name}-#{data}")
+          encrypted_channel_client1.attach do
+            encrypted_channel_client1.subscribe do |message|
+              expect(message.data).to eql(MessagePack.pack(data.merge(index: message.name.to_i)))
               expect(message.encoding).to be_nil
-              messages_received[:decrypted] += 1
-              stop_reactor if messages_received[:decrypted] == message_count
+              messages_received << message
+              stop_reactor if messages_received.count == message_count
             end
 
-            encrypted_channel_client1.__incoming_msgbus__.subscribe(:message) do |message|
-              expect(message['encoding']).to match(/cipher\+/)
-              messages_received[:encrypted] += 1
+            message_count.times do |index|
+              encrypted_channel_client2.publish index.to_s, MessagePack.pack(data.merge(index: index))
             end
           end
+        end
 
-          message_count.times do |index|
-            encrypted_channel_client2.publish index.to_s, "#{index}-#{data}"
+        it 'receives raw messages with the correct encoding' do
+          encrypted_channel_client1.attach do
+            client.connection.__incoming_protocol_msgbus__.unsubscribe # remove all listeners
+            client.connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+              if protocol_message.action == Ably::Models::ProtocolMessage::ACTION.Message
+                protocol_message.messages.each do |message|
+                  expect(message['encoding']).to match(/cipher\+/)
+                end
+                stop_reactor
+              end
+            end
+
+            encrypted_channel_client2.publish 'name', MessagePack.pack('data')
           end
         end
       end
