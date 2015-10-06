@@ -86,12 +86,19 @@ module Ably::Modules
     module ClassMethods
       def emits_klass
         @emits_klass ||= if @emits_klass_name
-          Object.const_get @emits_klass_name
+          get_const(@emits_klass_name)
         end
       end
 
       def ensure_state_machine_emits(klass)
         @emits_klass_name = klass
+      end
+
+      def get_const(klass_name)
+        klass_names = klass_name.split('::')
+        klass_names.inject(Kernel) do |klass, name|
+          klass.const_get(name)
+        end
       end
     end
   end
