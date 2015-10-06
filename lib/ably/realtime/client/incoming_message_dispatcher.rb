@@ -175,11 +175,11 @@ module Ably::Realtime
 
       def drop_pending_queue_from_ack(ack_protocol_message)
         message_serial_up_to = ack_protocol_message.message_serial + ack_protocol_message.count - 1
-        connection.__pending_message_ack_queue__.drop_while do |protocol_message|
-          if protocol_message.message_serial <= message_serial_up_to
-            yield protocol_message
-            true
-          end
+
+        while !connection.__pending_message_ack_queue__.empty?
+          next_message = connection.__pending_message_ack_queue__.first
+          return if next_message.message_serial > message_serial_up_to
+          yield connection.__pending_message_ack_queue__.shift
         end
       end
 
