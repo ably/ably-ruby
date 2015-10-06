@@ -18,7 +18,7 @@ module RSpec
 
     def stop_reactor
       unless realtime_clients.empty?
-        realtime_clients.pop.tap do |client|
+        realtime_clients.shift.tap do |client|
           # Ensure close appens outside of the caller as this can cause errbacks on Deferrables
           # e.g. connection.connect { connection.close } => # Error as calling close within the connected callback
           ::EventMachine.add_timer(0.05) do
