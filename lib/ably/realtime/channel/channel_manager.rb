@@ -146,7 +146,7 @@ module Ably::Realtime
         end
 
         connection.unsafe_on(:failed) do |error|
-          if can_transition_to?(:failed)
+          if can_transition_to?(:failed) && !channel.detached?
             channel.transition_state_machine :failed, reason: Ably::Exceptions::ConnectionFailed.new('Connection failed', nil, 80002, error)
           end
         end
