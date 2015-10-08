@@ -7,11 +7,11 @@ describe Ably::Realtime::Presence, 'history', :event_machine do
 
     let(:channel_name)        { "persisted:#{random_str(2)}" }
 
-    let(:client_one)          { Ably::Realtime::Client.new(default_options.merge(client_id: random_str)) }
+    let(:client_one)          { auto_close Ably::Realtime::Client.new(default_options.merge(client_id: random_str)) }
     let(:channel_client_one)  { client_one.channel(channel_name) }
     let(:presence_client_one) { channel_client_one.presence }
 
-    let(:client_two)          { Ably::Realtime::Client.new(default_options.merge(client_id: random_str)) }
+    let(:client_two)          { auto_close Ably::Realtime::Client.new(default_options.merge(client_id: random_str)) }
     let(:channel_client_two)  { client_two.channel(channel_name) }
     let(:presence_client_two) { channel_client_two.presence }
 

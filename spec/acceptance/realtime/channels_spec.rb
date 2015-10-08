@@ -1,21 +1,23 @@
 # encoding: utf-8
 require 'spec_helper'
 
-describe Ably::Realtime::Channels do
+describe Ably::Realtime::Channels, :event_machine do
   shared_examples 'a channel' do
     it 'returns a channel object' do
       expect(channel).to be_a Ably::Realtime::Channel
       expect(channel.name).to eql(channel_name)
+      stop_reactor
     end
 
     it 'returns channel object and passes the provided options' do
       expect(channel_with_options.options).to eql(options)
+      stop_reactor
     end
   end
 
   vary_by_protocol do
     let(:client) do
-      Ably::Realtime::Client.new(key: api_key, environment: environment, protocol: protocol)
+      auto_close Ably::Realtime::Client.new(key: api_key, environment: environment, protocol: protocol)
     end
     let(:channel_name) { random_str }
     let(:options)      { { key: 'value' } }
@@ -41,6 +43,7 @@ describe Ably::Realtime::Channels do
         new_channel = client.channels.get(channel_name, new_channel_options)
         expect(new_channel).to be_a(Ably::Realtime::Channel)
         expect(new_channel.options[:encrypted]).to eql(true)
+        stop_reactor
       end
     end
 
@@ -52,6 +55,7 @@ describe Ably::Realtime::Channels do
         new_channel = client.channels.get(channel_name)
         expect(new_channel).to be_a(Ably::Realtime::Channel)
         expect(original_channel.options).to eql(options)
+        stop_reactor
       end
     end
 

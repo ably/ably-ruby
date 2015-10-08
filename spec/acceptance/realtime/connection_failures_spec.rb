@@ -11,7 +11,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
     let(:client_options) { default_options }
     let(:client) do
-      Ably::Realtime::Client.new(client_options)
+      auto_close Ably::Realtime::Client.new(client_options)
     end
 
     context 'authentication failure' do
@@ -281,7 +281,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
       let(:channel_name) { random_str }
       let(:channel) { client.channel(channel_name) }
       let(:publishing_client) do
-        Ably::Realtime::Client.new(client_options)
+        auto_close Ably::Realtime::Client.new(client_options)
       end
       let(:publishing_client_channel) { publishing_client.channel(channel_name) }
       let(:client_options) { default_options.merge(log_level: :none) }
@@ -468,6 +468,8 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
       context 'when failing to resume' do
         context 'because the connection_key is not or no longer valid' do
+          let(:channel) { client.channel(random_str) }
+
           def kill_connection_transport_and_prevent_valid_resume
             connection.transport.close_connection_after_writing
             connection.configure_new '0123456789abcdef', 'wVIsgTHAB1UvXh7z-1991d8586', -1 # force the resume connection key to be invalid
@@ -509,15 +511,15 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
 
           it 'emits an error on the channel and sets the error reason' do
-            client.channel(random_str).attach do |channel|
-              channel.on(:error) do |error|
-                expect(error.message).to match(/Unable to recover connection/i)
-                expect(error.code).to eql(80008)
-                expect(channel.error_reason).to eql(error)
-                stop_reactor
-              end
-
+            channel.attach do
               kill_connection_transport_and_prevent_valid_resume
+            end
+
+            channel.on(:error) do |error|
+              expect(error.message).to match(/Unable to recover connection/i)
+              expect(error.code).to eql(80008)
+              expect(channel.error_reason).to eql(error)
+              stop_reactor
             end
           end
         end
@@ -627,11 +629,11 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
           it 'uses a fallback host on every subsequent disconnected attempt until suspended' do
             request = 0
-            expect(EventMachine).to receive(:connect).exactly(retry_count_for_one_state).times do |host|
+            # Expect retry attempts + 1 attempt for the next state
+            expect(EventMachine).to receive(:connect).exactly(retry_count_for_one_state + 1).times do |host|
               if request == 0
                 expect(host).to eql(expected_host)
               else
-                expect(custom_hosts).to include(host)
                 fallback_hosts_used << host
               end
               request += 1
@@ -639,6 +641,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
 
             connection.on(:suspended) do
+              fallback_hosts_used.pop # remove suspended attempt host
               expect(fallback_hosts_used.uniq).to match_array(custom_hosts)
               stop_reactor
             end

@@ -57,7 +57,7 @@ module Ably::Realtime
         connection.manager.respond_to_transport_disconnected_when_connecting err
       end
 
-      after_transition(to: [:disconnected], from: [:connected]) do |connection, current_transition|
+      after_transition(to: [:disconnected, :suspended], from: [:connected]) do |connection, current_transition|
         err = error_from_state_change(current_transition)
         connection.manager.respond_to_transport_disconnected_whilst_connected err
       end

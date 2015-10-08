@@ -8,9 +8,9 @@ describe Ably::Realtime::Presence, :event_machine do
     let(:default_options) { { key: api_key, environment: environment, protocol: protocol } }
     let(:client_options)  { default_options }
 
-    let(:anonymous_client) { Ably::Realtime::Client.new(client_options) }
-    let(:client_one)       { Ably::Realtime::Client.new(client_options.merge(client_id: random_str)) }
-    let(:client_two)       { Ably::Realtime::Client.new(client_options.merge(client_id: random_str)) }
+    let(:anonymous_client) { auto_close Ably::Realtime::Client.new(client_options) }
+    let(:client_one)       { auto_close Ably::Realtime::Client.new(client_options.merge(client_id: random_str)) }
+    let(:client_two)       { auto_close Ably::Realtime::Client.new(client_options.merge(client_id: random_str)) }
 
     let(:channel_name)              { "presence-#{random_str(4)}" }
     let(:channel_anonymous_client)  { anonymous_client.channel(channel_name) }
@@ -72,7 +72,7 @@ describe Ably::Realtime::Presence, :event_machine do
         end
 
         context 'when :queue_messages client option is false' do
-          let(:client_one) { Ably::Realtime::Client.new(default_options.merge(queue_messages: false, client_id: random_str)) }
+          let(:client_one) { auto_close Ably::Realtime::Client.new(default_options.merge(queue_messages: false, client_id: random_str)) }
 
           context 'and connection state initialized' do
             it 'raises an exception' do
@@ -94,7 +94,7 @@ describe Ably::Realtime::Presence, :event_machine do
           end
 
           context 'and connection state disconnected' do
-            let(:client_one) { Ably::Realtime::Client.new(default_options.merge(queue_messages: false, client_id: random_str, :log_level => :error)) }
+            let(:client_one) { auto_close Ably::Realtime::Client.new(default_options.merge(queue_messages: false, client_id: random_str, :log_level => :error)) }
 
             it 'raises an exception' do
               client_one.connection.once(:connected) do
@@ -277,8 +277,7 @@ describe Ably::Realtime::Presence, :event_machine do
 
               presence_client_one.public_send(method_name, args).tap do |deferrable|
                 deferrable.callback { raise 'Should not succeed' }
-                deferrable.errback do |presence, error|
-                  expect(presence).to be_a(Ably::Realtime::Presence)
+                deferrable.errback do |error|
                   expect(error).to be_kind_of(Ably::Exceptions::BaseAblyException)
                   stop_reactor
                 end
@@ -663,7 +662,7 @@ describe Ably::Realtime::Presence, :event_machine do
 
       context 'without necessary capabilities to join presence' do
         let(:restricted_client) do
-          Ably::Realtime::Client.new(default_options.merge(key: restricted_api_key, log_level: :fatal))
+          auto_close Ably::Realtime::Client.new(default_options.merge(key: restricted_api_key, log_level: :fatal))
         end
         let(:restricted_channel)  { restricted_client.channel("cansubscribe:channel") }
         let(:restricted_presence) { restricted_channel.presence }
@@ -880,7 +879,7 @@ describe Ably::Realtime::Presence, :event_machine do
 
         context 'without necessary capabilities to enter on behalf of another client' do
           let(:restricted_client) do
-            Ably::Realtime::Client.new(default_options.merge(key: restricted_api_key, log_level: :fatal))
+            auto_close Ably::Realtime::Client.new(default_options.merge(key: restricted_api_key, log_level: :fatal))
           end
           let(:restricted_channel)  { restricted_client.channel("cansubscribe:channel") }
           let(:restricted_presence) { restricted_channel.presence }
@@ -1400,7 +1399,7 @@ describe Ably::Realtime::Presence, :event_machine do
       let(:client_id)   { random_str.encode(Encoding::ASCII_8BIT) }
 
       context 'in connection set up' do
-        let(:client_one)  { Ably::Realtime::Client.new(default_options.merge(client_id: client_id)) }
+        let(:client_one)  { auto_close Ably::Realtime::Client.new(default_options.merge(client_id: client_id)) }
 
         it 'is converted into UTF_8' do
           presence_client_one.enter
@@ -1413,7 +1412,7 @@ describe Ably::Realtime::Presence, :event_machine do
       end
 
       context 'in channel options' do
-        let(:client_one)  { Ably::Realtime::Client.new(default_options) }
+        let(:client_one)  { auto_close Ably::Realtime::Client.new(default_options) }
 
         it 'is converted into UTF_8' do
           presence_client_one.enter(client_id: client_id)

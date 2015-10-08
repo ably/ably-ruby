@@ -8,7 +8,7 @@ describe Ably::Realtime::Auth, :event_machine do
   vary_by_protocol do
     let(:default_options) { { key: api_key, environment: environment, protocol: protocol } }
     let(:client_options)  { default_options }
-    let(:client)          { Ably::Realtime::Client.new(client_options) }
+    let(:client)          { auto_close Ably::Realtime::Client.new(client_options) }
     let(:auth)            { client.auth }
 
     context 'with basic auth' do

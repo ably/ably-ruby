@@ -6,7 +6,7 @@ describe Ably::Realtime::Channel, :event_machine do
     let(:default_options) { { key: api_key, environment: environment, protocol: protocol } }
     let(:client_options)  { default_options }
 
-    let(:client)       { Ably::Realtime::Client.new(client_options) }
+    let(:client)       { auto_close Ably::Realtime::Client.new(client_options) }
     let(:channel_name) { random_str }
     let(:payload)      { random_str }
     let(:channel)      { client.channel(channel_name) }
@@ -15,7 +15,7 @@ describe Ably::Realtime::Channel, :event_machine do
     describe 'initialization' do
       context 'with :auto_connect option set to false on connection' do
         let(:client) do
-          Ably::Realtime::Client.new(default_options.merge(auto_connect: false))
+          auto_close Ably::Realtime::Client.new(default_options.merge(auto_connect: false))
         end
 
         it 'remains initialized when accessing a channel' do
@@ -80,7 +80,7 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       it 'calls the SafeDeferrable callback on success' do
-        channel.attach.callback do |channel|
+        channel.attach.callback do
           expect(channel).to be_a(Ably::Realtime::Channel)
           expect(channel.state).to eq(:attached)
           stop_reactor
@@ -131,7 +131,7 @@ describe Ably::Realtime::Channel, :event_machine do
 
         it 'attaches all channels', em_timeout: 15 do
           connection_count.times.map do
-            Ably::Realtime::Client.new(default_options)
+            auto_close Ably::Realtime::Client.new(default_options)
           end.each do |client|
             channel_count.times.map do |index|
               client.channel("channel-#{index}").attach do
@@ -148,7 +148,7 @@ describe Ably::Realtime::Channel, :event_machine do
 
       context 'failure as a result of insufficient key permissions' do
         let(:restricted_client) do
-          Ably::Realtime::Client.new(default_options.merge(key: restricted_api_key, log_level: :fatal))
+          auto_close Ably::Realtime::Client.new(default_options.merge(key: restricted_api_key, log_level: :fatal))
         end
         let(:restricted_channel) { restricted_client.channel("cannot_subscribe") }
 
@@ -162,7 +162,7 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         it 'calls the errback of the returned Deferrable' do
-          restricted_channel.attach.errback do |channel, error|
+          restricted_channel.attach.errback do |error|
             expect(restricted_channel.state).to eq(:failed)
             expect(error.status).to eq(401)
             stop_reactor
@@ -220,9 +220,10 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       it 'detaches from a channel and calls the provided block' do
-        channel.attach do |chan|
-          chan.detach do |detached_chan|
-            expect(detached_chan.state).to eq(:detached)
+        channel.attach do
+          expect(channel.state).to eq(:attached)
+          channel.detach do
+            expect(channel.state).to eq(:detached)
             stop_reactor
           end
         end
@@ -249,7 +250,7 @@ describe Ably::Realtime::Channel, :event_machine do
 
       it 'calls the Deferrable callback on success' do
         channel.attach do
-          channel.detach.callback do |channel|
+          channel.detach.callback do
             expect(channel).to be_a(Ably::Realtime::Channel)
             expect(channel.state).to eq(:detached)
             stop_reactor
@@ -563,7 +564,7 @@ describe Ably::Realtime::Channel, :event_machine do
 
         it 'publishes all messages, all success callbacks are called, and a history request confirms all messages were published' do
           connection_count.times.map do
-            Ably::Realtime::Client.new(client_options)
+            auto_close Ably::Realtime::Client.new(client_options)
           end.each do |client|
             channel = client.channels.get(channel_name)
             messages.each do |message|

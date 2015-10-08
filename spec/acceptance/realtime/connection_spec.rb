@@ -11,7 +11,7 @@ describe Ably::Realtime::Connection, :event_machine do
     end
 
     let(:client_options) { default_options }
-    let(:client)         { Ably::Realtime::Client.new(client_options) }
+    let(:client)         { auto_close Ably::Realtime::Client.new(client_options) }
 
     before(:example) do
       EventMachine.add_shutdown_hook do
@@ -29,7 +29,7 @@ describe Ably::Realtime::Connection, :event_machine do
 
       context 'with :auto_connect option set to false' do
         let(:client) do
-          Ably::Realtime::Client.new(default_options.merge(auto_connect: false))
+          auto_close Ably::Realtime::Client.new(default_options.merge(auto_connect: false))
         end
 
         it 'does not connect automatically' do
@@ -158,7 +158,7 @@ describe Ably::Realtime::Connection, :event_machine do
             context 'when connected with a valid non-expired token' do
               context 'that then expires following the connection being opened' do
                 let(:ttl)     { 5 }
-                let(:channel) { client.channel('test') }
+                let(:channel) { client.channel(random_str) }
 
                 context 'the server' do
                   it 'disconnects the client, and the client automatically renews the token and then reconnects', em_timeout: 15 do
@@ -204,7 +204,8 @@ describe Ably::Realtime::Connection, :event_machine do
 
             let!(:expired_token_details) do
               # Request a token synchronously
-              Ably::Realtime::Client.new(default_options).auth.request_token_sync(ttl: 0.01)
+              token_client = auto_close Ably::Realtime::Client.new(default_options)
+              token_client.auth.request_token_sync(ttl: 0.01)
             end
 
             context 'opening a new connection' do
@@ -270,8 +271,7 @@ describe Ably::Realtime::Connection, :event_machine do
       end
 
       it 'calls the Deferrable callback on success' do
-        connection.connect.callback do |connection|
-          expect(connection).to be_a(Ably::Realtime::Connection)
+        connection.connect.callback do
           expect(connection.state).to eq(:connected)
           stop_reactor
         end
@@ -306,7 +306,8 @@ describe Ably::Realtime::Connection, :event_machine do
       end
 
       describe 'once connected' do
-        let(:connection2) {  Ably::Realtime::Client.new(client_options).connection }
+        let(:client2)     { auto_close Ably::Realtime::Client.new(client_options) }
+        let(:connection2) { client2.connection }
 
         describe 'connection#id' do
           it 'is a string' do
@@ -436,7 +437,7 @@ describe Ably::Realtime::Connection, :event_machine do
 
       it 'calls the Deferrable callback on success' do
         connection.connect do
-          connection.close.callback do |connection|
+          connection.close.callback do
             expect(connection).to be_a(Ably::Realtime::Connection)
             expect(connection.state).to eq(:closed)
             stop_reactor
@@ -576,7 +577,7 @@ describe Ably::Realtime::Connection, :event_machine do
       let(:channel_name) { random_str }
       let(:channel) { client.channel(channel_name) }
       let(:publishing_client) do
-        Ably::Realtime::Client.new(client_options)
+        auto_close Ably::Realtime::Client.new(client_options)
       end
       let(:publishing_client_channel) { publishing_client.channel(channel_name) }
       let(:client_options) { default_options.merge(log_level: :fatal) }
@@ -594,9 +595,10 @@ describe Ably::Realtime::Connection, :event_machine do
         def self.available_states
           [:connecting, :connected, :disconnected, :suspended, :failed]
         end
-        let(:available_states) { self.class.available_states}
+        let(:available_states) { self.class.available_states }
         let(:states)           { Hash.new }
         let(:client_options)   { default_options.merge(log_level: :none) }
+        let(:channel)          { client.channel(random_str) }
 
         it 'is composed of connection key and serial that is kept up to date with each message ACK received' do
           connection.on(:connected) do
@@ -604,7 +606,7 @@ describe Ably::Realtime::Connection, :event_machine do
             expect(connection.key).to_not be_nil
             expect(connection.serial).to eql(expected_serial)
 
-            client.channel('test').attach do |channel|
+            channel.attach do
               channel.publish('event', 'data') do
                 expected_serial += 1 # attach message received
                 expect(connection.serial).to eql(expected_serial)
@@ -670,7 +672,7 @@ describe Ably::Realtime::Connection, :event_machine do
             end
 
             connection.once(:failed) do
-              recover_client = Ably::Realtime::Client.new(default_options.merge(recover: client.connection.recovery_key))
+              recover_client = auto_close Ably::Realtime::Client.new(default_options.merge(recover: client.connection.recovery_key))
               recover_client.connection.on(:connected) do
                 expect(recover_client.connection.key[/^\w{5,}-/, 0]).to_not be_nil
                 expect(recover_client.connection.key[/^\w{5,}-/, 0]).to eql(previous_connection_key[/^\w{5,}-/, 0])
@@ -686,7 +688,7 @@ describe Ably::Realtime::Connection, :event_machine do
             end
 
             connection.once(:failed) do
-              recover_client = Ably::Realtime::Client.new(default_options.merge(recover: client.connection.recovery_key))
+              recover_client = auto_close Ably::Realtime::Client.new(default_options.merge(recover: client.connection.recovery_key))
               recover_client.connection.on_resume do
                 raise 'Should not call the resume callback'
               end
@@ -702,14 +704,15 @@ describe Ably::Realtime::Connection, :event_machine do
             let(:client_options)   { default_options.merge(log_level: :none) }
 
             it 'recovers server-side queued messages' do
-              channel.attach do |message|
+              channel.attach do
                 connection.transition_state_machine! :failed
               end
 
               connection.on(:failed) do
                 publishing_client_channel.publish('event', 'message') do
-                  recover_client = Ably::Realtime::Client.new(default_options.merge(recover: client.connection.recovery_key))
-                  recover_client.channel(channel_name).attach do |recover_client_channel|
+                  recover_client = auto_close Ably::Realtime::Client.new(default_options.merge(recover: client.connection.recovery_key))
+                  recover_client_channel = recover_client.channel(channel_name)
+                  recover_client_channel.attach do
                     recover_client_channel.subscribe('event') do |message|
                       expect(message.data).to eql('message')
                       stop_reactor

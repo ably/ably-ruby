@@ -9,12 +9,12 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
     let(:default_options) { options.merge(key: api_key, environment: environment, protocol: protocol) }
     let(:client_options)  { default_options }
     let(:client) do
-      Ably::Realtime::Client.new(client_options)
+      auto_close Ably::Realtime::Client.new(client_options)
     end
     let(:channel) { client.channel(channel_name) }
 
     let(:other_client) do
-      Ably::Realtime::Client.new(client_options)
+      auto_close Ably::Realtime::Client.new(client_options)
     end
     let(:other_client_channel) { other_client.channel(channel_name) }
 
@@ -181,7 +181,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
 
       context 'with :echo_messages option set to false' do
         let(:no_echo_client) do
-          Ably::Realtime::Client.new(default_options.merge(echo_messages: false))
+          auto_close Ably::Realtime::Client.new(default_options.merge(echo_messages: false))
         end
         let(:no_echo_channel) { no_echo_client.channel(channel_name) }
 
@@ -275,7 +275,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
 
     context 'without suitable publishing permissions' do
       let(:restricted_client) do
-        Ably::Realtime::Client.new(options.merge(key: restricted_api_key, environment: environment, protocol: protocol, :log_level => :error))
+        auto_close Ably::Realtime::Client.new(options.merge(key: restricted_api_key, environment: environment, protocol: protocol, :log_level => :error))
       end
       let(:restricted_channel) { restricted_client.channel("cansubscribe:example") }
       let(:payload)            { 'Test message without permission to publish' }
@@ -283,8 +283,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       it 'calls the error callback' do
         restricted_channel.attach do
           deferrable = restricted_channel.publish('test_event', payload)
-          deferrable.errback do |message, error|
-            expect(message.data).to eql(payload)
+          deferrable.errback do |error|
             expect(error.status).to eql(401)
             stop_reactor
           end
@@ -418,31 +417,39 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
         let(:encrypted_channel_client1) { client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
         let(:encrypted_channel_client2) { other_client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
 
-        let(:data) { MessagePack.pack({ 'key' => random_str }) }
+        let(:data) { { 'key' => random_str } }
         let(:message_count) { 50 }
 
         it 'encrypts and decrypts all messages' do
-          messages_received = {
-            decrypted: 0,
-            encrypted: 0
-          }
+          messages_received = []
 
-          encrypted_channel_client2.attach do
-            encrypted_channel_client2.subscribe do |message|
-              expect(message.data).to eql("#{message.name}-#{data}")
+          encrypted_channel_client1.attach do
+            encrypted_channel_client1.subscribe do |message|
+              expect(message.data).to eql(MessagePack.pack(data.merge(index: message.name.to_i)))
               expect(message.encoding).to be_nil
-              messages_received[:decrypted] += 1
-              stop_reactor if messages_received[:decrypted] == message_count
+              messages_received << message
+              stop_reactor if messages_received.count == message_count
             end
 
-            encrypted_channel_client1.__incoming_msgbus__.subscribe(:message) do |message|
-              expect(message['encoding']).to match(/cipher\+/)
-              messages_received[:encrypted] += 1
+            message_count.times do |index|
+              encrypted_channel_client2.publish index.to_s, MessagePack.pack(data.merge(index: index))
             end
           end
+        end
 
-          message_count.times do |index|
-            encrypted_channel_client2.publish index.to_s, "#{index}-#{data}"
+        it 'receives raw messages with the correct encoding' do
+          encrypted_channel_client1.attach do
+            client.connection.__incoming_protocol_msgbus__.unsubscribe # remove all listeners
+            client.connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+              if protocol_message.action == Ably::Models::ProtocolMessage::ACTION.Message
+                protocol_message.messages.each do |message|
+                  expect(message['encoding']).to match(/cipher\+/)
+                end
+                stop_reactor
+              end
+            end
+
+            encrypted_channel_client2.publish 'name', MessagePack.pack('data')
           end
         end
       end
@@ -450,7 +457,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       context 'subscribing with a different transport protocol' do
         let(:other_protocol) { protocol == :msgpack ? :json : :msgpack }
         let(:other_client) do
-          Ably::Realtime::Client.new(default_options.merge(protocol: other_protocol))
+          auto_close Ably::Realtime::Client.new(default_options.merge(protocol: other_protocol))
         end
 
         let(:cipher_options)            { { key: random_str(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
