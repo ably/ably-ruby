@@ -599,7 +599,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       let(:event_name)     { random_str }
       let(:message_state)  { [] }
       let(:connection)     { client.connection }
-      let(:client_options) { default_options.merge(:log_level => :none) }
+      let(:client_options) { default_options.merge(:log_level => :fatal) }
       let(:msgs_received)  { [] }
 
       it 'publishes the message again, later receives the ACK and only one message is ever received from Ably' do
@@ -642,6 +642,32 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       let(:connection) { client.connection }
       let(:event_name) { random_str }
 
+      describe 'the connection is not resumed' do
+        let(:client_options) { default_options.merge(:log_level => :fatal) }
+
+        it 'calls the errback for all messages' do
+          connection.once(:connected) do
+            connection.transport.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+              if protocol_message.messages.find { |message| message.name == event_name }
+                EventMachine.add_timer(0.0001) do
+                  connection.transport.unbind # trigger failure
+                  connection.configure_new '0123456789abcdef', 'wVIsgTHAB1UvXh7z-1991d8586', -1 # force the resume connection key to be invalid
+                end
+              end
+            end
+          end
+
+          channel.publish(event_name).tap do |deferrable|
+            deferrable.callback do
+              raise 'Message delivery should not happen'
+            end
+            deferrable.errback do
+              stop_reactor
+            end
+          end
+        end
+      end
+
       describe 'the connection becomes suspended' do
         let(:client_options) { default_options.merge(:log_level => :fatal) }
 
@@ -649,8 +675,10 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
           connection.once(:connected) do
             connection.transport.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
               if protocol_message.messages.find { |message| message.name == event_name }
-                EventMachine.add_timer(0.001) do
+                EventMachine.add_timer(0.0001) do
                   connection.transition_state_machine :suspended
+                  stub_const 'Ably::FALLBACK_HOSTS', []
+                  allow(client).to receive(:endpoint).and_return(URI::Generic.build(scheme: 'wss', host: 'does.not.exist.com'))
                 end
               end
             end

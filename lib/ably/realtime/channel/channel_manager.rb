@@ -123,6 +123,8 @@ module Ably::Realtime
       # It is up to Ably to ensure that duplicate messages are not retransmitted on the channel
       # base on the serial numbers
       #
+      # TODO: Move this into the Connection class, it does not belong in a Channel class
+      #
       # @api private
       def resend_pending_message_ack_queue
         connection.__pending_message_ack_queue__.delete_if do |protocol_message|
