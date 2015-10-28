@@ -9,8 +9,10 @@ describe Ably::Realtime::Presence, :event_machine do
     let(:client_options)  { default_options }
 
     let(:anonymous_client) { auto_close Ably::Realtime::Client.new(client_options) }
-    let(:client_one)       { auto_close Ably::Realtime::Client.new(client_options.merge(client_id: random_str)) }
-    let(:client_two)       { auto_close Ably::Realtime::Client.new(client_options.merge(client_id: random_str)) }
+    let(:client_one_id)    { random_str }
+    let(:client_one)       { auto_close Ably::Realtime::Client.new(client_options.merge(client_id: client_one_id)) }
+    let(:client_two_id)    { random_str }
+    let(:client_two)       { auto_close Ably::Realtime::Client.new(client_options.merge(client_id: client_two_id)) }
 
     let(:channel_name)              { "presence-#{random_str(4)}" }
     let(:channel_anonymous_client)  { anonymous_client.channel(channel_name) }
@@ -29,6 +31,14 @@ describe Ably::Realtime::Presence, :event_machine do
     end
 
     shared_examples_for 'a public presence method' do |method_name, expected_state, args, options = {}|
+      let(:client_id) do
+        if args.empty?
+          random_str
+        else
+          args
+        end
+      end
+
       def setup_test(method_name, args, options)
         if options[:enter_first]
           presence_client_one.public_send(method_name.to_s.gsub(/leave|update/, 'enter'), args) do
@@ -72,7 +82,7 @@ describe Ably::Realtime::Presence, :event_machine do
         end
 
         context 'when :queue_messages client option is false' do
-          let(:client_one) { auto_close Ably::Realtime::Client.new(default_options.merge(queue_messages: false, client_id: random_str)) }
+          let(:client_one) { auto_close Ably::Realtime::Client.new(default_options.merge(queue_messages: false, client_id: client_id)) }
 
           context 'and connection state initialized' do
             it 'raises an exception' do
@@ -94,7 +104,7 @@ describe Ably::Realtime::Presence, :event_machine do
           end
 
           context 'and connection state disconnected' do
-            let(:client_one) { auto_close Ably::Realtime::Client.new(default_options.merge(queue_messages: false, client_id: random_str, :log_level => :error)) }
+            let(:client_one) { auto_close Ably::Realtime::Client.new(default_options.merge(queue_messages: false, client_id: client_id, :log_level => :error)) }
 
             it 'raises an exception' do
               client_one.connection.once(:connected) do
@@ -122,7 +132,7 @@ describe Ably::Realtime::Presence, :event_machine do
       context 'with supported data payload content type' do
         def register_presence_and_check_data(method_name, data)
           if method_name.to_s.match(/_client/)
-            presence_client_one.public_send(method_name, 'client_id', data: data)
+            presence_client_one.public_send(method_name, client_id, data: data)
           else
             presence_client_one.public_send(method_name, data: data)
           end
@@ -177,7 +187,7 @@ describe Ably::Realtime::Presence, :event_machine do
       context 'with unsupported data payload content type' do
         def presence_action(method_name, data)
           if method_name.to_s.match(/_client/)
-            presence_client_one.public_send(method_name, 'client_id', data: data)
+            presence_client_one.public_send(method_name, client_id, data: data)
           else
             presence_client_one.public_send(method_name, data: data)
           end
@@ -394,6 +404,7 @@ describe Ably::Realtime::Presence, :event_machine do
         let(:present) { [] }
         let(:entered) { [] }
         let(:sync_pages_received) { [] }
+        let(:client_one) { auto_close Ably::Realtime::Client.new(client_options.merge(client_id: '*')) }
 
         def setup_members_on(presence)
           enter_expected_count.times do |index|
@@ -826,6 +837,8 @@ describe Ably::Realtime::Presence, :event_machine do
       let(:client_count) { 5 }
       let(:clients) { [] }
       let(:data) { random_str }
+      let(:client_one) { auto_close Ably::Realtime::Client.new(client_options.merge(client_id: '*')) }
+      let(:client_two) { auto_close Ably::Realtime::Client.new(client_options.merge(client_id: '*')) }
 
       context '#enter_client' do
         context 'multiple times on the same channel with different client_ids' do
@@ -1091,10 +1104,11 @@ describe Ably::Realtime::Presence, :event_machine do
       end
 
       context 'during a sync' do
-        let(:pages) { 2 }
-        let(:members_per_page) { 100 }
+        let(:pages)               { 2 }
+        let(:members_per_page)    { 100 }
         let(:sync_pages_received) { [] }
-        let(:client_options) { default_options.merge(log_level: :none) }
+        let(:client_one)          { auto_close Ably::Realtime::Client.new(client_options.merge(client_id: '*')) }
+        let(:client_options)      { default_options.merge(log_level: :none) }
 
         def connect_members_deferrables
           (members_per_page * pages + 1).times.map do |index|
@@ -1196,22 +1210,22 @@ describe Ably::Realtime::Presence, :event_machine do
       end
 
       it 'filters by client_id option if provided' do
-        presence_client_one.enter(client_id: 'one') do
-          presence_client_two.enter client_id: 'two'
+        presence_client_one.enter do
+          presence_client_two.enter
         end
 
         presence_client_one.subscribe(:enter) do |presence_message|
           # wait until the client_two enter event has been sent to client_one
-          next unless presence_message.client_id == 'two'
+          next unless presence_message.client_id == client_two_id
 
-          presence_client_one.get(client_id: 'one') do |members|
+          presence_client_one.get(client_id: client_one_id) do |members|
             expect(members.count).to eq(1)
-            expect(members.first.client_id).to eql('one')
+            expect(members.first.client_id).to eql(client_one_id)
             expect(members.first.connection_id).to eql(client_one.connection.id)
 
-            presence_client_one.get(client_id: 'two') do |members|
+            presence_client_one.get(client_id: client_two_id) do |members|
               expect(members.count).to eq(1)
-              expect(members.first.client_id).to eql('two')
+              expect(members.first.client_id).to eql(client_two_id)
               expect(members.first.connection_id).to eql(client_two.connection.id)
               stop_reactor
             end
@@ -1220,7 +1234,7 @@ describe Ably::Realtime::Presence, :event_machine do
       end
 
       it 'does not wait for SYNC to complete if :wait_for_sync option is false' do
-        presence_client_one.enter(client_id: 'one') do
+        presence_client_one.enter do
           presence_client_two.get(wait_for_sync: false) do |members|
             expect(members.count).to eql(0)
             stop_reactor
@@ -1242,6 +1256,8 @@ describe Ably::Realtime::Presence, :event_machine do
       end
 
       context 'with lots of members on different clients' do
+        let(:client_one)         { auto_close Ably::Realtime::Client.new(client_options.merge(client_id: '*')) }
+        let(:client_two)         { auto_close Ably::Realtime::Client.new(client_options.merge(client_id: '*')) }
         let(:members_per_client) { 10 }
         let(:clients_entered)    { Hash.new { |hash, key| hash[key] = 0 } }
         let(:total_members)      { members_per_client * 2 }
@@ -1588,7 +1604,7 @@ describe Ably::Realtime::Presence, :event_machine do
 
       it 'resumes the SYNC operation', em_timeout: 15 do
         when_all(*members_count.times.map do |index|
-          presence_client_one.enter_client("client:#{index}")
+          presence_anonymous_client.enter_client("client:#{index}")
         end) do
           channel_client_two.attach do
             client_two.connection.transport.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|

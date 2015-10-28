@@ -71,6 +71,9 @@ describe Ably::Realtime::Presence, 'history', :event_machine do
       end
 
       context 'and two pages of messages' do
+        let(:client_one) { auto_close Ably::Realtime::Client.new(default_options.merge(client_id: '*')) }
+        let(:client_two) { auto_close Ably::Realtime::Client.new(default_options.merge(client_id: '*')) }
+
         it 'retrieves two pages of messages before channel was attached' do
           when_all(*10.times.map { |i| presence_client_two.enter_client("client:#{i}", data: presence_data_before_attach) }) do
             when_all(*10.times.map { |i| presence_client_one.enter_client("client:#{i}", data: presence_data_after_attach) }) do
