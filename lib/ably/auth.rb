@@ -74,8 +74,8 @@ module Ably
         raise ArgumentError, 'key is missing. Either an API key, token, or token auth method must be provided'
       end
 
-      if has_client_id? && !token_creatable_externally?
-        raise ArgumentError, 'client_id cannot be provided without a complete API key. Key name & Secret is needed to authenticate with Ably and obtain a token' unless api_key_present?
+      if has_client_id? && !token_creatable_externally? && !token
+        raise ArgumentError, 'client_id cannot be provided without a complete API key or means to authenticate. An API key is needed to automatically authenticate with Ably and obtain a token' unless api_key_present?
         ensure_utf_8 :client_id, client_id
       end
 
@@ -120,7 +120,16 @@ module Ably
       token_params = (auth_options.delete(:token_params) || {}).merge(token_params)
       @token_params = @token_params.merge(token_params) # update defaults
 
-      @current_token_details = request_token(token_params, auth_options)
+      new_token_details = request_token(token_params, auth_options)
+      if new_token_details &&
+         client_id &&
+         new_token_details.client_id &&
+         new_token_details.client_id != '*' &&
+         client_id != new_token_details.client_id
+        raise Ably::Exceptions::IncompatibleClientId.new('Client ID in the new token is incompatible with the current client ID', 400, 40012)
+      end
+
+      @current_token_details = new_token_details
     end
 
     # Request a {Ably::Models::TokenDetails} which can be used to make authenticated token based requests

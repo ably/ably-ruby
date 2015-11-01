@@ -193,6 +193,75 @@ describe Ably::Realtime::Auth, :event_machine do
             stop_reactor
           end
         end
+
+        context 'when implicitly called, with an explicit ClientOptions client_id' do
+          let(:client_id)        { random_str }
+          let(:client_options)   { default_options.merge(auth_callback: Proc.new { auth_token_object }, client_id: client_id, log_level: :none) }
+          let(:rest_auth_client) { Ably::Rest::Client.new(default_options.merge(key: api_key, client_id: 'invalid')) }
+
+          context 'and an incompatible client_id in a TokenDetails object passed to the auth callback' do
+            let(:auth_token_object) { rest_auth_client.auth.request_token }
+
+            it 'rejects a TokenDetails object with an incompatible client_id and raises an exception' do
+              client.connect
+              client.connection.on(:error) do |error|
+                expect(error).to be_a(Ably::Exceptions::IncompatibleClientId)
+                EventMachine.add_timer(0.1) do
+                  expect(client.connection).to be_failed
+                  stop_reactor
+                end
+              end
+            end
+          end
+
+          context 'and an incompatible client_id in a TokenRequest object passed to the auth callback and raises an exception' do
+            let(:auth_token_object) { rest_auth_client.auth.create_token_request }
+
+            it 'rejects a TokenRequests object with an incompatible client_id and raises an exception' do
+              client.connect
+              client.connection.on(:error) do |error|
+                expect(error).to be_a(Ably::Exceptions::IncompatibleClientId)
+                EventMachine.add_timer(0.1) do
+                  expect(client.connection).to be_failed
+                  stop_reactor
+                end
+              end
+            end
+          end
+        end
+
+        context 'when explicitly called, with an explicit ClientOptions client_id' do
+          let(:auth_proc) do
+            Proc.new do
+              if !@requested
+                @requested = true
+                valid_auth_token
+              else
+                invalid_auth_token
+              end
+            end
+          end
+
+          let(:client_id)          { random_str }
+          let(:client_options)     { default_options.merge(auth_callback: auth_proc, client_id: client_id, log_level: :none) }
+          let(:valid_auth_token)   { Ably::Rest::Client.new(default_options.merge(key: api_key, client_id: client_id)).auth.request_token }
+          let(:invalid_auth_token) { Ably::Rest::Client.new(default_options.merge(key: api_key, client_id: 'invalid')).auth.request_token }
+
+          context 'and an incompatible client_id in a TokenDetails object passed to the auth callback' do
+            it 'rejects a TokenDetails object with an incompatible client_id and raises an exception' do
+              client.connection.once(:connected) do
+                client.auth.authorise({}, force: true)
+                client.connection.on(:error) do |error|
+                  expect(error).to be_a(Ably::Exceptions::IncompatibleClientId)
+                  EventMachine.add_timer(0.1) do
+                    expect(client.connection).to be_failed
+                    stop_reactor
+                  end
+                end
+              end
+            end
+          end
+        end
       end
 
       context '#authorise_async' do

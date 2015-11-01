@@ -602,6 +602,28 @@ describe Ably::Auth do
           end
         end
       end
+
+      context 'with an explicit ClientOptions client_id' do
+        let(:client_id)       { random_str }
+        let(:client_options)  { default_options.merge(auth_callback: Proc.new { auth_token_object }, client_id: client_id) }
+        let(:auth_client)     { Ably::Rest::Client.new(default_options.merge(key: api_key, client_id: 'invalid')) }
+
+        context 'and an incompatible client_id in a TokenDetails object passed to the auth callback' do
+          let(:auth_token_object) { auth_client.auth.request_token }
+
+          it 'rejects a TokenDetails object with an incompatible client_id and raises an exception' do
+            expect { client.auth.authorise({}, force: true) }.to raise_error Ably::Exceptions::IncompatibleClientId
+          end
+        end
+
+        context 'and an incompatible client_id in a TokenRequest object passed to the auth callback and raises an exception' do
+          let(:auth_token_object) { auth_client.auth.create_token_request }
+
+          it 'rejects a TokenRequests object with an incompatible client_id and raises an exception' do
+            expect { client.auth.authorise({}, force: true) }.to raise_error Ably::Exceptions::IncompatibleClientId
+          end
+        end
+      end
     end
 
     describe '#create_token_request' do
@@ -799,7 +821,7 @@ describe Ably::Auth do
         end
       end
 
-      context 'when implicit as a result of using :client id' do
+      context 'when implicit as a result of using :client_id' do
         let(:client_id) { '999' }
         let(:client) do
           Ably::Rest::Client.new(key: api_key, client_id: client_id, environment: environment, protocol: protocol)
@@ -853,7 +875,7 @@ describe Ably::Auth do
       end
     end
 
-    context 'when using an :key and basic auth' do
+    context 'when using a :key and basic auth' do
       specify '#using_token_auth? is false' do
         expect(auth).to_not be_using_token_auth
       end

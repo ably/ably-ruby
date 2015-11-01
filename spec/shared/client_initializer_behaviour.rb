@@ -74,7 +74,7 @@ shared_examples 'a client initializer' do
       let(:client_options) { { client_id: 'valid' } }
 
       it 'requires a valid key' do
-        expect { subject }.to raise_error(ArgumentError, /client_id cannot be provided without a complete API key/)
+        expect { subject }.to raise_error(ArgumentError, /client_id cannot be provided without a complete API key or means to authenticate/)
       end
     end
   end

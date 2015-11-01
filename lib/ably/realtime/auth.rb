@@ -68,6 +68,10 @@ module Ably
       def authorise(token_params = {}, auth_options = {}, &success_callback)
         async_wrap(success_callback) do
           auth_sync.authorise(token_params, auth_options)
+        end.tap do |deferrable|
+          deferrable.errback do |error|
+            client.connection.transition_state_machine :failed, reason: error if error.kind_of?(Ably::Exceptions::IncompatibleClientId)
+          end
         end
       end
 

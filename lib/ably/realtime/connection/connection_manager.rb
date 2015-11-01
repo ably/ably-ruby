@@ -79,6 +79,11 @@ module Ably::Realtime
       #
       # @api private
       def connection_opening_failed(error)
+        if error.kind_of?(Ably::Exceptions::IncompatibleClientId)
+          client.connection.transition_state_machine :failed, reason: error
+          return
+        end
+
         logger.warn "ConnectionManager: Connection to #{connection.current_host}:#{connection.port} failed; #{error.message}"
         next_state = get_next_retry_state_info
         connection.transition_state_machine next_state.fetch(:state), retry_in: next_state.fetch(:pause), reason: Ably::Exceptions::ConnectionError.new("Connection failed: #{error.message}", nil, 80000)
