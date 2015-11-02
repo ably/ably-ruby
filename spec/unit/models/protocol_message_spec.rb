@@ -284,6 +284,51 @@ describe Ably::Models::ProtocolMessage do
         expect(protocol_message.presence.first.data).to eql('test')
       end
     end
+
+    context '#connection_details' do
+      let(:connection_details) { protocol_message.connection_details }
+
+      context 'with a JSON value' do
+        let(:protocol_message) { new_protocol_message(connectionDetails: { clientId: '1', connectionKey: 'key' }) }
+
+        it 'contains a ConnectionDetails object' do
+          expect(connection_details).to be_a(Ably::Models::ConnectionDetails)
+        end
+
+        it 'contains the attributes from the JSON connectionDetails' do
+          expect(connection_details.client_id).to eql('1')
+          expect(connection_details.connection_key).to eql('key')
+        end
+      end
+
+      context 'without a JSON value' do
+        let(:protocol_message) { new_protocol_message({}) }
+
+        it 'contains an empty ConnectionDetails object' do
+          expect(connection_details).to be_a(Ably::Models::ConnectionDetails)
+          expect(connection_details.client_id).to eql(nil)
+          expect(connection_details.connection_key).to eql(nil)
+        end
+      end
+    end
+
+    context '#connection_key' do
+      context 'existing only in #connection_details.connection_key' do
+        let(:protocol_message) { new_protocol_message(connectionDetails: { connectionKey: 'key' }) }
+
+        it 'is returned' do
+          expect(protocol_message.connection_key).to eql('key')
+        end
+      end
+
+      context 'existing in both #connection_key and #connection_details.connection_key' do
+        let(:protocol_message) { new_protocol_message(connectionKey: 'deprecated', connectionDetails: { connectionKey: 'key' }) }
+
+        it 'returns #connection_details.connection_key as #connection_key will be deprecated > 0.8' do
+          expect(protocol_message.connection_key).to eql('key')
+        end
+      end
+    end
   end
 
   context '#to_json', :api_private do

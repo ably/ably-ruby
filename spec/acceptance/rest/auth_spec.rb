@@ -365,6 +365,18 @@ describe Ably::Auth do
           it 'uses the token request returned from the callback when requesting a new token' do
             expect(request_token.client_id).to eql(client_id)
           end
+
+          context 'when authorised' do
+            before { auth.authorise(token_params, auth_callback: auth_callback) }
+
+            it "sets Auth#client_id to the new token's client_id" do
+              expect(auth.client_id).to eql(client_id)
+            end
+
+            it "sets Client#client_id to the new token's client_id" do
+              expect(client.client_id).to eql(client_id)
+            end
+          end
         end
 
         context 'that returns a TokenDetails JSON object' do
@@ -377,7 +389,11 @@ describe Ably::Auth do
           let(:capability_str) { JSON.dump(capability) }
 
           let!(:token_details) do
-            auth.request_token(token_params, auth_callback: Proc.new do |token_params_arg|
+            auth.request_token(token_params, auth_callback: auth_callback)
+          end
+
+          let(:auth_callback) do
+            Proc.new do |token_params_arg|
               @block_called = true
               @block_params = token_params_arg
               {
@@ -388,7 +404,7 @@ describe Ably::Auth do
                 'expires' => expires.to_i * 1000,
                 'capability'=> capability_str
               }
-            end)
+            end
           end
 
           it 'calls the Proc when authenticating to obtain the request token' do
@@ -403,6 +419,18 @@ describe Ably::Auth do
             expect(token_details.expires).to be_within(1).of(expires)
             expect(token_details.issued).to be_within(1).of(issued)
             expect(token_details.capability).to eql(capability)
+          end
+
+          context 'when authorised' do
+            before { auth.authorise(token_params, auth_callback: auth_callback) }
+
+            it "sets Auth#client_id to the new token's client_id" do
+              expect(auth.client_id).to eql(client_id)
+            end
+
+            it "sets Client#client_id to the new token's client_id" do
+              expect(client.client_id).to eql(client_id)
+            end
           end
         end
 

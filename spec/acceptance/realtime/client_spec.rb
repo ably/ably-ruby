@@ -113,6 +113,66 @@ describe Ably::Realtime::Client, :event_machine do
               stop_reactor
             end
           end
+
+          context 'when the returned token has a client_id' do
+            it "sets Auth#client_id to the new token's client_id before connecting" do
+              subject.auth.authorise do
+                expect(subject.connection).to be_initialized
+                expect(subject.auth.client_id).to eql(client_id)
+                stop_reactor
+              end
+            end
+
+            it "sets Client#client_id to the new token's client_id before connecting" do
+              subject.auth.authorise do
+                expect(subject.connection).to be_initialized
+                expect(subject.client_id).to eql(client_id)
+                stop_reactor
+              end
+            end
+          end
+
+          context 'with a wildcard client_id token' do
+            subject                 { Ably::Realtime::Client.new(client_options) }
+            let(:client_options)    { default_options.merge(auth_callback: Proc.new { auth_token_object }, client_id: client_id) }
+            let(:rest_auth_client)  { Ably::Rest::Client.new(default_options.merge(key: api_key)) }
+            let(:auth_token_object) { rest_auth_client.auth.request_token(client_id: '*') }
+
+            context 'and an explicit client_id in ClientOptions' do
+              let(:client_id) { random_str }
+
+              it 'allows the explicit client_id to be used for the connection' do
+                connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                  if protocol_message.action == :connected
+                    expect(protocol_message.connection_details.client_id).to eql(client_id)
+                    @valid_client_id = true
+                  end
+                end
+                subject.connect do
+                  EM.add_timer(0.5) { stop_reactor if @valid_client_id }
+                end
+              end
+            end
+
+            context 'and client_id omitted in ClientOptions' do
+              let(:client_options) { default_options.merge(auth_callback: Proc.new { auth_token_object }) }
+
+              it 'allows omitted client_id to be used for the connection' do
+                puts default_options
+                puts client_options
+
+                connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                  if protocol_message.action == :connected
+                    expect(protocol_message.connection_details.client_id).to be_nil
+                    @valid_client_id = true
+                  end
+                end
+                subject.connect do
+                  EM.add_timer(0.5) { stop_reactor if @valid_client_id }
+                end
+              end
+            end
+          end
         end
       end
     end

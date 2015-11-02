@@ -27,10 +27,6 @@ module Ably::Models
     # For example, if buffer is 10s, the token can no longer be used for new requests 9s before it expires
     TOKEN_EXPIRY_BUFFER = 15
 
-    def initialize(attributes)
-      @hash_object = IdiomaticRubyWrapper(attributes.clone.freeze)
-    end
-
     # @param attributes
     # @option attributes [String]       :token      token used to authenticate requests
     # @option attributes [String]       :key_name   API key name used to create this token

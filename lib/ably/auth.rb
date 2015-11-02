@@ -121,14 +121,12 @@ module Ably
       @token_params = @token_params.merge(token_params) # update defaults
 
       new_token_details = request_token(token_params, auth_options)
-      if new_token_details &&
-         client_id &&
-         new_token_details.client_id &&
-         new_token_details.client_id != '*' &&
-         client_id != new_token_details.client_id
-        raise Ably::Exceptions::IncompatibleClientId.new('Client ID in the new token is incompatible with the current client ID', 400, 40012)
+      if new_token_details
+        if !token_client_id_allowed?(new_token_details.client_id)
+          raise Ably::Exceptions::IncompatibleClientId.new("Client ID '#{new_token_details.client_id}' in the new token is incompatible with the current client ID '#{client_id}'", 400, 40012)
+        end
+        configure_client_id new_token_details.client_id
       end
-
       @current_token_details = new_token_details
     end
 
@@ -290,7 +288,7 @@ module Ably
     end
 
     def client_id
-      options[:client_id]
+      @client_id || options[:client_id]
     end
 
     def token
@@ -345,6 +343,27 @@ module Ably
     # @return [Boolean]
     def authentication_security_requirements_met?
       client.use_tls? || using_token_auth?
+    end
+
+    # True if token provided client_id is compatible with the client's configured +client_id+, when applicable
+    #
+    # @return [Boolean]
+    # @api private
+    def token_client_id_allowed?(token_client_id)
+      return true if client_id.nil? # no explicit client_id specified for this client
+      return true if token_client_id == '*' # wildcard supported by client_id so any client_id allowed
+      token_client_id == client_id
+    end
+
+    # Configures the client ID for this client
+    # Typically this occurs following an Auth or receiving a {Ably::Models::ProtocolMessage} with a +client_id+ in the {Ably::Models::ConnectionDetails}
+    #
+    # @api private
+    def configure_client_id(new_client_id)
+      if client_id && new_client_id != client_id
+        raise Ably::Exceptions::IncompatibleClientId.new("Client ID is immutable once configured for a client. Client ID cannot be changed to '#{new_client_id}'", 400, 40012)
+      end
+      @client_id = new_client_id
     end
 
     private

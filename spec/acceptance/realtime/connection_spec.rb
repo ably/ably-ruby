@@ -228,6 +228,50 @@ describe Ably::Realtime::Connection, :event_machine do
             end
           end
         end
+
+        context 'with opaque token string that contain an implicit client_id' do
+          let(:client_options)   { default_options.merge(token: token_string, key: nil) }
+          let(:rest_auth_client) { Ably::Rest::Client.new(default_options.merge(key: api_key)) }
+          let(:token_string)     { rest_auth_client.auth.request_token(client_id: client_id).token }
+
+          context 'string' do
+            let(:client_id) { random_str }
+
+            it 'sets the Client#client_id and Auth#client_id once CONNECTED' do
+              expect(client.client_id).to be_nil
+              client.connection.once(:connected) do
+                expect(client.client_id).to eql(client_id)
+                stop_reactor
+              end
+            end
+
+            context 'that is incompatible with the current client client_id' do
+              let(:client_id)      { random_str }
+              let(:client_options) { default_options.merge(client_id: 'incompatible', token: token_string, key: nil, log_level: :none) }
+
+              it 'fails the connection' do
+                expect(client.client_id).to eql('incompatible')
+                client.connection.once(:failed) do
+                  expect(client.client_id).to eql('incompatible')
+                  expect(client.connection.error_reason).to be_a(Ably::Exceptions::IncompatibleClientId)
+                  stop_reactor
+                end
+              end
+            end
+          end
+
+          context 'wildcard' do
+            let(:client_id) { '*' }
+
+            it 'does not configure the Client#client_id and Auth#client_id once CONNECTED' do
+              expect(client.client_id).to be_nil
+              client.connection.once(:connected) do
+                expect(client.client_id).to be_nil
+                stop_reactor
+              end
+            end
+          end
+        end
       end
     end
 

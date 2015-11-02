@@ -36,7 +36,7 @@ module Ably
       extend Forwardable
       include Ably::Modules::AsyncWrapper
 
-      def_delegators :auth_sync, :client_id
+      def_delegators :auth_sync, :client_id, :token_client_id_allowed?, :configure_client_id
       def_delegators :auth_sync, :current_token_details, :token
       def_delegators :auth_sync, :key, :key_name, :key_secret, :options, :auth_options, :token_params
       def_delegators :auth_sync, :using_basic_auth?, :using_token_auth?

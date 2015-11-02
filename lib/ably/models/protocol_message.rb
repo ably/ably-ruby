@@ -88,10 +88,16 @@ module Ably::Models
       @hash_object.freeze
     end
 
-    %w(id channel channel_serial connection_id connection_key).each do |attribute|
+    %w(id channel channel_serial connection_id).each do |attribute|
       define_method attribute do
         hash[attribute.to_sym]
       end
+    end
+
+    def connection_key
+      # connection_key in connection details takes precedence over connection_key on the ProtocolMessage
+      # connection_key in the ProtocolMessage will be deprecated in future protocol versions > 0.8
+      connection_details.connection_key || hash[:connection_key]
     end
 
     def id!
@@ -179,6 +185,10 @@ module Ably::Models
 
     def has_presence_flag?
       flags & 1 == 1
+    end
+
+    def connection_details
+      @connection_details ||= Ably::Models::ConnectionDetails(hash[:connection_details])
     end
 
     # Indicates this protocol message will generate an ACK response when sent
