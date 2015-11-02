@@ -89,6 +89,13 @@ module Ably::Models
       expires < Time.now + TOKEN_EXPIRY_BUFFER
     end
 
+    # True if the TokenDetails was created from an opaque string i.e. no metadata exists for this token
+    # @return [Boolean]
+    # @api private
+    def from_token_string?
+      hash.keys == [:token]
+    end
+
     # @!attribute [r] hash
     # @return [Hash] Access the token details Hash object ruby'fied to use symbolized keys
     def hash

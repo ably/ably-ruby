@@ -121,7 +121,7 @@ module Ably
       @token_params = @token_params.merge(token_params) # update defaults
 
       new_token_details = request_token(token_params, auth_options)
-      if new_token_details
+      if new_token_details && !new_token_details.from_token_string?
         if !token_client_id_allowed?(new_token_details.client_id)
           raise Ably::Exceptions::IncompatibleClientId.new("Client ID '#{new_token_details.client_id}' in the new token is incompatible with the current client ID '#{client_id}'", 400, 40012)
         end

@@ -651,6 +651,15 @@ describe Ably::Auth do
             expect { client.auth.authorise({}, force: true) }.to raise_error Ably::Exceptions::IncompatibleClientId
           end
         end
+
+        context 'and a token string without any retrievable client_id' do
+          let(:auth_token_object) { auth_client.auth.request_token(client_id: 'different').token }
+
+          it 'rejects a TokenRequests object with an incompatible client_id and raises an exception' do
+            client.auth.authorise({}, force: true)
+            expect(client.client_id).to eql(client_id)
+          end
+        end
       end
     end
 
