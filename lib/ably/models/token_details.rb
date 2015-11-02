@@ -1,8 +1,7 @@
 module Ably::Models
   # Convert token details argument to a {TokenDetails} object
   #
-  # @param attributes [TokenDetails,Hash] A {TokenDetails} object or Hash of token and meta data attributes
-  # @option attributes (see TokenDetails#initialize)
+  # @param attributes (see #initialize)
   #
   # @return [TokenDetails]
   def self.TokenDetails(attributes)

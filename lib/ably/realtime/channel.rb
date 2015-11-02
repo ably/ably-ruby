@@ -309,7 +309,7 @@ module Ably
 
       # Queue messages and process queue if channel is attached.
       # If channel is not yet attached, attempt to attach it before the message queue is processed.
-      # @returns [Ably::Util::SafeDeferrable]
+      # @return [Ably::Util::SafeDeferrable]
       def queue_messages(raw_messages)
         messages = Array(raw_messages).map { |msg| create_message(msg) }
         queue.push *messages

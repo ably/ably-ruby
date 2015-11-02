@@ -1,8 +1,7 @@
 module Ably::Models
   # Convert connection details attributes to a {ConnectionDetails} object
   #
-  # @param attributes [ConnectionDetails,Hash] A {ConnectionDetails} object or Hash of token and meta data attributes
-  # @option attributes (see ConnectionDetails#initialize)
+  # @param attributes (see #initialize)
   #
   # @return [ConnectionDetails]
   def self.ConnectionDetails(attributes)
@@ -22,7 +21,7 @@ module Ably::Models
   class ConnectionDetails
     include Ably::Modules::ModelCommon
 
-    # @param attributes
+    # @param attributes [Hash]
     # @option attributes [String]    :client_id             contains the client ID assigned to the connection
     # @option attributes [String]    :connection_key        the connection secret key string that is used to resume a connection and its state
     # @option attributes [Integer]   :max_message_size      maximum individual message size in bytes

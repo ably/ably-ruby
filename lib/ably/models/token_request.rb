@@ -1,8 +1,7 @@
 module Ably::Models
   # Convert token request argument to a {TokenRequest} object
   #
-  # @param attributes [TokenRequest,Hash] A {TokenRequest} object or Hash of attributes to create a new token request
-  # @option attributes (see TokenRequest#initialize)
+  # @param attributes (see #initialize)
   #
   # @return [TokenRequest]
   def self.TokenRequest(attributes)

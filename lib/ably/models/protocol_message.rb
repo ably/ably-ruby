@@ -10,12 +10,12 @@ module Ably::Models
   #   @return [ACTION] Protocol Message action {Ably::Modules::Enum} from list of {ACTION}. Returns nil if action is unsupported by protocol
   # @!attribute [r] count
   #   @return [Integer] The count field is used for ACK and NACK actions. See {http://docs.ably.io/client-lib-development-guide/protocol/#message-acknowledgement message acknowledgement protocol}
-  # @!attribute [r] error_info
+  # @!attribute [r] error
   #   @return [ErrorInfo] Contains error information
   # @!attribute [r] channel
   #   @return [String] Channel name for messages
   # @!attribute [r] channel_serial
-  #   @return [String] Contains a serial number for a message on the current channel
+  #   @return [String] Contains a serial number for a message on the current channelƒ
   # @!attribute [r] connection_id
   #   @return [String] Contains a string public identifier for the connection
   # @!attribute [r] connection_key
@@ -112,7 +112,7 @@ module Ably::Models
     end
 
     def error
-      @error_info ||= ErrorInfo.new(hash[:error]) if hash[:error]
+      @error ||= ErrorInfo.new(hash[:error]) if hash[:error]
     end
 
     def timestamp
