@@ -21,12 +21,12 @@ module Ably
       # Default Ably domain for REST
       DOMAIN = 'rest.ably.io'
 
-      # Configuration for connection retry attempts
-      CONNECTION_RETRY = {
-        single_request_open_timeout: 4,
-        single_request_timeout: 15,
-        cumulative_request_open_timeout: 10,
-        max_retry_attempts: 3
+      # Configuration for HTTP timeouts and HTTP request reattempts to fallback hosts
+      HTTP_DEFAULTS = {
+        open_timeout:       4,
+        request_timeout:    15,
+        max_retry_duration: 10,
+        max_retry_count:    3
       }.freeze
 
       def_delegators :auth, :client_id, :auth_options
@@ -51,17 +51,22 @@ module Ably
       # @return [Logger::Severity]
       attr_reader :log_level
 
-      # The custom host that is being used if it was provided with the option `:rest_host` when the {Client} was created
+      # The custom host that is being used if it was provided with the option +:rest_host+ when the {Client} was created
       # @return [String,Nil]
       attr_reader :custom_host
 
-      # The custom port for non-TLS requests if it was provided with the option `:port` when the {Client} was created
+      # The custom port for non-TLS requests if it was provided with the option +:port+ when the {Client} was created
       # @return [Integer,Nil]
       attr_reader :custom_port
 
-      # The custom TLS port for TLS requests if it was provided with the option `:tls_port` when the {Client} was created
+      # The custom TLS port for TLS requests if it was provided with the option +:tls_port+ when the {Client} was created
       # @return [Integer,Nil]
       attr_reader :custom_tls_port
+
+      # The immutable configured HTTP defaults for this client.
+      # See {#initialize} for the configurable HTTP defaults prefixed with +http_+
+      # @return [Hash]
+      attr_reader :http_defaults
 
       # The registered encoders that are used to encode and decode message payloads
       # @return [Array<Ably::Models::MessageEncoder::Base>]
@@ -96,6 +101,11 @@ module Ably
       # @option options [Boolean]                 :query_time          when true will query the {https://www.ably.io Ably} system for the current time instead of using the local time
       # @option options [Hash]                    :token_params        convenience to pass in +token_params+ that will be used as a default for all token requests. See {Auth#create_token_request}
       #
+      # @option options [Integer]                 :http_open_timeout       (4 seconds) timeout in seconds for opening an HTTP connection for all HTTP requests
+      # @option options [Integer]                 :http_request_timeout    (15 seconds) timeout in seconds for any single complete HTTP request and response
+      # @option options [Integer]                 :http_max_retry_count    (3) maximum number of fallback host retries for HTTP requests that fail due to network issues or server problems
+      # @option options [Integer]                 :http_max_retry_duration (10 seconds) maximum elapsed time in which fallback host retries for HTTP requests will be attempted i.e. if the first default host attempt takes 5s, and then the subsequent fallback retry attempt takes 7s, no further fallback host attempts will be made as the total elapsed time of 12s exceeds the default 10s limit
+      #
       # @return [Ably::Rest::Client]
       #
       # @example
@@ -126,6 +136,14 @@ module Ably
         @custom_host      = options.delete(:rest_host)
         @custom_port      = options.delete(:port)
         @custom_tls_port  = options.delete(:tls_port)
+
+        @http_defaults = HTTP_DEFAULTS.dup
+        options.each do |key, val|
+          if http_key = key[/^http_(.+)/, 1]
+            @http_defaults[http_key.to_sym] = val if val && @http_defaults.has_key?(http_key.to_sym)
+          end
+        end
+        @http_defaults.freeze
 
         if @log_level == :none
           @custom_logger = Ably::Models::NilLogger.new
@@ -322,8 +340,8 @@ module Ably
       # Sends HTTP request to connection end point
       # Connection failures will automatically be reattempted until thresholds are met
       def send_request(method, path, params, options)
-        max_retry_attempts = CONNECTION_RETRY.fetch(:max_retry_attempts)
-        cumulative_timeout = CONNECTION_RETRY.fetch(:cumulative_request_open_timeout)
+        max_retry_count    = http_defaults.fetch(:max_retry_count)
+        max_retry_duration = http_defaults.fetch(:max_retry_duration)
         requested_at       = Time.now
         retry_count        = 0
 
@@ -338,7 +356,7 @@ module Ably
 
         rescue Faraday::TimeoutError, Faraday::ClientError, Ably::Exceptions::ServerError => error
           time_passed = Time.now - requested_at
-          if can_fallback_to_alternate_ably_host? && retry_count < max_retry_attempts && time_passed <= cumulative_timeout
+          if can_fallback_to_alternate_ably_host? && retry_count < max_retry_count && time_passed <= max_retry_duration
             retry_count += 1
             retry
           end
@@ -395,8 +413,8 @@ module Ably
             user_agent:   user_agent
           },
           request: {
-            open_timeout: CONNECTION_RETRY.fetch(:single_request_open_timeout),
-            timeout:      CONNECTION_RETRY.fetch(:single_request_timeout)
+            open_timeout: http_defaults.fetch(:open_timeout),
+            timeout:      http_defaults.fetch(:request_timeout)
           }
         }
       end

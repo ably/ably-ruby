@@ -8,7 +8,7 @@ describe Ably::Rest::Client do
 
     let(:client) { Ably::Rest::Client.new(client_options) }
 
-    connection_retry = Ably::Rest::Client::CONNECTION_RETRY
+    http_defaults = Ably::Rest::Client::HTTP_DEFAULTS
 
     def encode64(text)
       Base64.encode64(text).gsub("\n", '')
@@ -154,8 +154,10 @@ describe Ably::Rest::Client do
           send("token_request_#{@request_index > 2 ? 'next' : @request_index}")
         end))
       end
-      let(:token_request_1) { client.auth.create_token_request({}, token_request_options.merge(client_id: random_str)) }
-      let(:token_request_2) { client.auth.create_token_request({}, token_request_options.merge(client_id: random_str)) }
+      let(:client_id)       { random_str }
+      let(:client_id_2)     { client_id }
+      let(:token_request_1) { client.auth.create_token_request({}, token_request_options.merge(client_id: client_id)) }
+      let(:token_request_2) { client.auth.create_token_request({}, token_request_options.merge(client_id: client_id_2)) }
 
       # If token expires against whilst runnig tests in a slower CI environment then use this token
       let(:token_request_next) { client.auth.create_token_request({}, token_request_options.merge(client_id: random_str)) }
@@ -177,6 +179,16 @@ describe Ably::Rest::Client do
           expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token_details }
           expect(client.auth.current_token_details.client_id).to eql(token_request_2.client_id)
         end
+
+        context 'with a different client_id in the subsequent token' do
+          let(:client_id_2) { random_str }
+
+          it 'fails to authenticate and raises an exception' do
+            client.channel('channel_name').publish('event', 'message')
+            sleep 1
+            expect { client.channel('channel_name').publish('event', 'message') }.to raise_error(Ably::Exceptions::IncompatibleClientId)
+          end
+        end
       end
 
       context 'when token has not expired' do
@@ -195,25 +207,53 @@ describe Ably::Rest::Client do
     end
 
     context 'connection transport' do
-      let(:client_options) { default_options.merge(key: api_key) }
+      context 'defaults' do
+        let(:client_options) { default_options.merge(key: api_key) }
 
-      context 'for default host' do
-        it "is configured to timeout connection opening in #{connection_retry.fetch(:single_request_open_timeout)} seconds" do
-          expect(client.connection.options.open_timeout).to eql(connection_retry.fetch(:single_request_open_timeout))
+        context 'for default host' do
+          it "is configured to timeout connection opening in #{http_defaults.fetch(:open_timeout)} seconds" do
+            expect(client.connection.options.open_timeout).to eql(http_defaults.fetch(:open_timeout))
+          end
+
+          it "is configured to timeout connection requests in #{http_defaults.fetch(:request_timeout)} seconds" do
+            expect(client.connection.options.timeout).to eql(http_defaults.fetch(:request_timeout))
+          end
         end
 
-        it "is configured to timeout connection requests in #{connection_retry.fetch(:single_request_timeout)} seconds" do
-          expect(client.connection.options.timeout).to eql(connection_retry.fetch(:single_request_timeout))
+        context 'for the fallback hosts' do
+          it "is configured to timeout connection opening in #{http_defaults.fetch(:open_timeout)} seconds" do
+            expect(client.fallback_connection.options.open_timeout).to eql(http_defaults.fetch(:open_timeout))
+          end
+
+          it "is configured to timeout connection requests in #{http_defaults.fetch(:request_timeout)} seconds" do
+            expect(client.fallback_connection.options.timeout).to eql(http_defaults.fetch(:request_timeout))
+          end
         end
       end
 
-      context 'for the fallback hosts' do
-        it "is configured to timeout connection opening in #{connection_retry.fetch(:single_request_open_timeout)} seconds" do
-          expect(client.fallback_connection.options.open_timeout).to eql(connection_retry.fetch(:single_request_open_timeout))
+      context 'with custom http_open_timeout and http_request_timeout options' do
+        let(:http_open_timeout)    { 999 }
+        let(:http_request_timeout) { 666 }
+        let(:client_options)       { default_options.merge(key: api_key, http_open_timeout: http_open_timeout, http_request_timeout: http_request_timeout) }
+
+        context 'for default host' do
+          it 'is configured to use custom open timeout' do
+            expect(client.connection.options.open_timeout).to eql(http_open_timeout)
+          end
+
+          it 'is configured to use custom request timeout' do
+            expect(client.connection.options.timeout).to eql(http_request_timeout)
+          end
         end
 
-        it "is configured to timeout connection requests in #{connection_retry.fetch(:single_request_timeout)} seconds" do
-          expect(client.fallback_connection.options.timeout).to eql(connection_retry.fetch(:single_request_timeout))
+        context 'for the fallback hosts' do
+          it "is configured to timeout connection opening in #{http_defaults.fetch(:open_timeout)} seconds" do
+            expect(client.fallback_connection.options.open_timeout).to eql(http_open_timeout)
+          end
+
+          it "is configured to timeout connection requests in #{http_defaults.fetch(:request_timeout)} seconds" do
+            expect(client.fallback_connection.options.timeout).to eql(http_request_timeout)
+          end
         end
       end
     end
@@ -249,19 +289,20 @@ describe Ably::Rest::Client do
 
       context 'when environment is production' do
         let(:custom_hosts)       { %w(A.ably-realtime.com B.ably-realtime.com) }
-        let(:max_attempts)       { 2 }
-        let(:cumulative_timeout) { 0.5 }
-        let(:client_options)     { default_options.merge(environment: nil, key: api_key) }
+        let(:max_retry_count)    { 2 }
+        let(:max_retry_duration) { 0.5 }
         let(:fallback_block)     { Proc.new { raise Faraday::SSLError.new('ssl error message') } }
+        let(:client_options) do
+          default_options.merge(
+            environment: nil,
+            key: api_key,
+            http_max_retry_duration: max_retry_duration,
+            http_max_retry_count: max_retry_count
+          )
+        end
 
         before do
           stub_const 'Ably::FALLBACK_HOSTS', custom_hosts
-          stub_const 'Ably::Rest::Client::CONNECTION_RETRY', {
-            single_request_open_timeout: 4,
-            single_request_timeout: 15,
-            cumulative_request_open_timeout: cumulative_timeout,
-            max_retry_attempts: max_attempts
-          }
         end
 
         let!(:first_fallback_request_stub) do
@@ -279,17 +320,17 @@ describe Ably::Rest::Client do
             end
           end
 
-          it "tries fallback hosts #{connection_retry[:max_retry_attempts]} times" do
+          it "tries fallback hosts #{http_defaults.fetch(:max_retry_count)} times" do
             expect { publish_block.call }.to raise_error Ably::Exceptions::ConnectionError, /ssl error message/
             expect(default_host_request_stub).to have_been_requested
             expect(first_fallback_request_stub).to have_been_requested
             expect(second_fallback_request_stub).to have_been_requested
           end
 
-          context "and the total request time exeeds #{connection_retry[:cumulative_request_open_timeout]} seconds" do
+          context "and the total request time exeeds #{http_defaults.fetch(:max_retry_duration)} seconds" do
             let!(:default_host_request_stub) do
               stub_request(:post, "https://#{api_key}@#{Ably::Rest::Client::DOMAIN}#{path}").to_return do
-                sleep cumulative_timeout * 1.5
+                sleep max_retry_duration * 1.5
                 raise Faraday::TimeoutError.new('timeout error message')
               end
             end
@@ -310,7 +351,7 @@ describe Ably::Rest::Client do
             end
           end
 
-          it "tries fallback hosts #{connection_retry[:max_retry_attempts]} times" do
+          it "tries fallback hosts #{http_defaults.fetch(:max_retry_count)} times" do
             expect { publish_block.call }.to raise_error Ably::Exceptions::ConnectionError, /ssl error message/
             expect(default_host_request_stub).to have_been_requested
             expect(first_fallback_request_stub).to have_been_requested
@@ -426,6 +467,60 @@ describe Ably::Rest::Client do
             expect(custom_host_request_stub).to have_been_requested
           end
         end
+      end
+    end
+
+    context 'HTTP configuration options' do
+      let(:client_options) { default_options.merge(key: api_key) }
+
+      context 'defaults' do
+        specify '#http_open_timeout is 4s' do
+          expect(client.http_defaults[:open_timeout]).to eql(4)
+        end
+
+        specify '#http_request_timeout is 15s' do
+          expect(client.http_defaults[:request_timeout]).to eql(15)
+        end
+
+        specify '#http_max_retry_count is 3' do
+          expect(client.http_defaults[:max_retry_count]).to eql(3)
+        end
+
+        specify '#http_max_retry_duration is 10s' do
+          expect(client.http_defaults[:max_retry_duration]).to eql(10)
+        end
+      end
+
+      context 'configured' do
+        let(:client_options) do
+          default_options.merge(
+            key: api_key,
+            http_open_timeout: 1,
+            http_request_timeout: 2,
+            http_max_retry_count: 33,
+            http_max_retry_duration: 4
+          )
+        end
+
+        specify '#http_open_timeout uses provided value' do
+          expect(client.http_defaults[:open_timeout]).to eql(1)
+        end
+
+        specify '#http_request_timeout uses provided value' do
+          expect(client.http_defaults[:request_timeout]).to eql(2)
+        end
+
+        specify '#http_max_retry_count uses provided value' do
+          expect(client.http_defaults[:max_retry_count]).to eql(33)
+        end
+
+        specify '#http_max_retry_duration uses provided value' do
+          expect(client.http_defaults[:max_retry_duration]).to eql(4)
+        end
+      end
+
+      it 'is frozen' do
+        expect(client.http_defaults).to be_frozen
       end
     end
 
