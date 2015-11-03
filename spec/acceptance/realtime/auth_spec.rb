@@ -100,6 +100,7 @@ describe Ably::Realtime::Auth, :event_machine do
       context '#options (auth_options)' do
         let(:auth_url) { "https://echo.ably.io/?type=text" }
         let(:auth_params) { { :body => random_str } }
+        let(:client_options) { default_options.merge(auto_connect: false) }
 
         it 'contains the configured auth options' do
           auth.authorise({}, auth_url: auth_url, auth_params: auth_params) do

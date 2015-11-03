@@ -881,7 +881,7 @@ describe Ably::Realtime::Channel, :event_machine do
 
         context 'a :failed channel' do
           let(:original_error) { RuntimeError.new }
-          let(:client_options)   { default_options.merge(log_level: :fatal) }
+          let(:client_options) { default_options.merge(log_level: :fatal) }
 
           it 'remains in the :failed state and retains the error_reason' do
             channel.attach do
@@ -904,6 +904,8 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'a channel ATTACH request when connection SUSPENDED' do
+          let(:client_options) { default_options.merge(log_level: :fatal) }
+
           it 'raises an exception' do
             client.connect do
               client.connection.once(:suspended) do

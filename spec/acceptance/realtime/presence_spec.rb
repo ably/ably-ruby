@@ -266,15 +266,6 @@ describe Ably::Realtime::Presence, :event_machine do
       end
 
       context 'if connection fails before success' do
-        before do
-          # Reconfigure client library so that it makes no retry attempts and fails immediately
-          stub_const 'Ably::Realtime::Connection::ConnectionManager::CONNECT_RETRY_CONFIG',
-                      Ably::Realtime::Connection::ConnectionManager::CONNECT_RETRY_CONFIG.merge(
-                        disconnected: { retry_every: 0.1, max_time_in_state: 0 },
-                        suspended:    { retry_every: 0.1, max_time_in_state: 0 }
-                      )
-        end
-
         let(:client_options) { default_options.merge(log_level: :none) }
 
         it 'calls the Deferrable errback if channel is detached' do
@@ -283,7 +274,8 @@ describe Ably::Realtime::Presence, :event_machine do
               client_one.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
                 # Don't allow any messages to reach the server
                 client_one.connection.__outgoing_protocol_msgbus__.unsubscribe
-                force_connection_failure client_one
+                error_message = Ably::Models::ProtocolMessage.new(action: 9, error: { message: 'force failure' })
+                client_one.connection.__incoming_protocol_msgbus__.publish :protocol_message, error_message
               end
 
               presence_client_one.public_send(method_name, args).tap do |deferrable|
@@ -1117,15 +1109,6 @@ describe Ably::Realtime::Presence, :event_machine do
           end
         end
 
-        before do
-          # Reconfigure client library so that it makes no retry attempts and fails immediately
-          stub_const 'Ably::Realtime::Connection::ConnectionManager::CONNECT_RETRY_CONFIG',
-                      Ably::Realtime::Connection::ConnectionManager::CONNECT_RETRY_CONFIG.merge(
-                        disconnected: { retry_every: 0.1, max_time_in_state: 0 },
-                        suspended:    { retry_every: 0.1, max_time_in_state: 0 }
-                      )
-        end
-
         context 'when :wait_for_sync is true' do
           it 'fails if the connection fails' do
             when_all(*connect_members_deferrables) do
@@ -1133,7 +1116,10 @@ describe Ably::Realtime::Presence, :event_machine do
                 client_two.connection.transport.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
                   if protocol_message.action == :sync
                     sync_pages_received << protocol_message
-                    force_connection_failure client_two if sync_pages_received.count == 1
+                    if sync_pages_received.count == 1
+                      error_message = Ably::Models::ProtocolMessage.new(action: 9, error: { message: 'force failure' })
+                      client_two.connection.__incoming_protocol_msgbus__.publish :protocol_message, error_message
+                    end
                   end
                 end
               end

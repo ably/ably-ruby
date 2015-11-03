@@ -60,6 +60,14 @@ module Ably
       # Expected format for a connection recover key
       RECOVER_REGEX = /^(?<recover>[\w-]+):(?<connection_serial>\-?\w+)$/
 
+      # Defaults for automatic connection recovery and timeouts
+      DEFAULTS = {
+        disconnected_retry_timeout: 15, # when the connection enters the DISCONNECTED state, after this delay in milliseconds, if the state is still DISCONNECTED, the client library will attempt to reconnect automatically
+        suspended_retry_timeout:    30, # when the connection enters the SUSPENDED state, after this delay in milliseconds, if the state is still SUSPENDED, the client library will attempt to reconnect automatically
+        connection_state_ttl:       60, # the duration that Ably will persist the connection state when a Realtime client is abruptly disconnected
+        realtime_request_timeout:   10  # default timeout when establishing a connection, or sending a HEARTBEAT, CONNECT, ATTACH, DETACH or CLOSE ProtocolMessage
+      }.freeze
+
       # A unique public identifier for this connection, used to identify this member in presence events and messages
       # @return [String]
       attr_reader :id
@@ -90,22 +98,34 @@ module Ably
       # @api private
       attr_reader :manager
 
-      # An internal queue used to manage unsent outgoing messages.  You should never interface with this array directly
+      # An internal queue used to manage unsent outgoing messages. You should never interface with this array directly
       # @return [Array]
       # @api private
       attr_reader :__outgoing_message_queue__
 
-      # An internal queue used to manage sent messages.  You should never interface with this array directly
+      # An internal queue used to manage sent messages. You should never interface with this array directly
       # @return [Array]
       # @api private
       attr_reader :__pending_message_ack_queue__
 
+      # Configured recovery and timeout defaults for this {Connection}.
+      # See the configurable options in {Ably::Realtime::Client#initialize}.
+      # The defaults are immutable
+      # @return [Hash]
+      attr_reader :defaults
+
       # @api public
-      def initialize(client)
+      def initialize(client, options)
         @client                        = client
         @client_serial                 = -1
         @__outgoing_message_queue__    = []
         @__pending_message_ack_queue__ = []
+
+        @defaults = DEFAULTS.dup
+        options.each do |key, val|
+          @defaults[key] = val if DEFAULTS.has_key?(key)
+        end if options.kind_of?(Hash)
+        @defaults.freeze
 
         Client::IncomingMessageDispatcher.new client, self
         Client::OutgoingMessageDispatcher.new client, self

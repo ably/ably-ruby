@@ -30,6 +30,10 @@ module Ably
       # (see Ably::Rest::Client#auth)
       attr_reader :auth
 
+      # The underlying connection for this client
+      # @return [Aby::Realtime::Connection]
+      attr_reader :connection
+
       # The {Ably::Rest::Client REST client} instantiated with the same credentials and configuration that is used for all REST operations such as authentication
       # @return [Ably::Rest::Client]
       attr_reader :rest_client
@@ -69,6 +73,9 @@ module Ably
       # @option options [String]  :recover        When a recover option is specified a connection inherits the state of a previous connection that may have existed under a different instance of the Realtime library, please refer to the API documentation for further information on connection state recovery
       # @option options [Boolean] :auto_connect   By default as soon as the client library is instantiated it will connect to Ably. You can optionally set this to false and explicitly connect.
       #
+      # @option options [Integer] :disconnected_retry_timeout  (15 seconds). When the connection enters the DISCONNECTED state, after this delay in milliseconds, if the state is still DISCONNECTED, the client library will attempt to reconnect automatically
+      # @option options [Integer] :suspended_retry_timeout     (30 seconds). When the connection enters the SUSPENDED state, after this delay in milliseconds, if the state is still SUSPENDED, the client library will attempt to reconnect automatically
+      #
       # @return [Ably::Realtime::Client]
       #
       # @example
@@ -82,6 +89,7 @@ module Ably
         @rest_client           = Ably::Rest::Client.new(options)
         @auth                  = Ably::Realtime::Auth.new(self)
         @channels              = Ably::Realtime::Channels.new(self)
+        @connection            = Ably::Realtime::Connection.new(self, options)
         @echo_messages         = @rest_client.options.fetch(:echo_messages, true) == false ? false : true
         @queue_messages        = @rest_client.options.fetch(:queue_messages, true) == false ? false : true
         @custom_realtime_host  = @rest_client.options[:realtime_host] || @rest_client.options[:ws_host]
@@ -142,10 +150,9 @@ module Ably
         endpoint_for_host(custom_realtime_host || [environment, DOMAIN].compact.join('-'))
       end
 
-      # @!attribute [r] connection
-      # @return [Aby::Realtime::Connection] The underlying connection for this client
+
       def connection
-        @connection ||= Connection.new(self)
+        @connection
       end
 
       # (see Ably::Rest::Client#register_encoder)

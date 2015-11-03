@@ -115,17 +115,17 @@ describe Ably::Realtime::Client, :event_machine do
           end
 
           context 'when the returned token has a client_id' do
-            it "sets Auth#client_id to the new token's client_id before connecting" do
+            it "sets Auth#client_id to the new token's client_id immediately when connecting" do
               subject.auth.authorise do
-                expect(subject.connection).to be_initialized
+                expect(subject.connection).to be_connecting
                 expect(subject.auth.client_id).to eql(client_id)
                 stop_reactor
               end
             end
 
-            it "sets Client#client_id to the new token's client_id before connecting" do
+            it "sets Client#client_id to the new token's client_id immediately when connecting" do
               subject.auth.authorise do
-                expect(subject.connection).to be_initialized
+                expect(subject.connection).to be_connecting
                 expect(subject.client_id).to eql(client_id)
                 stop_reactor
               end
@@ -144,7 +144,7 @@ describe Ably::Realtime::Client, :event_machine do
               it 'allows the explicit client_id to be used for the connection' do
                 connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
                   if protocol_message.action == :connected
-                    expect(protocol_message.connection_details.client_id).to eql(client_id)
+                    expect(protocol_message.connection_details.client_id).to be_nil
                     @valid_client_id = true
                   end
                 end
@@ -158,9 +158,6 @@ describe Ably::Realtime::Client, :event_machine do
               let(:client_options) { default_options.merge(auth_callback: Proc.new { auth_token_object }) }
 
               it 'allows omitted client_id to be used for the connection' do
-                puts default_options
-                puts client_options
-
                 connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
                   if protocol_message.action == :connected
                     expect(protocol_message.connection_details.client_id).to be_nil
@@ -180,6 +177,7 @@ describe Ably::Realtime::Client, :event_machine do
             expect { Ably::Realtime::Client.new(client_options.merge(key: api_key, client_id: '*')) }.to raise_error ArgumentError
             stop_reactor
           end
+        end
       end
     end
 
