@@ -389,10 +389,14 @@ module Ably::Realtime
     end
 
     def ensure_supported_client_id(check_client_id)
-      raise Ably::Exceptions::IncompatibleClientId.new('Unable to enter/update/leave presence channel without a client_id', 400, 40012) unless check_client_id
-      raise Ably::Exceptions::IncompatibleClientId.new('Unable to enter/update/leave presence channel with the reserved wildcard client_id', 400, 40012) if check_client_id == '*'
-      if client.auth.client_id_confirmed? && client.auth.client_id != check_client_id
-        raise Ably::Exceptions::IncompatibleClientId.new("Cannot enter with provided client_id '#{check_client_id}' as it is incompatible with the current configured client_id '#{client_id}'", 400, 40012)
+      unless check_client_id
+        raise Ably::Exceptions::IncompatibleClientId.new('Unable to enter/update/leave presence channel without a client_id', 400, 40012)
+      end
+      if check_client_id == '*'
+        raise Ably::Exceptions::IncompatibleClientId.new('Unable to enter/update/leave presence channel with the reserved wildcard client_id', 400, 40012)
+      end
+      unless client.auth.can_assume_client_id?(check_client_id)
+        raise Ably::Exceptions::IncompatibleClientId.new("Cannot enter with provided client_id '#{check_client_id}' as it is incompatible with the current configured client_id '#{client.client_id}'", 400, 40012)
       end
     end
 

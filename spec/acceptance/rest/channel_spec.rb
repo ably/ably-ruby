@@ -125,6 +125,137 @@ describe Ably::Rest::Channel do
           end
         end
       end
+
+      context 'identified clients' do
+        context 'when authenticated with a wildcard client_id' do
+          let(:token)            { Ably::Rest::Client.new(default_options).auth.request_token(client_id: '*') }
+          let(:client_options)   { default_options.merge(key: nil, token: token) }
+          let(:client)           { Ably::Rest::Client.new(client_options) }
+          let(:channel)          { client.channels.get(channel_name) }
+
+          context 'with a valid client_id in the message' do
+            it 'succeeds' do
+              channel.publish([name: 'event', client_id: 'valid'])
+                channel.history do |messages|
+                  expect(messages.first.client_id).to eql('valid')
+                end
+            end
+          end
+
+          context 'with a wildcard client_id in the message' do
+            it 'throws an exception' do
+              expect { channel.publish([name: 'event', client_id: '*']) }.to raise_error Ably::Exceptions::IncompatibleClientId
+            end
+          end
+
+          context 'with an empty client_id in the message' do
+            it 'succeeds and publishes without a client_id' do
+              channel.publish([name: 'event', client_id: nil])
+              channel.history do |messages|
+                expect(messages.first.client_id).to eql('valid')
+              end
+            end
+          end
+        end
+
+        context 'when authenticated with a Token string with an implicit client_id' do
+          let(:token)            { Ably::Rest::Client.new(default_options).auth.request_token(client_id: 'valid').token }
+          let(:client_options)   { default_options.merge(key: nil, token: token) }
+          let(:client)           { Ably::Rest::Client.new(client_options) }
+          let(:channel)          { client.channels.get(channel_name) }
+
+          context 'without having a confirmed identity' do
+            context 'with a valid client_id in the message' do
+              it 'succeeds' do
+                channel.publish([name: 'event', client_id: 'valid'])
+                channel.history do |messages|
+                  expect(messages.first.client_id).to eql('valid')
+                end
+              end
+            end
+
+            context 'with an invalid client_id in the message' do
+              it 'succeeds in the client library but then fails when published to Ably' do
+                expect { channel.publish([name: 'event', client_id: 'invalid']) }.to raise_error Ably::Exceptions::InvalidRequest, /mismatched clientId/
+              end
+            end
+
+            context 'with an empty client_id in the message' do
+              it 'succeeds and publishes with an implicit client_id' do
+                channel.publish([name: 'event', client_id: nil])
+                channel.history do |messages|
+                  expect(messages.first.client_id).to eql('valid')
+                end
+              end
+            end
+          end
+        end
+
+        context 'when authenticated with TokenDetails with a valid client_id' do
+          let(:token)            { Ably::Rest::Client.new(default_options).auth.request_token(client_id: 'valid') }
+          let(:client_options)   { default_options.merge(key: nil, token: token) }
+          let(:client)           { Ably::Rest::Client.new(client_options) }
+          let(:channel)          { client.channels.get(channel_name) }
+
+          context 'with a valid client_id in the message' do
+            it 'succeeds' do
+              channel.publish([name: 'event', client_id: 'valid'])
+              channel.history do |messages|
+                expect(messages.first.client_id).to eql('valid')
+              end
+            end
+          end
+
+          context 'with a wildcard client_id in the message' do
+            it 'throws an exception' do
+              expect { channel.publish([name: 'event', client_id: '*']) }.to raise_error Ably::Exceptions::IncompatibleClientId
+            end
+          end
+
+          context 'with an invalid client_id in the message' do
+            it 'throws an exception' do
+              expect { channel.publish([name: 'event', client_id: 'invalid']) }.to raise_error Ably::Exceptions::IncompatibleClientId
+            end
+          end
+
+          context 'with an empty client_id in the message' do
+            it 'succeeds and publishes with an implicit client_id' do
+              channel.publish([name: 'event', client_id: nil])
+              channel.history do |messages|
+                expect(messages.first.client_id).to eql('valid')
+              end
+            end
+          end
+        end
+
+        context 'when anonymous and no client_id' do
+          let(:token)            { Ably::Rest::Client.new(default_options).auth.request_token(client_id: nil) }
+          let(:client_options)   { default_options.merge(key: nil, token: token) }
+          let(:client)           { Ably::Rest::Client.new(client_options) }
+          let(:channel)          { client.channels.get(channel_name) }
+
+          context 'with a client_id in the message' do
+            it 'throws an exception' do
+              expect { channel.publish([name: 'event', client_id: '*']) }.to raise_error Ably::Exceptions::IncompatibleClientId
+            end
+          end
+
+          context 'with a wildcard client_id in the message' do
+            it 'throws an exception' do
+              expect { channel.publish([name: 'event', client_id: '*']) }.to raise_error Ably::Exceptions::IncompatibleClientId
+            end
+          end
+
+          context 'with an empty client_id in the message' do
+            it 'succeeds and publishes with an implicit client_id' do
+              channel.publish([name: 'event', client_id: nil])
+              channel.history do |messages|
+                expect(messages.first.client_id).to be_nil
+              end
+            end
+          end
+        end
+      end
     end
 
     describe '#history' do
