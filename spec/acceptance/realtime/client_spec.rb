@@ -179,6 +179,34 @@ describe Ably::Realtime::Client, :event_machine do
           end
         end
       end
+
+      context 'realtime connection settings' do
+        context 'defaults' do
+          specify 'disconnected_retry_timeout is 15s' do
+            expect(subject.connection.defaults[:disconnected_retry_timeout]).to eql(15)
+            stop_reactor
+          end
+
+          specify 'suspended_retry_timeout is 30s' do
+            expect(subject.connection.defaults[:suspended_retry_timeout]).to eql(30)
+            stop_reactor
+          end
+        end
+
+        context 'overriden in ClientOptions' do
+          let(:client_options) { default_options.merge(disconnected_retry_timeout: 1, suspended_retry_timeout: 2) }
+
+          specify 'disconnected_retry_timeout is updated' do
+            expect(subject.connection.defaults[:disconnected_retry_timeout]).to eql(1)
+            stop_reactor
+          end
+
+          specify 'suspended_retry_timeout is updated' do
+            expect(subject.connection.defaults[:suspended_retry_timeout]).to eql(2)
+            stop_reactor
+          end
+        end
+      end
     end
 
     context '#connection' do
