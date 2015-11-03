@@ -71,7 +71,8 @@ describe Ably::Realtime::Auth, :event_machine do
       end
 
       context '#token' do
-        let(:client_options) { default_options.merge(token: random_str) }
+        let(:token) { Ably::Rest::Client.new(default_options).auth.request_token }
+        let(:client_options) { default_options.merge(token: token) }
 
         it 'contains the current token after auth' do
           expect(auth.token).to_not be_nil

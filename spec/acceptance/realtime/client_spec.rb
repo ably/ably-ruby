@@ -174,6 +174,12 @@ describe Ably::Realtime::Client, :event_machine do
             end
           end
         end
+
+        context 'with an invalid wildcard "*" :client_id' do
+          it 'raises an exception' do
+            expect { Ably::Realtime::Client.new(client_options.merge(key: api_key, client_id: '*')) }.to raise_error ArgumentError
+            stop_reactor
+          end
       end
     end
 

@@ -71,7 +71,7 @@ module Ably::Models
     # @!attribute [r] capability
     # @return [Hash] Capabilities assigned to this token
     def capability
-      JSON.parse(hash.fetch(:capability)) if hash.fetch(:capability)
+      JSON.parse(hash.fetch(:capability)) if hash.has_key?(:capability)
     end
 
     # @!attribute [r] client_id
@@ -100,6 +100,10 @@ module Ably::Models
     # @return [Hash] Access the token details Hash object ruby'fied to use symbolized keys
     def hash
       @hash_object
+    end
+
+    def to_s
+      "<TokenDetails token=#{token} client_id=#{client_id} key_name=#{key_name} issued=#{issued} expires=#{expires} capability=#{capability} expired?=#{expired?}>"
     end
   end
 end

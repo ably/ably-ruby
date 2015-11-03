@@ -41,6 +41,10 @@ module Ably::Models
       end
     end
 
+    def has_client_id?
+      hash.has_key?(:client_id)
+    end
+
     # @!attribute [r] hash
     # @return [Hash] Access the token details Hash object ruby'fied to use symbolized keys
     def hash

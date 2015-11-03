@@ -14,6 +14,7 @@ describe Ably::Realtime::Presence, :event_machine do
     let(:client_two_id)    { random_str }
     let(:client_two)       { auto_close Ably::Realtime::Client.new(client_options.merge(client_id: client_two_id)) }
 
+    let(:wildcard_token)            { Proc.new { Ably::Rest::Client.new(client_options).auth.request_token(client_id: '*') } }
     let(:channel_name)              { "presence-#{random_str(4)}" }
     let(:channel_anonymous_client)  { anonymous_client.channel(channel_name) }
     let(:presence_anonymous_client) { channel_anonymous_client.presence }
@@ -404,7 +405,7 @@ describe Ably::Realtime::Presence, :event_machine do
         let(:present) { [] }
         let(:entered) { [] }
         let(:sync_pages_received) { [] }
-        let(:client_one) { auto_close Ably::Realtime::Client.new(client_options.merge(client_id: '*')) }
+        let(:client_one) { auto_close Ably::Realtime::Client.new(client_options.merge(auth_callback: wildcard_token)) }
 
         def setup_members_on(presence)
           enter_expected_count.times do |index|
@@ -835,10 +836,10 @@ describe Ably::Realtime::Presence, :event_machine do
 
     context 'entering/updating/leaving presence state on behalf of another client_id' do
       let(:client_count) { 5 }
-      let(:clients) { [] }
-      let(:data) { random_str }
-      let(:client_one) { auto_close Ably::Realtime::Client.new(client_options.merge(client_id: '*')) }
-      let(:client_two) { auto_close Ably::Realtime::Client.new(client_options.merge(client_id: '*')) }
+      let(:clients)      { [] }
+      let(:data)         { random_str }
+      let(:client_one)   { auto_close Ably::Realtime::Client.new(client_options.merge(auth_callback: wildcard_token)) }
+      let(:client_two)   { auto_close Ably::Realtime::Client.new(client_options.merge(auth_callback: wildcard_token)) }
 
       context '#enter_client' do
         context 'multiple times on the same channel with different client_ids' do
@@ -1107,7 +1108,7 @@ describe Ably::Realtime::Presence, :event_machine do
         let(:pages)               { 2 }
         let(:members_per_page)    { 100 }
         let(:sync_pages_received) { [] }
-        let(:client_one)          { auto_close Ably::Realtime::Client.new(client_options.merge(client_id: '*')) }
+        let(:client_one)          { auto_close Ably::Realtime::Client.new(client_options.merge(auth_callback: wildcard_token)) }
         let(:client_options)      { default_options.merge(log_level: :none) }
 
         def connect_members_deferrables
@@ -1256,8 +1257,8 @@ describe Ably::Realtime::Presence, :event_machine do
       end
 
       context 'with lots of members on different clients' do
-        let(:client_one)         { auto_close Ably::Realtime::Client.new(client_options.merge(client_id: '*')) }
-        let(:client_two)         { auto_close Ably::Realtime::Client.new(client_options.merge(client_id: '*')) }
+        let(:client_one)         { auto_close Ably::Realtime::Client.new(client_options.merge(auth_callback: wildcard_token)) }
+        let(:client_two)         { auto_close Ably::Realtime::Client.new(client_options.merge(auth_callback: wildcard_token)) }
         let(:members_per_client) { 10 }
         let(:clients_entered)    { Hash.new { |hash, key| hash[key] = 0 } }
         let(:total_members)      { members_per_client * 2 }

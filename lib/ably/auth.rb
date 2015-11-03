@@ -74,6 +74,10 @@ module Ably
         raise ArgumentError, 'key is missing. Either an API key, token, or token auth method must be provided'
       end
 
+      if options[:client_id] && options[:client_id] == '*'
+        raise ArgumentError, 'A client cannot be configured with a wildcard client_id'
+      end
+
       if has_client_id? && !token_creatable_externally? && !token
         raise ArgumentError, 'client_id cannot be provided without a complete API key or means to authenticate. An API key is needed to automatically authenticate with Ably and obtain a token' unless api_key_present?
         ensure_utf_8 :client_id, client_id
@@ -125,8 +129,10 @@ module Ably
         if !token_client_id_allowed?(new_token_details.client_id)
           raise Ably::Exceptions::IncompatibleClientId.new("Client ID '#{new_token_details.client_id}' in the new token is incompatible with the current client ID '#{client_id}'", 400, 40012)
         end
-        configure_client_id new_token_details.client_id
+        configure_client_id new_token_details.client_id unless new_token_details.client_id == '*'
       end
+
+      logger.debug "Auth: new token following authorisation: #{new_token_details}"
       @current_token_details = new_token_details
     end
 
@@ -529,7 +535,7 @@ module Ably
         # Raise exceptions if response code is invalid
         builder.use Ably::Rest::Middleware::ExternalExceptions
 
-        setup_incoming_middleware builder, client.logger
+        setup_incoming_middleware builder, logger
 
         # Set Faraday's HTTP adapter
         builder.adapter Faraday.default_adapter
@@ -554,6 +560,10 @@ module Ably
 
     def api_key_present?
       key_name && key_secret
+    end
+
+    def logger
+      client.logger
     end
   end
 end
