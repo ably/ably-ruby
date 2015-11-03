@@ -332,12 +332,24 @@ describe Ably::Realtime::Auth, :event_machine do
               expect(client.auth).to_not be_client_id_confirmed
               stop_reactor
             end
+
+            specify '#client_id is nil' do
+              expect(client.auth.client_id).to be_nil
+              stop_reactor
+            end
           end
 
           context 'once connected' do
             it 'is true' do
               client.connection.once(:connected) do
                 expect(client.auth).to be_client_id_confirmed
+                stop_reactor
+              end
+            end
+
+            specify '#client_id is populated' do
+              client.connection.once(:connected) do
+                expect(client.auth.client_id).to eql('present')
                 stop_reactor
               end
             end
