@@ -908,6 +908,24 @@ describe Ably::Auth do
             expect(token.expires.to_i).to be_within(2).of(Time.now.to_i + Ably::Auth::TOKEN_DEFAULTS.fetch(:ttl))
             expect(token.client_id).to eq(client_id)
           end
+
+          specify '#client_id contains the client_id' do
+            expect(client.auth.client_id).to eql(client_id)
+          end
+        end
+      end
+
+      context 'when :client_id is provided in a token' do
+        let(:client_id) { '123' }
+        let(:token) do
+          Ably::Rest::Client.new(key: api_key, environment: environment, protocol: protocol).auth.request_token(client_id: client_id)
+        end
+        let(:client) do
+          Ably::Rest::Client.new(token: token, environment: environment, protocol: protocol)
+        end
+
+        specify '#client_id contains the client_id' do
+          expect(client.auth.client_id).to eql(client_id)
         end
       end
     end
