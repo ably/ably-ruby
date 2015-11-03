@@ -5,7 +5,7 @@ describe Ably::Realtime::Connection do
   let(:client) { instance_double('Ably::Realtime::Client', logger: double('logger').as_null_object) }
 
   subject do
-    Ably::Realtime::Connection.new(client)
+    Ably::Realtime::Connection.new(client, {})
   end
 
   before do
@@ -59,5 +59,9 @@ describe Ably::Realtime::Connection do
         expect(callbacks.count).to eql(1)
       end
     end
+  end
+
+  after(:all) do
+    sleep 1 # let realtime library shut down any open clients
   end
 end

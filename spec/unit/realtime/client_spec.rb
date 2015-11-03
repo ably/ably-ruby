@@ -27,4 +27,8 @@ describe Ably::Realtime::Client do
       end
     end
   end
+
+  after(:all) do
+    sleep 1 # let realtime library shut down any open clients
+  end
 end
