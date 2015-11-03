@@ -268,7 +268,7 @@ describe Ably::Realtime::Connection, :event_machine do
                   let(:token_callback) do
                     Proc.new do
                       if @token_issued
-                        'pYk44A.7gw847ge8g32e8721382173g21873g21738g'
+                        "#{app_id}.invalid-token-invalid-token-invalid-token"
                       else
                         @token_issued = true
                         Ably::Rest::Client.new(default_options).auth.request_token(ttl: ttl).token
