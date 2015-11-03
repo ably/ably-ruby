@@ -80,7 +80,7 @@ shared_examples 'a client initializer' do
   end
 
   context 'with valid arguments' do
-    let(:default_options) { { key: 'appid.keyuid:keysecret' } }
+    let(:default_options) { { key: 'appid.keyuid:keysecret', auto_connect: false } }
     let(:client_options)  { default_options }
 
     context 'key only' do
@@ -94,7 +94,7 @@ shared_examples 'a client initializer' do
     end
 
     context 'key_name and key_secret', api_private: true do
-      let(:client_options) { { key_name: 'id', key_secret: 'secret' } }
+      let(:client_options) { { key_name: 'id', key_secret: 'secret', auto_connect: false } }
 
       it 'constructs a key' do
         expect(subject.auth.key).to eql('id:secret')
@@ -125,7 +125,7 @@ shared_examples 'a client initializer' do
       let(:client_options) { 'app.kjhkasjhdsakdh127g7g1271' }
 
       it 'sets the token' do
-        expect(subject.auth.token).to eql(client_options)
+        expect(subject.auth.current_token_details.token).to eql(client_options)
       end
     end
 
@@ -133,20 +133,20 @@ shared_examples 'a client initializer' do
       let(:client_options) { { token: 'token' } }
 
       it 'sets the token' do
-        expect(subject.auth.token).to eql('token')
+        expect(subject.auth.current_token_details.token).to eql('token')
       end
     end
 
     context 'with token_details' do
-      let(:client_options) { { token_details: Ably::Models::TokenDetails.new(token: 'token') } }
+      let(:client_options) { { token_details: Ably::Models::TokenDetails.new(token: 'token'), auto_connect: false } }
 
       it 'sets the token' do
-        expect(subject.auth.token).to eql('token')
+        expect(subject.auth.current_token_details.token).to eql('token')
       end
     end
 
     context 'with token_params' do
-      let(:client_options) { { token_params: { ttl: 777, client_id: 'john' }, token: 'token' } }
+      let(:client_options) { { token_params: { ttl: 777, client_id: 'john' }, token: 'token', auto_connect: false } }
 
       it 'configures the default token_params' do
         expect(subject.auth.token_params.fetch(:ttl)).to eql(777)
@@ -160,7 +160,7 @@ shared_examples 'a client initializer' do
       end
 
       context 'with environment option' do
-        let(:client_options) { default_options.merge(environment: 'sandbox') }
+        let(:client_options) { default_options.merge(environment: 'sandbox', auto_connect: false) }
 
         it 'uses an alternate endpoint' do
           expect(subject.endpoint.to_s).to eql("#{protocol}s://sandbox-#{subdomain}.ably.io")
@@ -168,7 +168,7 @@ shared_examples 'a client initializer' do
       end
 
       context 'with rest_host option' do
-        let(:client_options) { default_options.merge(rest_host: 'custom-rest.host.com') }
+        let(:client_options) { default_options.merge(rest_host: 'custom-rest.host.com', auto_connect: false) }
 
         it 'uses an alternate endpoint for REST clients' do
           skip 'does not apply as testing a Realtime client' unless rest?
@@ -177,7 +177,7 @@ shared_examples 'a client initializer' do
       end
 
       context 'with realtime_host option' do
-        let(:client_options) { default_options.merge(realtime_host: 'custom-realtime.host.com') }
+        let(:client_options) { default_options.merge(realtime_host: 'custom-realtime.host.com', auto_connect: false) }
 
         it 'uses an alternate endpoint for Realtime clients' do
           skip 'does not apply as testing a REST client' if rest?
@@ -186,7 +186,7 @@ shared_examples 'a client initializer' do
       end
 
       context 'with port option and non-TLS connections' do
-        let(:client_options) { default_options.merge(port: 999, tls: false) }
+        let(:client_options) { default_options.merge(port: 999, tls: false, auto_connect: false) }
 
         it 'uses the custom port for non-TLS requests' do
           expect(subject.endpoint.to_s).to include(":999")
@@ -194,7 +194,7 @@ shared_examples 'a client initializer' do
       end
 
       context 'with tls_port option and a TLS connection' do
-        let(:client_options) { default_options.merge(tls_port: 666, tls: true) }
+        let(:client_options) { default_options.merge(tls_port: 666, tls: true, auto_connect: false) }
 
         it 'uses the custom port for TLS requests' do
           expect(subject.endpoint.to_s).to include(":666")
@@ -204,7 +204,7 @@ shared_examples 'a client initializer' do
 
     context 'tls' do
       context 'set to false' do
-        let(:client_options) { default_options.merge(tls: false) }
+        let(:client_options) { default_options.merge(tls: false, auto_connect: false) }
 
         it 'uses plain text' do
           expect(subject.use_tls?).to eql(false)
@@ -232,7 +232,7 @@ shared_examples 'a client initializer' do
       end
 
       context 'with log_level :none' do
-        let(:client_options) { default_options.merge(log_level: :none) }
+        let(:client_options) { default_options.merge(log_level: :none, auto_connect: false) }
 
         it 'silences all logging with a NilLogger' do
           expect(subject.logger.logger.class).to eql(Ably::Models::NilLogger)
@@ -250,7 +250,7 @@ shared_examples 'a client initializer' do
             def_delegators :@logger, :fatal, :error, :warn, :info, :debug, :level, :level=
           end
         end
-        let(:client_options) { default_options.merge(logger: custom_logger.new, log_level: Logger::DEBUG) }
+        let(:client_options) { default_options.merge(logger: custom_logger.new, log_level: Logger::DEBUG, auto_connect: false) }
 
         it 'uses the custom logger' do
           expect(subject.logger.logger.class).to eql(custom_logger)
