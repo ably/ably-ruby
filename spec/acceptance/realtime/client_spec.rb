@@ -53,7 +53,7 @@ describe Ably::Realtime::Client, :event_machine do
                 connection.on(:connected) do
                   expect(auth_params[:access_token]).to_not be_nil
                   expect(auth_params[:key]).to be_nil
-                  expect(subject.auth.current_token_details).to be_nil
+                  expect(subject.auth.current_token_details).to be_a(Ably::Models::TokenDetails)
                   stop_reactor
                 end
               end
