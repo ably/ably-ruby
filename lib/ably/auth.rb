@@ -354,6 +354,20 @@ module Ably
       token_client_id == client_id
     end
 
+    # True if assumed_client_id is compatible with the client's configured or Ably assigned +client_id+
+    #
+    # @return [Boolean]
+    # @api private
+    def can_assume_client_id?(assumed_client_id)
+      if client_id_confirmed?
+        client_id == assumed_client_id
+      elsif !options[:client_id]
+        true # client ID is unknown
+      else
+        options[:client_id] == assumed_client_id
+      end
+    end
+
     # Configures the client ID for this client
     # Typically this occurs following an Auth or receiving a {Ably::Models::ProtocolMessage} with a +client_id+ in the {Ably::Models::ConnectionDetails}
     #
