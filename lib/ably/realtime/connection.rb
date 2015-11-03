@@ -347,7 +347,6 @@ module Ably
           client.auth.auth_params.tap do |auth_deferrable|
             auth_deferrable.callback do |auth_params|
               url_params = auth_params.merge(
-                timestamp: as_since_epoch(Time.now),
                 format:    client.protocol,
                 echo:      client.echo_messages
               )
