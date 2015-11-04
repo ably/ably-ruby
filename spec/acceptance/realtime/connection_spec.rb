@@ -710,6 +710,30 @@ describe Ably::Realtime::Connection, :event_machine do
           end
         end
       end
+
+      context 'when ping times out' do
+        let(:client_options) { default_options.merge(log_level: :error) }
+
+        it 'logs a warning' do
+          connection.once(:connected) do
+            allow(connection).to receive(:defaults).and_return(connection.defaults.merge(realtime_request_timeout: 0.0001))
+            expect(connection.logger).to receive(:warn).with(/Ping timed out/) do
+              stop_reactor
+            end
+            connection.ping
+          end
+        end
+
+        it 'yields to the block with a nil value' do
+          connection.once(:connected) do
+            allow(connection).to receive(:defaults).and_return(connection.defaults.merge(realtime_request_timeout: 0.0001))
+            connection.ping do |time_elapsed|
+              expect(time_elapsed).to be_nil
+              stop_reactor
+            end
+          end
+        end
+      end
     end
 
     context 'recovery' do

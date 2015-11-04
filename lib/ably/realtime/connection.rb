@@ -170,7 +170,8 @@ module Ably
       # This can be useful for measuring true roundtrip client to Ably server latency for a simple message, or checking that an underlying transport is responding currently.
       # The elapsed milliseconds is passed as an argument to the block and represents the time taken to echo a ping heartbeat once the connection is in the `:connected` state.
       #
-      # @yield [Integer] if a block is passed to this method, then this block will be called once the ping heartbeat is received with the time elapsed in milliseconds
+      # @yield [Integer] if a block is passed to this method, then this block will be called once the ping heartbeat is received with the time elapsed in milliseconds.
+      #                  If the ping is not received within an acceptable timeframe, the block will be called with +nil+ as he first argument
       #
       # @example
       #    client = Ably::Rest::Client.new(key: 'key.id:secret')
@@ -185,9 +186,12 @@ module Ably
         raise RuntimeError, 'Cannot send a ping when connection is in a closed or failed state' if closed? || failed?
 
         started = nil
+        finished = false
 
         wait_for_ping = Proc.new do |protocol_message|
+          next if finished
           if protocol_message.action == Ably::Models::ProtocolMessage::ACTION.Heartbeat
+            finished = true
             __incoming_protocol_msgbus__.unsubscribe(:protocol_message, &wait_for_ping)
             time_passed = (Time.now.to_f * 1000 - started.to_f * 1000).to_i
             safe_yield block, time_passed if block_given?
@@ -195,9 +199,18 @@ module Ably
         end
 
         once_or_if(STATE.Connected) do
+          next if finished
           started = Time.now
           send_protocol_message action: Ably::Models::ProtocolMessage::ACTION.Heartbeat.to_i
           __incoming_protocol_msgbus__.subscribe :protocol_message, &wait_for_ping
+        end
+
+        EventMachine.add_timer(defaults.fetch(:realtime_request_timeout)) do
+          next if finished
+          finished = true
+          __incoming_protocol_msgbus__.unsubscribe(:protocol_message, &wait_for_ping)
+          logger.warn "Ping timed out after #{defaults.fetch(:realtime_request_timeout)}s"
+          safe_yield block, nil if block_given?
         end
       end
 
