@@ -3,9 +3,9 @@ module Ably::Models
   # when a state change occurs
   #
   # @!attribute [r] current
-  #   @return [Connection::STATE] Current connection state
+  #   @return [Connection::STATE] Current channel state
   # @!attribute [r] previous
-  #   @return [Connection::STATE] Previous connection state
+  #   @return [Connection::STATE] Previous channel state
   # @!attribute [r] reason
   #   @return [Ably::Models::ErrorInfo] Object describing the reason for a state change when not initiated by the consumer of the client library
   #
