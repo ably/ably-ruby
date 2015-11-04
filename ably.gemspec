@@ -36,4 +36,9 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'webmock'
 
   spec.add_development_dependency 'coveralls'
+
+  if RUBY_VERSION.match(/^2/)
+    spec.add_development_dependency 'pry'
+    spec.add_development_dependency 'pry-byebug'
+  end
 end
