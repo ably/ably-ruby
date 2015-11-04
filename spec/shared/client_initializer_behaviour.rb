@@ -102,6 +102,10 @@ shared_examples 'a client initializer' do
     end
 
     context 'with a string key instead of options hash' do
+      before do
+        allow_any_instance_of(Ably::Realtime::Client).to receive(:auto_connect).and_return(false)
+      end
+
       let(:client_options) { 'app.key:secret' }
 
       it 'sets the key' do
