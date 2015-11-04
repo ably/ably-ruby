@@ -441,20 +441,15 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
       end
 
       context 'after successfully reconnecting and resuming' do
-        it 'retains connection_id and connection_key' do
-          previous_connection_id  = nil
-          previous_connection_key = nil
-
+        it 'retains connection_id and updates the connection_key' do
           connection.once(:connected) do
-            previous_connection_id  = connection.id
-            previous_connection_key = connection.key
+            previous_connection_id = connection.id
             connection.transport.close_connection_after_writing
 
+            expect(connection).to receive(:configure_new).with(previous_connection_id, anything, anything).and_call_original
+
             connection.once(:connected) do
-              # Connection key left part should match new connection key left part i.e.
-              # wVIsgTHAB1UvXh7z-1991d8586 becomes wVIsgTHAB1UvXh7z-1990d8586 after resume
-              expect(connection.key[/^\w{5,}-/, 0]).to_not be_nil
-              expect(connection.key[/^\w{5,}-/, 0]).to eql(previous_connection_key[/^\w{5,}-/, 0])
+              expect(connection.key).to_not be_nil
               expect(connection.id).to eql(previous_connection_id)
               stop_reactor
             end

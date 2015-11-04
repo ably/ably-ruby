@@ -82,18 +82,17 @@ module Ably::Realtime
       # @api private
       def connected(protocol_message)
         if connection.key
-          if connection_key_shared(protocol_message.connection_key) == connection_key_shared(connection.key)
+          if protocol_message.connection_id == connection.id
             logger.debug "ConnectionManager: Connection resumed successfully - ID #{connection.id} and key #{connection.key}"
             EventMachine.next_tick { connection.resumed }
           else
             logger.debug "ConnectionManager: Connection was not resumed, old connection ID #{connection.id} has been updated with new connect ID #{protocol_message.connection_id} and key #{protocol_message.connection_key}"
             detach_attached_channels protocol_message.error
-            connection.configure_new protocol_message.connection_id, protocol_message.connection_key, protocol_message.connection_serial
           end
         else
           logger.debug "ConnectionManager: New connection created with ID #{protocol_message.connection_id} and key #{protocol_message.connection_key}"
-          connection.configure_new protocol_message.connection_id, protocol_message.connection_key, protocol_message.connection_serial
         end
+        connection.configure_new protocol_message.connection_id, protocol_message.connection_key, protocol_message.connection_serial
       end
 
       # Ensures the underlying transport has been disconnected and all event emitter callbacks removed
@@ -242,12 +241,6 @@ module Ably::Realtime
 
       def state_has_retry_timeout?(state)
         connection.defaults.has_key?("#{state}_retry_timeout".to_sym)
-      end
-
-      # Connection key left part is consistent between connection resumes
-      # i.e. wVIsgTHAB1UvXh7z-1991d8586 becomes wVIsgTHAB1UvXh7z-1990d8586 after a resume
-      def connection_key_shared(connection_key)
-        (connection_key || '')[/^\w{5,}-/, 0]
       end
 
       # Create a timer that will execute in timeout_in seconds.
