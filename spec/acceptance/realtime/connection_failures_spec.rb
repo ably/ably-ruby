@@ -456,6 +456,38 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
 
+        # TODO: Review this behaviour as channels should perhaps be detached, see Wiki issues #33
+        it 'emits any error received from Ably but leaves the channels attached' do
+          emitted_error = nil
+          channel.attach do
+            connection.transport.close_connection_after_writing
+
+            connection.once(:connecting) do
+              connection.__incoming_protocol_msgbus__.unsubscribe
+              connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                allow(protocol_message).to receive(:error).and_return(Ably::Exceptions::Standard.new('Injected error'))
+              end
+              # Create a new message dispatcher that subscribes to ProtocolMessages after the previous subscription allowing us
+              # to modify the ProtocolMessage
+              Ably::Realtime::Client::IncomingMessageDispatcher.new(client, connection)
+            end
+
+            connection.once(:connected) do
+              EM.add_timer(0.5) do
+                expect(emitted_error).to be_a(Ably::Exceptions::Standard)
+                expect(emitted_error.message).to match(/Injected error/)
+                expect(connection.error_reason).to be_a(Ably::Exceptions::Standard)
+                expect(channel).to be_attached
+                stop_reactor
+              end
+            end
+
+            connection.once(:error) do |error|
+              emitted_error = error
+            end
+          end
+        end
+
         it 'retains channel subscription state' do
           messages_received = false
 
