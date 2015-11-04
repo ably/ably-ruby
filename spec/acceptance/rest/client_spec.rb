@@ -89,7 +89,7 @@ describe Ably::Rest::Client do
 
         context 'before any REST request' do
           before do
-            expect(client.auth).to receive(:token_request_from_auth_url).with(token_request_url, hash_including(:auth_method => :get)).once do
+            expect(client.auth).to receive(:token_request_from_auth_url).with(token_request_url, hash_including(:auth_method => :get), anything).once do
               client.auth.create_token_request(client_id: client_id)
             end
           end

@@ -197,6 +197,85 @@ describe Ably::Auth do
         end
       end
 
+      context 'with :auth_url option merging', :webmock do
+        context 'with existing configured auth options' do
+          let(:client_id)    { random_str }
+          let(:auth_url)     { "https://www.fictitious.com/#{random_str}" }
+          let(:auth_method)  { :get }
+          let(:auth_params)  { { key: 'val', client_id: 'isOverridenByClient' } }
+          let(:auth_headers) { { 'Header-X' => 'val1', 'Header-Y' => 'val2' } }
+
+          let(:base_options) do
+            default_options.merge(
+              client_id:    client_id,
+              auth_url:     auth_url,
+              auth_params:  auth_params,
+              auth_headers: auth_headers
+            )
+          end
+          let(:client_options) { base_options }
+
+          let!(:auth_request) do
+            stub_request(auth_method, auth_url).to_return(
+              :status => 201,
+              :body => '123123.12312321321312321', # token string
+              :headers => { 'Content-Type' => 'text/plain' }
+            )
+          end
+
+          let(:request_token_auth_options) { Hash.new }
+          let(:request_token_token_params) { Hash.new }
+          after do
+            client.auth.request_token(request_token_token_params, request_token_auth_options)
+            expect(auth_request).to have_been_requested
+          end
+
+          context 'using unspecified :auth_method' do
+            it 'requests a token using a GET request with provided headers, and merges client_id into auth_params' do
+              auth_request.with(headers: auth_headers)
+              auth_request.with(query: auth_params.merge(client_id: client_id))
+            end
+
+            context 'with provided token_params' do
+              let(:request_token_token_params) { { client_id: 'custom', key2: 'val2' } }
+
+              it 'merges provided token_params with existing auth_params and client_id' do
+                auth_request.with(query: auth_params.merge(client_id: client_id).merge(request_token_token_params))
+              end
+            end
+
+            context 'with provided auth option auth_params and auth_headers' do
+              let(:request_token_auth_options) { { auth_params: {}, auth_headers: {} } }
+
+              it 'replaces any preconfigured auth_params' do
+                auth_request.with(query: {}.merge(client_id: client_id))
+                auth_request.with(headers: { 'Accept'=>'*/*' }) # mock library needs at least one header, accept is default
+              end
+            end
+          end
+
+          context 'using :get :auth_method and query params in the URL' do
+            let(:auth_method) { :get }
+            let(:client_options) { base_options.merge(auth_method: :get, auth_url: "#{auth_url}?urlparam=true") }
+
+            it 'requests a token using a GET request with provided headers, and merges client_id into auth_params and existing URL querystring into new URL querystring' do
+              auth_request.with(headers: auth_headers)
+              auth_request.with(query: auth_params.merge(client_id: client_id).merge(urlparam: true))
+            end
+          end
+
+          context 'using :post :auth_method' do
+            let(:auth_method) { :post }
+            let(:client_options) { base_options.merge(auth_method: :post) }
+
+            it 'requests a token using a POST request with provided headers, and merges client_id into auth_params as form-encoded post data' do
+              auth_request.with(headers: auth_headers)
+              auth_request.with(body: auth_params.merge(client_id: client_id))
+            end
+          end
+        end
+      end
+
       context 'with :auth_url option', :webmock do
         let(:auth_url)          { 'https://www.fictitious.com/get_token' }
         let(:auth_url_response) { { keyName: key_name }.to_json }

@@ -169,14 +169,20 @@ module Ably
     def request_token(token_params = {}, auth_options = {})
       ensure_valid_auth_attributes auth_options
 
-      token_params = (auth_options[:token_params] || {}).merge(token_params)
-      token_params = self.token_params.merge(token_params)
+      # Token param precedence (lowest to highest):
+      #   Auth default => client_id => auth_options[:token_params] arg => token_params arg
+      token_params = self.token_params.merge(
+        (client_id ? { client_id: client_id } : {}).
+          merge(auth_options[:token_params] || {}).
+          merge(token_params)
+      )
+
       auth_options = self.options.merge(auth_options)
 
       token_request = if auth_callback = auth_options.delete(:auth_callback)
         auth_callback.call(token_params)
       elsif auth_url = auth_options.delete(:auth_url)
-        token_request_from_auth_url(auth_url, auth_options)
+        token_request_from_auth_url(auth_url, auth_options, token_params)
       else
         create_token_request(token_params, auth_options)
       end
@@ -502,15 +508,20 @@ module Ably
     # Retrieve a token request from a specified URL, expects a JSON response
     #
     # @return [Hash]
-    def token_request_from_auth_url(auth_url, auth_options)
+    def token_request_from_auth_url(auth_url, auth_options, token_params)
       uri = URI.parse(auth_url)
       connection = Faraday.new("#{uri.scheme}://#{uri.host}", connection_options)
-      method = auth_options[:auth_method] || :get
+      method = auth_options[:auth_method] || options[:auth_method] || :get
+      params = (auth_options[:auth_params] || options[:auth_method] || {}).merge(token_params)
 
       response = connection.send(method) do |request|
         request.url uri.path
-        request.params = CGI.parse(uri.query || '').merge(auth_options[:auth_params] || {})
         request.headers = auth_options[:auth_headers] || {}
+        if method.to_s.downcase == 'post'
+          request.body = params
+        else
+          request.params = (Addressable::URI.parse(uri.to_s).query_values || {}).merge(params)
+        end
       end
 
       if !response.body.kind_of?(Hash) && !response.headers['Content-Type'].to_s.match(%r{text/plain}i)

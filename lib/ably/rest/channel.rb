@@ -131,7 +131,7 @@ module Ably
 
       private
       def base_path
-        "/channels/#{CGI.escape(name)}"
+        "/channels/#{Addressable::URI.encode(name)}"
       end
 
       def decode_message(message)
