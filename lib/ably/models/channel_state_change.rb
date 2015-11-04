@@ -20,7 +20,6 @@ module Ably::Models
       @hash_object = {
         current: hash_object.fetch(:current),
         previous: hash_object.fetch(:previous),
-        retry_in: hash_object[:retry_in],
         reason: hash_object[:reason],
         protocol_message: hash_object[:protocol_message]
       }
