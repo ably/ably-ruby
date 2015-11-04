@@ -504,6 +504,68 @@ describe Ably::Realtime::Channel, :event_machine do
           end
         end
 
+        context 'nil attributes' do
+          context 'when name is nil' do
+            let(:data) { random_str }
+
+            it 'publishes the message without a name attribute in the payload' do
+              published = false
+              channel.publish(nil, data) do
+                published = true
+              end
+
+              channel.subscribe do |message|
+                expect(message.name).to be_nil
+                channel.history do |page|
+                  expect(page.items.first.name).to be_nil
+                  expect(page.items.first.data).to eql(data)
+                  EM.add_timer(0.5) do
+                    expect(published).to eql(true)
+                    stop_reactor
+                  end
+                end
+              end
+            end
+          end
+
+          context 'when data is nil' do
+            let(:name) { random_str }
+
+            it 'publishes the message without a data attribute in the payload' do
+              published = false
+              channel.publish(name, nil) do
+                published = true
+              end
+
+              channel.subscribe do |message|
+                expect(message.data).to be_nil
+                channel.history do |page|
+                  expect(page.items.first.name).to eql(name)
+                  expect(page.items.first.data).to be_nil
+                  EM.add_timer(0.5) do
+                    expect(published).to eql(true)
+                    stop_reactor
+                  end
+                end
+              end
+            end
+          end
+
+          context 'with neither name or data attributes' do
+            let(:name) { random_str }
+
+            it 'publishes the message without any attributes in the payload' do
+              channel.publish(nil) do
+                channel.history do |page|
+                  expect(page.items.first.name).to be_nil
+                  expect(page.items.first.data).to be_nil
+                  stop_reactor
+                end
+              end
+            end
+          end
+        end
+
         context 'with two invalid message out of 12' do
           let(:client_options) { default_options.merge(client_id: 'valid') }
           let(:invalid_messages) do

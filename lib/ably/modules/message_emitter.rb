@@ -50,10 +50,8 @@ module Ably::Modules
     #
     # @api private
     def emit_message(name, payload)
-      raise 'Event name is required' unless name
-
       message_emitter_subscriptions[:all].each { |cb| cb.call(payload) }
-      message_emitter_subscriptions[name].each { |cb| cb.call(payload) }
+      message_emitter_subscriptions[name].each { |cb| cb.call(payload) } if name
     end
 
     private
