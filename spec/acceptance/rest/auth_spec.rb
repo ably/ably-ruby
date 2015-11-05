@@ -260,7 +260,7 @@ describe Ably::Auth do
 
             it 'requests a token using a GET request with provided headers, and merges client_id into auth_params and existing URL querystring into new URL querystring' do
               auth_request.with(headers: auth_headers)
-              auth_request.with(query: auth_params.merge(client_id: client_id).merge(urlparam: true))
+              auth_request.with(query: auth_params.merge(client_id: client_id).merge(urlparam: 'true'))
             end
           end
 
