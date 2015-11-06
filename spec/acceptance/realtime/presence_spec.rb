@@ -666,7 +666,7 @@ describe Ably::Realtime::Presence, :event_machine do
 
           context '#get' do
             context 'with :wait_for_sync option set to true' do
-              it 'waits until sync is complete', event_machine: 15 do
+              it 'waits until sync is complete', em_timeout: 15 do
                 enter_expected_count.times do |index|
                   presence_client_one.enter_client("client:#{index}") do |message|
                     entered << message
@@ -683,7 +683,7 @@ describe Ably::Realtime::Presence, :event_machine do
             end
 
             context 'by default' do
-              it 'it does not wait for sync', event_machine: 15 do
+              it 'it does not wait for sync', em_timeout: 15 do
                 enter_expected_count.times do |index|
                   presence_client_one.enter_client("client:#{index}") do |message|
                     entered << message
