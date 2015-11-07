@@ -186,9 +186,19 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
                 messages.next do |next_page_messages|
                   expect(next_page_messages.items.count).to eql(5)
                   expect(next_page_messages.items.map(&:data).uniq.first).to eql(message_before_attach)
-                  expect(next_page_messages).to be_last
 
-                  stop_reactor
+                  if next_page_messages.last?
+                    expect(next_page_messages).to be_last
+                    stop_reactor
+                  else
+                    # If previous page said there is another page it is plausible and correct that
+                    # the next page is empty and then the last, if the limit was satisfied
+                    next_page_messages.next do |empty_page|
+                      expect(empty_page.items.count).to eql(0)
+                      expect(empty_page).to be_last
+                      stop_reactor
+                    end
+                  end
                 end
               end
             end
