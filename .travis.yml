@@ -1,5 +1,5 @@
 sudo: false
-env: RSPEC_RETRY=true
+env: RSPEC_RETRY=false
 language: ruby
 rvm:
 - 1.9.3
