@@ -133,7 +133,7 @@ describe Ably::Realtime::Client, :event_machine do
           end
 
           context 'with a wildcard client_id token' do
-            subject                 { Ably::Realtime::Client.new(client_options) }
+            subject                 { auto_close Ably::Realtime::Client.new(client_options) }
             let(:client_options)    { default_options.merge(auth_callback: Proc.new { auth_token_object }, client_id: client_id) }
             let(:rest_auth_client)  { Ably::Rest::Client.new(default_options.merge(key: api_key)) }
             let(:auth_token_object) { rest_auth_client.auth.request_token(client_id: '*') }

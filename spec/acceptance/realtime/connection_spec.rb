@@ -936,7 +936,7 @@ describe Ably::Realtime::Connection, :event_machine do
 
       it 'opens each with a unique connection#id and connection#key' do
         connection_count.times.map do
-          Ably::Realtime::Client.new(client_options)
+          auto_close Ably::Realtime::Client.new(client_options)
         end.each do |client|
           client.connection.on(:connected) do
             connection_ids  << client.connection.id
