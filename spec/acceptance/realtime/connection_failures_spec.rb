@@ -456,7 +456,6 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
 
-        # TODO: Review this behaviour as channels should perhaps be detached, see Wiki issues #33
         it 'emits any error received from Ably but leaves the channels attached' do
           emitted_error = nil
           channel.attach do
