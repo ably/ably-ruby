@@ -238,7 +238,7 @@ describe Ably::Realtime::Connection, :event_machine do
                       Ably::Rest::Client.new(default_options).auth.request_token(ttl: ttl).token
                     end
                   end
-                  let(:client_options)     { default_options.merge(auth_callback: token_callback, log_level: :debug) }
+                  let(:client_options)     { default_options.merge(auth_callback: token_callback) }
                   let(:publishing_client)  { auto_close Ably::Realtime::Client.new(default_options) }
                   let(:publishing_channel) { publishing_client.channels.get(channel_name) }
                   let(:messages_received)  { [] }
