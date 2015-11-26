@@ -370,7 +370,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 expect(client.client_id).to eql('incompatible')
                 client.connection.once(:failed) do
                   expect(client.client_id).to eql('incompatible')
-                  expect(client.connection.error_reason).to be_a(Ably::Exceptions::IncompatibleClientId)
+                  expect(client.connection.error_reason.code).to eql(40101) # Invalid clientId for credentials
                   stop_reactor
                 end
               end
