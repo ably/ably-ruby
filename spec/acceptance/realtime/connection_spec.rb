@@ -245,18 +245,40 @@ describe Ably::Realtime::Connection, :event_machine do
                   let(:publishing_channel) { publishing_client.channels.get(channel_name) }
                   let(:messages_received)  { [] }
 
-                  # TODO: Check that this works across multiple disconnects
-                  it 'retains messages published whilst disconnected during authentication' do
+                  def publish_and_check_first_disconnect
+                    10.times.each { |index| publishing_channel.publish('event', index.to_s) }
+                    channel.subscribe('event') do |message|
+                      messages_received << message.data.to_i
+                      if messages_received.count == 10
+                        expect(messages_received).to match(10.times)
+                        expect(auth_requests.count).to eql(2)
+                        EventMachine.add_timer(1) do
+                          channel.unsubscribe 'event'
+                          yield
+                        end
+                      end
+                    end
+                  end
+
+                  def publish_and_check_second_disconnect
+                    10.times.each { |index| publishing_channel.publish('event', (index + 10).to_s) }
+                    channel.subscribe('event') do |message|
+                      messages_received << message.data.to_i
+                      if messages_received.count == 20
+                        expect(messages_received).to match(20.times)
+                        expect(auth_requests.count).to eql(3)
+                        stop_reactor
+                      end
+                    end
+                  end
+
+                  it 'retains messages published when disconnected twice during authentication', em_timeout: 15 do
                     publishing_channel.attach do
                       channel.attach do
                         connection.once(:disconnected) do
-                          10.times.each { |index| publishing_channel.publish('event', index.to_s) }
-                          channel.subscribe('event') do |message|
-                            messages_received << message.data.to_i
-                            if messages_received.count == 10
-                              expect(messages_received).to match(10.times)
-                              expect(auth_requests.count).to eql(2)
-                              stop_reactor
+                          publish_and_check_first_disconnect do
+                            connection.once(:disconnected) do
+                              publish_and_check_second_disconnect
                             end
                           end
                         end
