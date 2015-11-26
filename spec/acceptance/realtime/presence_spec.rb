@@ -384,7 +384,6 @@ describe Ably::Realtime::Presence, :event_machine do
 
           context 'after authentication' do
             it 'throws an exception' do
-              skip 'Awaiting realtime issue #349 to be addressed first'
               channel.attach do
                 expect { presence_channel.public_send(method_name, 'invalid') }.to raise_error Ably::Exceptions::IncompatibleClientId
                 stop_reactor
