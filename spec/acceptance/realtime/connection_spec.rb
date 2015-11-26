@@ -229,7 +229,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 end
 
                 context 'connection state' do
-                  let(:ttl)           { 2 }
+                  let(:ttl)           { 4 }
                   let(:auth_requests) { [] }
                   let(:token_callback) do
                     Proc.new do
@@ -238,7 +238,7 @@ describe Ably::Realtime::Connection, :event_machine do
                       Ably::Rest::Client.new(default_options).auth.request_token(ttl: ttl).token
                     end
                   end
-                  let(:client_options)     { default_options.merge(auth_callback: token_callback) }
+                  let(:client_options)     { default_options.merge(auth_callback: token_callback, log_level: :debug) }
                   let(:publishing_client)  { auto_close Ably::Realtime::Client.new(default_options) }
                   let(:publishing_channel) { publishing_client.channels.get(channel_name) }
                   let(:messages_received)  { [] }
@@ -270,7 +270,7 @@ describe Ably::Realtime::Connection, :event_machine do
                     end
                   end
 
-                  it 'retains messages published when disconnected twice during authentication', em_timeout: 15 do
+                  it 'retains messages published when disconnected twice during authentication', em_timeout: 20 do
                     publishing_channel.attach do
                       channel.attach do
                         connection.once(:disconnected) do
@@ -299,7 +299,7 @@ describe Ably::Realtime::Connection, :event_machine do
                   end
                   let(:client_options) { default_options.merge(auth_callback: token_callback, log_level: :none) }
 
-                  it 'transitions the connectiont to the failed state' do
+                  it 'transitions the connection to the failed state' do
                     connection.once(:disconnected) do
                       connection.once(:failed) do
                         expect(connection.error_reason.code).to eql(40101)
