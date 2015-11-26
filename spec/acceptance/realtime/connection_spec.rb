@@ -108,8 +108,6 @@ describe Ably::Realtime::Connection, :event_machine do
                 let(:ttl) { 2 }
 
                 it 'renews token every time after it expires' do
-                  skip 'Waiting on realtime issue #343 to be resolved'
-
                   started_at = Time.now.to_f
                   connected_times = 0
                   disconnected_times = 0
