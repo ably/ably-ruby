@@ -555,7 +555,10 @@ describe Ably::Realtime::Presence, :event_machine do
                 presence_anonymous_client.subscribe(:leave) do |leave_message|
                   expect(leave_message.client_id).to eql(leave_member.client_id)
                   expect(present.count).to be < enter_expected_count
-                  stop_reactor
+                  EventMachine.add_timer(1) do
+                    presence_anonymous_client.unsubscribe
+                    stop_reactor
+                  end
                 end
 
                 anonymous_client.connect do
@@ -592,7 +595,10 @@ describe Ably::Realtime::Presence, :event_machine do
                   if present.count == enter_expected_count
                     presence_anonymous_client.get do |members|
                       expect(members.find { |member| member.client_id == leave_member.client_id}.action).to eq(:present)
-                      stop_reactor
+                      EventMachine.add_timer(1) do
+                        presence_anonymous_client.unsubscribe
+                        stop_reactor
+                      end
                     end
                   end
                 end
@@ -644,7 +650,10 @@ describe Ably::Realtime::Presence, :event_machine do
                   expect(members.count).to eql(enter_expected_count - 1)
                   expect(member_left_emitted).to eql(true)
                   expect(members.map(&:client_id)).to_not include(left_client_id)
-                  stop_reactor
+                  EventMachine.add_timer(1) do
+                    presence_anonymous_client.unsubscribe
+                    stop_reactor
+                  end
                 end
 
                 channel_anonymous_client.attach do
