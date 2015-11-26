@@ -438,6 +438,41 @@ describe Ably::Realtime::Connection, :event_machine do
         end
       end
 
+      it 'calls the provided block on success even if state changes to disconnected first' do
+        been_disconnected = false
+
+        connection.once(:disconnected) do
+          been_disconnected = true
+        end
+        connection.once(:connecting) do
+          connection.transition_state_machine :disconnected
+        end
+
+        connection.connect do
+          expect(connection.state).to eq(:connected)
+          expect(been_disconnected).to be_truthy
+          stop_reactor
+        end
+      end
+
+      context 'with invalid auth details' do
+        let(:client_options) { default_options.merge(key: 'this.is:invalid', log_level: :none) }
+
+        it 'calls the Deferrable errback only once on connection failure' do
+          errback_called = false
+          connection.connect.errback do
+            expect(connection.state).to eq(:failed)
+
+            raise 'Errback already called' if errback_called
+            errback_called = true
+
+            connection.connect.errback do
+              EventMachine.add_timer(0.5) { stop_reactor }
+            end
+          end
+        end
+      end
+
       context 'when already connected' do
         it 'does nothing and no further state changes are emitted' do
           connection.once(:connected) do
