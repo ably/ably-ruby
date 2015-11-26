@@ -616,7 +616,7 @@ module Ably
     end
 
     def has_client_id?
-      !!client_id
+      client_id && (client_id != '*')
     end
 
     def api_key_present?
