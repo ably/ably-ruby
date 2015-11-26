@@ -380,10 +380,10 @@ describe Ably::Realtime::Connection, :event_machine do
           context 'wildcard' do
             let(:client_id) { '*' }
 
-            it 'does not configure the Client#client_id and Auth#client_id once CONNECTED' do
+            it 'configures the Client#client_id and Auth#client_id with a wildcard once CONNECTED' do
               expect(client.client_id).to be_nil
               client.connection.once(:connected) do
-                expect(client.client_id).to be_nil
+                expect(client.client_id).to eql('*')
                 stop_reactor
               end
             end
