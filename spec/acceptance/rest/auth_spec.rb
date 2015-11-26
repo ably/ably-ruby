@@ -1009,14 +1009,14 @@ describe Ably::Auth do
       end
     end
 
-    describe '#client_id_confirmed?' do
+    describe '#client_id_validated?' do
       let(:auth) { Ably::Rest::Client.new(default_options.merge(key: api_key)).auth }
 
       context 'when using basic auth' do
         let(:client_options) { default_options.merge(key: api_key) }
 
         it 'is false as basic auth users do not have an identity' do
-          expect(client.auth).to_not be_client_id_confirmed
+          expect(client.auth).to_not be_client_id_validated
         end
       end
 
@@ -1024,7 +1024,7 @@ describe Ably::Auth do
         let(:client_options) { default_options.merge(token: auth.request_token(client_id: 'present').token) }
 
         it 'is false as identification is not possible from an opaque token string' do
-          expect(client.auth).to_not be_client_id_confirmed
+          expect(client.auth).to_not be_client_id_validated
         end
       end
 
@@ -1033,7 +1033,7 @@ describe Ably::Auth do
           let(:client_options) { default_options.merge(token: auth.request_token(client_id: 'present')) }
 
           it 'is true' do
-            expect(client.auth).to be_client_id_confirmed
+            expect(client.auth).to be_client_id_validated
           end
         end
 
@@ -1041,7 +1041,7 @@ describe Ably::Auth do
           let(:client_options) { default_options.merge(token: auth.request_token(client_id: nil)) }
 
           it 'is true' do
-            expect(client.auth).to be_client_id_confirmed
+            expect(client.auth).to be_client_id_validated
           end
         end
 
@@ -1049,7 +1049,7 @@ describe Ably::Auth do
           let(:client_options) { default_options.merge(token: auth.request_token(client_id: '*')) }
 
           it 'is false' do
-            expect(client.auth).to_not be_client_id_confirmed
+            expect(client.auth).to be_client_id_validated
           end
         end
       end
@@ -1058,14 +1058,14 @@ describe Ably::Auth do
         let(:client_options) { default_options.merge(token: auth.create_token_request(client_id: 'present')) }
 
         it 'is not true as identification is not confirmed until authenticated' do
-          expect(client.auth).to_not be_client_id_confirmed
+          expect(client.auth).to_not be_client_id_validated
         end
 
         context 'after authentication' do
           before { client.channel('test').publish('a') }
 
           it 'is true as identification is completed during implicit authentication' do
-            expect(client.auth).to be_client_id_confirmed
+            expect(client.auth).to be_client_id_validated
           end
         end
       end

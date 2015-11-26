@@ -142,9 +142,7 @@ module Ably::Realtime
       end
 
       def process_connected_message(protocol_message)
-        if !protocol_message.connection_details.has_client_id?
-          connection.transition_state_machine :connected, reason: protocol_message.error, protocol_message: protocol_message
-        elsif client.auth.token_client_id_allowed?(protocol_message.connection_details.client_id)
+        if client.auth.token_client_id_allowed?(protocol_message.connection_details.client_id)
           client.auth.configure_client_id protocol_message.connection_details.client_id
           connection.transition_state_machine :connected, reason: protocol_message.error, protocol_message: protocol_message
         else
