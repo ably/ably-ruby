@@ -71,11 +71,11 @@ module Ably::Modules
     # @yield block is called if the state is matched immediately or once when the state is reached
     #
     # @return [void]
-    def once_or_if(target_states, options = {})
+    def once_or_if(target_states, options = {}, &block)
       raise ArgumentError, 'Block required' unless block_given?
 
       if Array(target_states).any? { |target_state| state == target_state }
-        yield
+        safe_yield block
       else
         failure_block   = options.fetch(:else, nil)
         failure_wrapper = nil
