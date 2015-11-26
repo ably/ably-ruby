@@ -300,7 +300,7 @@ describe Ably::Realtime::Auth, :event_machine do
       end
     end
 
-    describe '#client_id_confirmed?' do
+    describe '#client_id_validated?' do
       let(:auth) { Ably::Rest::Client.new(default_options.merge(key: api_key)).auth }
 
       context 'when using basic auth' do
@@ -308,15 +308,22 @@ describe Ably::Realtime::Auth, :event_machine do
 
         context 'before connected' do
           it 'is false as basic auth users do not have an identity' do
-            expect(client.auth).to_not be_client_id_confirmed
+            expect(client.auth).to_not be_client_id_validated
             stop_reactor
           end
         end
 
         context 'once connected' do
-          it 'is false' do
+          it 'is true' do
             client.connection.once(:connected) do
-              expect(client.auth).to_not be_client_id_confirmed
+              expect(client.auth).to be_client_id_validated
+              stop_reactor
+            end
+          end
+
+          it 'contains a validated wildcard client_id' do
+            client.connection.once(:connected) do
+              expect(client.auth.client_id).to eql('*')
               stop_reactor
             end
           end
@@ -329,7 +336,7 @@ describe Ably::Realtime::Auth, :event_machine do
 
           context 'before connected' do
             it 'is false as identification is not possible from an opaque token string' do
-              expect(client.auth).to_not be_client_id_confirmed
+              expect(client.auth).to_not be_client_id_validated
               stop_reactor
             end
 
@@ -342,7 +349,7 @@ describe Ably::Realtime::Auth, :event_machine do
           context 'once connected' do
             it 'is true' do
               client.connection.once(:connected) do
-                expect(client.auth).to be_client_id_confirmed
+                expect(client.auth).to be_client_id_validated
                 stop_reactor
               end
             end
@@ -361,16 +368,15 @@ describe Ably::Realtime::Auth, :event_machine do
 
           context 'before connected' do
             it 'is false as identification is not possible from an opaque token string' do
-              expect(client.auth).to_not be_client_id_confirmed
+              expect(client.auth).to_not be_client_id_validated
               stop_reactor
             end
           end
 
           context 'once connected' do
             it 'is true' do
-              skip 'Awaiting realtime issue #349 to be addressed first'
               client.connection.once(:connected) do
-                expect(client.auth).to be_client_id_confirmed
+                expect(client.auth).to be_client_id_validated
                 stop_reactor
               end
             end
@@ -382,15 +388,15 @@ describe Ably::Realtime::Auth, :event_machine do
 
           context 'before connected' do
             it 'is false as identification is not possible from an opaque token string' do
-              expect(client.auth).to_not be_client_id_confirmed
+              expect(client.auth).to_not be_client_id_validated
               stop_reactor
             end
           end
 
           context 'once connected' do
-            it 'is false' do
+            it 'is true' do
               client.connection.once(:connected) do
-                expect(client.auth).to_not be_client_id_confirmed
+                expect(client.auth).to be_client_id_validated
                 stop_reactor
               end
             end
@@ -403,14 +409,14 @@ describe Ably::Realtime::Auth, :event_machine do
           let(:client_options) { default_options.merge(token: auth.request_token(client_id: 'present')) }
 
           it 'is true' do
-            expect(client.auth).to be_client_id_confirmed
+            expect(client.auth).to be_client_id_validated
             stop_reactor
           end
 
           context 'once connected' do
             it 'is true' do
               client.connection.once(:connected) do
-                expect(client.auth).to be_client_id_confirmed
+                expect(client.auth).to be_client_id_validated
                 stop_reactor
               end
             end
@@ -421,14 +427,14 @@ describe Ably::Realtime::Auth, :event_machine do
           let(:client_options) { default_options.merge(token: auth.request_token(client_id: nil)) }
 
           it 'is true' do
-            expect(client.auth).to be_client_id_confirmed
+            expect(client.auth).to be_client_id_validated
             stop_reactor
           end
 
           context 'once connected' do
             it 'is true' do
               client.connection.once(:connected) do
-                expect(client.auth).to be_client_id_confirmed
+                expect(client.auth).to be_client_id_validated
                 stop_reactor
               end
             end
@@ -438,15 +444,15 @@ describe Ably::Realtime::Auth, :event_machine do
         context 'with a wildcard client_id (anonymous)' do
           let(:client_options) { default_options.merge(token: auth.request_token(client_id: '*')) }
 
-          it 'is false' do
-            expect(client.auth).to_not be_client_id_confirmed
+          it 'is true' do
+            expect(client.auth).to be_client_id_validated
             stop_reactor
           end
 
           context 'once connected' do
-            it 'is false' do
+            it 'is true' do
               client.connection.once(:connected) do
-                expect(client.auth).to_not be_client_id_confirmed
+                expect(client.auth).to be_client_id_validated
                 stop_reactor
               end
             end
@@ -458,14 +464,14 @@ describe Ably::Realtime::Auth, :event_machine do
         let(:client_options) { default_options.merge(token: auth.create_token_request(client_id: 'present')) }
 
         it 'is not true as identification is not confirmed until authenticated' do
-          expect(client.auth).to_not be_client_id_confirmed
+          expect(client.auth).to_not be_client_id_validated
           stop_reactor
         end
 
         context 'once connected' do
           it 'is true as identification is completed following CONNECTED ProtocolMessage' do
             client.channel('test').publish('a') do
-              expect(client.auth).to be_client_id_confirmed
+              expect(client.auth).to be_client_id_validated
               stop_reactor
             end
           end
