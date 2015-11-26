@@ -356,7 +356,7 @@ module Ably
     # @api private
     def token_client_id_allowed?(token_client_id)
       return true if client_id.nil? # no explicit client_id specified for this client
-      return true if client_id == '*' # wildcard supported by client_id so any client_id allowed
+      return true if client_id == '*' || token_client_id == '*' # wildcard supported always
       token_client_id == client_id
     end
 
@@ -379,12 +379,25 @@ module Ably
     #
     # @api private
     def configure_client_id(new_client_id)
+      # If new client ID from Ably is a wildcard, but preconfigured clientId is set, then keep the existing clientId
+      if has_client_id? && new_client_id == '*'
+        @client_id_validated = true
+        return
+      end
+
       # If client_id is defined and not a wildcard, prevent it changing, this is not supported
       if client_id && client_id != '*' &&  new_client_id != client_id
         raise Ably::Exceptions::IncompatibleClientId.new("Client ID is immutable once configured for a client. Client ID cannot be changed to '#{new_client_id}'", 400, 40012)
       end
       @client_id_validated = true
       @client_id = new_client_id
+    end
+
+    # True when a client_id other than a wildcard is configured for Auth
+    #
+    # @api private
+    def has_client_id?
+      client_id && (client_id != '*')
     end
 
     private
@@ -613,10 +626,6 @@ module Ably
 
     def token_creatable_externally?
       auth_callback_present? || token_url_present?
-    end
-
-    def has_client_id?
-      client_id && (client_id != '*')
     end
 
     def api_key_present?

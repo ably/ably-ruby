@@ -386,6 +386,8 @@ module Ably
                 echo:      client.echo_messages
               )
 
+              url_params['clientId'] = client.auth.client_id if client.auth.has_client_id?
+
               if connection_resumable?
                 url_params.merge! resume: key, connection_serial: serial
                 logger.debug "Resuming connection key #{key} with serial #{serial}"
