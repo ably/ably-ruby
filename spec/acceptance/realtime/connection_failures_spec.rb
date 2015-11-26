@@ -300,13 +300,6 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             connection.connect
           end
 
-          it 'calls the errback of the returned Deferrable object when first connection attempt fails' do
-            connection.connect.errback do |error|
-              expect(connection.state).to eq(:disconnected)
-              stop_reactor
-            end
-          end
-
           context 'when retry intervals are stubbed to attempt reconnection quickly' do
             let(:client_options) do
               default_options.merge(
