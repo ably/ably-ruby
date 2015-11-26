@@ -567,52 +567,78 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'with two invalid message out of 12' do
-          let(:client_options) { default_options.merge(client_id: 'valid') }
+          let(:rest_client)    { Ably::Rest::Client.new(default_options.merge(client_id: 'valid')) }
+
           let(:invalid_messages) do
             2.times.map do |index|
               Ably::Models::Message(name: index.to_s, data: { "index" => index + 10 }, client_id: 'prohibited')
             end
           end
 
-          it 'calls the errback once' do
-            skip 'Waiting for issue #256 to be resolved'
-            channel.publish(messages + invalid_messages).tap do |deferrable|
-              deferrable.callback do
-                raise 'Publish should have failed'
-              end
+          context 'before client_id is known (validated)' do
+            let(:client_options) { default_options.merge(token: rest_client.auth.request_token.token, log_level: :error) }
 
-              deferrable.errback do |error, message|
-                # TODO: Review whether we should fail once or multiple times
-                channel.history do |page|
-                  expect(page.items.count).to eql(0)
-                  stop_reactor
+            it 'calls the errback once' do
+              channel.publish(messages + invalid_messages).tap do |deferrable|
+                deferrable.callback do
+                  raise 'Publish should have failed'
+                end
+
+                deferrable.errback do |error, message|
+                  # TODO: Review whether we should fail once or multiple times
+                  channel.history do |page|
+                    expect(page.items.count).to eql(0)
+                    stop_reactor
+                  end
                 end
               end
+            end
+          end
+
+          context 'when client_id is known (validated)' do
+            let(:client_options) { default_options.merge(client_id: 'valid') }
+
+            it 'raises an exception' do
+              expect { channel.publish(messages + invalid_messages) }.to raise_error Ably::Exceptions::IncompatibleClientId
+              stop_reactor
             end
           end
         end
 
         context 'only invalid messages' do
-          let(:client_options) { default_options.merge(client_id: 'valid') }
+          let(:rest_client)    { Ably::Rest::Client.new(default_options.merge(client_id: 'valid')) }
+
           let(:invalid_messages) do
             10.times.map do |index|
               Ably::Models::Message(name: index.to_s, data: { "index" => index + 10 }, client_id: 'prohibited')
             end
           end
 
-          it 'calls the errback once' do
-            skip 'Waiting for issue #256 to be resolved'
-            channel.publish(invalid_messages).tap do |deferrable|
-              deferrable.callback do
-                raise 'Publish should have failed'
-              end
+          context 'before client_id is known (validated)' do
+            let(:client_options) { default_options.merge(token: rest_client.auth.request_token.token, log_level: :error) }
 
-              deferrable.errback do |error, message|
-                channel.history do |page|
-                  expect(page.items.count).to eql(0)
-                  stop_reactor
+            it 'calls the errback once' do
+              channel.publish(invalid_messages).tap do |deferrable|
+                deferrable.callback do
+                  raise 'Publish should have failed'
+                end
+
+                deferrable.errback do |error, message|
+                  channel.history do |page|
+                    expect(page.items.count).to eql(0)
+                    stop_reactor
+                  end
                 end
               end
+            end
+          end
+
+          context 'when client_id is known (validated)' do
+            let(:client_options) { default_options.merge(client_id: 'valid') }
+
+            it 'raises an exception' do
+              expect { channel.publish(invalid_messages) }.to raise_error Ably::Exceptions::IncompatibleClientId
+              stop_reactor
             end
           end
         end
