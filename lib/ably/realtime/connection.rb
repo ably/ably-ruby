@@ -153,6 +153,11 @@ module Ably
 
       # Causes the library to attempt connection.  If it was previously explicitly
       # closed by the user, or was closed as a result of an unrecoverable error, a new connection will be opened.
+      # Succeeds when connection is established i.e. state is @Connected@
+      # Fails when state becomes either @Closing@, @Closed@ or @Failed@
+      #
+      # Note that if the connection remains in the disconnected ans suspended states indefinitely,
+      # the Deferrable or block provided may never be called
       #
       # @yield block is called as soon as this connection is in the Connected state
       #
@@ -163,7 +168,24 @@ module Ably
           raise exception_for_state_change_to(:connecting) unless can_transition_to?(:connecting)
           transition_state_machine :connecting
         end
-        deferrable_for_state_change_to(STATE.Connected, &success_block)
+
+        Ably::Util::SafeDeferrable.new(logger).tap do |deferrable|
+          deferrable.callback do
+            yield if block_given?
+          end
+          succeed_callback = deferrable.method(:succeed)
+          fail_callback    = deferrable.method(:fail)
+
+          once(:connected) do
+            deferrable.succeed
+            off &fail_callback
+          end
+
+          once(:failed, :closed, :closing) do
+            deferrable.fail
+            off &succeed_callback
+          end
+        end
       end
 
       # Sends a ping to Ably and yields the provided block when a heartbeat ping request is echoed from the server.
