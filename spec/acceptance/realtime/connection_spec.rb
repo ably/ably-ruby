@@ -445,7 +445,16 @@ describe Ably::Realtime::Connection, :event_machine do
           been_disconnected = true
         end
         connection.once(:connecting) do
-          connection.transition_state_machine :disconnected
+          close_if_transport_available = proc do
+            EventMachine.add_timer(0.001) do
+              if connection.transport
+                connection.transport.close_connection_after_writing
+              else
+                close_if_transport_available.call
+              end
+            end
+          end
+          close_if_transport_available.call
         end
 
         connection.connect do
@@ -1163,7 +1172,7 @@ describe Ably::Realtime::Connection, :event_machine do
         let(:client_options) do
           default_options.merge(
             log_level:                  :fatal,
-            disconnected_retry_timeout: 0.01,
+            disconnected_retry_timeout: 0.02,
             suspended_retry_timeout:    60,
             connection_state_ttl:       0.05
           )
