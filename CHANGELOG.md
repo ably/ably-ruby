@@ -1,5 +1,17 @@
 # Change Log
 
+## [v0.8.6](https://github.com/ably/ably-ruby/tree/v0.8.6) (2015-12-02)
+
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v0.8.5...v0.8.6)
+
+**Merged pull requests:**
+
+- Some intermittent test fixes & enable tests that were blocked [\#70](https://github.com/ably/ably-ruby/pull/70) ([mattheworiordan](https://github.com/mattheworiordan))
+
+- Output detailed log for any text failures [\#67](https://github.com/ably/ably-ruby/pull/67) ([mattheworiordan](https://github.com/mattheworiordan))
+
+- 0.8 final spec \(98% compliance\) [\#66](https://github.com/ably/ably-ruby/pull/66) ([mattheworiordan](https://github.com/mattheworiordan))
+
 ## [v0.8.5](https://github.com/ably/ably-ruby/tree/v0.8.5) (2015-10-08)
 [Full Changelog](https://github.com/ably/ably-ruby/compare/v0.8.4...v0.8.5)
 
