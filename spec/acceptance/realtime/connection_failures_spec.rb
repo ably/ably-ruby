@@ -300,13 +300,6 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             connection.connect
           end
 
-          it 'calls the errback of the returned Deferrable object when first connection attempt fails' do
-            connection.connect.errback do |error|
-              expect(connection.state).to eq(:disconnected)
-              stop_reactor
-            end
-          end
-
           context 'when retry intervals are stubbed to attempt reconnection quickly' do
             let(:client_options) do
               default_options.merge(
@@ -456,7 +449,6 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
 
-        # TODO: Review this behaviour as channels should perhaps be detached, see Wiki issues #33
         it 'emits any error received from Ably but leaves the channels attached' do
           emitted_error = nil
           channel.attach do

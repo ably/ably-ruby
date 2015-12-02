@@ -351,12 +351,12 @@ module Ably
         Ably::Util::SafeDeferrable.new(logger).tap do |deferrable|
           messages.each do |message|
             message.callback do
-              return if failed
+              next if failed
               actual_deliveries += 1
               deferrable.succeed messages if actual_deliveries == expected_deliveries
             end
             message.errback do |error|
-              return if failed
+              next if failed
               failed = true
               deferrable.fail error, message
             end

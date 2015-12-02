@@ -133,7 +133,7 @@ describe Ably::Realtime::Client, :event_machine do
           end
 
           context 'with a wildcard client_id token' do
-            subject                 { Ably::Realtime::Client.new(client_options) }
+            subject                 { auto_close Ably::Realtime::Client.new(client_options) }
             let(:client_options)    { default_options.merge(auth_callback: Proc.new { auth_token_object }, client_id: client_id) }
             let(:rest_auth_client)  { Ably::Rest::Client.new(default_options.merge(key: api_key)) }
             let(:auth_token_object) { rest_auth_client.auth.request_token(client_id: '*') }
@@ -141,10 +141,10 @@ describe Ably::Realtime::Client, :event_machine do
             context 'and an explicit client_id in ClientOptions' do
               let(:client_id) { random_str }
 
-              it 'allows the explicit client_id to be used for the connection' do
+              it 'allows uses the explicit client_id in the connection' do
                 connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
                   if protocol_message.action == :connected
-                    expect(protocol_message.connection_details.client_id).to be_nil
+                    expect(protocol_message.connection_details.client_id).to eql(client_id)
                     @valid_client_id = true
                   end
                 end
@@ -157,10 +157,10 @@ describe Ably::Realtime::Client, :event_machine do
             context 'and client_id omitted in ClientOptions' do
               let(:client_options) { default_options.merge(auth_callback: Proc.new { auth_token_object }) }
 
-              it 'allows omitted client_id to be used for the connection' do
+              it 'uses the token provided clientId in the connection' do
                 connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
                   if protocol_message.action == :connected
-                    expect(protocol_message.connection_details.client_id).to be_nil
+                    expect(protocol_message.connection_details.client_id).to eql('*')
                     @valid_client_id = true
                   end
                 end

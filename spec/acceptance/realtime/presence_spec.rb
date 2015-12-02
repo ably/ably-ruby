@@ -384,7 +384,6 @@ describe Ably::Realtime::Presence, :event_machine do
 
           context 'after authentication' do
             it 'throws an exception' do
-              skip 'Awaiting realtime issue #349 to be addressed first'
               channel.attach do
                 expect { presence_channel.public_send(method_name, 'invalid') }.to raise_error Ably::Exceptions::IncompatibleClientId
                 stop_reactor
@@ -556,7 +555,10 @@ describe Ably::Realtime::Presence, :event_machine do
                 presence_anonymous_client.subscribe(:leave) do |leave_message|
                   expect(leave_message.client_id).to eql(leave_member.client_id)
                   expect(present.count).to be < enter_expected_count
-                  stop_reactor
+                  EventMachine.add_timer(1) do
+                    presence_anonymous_client.unsubscribe
+                    stop_reactor
+                  end
                 end
 
                 anonymous_client.connect do
@@ -593,7 +595,10 @@ describe Ably::Realtime::Presence, :event_machine do
                   if present.count == enter_expected_count
                     presence_anonymous_client.get do |members|
                       expect(members.find { |member| member.client_id == leave_member.client_id}.action).to eq(:present)
-                      stop_reactor
+                      EventMachine.add_timer(1) do
+                        presence_anonymous_client.unsubscribe
+                        stop_reactor
+                      end
                     end
                   end
                 end
@@ -645,7 +650,10 @@ describe Ably::Realtime::Presence, :event_machine do
                   expect(members.count).to eql(enter_expected_count - 1)
                   expect(member_left_emitted).to eql(true)
                   expect(members.map(&:client_id)).to_not include(left_client_id)
-                  stop_reactor
+                  EventMachine.add_timer(1) do
+                    presence_anonymous_client.unsubscribe
+                    stop_reactor
+                  end
                 end
 
                 channel_anonymous_client.attach do
@@ -666,7 +674,7 @@ describe Ably::Realtime::Presence, :event_machine do
 
           context '#get' do
             context 'with :wait_for_sync option set to true' do
-              it 'waits until sync is complete', event_machine: 15 do
+              it 'waits until sync is complete', em_timeout: 15 do
                 enter_expected_count.times do |index|
                   presence_client_one.enter_client("client:#{index}") do |message|
                     entered << message
@@ -683,7 +691,7 @@ describe Ably::Realtime::Presence, :event_machine do
             end
 
             context 'by default' do
-              it 'it does not wait for sync', event_machine: 15 do
+              it 'it does not wait for sync', em_timeout: 15 do
                 enter_expected_count.times do |index|
                   presence_client_one.enter_client("client:#{index}") do |message|
                     entered << message

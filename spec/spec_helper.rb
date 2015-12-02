@@ -12,6 +12,7 @@ require 'webmock/rspec'
 require 'ably'
 
 require 'support/api_helper'
+require 'support/debug_failure_helper'
 require 'support/private_api_formatter'
 require 'support/protocol_helper'
 require 'support/random_helper'

@@ -108,8 +108,6 @@ describe Ably::Realtime::Connection, :event_machine do
                 let(:ttl) { 2 }
 
                 it 'renews token every time after it expires' do
-                  skip 'Waiting on realtime issue #343 to be resolved'
-
                   started_at = Time.now.to_f
                   connected_times = 0
                   disconnected_times = 0
@@ -231,7 +229,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 end
 
                 context 'connection state' do
-                  let(:ttl)           { 2 }
+                  let(:ttl)           { 4 }
                   let(:auth_requests) { [] }
                   let(:token_callback) do
                     Proc.new do
@@ -245,18 +243,40 @@ describe Ably::Realtime::Connection, :event_machine do
                   let(:publishing_channel) { publishing_client.channels.get(channel_name) }
                   let(:messages_received)  { [] }
 
-                  # TODO: Check that this works across multiple disconnects
-                  it 'retains messages published whilst disconnected during authentication' do
+                  def publish_and_check_first_disconnect
+                    10.times.each { |index| publishing_channel.publish('event', index.to_s) }
+                    channel.subscribe('event') do |message|
+                      messages_received << message.data.to_i
+                      if messages_received.count == 10
+                        expect(messages_received).to match(10.times)
+                        expect(auth_requests.count).to eql(2)
+                        EventMachine.add_timer(1) do
+                          channel.unsubscribe 'event'
+                          yield
+                        end
+                      end
+                    end
+                  end
+
+                  def publish_and_check_second_disconnect
+                    10.times.each { |index| publishing_channel.publish('event', (index + 10).to_s) }
+                    channel.subscribe('event') do |message|
+                      messages_received << message.data.to_i
+                      if messages_received.count == 20
+                        expect(messages_received).to match(20.times)
+                        expect(auth_requests.count).to eql(3)
+                        stop_reactor
+                      end
+                    end
+                  end
+
+                  it 'retains messages published when disconnected twice during authentication', em_timeout: 20 do
                     publishing_channel.attach do
                       channel.attach do
                         connection.once(:disconnected) do
-                          10.times.each { |index| publishing_channel.publish('event', index.to_s) }
-                          channel.subscribe('event') do |message|
-                            messages_received << message.data.to_i
-                            if messages_received.count == 10
-                              expect(messages_received).to match(10.times)
-                              expect(auth_requests.count).to eql(2)
-                              stop_reactor
+                          publish_and_check_first_disconnect do
+                            connection.once(:disconnected) do
+                              publish_and_check_second_disconnect
                             end
                           end
                         end
@@ -279,7 +299,7 @@ describe Ably::Realtime::Connection, :event_machine do
                   end
                   let(:client_options) { default_options.merge(auth_callback: token_callback, log_level: :none) }
 
-                  it 'transitions the connectiont to the failed state' do
+                  it 'transitions the connection to the failed state' do
                     connection.once(:disconnected) do
                       connection.once(:failed) do
                         expect(connection.error_reason.code).to eql(40101)
@@ -350,7 +370,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 expect(client.client_id).to eql('incompatible')
                 client.connection.once(:failed) do
                   expect(client.client_id).to eql('incompatible')
-                  expect(client.connection.error_reason).to be_a(Ably::Exceptions::IncompatibleClientId)
+                  expect(client.connection.error_reason.code).to eql(40101) # Invalid clientId for credentials
                   stop_reactor
                 end
               end
@@ -360,10 +380,10 @@ describe Ably::Realtime::Connection, :event_machine do
           context 'wildcard' do
             let(:client_id) { '*' }
 
-            it 'does not configure the Client#client_id and Auth#client_id once CONNECTED' do
+            it 'configures the Client#client_id and Auth#client_id with a wildcard once CONNECTED' do
               expect(client.client_id).to be_nil
               client.connection.once(:connected) do
-                expect(client.client_id).to be_nil
+                expect(client.client_id).to eql('*')
                 stop_reactor
               end
             end
@@ -415,6 +435,50 @@ describe Ably::Realtime::Connection, :event_machine do
         connection.connect.callback do
           expect(connection.state).to eq(:connected)
           stop_reactor
+        end
+      end
+
+      it 'calls the provided block on success even if state changes to disconnected first' do
+        been_disconnected = false
+
+        connection.once(:disconnected) do
+          been_disconnected = true
+        end
+        connection.once(:connecting) do
+          close_if_transport_available = proc do
+            EventMachine.add_timer(0.001) do
+              if connection.transport
+                connection.transport.close_connection_after_writing
+              else
+                close_if_transport_available.call
+              end
+            end
+          end
+          close_if_transport_available.call
+        end
+
+        connection.connect do
+          expect(connection.state).to eq(:connected)
+          expect(been_disconnected).to be_truthy
+          stop_reactor
+        end
+      end
+
+      context 'with invalid auth details' do
+        let(:client_options) { default_options.merge(key: 'this.is:invalid', log_level: :none) }
+
+        it 'calls the Deferrable errback only once on connection failure' do
+          errback_called = false
+          connection.connect.errback do
+            expect(connection.state).to eq(:failed)
+
+            raise 'Errback already called' if errback_called
+            errback_called = true
+
+            connection.connect.errback do
+              EventMachine.add_timer(0.5) { stop_reactor }
+            end
+          end
         end
       end
 
@@ -936,7 +1000,7 @@ describe Ably::Realtime::Connection, :event_machine do
 
       it 'opens each with a unique connection#id and connection#key' do
         connection_count.times.map do
-          Ably::Realtime::Client.new(client_options)
+          auto_close Ably::Realtime::Client.new(client_options)
         end.each do |client|
           client.connection.on(:connected) do
             connection_ids  << client.connection.id
@@ -1108,7 +1172,7 @@ describe Ably::Realtime::Connection, :event_machine do
         let(:client_options) do
           default_options.merge(
             log_level:                  :fatal,
-            disconnected_retry_timeout: 0.01,
+            disconnected_retry_timeout: 0.02,
             suspended_retry_timeout:    60,
             connection_state_ttl:       0.05
           )
