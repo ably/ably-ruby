@@ -8,10 +8,10 @@ Gem::Specification.new do |spec|
   spec.version       = Ably::VERSION
   spec.authors       = ['Lewis Marshall', "Matthew O'Riordan"]
   spec.email         = ['lewis@lmars.net', 'matt@ably.io']
-  spec.description   = %q{A Ruby client library for ably.io, the realtime messaging service}
-  spec.summary       = %q{A Ruby client library for ably.io, the realtime messaging service}
+  spec.description   = %q{A Ruby client library for ably.io realtime messaging}
+  spec.summary       = %q{A Ruby client library for ably.io realtime messaging implemented using EventMachine}
   spec.homepage      = 'http://github.com/ably/ably-ruby'
-  spec.license       = 'MIT'
+  spec.license       = 'Apache 2'
 
   spec.files         = `git ls-files`.split($/)
   spec.executables   = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }
