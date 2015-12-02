@@ -197,6 +197,85 @@ describe Ably::Auth do
         end
       end
 
+      context 'with :auth_url option merging', :webmock do
+        context 'with existing configured auth options' do
+          let(:client_id)    { random_str }
+          let(:auth_url)     { "https://www.fictitious.com/#{random_str}" }
+          let(:auth_method)  { :get }
+          let(:auth_params)  { { key: 'val', client_id: 'isOverridenByClient' } }
+          let(:auth_headers) { { 'Header-X' => 'val1', 'Header-Y' => 'val2' } }
+
+          let(:base_options) do
+            default_options.merge(
+              client_id:    client_id,
+              auth_url:     auth_url,
+              auth_params:  auth_params,
+              auth_headers: auth_headers
+            )
+          end
+          let(:client_options) { base_options }
+
+          let!(:auth_request) do
+            stub_request(auth_method, auth_url).to_return(
+              :status => 201,
+              :body => '123123.12312321321312321', # token string
+              :headers => { 'Content-Type' => 'text/plain' }
+            )
+          end
+
+          let(:request_token_auth_options) { Hash.new }
+          let(:request_token_token_params) { Hash.new }
+          after do
+            client.auth.request_token(request_token_token_params, request_token_auth_options)
+            expect(auth_request).to have_been_requested
+          end
+
+          context 'using unspecified :auth_method' do
+            it 'requests a token using a GET request with provided headers, and merges client_id into auth_params' do
+              auth_request.with(headers: auth_headers)
+              auth_request.with(query: auth_params.merge(client_id: client_id))
+            end
+
+            context 'with provided token_params' do
+              let(:request_token_token_params) { { client_id: 'custom', key2: 'val2' } }
+
+              it 'merges provided token_params with existing auth_params and client_id' do
+                auth_request.with(query: auth_params.merge(client_id: client_id).merge(request_token_token_params))
+              end
+            end
+
+            context 'with provided auth option auth_params and auth_headers' do
+              let(:request_token_auth_options) { { auth_params: {}, auth_headers: {} } }
+
+              it 'replaces any preconfigured auth_params' do
+                auth_request.with(query: {}.merge(client_id: client_id))
+                auth_request.with(headers: { 'Accept'=>'*/*' }) # mock library needs at least one header, accept is default
+              end
+            end
+          end
+
+          context 'using :get :auth_method and query params in the URL' do
+            let(:auth_method) { :get }
+            let(:client_options) { base_options.merge(auth_method: :get, auth_url: "#{auth_url}?urlparam=true") }
+
+            it 'requests a token using a GET request with provided headers, and merges client_id into auth_params and existing URL querystring into new URL querystring' do
+              auth_request.with(headers: auth_headers)
+              auth_request.with(query: auth_params.merge(client_id: client_id).merge(urlparam: 'true'))
+            end
+          end
+
+          context 'using :post :auth_method' do
+            let(:auth_method) { :post }
+            let(:client_options) { base_options.merge(auth_method: :post) }
+
+            it 'requests a token using a POST request with provided headers, and merges client_id into auth_params as form-encoded post data' do
+              auth_request.with(headers: auth_headers)
+              auth_request.with(body: auth_params.merge(client_id: client_id))
+            end
+          end
+        end
+      end
+
       context 'with :auth_url option', :webmock do
         let(:auth_url)          { 'https://www.fictitious.com/get_token' }
         let(:auth_url_response) { { keyName: key_name }.to_json }
@@ -365,6 +444,18 @@ describe Ably::Auth do
           it 'uses the token request returned from the callback when requesting a new token' do
             expect(request_token.client_id).to eql(client_id)
           end
+
+          context 'when authorised' do
+            before { auth.authorise(token_params, auth_callback: auth_callback) }
+
+            it "sets Auth#client_id to the new token's client_id" do
+              expect(auth.client_id).to eql(client_id)
+            end
+
+            it "sets Client#client_id to the new token's client_id" do
+              expect(client.client_id).to eql(client_id)
+            end
+          end
         end
 
         context 'that returns a TokenDetails JSON object' do
@@ -377,7 +468,11 @@ describe Ably::Auth do
           let(:capability_str) { JSON.dump(capability) }
 
           let!(:token_details) do
-            auth.request_token(token_params, auth_callback: Proc.new do |token_params_arg|
+            auth.request_token(token_params, auth_callback: auth_callback)
+          end
+
+          let(:auth_callback) do
+            Proc.new do |token_params_arg|
               @block_called = true
               @block_params = token_params_arg
               {
@@ -388,7 +483,7 @@ describe Ably::Auth do
                 'expires' => expires.to_i * 1000,
                 'capability'=> capability_str
               }
-            end)
+            end
           end
 
           it 'calls the Proc when authenticating to obtain the request token' do
@@ -403,6 +498,18 @@ describe Ably::Auth do
             expect(token_details.expires).to be_within(1).of(expires)
             expect(token_details.issued).to be_within(1).of(issued)
             expect(token_details.capability).to eql(capability)
+          end
+
+          context 'when authorised' do
+            before { auth.authorise(token_params, auth_callback: auth_callback) }
+
+            it "sets Auth#client_id to the new token's client_id" do
+              expect(auth.client_id).to eql(client_id)
+            end
+
+            it "sets Client#client_id to the new token's client_id" do
+              expect(client.client_id).to eql(client_id)
+            end
           end
         end
 
@@ -599,6 +706,37 @@ describe Ably::Auth do
             sleep 3.5
             expect { client.stats }.to change { client.auth.current_token_details }
             expect(@block_called).to eql(1)
+          end
+        end
+      end
+
+      context 'with an explicit ClientOptions client_id' do
+        let(:client_id)       { random_str }
+        let(:client_options)  { default_options.merge(auth_callback: Proc.new { auth_token_object }, client_id: client_id) }
+        let(:auth_client)     { Ably::Rest::Client.new(default_options.merge(key: api_key, client_id: 'invalid')) }
+
+        context 'and an incompatible client_id in a TokenDetails object passed to the auth callback' do
+          let(:auth_token_object) { auth_client.auth.request_token }
+
+          it 'rejects a TokenDetails object with an incompatible client_id and raises an exception' do
+            expect { client.auth.authorise({}, force: true) }.to raise_error Ably::Exceptions::IncompatibleClientId
+          end
+        end
+
+        context 'and an incompatible client_id in a TokenRequest object passed to the auth callback and raises an exception' do
+          let(:auth_token_object) { auth_client.auth.create_token_request }
+
+          it 'rejects a TokenRequests object with an incompatible client_id and raises an exception' do
+            expect { client.auth.authorise({}, force: true) }.to raise_error Ably::Exceptions::IncompatibleClientId
+          end
+        end
+
+        context 'and a token string without any retrievable client_id' do
+          let(:auth_token_object) { auth_client.auth.request_token(client_id: 'different').token }
+
+          it 'rejects a TokenRequests object with an incompatible client_id and raises an exception' do
+            client.auth.authorise({}, force: true)
+            expect(client.client_id).to eql(client_id)
           end
         end
       end
@@ -799,7 +937,7 @@ describe Ably::Auth do
         end
       end
 
-      context 'when implicit as a result of using :client id' do
+      context 'when implicit as a result of using :client_id' do
         let(:client_id) { '999' }
         let(:client) do
           Ably::Rest::Client.new(key: api_key, client_id: client_id, environment: environment, protocol: protocol)
@@ -849,11 +987,91 @@ describe Ably::Auth do
             expect(token.expires.to_i).to be_within(2).of(Time.now.to_i + Ably::Auth::TOKEN_DEFAULTS.fetch(:ttl))
             expect(token.client_id).to eq(client_id)
           end
+
+          specify '#client_id contains the client_id' do
+            expect(client.auth.client_id).to eql(client_id)
+          end
+        end
+      end
+
+      context 'when :client_id is provided in a token' do
+        let(:client_id) { '123' }
+        let(:token) do
+          Ably::Rest::Client.new(key: api_key, environment: environment, protocol: protocol).auth.request_token(client_id: client_id)
+        end
+        let(:client) do
+          Ably::Rest::Client.new(token: token, environment: environment, protocol: protocol)
+        end
+
+        specify '#client_id contains the client_id' do
+          expect(client.auth.client_id).to eql(client_id)
         end
       end
     end
 
-    context 'when using an :key and basic auth' do
+    describe '#client_id_confirmed?' do
+      let(:auth) { Ably::Rest::Client.new(default_options.merge(key: api_key)).auth }
+
+      context 'when using basic auth' do
+        let(:client_options) { default_options.merge(key: api_key) }
+
+        it 'is false as basic auth users do not have an identity' do
+          expect(client.auth).to_not be_client_id_confirmed
+        end
+      end
+
+      context 'when using a token auth string for a token with a client_id' do
+        let(:client_options) { default_options.merge(token: auth.request_token(client_id: 'present').token) }
+
+        it 'is false as identification is not possible from an opaque token string' do
+          expect(client.auth).to_not be_client_id_confirmed
+        end
+      end
+
+      context 'when using a token' do
+        context 'with a client_id' do
+          let(:client_options) { default_options.merge(token: auth.request_token(client_id: 'present')) }
+
+          it 'is true' do
+            expect(client.auth).to be_client_id_confirmed
+          end
+        end
+
+        context 'with no client_id (anonymous)' do
+          let(:client_options) { default_options.merge(token: auth.request_token(client_id: nil)) }
+
+          it 'is true' do
+            expect(client.auth).to be_client_id_confirmed
+          end
+        end
+
+        context 'with a wildcard client_id (anonymous)' do
+          let(:client_options) { default_options.merge(token: auth.request_token(client_id: '*')) }
+
+          it 'is false' do
+            expect(client.auth).to_not be_client_id_confirmed
+          end
+        end
+      end
+
+      context 'when using a token request with a client_id' do
+        let(:client_options) { default_options.merge(token: auth.create_token_request(client_id: 'present')) }
+
+        it 'is not true as identification is not confirmed until authenticated' do
+          expect(client.auth).to_not be_client_id_confirmed
+        end
+
+        context 'after authentication' do
+          before { client.channel('test').publish('a') }
+
+          it 'is true as identification is completed during implicit authentication' do
+            expect(client.auth).to be_client_id_confirmed
+          end
+        end
+      end
+    end
+
+    context 'when using a :key and basic auth' do
       specify '#using_token_auth? is false' do
         expect(auth).to_not be_using_token_auth
       end

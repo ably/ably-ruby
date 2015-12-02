@@ -8,18 +8,6 @@ module Ably::Realtime
     #
     # @api private
     class ConnectionManager
-      # Configuration for automatic recovery of failed connection attempts
-      CONNECT_RETRY_CONFIG = {
-        disconnected: { retry_every: 15,  max_time_in_state: 120 },
-        suspended:    { retry_every: 120, max_time_in_state: Float::INFINITY }
-      }.freeze
-
-      # Time to wait following a connection state request before it's considered a failure
-      TIMEOUTS = {
-        open:  15,
-        close: 10
-      }
-
       # Error codes from the server that can potentially be resolved
       RESOLVABLE_ERROR_CODES = {
         token_expired: 40140
@@ -69,9 +57,9 @@ module Ably::Realtime
           end
         end
 
-        logger.debug "ConnectionManager: Setting up automatic connection timeout timer for #{TIMEOUTS.fetch(:open)}s"
-        create_timeout_timer_whilst_in_state(:connect, TIMEOUTS.fetch(:open)) do
-          connection_opening_failed Ably::Exceptions::ConnectionTimeout.new("Connection to Ably timed out after #{TIMEOUTS.fetch(:open)}s", nil, 80014)
+        logger.debug "ConnectionManager: Setting up automatic connection timeout timer for #{realtime_request_timeout}s"
+        create_timeout_timer_whilst_in_state(:connect, realtime_request_timeout) do
+          connection_opening_failed Ably::Exceptions::ConnectionTimeout.new("Connection to Ably timed out after #{realtime_request_timeout}s", nil, 80014)
         end
       end
 
@@ -79,6 +67,11 @@ module Ably::Realtime
       #
       # @api private
       def connection_opening_failed(error)
+        if error.kind_of?(Ably::Exceptions::IncompatibleClientId)
+          client.connection.transition_state_machine :failed, reason: error
+          return
+        end
+
         logger.warn "ConnectionManager: Connection to #{connection.current_host}:#{connection.port} failed; #{error.message}"
         next_state = get_next_retry_state_info
         connection.transition_state_machine next_state.fetch(:state), retry_in: next_state.fetch(:pause), reason: Ably::Exceptions::ConnectionError.new("Connection failed: #{error.message}", nil, 80000)
@@ -89,18 +82,17 @@ module Ably::Realtime
       # @api private
       def connected(protocol_message)
         if connection.key
-          if connection_key_shared(protocol_message.connection_key) == connection_key_shared(connection.key)
+          if protocol_message.connection_id == connection.id
             logger.debug "ConnectionManager: Connection resumed successfully - ID #{connection.id} and key #{connection.key}"
             EventMachine.next_tick { connection.resumed }
           else
             logger.debug "ConnectionManager: Connection was not resumed, old connection ID #{connection.id} has been updated with new connect ID #{protocol_message.connection_id} and key #{protocol_message.connection_key}"
             detach_attached_channels protocol_message.error
-            connection.configure_new protocol_message.connection_id, protocol_message.connection_key, protocol_message.connection_serial
           end
         else
           logger.debug "ConnectionManager: New connection created with ID #{protocol_message.connection_id} and key #{protocol_message.connection_key}"
-          connection.configure_new protocol_message.connection_id, protocol_message.connection_key, protocol_message.connection_serial
         end
+        connection.configure_new protocol_message.connection_id, protocol_message.connection_key, protocol_message.connection_serial
       end
 
       # Ensures the underlying transport has been disconnected and all event emitter callbacks removed
@@ -131,7 +123,7 @@ module Ably::Realtime
       def close_connection
         connection.send_protocol_message(action: Ably::Models::ProtocolMessage::ACTION.Close)
 
-        create_timeout_timer_whilst_in_state(:close, TIMEOUTS.fetch(:close)) do
+        create_timeout_timer_whilst_in_state(:close, realtime_request_timeout) do
           force_close_connection if connection.closing?
         end
       end
@@ -158,18 +150,22 @@ module Ably::Realtime
       # @api private
       def respond_to_transport_disconnected_when_connecting(error)
         return unless connection.disconnected? || connection.suspended? # do nothing if state has changed through an explicit request
-        return unless retry_connection? # do not always reattempt connection or change state as client may be re-authorising
+        return unless can_retry_connection? # do not always reattempt connection or change state as client may be re-authorising
 
         if error.kind_of?(Ably::Models::ErrorInfo)
-          renew_token_and_reconnect error if error.code == RESOLVABLE_ERROR_CODES.fetch(:token_expired)
-          return
+          if error.code == RESOLVABLE_ERROR_CODES.fetch(:token_expired)
+            next_state = get_next_retry_state_info
+            logger.debug "ConnectionManager: Transport disconnected because of token expiry, pausing #{next_state.fetch(:pause)}s before reattempting to connect"
+            EventMachine.add_timer(next_state.fetch(:pause)) { renew_token_and_reconnect error }
+            return
+          end
         end
 
-        unless connection_retry_from_suspended_state?
+        if connection.state == :suspended
+          return if connection_retry_for(:suspended)
+        elsif connection.state == :disconnected
           return if connection_retry_for(:disconnected)
         end
-
-        return if connection_retry_for(:suspended)
 
         # Fallback if no other criteria met
         connection.transition_state_machine :failed, reason: error
@@ -179,7 +175,11 @@ module Ably::Realtime
       #
       # @api private
       def respond_to_transport_disconnected_whilst_connected(error)
-        logger.warn "ConnectionManager: Connection #{"to #{connection.transport.url}" if connection.transport} was disconnected unexpectedly"
+        unless connection.disconnected? || connection.suspended?
+          logger.warn "ConnectionManager: Connection #{"to #{connection.transport.url}" if connection.transport} was disconnected unexpectedly"
+        else
+          logger.debug "ConnectionManager: Transport disconnected whilst connection in #{connection.state} state"
+        end
 
         if error.kind_of?(Ably::Models::ErrorInfo) && error.code != RESOLVABLE_ERROR_CODES.fetch(:token_expired)
           connection.emit :error, error
@@ -197,10 +197,8 @@ module Ably::Realtime
       def error_received_from_server(error)
         case error.code
         when RESOLVABLE_ERROR_CODES.fetch(:token_expired)
-          connection.transition_state_machine :disconnected, retry_in: 0
-          connection.unsafe_once_or_if(:disconnected) do
-            renew_token_and_reconnect error
-          end
+          next_state = get_next_retry_state_info
+          connection.transition_state_machine next_state.fetch(:state), retry_in: next_state.fetch(:pause), reason: error
         else
           logger.error "ConnectionManager: Error #{error.class.name} code #{error.code} received from server '#{error.message}', transitioning to failed state"
           connection.transition_state_machine :failed, reason: error
@@ -233,10 +231,16 @@ module Ably::Realtime
         client.channels
       end
 
-      # Connection key left part is consistent between connection resumes
-      # i.e. wVIsgTHAB1UvXh7z-1991d8586 becomes wVIsgTHAB1UvXh7z-1990d8586 after a resume
-      def connection_key_shared(connection_key)
-        (connection_key || '')[/^\w{5,}-/, 0]
+      def realtime_request_timeout
+        connection.defaults.fetch(:realtime_request_timeout)
+      end
+
+      def retry_timeout_for(state)
+        connection.defaults.fetch("#{state}_retry_timeout".to_sym) { raise ArgumentError.new("#{state} does not have a configured retry timeout") }
+      end
+
+      def state_has_retry_timeout?(state)
+        connection.defaults.has_key?("#{state}_retry_timeout".to_sym)
       end
 
       # Create a timer that will execute in timeout_in seconds.
@@ -267,12 +271,12 @@ module Ably::Realtime
       end
 
       def next_retry_pause(retry_state)
-        return nil unless CONNECT_RETRY_CONFIG.fetch(retry_state)
+        return nil unless state_has_retry_timeout?(retry_state)
 
         if retries_for_state(retry_state, ignore_states: [:connecting]).empty?
           0
         else
-          CONNECT_RETRY_CONFIG.fetch(retry_state).fetch(:retry_every)
+          retry_timeout_for(retry_state)
         end
       end
 
@@ -284,20 +288,18 @@ module Ably::Realtime
         time_spent_attempting_state(:disconnected, ignore_states: [:connecting])
       end
 
-      # Reattempt a connection with a delay based on the CONNECT_RETRY_CONFIG for `from_state`
+      # Reattempt a connection with a delay based on the configured retry timeout for +from_state+
       #
       # @return [Boolean] True if a connection attempt has been set up, false if no further connection attempts can be made for this state
       #
       def connection_retry_for(from_state)
-        retry_params = CONNECT_RETRY_CONFIG.fetch(from_state)
-
         if can_reattempt_connect_for_state?(from_state)
-          if retries_for_state(from_state, ignore_states: [:connecting]).empty?
-            logger.debug "ConnectionManager: Will attempt reconnect immediately as no previous reconnect attempts made in this state"
+          if connection.state == :disconnected && retries_for_state(from_state, ignore_states: [:connecting]).empty?
+            logger.debug "ConnectionManager: Will attempt reconnect immediately as no previous reconnect attempts made in state #{from_state}"
             EventMachine.next_tick { connection.connect }
           else
-            logger.debug "ConnectionManager: Pausing for #{retry_params.fetch(:retry_every)}s before attempting to reconnect"
-            create_timeout_timer_whilst_in_state(:reconnect, retry_params.fetch(:retry_every)) do
+            logger.debug "ConnectionManager: Pausing for #{retry_timeout_for(from_state)}s before attempting to reconnect"
+            create_timeout_timer_whilst_in_state(from_state, retry_timeout_for(from_state)) do
               connection.connect if connection.state == from_state
             end
           end
@@ -309,8 +311,14 @@ module Ably::Realtime
       # For example, if the state is disconnected, and has been in a cycle of disconnected > connect > disconnected
       #  so long as the time in this cycle of states is less than max_time_in_state, this will return true
       def can_reattempt_connect_for_state?(state)
-        retry_params = CONNECT_RETRY_CONFIG.fetch(state)
-        time_spent_attempting_state(state, ignore_states: [:connecting]) < retry_params.fetch(:max_time_in_state)
+        case state
+        when :disconnected
+          time_spent_attempting_state(:disconnected, ignore_states: [:connecting]) < connection.defaults.fetch(:connection_state_ttl)
+        when :suspended
+          true # suspended state remains indefinitely
+        else
+          raise ArgumentError, "Connections in state '#{state}' cannot be reattempted"
+        end
       end
 
       # Returns a float representing the amount of time passed since the first consecutive attempt of this state
@@ -380,23 +388,18 @@ module Ably::Realtime
       def renew_token_and_reconnect(error)
         if client.auth.token_renewable?
           if @renewing_token
-            connection.transition_state_machine :failed, reason: error
+            logger.error 'ConnectionManager: Attempting to renew token whilst another token renewal is underway. Aborting current renew token request'
             return
           end
 
           @renewing_token = true
           logger.info "ConnectionManager: Token has expired and is renewable, renewing token now"
 
-          client.auth.authorise.tap do |authorise_deferrable|
+          client.auth.authorise({}, force: true).tap do |authorise_deferrable|
             authorise_deferrable.callback do |token_details|
               logger.info 'ConnectionManager: Token renewed succesfully following expiration'
 
-              state_changed_callback = proc do
-                @renewing_token = false
-                connection.off &state_changed_callback
-              end
-
-              connection.unsafe_once :connected, :closed, :failed, &state_changed_callback
+              connection.once_state_changed { @renewing_token = false }
 
               if token_details && !token_details.expired?
                 connection.connect
@@ -406,6 +409,7 @@ module Ably::Realtime
             end
 
             authorise_deferrable.errback do |auth_error|
+              @renewing_token = false
               logger.error "ConnectionManager: Error authorising following token expiry: #{auth_error}"
               connection.transition_state_machine :failed, reason: auth_error
             end
@@ -428,7 +432,7 @@ module Ably::Realtime
         end
       end
 
-      def retry_connection?
+      def can_retry_connection?
         !@renewing_token
       end
 

@@ -37,6 +37,7 @@ module Ably
       include Ably::Modules::AsyncWrapper
 
       def_delegators :auth_sync, :client_id
+      def_delegators :auth_sync, :token_client_id_allowed?, :configure_client_id, :client_id_confirmed?, :can_assume_client_id?
       def_delegators :auth_sync, :current_token_details, :token
       def_delegators :auth_sync, :key, :key_name, :key_secret, :options, :auth_options, :token_params
       def_delegators :auth_sync, :using_basic_auth?, :using_token_auth?
@@ -68,6 +69,10 @@ module Ably
       def authorise(token_params = {}, auth_options = {}, &success_callback)
         async_wrap(success_callback) do
           auth_sync.authorise(token_params, auth_options)
+        end.tap do |deferrable|
+          deferrable.errback do |error|
+            client.connection.transition_state_machine :failed, reason: error if error.kind_of?(Ably::Exceptions::IncompatibleClientId)
+          end
         end
       end
 

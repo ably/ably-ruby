@@ -106,5 +106,7 @@ module Ably
 
     # When a channel is detached / failed, certain operations are not permitted such as publishing messages
     class ChannelInactive < BaseAblyException; end
+
+    class IncompatibleClientId < BaseAblyException; end
   end
 end

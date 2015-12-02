@@ -13,8 +13,6 @@ module Ably
   #   @return [String] The provided client ID, used for identifying this client for presence purposes
   # @!attribute [r] current_token_details
   #   @return [Ably::Models::TokenDetails] Current {Ably::Models::TokenDetails} issued by this library or one of the provided callbacks used to authenticate requests
-  # @!attribute [r] token
-  #   @return [String] Token string provided to the {Ably::Client} constructor that is used to authenticate all requests
   # @!attribute [r] key
   #   @return [String] Complete API key containing both the key name and key secret, if present
   # @!attribute [r] key_name
@@ -61,6 +59,7 @@ module Ably
       @client              = client
       @options             = auth_options.dup
       @token_params        = token_params.dup
+      @token_option        = options[:token] || options[:token_details]
 
       @options.delete :force # Forcing token auth for every request is not a valid default
 
@@ -74,9 +73,23 @@ module Ably
         raise ArgumentError, 'key is missing. Either an API key, token, or token auth method must be provided'
       end
 
-      if has_client_id? && !token_creatable_externally?
-        raise ArgumentError, 'client_id cannot be provided without a complete API key. Key name & Secret is needed to authenticate with Ably and obtain a token' unless api_key_present?
+      if options[:client_id] && options[:client_id] == '*'
+        raise ArgumentError, 'A client cannot be configured with a wildcard client_id'
+      end
+
+      if has_client_id? && !token_creatable_externally? && !token_option
+        raise ArgumentError, 'client_id cannot be provided without a complete API key or means to authenticate. An API key is needed to automatically authenticate with Ably and obtain a token' unless api_key_present?
         ensure_utf_8 :client_id, client_id
+      end
+
+      # If a token details object or token string is provided in the initializer
+      # then the client can be authorised immediately using this token
+      if token_option
+        token_details = convert_to_token_details(token_option)
+        if token_details
+          token_details = authorise_with_token(token_details)
+          logger.debug "Auth: new token passed in to the initializer: #{token_details}"
+        end
       end
 
       @options.freeze
@@ -120,7 +133,9 @@ module Ably
       token_params = (auth_options.delete(:token_params) || {}).merge(token_params)
       @token_params = @token_params.merge(token_params) # update defaults
 
-      @current_token_details = request_token(token_params, auth_options)
+      authorise_with_token(request_token(token_params, auth_options)).tap do |new_token_details|
+        logger.debug "Auth: new token following authorisation: #{new_token_details}"
+      end
     end
 
     # Request a {Ably::Models::TokenDetails} which can be used to make authenticated token based requests
@@ -154,34 +169,29 @@ module Ably
     def request_token(token_params = {}, auth_options = {})
       ensure_valid_auth_attributes auth_options
 
-      token_params = (auth_options[:token_params] || {}).merge(token_params)
-      token_params = self.token_params.merge(token_params)
+      # Token param precedence (lowest to highest):
+      #   Auth default => client_id => auth_options[:token_params] arg => token_params arg
+      token_params = self.token_params.merge(
+        (client_id ? { client_id: client_id } : {}).
+          merge(auth_options[:token_params] || {}).
+          merge(token_params)
+      )
+
       auth_options = self.options.merge(auth_options)
 
       token_request = if auth_callback = auth_options.delete(:auth_callback)
         auth_callback.call(token_params)
       elsif auth_url = auth_options.delete(:auth_url)
-        token_request_from_auth_url(auth_url, auth_options)
+        token_request_from_auth_url(auth_url, auth_options, token_params)
       else
         create_token_request(token_params, auth_options)
       end
 
-      case token_request
-        when Ably::Models::TokenDetails
-          return token_request
-        when Hash
-          return Ably::Models::TokenDetails.new(token_request) if IdiomaticRubyWrapper(token_request).has_key?(:issued)
-        when String
-          return Ably::Models::TokenDetails.new(token: token_request)
+      convert_to_token_details(token_request).tap do |token_details|
+        return token_details if token_details
       end
 
-      token_request = Ably::Models::TokenRequest(token_request)
-
-      response = client.post("/keys/#{token_request.key_name}/requestToken",
-                             token_request.hash, send_auth_header: false,
-                             disable_automatic_reauthorise: true)
-
-      Ably::Models::TokenDetails.new(response.body)
+      send_token_request(token_request)
     end
 
     # Creates and signs a token request that can then subsequently be used by any client to request a token
@@ -277,21 +287,23 @@ module Ably
     # True when Token Auth is being used to authenticate with Ably
     def using_token_auth?
       return options[:use_token_auth] if options.has_key?(:use_token_auth)
-      !!(token || current_token_details || has_client_id? || token_creatable_externally?)
+      !!(token_option || current_token_details || has_client_id? || token_creatable_externally?)
     end
 
     def client_id
-      options[:client_id]
+      @client_id || options[:client_id]
     end
 
-    def token
-      token_object = options[:token] || options[:token_details]
-
-      if token_object.kind_of?(Ably::Models::TokenDetails)
-        token_object.token
-      else
-        token_object
-      end
+    # When a client has authenticated with Ably and the client is either anonymous (cannot assume a +client_id+)
+    # or has an assigned +client_id+ (implicit in all operations), then this client has a confirmed +client_id+, even
+    # if that client_id is +nil+ (anonymous)
+    #
+    # Once confirmed, the client library will enforce the use of the +client_id+ identity provided by Ably, rejecting
+    # messages with an invalid +client_id+ immediately
+    #
+    # @return [Boolean]
+    def client_id_confirmed?
+      !!@client_id_confirmed
     end
 
     # Auth header string used in HTTP requests to Ably
@@ -327,7 +339,7 @@ module Ably
     #
     # @return [Boolean]
     def token_renewable?
-      token_creatable_externally? || (api_key_present? && !token)
+      token_creatable_externally? || (api_key_present? && !token_option)
     end
 
     # Returns false when attempting to send an API Key over a non-secure connection
@@ -338,8 +350,45 @@ module Ably
       client.use_tls? || using_token_auth?
     end
 
+    # True if token provided client_id is compatible with the client's configured +client_id+, when applicable
+    #
+    # @return [Boolean]
+    # @api private
+    def token_client_id_allowed?(token_client_id)
+      return true if client_id.nil? # no explicit client_id specified for this client
+      return true if token_client_id == '*' # wildcard supported by client_id so any client_id allowed
+      token_client_id == client_id
+    end
+
+    # True if assumed_client_id is compatible with the client's configured or Ably assigned +client_id+
+    #
+    # @return [Boolean]
+    # @api private
+    def can_assume_client_id?(assumed_client_id)
+      if client_id_confirmed?
+        client_id == assumed_client_id
+      elsif !options[:client_id]
+        true # client ID is unknown
+      else
+        options[:client_id] == assumed_client_id
+      end
+    end
+
+    # Configures the client ID for this client
+    # Typically this occurs following an Auth or receiving a {Ably::Models::ProtocolMessage} with a +client_id+ in the {Ably::Models::ConnectionDetails}
+    #
+    # @api private
+    def configure_client_id(new_client_id)
+      if client_id && new_client_id != client_id
+        raise Ably::Exceptions::IncompatibleClientId.new("Client ID is immutable once configured for a client. Client ID cannot be changed to '#{new_client_id}'", 400, 40012)
+      end
+      @client_id_confirmed = true
+      @client_id = new_client_id
+    end
+
     private
     attr_reader :client
+    attr_reader :token_option
 
     def ensure_valid_auth_attributes(attributes)
       if attributes[:timestamp]
@@ -401,15 +450,19 @@ module Ably
 
     # Returns the current token if it exists or authorises and retrieves a token
     def token_auth_string
-      # If a TokenDetails object has been issued by this library
-      # then that Token will take precedence
-      if @current_token_details
-        authorise.token
-      elsif token # token string was configured in the options
-        token
+      if !current_token_details && token_option
+        # A TokenRequest was configured in the ClientOptions +:token field+ and no current token exists
+        # Note: If a Token or TokenDetails is provided in the initializer, the token is stored in +current_token_details+
+        authorise_with_token send_token_request(token_option)
+        current_token_details.token
       else
+        # Authorise will use the current token if one exists and is not expired, otherwise a new token will be issued
         authorise.token
       end
+    end
+
+    def configure_current_token_details(token_details)
+      @current_token_details = token_details
     end
 
     # Token Auth HTTP Authorization header value
@@ -455,15 +508,20 @@ module Ably
     # Retrieve a token request from a specified URL, expects a JSON response
     #
     # @return [Hash]
-    def token_request_from_auth_url(auth_url, auth_options)
+    def token_request_from_auth_url(auth_url, auth_options, token_params)
       uri = URI.parse(auth_url)
       connection = Faraday.new("#{uri.scheme}://#{uri.host}", connection_options)
-      method = auth_options[:auth_method] || :get
+      method = auth_options[:auth_method] || options[:auth_method] || :get
+      params = (auth_options[:auth_params] || options[:auth_method] || {}).merge(token_params)
 
       response = connection.send(method) do |request|
         request.url uri.path
-        request.params = CGI.parse(uri.query || '').merge(auth_options[:auth_params] || {})
         request.headers = auth_options[:auth_headers] || {}
+        if method.to_s.downcase == 'post'
+          request.body = params
+        else
+          request.params = (Addressable::URI.parse(uri.to_s).query_values || {}).merge(params)
+        end
       end
 
       if !response.body.kind_of?(Hash) && !response.headers['Content-Type'].to_s.match(%r{text/plain}i)
@@ -472,6 +530,42 @@ module Ably
       end
 
       response.body
+    end
+
+    # Use the provided token to authenticate immediately and store the token details in +current_token_details+
+    def authorise_with_token(new_token_details)
+      if new_token_details && !new_token_details.from_token_string?
+        if !token_client_id_allowed?(new_token_details.client_id)
+          raise Ably::Exceptions::IncompatibleClientId.new("Client ID '#{new_token_details.client_id}' in the token is incompatible with the current client ID '#{client_id}'", 400, 40012)
+        end
+        configure_client_id new_token_details.client_id unless new_token_details.client_id == '*'
+      end
+      configure_current_token_details new_token_details
+    end
+
+    # Returns a TokenDetails object if the provided token_details_obj argument is a TokenDetails object, Token String
+    # or TokenDetails JSON object.
+    # If the token_details_obj is not a Token or TokenDetails +nil+ is returned
+    def convert_to_token_details(token_details_obj)
+      case token_details_obj
+        when Ably::Models::TokenDetails
+          return token_details_obj
+        when Hash
+          return Ably::Models::TokenDetails.new(token_details_obj) if IdiomaticRubyWrapper(token_details_obj).has_key?(:issued)
+        when String
+          return Ably::Models::TokenDetails.new(token: token_details_obj)
+      end
+    end
+
+    # @return [Ably::Models::TokenDetails]
+    def send_token_request(token_request)
+      token_request = Ably::Models::TokenRequest(token_request)
+
+      response = client.post("/keys/#{token_request.key_name}/requestToken",
+                             token_request.hash, send_auth_header: false,
+                             disable_automatic_reauthorise: true)
+
+      Ably::Models::TokenDetails.new(response.body)
     end
 
     # Return a Hash of connection options to initiate the Faraday::Connection with
@@ -501,7 +595,7 @@ module Ably
         # Raise exceptions if response code is invalid
         builder.use Ably::Rest::Middleware::ExternalExceptions
 
-        setup_incoming_middleware builder, client.logger
+        setup_incoming_middleware builder, logger
 
         # Set Faraday's HTTP adapter
         builder.adapter Faraday.default_adapter
@@ -526,6 +620,10 @@ module Ably
 
     def api_key_present?
       key_name && key_secret
+    end
+
+    def logger
+      client.logger
     end
   end
 end

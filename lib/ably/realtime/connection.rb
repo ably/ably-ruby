@@ -60,6 +60,14 @@ module Ably
       # Expected format for a connection recover key
       RECOVER_REGEX = /^(?<recover>[\w-]+):(?<connection_serial>\-?\w+)$/
 
+      # Defaults for automatic connection recovery and timeouts
+      DEFAULTS = {
+        disconnected_retry_timeout: 15, # when the connection enters the DISCONNECTED state, after this delay in milliseconds, if the state is still DISCONNECTED, the client library will attempt to reconnect automatically
+        suspended_retry_timeout:    30, # when the connection enters the SUSPENDED state, after this delay in milliseconds, if the state is still SUSPENDED, the client library will attempt to reconnect automatically
+        connection_state_ttl:       60, # the duration that Ably will persist the connection state when a Realtime client is abruptly disconnected
+        realtime_request_timeout:   10  # default timeout when establishing a connection, or sending a HEARTBEAT, CONNECT, ATTACH, DETACH or CLOSE ProtocolMessage
+      }.freeze
+
       # A unique public identifier for this connection, used to identify this member in presence events and messages
       # @return [String]
       attr_reader :id
@@ -90,22 +98,34 @@ module Ably
       # @api private
       attr_reader :manager
 
-      # An internal queue used to manage unsent outgoing messages.  You should never interface with this array directly
+      # An internal queue used to manage unsent outgoing messages. You should never interface with this array directly
       # @return [Array]
       # @api private
       attr_reader :__outgoing_message_queue__
 
-      # An internal queue used to manage sent messages.  You should never interface with this array directly
+      # An internal queue used to manage sent messages. You should never interface with this array directly
       # @return [Array]
       # @api private
       attr_reader :__pending_message_ack_queue__
 
+      # Configured recovery and timeout defaults for this {Connection}.
+      # See the configurable options in {Ably::Realtime::Client#initialize}.
+      # The defaults are immutable
+      # @return [Hash]
+      attr_reader :defaults
+
       # @api public
-      def initialize(client)
+      def initialize(client, options)
         @client                        = client
         @client_serial                 = -1
         @__outgoing_message_queue__    = []
         @__pending_message_ack_queue__ = []
+
+        @defaults = DEFAULTS.dup
+        options.each do |key, val|
+          @defaults[key] = val if DEFAULTS.has_key?(key)
+        end if options.kind_of?(Hash)
+        @defaults.freeze
 
         Client::IncomingMessageDispatcher.new client, self
         Client::OutgoingMessageDispatcher.new client, self
@@ -150,7 +170,8 @@ module Ably
       # This can be useful for measuring true roundtrip client to Ably server latency for a simple message, or checking that an underlying transport is responding currently.
       # The elapsed milliseconds is passed as an argument to the block and represents the time taken to echo a ping heartbeat once the connection is in the `:connected` state.
       #
-      # @yield [Integer] if a block is passed to this method, then this block will be called once the ping heartbeat is received with the time elapsed in milliseconds
+      # @yield [Integer] if a block is passed to this method, then this block will be called once the ping heartbeat is received with the time elapsed in milliseconds.
+      #                  If the ping is not received within an acceptable timeframe, the block will be called with +nil+ as he first argument
       #
       # @example
       #    client = Ably::Rest::Client.new(key: 'key.id:secret')
@@ -165,9 +186,12 @@ module Ably
         raise RuntimeError, 'Cannot send a ping when connection is in a closed or failed state' if closed? || failed?
 
         started = nil
+        finished = false
 
         wait_for_ping = Proc.new do |protocol_message|
+          next if finished
           if protocol_message.action == Ably::Models::ProtocolMessage::ACTION.Heartbeat
+            finished = true
             __incoming_protocol_msgbus__.unsubscribe(:protocol_message, &wait_for_ping)
             time_passed = (Time.now.to_f * 1000 - started.to_f * 1000).to_i
             safe_yield block, time_passed if block_given?
@@ -175,9 +199,18 @@ module Ably
         end
 
         once_or_if(STATE.Connected) do
+          next if finished
           started = Time.now
           send_protocol_message action: Ably::Models::ProtocolMessage::ACTION.Heartbeat.to_i
           __incoming_protocol_msgbus__.subscribe :protocol_message, &wait_for_ping
+        end
+
+        EventMachine.add_timer(defaults.fetch(:realtime_request_timeout)) do
+          next if finished
+          finished = true
+          __incoming_protocol_msgbus__.unsubscribe(:protocol_message, &wait_for_ping)
+          logger.warn "Ping timed out after #{defaults.fetch(:realtime_request_timeout)}s"
+          safe_yield block, nil if block_given?
         end
       end
 
@@ -327,7 +360,6 @@ module Ably
           client.auth.auth_params.tap do |auth_deferrable|
             auth_deferrable.callback do |auth_params|
               url_params = auth_params.merge(
-                timestamp: as_since_epoch(Time.now),
                 format:    client.protocol,
                 echo:      client.echo_messages
               )

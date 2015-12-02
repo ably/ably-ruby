@@ -1,3 +1,5 @@
+require 'addressable/uri'
+
 %w(modules util).each do |namespace|
   Dir.glob(File.expand_path("ably/#{namespace}/*.rb", File.dirname(__FILE__))).sort.each do |file|
     require file

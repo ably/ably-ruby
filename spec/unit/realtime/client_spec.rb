@@ -10,7 +10,7 @@ describe Ably::Realtime::Client do
   it_behaves_like 'a client initializer'
 
   context 'delegation to the REST Client' do
-    let(:client_options) { { key: 'appid.keyuid:keysecret' } }
+    let(:client_options) { { key: 'appid.keyuid:keysecret', auto_connect: false } }
 
     it 'passes on the options to the initializer' do
       rest_client = instance_double('Ably::Rest::Client', auth: instance_double('Ably::Auth'), options: client_options)
@@ -26,5 +26,9 @@ describe Ably::Realtime::Client do
         end
       end
     end
+  end
+
+  after(:all) do
+    sleep 1 # let realtime library shut down any open clients
   end
 end

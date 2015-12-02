@@ -1,8 +1,7 @@
 module Ably::Models
   # Convert token details argument to a {TokenDetails} object
   #
-  # @param attributes [TokenDetails,Hash] A {TokenDetails} object or Hash of token and meta data attributes
-  # @option attributes (see TokenDetails#initialize)
+  # @param attributes (see #initialize)
   #
   # @return [TokenDetails]
   def self.TokenDetails(attributes)
@@ -26,10 +25,6 @@ module Ably::Models
     # Buffer in seconds before a token is considered unusable
     # For example, if buffer is 10s, the token can no longer be used for new requests 9s before it expires
     TOKEN_EXPIRY_BUFFER = 15
-
-    def initialize(attributes)
-      @hash_object = IdiomaticRubyWrapper(attributes.clone.freeze)
-    end
 
     # @param attributes
     # @option attributes [String]       :token      token used to authenticate requests
@@ -76,7 +71,7 @@ module Ably::Models
     # @!attribute [r] capability
     # @return [Hash] Capabilities assigned to this token
     def capability
-      JSON.parse(hash.fetch(:capability)) if hash.fetch(:capability)
+      JSON.parse(hash.fetch(:capability)) if hash.has_key?(:capability)
     end
 
     # @!attribute [r] client_id
@@ -94,10 +89,21 @@ module Ably::Models
       expires < Time.now + TOKEN_EXPIRY_BUFFER
     end
 
+    # True if the TokenDetails was created from an opaque string i.e. no metadata exists for this token
+    # @return [Boolean]
+    # @api private
+    def from_token_string?
+      hash.keys == [:token]
+    end
+
     # @!attribute [r] hash
     # @return [Hash] Access the token details Hash object ruby'fied to use symbolized keys
     def hash
       @hash_object
+    end
+
+    def to_s
+      "<TokenDetails token=#{token} client_id=#{client_id} key_name=#{key_name} issued=#{issued} expires=#{expires} capability=#{capability} expired?=#{expired?}>"
     end
   end
 end

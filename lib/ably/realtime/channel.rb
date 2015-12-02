@@ -309,9 +309,20 @@ module Ably
 
       # Queue messages and process queue if channel is attached.
       # If channel is not yet attached, attempt to attach it before the message queue is processed.
-      # @returns [Ably::Util::SafeDeferrable]
+      # @return [Ably::Util::SafeDeferrable]
       def queue_messages(raw_messages)
-        messages = Array(raw_messages).map { |msg| create_message(msg) }
+        messages = Array(raw_messages).map do |raw_msg|
+          create_message(raw_msg).tap do |message|
+            next if message.client_id.nil?
+            if message.client_id == '*'
+              raise Ably::Exceptions::IncompatibleClientId.new('Wildcard client_id is reserved and cannot be used when publishing messages', 400, 40012)
+            end
+            unless client.auth.can_assume_client_id?(message.client_id)
+              raise Ably::Exceptions::IncompatibleClientId.new("Cannot publish with client_id '#{message.client_id}' as it is incompatible with the current configured client_id '#{client.client_id}'", 400, 40012)
+            end
+          end
+        end
+
         queue.push *messages
 
         if attached?

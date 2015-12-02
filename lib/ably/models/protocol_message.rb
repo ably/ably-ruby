@@ -10,12 +10,12 @@ module Ably::Models
   #   @return [ACTION] Protocol Message action {Ably::Modules::Enum} from list of {ACTION}. Returns nil if action is unsupported by protocol
   # @!attribute [r] count
   #   @return [Integer] The count field is used for ACK and NACK actions. See {http://docs.ably.io/client-lib-development-guide/protocol/#message-acknowledgement message acknowledgement protocol}
-  # @!attribute [r] error_info
+  # @!attribute [r] error
   #   @return [ErrorInfo] Contains error information
   # @!attribute [r] channel
   #   @return [String] Channel name for messages
   # @!attribute [r] channel_serial
-  #   @return [String] Contains a serial number for a message on the current channel
+  #   @return [String] Contains a serial number for a message on the current channelƒ
   # @!attribute [r] connection_id
   #   @return [String] Contains a string public identifier for the connection
   # @!attribute [r] connection_key
@@ -88,10 +88,16 @@ module Ably::Models
       @hash_object.freeze
     end
 
-    %w(id channel channel_serial connection_id connection_key).each do |attribute|
+    %w(id channel channel_serial connection_id).each do |attribute|
       define_method attribute do
         hash[attribute.to_sym]
       end
+    end
+
+    def connection_key
+      # connection_key in connection details takes precedence over connection_key on the ProtocolMessage
+      # connection_key in the ProtocolMessage will be deprecated in future protocol versions > 0.8
+      connection_details.connection_key || hash[:connection_key]
     end
 
     def id!
@@ -106,7 +112,7 @@ module Ably::Models
     end
 
     def error
-      @error_info ||= ErrorInfo.new(hash[:error]) if hash[:error]
+      @error ||= ErrorInfo.new(hash[:error]) if hash[:error]
     end
 
     def timestamp
@@ -179,6 +185,10 @@ module Ably::Models
 
     def has_presence_flag?
       flags & 1 == 1
+    end
+
+    def connection_details
+      @connection_details ||= Ably::Models::ConnectionDetails(hash[:connection_details])
     end
 
     # Indicates this protocol message will generate an ACK response when sent

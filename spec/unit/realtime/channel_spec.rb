@@ -68,9 +68,10 @@ describe Ably::Realtime::Channel do
 
   describe '#publish name argument' do
     let(:encoded_value) { random_str.encode(encoding) }
+    let(:message) { instance_double('Ably::Models::Message', client_id: nil) }
 
     before do
-      allow(subject).to receive(:create_message).and_return('message_stubbed')
+      allow(subject).to receive(:create_message).and_return(message)
       allow(subject).to receive(:attach).and_return(:true)
     end
 
@@ -78,7 +79,7 @@ describe Ably::Realtime::Channel do
       let(:encoding) { Encoding::UTF_8 }
 
       it 'is permitted' do
-        expect(subject.publish(encoded_value, 'data')).to eql('message_stubbed')
+        expect(subject.publish(encoded_value, 'data')).to eql(message)
       end
     end
 
@@ -86,7 +87,7 @@ describe Ably::Realtime::Channel do
       let(:encoding) { Encoding::SHIFT_JIS }
 
       it 'is permitted' do
-        expect(subject.publish(encoded_value, 'data')).to eql('message_stubbed')
+        expect(subject.publish(encoded_value, 'data')).to eql(message)
       end
     end
 
@@ -94,7 +95,7 @@ describe Ably::Realtime::Channel do
       let(:encoding) { Encoding::ASCII_8BIT }
 
       it 'is permitted' do
-        expect(subject.publish(encoded_value, 'data')).to eql('message_stubbed')
+        expect(subject.publish(encoded_value, 'data')).to eql(message)
       end
     end
 
@@ -110,7 +111,7 @@ describe Ably::Realtime::Channel do
       let(:encoded_value) { nil }
 
       it 'is permitted' do
-        expect(subject.publish(encoded_value, 'data')).to eql('message_stubbed')
+        expect(subject.publish(encoded_value, 'data')).to eql(message)
       end
     end
   end

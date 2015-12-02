@@ -22,6 +22,19 @@ describe Ably::Realtime::Client, '#time', :event_machine do
           stop_reactor
         end
       end
+
+      context 'with reconfigured HTTP timeout' do
+        let(:client) do
+          Ably::Realtime::Client.new(http_request_timeout: 0.0001, key: api_key, environment: environment, protocol: protocol, log_level: :fatal)
+        end
+
+        it 'should raise a timeout exception' do
+          client.time.errback do |error|
+            expect(error).to be_a Ably::Exceptions::ConnectionTimeout
+            stop_reactor
+          end
+        end
+      end
     end
   end
 end

@@ -73,7 +73,7 @@ module Ably::Realtime
             elsif connection.connected?
               logger.error "CONNECTED ProtocolMessage should not have been received when the connection is in the CONNECTED state"
             else
-              connection.transition_state_machine :connected, reason: protocol_message.error, protocol_message: protocol_message
+              process_connected_message protocol_message
             end
 
           when ACTION.Disconnect, ACTION.Disconnected
@@ -139,6 +139,18 @@ module Ably::Realtime
 
       def process_connection_error(protocol_message)
         connection.manager.error_received_from_server protocol_message.error
+      end
+
+      def process_connected_message(protocol_message)
+        if !protocol_message.connection_details.has_client_id?
+          connection.transition_state_machine :connected, reason: protocol_message.error, protocol_message: protocol_message
+        elsif client.auth.token_client_id_allowed?(protocol_message.connection_details.client_id)
+          client.auth.configure_client_id protocol_message.connection_details.client_id
+          connection.transition_state_machine :connected, reason: protocol_message.error, protocol_message: protocol_message
+        else
+          reason = Ably::Exceptions::IncompatibleClientId.new("Client ID '#{protocol_message.connection_details.client_id}' specified by the server is incompatible with the library's configured client ID '#{client.client_id}'", 400, 40012)
+          connection.transition_state_machine :failed, reason: reason, protocol_message: protocol_message
+        end
       end
 
       def update_connection_recovery_info(protocol_message)

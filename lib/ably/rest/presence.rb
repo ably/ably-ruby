@@ -82,7 +82,7 @@ module Ably
 
       private
       def base_path
-        "/channels/#{CGI.escape(channel.name)}/presence"
+        "/channels/#{Addressable::URI.encode(channel.name)}/presence"
       end
 
       def decode_message(presence_message)

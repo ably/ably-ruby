@@ -504,6 +504,68 @@ describe Ably::Realtime::Channel, :event_machine do
           end
         end
 
+        context 'nil attributes' do
+          context 'when name is nil' do
+            let(:data) { random_str }
+
+            it 'publishes the message without a name attribute in the payload' do
+              published = false
+              channel.publish(nil, data) do
+                published = true
+              end
+
+              channel.subscribe do |message|
+                expect(message.name).to be_nil
+                channel.history do |page|
+                  expect(page.items.first.name).to be_nil
+                  expect(page.items.first.data).to eql(data)
+                  EM.add_timer(0.5) do
+                    expect(published).to eql(true)
+                    stop_reactor
+                  end
+                end
+              end
+            end
+          end
+
+          context 'when data is nil' do
+            let(:name) { random_str }
+
+            it 'publishes the message without a data attribute in the payload' do
+              published = false
+              channel.publish(name, nil) do
+                published = true
+              end
+
+              channel.subscribe do |message|
+                expect(message.data).to be_nil
+                channel.history do |page|
+                  expect(page.items.first.name).to eql(name)
+                  expect(page.items.first.data).to be_nil
+                  EM.add_timer(0.5) do
+                    expect(published).to eql(true)
+                    stop_reactor
+                  end
+                end
+              end
+            end
+          end
+
+          context 'with neither name or data attributes' do
+            let(:name) { random_str }
+
+            it 'publishes the message without any attributes in the payload' do
+              channel.publish(nil) do
+                channel.history do |page|
+                  expect(page.items.first.name).to be_nil
+                  expect(page.items.first.data).to be_nil
+                  stop_reactor
+                end
+              end
+            end
+          end
+        end
+
         context 'with two invalid message out of 12' do
           let(:client_options) { default_options.merge(client_id: 'valid') }
           let(:invalid_messages) do
@@ -576,6 +638,208 @@ describe Ably::Realtime::Channel, :event_machine do
                     stop_reactor
                   end
                 end
+              end
+            end
+          end
+        end
+      end
+
+      context 'identified clients' do
+        context 'when authenticated with a wildcard client_id' do
+          let(:token)            { Ably::Rest::Client.new(default_options).auth.request_token(client_id: '*') }
+          let(:client_options)   { default_options.merge(key: nil, token: token) }
+          let(:client)           { auto_close Ably::Realtime::Client.new(client_options) }
+          let(:channel)          { client.channels.get(channel_name) }
+
+          context 'with a valid client_id in the message' do
+            it 'succeeds' do
+              channel.publish([name: 'event', client_id: 'validClient']).tap do |deferrable|
+                deferrable.errback { raise 'Should have succeeded' }
+              end
+              channel.subscribe('event') do |message|
+                expect(message.client_id).to eql('validClient')
+                EM.add_timer(0.5) { stop_reactor }
+              end
+            end
+          end
+
+          context 'with a wildcard client_id in the message' do
+            it 'throws an exception' do
+              expect { channel.publish([name: 'event', client_id: '*']) }.to raise_error Ably::Exceptions::IncompatibleClientId
+              stop_reactor
+            end
+          end
+
+          context 'with an empty client_id in the message' do
+            it 'succeeds and publishes without a client_id' do
+              channel.publish([name: 'event', client_id: nil]).tap do |deferrable|
+                deferrable.errback { raise 'Should have succeeded' }
+              end
+              channel.subscribe('event') do |message|
+                expect(message.client_id).to be_nil
+                EM.add_timer(0.5) { stop_reactor }
+              end
+            end
+          end
+        end
+
+        context 'when authenticated with a Token string with an implicit client_id' do
+          let(:token)            { Ably::Rest::Client.new(default_options).auth.request_token(client_id: 'valid').token }
+          let(:client_options)   { default_options.merge(key: nil, token: token) }
+          let(:client)           { auto_close Ably::Realtime::Client.new(client_options) }
+          let(:channel)          { client.channels.get(channel_name) }
+
+          context 'before the client is CONNECTED and the client\'s identity has been obtained' do
+            context 'with a valid client_id in the message' do
+              it 'succeeds' do
+                channel.publish([name: 'event', client_id: 'valid']).tap do |deferrable|
+                  deferrable.errback { raise 'Should have succeeded' }
+                end
+                channel.subscribe('event') do |message|
+                  expect(message.client_id).to eql('valid')
+                  EM.add_timer(0.5) { stop_reactor }
+                end
+              end
+            end
+
+            context 'with an invalid client_id in the message' do
+              let(:client_options)   { default_options.merge(key: nil, token: token, log_level: :error) }
+              it 'succeeds in the client library but then fails when delivered to Ably' do
+                channel.publish([name: 'event', client_id: 'invalid']).tap do |deferrable|
+                  EM.add_timer(0.5) { stop_reactor }
+                end
+                channel.subscribe('event') do |message|
+                  raise 'Message should not have been published'
+                end
+              end
+            end
+
+            context 'with an empty client_id in the message' do
+              it 'succeeds and publishes with an implicit client_id' do
+                channel.publish([name: 'event', client_id: nil]).tap do |deferrable|
+                  deferrable.errback { raise 'Should have succeeded' }
+                end
+                channel.subscribe('event') do |message|
+                  expect(message.client_id).to eql('valid')
+                  EM.add_timer(0.5) { stop_reactor }
+                end
+              end
+            end
+          end
+
+          context 'after the client is CONNECTED and the client\'s identity is known' do
+            context 'with a valid client_id in the message' do
+              it 'succeeds' do
+                client.connection.once(:connected) do
+                  channel.publish([name: 'event', client_id: 'valid']).tap do |deferrable|
+                    deferrable.errback { raise 'Should have succeeded' }
+                  end
+                  channel.subscribe('event') do |message|
+                    expect(message.client_id).to eql('valid')
+                    EM.add_timer(0.5) { stop_reactor }
+                  end
+                end
+              end
+            end
+
+            context 'with an invalid client_id in the message' do
+              it 'throws an exception' do
+                client.connection.once(:connected) do
+                  expect { channel.publish([name: 'event', client_id: 'invalid']) }.to raise_error Ably::Exceptions::IncompatibleClientId
+                  stop_reactor
+                end
+              end
+            end
+
+            context 'with an empty client_id in the message' do
+              it 'succeeds and publishes with an implicit client_id' do
+                client.connection.once(:connected) do
+                  channel.publish([name: 'event', client_id: nil]).tap do |deferrable|
+                    deferrable.errback { raise 'Should have succeeded' }
+                  end
+                  channel.subscribe('event') do |message|
+                    expect(message.client_id).to eql('valid')
+                    EM.add_timer(0.5) { stop_reactor }
+                  end
+                end
+              end
+            end
+          end
+        end
+
+        context 'when authenticated with a valid client_id' do
+          let(:token)            { Ably::Rest::Client.new(default_options).auth.request_token(client_id: 'valid') }
+          let(:client_options)   { default_options.merge(key: nil, token: token) }
+          let(:client)           { auto_close Ably::Realtime::Client.new(client_options) }
+          let(:channel)          { client.channels.get(channel_name) }
+
+          context 'with a valid client_id' do
+            it 'succeeds' do
+              channel.publish([name: 'event', client_id: 'valid']).tap do |deferrable|
+                deferrable.errback { raise 'Should have succeeded' }
+              end
+              channel.subscribe('event') do |message|
+                expect(message.client_id).to eql('valid')
+                EM.add_timer(0.5) { stop_reactor }
+              end
+            end
+          end
+
+          context 'with a wildcard client_id in the message' do
+            it 'throws an exception' do
+              expect { channel.publish([name: 'event', client_id: '*']) }.to raise_error Ably::Exceptions::IncompatibleClientId
+              stop_reactor
+            end
+          end
+
+          context 'with an invalid client_id in the message' do
+            it 'throws an exception' do
+              expect { channel.publish([name: 'event', client_id: 'invalid']) }.to raise_error Ably::Exceptions::IncompatibleClientId
+              stop_reactor
+            end
+          end
+
+          context 'with an empty client_id in the message' do
+            it 'succeeds and publishes with an implicit client_id' do
+              channel.publish([name: 'event', client_id: nil]).tap do |deferrable|
+                deferrable.errback { raise 'Should have succeeded' }
+              end
+              channel.subscribe('event') do |message|
+                expect(message.client_id).to eql('valid')
+                EM.add_timer(0.5) { stop_reactor }
+              end
+            end
+          end
+        end
+
+        context 'when anonymous and no client_id' do
+          let(:token)            { Ably::Rest::Client.new(default_options).auth.request_token(client_id: nil) }
+          let(:client_options)   { default_options.merge(key: nil, token: token) }
+          let(:client)           { auto_close Ably::Realtime::Client.new(client_options) }
+          let(:channel)          { client.channels.get(channel_name) }
+
+          context 'with a client_id in the message' do
+            it 'throws an exception' do
+              expect { channel.publish([name: 'event', client_id: 'invalid']) }.to raise_error Ably::Exceptions::IncompatibleClientId
+              stop_reactor
+            end
+          end
+
+          context 'with a wildcard client_id in the message' do
+            it 'throws an exception' do
+              expect { channel.publish([name: 'event', client_id: '*']) }.to raise_error Ably::Exceptions::IncompatibleClientId
+              stop_reactor
+            end
+          end
+
+          context 'with an empty client_id in the message' do
+            it 'succeeds and publishes with an implicit client_id' do
+              channel.publish([name: 'event', client_id: nil]).tap do |deferrable|
+                deferrable.errback { raise 'Should have succeeded' }
+              end
+              channel.subscribe('event') do |message|
+                expect(message.client_id).to be_nil
+                EM.add_timer(0.5) { stop_reactor }
               end
             end
           end
@@ -881,7 +1145,7 @@ describe Ably::Realtime::Channel, :event_machine do
 
         context 'a :failed channel' do
           let(:original_error) { RuntimeError.new }
-          let(:client_options)   { default_options.merge(log_level: :fatal) }
+          let(:client_options) { default_options.merge(log_level: :fatal) }
 
           it 'remains in the :failed state and retains the error_reason' do
             channel.attach do
@@ -904,6 +1168,8 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'a channel ATTACH request when connection SUSPENDED' do
+          let(:client_options) { default_options.merge(log_level: :fatal) }
+
           it 'raises an exception' do
             client.connect do
               client.connection.once(:suspended) do

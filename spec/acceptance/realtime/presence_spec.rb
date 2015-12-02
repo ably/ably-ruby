@@ -14,6 +14,7 @@ describe Ably::Realtime::Presence, :event_machine do
     let(:client_two_id)    { random_str }
     let(:client_two)       { auto_close Ably::Realtime::Client.new(client_options.merge(client_id: client_two_id)) }
 
+    let(:wildcard_token)            { Proc.new { Ably::Rest::Client.new(client_options).auth.request_token(client_id: '*') } }
     let(:channel_name)              { "presence-#{random_str(4)}" }
     let(:channel_anonymous_client)  { anonymous_client.channel(channel_name) }
     let(:presence_anonymous_client) { channel_anonymous_client.presence }
@@ -265,15 +266,6 @@ describe Ably::Realtime::Presence, :event_machine do
       end
 
       context 'if connection fails before success' do
-        before do
-          # Reconfigure client library so that it makes no retry attempts and fails immediately
-          stub_const 'Ably::Realtime::Connection::ConnectionManager::CONNECT_RETRY_CONFIG',
-                      Ably::Realtime::Connection::ConnectionManager::CONNECT_RETRY_CONFIG.merge(
-                        disconnected: { retry_every: 0.1, max_time_in_state: 0 },
-                        suspended:    { retry_every: 0.1, max_time_in_state: 0 }
-                      )
-        end
-
         let(:client_options) { default_options.merge(log_level: :none) }
 
         it 'calls the Deferrable errback if channel is detached' do
@@ -282,7 +274,8 @@ describe Ably::Realtime::Presence, :event_machine do
               client_one.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
                 # Don't allow any messages to reach the server
                 client_one.connection.__outgoing_protocol_msgbus__.unsubscribe
-                force_connection_failure client_one
+                error_message = Ably::Models::ProtocolMessage.new(action: 9, error: { message: 'force failure' })
+                client_one.connection.__incoming_protocol_msgbus__.publish :protocol_message, error_message
               end
 
               presence_client_one.public_send(method_name, args).tap do |deferrable|
@@ -293,6 +286,124 @@ describe Ably::Realtime::Presence, :event_machine do
                 end
               end
             end
+          end
+        end
+      end
+    end
+
+    shared_examples_for 'a presence on behalf of another client method' do |method_name|
+      context ":#{method_name} when authenticated with a wildcard client_id" do
+        let(:token)            { Ably::Rest::Client.new(default_options).auth.request_token(client_id: '*').token }
+        let(:client_options)   { default_options.merge(key: nil, token: token) }
+        let(:client)           { auto_close Ably::Realtime::Client.new(client_options) }
+        let(:presence_channel) { client.channels.get(channel_name).presence }
+
+        context 'and a valid client_id' do
+          it 'succeeds' do
+            presence_channel.public_send(method_name, 'clientId') do
+              EM.add_timer(0.5) { stop_reactor }
+            end.tap do |deferrable|
+              deferrable.errback { raise 'Should have succeeded' }
+            end
+          end
+        end
+
+        context 'and a wildcard client_id' do
+          it 'throws an exception' do
+            expect { presence_channel.public_send(method_name, '*') }.to raise_error Ably::Exceptions::IncompatibleClientId
+            stop_reactor
+          end
+        end
+
+        context 'and an empty client_id' do
+          it 'throws an exception' do
+            expect { presence_channel.public_send(method_name, nil) }.to raise_error Ably::Exceptions::IncompatibleClientId
+            stop_reactor
+          end
+        end
+      end
+
+      context ":#{method_name} when authenticated with a valid client_id" do
+        let(:token)            { Ably::Rest::Client.new(default_options).auth.request_token(client_id: 'valid').token }
+        let(:client_options)   { default_options.merge(key: nil, token: token) }
+        let(:client)           { auto_close Ably::Realtime::Client.new(client_options.merge(log_level: :error)) }
+        let(:channel)          { client.channels.get(channel_name) }
+        let(:presence_channel) { channel.presence }
+
+        context 'and another invalid client_id' do
+          context 'before authentication' do
+            it 'allows the operation and then Ably rejects the operation' do
+              presence_channel.public_send(method_name, 'invalid').errback do |error|
+                expect(error.code).to eql(40012)
+                stop_reactor
+              end
+            end
+          end
+
+          context 'after authentication' do
+            it 'throws an exception' do
+              channel.attach do
+                expect { presence_channel.public_send(method_name, 'invalid') }.to raise_error Ably::Exceptions::IncompatibleClientId
+                stop_reactor
+              end
+            end
+          end
+        end
+
+        context 'and a wildcard client_id' do
+          it 'throws an exception' do
+            expect { presence_channel.public_send(method_name, '*') }.to raise_error Ably::Exceptions::IncompatibleClientId
+            stop_reactor
+          end
+        end
+
+        context 'and an empty client_id' do
+          it 'throws an exception' do
+            expect { presence_channel.public_send(method_name, nil) }.to raise_error Ably::Exceptions::IncompatibleClientId
+            stop_reactor
+          end
+        end
+      end
+
+      context ":#{method_name} when anonymous and no client_id" do
+        let(:token)            { Ably::Rest::Client.new(default_options).auth.request_token(client_id: nil).token }
+        let(:client_options)   { default_options.merge(key: nil, token: token) }
+        let(:client)           { auto_close Ably::Realtime::Client.new(client_options.merge(log_level: :error)) }
+        let(:channel)          { client.channels.get(channel_name) }
+        let(:presence_channel) { channel.presence }
+
+        context 'and another invalid client_id' do
+          context 'before authentication' do
+            it 'allows the operation and then Ably rejects the operation' do
+              presence_channel.public_send(method_name, 'invalid').errback do |error|
+                expect(error.code).to eql(40012)
+                stop_reactor
+              end
+            end
+          end
+
+          context 'after authentication' do
+            it 'throws an exception' do
+              skip 'Awaiting realtime issue #349 to be addressed first'
+              channel.attach do
+                expect { presence_channel.public_send(method_name, 'invalid') }.to raise_error Ably::Exceptions::IncompatibleClientId
+                stop_reactor
+              end
+            end
+          end
+        end
+
+        context 'and a wildcard client_id' do
+          it 'throws an exception' do
+            expect { presence_channel.public_send(method_name, '*') }.to raise_error Ably::Exceptions::IncompatibleClientId
+            stop_reactor
+          end
+        end
+
+        context 'and an empty client_id' do
+          it 'throws an exception' do
+            expect { presence_channel.public_send(method_name, nil) }.to raise_error Ably::Exceptions::IncompatibleClientId
+            stop_reactor
           end
         end
       end
@@ -404,7 +515,7 @@ describe Ably::Realtime::Presence, :event_machine do
         let(:present) { [] }
         let(:entered) { [] }
         let(:sync_pages_received) { [] }
-        let(:client_one) { auto_close Ably::Realtime::Client.new(client_options.merge(client_id: '*')) }
+        let(:client_one) { auto_close Ably::Realtime::Client.new(client_options.merge(auth_callback: wildcard_token)) }
 
         def setup_members_on(presence)
           enter_expected_count.times do |index|
@@ -667,7 +778,7 @@ describe Ably::Realtime::Presence, :event_machine do
       end
 
       it 'raises an exception if client_id is not set' do
-        expect { channel_anonymous_client.presence.enter }.to raise_error(Ably::Exceptions::Standard, /without a client_id/)
+        expect { channel_anonymous_client.presence.enter }.to raise_error(Ably::Exceptions::IncompatibleClientId, /without a client_id/)
         stop_reactor
       end
 
@@ -800,7 +911,7 @@ describe Ably::Realtime::Presence, :event_machine do
       end
 
       it 'raises an exception if not entered' do
-        expect { channel_anonymous_client.presence.leave }.to raise_error(Ably::Exceptions::Standard, /Unable to leave presence channel that is not entered/)
+        expect { channel_client_one.presence.leave }.to raise_error(Ably::Exceptions::Standard, /Unable to leave presence channel that is not entered/)
         stop_reactor
       end
 
@@ -835,10 +946,10 @@ describe Ably::Realtime::Presence, :event_machine do
 
     context 'entering/updating/leaving presence state on behalf of another client_id' do
       let(:client_count) { 5 }
-      let(:clients) { [] }
-      let(:data) { random_str }
-      let(:client_one) { auto_close Ably::Realtime::Client.new(client_options.merge(client_id: '*')) }
-      let(:client_two) { auto_close Ably::Realtime::Client.new(client_options.merge(client_id: '*')) }
+      let(:clients)      { [] }
+      let(:data)         { random_str }
+      let(:client_one)   { auto_close Ably::Realtime::Client.new(client_options.merge(auth_callback: wildcard_token)) }
+      let(:client_two)   { auto_close Ably::Realtime::Client.new(client_options.merge(auth_callback: wildcard_token)) }
 
       context '#enter_client' do
         context 'multiple times on the same channel with different client_ids' do
@@ -888,8 +999,6 @@ describe Ably::Realtime::Presence, :event_machine do
           end
         end
 
-        it_should_behave_like 'a public presence method', :enter_client, nil, 'client_id'
-
         context 'without necessary capabilities to enter on behalf of another client' do
           let(:restricted_client) do
             auto_close Ably::Realtime::Client.new(default_options.merge(key: restricted_api_key, log_level: :fatal))
@@ -904,6 +1013,9 @@ describe Ably::Realtime::Presence, :event_machine do
             end
           end
         end
+
+        it_should_behave_like 'a public presence method', :enter_client, nil, 'client_id'
+        it_should_behave_like 'a presence on behalf of another client method', :enter_client
       end
 
       context '#update_client' do
@@ -968,6 +1080,7 @@ describe Ably::Realtime::Presence, :event_machine do
         end
 
         it_should_behave_like 'a public presence method', :update_client, nil, 'client_id'
+        it_should_behave_like 'a presence on behalf of another client method', :update_client
       end
 
       context '#leave_client' do
@@ -1061,6 +1174,7 @@ describe Ably::Realtime::Presence, :event_machine do
         end
 
         it_should_behave_like 'a public presence method', :leave_client, nil, 'client_id'
+        it_should_behave_like 'a presence on behalf of another client method', :leave_client
       end
     end
 
@@ -1107,22 +1221,13 @@ describe Ably::Realtime::Presence, :event_machine do
         let(:pages)               { 2 }
         let(:members_per_page)    { 100 }
         let(:sync_pages_received) { [] }
-        let(:client_one)          { auto_close Ably::Realtime::Client.new(client_options.merge(client_id: '*')) }
+        let(:client_one)          { auto_close Ably::Realtime::Client.new(client_options.merge(auth_callback: wildcard_token)) }
         let(:client_options)      { default_options.merge(log_level: :none) }
 
         def connect_members_deferrables
           (members_per_page * pages + 1).times.map do |index|
             presence_client_one.enter_client("client:#{index}")
           end
-        end
-
-        before do
-          # Reconfigure client library so that it makes no retry attempts and fails immediately
-          stub_const 'Ably::Realtime::Connection::ConnectionManager::CONNECT_RETRY_CONFIG',
-                      Ably::Realtime::Connection::ConnectionManager::CONNECT_RETRY_CONFIG.merge(
-                        disconnected: { retry_every: 0.1, max_time_in_state: 0 },
-                        suspended:    { retry_every: 0.1, max_time_in_state: 0 }
-                      )
         end
 
         context 'when :wait_for_sync is true' do
@@ -1132,7 +1237,10 @@ describe Ably::Realtime::Presence, :event_machine do
                 client_two.connection.transport.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
                   if protocol_message.action == :sync
                     sync_pages_received << protocol_message
-                    force_connection_failure client_two if sync_pages_received.count == 1
+                    if sync_pages_received.count == 1
+                      error_message = Ably::Models::ProtocolMessage.new(action: 9, error: { message: 'force failure' })
+                      client_two.connection.__incoming_protocol_msgbus__.publish :protocol_message, error_message
+                    end
                   end
                 end
               end
@@ -1256,8 +1364,8 @@ describe Ably::Realtime::Presence, :event_machine do
       end
 
       context 'with lots of members on different clients' do
-        let(:client_one)         { auto_close Ably::Realtime::Client.new(client_options.merge(client_id: '*')) }
-        let(:client_two)         { auto_close Ably::Realtime::Client.new(client_options.merge(client_id: '*')) }
+        let(:client_one)         { auto_close Ably::Realtime::Client.new(client_options.merge(auth_callback: wildcard_token)) }
+        let(:client_two)         { auto_close Ably::Realtime::Client.new(client_options.merge(auth_callback: wildcard_token)) }
         let(:members_per_client) { 10 }
         let(:clients_entered)    { Hash.new { |hash, key| hash[key] = 0 } }
         let(:total_members)      { members_per_client * 2 }

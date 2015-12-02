@@ -53,7 +53,7 @@ describe Ably::Realtime::Client, :event_machine do
                 connection.on(:connected) do
                   expect(auth_params[:access_token]).to_not be_nil
                   expect(auth_params[:key]).to be_nil
-                  expect(subject.auth.current_token_details).to be_nil
+                  expect(subject.auth.current_token_details).to be_a(Ably::Models::TokenDetails)
                   stop_reactor
                 end
               end
@@ -112,6 +112,98 @@ describe Ably::Realtime::Client, :event_machine do
               expect(auth.current_token_details.client_id).to eql(client_id)
               stop_reactor
             end
+          end
+
+          context 'when the returned token has a client_id' do
+            it "sets Auth#client_id to the new token's client_id immediately when connecting" do
+              subject.auth.authorise do
+                expect(subject.connection).to be_connecting
+                expect(subject.auth.client_id).to eql(client_id)
+                stop_reactor
+              end
+            end
+
+            it "sets Client#client_id to the new token's client_id immediately when connecting" do
+              subject.auth.authorise do
+                expect(subject.connection).to be_connecting
+                expect(subject.client_id).to eql(client_id)
+                stop_reactor
+              end
+            end
+          end
+
+          context 'with a wildcard client_id token' do
+            subject                 { Ably::Realtime::Client.new(client_options) }
+            let(:client_options)    { default_options.merge(auth_callback: Proc.new { auth_token_object }, client_id: client_id) }
+            let(:rest_auth_client)  { Ably::Rest::Client.new(default_options.merge(key: api_key)) }
+            let(:auth_token_object) { rest_auth_client.auth.request_token(client_id: '*') }
+
+            context 'and an explicit client_id in ClientOptions' do
+              let(:client_id) { random_str }
+
+              it 'allows the explicit client_id to be used for the connection' do
+                connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                  if protocol_message.action == :connected
+                    expect(protocol_message.connection_details.client_id).to be_nil
+                    @valid_client_id = true
+                  end
+                end
+                subject.connect do
+                  EM.add_timer(0.5) { stop_reactor if @valid_client_id }
+                end
+              end
+            end
+
+            context 'and client_id omitted in ClientOptions' do
+              let(:client_options) { default_options.merge(auth_callback: Proc.new { auth_token_object }) }
+
+              it 'allows omitted client_id to be used for the connection' do
+                connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                  if protocol_message.action == :connected
+                    expect(protocol_message.connection_details.client_id).to be_nil
+                    @valid_client_id = true
+                  end
+                end
+                subject.connect do
+                  EM.add_timer(0.5) { stop_reactor if @valid_client_id }
+                end
+              end
+            end
+          end
+        end
+
+        context 'with an invalid wildcard "*" :client_id' do
+          it 'raises an exception' do
+            expect { Ably::Realtime::Client.new(client_options.merge(key: api_key, client_id: '*')) }.to raise_error ArgumentError
+            stop_reactor
+          end
+        end
+      end
+
+      context 'realtime connection settings' do
+        context 'defaults' do
+          specify 'disconnected_retry_timeout is 15s' do
+            expect(subject.connection.defaults[:disconnected_retry_timeout]).to eql(15)
+            stop_reactor
+          end
+
+          specify 'suspended_retry_timeout is 30s' do
+            expect(subject.connection.defaults[:suspended_retry_timeout]).to eql(30)
+            stop_reactor
+          end
+        end
+
+        context 'overriden in ClientOptions' do
+          let(:client_options) { default_options.merge(disconnected_retry_timeout: 1, suspended_retry_timeout: 2) }
+
+          specify 'disconnected_retry_timeout is updated' do
+            expect(subject.connection.defaults[:disconnected_retry_timeout]).to eql(1)
+            stop_reactor
+          end
+
+          specify 'suspended_retry_timeout is updated' do
+            expect(subject.connection.defaults[:suspended_retry_timeout]).to eql(2)
+            stop_reactor
           end
         end
       end

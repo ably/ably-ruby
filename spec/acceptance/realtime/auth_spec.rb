@@ -70,15 +70,6 @@ describe Ably::Realtime::Auth, :event_machine do
         end
       end
 
-      context '#token' do
-        let(:client_options) { default_options.merge(token: random_str) }
-
-        it 'contains the current token after auth' do
-          expect(auth.token).to_not be_nil
-          stop_reactor
-        end
-      end
-
       context '#current_token_details' do
         it 'contains the current token after auth' do
           expect(auth.current_token_details).to be_nil
@@ -99,6 +90,7 @@ describe Ably::Realtime::Auth, :event_machine do
       context '#options (auth_options)' do
         let(:auth_url) { "https://echo.ably.io/?type=text" }
         let(:auth_params) { { :body => random_str } }
+        let(:client_options) { default_options.merge(auto_connect: false) }
 
         it 'contains the configured auth options' do
           auth.authorise({}, auth_url: auth_url, auth_params: auth_params) do
@@ -193,6 +185,75 @@ describe Ably::Realtime::Auth, :event_machine do
             stop_reactor
           end
         end
+
+        context 'when implicitly called, with an explicit ClientOptions client_id' do
+          let(:client_id)        { random_str }
+          let(:client_options)   { default_options.merge(auth_callback: Proc.new { auth_token_object }, client_id: client_id, log_level: :none) }
+          let(:rest_auth_client) { Ably::Rest::Client.new(default_options.merge(key: api_key, client_id: 'invalid')) }
+
+          context 'and an incompatible client_id in a TokenDetails object passed to the auth callback' do
+            let(:auth_token_object) { rest_auth_client.auth.request_token }
+
+            it 'rejects a TokenDetails object with an incompatible client_id and raises an exception' do
+              client.connect
+              client.connection.on(:error) do |error|
+                expect(error).to be_a(Ably::Exceptions::IncompatibleClientId)
+                EventMachine.add_timer(0.1) do
+                  expect(client.connection).to be_failed
+                  stop_reactor
+                end
+              end
+            end
+          end
+
+          context 'and an incompatible client_id in a TokenRequest object passed to the auth callback and raises an exception' do
+            let(:auth_token_object) { rest_auth_client.auth.create_token_request }
+
+            it 'rejects a TokenRequests object with an incompatible client_id and raises an exception' do
+              client.connect
+              client.connection.on(:error) do |error|
+                expect(error).to be_a(Ably::Exceptions::IncompatibleClientId)
+                EventMachine.add_timer(0.1) do
+                  expect(client.connection).to be_failed
+                  stop_reactor
+                end
+              end
+            end
+          end
+        end
+
+        context 'when explicitly called, with an explicit ClientOptions client_id' do
+          let(:auth_proc) do
+            Proc.new do
+              if !@requested
+                @requested = true
+                valid_auth_token
+              else
+                invalid_auth_token
+              end
+            end
+          end
+
+          let(:client_id)          { random_str }
+          let(:client_options)     { default_options.merge(auth_callback: auth_proc, client_id: client_id, log_level: :none) }
+          let(:valid_auth_token)   { Ably::Rest::Client.new(default_options.merge(key: api_key, client_id: client_id)).auth.request_token }
+          let(:invalid_auth_token) { Ably::Rest::Client.new(default_options.merge(key: api_key, client_id: 'invalid')).auth.request_token }
+
+          context 'and an incompatible client_id in a TokenDetails object passed to the auth callback' do
+            it 'rejects a TokenDetails object with an incompatible client_id and raises an exception' do
+              client.connection.once(:connected) do
+                client.auth.authorise({}, force: true)
+                client.connection.on(:error) do |error|
+                  expect(error).to be_a(Ably::Exceptions::IncompatibleClientId)
+                  EventMachine.add_timer(0.1) do
+                    expect(client.connection).to be_failed
+                    stop_reactor
+                  end
+                end
+              end
+            end
+          end
+        end
       end
 
       context '#authorise_async' do
@@ -216,7 +277,7 @@ describe Ably::Realtime::Auth, :event_machine do
       end
     end
 
-    context '#auth_params' do
+    context '#auth_params_sync' do
       it 'returns the auth params synchronously' do
         expect(auth.auth_params_sync).to be_a(Hash)
         stop_reactor
@@ -232,10 +293,183 @@ describe Ably::Realtime::Auth, :event_machine do
       end
     end
 
-    context '#auth_header' do
+    context '#auth_header_sync' do
       it 'returns an auth header synchronously' do
         expect(auth.auth_header_sync).to be_a(String)
         stop_reactor
+      end
+    end
+
+    describe '#client_id_confirmed?' do
+      let(:auth) { Ably::Rest::Client.new(default_options.merge(key: api_key)).auth }
+
+      context 'when using basic auth' do
+        let(:client_options) { default_options.merge(key: api_key) }
+
+        context 'before connected' do
+          it 'is false as basic auth users do not have an identity' do
+            expect(client.auth).to_not be_client_id_confirmed
+            stop_reactor
+          end
+        end
+
+        context 'once connected' do
+          it 'is false' do
+            client.connection.once(:connected) do
+              expect(client.auth).to_not be_client_id_confirmed
+              stop_reactor
+            end
+          end
+        end
+      end
+
+      context 'when using a token string' do
+        context 'with a valid client_id' do
+          let(:client_options) { default_options.merge(token: auth.request_token(client_id: 'present').token) }
+
+          context 'before connected' do
+            it 'is false as identification is not possible from an opaque token string' do
+              expect(client.auth).to_not be_client_id_confirmed
+              stop_reactor
+            end
+
+            specify '#client_id is nil' do
+              expect(client.auth.client_id).to be_nil
+              stop_reactor
+            end
+          end
+
+          context 'once connected' do
+            it 'is true' do
+              client.connection.once(:connected) do
+                expect(client.auth).to be_client_id_confirmed
+                stop_reactor
+              end
+            end
+
+            specify '#client_id is populated' do
+              client.connection.once(:connected) do
+                expect(client.auth.client_id).to eql('present')
+                stop_reactor
+              end
+            end
+          end
+        end
+
+        context 'with no client_id (anonymous)' do
+          let(:client_options) { default_options.merge(token: auth.request_token(client_id: nil).token) }
+
+          context 'before connected' do
+            it 'is false as identification is not possible from an opaque token string' do
+              expect(client.auth).to_not be_client_id_confirmed
+              stop_reactor
+            end
+          end
+
+          context 'once connected' do
+            it 'is true' do
+              skip 'Awaiting realtime issue #349 to be addressed first'
+              client.connection.once(:connected) do
+                expect(client.auth).to be_client_id_confirmed
+                stop_reactor
+              end
+            end
+          end
+        end
+
+        context 'with a wildcard client_id (anonymous)' do
+          let(:client_options) { default_options.merge(token: auth.request_token(client_id: '*').token) }
+
+          context 'before connected' do
+            it 'is false as identification is not possible from an opaque token string' do
+              expect(client.auth).to_not be_client_id_confirmed
+              stop_reactor
+            end
+          end
+
+          context 'once connected' do
+            it 'is false' do
+              client.connection.once(:connected) do
+                expect(client.auth).to_not be_client_id_confirmed
+                stop_reactor
+              end
+            end
+          end
+        end
+      end
+
+      context 'when using a token' do
+        context 'with a client_id' do
+          let(:client_options) { default_options.merge(token: auth.request_token(client_id: 'present')) }
+
+          it 'is true' do
+            expect(client.auth).to be_client_id_confirmed
+            stop_reactor
+          end
+
+          context 'once connected' do
+            it 'is true' do
+              client.connection.once(:connected) do
+                expect(client.auth).to be_client_id_confirmed
+                stop_reactor
+              end
+            end
+          end
+        end
+
+        context 'with no client_id (anonymous)' do
+          let(:client_options) { default_options.merge(token: auth.request_token(client_id: nil)) }
+
+          it 'is true' do
+            expect(client.auth).to be_client_id_confirmed
+            stop_reactor
+          end
+
+          context 'once connected' do
+            it 'is true' do
+              client.connection.once(:connected) do
+                expect(client.auth).to be_client_id_confirmed
+                stop_reactor
+              end
+            end
+          end
+        end
+
+        context 'with a wildcard client_id (anonymous)' do
+          let(:client_options) { default_options.merge(token: auth.request_token(client_id: '*')) }
+
+          it 'is false' do
+            expect(client.auth).to_not be_client_id_confirmed
+            stop_reactor
+          end
+
+          context 'once connected' do
+            it 'is false' do
+              client.connection.once(:connected) do
+                expect(client.auth).to_not be_client_id_confirmed
+                stop_reactor
+              end
+            end
+          end
+        end
+      end
+
+      context 'when using a token request with a client_id' do
+        let(:client_options) { default_options.merge(token: auth.create_token_request(client_id: 'present')) }
+
+        it 'is not true as identification is not confirmed until authenticated' do
+          expect(client.auth).to_not be_client_id_confirmed
+          stop_reactor
+        end
+
+        context 'once connected' do
+          it 'is true as identification is completed following CONNECTED ProtocolMessage' do
+            client.channel('test').publish('a') do
+              expect(client.auth).to be_client_id_confirmed
+              stop_reactor
+            end
+          end
+        end
       end
     end
   end

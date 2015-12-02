@@ -7,7 +7,9 @@ describe Ably::Modules::EventEmitter do
     Class.new do
       include Ably::Modules::EventEmitter
       configure_event_emitter callback_opts
-      def logger; end
+      def logger
+        @logger ||= Ably::Models::NilLogger.new
+      end
     end
   end
   let(:obj) { double('example') }
