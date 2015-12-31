@@ -121,7 +121,7 @@ module Ably::Models
     end
 
     # Aggregates inbound and outbound messages
-    # return {@Stats::MessageTypes}
+    # @return {Stats::MessageTypes}
     def all
       @all ||= Stats::MessageTypes.new(hash[:all])
     end
