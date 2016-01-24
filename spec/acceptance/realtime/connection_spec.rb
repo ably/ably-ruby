@@ -800,6 +800,41 @@ describe Ably::Realtime::Connection, :event_machine do
       end
     end
 
+    context '#details' do
+      let(:connection) { client.connection }
+
+      it 'is nil before connected' do
+        connection.on(:connecting) do
+          expect(connection.details).to eql(nil)
+          stop_reactor
+        end
+      end
+
+      it 'contains the ConnectionDetails object once connected' do
+        connection.on(:connected) do
+          expect(connection.details).to be_a(Ably::Models::ConnectionDetails)
+          expect(connection.details.connection_key).to_not be_nil
+          expect(connection.details.server_id).to_not be_nil
+          stop_reactor
+        end
+      end
+
+      it 'contains the new ConnectionDetails object once a subsequent connection is created' do
+        connection.once(:connected) do
+          expect(connection.details.connection_key).to_not be_nil
+          old_key = connection.details.connection_key
+          connection.close do
+            connection.once(:connected) do
+              expect(connection.details.connection_key).to_not be_nil
+              expect(connection.details.connection_key).to_not eql(old_key)
+              stop_reactor
+            end
+            connection.connect
+          end
+        end
+      end
+    end
+
     context 'recovery' do
       let(:channel_name) { random_str }
       let(:channel) { client.channel(channel_name) }

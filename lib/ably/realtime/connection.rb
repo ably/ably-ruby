@@ -84,6 +84,10 @@ module Ably
       # @return [Ably::Models::ErrorInfo,Ably::Exceptions::BaseAblyException]
       attr_reader :error_reason
 
+      # Connection details of the currently established connection
+      # @return [Ably::Models::ConnectionDetails]
+      attr_reader :details
+
       # {Ably::Realtime::Client} associated with this connection
       # @return [Ably::Realtime::Client]
       attr_reader :client
@@ -435,6 +439,11 @@ module Ably
       # @api private
       def clear_error_reason
         @error_reason = nil
+      end
+
+      # @api private
+      def set_connection_details(connection_details)
+        @details = connection_details
       end
 
       # Executes registered callbacks for a successful connection resume event
