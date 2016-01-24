@@ -1,5 +1,6 @@
 require 'eventmachine'
 require 'websocket/driver'
+require 'em-http-request'
 
 require 'ably/modules/event_emitter'
 
