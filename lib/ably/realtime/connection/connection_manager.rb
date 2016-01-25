@@ -58,7 +58,7 @@ module Ably::Realtime
         end
 
         logger.debug "ConnectionManager: Setting up automatic connection timeout timer for #{realtime_request_timeout}s"
-        create_timeout_timer_whilst_in_state(:connect, realtime_request_timeout) do
+        create_timeout_timer_whilst_in_state(:connecting, realtime_request_timeout) do
           connection_opening_failed Ably::Exceptions::ConnectionTimeout.new("Connection to Ably timed out after #{realtime_request_timeout}s", nil, 80014)
         end
       end
@@ -123,7 +123,7 @@ module Ably::Realtime
       def close_connection
         connection.send_protocol_message(action: Ably::Models::ProtocolMessage::ACTION.Close)
 
-        create_timeout_timer_whilst_in_state(:close, realtime_request_timeout) do
+        create_timeout_timer_whilst_in_state(:closing, realtime_request_timeout) do
           force_close_connection if connection.closing?
         end
       end
