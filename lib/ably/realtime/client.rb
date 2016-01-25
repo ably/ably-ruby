@@ -96,7 +96,7 @@ module Ably
         @auto_connect          = @rest_client.options.fetch(:auto_connect, true) == false ? false : true
         @recover               = @rest_client.options[:recover]
 
-        raise ArgumentError, "Recovery key is invalid" if @recover && !@recover.match(Connection::RECOVER_REGEX)
+        raise ArgumentError, "Recovery key '#{recover}' is invalid" if recover && !recover.match(Connection::RECOVER_REGEX)
       end
 
       # Return a {Ably::Realtime::Channel Realtime Channel} for the given name
