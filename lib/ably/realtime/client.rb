@@ -90,11 +90,11 @@ module Ably
         @auth                  = Ably::Realtime::Auth.new(self)
         @channels              = Ably::Realtime::Channels.new(self)
         @connection            = Ably::Realtime::Connection.new(self, options)
-        @echo_messages         = @rest_client.options.fetch(:echo_messages, true) == false ? false : true
-        @queue_messages        = @rest_client.options.fetch(:queue_messages, true) == false ? false : true
-        @custom_realtime_host  = @rest_client.options[:realtime_host] || @rest_client.options[:ws_host]
-        @auto_connect          = @rest_client.options.fetch(:auto_connect, true) == false ? false : true
-        @recover               = @rest_client.options[:recover]
+        @echo_messages         = rest_client.options.fetch(:echo_messages, true) == false ? false : true
+        @queue_messages        = rest_client.options.fetch(:queue_messages, true) == false ? false : true
+        @custom_realtime_host  = rest_client.options[:realtime_host] || rest_client.options[:ws_host]
+        @auto_connect          = rest_client.options.fetch(:auto_connect, true) == false ? false : true
+        @recover               = rest_client.options[:recover]
 
         raise ArgumentError, "Recovery key '#{recover}' is invalid" if recover && !recover.match(Connection::RECOVER_REGEX)
       end
