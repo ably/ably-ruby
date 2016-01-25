@@ -130,7 +130,7 @@ describe Ably::Rest do
           if [1, 3].include?(@publish_attempts)
             { status: 201, :body => '[]', :headers => { 'Content-Type' => 'application/json' } }
           else
-            raise Ably::Exceptions::TokenExpired.new('Authentication failure', 401, 40140)
+            raise Ably::Exceptions::TokenExpired.new('Authentication failure', 401, 40142)
           end
         end
       end

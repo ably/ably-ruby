@@ -141,7 +141,7 @@ describe Ably::Realtime::Connection, :event_machine do
                   started_at = Time.now.to_f
                   connection.once(:disconnected) do
                     connection.once(:disconnected) do |connection_state_change|
-                      expect(connection_state_change.reason.code).to eql(40140) # token expired
+                      expect(connection_state_change.reason.code).to eql(40142) # token expired
                       expect(Time.now.to_f - started_at).to be < 1000
                       expect(auth_requests.count).to eql(2)
                       stop_reactor
@@ -156,7 +156,7 @@ describe Ably::Realtime::Connection, :event_machine do
                     started_at = Time.now.to_f
                     disconnect_count = 0
                     connection.on(:disconnected) do |connection_state_change|
-                      expect(connection_state_change.reason.code).to eql(40140) # token expired
+                      expect(connection_state_change.reason.code).to eql(40142) # token expired
                       disconnect_count += 1
                       if disconnect_count == 6
                         expect(Time.now.to_f - started_at).to be > 4 * 0.5 # at least 4 0.5 second pauses should have happened
@@ -207,7 +207,7 @@ describe Ably::Realtime::Connection, :event_machine do
                       expect(original_token).to_not be_expired
                       started_at = Time.now
                       connection.once(:disconnected) do |connection_state_change|
-                        expect(connection_state_change.reason.code).to eq(40140) # Token expired
+                        expect(connection_state_change.reason.code).to eq(40142) # Token expired
 
                         # Token has expired, so now ensure it is not used again
                         stub_const 'Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER', original_token_expiry_buffer
@@ -333,7 +333,7 @@ describe Ably::Realtime::Connection, :event_machine do
                   expect(expired_token_details).to be_expired
                   connection.once(:connected) { raise 'Connection should never connect as token has expired' }
                   connection.once(:failed) do
-                    expect(client.connection.error_reason.code).to eql(40140)
+                    expect(client.connection.error_reason.code).to eql(40142)
                     stop_reactor
                   end
                 end
@@ -813,7 +813,8 @@ describe Ably::Realtime::Connection, :event_machine do
           log_level:                  :none,
           disconnected_retry_timeout: 0.1,
           suspended_retry_timeout:    0.1,
-          connection_state_ttl:       0.2
+          connection_state_ttl:       0.2,
+          realtime_request_timeout:   5
         )
       end
 

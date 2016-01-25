@@ -1,3 +1,5 @@
+require 'ably/rest/middleware/exceptions'
+
 module Ably::Realtime
   class Connection
     # ConnectionManager is responsible for all actions relating to underlying connection and transports,
@@ -10,7 +12,7 @@ module Ably::Realtime
     class ConnectionManager
       # Error codes from the server that can potentially be resolved
       RESOLVABLE_ERROR_CODES = {
-        token_expired: 40140
+        token_expired: Ably::Rest::Middleware::Exceptions::TOKEN_EXPIRED_CODE
       }
 
       def initialize(connection)
@@ -153,7 +155,7 @@ module Ably::Realtime
         return unless can_retry_connection? # do not always reattempt connection or change state as client may be re-authorising
 
         if error.kind_of?(Ably::Models::ErrorInfo)
-          if error.code == RESOLVABLE_ERROR_CODES.fetch(:token_expired)
+          if RESOLVABLE_ERROR_CODES.fetch(:token_expired).include?(error.code)
             next_state = get_next_retry_state_info
             logger.debug "ConnectionManager: Transport disconnected because of token expiry, pausing #{next_state.fetch(:pause)}s before reattempting to connect"
             EventMachine.add_timer(next_state.fetch(:pause)) { renew_token_and_reconnect error }
@@ -181,7 +183,7 @@ module Ably::Realtime
           logger.debug "ConnectionManager: Transport disconnected whilst connection in #{connection.state} state"
         end
 
-        if error.kind_of?(Ably::Models::ErrorInfo) && error.code != RESOLVABLE_ERROR_CODES.fetch(:token_expired)
+        if error.kind_of?(Ably::Models::ErrorInfo) && !RESOLVABLE_ERROR_CODES.fetch(:token_expired).include?(error.code)
           connection.emit :error, error
           logger.error "ConnectionManager: Error in Disconnected ProtocolMessage received from the server - #{error}"
         end
