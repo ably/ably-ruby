@@ -509,7 +509,7 @@ describe Ably::Realtime::Presence, :event_machine do
     end
 
     context '250 existing (present) members on a channel (3 SYNC pages)' do
-      context 'requires at least 3 SYNC ProtocolMessages' do
+      context 'requires at least 3 SYNC ProtocolMessages', em_timeout: 30 do
         let(:enter_expected_count) { 250 }
         let(:present) { [] }
         let(:entered) { [] }
@@ -518,15 +518,18 @@ describe Ably::Realtime::Presence, :event_machine do
 
         def setup_members_on(presence)
           enter_expected_count.times do |index|
-            presence.enter_client("client:#{index}") do |message|
-              entered << message
-              next unless entered.count == enter_expected_count
-              yield
+            # 10 messages per second max rate on simulation accounts
+            EventMachine.add_timer(index / 10) do
+              presence.enter_client("client:#{index}") do |message|
+                entered << message
+                next unless entered.count == enter_expected_count
+                yield
+              end
             end
           end
         end
 
-        context 'when a client attaches to the presence channel', em_timeout: 10 do
+        context 'when a client attaches to the presence channel' do
           it 'emits :present for each member' do
             setup_members_on(presence_client_one) do
               presence_anonymous_client.subscribe(:present) do |present_message|
