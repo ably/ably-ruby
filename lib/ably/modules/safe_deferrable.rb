@@ -59,7 +59,7 @@ module Ably::Modules
 
     private
     def safe_deferrable_block(*args)
-      yield *args
+      yield(*args)
     rescue StandardError => e
       message = "An exception in a Deferrable callback was caught. #{e.class}: #{e.message}\n#{e.backtrace.join("\n")}"
       if defined?(:logger) && logger.respond_to?(:error)

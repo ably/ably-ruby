@@ -99,12 +99,12 @@ module Ably::Realtime
           end
 
           reset_callbacks = proc do
-            off &in_sync_callback
-            off &failed_callback
-            channel.off &failed_callback
+            off(&in_sync_callback)
+            off(&failed_callback)
+            channel.off(&failed_callback)
           end
 
-          once :in_sync, &in_sync_callback
+          once(:in_sync, &in_sync_callback)
 
           once(:failed, &failed_callback)
           channel.unsafe_once(:detaching, :detached, :failed) do |error_reason|
@@ -170,9 +170,9 @@ module Ably::Realtime
         end
 
         resume_sync_proc = method(:resume_sync).to_proc
-        connection.on_resume &resume_sync_proc
+        connection.on_resume(&resume_sync_proc)
         once(:in_sync, :failed) do
-          connection.off_resume &resume_sync_proc
+          connection.off_resume(&resume_sync_proc)
         end
 
         once(:in_sync) do

@@ -325,7 +325,7 @@ module Ably
           end
         end
 
-        queue.push *messages
+        queue.push(*messages)
 
         if attached?
           process_queue

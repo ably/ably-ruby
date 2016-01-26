@@ -212,25 +212,25 @@ describe Ably::Realtime::Channel do
       end
 
       specify 'with no event name specified unsubscribes that block from all events' do
-        subject.unsubscribe &callback
+        subject.unsubscribe(&callback)
         subject.__incoming_msgbus__.publish(:message, click_message)
         expect(message_history[:received]).to eql(0)
       end
 
       specify 'with a single event name argument unsubscribes the provided block with the matching event name' do
-        subject.unsubscribe click_event, &callback
+        subject.unsubscribe(click_event, &callback)
         subject.__incoming_msgbus__.publish(:message, click_message)
         expect(message_history[:received]).to eql(0)
       end
 
       specify 'with multiple event name arguments unsubscribes each of those matching event names with the provided block' do
-        subject.unsubscribe focus_event, click_event, &callback
+        subject.unsubscribe(focus_event, click_event, &callback)
         subject.__incoming_msgbus__.publish(:message, click_message)
         expect(message_history[:received]).to eql(0)
       end
 
       specify 'with a non-matching event name argument has no effect' do
-        subject.unsubscribe 'move', &callback
+        subject.unsubscribe('move', &callback)
         subject.__incoming_msgbus__.publish(:message, click_message)
         expect(message_history[:received]).to eql(1)
       end

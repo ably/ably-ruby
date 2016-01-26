@@ -42,7 +42,7 @@ module Ably::Modules
       raise ArgumentError, 'Block required' unless block_given?
 
       Ably::Util::SafeDeferrable.new(logger).tap do |deferrable|
-        deferrable.callback &success_callback if success_callback
+        deferrable.callback(&success_callback) if success_callback
 
         operation_with_exception_handling = proc do
           begin

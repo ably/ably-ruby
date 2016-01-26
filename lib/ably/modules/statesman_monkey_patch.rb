@@ -5,7 +5,7 @@ module Ably::Modules
     # This can be removed once https://github.com/gocardless/statesman/issues/95 is solved
     def before_transition(options = nil, &block)
       arrayify_transition(options) do |options_without_from_array|
-        super *options_without_from_array, &block
+        super(*options_without_from_array, &block)
       end
     end
 
@@ -13,7 +13,7 @@ module Ably::Modules
     # This can be removed once https://github.com/gocardless/statesman/issues/95 is solved
     def after_transition(options = nil, &block)
       arrayify_transition(options) do |options_without_from_array|
-        super *options_without_from_array, &block
+        super(*options_without_from_array, &block)
       end
     end
 

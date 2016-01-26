@@ -1484,8 +1484,8 @@ describe Ably::Realtime::Presence, :event_machine do
         it 'removes the callback for all presence events' do
           when_all(channel_client_one.attach, channel_client_two.attach) do
             subscribe_callback = proc { raise 'Should not be called' }
-            presence_client_two.subscribe &subscribe_callback
-            presence_client_two.unsubscribe &subscribe_callback
+            presence_client_two.subscribe(&subscribe_callback)
+            presence_client_two.unsubscribe(&subscribe_callback)
 
             presence_client_one.enter
             presence_client_one.update

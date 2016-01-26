@@ -104,31 +104,31 @@ describe Ably::Realtime::Presence do
       end
 
       specify 'with no action specified unsubscribes that block from all events' do
-        subject.unsubscribe &callback
+        subject.unsubscribe(&callback)
         subject.__incoming_msgbus__.publish(:presence, enter_message)
         expect(message_history[:received]).to eql(0)
       end
 
       specify 'with a single action argument unsubscribes the provided block with the matching action' do
-        subject.unsubscribe enter_action, &callback
+        subject.unsubscribe(enter_action, &callback)
         subject.__incoming_msgbus__.publish(:presence, enter_message)
         expect(message_history[:received]).to eql(0)
       end
 
       specify 'with multiple action arguments unsubscribes each of those matching actions with the provided block' do
-        subject.unsubscribe :update, :leave, enter_action, &callback
+        subject.unsubscribe(:update, :leave, enter_action, &callback)
         subject.__incoming_msgbus__.publish(:presence, enter_message)
         expect(message_history[:received]).to eql(0)
       end
 
       specify 'with a non-matching action argument has no effect' do
-        subject.unsubscribe :leave, &callback
+        subject.unsubscribe(:leave, &callback)
         subject.__incoming_msgbus__.publish(:presence, enter_message)
         expect(message_history[:received]).to eql(1)
       end
 
       specify 'with no block argument unsubscribes all blocks for the action argument' do
-        subject.unsubscribe enter_action
+        subject.unsubscribe(enter_action)
         subject.__incoming_msgbus__.publish(:presence, enter_message)
         expect(message_history[:received]).to eql(0)
       end

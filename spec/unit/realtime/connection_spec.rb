@@ -54,7 +54,7 @@ describe Ably::Realtime::Connection do
       it 'registers a callback' do
         subject.on_resume { callbacks << true }
         additional_proc = proc { raise 'This should not be called' }
-        subject.off_resume &additional_proc
+        subject.off_resume(&additional_proc)
         subject.resumed
         expect(callbacks.count).to eql(1)
       end

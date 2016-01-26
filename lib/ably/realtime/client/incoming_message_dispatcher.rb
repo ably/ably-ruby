@@ -201,7 +201,7 @@ module Ably::Realtime
 
       def subscribe_to_incoming_protocol_messages
         connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |*args|
-          dispatch_protocol_message *args
+          dispatch_protocol_message(*args)
         end
       end
     end

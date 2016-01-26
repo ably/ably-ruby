@@ -178,12 +178,12 @@ module Ably
 
           once(:connected) do
             deferrable.succeed
-            off &fail_callback
+            off(&fail_callback)
           end
 
           once(:failed, :closed, :closing) do
             deferrable.fail
-            off &succeed_callback
+            off(&succeed_callback)
           end
         end
       end

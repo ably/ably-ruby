@@ -16,7 +16,7 @@ shared_examples 'a safe Deferrable' do
       subject.errback do |*args|
         expect(args).to eql(arguments)
       end
-      subject.fail *arguments
+      subject.fail(*arguments)
     end
 
     it 'catches exceptions in the callback and logs the error to the logger' do
@@ -34,7 +34,7 @@ shared_examples 'a safe Deferrable' do
         subject.errback  { errback_calls << true }
         subject.callback { success_calls << true }
       end
-      subject.fail *arguments
+      subject.fail(*arguments)
       expect(errback_calls.count).to eql(3)
       expect(success_calls.count).to eql(0)
     end
@@ -45,7 +45,7 @@ shared_examples 'a safe Deferrable' do
       subject.callback do |*args|
         expect(args).to eql(arguments)
       end
-      subject.succeed *arguments
+      subject.succeed(*arguments)
     end
 
     it 'catches exceptions in the callback and logs the error to the logger' do
@@ -63,7 +63,7 @@ shared_examples 'a safe Deferrable' do
         subject.errback  { errback_calls << true }
         subject.callback { success_calls << true }
       end
-      subject.succeed *arguments
+      subject.succeed(*arguments)
       expect(success_calls.count).to eql(3)
       expect(errback_calls.count).to eql(0)
     end

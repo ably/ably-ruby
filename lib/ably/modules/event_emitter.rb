@@ -90,7 +90,7 @@ module Ably
           clone.
           select do |proc_hash|
             if proc_hash[:unsafe]
-              proc_hash[:emit_proc].call *args
+              proc_hash[:emit_proc].call(*args)
             else
               safe_yield proc_hash[:emit_proc], *args
             end
@@ -133,7 +133,7 @@ module Ably
       def proc_for_block(block, options = {})
         {
           emit_proc: Proc.new do |*args|
-            block.call *args
+            block.call(*args)
             true if options[:delete_once_run]
           end,
           block: block,
