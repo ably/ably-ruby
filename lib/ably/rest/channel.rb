@@ -65,15 +65,15 @@ module Ably
         end
 
         payload = messages.map do |message|
-          Ably::Models::Message(message.dup).tap do |message|
-            message.encode self
+          Ably::Models::Message(message.dup).tap do |msg|
+            msg.encode self
 
-            next if message.client_id.nil?
-            if message.client_id == '*'
+            next if msg.client_id.nil?
+            if msg.client_id == '*'
               raise Ably::Exceptions::IncompatibleClientId.new('Wildcard client_id is reserved and cannot be used when publishing messages', 400, 40012)
             end
-            unless client.auth.can_assume_client_id?(message.client_id)
-              raise Ably::Exceptions::IncompatibleClientId.new("Cannot publish with client_id '#{message.client_id}' as it is incompatible with the current configured client_id '#{client.client_id}'", 400, 40012)
+            unless client.auth.can_assume_client_id?(msg.client_id)
+              raise Ably::Exceptions::IncompatibleClientId.new("Cannot publish with client_id '#{msg.client_id}' as it is incompatible with the current configured client_id '#{client.client_id}'", 400, 40012)
             end
           end.as_json
         end
@@ -111,8 +111,8 @@ module Ably
         response = client.get(url, options)
 
         Ably::Models::PaginatedResult.new(response, url, client, paginated_options) do |message|
-          message.tap do |message|
-            decode_message message
+          message.tap do |msg|
+            decode_message msg
           end
         end
       end
