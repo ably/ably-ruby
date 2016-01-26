@@ -59,7 +59,9 @@ module Ably::Modules
     def_delegators :state_machine, :can_transition_to?
 
     private
-    attr_reader :state_machine
+    def state_machine
+      @state_machine
+    end
 
     def_delegators :state_machine, :exception_for_state_change_to
 
@@ -85,7 +87,7 @@ module Ably::Modules
 
     module ClassMethods
       def emits_klass
-        @emits_klass ||= if @emits_klass_name
+        @emits_klass ||= if defined?(@emits_klass_name) && @emits_klass_name
           get_const(@emits_klass_name)
         end
       end

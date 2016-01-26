@@ -30,11 +30,11 @@ describe Ably::Modules::StateEmitter do
   end
 
   specify '#state= sets current state' do
-    expect { subject.state = :connecting }.to change { subject.state }.to(:connecting)
+    expect { subject.state = :connecting }.to change { subject.state.to_sym }.to(:connecting)
   end
 
   specify '#change_state sets current state' do
-    expect { subject.change_state :connecting }.to change { subject.state }.to(:connecting)
+    expect { subject.change_state :connecting }.to change { subject.state.to_sym }.to(:connecting)
   end
 
   context '#change_state with arguments' do
@@ -46,7 +46,7 @@ describe Ably::Modules::StateEmitter do
         expect(callback_args).to eql(args)
         callback_status[:called] = true
       end
-      expect { subject.change_state :connecting, *args }.to change { subject.state }.to(:connecting)
+      expect { subject.change_state :connecting, *args }.to change { subject.state.to_sym }.to(:connecting)
       expect(callback_status).to eql(called: true)
     end
   end
@@ -320,13 +320,13 @@ describe Ably::Modules::StateEmitter do
     end
 
     it 'is not called if the state does not change' do
-      subject.once_state_changed &block
+      subject.once_state_changed(&block)
       subject.change_state initial_state
       expect(block_calls.count).to eql(0)
     end
 
     it 'calls the block for any state change once' do
-      subject.once_state_changed &block
+      subject.once_state_changed(&block)
       3.times do
         subject.change_state :connected
         subject.change_state :connecting
@@ -335,7 +335,7 @@ describe Ably::Modules::StateEmitter do
     end
 
     it 'emits arguments to the block' do
-      subject.once_state_changed &block
+      subject.once_state_changed(&block)
       subject.change_state :connected, 1, 2
       expect(block_calls.count).to eql(1)
       expect(block_calls.first).to contain_exactly(1, 2)

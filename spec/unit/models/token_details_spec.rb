@@ -23,31 +23,33 @@ describe Ably::Models::TokenDetails do
       end
     end
 
-    { :issued => :issued, :expires => :expires }.each do |method_name, attribute|
+    context do
       let(:time) { Time.now }
-      context "##{method_name} with :#{method_name} option as milliseconds in constructor" do
-        subject { Ably::Models::TokenDetails.new({ attribute.to_sym => time.to_i * 1000 }) }
+      { :issued => :issued, :expires => :expires }.each do |method_name, attribute|
+        context "##{method_name} with :#{method_name} option as milliseconds in constructor" do
+          subject { Ably::Models::TokenDetails.new({ attribute.to_sym => time.to_i * 1000 }) }
 
-        it "retrieves attribute :#{attribute} as Time" do
-          expect(subject.public_send(method_name)).to be_a(Time)
-          expect(subject.public_send(method_name).to_i).to eql(time.to_i)
+          it "retrieves attribute :#{attribute} as Time" do
+            expect(subject.public_send(method_name)).to be_a(Time)
+            expect(subject.public_send(method_name).to_i).to eql(time.to_i)
+          end
         end
-      end
 
-      context "##{method_name} with :#{method_name} option as a Time in constructor" do
-        subject { Ably::Models::TokenDetails.new({ attribute.to_sym => time }) }
+        context "##{method_name} with :#{method_name} option as a Time in constructor" do
+          subject { Ably::Models::TokenDetails.new({ attribute.to_sym => time }) }
 
-        it "retrieves attribute :#{attribute} as Time" do
-          expect(subject.public_send(method_name)).to be_a(Time)
-          expect(subject.public_send(method_name).to_i).to eql(time.to_i)
+          it "retrieves attribute :#{attribute} as Time" do
+            expect(subject.public_send(method_name)).to be_a(Time)
+            expect(subject.public_send(method_name).to_i).to eql(time.to_i)
+          end
         end
-      end
 
-      context "##{method_name} when converted to JSON" do
-        subject { Ably::Models::TokenDetails.new({ attribute.to_sym => time }) }
+        context "##{method_name} when converted to JSON" do
+          subject { Ably::Models::TokenDetails.new({ attribute.to_sym => time }) }
 
-        it 'is in milliseconds' do
-          expect(JSON.parse(JSON.dump(subject))[convert_to_mixed_case(attribute)]).to eql((time.to_f * 1000).round)
+          it 'is in milliseconds' do
+            expect(JSON.parse(JSON.dump(subject))[convert_to_mixed_case(attribute)]).to eql((time.to_f * 1000).round)
+          end
         end
       end
     end

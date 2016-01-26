@@ -98,11 +98,20 @@ module Ably::Realtime
       end
 
       private
-      attr_reader :connection, :driver, :reason_closed
+      def driver
+        @driver
+      end
+
+      def connection
+        @connection
+      end
+
+      def reason_closed
+        @reason_closed
+      end
 
       # Send object down the WebSocket driver connection as a serialized string/byte array based on protocol
       # @param [Object] object to serialize and send to the WebSocket driver
-      # @api public
       def send_object(object)
         case client.protocol
         when :json
@@ -122,7 +131,7 @@ module Ably::Realtime
       end
 
       def clear_timer
-        if @timer
+        if defined?(@timer) && @timer
           @timer.cancel
           @timer = nil
         end

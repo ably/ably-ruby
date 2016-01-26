@@ -13,7 +13,13 @@ module Ably::Realtime
       end
 
       private
-      attr_reader :client, :connection
+      def client
+        @client
+      end
+
+      def connection
+        @connection
+      end
 
       def channels
         client.channels
@@ -144,6 +150,7 @@ module Ably::Realtime
       def process_connected_message(protocol_message)
         if client.auth.token_client_id_allowed?(protocol_message.connection_details.client_id)
           client.auth.configure_client_id protocol_message.connection_details.client_id
+          client.connection.set_connection_details protocol_message.connection_details
           connection.transition_state_machine :connected, reason: protocol_message.error, protocol_message: protocol_message
         else
           reason = Ably::Exceptions::IncompatibleClientId.new("Client ID '#{protocol_message.connection_details.client_id}' specified by the server is incompatible with the library's configured client ID '#{client.client_id}'", 400, 40012)
@@ -195,7 +202,7 @@ module Ably::Realtime
 
       def subscribe_to_incoming_protocol_messages
         connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |*args|
-          dispatch_protocol_message *args
+          dispatch_protocol_message(*args)
         end
       end
     end

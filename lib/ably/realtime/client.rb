@@ -90,13 +90,13 @@ module Ably
         @auth                  = Ably::Realtime::Auth.new(self)
         @channels              = Ably::Realtime::Channels.new(self)
         @connection            = Ably::Realtime::Connection.new(self, options)
-        @echo_messages         = @rest_client.options.fetch(:echo_messages, true) == false ? false : true
-        @queue_messages        = @rest_client.options.fetch(:queue_messages, true) == false ? false : true
-        @custom_realtime_host  = @rest_client.options[:realtime_host] || @rest_client.options[:ws_host]
-        @auto_connect          = @rest_client.options.fetch(:auto_connect, true) == false ? false : true
-        @recover               = @rest_client.options[:recover]
+        @echo_messages         = rest_client.options.fetch(:echo_messages, true) == false ? false : true
+        @queue_messages        = rest_client.options.fetch(:queue_messages, true) == false ? false : true
+        @custom_realtime_host  = rest_client.options[:realtime_host] || rest_client.options[:ws_host]
+        @auto_connect          = rest_client.options.fetch(:auto_connect, true) == false ? false : true
+        @recover               = rest_client.options[:recover]
 
-        raise ArgumentError, "Recovery key is invalid" if @recover && !@recover.match(Connection::RECOVER_REGEX)
+        raise ArgumentError, "Recovery key '#{recover}' is invalid" if recover && !recover.match(Connection::RECOVER_REGEX)
       end
 
       # Return a {Ably::Realtime::Channel Realtime Channel} for the given name
@@ -150,11 +150,6 @@ module Ably
         endpoint_for_host(custom_realtime_host || [environment, DOMAIN].compact.join('-'))
       end
 
-
-      def connection
-        @connection
-      end
-
       # (see Ably::Rest::Client#register_encoder)
       def register_encoder(encoder)
         rest_client.register_encoder encoder
@@ -176,7 +171,7 @@ module Ably
       # @return [URI::Generic] Fallback endpoint used to connect to the realtime Ably service. Note, after each connection attempt, a new random {Ably::FALLBACK_HOSTS fallback host} is used
       # @api private
       def fallback_endpoint
-        unless @fallback_endpoints
+        unless defined?(@fallback_endpoints) && @fallback_endpoints
           @fallback_endpoints = Ably::FALLBACK_HOSTS.shuffle.map { |fallback_host| endpoint_for_host(fallback_host) }
         end
 

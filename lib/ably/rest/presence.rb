@@ -40,8 +40,8 @@ module Ably
         response = client.get(base_path, options)
 
         Ably::Models::PaginatedResult.new(response, base_path, client, paginated_options) do |presence_message|
-          presence_message.tap do |presence_message|
-            decode_message presence_message
+          presence_message.tap do |message|
+            decode_message message
           end
         end
       end
@@ -74,8 +74,8 @@ module Ably
         response = client.get(url, options)
 
         Ably::Models::PaginatedResult.new(response, url, client, paginated_options) do |presence_message|
-          presence_message.tap do |presence_message|
-            decode_message presence_message
+          presence_message.tap do |message|
+            decode_message message
           end
         end
       end

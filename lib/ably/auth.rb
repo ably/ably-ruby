@@ -54,6 +54,10 @@ module Ably
         raise ArgumentError, 'Expected token_params to be a Hash'
       end
 
+      # Ensure instance variables are defined
+      @client_id = nil
+      @client_id_validated = nil
+
       ensure_valid_auth_attributes auth_options
 
       @client              = client
@@ -401,8 +405,13 @@ module Ably
     end
 
     private
-    attr_reader :client
-    attr_reader :token_option
+    def client
+      @client
+    end
+
+    def token_option
+      @token_option
+    end
 
     def ensure_valid_auth_attributes(attributes)
       if attributes[:timestamp]
@@ -453,7 +462,7 @@ module Ably
     end
 
     def split_api_key_into_key_and_secret!(options)
-      api_key_parts = options[:key].to_s.match(/(?<name>[\w_-]+\.[\w_-]+):(?<secret>[\w_-]+)/)
+      api_key_parts = options[:key].to_s.match(/(?<name>[\w-]+\.[\w-]+):(?<secret>[\w-]+)/)
       raise ArgumentError, 'key is invalid' unless api_key_parts
 
       options[:key_name]   = api_key_parts[:name].encode(Encoding::UTF_8)

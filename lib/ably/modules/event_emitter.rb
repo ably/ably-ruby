@@ -39,7 +39,7 @@ module Ably
 
         # Ensure @event_emitter_coerce_proc option is passed down to any classes that inherit the class with callbacks
         def inherited(subclass)
-          subclass.instance_variable_set('@event_emitter_coerce_proc', @event_emitter_coerce_proc)
+          subclass.instance_variable_set('@event_emitter_coerce_proc', @event_emitter_coerce_proc) if defined?(@event_emitter_coerce_proc)
           super
         end
       end
@@ -90,7 +90,7 @@ module Ably
           clone.
           select do |proc_hash|
             if proc_hash[:unsafe]
-              proc_hash[:emit_proc].call *args
+              proc_hash[:emit_proc].call(*args)
             else
               safe_yield proc_hash[:emit_proc], *args
             end
@@ -133,7 +133,7 @@ module Ably
       def proc_for_block(block, options = {})
         {
           emit_proc: Proc.new do |*args|
-            block.call *args
+            block.call(*args)
             true if options[:delete_once_run]
           end,
           block: block,

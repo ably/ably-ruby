@@ -150,7 +150,7 @@ module Ably::Models
     #   wrapper.as_json({ 'mixedCase': true, 'snakeCase': 1 })
     def as_json(*args)
       hash.each_with_object({}) do |key_val, new_hash|
-        key, val                 = key_val
+        key                      = key_val[0]
         mixed_case_key           = convert_to_mixed_case(key)
         wrapped_val              = self[key]
         wrapped_val              = wrapped_val.as_json(args) if wrapped_val.kind_of?(IdiomaticRubyWrapper)

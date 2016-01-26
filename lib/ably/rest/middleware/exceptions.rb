@@ -7,6 +7,8 @@ module Ably
       # HTTP exceptions raised by Ably due to an error status code
       # Ably returns JSON/Msgpack error codes and messages so include this if possible in the exception messages
       class Exceptions < Faraday::Response::Middleware
+        TOKEN_EXPIRED_CODE = 40140..40149
+
         def on_complete(env)
           if env.status >= 400
             error_status_code = env.status
@@ -30,7 +32,7 @@ module Ably
 
             if env.status >= 500
               raise Ably::Exceptions::ServerError.new(message, error_status_code, error_code)
-            elsif env.status == 401 && error_code == 40140
+            elsif env.status == 401 && TOKEN_EXPIRED_CODE.include?(error_code)
               raise Ably::Exceptions::TokenExpired.new(message, error_status_code, error_code)
             else
               raise Ably::Exceptions::InvalidRequest.new(message, error_status_code, error_code)

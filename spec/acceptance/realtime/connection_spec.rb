@@ -141,7 +141,7 @@ describe Ably::Realtime::Connection, :event_machine do
                   started_at = Time.now.to_f
                   connection.once(:disconnected) do
                     connection.once(:disconnected) do |connection_state_change|
-                      expect(connection_state_change.reason.code).to eql(40140) # token expired
+                      expect(connection_state_change.reason.code).to eql(40142) # token expired
                       expect(Time.now.to_f - started_at).to be < 1000
                       expect(auth_requests.count).to eql(2)
                       stop_reactor
@@ -156,7 +156,7 @@ describe Ably::Realtime::Connection, :event_machine do
                     started_at = Time.now.to_f
                     disconnect_count = 0
                     connection.on(:disconnected) do |connection_state_change|
-                      expect(connection_state_change.reason.code).to eql(40140) # token expired
+                      expect(connection_state_change.reason.code).to eql(40142) # token expired
                       disconnect_count += 1
                       if disconnect_count == 6
                         expect(Time.now.to_f - started_at).to be > 4 * 0.5 # at least 4 0.5 second pauses should have happened
@@ -207,7 +207,7 @@ describe Ably::Realtime::Connection, :event_machine do
                       expect(original_token).to_not be_expired
                       started_at = Time.now
                       connection.once(:disconnected) do |connection_state_change|
-                        expect(connection_state_change.reason.code).to eq(40140) # Token expired
+                        expect(connection_state_change.reason.code).to eq(40142) # Token expired
 
                         # Token has expired, so now ensure it is not used again
                         stub_const 'Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER', original_token_expiry_buffer
@@ -333,7 +333,7 @@ describe Ably::Realtime::Connection, :event_machine do
                   expect(expired_token_details).to be_expired
                   connection.once(:connected) { raise 'Connection should never connect as token has expired' }
                   connection.once(:failed) do
-                    expect(client.connection.error_reason.code).to eql(40140)
+                    expect(client.connection.error_reason.code).to eql(40142)
                     stop_reactor
                   end
                 end
@@ -800,6 +800,41 @@ describe Ably::Realtime::Connection, :event_machine do
       end
     end
 
+    context '#details' do
+      let(:connection) { client.connection }
+
+      it 'is nil before connected' do
+        connection.on(:connecting) do
+          expect(connection.details).to eql(nil)
+          stop_reactor
+        end
+      end
+
+      it 'contains the ConnectionDetails object once connected' do
+        connection.on(:connected) do
+          expect(connection.details).to be_a(Ably::Models::ConnectionDetails)
+          expect(connection.details.connection_key).to_not be_nil
+          expect(connection.details.server_id).to_not be_nil
+          stop_reactor
+        end
+      end
+
+      it 'contains the new ConnectionDetails object once a subsequent connection is created' do
+        connection.once(:connected) do
+          expect(connection.details.connection_key).to_not be_nil
+          old_key = connection.details.connection_key
+          connection.close do
+            connection.once(:connected) do
+              expect(connection.details.connection_key).to_not be_nil
+              expect(connection.details.connection_key).to_not eql(old_key)
+              stop_reactor
+            end
+            connection.connect
+          end
+        end
+      end
+    end
+
     context 'recovery' do
       let(:channel_name) { random_str }
       let(:channel) { client.channel(channel_name) }
@@ -813,7 +848,8 @@ describe Ably::Realtime::Connection, :event_machine do
           log_level:                  :none,
           disconnected_retry_timeout: 0.1,
           suspended_retry_timeout:    0.1,
-          connection_state_ttl:       0.2
+          connection_state_ttl:       0.2,
+          realtime_request_timeout:   5
         )
       end
 
@@ -889,7 +925,8 @@ describe Ably::Realtime::Connection, :event_machine do
 
       context "opening a new connection using a recently disconnected connection's #recovery_key" do
         context 'connection#id and connection#key after recovery' do
-          it 'remains the same' do
+          it 'remains the same for id and party for key' do
+            connection_key_consistent_part_regex = /.*?!(\w{5,})-/
             previous_connection_id  = nil
             previous_connection_key = nil
 
@@ -902,8 +939,9 @@ describe Ably::Realtime::Connection, :event_machine do
             connection.once(:failed) do
               recover_client = auto_close Ably::Realtime::Client.new(default_options.merge(recover: client.connection.recovery_key))
               recover_client.connection.on(:connected) do
-                expect(recover_client.connection.key[/^\w{5,}-/, 0]).to_not be_nil
-                expect(recover_client.connection.key[/^\w{5,}-/, 0]).to eql(previous_connection_key[/^\w{5,}-/, 0])
+                expect(recover_client.connection.key[connection_key_consistent_part_regex, 1]).to_not be_nil
+                expect(recover_client.connection.key[connection_key_consistent_part_regex, 1]).to eql(
+                  previous_connection_key[connection_key_consistent_part_regex, 1])
                 expect(recover_client.connection.id).to eql(previous_connection_id)
                 stop_reactor
               end

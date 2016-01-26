@@ -28,6 +28,7 @@ module Ably::Models
     # @option attributes [Integer]   :max_frame_size        maximum size for a single frame of data sent to Ably. This restriction applies to a {Ably::Models::ProtocolMessage} sent over a realtime connection, or the total body size for a REST request
     # @option attributes [Integer]   :max_inbound_rate      maximum allowable number of requests per second from a client
     # @option attributes [Integer]   :connection_state_ttl  duration in seconds that Ably will persist the connection state when a Realtime client is abruptly disconnected
+    # @option attributes [String]    :server_id             unique identifier of the Ably server where the connection is established
     #
     def initialize(attributes = {})
       @hash_object = IdiomaticRubyWrapper(attributes.clone)
@@ -35,7 +36,7 @@ module Ably::Models
       hash.freeze
     end
 
-    %w(client_id connection_key max_message_size max_frame_size max_inbound_rate connection_state_ttl).each do |attribute|
+    %w(client_id connection_key max_message_size max_frame_size max_inbound_rate connection_state_ttl server_id).each do |attribute|
       define_method attribute do
         hash[attribute.to_sym]
       end

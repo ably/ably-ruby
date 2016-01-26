@@ -294,7 +294,9 @@ module Ably
       private :change_state
 
       private
-      attr_reader :queue
+      def queue
+        @queue
+      end
 
       def setup_event_handlers
         __incoming_msgbus__.subscribe(:message) do |message|
@@ -323,7 +325,7 @@ module Ably
           end
         end
 
-        queue.push *messages
+        queue.push(*messages)
 
         if attached?
           process_queue
@@ -385,8 +387,8 @@ module Ably
       end
 
       def create_message(message)
-        Ably::Models::Message(message.dup).tap do |message|
-          message.encode self
+        Ably::Models::Message(message.dup).tap do |msg|
+          msg.encode self
         end
       end
 

@@ -509,7 +509,7 @@ describe Ably::Realtime::Presence, :event_machine do
     end
 
     context '250 existing (present) members on a channel (3 SYNC pages)' do
-      context 'requires at least 3 SYNC ProtocolMessages' do
+      context 'requires at least 3 SYNC ProtocolMessages', em_timeout: 30 do
         let(:enter_expected_count) { 250 }
         let(:present) { [] }
         let(:entered) { [] }
@@ -518,15 +518,18 @@ describe Ably::Realtime::Presence, :event_machine do
 
         def setup_members_on(presence)
           enter_expected_count.times do |index|
-            presence.enter_client("client:#{index}") do |message|
-              entered << message
-              next unless entered.count == enter_expected_count
-              yield
+            # 10 messages per second max rate on simulation accounts
+            EventMachine.add_timer(index / 10) do
+              presence.enter_client("client:#{index}") do |message|
+                entered << message
+                next unless entered.count == enter_expected_count
+                yield
+              end
             end
           end
         end
 
-        context 'when a client attaches to the presence channel', em_timeout: 10 do
+        context 'when a client attaches to the presence channel' do
           it 'emits :present for each member' do
             setup_members_on(presence_client_one) do
               presence_anonymous_client.subscribe(:present) do |present_message|
@@ -676,14 +679,16 @@ describe Ably::Realtime::Presence, :event_machine do
             context 'with :wait_for_sync option set to true' do
               it 'waits until sync is complete', em_timeout: 15 do
                 enter_expected_count.times do |index|
-                  presence_client_one.enter_client("client:#{index}") do |message|
-                    entered << message
-                    next unless entered.count == enter_expected_count
+                  EventMachine.add_timer(index / 10) do
+                    presence_client_one.enter_client("client:#{index}") do |message|
+                      entered << message
+                      next unless entered.count == enter_expected_count
 
-                    presence_anonymous_client.get(wait_for_sync: true) do |members|
-                      expect(members.map(&:client_id).uniq.count).to eql(enter_expected_count)
-                      expect(members.count).to eql(enter_expected_count)
-                      stop_reactor
+                      presence_anonymous_client.get(wait_for_sync: true) do |members|
+                        expect(members.map(&:client_id).uniq.count).to eql(enter_expected_count)
+                        expect(members.count).to eql(enter_expected_count)
+                        stop_reactor
+                      end
                     end
                   end
                 end
@@ -693,15 +698,17 @@ describe Ably::Realtime::Presence, :event_machine do
             context 'by default' do
               it 'it does not wait for sync', em_timeout: 15 do
                 enter_expected_count.times do |index|
-                  presence_client_one.enter_client("client:#{index}") do |message|
-                    entered << message
-                    next unless entered.count == enter_expected_count
+                  EventMachine.add_timer(index / 10) do
+                    presence_client_one.enter_client("client:#{index}") do |message|
+                      entered << message
+                      next unless entered.count == enter_expected_count
 
-                    channel_anonymous_client.attach do
-                      presence_anonymous_client.get do |members|
-                        expect(presence_anonymous_client.members).to_not be_in_sync
-                        expect(members.count).to eql(0)
-                        stop_reactor
+                      channel_anonymous_client.attach do
+                        presence_anonymous_client.get do |members|
+                          expect(presence_anonymous_client.members).to_not be_in_sync
+                          expect(members.count).to eql(0)
+                          stop_reactor
+                        end
                       end
                     end
                   end
@@ -1225,7 +1232,7 @@ describe Ably::Realtime::Presence, :event_machine do
         end
       end
 
-      context 'during a sync' do
+      context 'during a sync', em_timeout: 30 do
         let(:pages)               { 2 }
         let(:members_per_page)    { 100 }
         let(:sync_pages_received) { [] }
@@ -1234,7 +1241,15 @@ describe Ably::Realtime::Presence, :event_machine do
 
         def connect_members_deferrables
           (members_per_page * pages + 1).times.map do |index|
-            presence_client_one.enter_client("client:#{index}")
+            # rate limit to 10 per second
+            EventMachine::DefaultDeferrable.new.tap do |deferrable|
+              EventMachine.add_timer(index / 10) do
+                presence_client_one.enter_client("client:#{index}").tap do |enter_deferrable|
+                  enter_deferrable.callback { |*args| deferrable.succeed *args }
+                  enter_deferrable.errback { |*args| deferrable.fail *args }
+                end
+              end
+            end
           end
         end
 
@@ -1316,9 +1331,9 @@ describe Ably::Realtime::Presence, :event_machine do
             expect(members.count).to eq(1)
             expect(members.first.connection_id).to eql(client_one.connection.id)
 
-            presence_client_one.get(connection_id: client_two.connection.id) do |members|
-              expect(members.count).to eq(1)
-              expect(members.first.connection_id).to eql(client_two.connection.id)
+            presence_client_one.get(connection_id: client_two.connection.id) do |members_two|
+              expect(members_two.count).to eq(1)
+              expect(members_two.first.connection_id).to eql(client_two.connection.id)
               stop_reactor
             end
           end
@@ -1339,10 +1354,10 @@ describe Ably::Realtime::Presence, :event_machine do
             expect(members.first.client_id).to eql(client_one_id)
             expect(members.first.connection_id).to eql(client_one.connection.id)
 
-            presence_client_one.get(client_id: client_two_id) do |members|
-              expect(members.count).to eq(1)
-              expect(members.first.client_id).to eql(client_two_id)
-              expect(members.first.connection_id).to eql(client_two.connection.id)
+            presence_client_one.get(client_id: client_two_id) do |members_two|
+              expect(members_two.count).to eq(1)
+              expect(members_two.first.client_id).to eql(client_two_id)
+              expect(members_two.first.connection_id).to eql(client_two.connection.id)
               stop_reactor
             end
           end
@@ -1469,8 +1484,8 @@ describe Ably::Realtime::Presence, :event_machine do
         it 'removes the callback for all presence events' do
           when_all(channel_client_one.attach, channel_client_two.attach) do
             subscribe_callback = proc { raise 'Should not be called' }
-            presence_client_two.subscribe &subscribe_callback
-            presence_client_two.unsubscribe &subscribe_callback
+            presence_client_two.subscribe(&subscribe_callback)
+            presence_client_two.unsubscribe(&subscribe_callback)
 
             presence_client_one.enter
             presence_client_one.update

@@ -90,7 +90,13 @@ module Ably::Modules
           end
 
           private
-          attr_reader :by_index, :by_symbol
+          def by_index
+            @by_index
+          end
+
+          def by_symbol
+            @by_symbol
+          end
 
           # Define constants for each of the Enum values
           # e.g. define_constants(:dog) creates Enum::Dog
@@ -173,7 +179,17 @@ module Ably::Modules
         end
 
         private
-        attr_reader :name, :index, :symbol
+        def name
+          @name
+        end
+
+        def index
+          @index
+        end
+
+        def symbol
+          @symbol
+        end
 
         define_values values
       end

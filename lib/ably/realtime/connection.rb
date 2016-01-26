@@ -58,7 +58,7 @@ module Ably
       ensure_state_machine_emits 'Ably::Models::ConnectionStateChange'
 
       # Expected format for a connection recover key
-      RECOVER_REGEX = /^(?<recover>[\w-]+):(?<connection_serial>\-?\w+)$/
+      RECOVER_REGEX = /^(?<recover>[\w!-]+):(?<connection_serial>\-?\w+)$/
 
       # Defaults for automatic connection recovery and timeouts
       DEFAULTS = {
@@ -83,6 +83,10 @@ module Ably
       # When a connection failure occurs this attribute contains the Ably Exception
       # @return [Ably::Models::ErrorInfo,Ably::Exceptions::BaseAblyException]
       attr_reader :error_reason
+
+      # Connection details of the currently established connection
+      # @return [Ably::Models::ConnectionDetails]
+      attr_reader :details
 
       # {Ably::Realtime::Client} associated with this connection
       # @return [Ably::Realtime::Client]
@@ -178,12 +182,12 @@ module Ably
 
           once(:connected) do
             deferrable.succeed
-            off &fail_callback
+            off(&fail_callback)
           end
 
           once(:failed, :closed, :closing) do
             deferrable.fail
-            off &succeed_callback
+            off(&succeed_callback)
           end
         end
       end
@@ -356,10 +360,10 @@ module Ably
       # @api private
       def send_protocol_message(protocol_message)
         add_message_serial_if_ack_required_to(protocol_message) do
-          Ably::Models::ProtocolMessage.new(protocol_message, logger: logger).tap do |protocol_message|
-            add_message_to_outgoing_queue protocol_message
-            notify_message_dispatcher_of_new_message protocol_message
-            logger.debug("Connection: Prot msg queued =>: #{protocol_message.action} #{protocol_message}")
+          Ably::Models::ProtocolMessage.new(protocol_message, logger: logger).tap do |message|
+            add_message_to_outgoing_queue message
+            notify_message_dispatcher_of_new_message message
+            logger.debug("Connection: Prot msg queued =>: #{message.action} #{message}")
           end
         end
       end
@@ -437,6 +441,11 @@ module Ably
         @error_reason = nil
       end
 
+      # @api private
+      def set_connection_details(connection_details)
+        @details = connection_details
+      end
+
       # Executes registered callbacks for a successful connection resume event
       # @api private
       def resumed
@@ -476,7 +485,9 @@ module Ably
       # A connection serial guarantees the server has received the message and is thus used for connection
       # recovery and resumes.
       # @return [Integer] starting at -1 indicating no messages sent, 0 when the first message is sent
-      attr_reader :client_serial
+      def client_serial
+        @client_serial
+      end
 
       def resume_callbacks
         @resume_callbacks ||= []

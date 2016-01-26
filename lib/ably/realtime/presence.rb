@@ -250,11 +250,11 @@ module Ably::Realtime
       ensure_channel_attached(deferrable) do
         members.get(options).tap do |members_map_deferrable|
           members_map_deferrable.callback do |*args|
-            safe_yield block, *args if block_given?
-            deferrable.succeed *args
+            safe_yield(block, *args) if block_given?
+            deferrable.succeed(*args)
           end
           members_map_deferrable.errback do |*args|
-            deferrable.fail *args
+            deferrable.fail(*args)
           end
         end
       end
@@ -426,14 +426,14 @@ module Ably::Realtime
     end
 
     def deferrable_succeed(deferrable, *args, &block)
-      safe_yield block, self, *args if block_given?
+      safe_yield(block, self, *args) if block_given?
       EventMachine.next_tick { deferrable.succeed self, *args } # allow callback to be added to the returned Deferrable before calling succeed
       deferrable
     end
 
     def deferrable_fail(deferrable, *args, &block)
-      safe_yield block, *args if block_given?
-      EventMachine.next_tick { deferrable.fail *args } # allow errback to be added to the returned Deferrable
+      safe_yield(block, *args) if block_given?
+      EventMachine.next_tick { deferrable.fail(*args) } # allow errback to be added to the returned Deferrable
       deferrable
     end
 

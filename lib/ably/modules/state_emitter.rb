@@ -82,21 +82,21 @@ module Ably::Modules
 
         success_wrapper = Proc.new do
           yield
-          off &success_wrapper
-          off &failure_wrapper if failure_wrapper
+          off(&success_wrapper)
+          off(&failure_wrapper) if failure_wrapper
         end
 
         failure_wrapper = proc do |*args|
-          failure_block.call *args
-          off &success_wrapper
-          off &failure_wrapper
+          failure_block.call(*args)
+          off(&success_wrapper)
+          off(&failure_wrapper)
         end if failure_block
 
         Array(target_states).each do |target_state|
           safe_unsafe_method options[:unsafe], :once, target_state, &success_wrapper
 
           safe_unsafe_method options[:unsafe], :once_state_changed do |*args|
-            failure_wrapper.call *args unless state == target_state
+            failure_wrapper.call(*args) unless state == target_state
           end if failure_block
         end
       end
@@ -119,8 +119,8 @@ module Ably::Modules
       raise ArgumentError, 'Block required' unless block_given?
 
       once_block = proc do |*args|
-        off *self.class::STATE.map, &once_block
-        yield *args
+        off(*self.class::STATE.map, &once_block)
+        yield(*args)
       end
 
       safe_unsafe_method options[:unsafe], :once, *self.class::STATE.map, &once_block
