@@ -387,8 +387,8 @@ module Ably
       end
 
       def create_message(message)
-        Ably::Models::Message(message.dup).tap do |message|
-          message.encode self
+        Ably::Models::Message(message.dup).tap do |msg|
+          msg.encode self
         end
       end
 

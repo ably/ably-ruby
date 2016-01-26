@@ -1331,9 +1331,9 @@ describe Ably::Realtime::Presence, :event_machine do
             expect(members.count).to eq(1)
             expect(members.first.connection_id).to eql(client_one.connection.id)
 
-            presence_client_one.get(connection_id: client_two.connection.id) do |members|
-              expect(members.count).to eq(1)
-              expect(members.first.connection_id).to eql(client_two.connection.id)
+            presence_client_one.get(connection_id: client_two.connection.id) do |members_two|
+              expect(members_two.count).to eq(1)
+              expect(members_two.first.connection_id).to eql(client_two.connection.id)
               stop_reactor
             end
           end
@@ -1354,10 +1354,10 @@ describe Ably::Realtime::Presence, :event_machine do
             expect(members.first.client_id).to eql(client_one_id)
             expect(members.first.connection_id).to eql(client_one.connection.id)
 
-            presence_client_one.get(client_id: client_two_id) do |members|
-              expect(members.count).to eq(1)
-              expect(members.first.client_id).to eql(client_two_id)
-              expect(members.first.connection_id).to eql(client_two.connection.id)
+            presence_client_one.get(client_id: client_two_id) do |members_two|
+              expect(members_two.count).to eq(1)
+              expect(members_two.first.client_id).to eql(client_two_id)
+              expect(members_two.first.connection_id).to eql(client_two.connection.id)
               stop_reactor
             end
           end

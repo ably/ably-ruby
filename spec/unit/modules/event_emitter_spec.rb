@@ -75,8 +75,8 @@ describe Ably::Modules::EventEmitter do
           2.times do
             subject.on(:message) do |msg|
               obj.received_message msg
-              subject.on(:message) do |msg|
-                obj.received_message_from_new_callbacks msg
+              subject.on(:message) do |message|
+                obj.received_message_from_new_callbacks message
               end
             end
           end

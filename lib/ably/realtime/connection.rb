@@ -356,10 +356,10 @@ module Ably
       # @api private
       def send_protocol_message(protocol_message)
         add_message_serial_if_ack_required_to(protocol_message) do
-          Ably::Models::ProtocolMessage.new(protocol_message, logger: logger).tap do |protocol_message|
-            add_message_to_outgoing_queue protocol_message
-            notify_message_dispatcher_of_new_message protocol_message
-            logger.debug("Connection: Prot msg queued =>: #{protocol_message.action} #{protocol_message}")
+          Ably::Models::ProtocolMessage.new(protocol_message, logger: logger).tap do |message|
+            add_message_to_outgoing_queue message
+            notify_message_dispatcher_of_new_message message
+            logger.debug("Connection: Prot msg queued =>: #{message.action} #{message}")
           end
         end
       end

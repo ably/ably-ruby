@@ -82,7 +82,7 @@ module Ably::Models
       def from_interval_id(interval_id)
         raise ArgumentError, 'Interval ID must be a string' unless interval_id.kind_of?(String)
 
-        format = INTERVAL_FORMAT_STRING.find { |format| expected_length(format) == interval_id.length }
+        format = INTERVAL_FORMAT_STRING.find { |fmt| expected_length(fmt) == interval_id.length }
         raise ArgumentError, 'Interval ID is an invalid length' unless format
 
         Time.strptime("#{interval_id} +0000", "#{format} %z").utc
@@ -99,7 +99,7 @@ module Ably::Models
       def granularity_from_interval_id(interval_id)
         raise ArgumentError, 'Interval ID must be a string' unless interval_id.kind_of?(String)
 
-        format = INTERVAL_FORMAT_STRING.find { |format| expected_length(format) == interval_id.length }
+        format = INTERVAL_FORMAT_STRING.find { |fmt| expected_length(fmt) == interval_id.length }
         raise ArgumentError, 'Interval ID is an invalid length' unless format
 
         GRANULARITY[INTERVAL_FORMAT_STRING.index(format)]
