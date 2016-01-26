@@ -122,7 +122,7 @@ module Ably::Realtime
       end
 
       def clear_timer
-        if @timer
+        if defined?(@timer) && @timer
           @timer.cancel
           @timer = nil
         end

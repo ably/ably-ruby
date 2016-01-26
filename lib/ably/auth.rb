@@ -54,6 +54,10 @@ module Ably
         raise ArgumentError, 'Expected token_params to be a Hash'
       end
 
+      # Ensure instance variables are defined
+      @client_id = nil
+      @client_id_validated = nil
+
       ensure_valid_auth_attributes auth_options
 
       @client              = client

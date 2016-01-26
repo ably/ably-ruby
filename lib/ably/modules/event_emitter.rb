@@ -39,7 +39,7 @@ module Ably
 
         # Ensure @event_emitter_coerce_proc option is passed down to any classes that inherit the class with callbacks
         def inherited(subclass)
-          subclass.instance_variable_set('@event_emitter_coerce_proc', @event_emitter_coerce_proc)
+          subclass.instance_variable_set('@event_emitter_coerce_proc', @event_emitter_coerce_proc) if defined?(@event_emitter_coerce_proc)
           super
         end
       end
