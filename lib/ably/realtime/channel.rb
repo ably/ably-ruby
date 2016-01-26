@@ -294,7 +294,9 @@ module Ably
       private :change_state
 
       private
-      attr_reader :queue
+      def queue
+        @queue
+      end
 
       def setup_event_handlers
         __incoming_msgbus__.subscribe(:message) do |message|

@@ -95,7 +95,33 @@ module Ably::Models
     end
 
     private
-    attr_reader :http_response, :base_url, :client, :coerce_into, :raw_body, :each_block, :make_async
+    def http_response
+      @http_response
+    end
+
+    def base_url
+      @base_url
+    end
+
+    def client
+      @client
+    end
+
+    def coerce_into
+      @coerce_into
+    end
+
+    def raw_body
+      @raw_body
+    end
+
+    def each_block
+      @each_block
+    end
+
+    def make_async
+      @make_async
+    end
 
     def coerce_items_into(items, type_string)
       items.map do |item|

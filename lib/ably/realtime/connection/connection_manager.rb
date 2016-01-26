@@ -215,11 +215,15 @@ module Ably::Realtime
       end
 
       private
-      attr_reader :connection
+      def connection
+        @connection
+      end
 
       # Timers used to manage connection state, for internal use by the client library
       # @return [Hash]
-      attr_reader :timers
+      def timers
+        @timers
+      end
 
       def transport
         connection.transport

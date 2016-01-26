@@ -70,6 +70,16 @@ module Ably::Modules
     end
 
     private
-    attr_reader :client, :channel_klass, :channels
+    def client
+      @client
+    end
+
+    def channel_klass
+      @channel_klass
+    end
+
+    def channels
+      @channels
+    end
   end
 end

@@ -195,7 +195,9 @@ module Ably::Models
     end
 
     private
-    attr_reader :raw_hash_object
+    def raw_hash_object
+      @raw_hash_object
+    end
 
     def set_hash_object(hash)
       @hash_object = IdiomaticRubyWrapper(hash.clone.freeze)

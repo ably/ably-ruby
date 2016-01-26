@@ -131,7 +131,21 @@ module Ably::Realtime
       end
 
       private
-      attr_reader :members, :sync_serial, :presence, :absent_member_cleanup_queue
+      def members
+        @members
+      end
+
+      def sync_serial
+        @sync_serial
+      end
+
+      def presence
+        @presence
+      end
+
+      def absent_member_cleanup_queue
+        @absent_member_cleanup_queue
+      end
 
       def channel
         presence.channel

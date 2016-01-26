@@ -405,8 +405,13 @@ module Ably
     end
 
     private
-    attr_reader :client
-    attr_reader :token_option
+    def client
+      @client
+    end
+
+    def token_option
+      @token_option
+    end
 
     def ensure_valid_auth_attributes(attributes)
       if attributes[:timestamp]

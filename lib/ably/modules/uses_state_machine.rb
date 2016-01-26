@@ -59,7 +59,9 @@ module Ably::Modules
     def_delegators :state_machine, :can_transition_to?
 
     private
-    attr_reader :state_machine
+    def state_machine
+      @state_machine
+    end
 
     def_delegators :state_machine, :exception_for_state_change_to
 

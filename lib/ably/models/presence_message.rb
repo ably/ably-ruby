@@ -143,7 +143,9 @@ module Ably::Models
     end
 
     private
-    attr_reader :raw_hash_object
+    def raw_hash_object
+      @raw_hash_object
+    end
 
     def protocol_message_index
       protocol_message.presence.index(self)

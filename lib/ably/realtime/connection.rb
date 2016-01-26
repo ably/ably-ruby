@@ -476,7 +476,9 @@ module Ably
       # A connection serial guarantees the server has received the message and is thus used for connection
       # recovery and resumes.
       # @return [Integer] starting at -1 indicating no messages sent, 0 when the first message is sent
-      attr_reader :client_serial
+      def client_serial
+        @client_serial
+      end
 
       def resume_callbacks
         @resume_callbacks ||= []

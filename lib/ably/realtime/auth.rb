@@ -189,9 +189,13 @@ module Ably
       private
       # The synchronous Auth class instanced by the Rest client
       # @return [Ably::Auth]
-      attr_reader :auth_sync
+      def auth_sync
+        @auth_sync
+      end
 
-      attr_reader :client
+      def client
+        @client
+      end
     end
   end
 end

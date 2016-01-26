@@ -94,8 +94,14 @@ module Ably::Realtime
       end
 
       private
+      def channel
+        @channel
+      end
 
-      attr_reader :channel, :connection
+      def connection
+        @connection
+      end
+
       def_delegators :channel, :can_transition_to?
 
       # If the connection has not previously connected, connect now

@@ -37,7 +37,9 @@ module Ably
     def_delegators :logger, :fatal, :error, :warn, :info, :debug
 
     private
-    attr_reader :client
+    def client
+      @client
+    end
 
     def color(color_value, string)
       "\033[#{color_value}m#{string}\033[0m"
