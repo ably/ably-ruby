@@ -62,7 +62,7 @@ module Ably::Models
       ensure_utf_8 :encoding,  encoding,  allow_nil: true
     end
 
-    %w( name client_id encoding connection_id ).each do |attribute|
+    %w( name client_id encoding ).each do |attribute|
       define_method attribute do
         hash[attribute.to_sym]
       end

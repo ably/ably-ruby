@@ -150,11 +150,6 @@ module Ably
         endpoint_for_host(custom_realtime_host || [environment, DOMAIN].compact.join('-'))
       end
 
-
-      def connection
-        @connection
-      end
-
       # (see Ably::Rest::Client#register_encoder)
       def register_encoder(encoder)
         rest_client.register_encoder encoder
