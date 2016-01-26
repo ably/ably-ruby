@@ -30,11 +30,11 @@ describe Ably::Modules::StateEmitter do
   end
 
   specify '#state= sets current state' do
-    expect { subject.state = :connecting }.to change { subject.state }.to(:connecting)
+    expect { subject.state = :connecting }.to change { subject.state.to_sym }.to(:connecting)
   end
 
   specify '#change_state sets current state' do
-    expect { subject.change_state :connecting }.to change { subject.state }.to(:connecting)
+    expect { subject.change_state :connecting }.to change { subject.state.to_sym }.to(:connecting)
   end
 
   context '#change_state with arguments' do
@@ -46,7 +46,7 @@ describe Ably::Modules::StateEmitter do
         expect(callback_args).to eql(args)
         callback_status[:called] = true
       end
-      expect { subject.change_state :connecting, *args }.to change { subject.state }.to(:connecting)
+      expect { subject.change_state :connecting, *args }.to change { subject.state.to_sym }.to(:connecting)
       expect(callback_status).to eql(called: true)
     end
   end
