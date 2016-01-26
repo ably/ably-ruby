@@ -457,7 +457,7 @@ module Ably
     end
 
     def split_api_key_into_key_and_secret!(options)
-      api_key_parts = options[:key].to_s.match(/(?<name>[\w_-]+\.[\w_-]+):(?<secret>[\w_-]+)/)
+      api_key_parts = options[:key].to_s.match(/(?<name>[\w-]+\.[\w-]+):(?<secret>[\w-]+)/)
       raise ArgumentError, 'key is invalid' unless api_key_parts
 
       options[:key_name]   = api_key_parts[:name].encode(Encoding::UTF_8)
