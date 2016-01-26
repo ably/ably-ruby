@@ -85,7 +85,7 @@ describe Ably::Models::MessageEncoders::Cipher do
         let(:decode_method) { subject.decode message, { encrypted: true, cipher_params: cipher_params } }
 
         it 'raise an exception' do
-          expect { decode_method }.to raise_error Ably::Exceptions::CipherError, /Cipher algorithm [\w\d-]+ does not match message cipher algorithm of AES-128-CBC/
+          expect { decode_method }.to raise_error Ably::Exceptions::CipherError, /Cipher algorithm [\w-]+ does not match message cipher algorithm of AES-128-CBC/
         end
       end
 
