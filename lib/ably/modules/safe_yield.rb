@@ -23,7 +23,7 @@ module Ably::Modules
       if defined?(:logger) && logger.respond_to?(:error)
         return logger.error message
       end
-    rescue StandardError => e
+    rescue StandardError
       fallback_logger.error message
     end
 

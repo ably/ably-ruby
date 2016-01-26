@@ -481,8 +481,6 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         end
 
         it 'retains channel subscription state' do
-          messages_received = false
-
           channel.subscribe('event') do |message|
             expect(message.data).to eql('message')
             stop_reactor

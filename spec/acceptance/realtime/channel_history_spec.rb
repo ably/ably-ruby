@@ -19,7 +19,7 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
     let(:options)      { { :protocol => :json } }
 
     it 'returns a SafeDeferrable that catches exceptions in callbacks and logs them' do
-      channel.publish('event', payload) do |message|
+      channel.publish('event', payload) do
         history = channel.history
         expect(history).to be_a(Ably::Util::SafeDeferrable)
         history.callback do |page|
@@ -32,7 +32,7 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
 
     context 'with a single client publishing and receiving' do
       it 'retrieves realtime history' do
-        channel.publish('event', payload) do |message|
+        channel.publish('event', payload) do
           channel.history do |page|
             expect(page.items.length).to eql(1)
             expect(page.items[0].data).to eql(payload)
@@ -44,8 +44,8 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
 
     context 'with two clients publishing messages on the same channel' do
       it 'retrieves realtime history on both channels' do
-        channel.publish('event', payload) do |message|
-          channel2.publish('event', payload) do |message|
+        channel.publish('event', payload) do
+          channel2.publish('event', payload) do
             channel.history do |page|
               expect(page.items.length).to eql(2)
               expect(page.items.map(&:data).uniq).to eql([payload])
