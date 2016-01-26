@@ -171,7 +171,7 @@ module Ably
       # @return [URI::Generic] Fallback endpoint used to connect to the realtime Ably service. Note, after each connection attempt, a new random {Ably::FALLBACK_HOSTS fallback host} is used
       # @api private
       def fallback_endpoint
-        unless @fallback_endpoints
+        unless defined?(@fallback_endpoints) && @fallback_endpoints
           @fallback_endpoints = Ably::FALLBACK_HOSTS.shuffle.map { |fallback_host| endpoint_for_host(fallback_host) }
         end
 

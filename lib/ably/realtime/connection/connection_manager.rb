@@ -16,8 +16,9 @@ module Ably::Realtime
       }
 
       def initialize(connection)
-        @connection = connection
-        @timers     = Hash.new { |hash, key| hash[key] = [] }
+        @connection     = connection
+        @timers         = Hash.new { |hash, key| hash[key] = [] }
+        @renewing_token = false
 
         connection.unsafe_on(:closed) do
           connection.reset_resume_info

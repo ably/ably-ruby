@@ -710,6 +710,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         context 'when the Internet is up' do
           before do
             allow(connection).to receive(:internet_up?).and_yield(true)
+            @suspended = 0
           end
 
           it 'uses a fallback host on every subsequent disconnected attempt until suspended' do
@@ -738,14 +739,13 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                 expect(host).to eql(expected_host)
               else
                 expect(custom_hosts).to include(host)
-                fallback_hosts_used << host if @suspended
+                fallback_hosts_used << host if @suspended > 0
               end
               request += 1
               raise EventMachine::ConnectionError
             end
 
             connection.on(:suspended) do
-              @suspended ||= 0
               @suspended += 1
 
               if @suspended > 3

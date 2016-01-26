@@ -689,12 +689,12 @@ describe Ably::Auth do
             stub_const 'Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER', 0
             old_token_defaults = Ably::Auth::TOKEN_DEFAULTS
             stub_const 'Ably::Auth::TOKEN_DEFAULTS', old_token_defaults.merge(renew_token_buffer: 0)
+            @block_called = 0
           end
 
           let(:token_client)   { Ably::Rest::Client.new(default_options.merge(key: api_key, token_params: { ttl: 3 })) }
           let(:client_options) {
             default_options.merge(token: token_client.auth.request_token.token, auth_callback: Proc.new do
-              @block_called ||= 0
               @block_called += 1
               token_client.auth.create_token_request
             end)

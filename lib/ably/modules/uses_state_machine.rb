@@ -87,7 +87,7 @@ module Ably::Modules
 
     module ClassMethods
       def emits_klass
-        @emits_klass ||= if @emits_klass_name
+        @emits_klass ||= if defined?(@emits_klass_name) && @emits_klass_name
           get_const(@emits_klass_name)
         end
       end

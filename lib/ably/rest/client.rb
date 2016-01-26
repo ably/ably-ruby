@@ -315,7 +315,7 @@ module Ably
       #
       # @api private
       def fallback_connection
-        unless @fallback_connections
+        unless defined?(@fallback_connections) && @fallback_connections
           @fallback_connections = Ably::FALLBACK_HOSTS.shuffle.map { |host| Faraday.new(endpoint_for_host(host).to_s, connection_options) }
         end
         @fallback_index ||= 0
