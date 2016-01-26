@@ -13,7 +13,13 @@ module Ably::Realtime
       end
 
       private
-      attr_reader :client, :connection
+      def client
+        @client
+      end
+
+      def connection
+        @connection
+      end
 
       def channels
         client.channels
