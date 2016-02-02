@@ -702,7 +702,7 @@ describe Ably::Auth do
 
           it 'calls the Proc once the token has expired and the new token is used' do
             client.stats
-            expect(@block_called).to be_nil
+            expect(@block_called).to eql(0)
             sleep 3.5
             expect { client.stats }.to change { client.auth.current_token_details }
             expect(@block_called).to eql(1)
