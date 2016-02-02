@@ -1729,7 +1729,7 @@ describe Ably::Realtime::Presence, :event_machine do
     end
 
     context 'connection failure mid-way through a large member sync' do
-      let(:members_count) { 400 }
+      let(:members_count) { 250 }
       let(:sync_pages_received) { [] }
       let(:client_options)  { default_options.merge(log_level: :error) }
 
@@ -1741,7 +1741,7 @@ describe Ably::Realtime::Presence, :event_machine do
             client_two.connection.transport.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
               if protocol_message.action == :sync
                 sync_pages_received << protocol_message
-                force_connection_failure client_two if sync_pages_received.count == 2
+                force_connection_failure client_two if sync_pages_received.count == 1
               end
             end
           end
