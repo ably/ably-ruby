@@ -38,7 +38,7 @@ EventMachine.run do
 end
 ```
 
-All examples assume a client has been created as follows:
+All examples assume a client has been created using one of the following:
 
 ```ruby
 # basic auth with an API key
@@ -47,6 +47,8 @@ client = Ably::Realtime.new(key: 'xxxxx')
 # using token auth
 client = Ably::Realtime.new(token: 'xxxxx')
 ```
+
+If you do not have an API key, [sign up for a free API key now](https://www.ably.io/signup)
 
 ### Connection
 
@@ -67,20 +69,29 @@ connection_result.errback = Proc.new do
 end
 ```
 
-### Subscribing to a channel
-
-Given:
+Subscribing to connection state changes:
 
 ```ruby
-channel = client.channel('test')
+client.connection.on do |state_change|
+  state_change.current #=> :connected
+  state_change.previous #=> :connecting
+end
+```
+
+### Subscribing to a channel
+
+Given a channel is created as follows:
+
+```ruby
+channel = client.channels.get('test')
 ```
 
 Subscribe to all events:
 
 ```ruby
 channel.subscribe do |message|
-  message[:name] #=> "greeting"
-  message[:data] #=> "Hello World!"
+  message.name #=> "greeting"
+  message.data #=> "Hello World!"
 end
 ```
 
@@ -88,12 +99,12 @@ Only certain events:
 
 ```ruby
 channel.subscribe('myEvent') do |message|
-  message[:name] #=> "myEvent"
-  message[:data] #=> "myData"
+  message.name #=> "myEvent"
+  message.data #=> "myData"
 end
 ```
 
-### Publishing to a channel
+### Publishing a message to a channel
 
 ```ruby
 channel.publish('greeting', 'Hello World!')
@@ -107,7 +118,9 @@ channel.history do |messages_page|
   messages_page.items.first # #<Ably::Models::Message ...>
   messages_page.items.first.data # payload for the message
   messages_page.items.length # number of messages in the current page of history
-  messages_page.next # retrieves the next page => #<Ably::Models::PaginatedResult ...>
+  messages_page.next do |next_page|
+    next_page #=> the next page => #<Ably::Models::PaginatedResult ...>
+  end
   messages_page.has_next? # false, there are more pages
 end
 ```
@@ -115,8 +128,18 @@ end
 ### Presence on a channel
 
 ```ruby
-channel.presence.enter(data: 'john.doe') do |presence|
-  presence.get #=> [Array of members present]
+channel.presence.enter(data: 'metadata') do |presence|
+  presence.get do |members|
+    members #=> [Array of members present]
+  end
+end
+```
+
+### Subscribing to presence events
+
+```ruby
+channel.presence.subscribe do |member|
+  member #=> { action: :enter, client_id: 'bob' }
 end
 ```
 
@@ -127,7 +150,10 @@ channel.presence.history do |presence_page|
   presence_page.items.first.action # Any of :enter, :update or :leave
   presence_page.items.first.client_id # client ID of member
   presence_page.items.first.data # optional data payload of member
-  presence_page.next # retrieves the next page => #<Ably::Models::PaginatedResult ...>
+  presence_page.next do |next_page|
+    next_page #=> the next page => #<Ably::Models::PaginatedResult ...>
+  end
+  presence_page.has_next? # false, there are more pages
 end
 ```
 
@@ -160,7 +186,7 @@ messages_page.next # retrieves the next page => #<Ably::Models::PaginatedResult 
 messages_page.has_next? # false, there are more pages
 ```
 
-### Presence on a channel
+### Current presence members on a channel
 
 ```ruby
 members_page = channel.presence.get # => #<Ably::Models::PaginatedResult ...>
@@ -170,7 +196,7 @@ members_page.next # retrieves the next page => #<Ably::Models::PaginatedResult .
 members_page.has_next? # false, there are more pages
 ```
 
-### Querying the Presence History
+### Querying the presence history
 
 ```ruby
 presence_page = channel.presence.history #=> #<Ably::Models::PaginatedResult ...>
@@ -179,22 +205,32 @@ presence_page.items.first.client_id # client ID of first member
 presence_page.next # retrieves the next page => #<Ably::Models::PaginatedResult ...>
 ```
 
-### Generate Token and Token Request
+### Generate Token
+
+Tokens are issued by Ably and are readily usable by any client to connect to Ably:
 
 ```ruby
 token_details = client.auth.request_token
 # => #<Ably::Models::TokenDetails ...>
 token_details.token # => "xVLyHw.CLchevH3hF....MDh9ZC_Q"
-client = Ably::Rest.new(token: token_details.token)
+client = Ably::Rest.new(token: token_details)
+```
 
-token = client.auth.create_token_request(ttl: 3600)
+### Generate a TokenRequest
+
+Token requests are issued by your servers and signed using your private API key. This is the preferred method of authentication as no secrets are ever shared, and the token request can be issued to trusted clients without communicating with Ably.
+
+```ruby
+token_request = client.auth.create_token_request(ttl: 3600, client_id: 'jim')
 # => {"id"=>...,
-#     "clientId"=>nil,
+#     "clientId"=>"jim",
 #     "ttl"=>3600,
 #     "timestamp"=>...,
 #     "capability"=>"{\"*\":[\"*\"]}",
 #     "nonce"=>...,
 #     "mac"=>...}
+
+client = Ably::Rest.new(token: token_request)
 ```
 
 ### Fetching your application's stats
@@ -213,7 +249,7 @@ client.time #=> 2013-12-12 14:23:34 +0000
 
 ## Dependencies
 
-If you only need to use the REST features of this library and do not want EventMachine as a dependency, then you should use the [Ably Ruby REST gem](https://rubygems.org/gems/ably-rest).
+If you only need to use the REST features of this library and do not want EventMachine as a dependency, then you should consider using the [Ably Ruby REST gem](https://rubygems.org/gems/ably-rest).
 
 ## Support, feedback and troubleshooting
 
@@ -234,4 +270,4 @@ To see what has changed in recent versions of Bundler, see the [CHANGELOG](CHANG
 
 ## License
 
-Copyright (c) 2015 Ably Real-time Ltd, Licensed under the Apache License, Version 2.0.  Refer to [LICENSE](LICENSE) for the license terms.
+Copyright (c) 2016 Ably Real-time Ltd, Licensed under the Apache License, Version 2.0.  Refer to [LICENSE](LICENSE) for the license terms.
