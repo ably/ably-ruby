@@ -32,7 +32,7 @@ module Ably::Models
   #   @return [Array<PresenceMessage>] A {ProtocolMessage} with a `:presence` action contains one or more presence updates belonging to the channel
   # @!attribute [r] flags
   #   @return [Integer] Flags indicating special ProtocolMessage states
-  # @!attribute [r] hash
+  # @!attribute [r] attributes
   #   @return [Hash] Access the protocol message Hash object ruby'fied to use symbolized keys
   #
   class ProtocolMessage
@@ -90,14 +90,14 @@ module Ably::Models
 
     %w(id channel channel_serial connection_id).each do |attribute|
       define_method attribute do
-        hash[attribute.to_sym]
+        attributes[attribute.to_sym]
       end
     end
 
     def connection_key
       # connection_key in connection details takes precedence over connection_key on the ProtocolMessage
       # connection_key in the ProtocolMessage will be deprecated in future protocol versions > 0.8
-      connection_details.connection_key || hash[:connection_key]
+      connection_details.connection_key || attributes[:connection_key]
     end
 
     def id!
@@ -106,33 +106,33 @@ module Ably::Models
     end
 
     def action
-      ACTION(hash[:action])
+      ACTION(attributes[:action])
     rescue KeyError
-      raise KeyError, "Action '#{hash[:action]}' is not supported by ProtocolMessage"
+      raise KeyError, "Action '#{attributes[:action]}' is not supported by ProtocolMessage"
     end
 
     def error
-      @error ||= ErrorInfo.new(hash[:error]) if hash[:error]
+      @error ||= ErrorInfo.new(attributes[:error]) if attributes[:error]
     end
 
     def timestamp
-      as_time_from_epoch(hash[:timestamp]) if hash[:timestamp]
+      as_time_from_epoch(attributes[:timestamp]) if attributes[:timestamp]
     end
 
     def message_serial
-      Integer(hash[:msg_serial])
+      Integer(attributes[:msg_serial])
     rescue TypeError
-      raise TypeError, "msg_serial '#{hash[:msg_serial]}' is invalid, a positive Integer is expected for a ProtocolMessage"
+      raise TypeError, "msg_serial '#{attributes[:msg_serial]}' is invalid, a positive Integer is expected for a ProtocolMessage"
     end
 
     def connection_serial
-      Integer(hash[:connection_serial])
+      Integer(attributes[:connection_serial])
     rescue TypeError
-      raise TypeError, "connection_serial '#{hash[:connection_serial]}' is invalid, a positive Integer is expected for a ProtocolMessage"
+      raise TypeError, "connection_serial '#{attributes[:connection_serial]}' is invalid, a positive Integer is expected for a ProtocolMessage"
     end
 
     def count
-      [1, hash[:count].to_i].max
+      [1, attributes[:count].to_i].max
     end
 
     def has_message_serial?
@@ -161,7 +161,7 @@ module Ably::Models
 
     def messages
       @messages ||=
-        Array(hash[:messages]).map do |message|
+        Array(attributes[:messages]).map do |message|
           Ably::Models.Message(message, protocol_message: self)
         end
     end
@@ -172,13 +172,13 @@ module Ably::Models
 
     def presence
       @presence ||=
-        Array(hash[:presence]).map do |message|
+        Array(attributes[:presence]).map do |message|
           Ably::Models.PresenceMessage(message, protocol_message: self)
         end
     end
 
     def flags
-      Integer(hash[:flags])
+      Integer(attributes[:flags])
     rescue TypeError
       0
     end
@@ -188,7 +188,7 @@ module Ably::Models
     end
 
     def connection_details
-      @connection_details ||= Ably::Models::ConnectionDetails(hash[:connection_details])
+      @connection_details ||= Ably::Models::ConnectionDetails(attributes[:connection_details])
     end
 
     # Indicates this protocol message will generate an ACK response when sent
@@ -197,16 +197,16 @@ module Ably::Models
       self.class.ack_required?(action)
     end
 
-    def hash
+    def attributes
       @hash_object
     end
 
-    # Return a JSON ready object from the underlying #hash using Ably naming conventions for keys
+    # Return a JSON ready object from the underlying #attributes using Ably naming conventions for keys
     def as_json(*args)
       raise TypeError, ':action is missing, cannot generate a valid Hash for ProtocolMessage' unless action
       raise TypeError, ':msg_serial or :connection_serial is missing, cannot generate a valid Hash for ProtocolMessage' if ack_required? && !has_serial?
 
-      hash.dup.tap do |hash_object|
+      attributes.dup.tap do |hash_object|
         hash_object['action']   = action.to_i
         hash_object['messages'] = messages.map(&:as_json) unless messages.empty?
         hash_object['presence'] = presence.map(&:as_json) unless presence.empty?

@@ -57,14 +57,14 @@ module Ably::Models
         $stderr.puts "<IdiomaticRubyWrapper#initialize> WARNING: Wrapping a IdiomaticRubyWrapper with another IdiomaticRubyWrapper"
       end
 
-      @hash = mixedCaseHashObject
-      @stop_at = Array(stop_at).each_with_object({}) do |key, hash|
-        hash[convert_to_snake_case_symbol(key)] = true
+      @attributes = mixedCaseHashObject
+      @stop_at = Array(stop_at).each_with_object({}) do |key, object|
+        object[convert_to_snake_case_symbol(key)] = true
       end.freeze
     end
 
     def [](key)
-      value = hash[source_key_for(key)]
+      value = attributes[source_key_for(key)]
       if stop_at?(key) || !value.kind_of?(Hash)
         value
       else
@@ -73,7 +73,7 @@ module Ably::Models
     end
 
     def []=(key, value)
-      hash[source_key_for(key)] = value
+      attributes[source_key_for(key)] = value
     end
 
     def fetch(key, default = nil)
@@ -91,7 +91,7 @@ module Ably::Models
     end
 
     def size
-      hash.size
+      attributes.size
     end
 
     def keys
@@ -103,14 +103,14 @@ module Ably::Models
     end
 
     def has_key?(key)
-      hash.has_key?(source_key_for(key))
+      attributes.has_key?(source_key_for(key))
     end
 
     # Method ensuring this {IdiomaticRubyWrapper} is {http://ruby-doc.org/core-2.1.3/Enumerable.html Enumerable}
     def each
       return to_enum(:each) unless block_given?
 
-      hash.each do |key, value|
+      attributes.each do |key, value|
         key = convert_to_snake_case_symbol(key)
         value = self[key]
         yield key, value
@@ -138,9 +138,10 @@ module Ably::Models
       end
     end
 
-    # Access to the raw Hash object provided to the constructer of this wrapper
-    def hash
-      @hash
+    # @!attribute [r] Hash
+    # @return [Hash] Access to the raw Hash object provided to the constructer of this wrapper
+    def attributes
+      @attributes
     end
 
     # Takes the underlying Hash object and returns it in as a JSON ready Hash object using snakeCase for compability with the Ably service.
@@ -149,7 +150,7 @@ module Ably::Models
     #   wrapper = IdiomaticRubyWrapper({ 'mixedCase': true, mixed_case: false, 'snake_case': 1 })
     #   wrapper.as_json({ 'mixedCase': true, 'snakeCase': 1 })
     def as_json(*args)
-      hash.each_with_object({}) do |key_val, new_hash|
+      attributes.each_with_object({}) do |key_val, new_hash|
         key                      = key_val[0]
         mixed_case_key           = convert_to_mixed_case(key)
         wrapped_val              = self[key]
@@ -171,26 +172,32 @@ module Ably::Models
     #   wrapper = IdiomaticRubyWrapper({ 'mixedCase': true, mixed_case: false, 'snake_case': 1 })
     #   wrapper.to_hash({ mixed_case: true, snake_case: 1 })
     def to_hash(*args)
-      each_with_object({}) do |key_val, hash|
-        key, val  = key_val
-        val       = val.to_hash(args) if val.kind_of?(IdiomaticRubyWrapper)
-        hash[key] = val
+      each_with_object({}) do |key_val, object|
+        key, val    = key_val
+        val         = val.to_hash(args) if val.kind_of?(IdiomaticRubyWrapper)
+        object[key] = val
       end
     end
 
     # Method to create a duplicate of the underlying Hash object
     # Useful when underlying Hash is frozen
     def dup
-      Ably::Models::IdiomaticRubyWrapper.new(hash.dup)
+      Ably::Models::IdiomaticRubyWrapper.new(attributes.dup)
     end
 
     # Freeze the underlying data
     def freeze
-      hash.freeze
+      attributes.freeze
     end
 
     def to_s
-      hash.to_s
+      attributes.to_s
+    end
+
+    # @!attribute [r] hash
+    # @return [Integer] Compute a hash-code for this hash. Two hashes with the same content will have the same hash code
+    def hash
+      attributes.hash
     end
 
     private
@@ -214,7 +221,7 @@ module Ably::Models
       ]
 
       preferred_format = format_preferences.detect do |format|
-        hash.has_key?(format.call(symbolized_key))
+        attributes.has_key?(format.call(symbolized_key))
       end || format_preferences.first
 
       preferred_format.call(symbolized_key)

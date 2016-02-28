@@ -38,46 +38,48 @@ module Ably::Models
       @hash_object = IdiomaticRubyWrapper(attributes.clone)
 
       %w(issued expires).map(&:to_sym).each do |time_attribute|
-        hash[time_attribute] = (hash[time_attribute].to_f * 1000).round if hash[time_attribute].kind_of?(Time)
+        if self.attributes[time_attribute].kind_of?(Time)
+          self.attributes[time_attribute] = (self.attributes[time_attribute].to_f * 1000).round
+        end
       end
 
-      hash.freeze
+      self.attributes.freeze
     end
 
     # @!attribute [r] token
     # @return [String] Token used to authenticate requests
     def token
-      hash[:token]
+      attributes[:token]
     end
 
     # @!attribute [r] key_name
     # @return [String] API key name used to create this token.  An API key is made up of an API key name and secret delimited by a +:+
     def key_name
-      hash[:key_name]
+      attributes[:key_name]
     end
 
     # @!attribute [r] issued
     # @return [Time] Time the token was issued
     def issued
-      as_time_from_epoch(hash[:issued], granularity: :ms, allow_nil: :true)
+      as_time_from_epoch(attributes[:issued], granularity: :ms, allow_nil: :true)
     end
 
     # @!attribute [r] expires
     # @return [Time] Time the token expires
     def expires
-      as_time_from_epoch(hash[:expires], granularity: :ms, allow_nil: :true)
+      as_time_from_epoch(attributes[:expires], granularity: :ms, allow_nil: :true)
     end
 
     # @!attribute [r] capability
     # @return [Hash] Capabilities assigned to this token
     def capability
-      JSON.parse(hash.fetch(:capability)) if hash.has_key?(:capability)
+      JSON.parse(attributes.fetch(:capability)) if attributes.has_key?(:capability)
     end
 
     # @!attribute [r] client_id
     # @return [String] Optional client ID assigned to this token
     def client_id
-      hash[:client_id]
+      attributes[:client_id]
     end
 
     # Returns true if token is expired or about to expire
@@ -93,12 +95,12 @@ module Ably::Models
     # @return [Boolean]
     # @api private
     def from_token_string?
-      hash.keys == [:token]
+      attributes.keys == [:token]
     end
 
-    # @!attribute [r] hash
+    # @!attribute [r] attributes
     # @return [Hash] Access the token details Hash object ruby'fied to use symbolized keys
-    def hash
+    def attributes
       @hash_object
     end
 

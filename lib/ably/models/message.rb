@@ -34,7 +34,7 @@ module Ably::Models
   #   @return [String] A globally unique message ID
   # @!attribute [r] connection_id
   #   @return [String] The connection_id of the publisher of the message
-  # @!attribute [r] hash
+  # @!attribute [r] attributes
   #   @return [Hash] Access the protocol message Hash object ruby'fied to use symbolized keys
   #
   class Message
@@ -45,17 +45,17 @@ module Ably::Models
 
     # {Message} initializer
     #
-    # @param  hash_object [Hash]            object with the underlying message details
+    # @param  attributes [Hash]             object with the underlying message detail key value attributes
     # @param  [Hash]      options           an options Hash for this initializer
     # @option options     [ProtocolMessage] :protocol_message  An optional protocol message to assocate the presence message with
     # @option options     [Logger]          :logger            An optional Logger to be used by {Ably::Modules::SafeDeferrable} if an exception is caught in a callback
     #
-    def initialize(hash_object, options = {})
+    def initialize(attributes, options = {})
       @logger           = options[:logger] # Logger expected for SafeDeferrable
       @protocol_message = options[:protocol_message]
-      @raw_hash_object  = hash_object
+      @raw_hash_object  = attributes
 
-      set_hash_object hash_object
+      set_attributes_object attributes
 
       ensure_utf_8 :name,      name,      allow_nil: true
       ensure_utf_8 :client_id, client_id, allow_nil: true
@@ -64,32 +64,32 @@ module Ably::Models
 
     %w( name client_id encoding ).each do |attribute|
       define_method attribute do
-        hash[attribute.to_sym]
+        attributes[attribute.to_sym]
       end
     end
 
     def data
-      @data ||= hash[:data].freeze
+      @data ||= attributes[:data].freeze
     end
 
     def id
-      hash.fetch(:id) { "#{protocol_message.id!}:#{protocol_message_index}" }
+      attributes.fetch(:id) { "#{protocol_message.id!}:#{protocol_message_index}" }
     end
 
     def connection_id
-      hash.fetch(:connection_id) { protocol_message.connection_id if assigned_to_protocol_message? }
+      attributes.fetch(:connection_id) { protocol_message.connection_id if assigned_to_protocol_message? }
     end
 
     def timestamp
-      if hash[:timestamp]
-        as_time_from_epoch(hash[:timestamp])
+      if attributes[:timestamp]
+        as_time_from_epoch(attributes[:timestamp])
       else
         protocol_message.timestamp
       end
     end
 
-    def hash
-      @hash_object
+    def attributes
+      @attributes
     end
 
     def to_json(*args)
@@ -128,8 +128,8 @@ module Ably::Models
       protocol_message.messages.map(&:object_id).index(self.object_id)
     end
 
-    def set_hash_object(hash)
-      @hash_object = IdiomaticRubyWrapper(hash.clone.freeze, stop_at: [:data])
+    def set_attributes_object(new_attributes)
+      @attributes = IdiomaticRubyWrapper(new_attributes.clone.freeze, stop_at: [:data])
     end
 
     def logger

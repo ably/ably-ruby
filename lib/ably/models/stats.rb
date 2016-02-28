@@ -117,61 +117,61 @@ module Ably::Models
     #
     def initialize(hash_object)
       @raw_hash_object  = hash_object
-      set_hash_object hash_object
+      set_attributes_object hash_object
     end
 
     # Aggregates inbound and outbound messages
     # @return {Stats::MessageTypes}
     def all
-      @all ||= Stats::MessageTypes.new(hash[:all])
+      @all ||= Stats::MessageTypes.new(attributes[:all])
     end
 
     # All inbound messages i.e. received by Ably from clients
     # @return {Stats::MessageTraffic}
     def inbound
-      @inbound ||= Stats::MessageTraffic.new(hash[:inbound])
+      @inbound ||= Stats::MessageTraffic.new(attributes[:inbound])
     end
 
     # All outbound messages i.e. sent from Ably to clients
     # @return {Stats::MessageTraffic}
     def outbound
-      @outbound ||= Stats::MessageTraffic.new(hash[:outbound])
+      @outbound ||= Stats::MessageTraffic.new(attributes[:outbound])
     end
 
     # Messages persisted for later retrieval via the history API
     # @return {Stats::MessageTypes}
     def persisted
-      @persisted ||= Stats::MessageTypes.new(hash[:persisted])
+      @persisted ||= Stats::MessageTypes.new(attributes[:persisted])
     end
 
     # Breakdown of connection stats data for different (TLS vs non-TLS) connection types
     # @return {Stats::ConnectionTypes}
     def connections
-      @connections ||= Stats::ConnectionTypes.new(hash[:connections])
+      @connections ||= Stats::ConnectionTypes.new(attributes[:connections])
     end
 
     # Breakdown of channels stats
     # @return {Stats::ResourceCount}
     def channels
-      @channels ||= Stats::ResourceCount.new(hash[:channels])
+      @channels ||= Stats::ResourceCount.new(attributes[:channels])
     end
 
     # Breakdown of API requests received via the REST API
     # @return {Stats::RequestCount}
     def api_requests
-      @api_requests ||= Stats::RequestCount.new(hash[:api_requests])
+      @api_requests ||= Stats::RequestCount.new(attributes[:api_requests])
     end
 
     # Breakdown of Token requests received via the REST API
     # @return {Stats::RequestCount}
     def token_requests
-      @token_requests ||= Stats::RequestCount.new(hash[:token_requests])
+      @token_requests ||= Stats::RequestCount.new(attributes[:token_requests])
     end
 
     # @!attribute [r] interval_id
     # @return [String] The interval that this statistic applies to, see {GRANULARITY} and {INTERVAL_FORMAT_STRING}
     def interval_id
-      hash.fetch(:interval_id)
+      attributes.fetch(:interval_id)
     end
 
     # @!attribute [r] interval_time
@@ -186,12 +186,12 @@ module Ably::Models
       self.class.granularity_from_interval_id(interval_id)
     end
 
-    def hash
-      @hash_object
+    def attributes
+      @attributes
     end
 
     def as_json(*args)
-      hash.as_json(*args).reject { |key, val| val.nil? }
+      attributes.as_json(*args).reject { |key, val| val.nil? }
     end
 
     private
@@ -199,8 +199,8 @@ module Ably::Models
       @raw_hash_object
     end
 
-    def set_hash_object(hash)
-      @hash_object = IdiomaticRubyWrapper(hash.clone.freeze)
+    def set_attributes_object(new_attributes)
+      @attributes = IdiomaticRubyWrapper(new_attributes.clone.freeze)
     end
   end
 end

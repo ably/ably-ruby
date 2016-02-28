@@ -18,18 +18,18 @@ shared_examples 'a model' do |shared_options = {}|
       end
     end
 
-    context '#hash', :api_private do
+    context '#attributes', :api_private do
       let(:model_options) { { action: 5 } }
 
-      it 'provides access to #hash' do
-        expect(model.hash).to eq(model_options)
+      it 'provides access to #attributes' do
+        expect(model.attributes).to eq(model_options)
       end
     end
 
     context '#[]', :api_private do
       let(:model_options) { { unusual: 'attribute' } }
 
-      it 'provides accessor method to #hash' do
+      it 'provides accessor method to #attributes' do
         expect(model[:unusual]).to eql('attribute')
       end
     end
@@ -74,13 +74,13 @@ shared_examples 'a model' do |shared_options = {}|
     let(:model_options) { { channel: 'name' } }
 
     it 'prevents changes' do
-      expect { model.hash[:channel] = 'new' }.to raise_error RuntimeError, /can't modify frozen.*Hash/
+      expect { model.attributes[:channel] = 'new' }.to raise_error RuntimeError, /can't modify frozen.*Hash/
     end
 
     it 'dups options' do
-      expect(model.hash[:channel]).to eql('name')
+      expect(model.attributes[:channel]).to eql('name')
       model_options[:channel] = 'new'
-      expect(model.hash[:channel]).to eql('name')
+      expect(model.attributes[:channel]).to eql('name')
     end
   end
 end

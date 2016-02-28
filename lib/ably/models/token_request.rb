@@ -33,14 +33,16 @@ module Ably::Models
     #
     def initialize(attributes = {})
       @hash_object = IdiomaticRubyWrapper(attributes.clone)
-      hash[:timestamp] = (hash[:timestamp].to_f * 1000).round if hash[:timestamp].kind_of?(Time)
-      hash.freeze
+      if self.attributes[:timestamp].kind_of?(Time)
+        self.attributes[:timestamp] = (self.attributes[:timestamp].to_f * 1000).round
+      end
+      self.attributes.freeze
     end
 
     # @!attribute [r] key_name
     # @return [String] API key name of the key against which this request is made.  An API key is made up of an API key name and secret delimited by a +:+
     def key_name
-      hash.fetch(:key_name)
+      attributes.fetch(:key_name)
     end
 
     # @!attribute [r] ttl
@@ -49,7 +51,7 @@ module Ably::Models
     #                   settings and the attributes of the issuing key.
     #                   TTL when sent to Ably is in milliseconds.
     def ttl
-      hash.fetch(:ttl) / 1000
+      attributes.fetch(:ttl) / 1000
     end
 
     # @!attribute [r] capability
@@ -57,14 +59,14 @@ module Ably::Models
     #                the capability of the returned token will be the intersection of
     #                this capability with the capability of the issuing key.
     def capability
-      JSON.parse(hash.fetch(:capability))
+      JSON.parse(attributes.fetch(:capability))
     end
 
     # @!attribute [r] client_id
     # @return [String] the client ID to associate with this token. The generated token
     #                  may be used to authenticate as this clientId.
     def client_id
-      hash[:client_id]
+      attributes[:client_id]
     end
 
     # @!attribute [r] timestamp
@@ -73,7 +75,7 @@ module Ably::Models
     #                token requests from being replayed.
     #                Timestamp when sent to Ably is in milliseconds.
     def timestamp
-      as_time_from_epoch(hash.fetch(:timestamp), granularity: :ms)
+      as_time_from_epoch(attributes.fetch(:timestamp), granularity: :ms)
     end
 
     # @!attribute [r] nonce
@@ -81,26 +83,26 @@ module Ably::Models
     #                   uniqueness of this request. Any subsequent request using the
     #                   same nonce will be rejected.
     def nonce
-      hash.fetch(:nonce)
+      attributes.fetch(:nonce)
     end
 
     # @!attribute [r] mac
     # @return [String]  the Message Authentication Code for this request. See the
     #                   {https://www.ably.io/documentation Ably Authentication documentation} for more details.
     def mac
-      hash.fetch(:mac)
+      attributes.fetch(:mac)
     end
 
     # Requests that the token is always persisted
     # @api private
     #
     def persisted
-      hash.fetch(:persisted)
+      attributes.fetch(:persisted)
     end
 
-    # @!attribute [r] hash
+    # @!attribute [r] attributes
     # @return [Hash] the token request Hash object ruby'fied to use symbolized keys
-    def hash
+    def attributes
       @hash_object
     end
   end
