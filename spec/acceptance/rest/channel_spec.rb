@@ -87,7 +87,7 @@ describe Ably::Rest::Channel do
         let(:client_options) { default_options.merge(use_token_auth: true, token_params: { capability: capability }) }
 
         it 'raises a permission error when publishing' do
-          expect { channel.publish(name, data) }.to raise_error(Ably::Exceptions::InvalidRequest, /not permitted/)
+          expect { channel.publish(name, data) }.to raise_error(Ably::Exceptions::UnauthorizedRequest, /not permitted/)
         end
       end
 

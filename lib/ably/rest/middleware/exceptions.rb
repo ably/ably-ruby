@@ -30,12 +30,22 @@ module Ably
 
             message = 'Unknown server error' if message.to_s.strip == ''
 
+            exception_args = [message, error_status_code, error_code]
+
             if env.status >= 500
-              raise Ably::Exceptions::ServerError.new(message, error_status_code, error_code)
-            elsif env.status == 401 && TOKEN_EXPIRED_CODE.include?(error_code)
-              raise Ably::Exceptions::TokenExpired.new(message, error_status_code, error_code)
+              raise Ably::Exceptions::ServerError.new(*exception_args)
+            elsif env.status == 401
+              if TOKEN_EXPIRED_CODE.include?(error_code)
+                raise Ably::Exceptions::TokenExpired.new(*exception_args)
+              else
+                raise Ably::Exceptions::UnauthorizedRequest.new(*exception_args)
+              end
+            elsif env.status == 403
+              raise Ably::Exceptions::ForbiddenRequest.new(*exception_args)
+            elsif env.status == 404
+              raise Ably::Exceptions::ResourceMissing.new(*exception_args)
             else
-              raise Ably::Exceptions::InvalidRequest.new(message, error_status_code, error_code)
+              raise Ably::Exceptions::InvalidRequest.new(*exception_args)
             end
           end
         end
