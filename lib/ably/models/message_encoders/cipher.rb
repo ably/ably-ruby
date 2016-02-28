@@ -30,6 +30,8 @@ module Ably::Models::MessageEncoders
     rescue RuntimeError => e
       if e.message.match(/unsupported cipher algorithm/i)
         raise Ably::Exceptions::CipherError.new(e.message, nil, 92004)
+      else
+        raise e
       end
     end
 
