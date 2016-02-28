@@ -16,7 +16,7 @@ module Ably::Models
 
   # TokenRequest is a class that stores the attributes of a token request
   #
-  # Ruby {Time} objects are supported in place of Ably ms since epoch time fields.  However, if a numeric is provided
+  # Ruby {http://ruby-doc.org/core/Time.html Time} objects are supported in place of Ably ms since epoch time fields.  However, if a numeric is provided
   # it must always be expressed in milliseconds as the Ably API always uses milliseconds for time fields.
   #
   class TokenRequest
@@ -24,7 +24,7 @@ module Ably::Models
 
     # @param attributes
     # @option attributes [Integer]      :ttl        requested time to live for the token in milliseconds
-    # @option attributes [Time,Integer] :timestamp  the timestamp of this request in milliseconds or as a {Time}
+    # @option attributes [Time,Integer] :timestamp  the timestamp of this request in milliseconds or as a {http://ruby-doc.org/core/Time.html Time}
     # @option attributes [String]       :key_name   API key name of the key against which this request is made
     # @option attributes [String]       :capability JSON stringified capability of the token
     # @option attributes [String]       :client_id  client ID to associate with this token

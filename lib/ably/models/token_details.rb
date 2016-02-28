@@ -16,7 +16,7 @@ module Ably::Models
   # TokenDetails is a class providing details of the token string and the token's associated metadata,
   # constructed from the response from Ably when request in a token via the REST API.
   #
-  # Ruby {Time} objects are supported in place of Ably ms since epoch time fields.  However, if a numeric is provided
+  # Ruby {http://ruby-doc.org/core/Time.html Time} objects are supported in place of Ably ms since epoch time fields.  However, if a numeric is provided
   # it must always be expressed in milliseconds as the Ably API always uses milliseconds for time fields.
   #
   class TokenDetails
