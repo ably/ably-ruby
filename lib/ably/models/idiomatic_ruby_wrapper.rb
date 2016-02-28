@@ -182,7 +182,7 @@ module Ably::Models
     # Method to create a duplicate of the underlying Hash object
     # Useful when underlying Hash is frozen
     def dup
-      Ably::Models::IdiomaticRubyWrapper.new(attributes.dup)
+      Ably::Models::IdiomaticRubyWrapper.new(attributes.dup, stop_at: stop_at.keys)
     end
 
     # Freeze the underlying data

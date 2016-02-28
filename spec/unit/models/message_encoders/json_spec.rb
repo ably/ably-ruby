@@ -30,6 +30,18 @@ describe Ably::Models::MessageEncoders::Json do
       end
     end
 
+    context 'message with json payload in camelCase' do
+      let(:message) { { data: '{"keyId":"test"}', encoding: 'json' } }
+
+      it 'decodes json' do
+        expect(message[:data]).to eq({ 'keyId' => 'test' })
+      end
+
+      it 'strips the encoding' do
+        expect(message[:encoding]).to be_nil
+      end
+    end
+
     context 'message with json payload before other payloads' do
       let(:message) { { data: hash_string_data, encoding: 'utf-8/json' } }
 
@@ -65,6 +77,18 @@ describe Ably::Models::MessageEncoders::Json do
 
       it 'encodes hash payload data as json' do
         expect(message[:data]).to eql(hash_string_data)
+      end
+
+      it 'adds the encoding' do
+        expect(message[:encoding]).to eql('json')
+      end
+    end
+
+    context 'message with hash payload and underscore case keys' do
+      let(:message) { { data: { key_id: 'test' }, encoding: nil } }
+
+      it 'encodes hash payload data as json and leaves underscore case in tact' do
+        expect(message[:data]).to eql('{"key_id":"test"}')
       end
 
       it 'adds the encoding' do

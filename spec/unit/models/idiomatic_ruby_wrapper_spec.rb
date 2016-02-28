@@ -329,10 +329,12 @@ describe Ably::Models::IdiomaticRubyWrapper, :api_private do
     context '#dup' do
       let(:mixed_case_data) do
         {
-          'key' => 'value'
+          'key_id' => 'value',
+          'stop'   => { client_id: "case won't change" }
         }.freeze
       end
       let(:dupe) { subject.dup }
+      subject { Ably::Models::IdiomaticRubyWrapper.new(mixed_case_data, stop_at: [:stop]) }
 
       it 'returns a new object with the underlying JSON duped' do
         expect(subject.attributes).to be_frozen
@@ -343,6 +345,11 @@ describe Ably::Models::IdiomaticRubyWrapper, :api_private do
         expect(dupe).to be_a(Ably::Models::IdiomaticRubyWrapper)
         expect(dupe.attributes).to be_a(Hash)
         expect(dupe.attributes).to eql(mixed_case_data)
+      end
+
+      it 'keeps the stop_at list intact' do
+        expect(dupe.stop_at.keys).to eql([:stop])
+        expect(dupe.attributes['stop']).to eql({ client_id: "case won't change" })
       end
     end
   end
