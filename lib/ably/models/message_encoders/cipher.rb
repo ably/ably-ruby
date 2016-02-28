@@ -4,7 +4,7 @@ require 'ably/util/crypto'
 
 module Ably::Models::MessageEncoders
   # Cipher Encoder & Decoder that automatically encrypts & decrypts messages using Ably::Util::Crypto
-  # when a channel has option encrypted: true.
+  # when a channel has the +:cipher+ channel option configured
   #
   class Cipher < Base
     ENCODING_ID = 'cipher'
@@ -20,10 +20,9 @@ module Ably::Models::MessageEncoders
 
       if channel_configured_for_encryption?(channel_options)
         add_encoding_to_message 'utf-8', message unless is_binary?(message) || is_utf8_encoded?(message)
-
         crypto = crypto_for(channel_options)
         message[:data] = crypto.encrypt(message[:data])
-        add_encoding_to_message "#{ENCODING_ID}+#{crypto.cipher_type.downcase}", message
+        add_encoding_to_message "#{ENCODING_ID}+#{crypto.cipher_params.cipher_type.downcase}", message
       end
     rescue ArgumentError => e
       raise Ably::Exceptions::CipherError.new(e.message, nil, 92005)
@@ -42,8 +41,8 @@ module Ably::Models::MessageEncoders
         end
 
         crypto = crypto_for(channel_options)
-        unless crypto.cipher_type == cipher_algorithm(message).upcase
-          raise Ably::Exceptions::CipherError.new("Cipher algorithm #{crypto.cipher_type} does not match message cipher algorithm of #{cipher_algorithm(message).upcase}", nil, 92002)
+        unless crypto.cipher_params.cipher_type == cipher_algorithm(message).upcase
+          raise Ably::Exceptions::CipherError.new("Cipher algorithm #{crypto.cipher_params.cipher_type} does not match message cipher algorithm of #{cipher_algorithm(message).upcase}", nil, 92002)
         end
 
         message[:data] = crypto.decrypt(message[:data])
@@ -63,11 +62,11 @@ module Ably::Models::MessageEncoders
     end
 
     def crypto_for(channel_options)
-      @cryptos[channel_options.fetch(:cipher_params, :default)] ||= Ably::Util::Crypto.new(channel_options.fetch(:cipher_params, {}))
+      @cryptos[channel_options.to_s] ||= Ably::Util::Crypto.new(channel_options.fetch(:cipher, {}))
     end
 
     def channel_configured_for_encryption?(channel_options)
-      channel_options.fetch(:encrypted, false)
+      channel_options[:cipher]
     end
 
     def is_cipher_encoded?(message)

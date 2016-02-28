@@ -9,12 +9,12 @@ describe Ably::Models::MessageEncoders do
   let(:channel)                { client.channel('test', channel_options) }
   let(:response)               { instance_double('Faraday::Response', status: 201) }
 
-  let(:cipher_params)          { { key: random_str, algorithm: 'aes', mode: 'cbc', key_length: 128 } }
+  let(:cipher_params)          { { key: Ably::Util::Crypto.generate_random_key(128), algorithm: 'aes', mode: 'cbc', key_length: 128 } }
   let(:crypto)                 { Ably::Util::Crypto.new(cipher_params) }
 
   let(:utf_8_data)             { random_str.encode(Encoding::UTF_8) }
   let(:binary_data)            { MessagePack.pack(random_str).encode(Encoding::ASCII_8BIT) }
-  let(:json_data)              { { 'key' => random_str } }
+  let(:json_data)              { { 'some_id' => random_str } }
 
   after do
     channel.publish 'event', published_data
@@ -70,7 +70,7 @@ describe Ably::Models::MessageEncoders do
     end
 
     context 'with encryption' do
-      let(:channel_options) { { encrypted: true, cipher_params: cipher_params } }
+      let(:channel_options) { { cipher: cipher_params } }
 
       context 'with UTF-8 data' do
         let(:published_data) { utf_8_data }
@@ -146,7 +146,7 @@ describe Ably::Models::MessageEncoders do
     end
 
     context 'with encryption' do
-      let(:channel_options) { { encrypted: true, cipher_params: cipher_params } }
+      let(:channel_options) { { cipher: cipher_params } }
 
       context 'with UTF-8 data' do
         let(:published_data) { utf_8_data }

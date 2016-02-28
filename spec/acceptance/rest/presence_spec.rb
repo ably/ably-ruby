@@ -26,8 +26,8 @@ describe Ably::Rest::Presence do
     let(:secret_key)       { Base64.decode64(cipher_details.fetch('key')) }
     let(:iv)               { Base64.decode64(cipher_details.fetch('iv')) }
 
-    let(:cipher_options)   { { key: secret_key, algorithm: algorithm, mode: mode, key_length: key_length, iv: iv } }
-    let(:fixtures_channel) { client.channel('persisted:presence_fixtures', encrypted: true, cipher_params: cipher_options, iv: iv) }
+    let(:cipher_options)   { { key: secret_key, algorithm: algorithm, mode: mode, key_length: key_length, fixed_iv: iv } }
+    let(:fixtures_channel) { client.channel('persisted:presence_fixtures', cipher: cipher_options, fixed_iv: iv) }
 
     context 'tested against presence fixture data set up in test app' do
       before(:context) do
@@ -321,8 +321,8 @@ describe Ably::Rest::Presence do
 
       let(:data)            { random_str(32) }
       let(:channel_name)    { "persisted:#{random_str(4)}" }
-      let(:cipher_options)  { { key: random_str(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
-      let(:presence)        { client.channel(channel_name, encrypted: true, cipher_params: cipher_options).presence }
+      let(:cipher_options)  { { key: Ably::Util::Crypto.generate_random_key(256), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
+      let(:presence)        { client.channel(channel_name, cipher: cipher_options).presence }
 
       let(:crypto)          { Ably::Util::Crypto.new(cipher_options) }
 

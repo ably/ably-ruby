@@ -97,8 +97,8 @@ describe Ably::Rest::Channel, 'messages' do
 
     describe 'encryption and encoding' do
       let(:channel_name)      { "persisted:#{random_str}" }
-      let(:cipher_options)    { { key: random_str(32) } }
-      let(:encrypted_channel) { client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
+      let(:encrypted_channel) { client.channel(channel_name, cipher: cipher_options) }
+      let(:cipher_options)    { { key: Ably::Util::Crypto.generate_random_key } }
 
       context 'with #publish and #history' do
         shared_examples 'an Ably encrypter and decrypter' do |item, data|
@@ -108,7 +108,7 @@ describe Ably::Rest::Channel, 'messages' do
           let(:secret_key)     { Base64.decode64(data['key']) }
           let(:iv)             { Base64.decode64(data['iv']) }
 
-          let(:cipher_options) { { key: secret_key, iv: iv, algorithm: algorithm, mode: mode, key_length: key_length } }
+          let(:cipher_options) { { key: secret_key, fixed_iv: iv, algorithm: algorithm, mode: mode, key_length: key_length } }
 
           let(:encoded)              { item['encoded'] }
           let(:encoded_data)         { encoded['data'] }
@@ -200,7 +200,7 @@ describe Ably::Rest::Channel, 'messages' do
         context 'when retrieving #history with a different protocol' do
           let(:other_protocol)       { protocol == :msgpack ? :json : :msgpack }
           let(:other_client)         { Ably::Rest::Client.new(default_client_options.merge(protocol: other_protocol)) }
-          let(:other_client_channel) {  other_client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
+          let(:other_client_channel) { other_client.channel(channel_name, cipher: cipher_options) }
 
           before do
             expect(other_client.protocol_binary?).to_not eql(client.protocol_binary?)
@@ -221,7 +221,7 @@ describe Ably::Rest::Channel, 'messages' do
 
         context 'when publishing on an unencrypted channel and retrieving with #history on an encrypted channel' do
           let(:unencrypted_channel)            { client.channel(channel_name) }
-          let(:other_client_encrypted_channel) { other_client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
+          let(:other_client_encrypted_channel) { other_client.channel(channel_name, cipher: cipher_options) }
 
           let(:payload) { MessagePack.pack({ 'key' => random_str }) }
 
@@ -236,8 +236,8 @@ describe Ably::Rest::Channel, 'messages' do
 
         context 'when publishing on an encrypted channel and retrieving with #history on an unencrypted channel' do
           let(:client_options)                   { default_client_options.merge(log_level: :fatal) }
-          let(:cipher_options)                   { { key: random_str(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
-          let(:encrypted_channel)                { client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
+          let(:cipher_options)                   { { key: Ably::Util::Crypto.generate_random_key(256), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
+          let(:encrypted_channel)                { client.channel(channel_name, cipher: cipher_options) }
           let(:other_client_unencrypted_channel) { other_client.channel(channel_name) }
 
           let(:payload) { MessagePack.pack({ 'key' => random_str }) }
@@ -262,10 +262,10 @@ describe Ably::Rest::Channel, 'messages' do
 
         context 'publishing on an encrypted channel and retrieving #history with a different algorithm on another client' do
           let(:client_options)            { default_client_options.merge(log_level: :fatal) }
-          let(:cipher_options_client1)    { { key: random_str(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
-          let(:encrypted_channel_client1) { client.channel(channel_name, encrypted: true, cipher_params: cipher_options_client1) }
-          let(:cipher_options_client2)    { { key: random_str(32), algorithm: 'aes', mode: 'cbc', key_length: 128 } }
-          let(:encrypted_channel_client2) { other_client.channel(channel_name, encrypted: true, cipher_params: cipher_options_client2) }
+          let(:cipher_options_client1)    { { key: Ably::Util::Crypto.generate_random_key(256), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
+          let(:encrypted_channel_client1) { client.channel(channel_name, cipher: cipher_options_client1) }
+          let(:cipher_options_client2)    { { key: Ably::Util::Crypto.generate_random_key(128), algorithm: 'aes', mode: 'cbc', key_length: 128 } }
+          let(:encrypted_channel_client2) { other_client.channel(channel_name, cipher: cipher_options_client2) }
 
           let(:payload) { MessagePack.pack({ 'key' => random_str }) }
 
@@ -289,10 +289,10 @@ describe Ably::Rest::Channel, 'messages' do
 
         context 'publishing on an encrypted channel and subscribing with a different key on another client' do
           let(:client_options)            { default_client_options.merge(log_level: :fatal) }
-          let(:cipher_options_client1)    { { key: random_str(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
-          let(:encrypted_channel_client1) { client.channel(channel_name, encrypted: true, cipher_params: cipher_options_client1) }
-          let(:cipher_options_client2)    { { key: random_str(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
-          let(:encrypted_channel_client2) { other_client.channel(channel_name, encrypted: true, cipher_params: cipher_options_client2) }
+          let(:cipher_options_client1)    { { key: Ably::Util::Crypto.generate_random_key(256), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
+          let(:encrypted_channel_client1) { client.channel(channel_name, cipher: cipher_options_client1) }
+          let(:cipher_options_client2)    { { key: Ably::Util::Crypto.generate_random_key(256), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
+          let(:encrypted_channel_client2) { other_client.channel(channel_name, cipher: cipher_options_client2) }
 
           let(:payload) { MessagePack.pack({ 'key' => random_str }) }
 
