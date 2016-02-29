@@ -165,9 +165,9 @@ When a 128 bit or 256 bit key is provided to the library, all payloads are encry
 secret_key = Ably::Util::Crypto.generate_random_key
 channel = client.channels.get('test', cipher: { key: secret_key })
 channel.subscribe do |message|
-  message.data #=> "sensitive data"
+  message.data #=> "sensitive data (encrypted before being published)"
 end
-channel.publish nil, "sensitive data" # data will be encrypted before publish
+channel.publish "name (not encrypted)", "sensitive data (encrypted before being published)"
 ```
 
 ## Using the REST API
