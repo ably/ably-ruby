@@ -19,8 +19,8 @@ describe Ably::Realtime::Presence, 'history', :event_machine do
     let(:leave_data)          { random_str }
 
     it 'provides up to the moment presence history' do
-      presence_client_one.enter(data: data) do
-        presence_client_one.leave(data: leave_data) do
+      presence_client_one.enter(data) do
+        presence_client_one.leave(leave_data) do
           presence_client_one.history do |history_page|
             expect(history_page).to be_a(Ably::Models::PaginatedResult)
             expect(history_page.items.count).to eql(2)
@@ -50,7 +50,7 @@ describe Ably::Realtime::Presence, 'history', :event_machine do
         end
       end
 
-      presence_client_one.enter(data: data)
+      presence_client_one.enter(data)
     end
 
     context 'with option until_attach: true' do
@@ -59,8 +59,8 @@ describe Ably::Realtime::Presence, 'history', :event_machine do
       let(:presence_data_after_attach) { random_str }
 
       it 'retrieves all presence messages before channel was attached' do
-        presence_client_two.enter(data: presence_data_before_attach) do
-          presence_client_one.enter(data: presence_data_after_attach) do
+        presence_client_two.enter(presence_data_before_attach) do
+          presence_client_one.enter(presence_data_after_attach) do
             presence_client_one.history(until_attach: true) do |presence_page|
               expect(presence_page.items.count).to eql(1)
               expect(presence_page.items.first.data).to eql(presence_data_before_attach)
@@ -76,8 +76,8 @@ describe Ably::Realtime::Presence, 'history', :event_machine do
         let(:client_two)     { auto_close Ably::Realtime::Client.new(default_options.merge(auth_callback: wildcard_token)) }
 
         it 'retrieves two pages of messages before channel was attached' do
-          when_all(*10.times.map { |i| presence_client_two.enter_client("client:#{i}", data: presence_data_before_attach) }) do
-            when_all(*10.times.map { |i| presence_client_one.enter_client("client:#{i}", data: presence_data_after_attach) }) do
+          when_all(*10.times.map { |i| presence_client_two.enter_client("client:#{i}", presence_data_before_attach) }) do
+            when_all(*10.times.map { |i| presence_client_one.enter_client("client:#{i}", presence_data_after_attach) }) do
               presence_client_one.history(until_attach: true, limit: 5) do |presence_page|
                 expect(presence_page.items.count).to eql(5)
                 expect(presence_page.items.map(&:data).uniq.first).to eql(presence_data_before_attach)
