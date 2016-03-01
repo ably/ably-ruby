@@ -345,7 +345,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
         let(:secret_key)     { Base64.decode64(data['key']) }
         let(:iv)             { Base64.decode64(data['iv']) }
 
-        let(:cipher_options) { { key: secret_key, iv: iv, algorithm: algorithm, mode: mode, key_length: key_length } }
+        let(:cipher_options) { { key: secret_key, fixed_iv: iv, algorithm: algorithm, mode: mode, key_length: key_length } }
 
         context 'with #publish and #subscribe' do
           let(:encoded)          { item['encoded'] }
@@ -372,7 +372,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
             end
           end
 
-          let(:encrypted_channel) { client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
+          let(:encrypted_channel) { client.channel(channel_name, cipher: cipher_options) }
 
           it 'encrypts message automatically before they are pushed to the server' do
             encrypted_channel.__incoming_msgbus__.unsubscribe # remove all subscribe callbacks that could decrypt the message
@@ -424,9 +424,9 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       end
 
       context 'with multiple sends from one client to another' do
-        let(:cipher_options)            { { key: random_str(32) } }
-        let(:encrypted_channel_client1) { client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
-        let(:encrypted_channel_client2) { other_client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
+        let(:cipher_options)            { { key: Ably::Util::Crypto.generate_random_key } }
+        let(:encrypted_channel_client1) { client.channel(channel_name, cipher: cipher_options) }
+        let(:encrypted_channel_client2) { other_client.channel(channel_name, cipher: cipher_options) }
 
         let(:data) { { 'key' => random_str } }
         let(:message_count) { 50 }
@@ -471,9 +471,9 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
           auto_close Ably::Realtime::Client.new(default_options.merge(protocol: other_protocol))
         end
 
-        let(:cipher_options)            { { key: random_str(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
-        let(:encrypted_channel_client1) { client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
-        let(:encrypted_channel_client2) { other_client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
+        let(:cipher_options)            { { key: Ably::Util::Crypto.generate_random_key, algorithm: 'aes', mode: 'cbc', key_length: 256 } }
+        let(:encrypted_channel_client1) { client.channel(channel_name, cipher: cipher_options) }
+        let(:encrypted_channel_client2) { other_client.channel(channel_name, cipher: cipher_options) }
 
         before do
           expect(other_client.protocol_binary?).to_not eql(client.protocol_binary?)
@@ -495,9 +495,9 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
 
       context 'publishing on an unencrypted channel and subscribing on an encrypted channel with another client' do
         let(:client_options)              { default_options.merge(log_level: :fatal) }
-        let(:cipher_options)              { { key: random_str(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
+        let(:cipher_options)              { { key: Ably::Util::Crypto.generate_random_key, algorithm: 'aes', mode: 'cbc', key_length: 256 } }
         let(:unencrypted_channel_client1) { client.channel(channel_name) }
-        let(:encrypted_channel_client2)   { other_client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
+        let(:encrypted_channel_client2)   { other_client.channel(channel_name, cipher: cipher_options) }
 
         let(:payload) { MessagePack.pack({ 'key' => random_str }) }
 
@@ -513,8 +513,8 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
 
       context 'publishing on an encrypted channel and subscribing on an unencrypted channel with another client' do
         let(:client_options)              { default_options.merge(log_level: :fatal) }
-        let(:cipher_options)              { { key: random_str(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
-        let(:encrypted_channel_client1)   { client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
+        let(:cipher_options)              { { key: Ably::Util::Crypto.generate_random_key, algorithm: 'aes', mode: 'cbc', key_length: 256 } }
+        let(:encrypted_channel_client1)   { client.channel(channel_name, cipher: Ably::Util::Crypto.get_default_params(cipher_options)) }
         let(:unencrypted_channel_client2) { other_client.channel(channel_name) }
 
         let(:payload) { MessagePack.pack({ 'key' => random_str }) }
@@ -543,10 +543,10 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
 
       context 'publishing on an encrypted channel and subscribing with a different algorithm on another client' do
         let(:client_options)              { default_options.merge(log_level: :fatal) }
-        let(:cipher_options_client1)    { { key: random_str(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
-        let(:encrypted_channel_client1) { client.channel(channel_name, encrypted: true, cipher_params: cipher_options_client1) }
-        let(:cipher_options_client2)    { { key: random_str(32), algorithm: 'aes', mode: 'cbc', key_length: 128 } }
-        let(:encrypted_channel_client2) { other_client.channel(channel_name, encrypted: true, cipher_params: cipher_options_client2) }
+        let(:cipher_options_client1)    { { key: Ably::Util::Crypto.generate_random_key, algorithm: 'aes', mode: 'cbc', key_length: 256 } }
+        let(:encrypted_channel_client1) { client.channel(channel_name, cipher: Ably::Util::Crypto.get_default_params(cipher_options_client1)) }
+        let(:cipher_options_client2)    { { key: Ably::Util::Crypto.generate_random_key(128), algorithm: 'aes', mode: 'cbc', key_length: 128 } }
+        let(:encrypted_channel_client2) { other_client.channel(channel_name, cipher: Ably::Util::Crypto.get_default_params(cipher_options_client2)) }
 
         let(:payload) { MessagePack.pack({ 'key' => random_str }) }
 
@@ -574,10 +574,10 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
 
       context 'publishing on an encrypted channel and subscribing with a different key on another client' do
         let(:client_options)              { default_options.merge(log_level: :fatal) }
-        let(:cipher_options_client1)    { { key: random_str(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
-        let(:encrypted_channel_client1) { client.channel(channel_name, encrypted: true, cipher_params: cipher_options_client1) }
-        let(:cipher_options_client2)    { { key: random_str(32), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
-        let(:encrypted_channel_client2) { other_client.channel(channel_name, encrypted: true, cipher_params: cipher_options_client2) }
+        let(:cipher_options_client1)    { { key: Ably::Util::Crypto.generate_random_key, algorithm: 'aes', mode: 'cbc', key_length: 256 } }
+        let(:encrypted_channel_client1) { client.channel(channel_name, cipher: cipher_options_client1) }
+        let(:cipher_options_client2)    { { key: Ably::Util::Crypto.generate_random_key, algorithm: 'aes', mode: 'cbc', key_length: 256 } }
+        let(:encrypted_channel_client2) { other_client.channel(channel_name, cipher: cipher_options_client2) }
 
         let(:payload) { MessagePack.pack({ 'key' => random_str }) }
 

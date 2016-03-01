@@ -12,22 +12,30 @@ module Ably::Modules
     #
     # @return [Object]
     def [](key)
-      hash[key]
+      attributes[key]
     end
 
     def ==(other)
       other.kind_of?(self.class) &&
-        hash == other.hash
+        attributes == other.attributes
     end
 
-    # Return a JSON ready object from the underlying #hash using Ably naming conventions for keys
+    # Return a JSON ready object from the underlying #attributes using Ably naming conventions for keys
+    # @return [Hash]
     def as_json
-      hash.as_json.reject { |key, val| val.nil? }
+      attributes.as_json.reject { |key, val| val.nil? }
     end
 
-    # Stringify the JSON representation of this object from the underlying #hash
+    # Stringify the JSON representation of this object from the underlying #attributes
+    # @return [String]
     def to_json(*args)
       as_json.to_json(*args)
+    end
+
+    # @!attribute [r] hash
+    # @return [Integer] Compute a hash-code for this hash. Two hashes with the same content will have the same hash code
+    def hash
+      attributes.hash
     end
 
     private

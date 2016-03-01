@@ -1573,15 +1573,15 @@ describe Ably::Realtime::Presence, :event_machine do
     end
 
     context 'encoding and decoding of presence message data' do
-      let(:secret_key)              { random_str }
+      let(:secret_key)              { Ably::Util::Crypto.generate_random_key(256) }
       let(:cipher_options)          { { key: secret_key, algorithm: 'aes', mode: 'cbc', key_length: 256 } }
       let(:channel_name)            { random_str }
-      let(:encrypted_channel)       { client_one.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
-      let(:channel_rest_client_one) { client_one.rest_client.channel(channel_name, encrypted: true, cipher_params: cipher_options) }
+      let(:encrypted_channel)       { client_one.channel(channel_name, cipher: cipher_options) }
+      let(:channel_rest_client_one) { client_one.rest_client.channel(channel_name, cipher: cipher_options) }
 
       let(:crypto)                  { Ably::Util::Crypto.new(cipher_options) }
 
-      let(:data)                    { { 'key' => random_str } }
+      let(:data)                    { { 'hash_id' => random_str } }
       let(:data_as_json)            { data.to_json }
       let(:data_as_cipher)          { crypto.encrypt(data.to_json) }
 
@@ -1671,8 +1671,8 @@ describe Ably::Realtime::Presence, :event_machine do
 
       context 'when cipher settings do not match publisher' do
         let(:client_options)                 { default_options.merge(log_level: :fatal) }
-        let(:incompatible_cipher_options)    { { key: secret_key, algorithm: 'aes', mode: 'cbc', key_length: 128 } }
-        let(:incompatible_encrypted_channel) { client_two.channel(channel_name, encrypted: true, cipher_params: incompatible_cipher_options) }
+        let(:incompatible_cipher_options)    { { key: Ably::Util::Crypto.generate_random_key(128), algorithm: 'aes', mode: 'cbc', key_length: 128 } }
+        let(:incompatible_encrypted_channel) { client_two.channel(channel_name, cipher: incompatible_cipher_options) }
 
         it 'delivers an unencoded presence message left with encoding value' do
           encrypted_channel.presence.enter data: data

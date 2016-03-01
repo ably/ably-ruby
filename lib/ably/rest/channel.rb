@@ -19,8 +19,7 @@ module Ably
       # @param client [Ably::Rest::Client]
       # @param name [String] The name of the channel
       # @param channel_options [Hash] Channel options, currently reserved for Encryption options
-      # @option channel_options [Boolean]  :encrypted       setting this to true for this channel will encrypt & decrypt all messages automatically
-      # @option channel_options [Hash]     :cipher_params   A hash of options to configure the encryption. *:key* is required, all other options are optional.  See {Ably::Util::Crypto#initialize} for a list of +cipher_params+ options
+      # @option channel_options [Hash,Ably::Models::CipherParams]   :cipher   A hash of options or a {Ably::Models::CipherParams} to configure the encryption. *:key* is required, all other options are optional.  See {Ably::Util::Crypto#initialize} for a list of +:cipher+ options
       #
       def initialize(client, name, channel_options = {})
         ensure_utf_8 :name, name

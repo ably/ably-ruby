@@ -585,7 +585,7 @@ module Ably
       token_request = Ably::Models::TokenRequest(token_request)
 
       response = client.post("/keys/#{token_request.key_name}/requestToken",
-                             token_request.hash, send_auth_header: false,
+                             token_request.attributes, send_auth_header: false,
                              disable_automatic_reauthorise: true)
 
       Ably::Models::TokenDetails.new(response.body)

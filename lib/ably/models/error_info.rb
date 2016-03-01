@@ -8,7 +8,7 @@ module Ably::Models
   #   @return [Integer] Ably error code (see ably-common/protocol/errors.json)
   # @!attribute [r] status
   #   @return [Integer] HTTP Status Code corresponding to this error, where applicable
-  # @!attribute [r] hash
+  # @!attribute [r] attributes
   #   @return [Hash] Access the protocol message Hash object ruby'fied to use symbolized keys
   #
   class ErrorInfo
@@ -21,12 +21,12 @@ module Ably::Models
 
     %w(message code status_code).each do |attribute|
       define_method attribute do
-        hash[attribute.to_sym]
+        attributes[attribute.to_sym]
       end
     end
     alias_method :status, :status_code
 
-    def hash
+    def attributes
       @hash_object
     end
 

@@ -3,7 +3,7 @@ require 'ably/models/message_encoders/cipher'
 require 'msgpack'
 
 describe Ably::Models::MessageEncoders::Cipher do
-  let(:secret_key)          { random_str(64) }
+  let(:secret_key)          { Ably::Util::Crypto.generate_random_key(128) }
   let(:crypto_options)      { { key: secret_key, algorithm: 'AES', mode: 'CBC', key_length: 128 } }
   let(:crypto)              { Ably::Util::Crypto.new(cipher_params) }
 
@@ -23,7 +23,7 @@ describe Ably::Models::MessageEncoders::Cipher do
 
       context 'valid cipher data' do
         before do
-          subject.decode message, { encrypted: true, cipher_params: cipher_params }
+          subject.decode message, { cipher: cipher_params }
         end
 
         context 'message with cipher payload' do
@@ -79,29 +79,33 @@ describe Ably::Models::MessageEncoders::Cipher do
         end
       end
 
-      context 'with invalid channel_option cipher params' do
-        let(:message) { { data: decoded_data, encoding: 'cipher+aes-128-cbc' } }
-        let(:cipher_params) { crypto_options.merge(key_length: 256) }
-        let(:decode_method) { subject.decode message, { encrypted: true, cipher_params: cipher_params } }
+      context '256 bit key' do
+        let(:secret_key) { Ably::Util::Crypto.generate_random_key(256) }
 
-        it 'raise an exception' do
-          expect { decode_method }.to raise_error Ably::Exceptions::CipherError, /Cipher algorithm [\w-]+ does not match message cipher algorithm of AES-128-CBC/
+        context 'with invalid channel_option cipher params' do
+          let(:message) { { data: decoded_data, encoding: 'cipher+aes-128-cbc' } }
+          let(:cipher_params) { crypto_options.merge(key_length: 256) }
+          let(:decode_method) { subject.decode message, { cipher: cipher_params } }
+
+          it 'raise an exception' do
+            expect { decode_method }.to raise_error Ably::Exceptions::CipherError, /Cipher algorithm [\w-]+ does not match message cipher algorithm of AES-128-CBC/
+          end
         end
-      end
 
-      context 'without any configured encryption' do
-        let(:message) { { data: decoded_data, encoding: 'cipher+aes-128-cbc' } }
-        let(:cipher_params) { crypto_options.merge(key_length: 256) }
-        let(:decode_method) { subject.decode message, {} }
+        context 'without any configured encryption' do
+          let(:message) { { data: decoded_data, encoding: 'cipher+aes-128-cbc' } }
+          let(:cipher_params) { crypto_options.merge(key_length: 256) }
+          let(:decode_method) { subject.decode message, {} }
 
-        it 'raise an exception' do
-          expect { decode_method }.to raise_error Ably::Exceptions::CipherError, /Message cannot be decrypted as the channel is not set up for encryption & decryption/
+          it 'raise an exception' do
+            expect { decode_method }.to raise_error Ably::Exceptions::CipherError, /Message cannot be decrypted as the channel is not set up for encryption & decryption/
+          end
         end
       end
 
       context 'with invalid cipher data' do
         let(:message) { { data: decoded_data, encoding: 'cipher+aes-128-cbc' } }
-        let(:decode_method) { subject.decode(message, { encrypted: true, cipher_params: cipher_params }) }
+        let(:decode_method) { subject.decode(message, { cipher: cipher_params }) }
 
         it 'raise an exception' do
           expect { decode_method }.to raise_error Ably::Exceptions::CipherError, /CipherError decrypting data/
@@ -110,10 +114,11 @@ describe Ably::Models::MessageEncoders::Cipher do
     end
 
     context 'with AES-256-CBC' do
+      let(:secret_key) { Ably::Util::Crypto.generate_random_key(256) }
       let(:cipher_params) { crypto_options.merge(key_length: 256) }
 
       before do
-        subject.decode message, { encrypted: true, cipher_params: cipher_params }
+        subject.decode message, { cipher: cipher_params }
       end
 
       context 'message with cipher payload' do
@@ -133,7 +138,7 @@ describe Ably::Models::MessageEncoders::Cipher do
   context '#encode' do
     context 'with channel set up for AES-128-CBC' do
       let(:cipher_params) { crypto_options }
-      let(:channel_options) { { encrypted: true, cipher_params: cipher_params } }
+      let(:channel_options) { { cipher: cipher_params } }
 
       context 'with encrypted set to true' do
         before do
@@ -211,12 +216,12 @@ describe Ably::Models::MessageEncoders::Cipher do
 
       context 'channel_option cipher params' do
         let(:message) { { data: decoded_data, encoding: nil } }
-        let(:encode_method) { subject.encode message, { encrypted: true, cipher_params: cipher_params } }
+        let(:encode_method) { subject.encode message, { cipher: cipher_params } }
 
         context 'have invalid key length' do
           let(:cipher_params) { crypto_options.merge(key_length: 1) }
           it 'raise an exception' do
-            expect { encode_method }.to raise_error Ably::Exceptions::CipherError, /unsupported cipher algorithm/
+            expect { encode_method }.to raise_error Ably::Exceptions::CipherError, /Incompatible :key length/
           end
         end
 
@@ -230,17 +235,18 @@ describe Ably::Models::MessageEncoders::Cipher do
         context 'have missing key' do
           let(:cipher_params) { {} }
           it 'raise an exception' do
-            expect { encode_method }.to raise_error Ably::Exceptions::CipherError, /:key is required/
+            expect { encode_method }.to raise_error Ably::Exceptions::CipherError, /key.*required/
           end
         end
       end
     end
 
     context 'with AES-256-CBC' do
+      let(:secret_key) { Ably::Util::Crypto.generate_random_key(256) }
       let(:cipher_params) { crypto_options.merge(key_length: 256) }
 
       before do
-        subject.encode message, { encrypted: true, cipher_params: cipher_params }
+        subject.encode message, { cipher: cipher_params }
       end
 
       context 'message with cipher payload' do

@@ -157,6 +157,19 @@ channel.presence.history do |presence_page|
 end
 ```
 
+### Symmetric end-to-end encrypted payloads on a channel
+
+When a 128 bit or 256 bit key is provided to the library, all payloads are encrypted and decrypted automatically using that key on the channel. The secret key is never transmitted to Ably and thus it is the developer's responsibility to distribute a secret key to both publishers and subscribers.
+
+```ruby
+secret_key = Ably::Util::Crypto.generate_random_key
+channel = client.channels.get('test', cipher: { key: secret_key })
+channel.subscribe do |message|
+  message.data #=> "sensitive data (encrypted before being published)"
+end
+channel.publish "name (not encrypted)", "sensitive data (encrypted before being published)"
+```
+
 ## Using the REST API
 
 ### Introduction
@@ -203,6 +216,18 @@ presence_page = channel.presence.history #=> #<Ably::Models::PaginatedResult ...
 presence_page.items.first #=> #<Ably::Models::PresenceMessage ...>
 presence_page.items.first.client_id # client ID of first member
 presence_page.next # retrieves the next page => #<Ably::Models::PaginatedResult ...>
+```
+
+### Symmetric end-to-end encrypted payloads on a channel
+
+When a 128 bit or 256 bit key is provided to the library, all payloads are encrypted and decrypted automatically using that key on the channel. The secret key is never transmitted to Ably and thus it is the developer's responsibility to distribute a secret key to both publishers and subscribers.
+
+```ruby
+secret_key = Ably::Util::Crypto.generate_random_key
+channel = client.channels.get('test', cipher: { key: secret_key })
+channel.publish nil, "sensitive data" # data will be encrypted before publish
+messages_page = channel.history
+messages_page.first.data #=> "sensitive data"
 ```
 
 ### Generate Token

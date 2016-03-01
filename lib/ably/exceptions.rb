@@ -32,6 +32,15 @@ module Ably
     # An invalid request was received by Ably
     class InvalidRequest < BaseAblyException; end
 
+    # Similar to 403 Forbidden, but specifically for use when authentication is required and has failed or has not yet been provided
+    class UnauthorizedRequest < BaseAblyException; end
+
+    # The request was a valid request, but Ably is refusing to respond to it
+    class ForbiddenRequest < BaseAblyException; end
+
+    # The requested resource could not be found but may be available again in the future
+    class ResourceMissing < BaseAblyException; end
+
     # Ably Protocol message received that is invalid
     class ProtocolError < BaseAblyException; end
 
@@ -92,7 +101,7 @@ module Ably
     # The token request could not be created
     class TokenRequestFailed < BaseAblyException; end
 
-    # The token has expired
+    # The token has expired, 40140..40149
     class TokenExpired < BaseAblyException; end
 
     # The message could not be delivered to the server

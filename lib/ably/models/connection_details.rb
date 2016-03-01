@@ -32,23 +32,25 @@ module Ably::Models
     #
     def initialize(attributes = {})
       @hash_object = IdiomaticRubyWrapper(attributes.clone)
-      hash[:connection_state_ttl] = (hash[:connection_state_ttl].to_f / 1000).round if hash[:connection_state_ttl]
-      hash.freeze
+      if self.attributes[:connection_state_ttl]
+        self.attributes[:connection_state_ttl] = (self.attributes[:connection_state_ttl].to_f / 1000).round
+      end
+      self.attributes.freeze
     end
 
     %w(client_id connection_key max_message_size max_frame_size max_inbound_rate connection_state_ttl server_id).each do |attribute|
       define_method attribute do
-        hash[attribute.to_sym]
+        attributes[attribute.to_sym]
       end
     end
 
     def has_client_id?
-      hash.has_key?(:client_id)
+      attributes.has_key?(:client_id)
     end
 
-    # @!attribute [r] hash
+    # @!attribute [r] attributes
     # @return [Hash] Access the token details Hash object ruby'fied to use symbolized keys
-    def hash
+    def attributes
       @hash_object
     end
   end

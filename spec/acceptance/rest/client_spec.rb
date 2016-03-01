@@ -382,7 +382,7 @@ describe Ably::Rest::Client do
           end
 
           it 'does not attempt the fallback hosts as this is an authentication failure' do
-            expect { publish_block.call }.to raise_error(Ably::Exceptions::InvalidRequest)
+            expect { publish_block.call }.to raise_error(Ably::Exceptions::UnauthorizedRequest)
             expect(default_host_request_stub).to have_been_requested
             expect(first_fallback_request_stub).to_not have_been_requested
             expect(second_fallback_request_stub).to_not have_been_requested

@@ -18,7 +18,7 @@ describe Ably::Auth do
       :client_id,
       :timestamp,
       :nonce
-    ].map { |key| "#{token_request.hash[key]}\n" }.join("")
+    ].map { |key| "#{token_request.attributes[key]}\n" }.join("")
 
     encode64(
       OpenSSL::HMAC.digest(OpenSSL::Digest::SHA256.new, secret, text)
@@ -824,9 +824,9 @@ describe Ably::Auth do
       context 'with additional invalid attributes' do
         let(:token_params) { { nonce: 'valid', is_not_used_by_token_request: 'invalid' } }
         specify 'are ignored' do
-          expect(subject.hash.keys).to_not include(:is_not_used_by_token_request)
-          expect(subject.hash.keys).to_not include(convert_to_mixed_case(:is_not_used_by_token_request))
-          expect(subject.hash.keys).to include(:nonce)
+          expect(subject.attributes.keys).to_not include(:is_not_used_by_token_request)
+          expect(subject.attributes.keys).to_not include(convert_to_mixed_case(:is_not_used_by_token_request))
+          expect(subject.attributes.keys).to include(:nonce)
           expect(subject.nonce).to eql('valid')
         end
       end
@@ -890,7 +890,7 @@ describe Ably::Auth do
         end
 
         it 'generates a valid HMAC' do
-          hmac = hmac_for(Ably::Models::TokenRequest(token_request_attributes).hash, key_secret)
+          hmac = hmac_for(Ably::Models::TokenRequest(token_request_attributes).attributes, key_secret)
           expect(subject['mac']).to eql(hmac)
         end
       end
@@ -918,7 +918,7 @@ describe Ably::Auth do
 
         it 'disallows publishing on unspecified capability channels' do
           expect { token_auth_client.channel('bar').publish('event', 'data') }.to raise_error do |error|
-            expect(error).to be_a(Ably::Exceptions::InvalidRequest)
+            expect(error).to be_a(Ably::Exceptions::UnauthorizedRequest)
             expect(error.status).to eql(401)
             expect(error.code).to eql(40160)
           end
@@ -926,7 +926,7 @@ describe Ably::Auth do
 
         it 'fails if timestamp is invalid' do
           expect { auth.request_token(timestamp: Time.now - 180) }.to raise_error do |error|
-            expect(error).to be_a(Ably::Exceptions::InvalidRequest)
+            expect(error).to be_a(Ably::Exceptions::UnauthorizedRequest)
             expect(error.status).to eql(401)
             expect(error.code).to eql(40101)
           end

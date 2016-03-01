@@ -2,16 +2,17 @@ require 'spec_helper'
 require 'msgpack'
 
 describe Ably::Util::Crypto do
-  let(:seret_key)  { random_str }
-  let(:cipher_options) { { key: seret_key } }
+  let(:cipher)         { OpenSSL::Cipher.new('AES-256-CBC') }
+  let(:secret_key)     { cipher.random_key }
+  let(:cipher_options) { { key: secret_key } }
   subject { Ably::Util::Crypto.new(cipher_options) }
 
   context 'defaults' do
     let(:expected_defaults) do
       {
-        algorithm: 'AES',
-        mode: 'CBC',
-        key_length: 128
+        algorithm: 'aes',
+        mode: 'cbc',
+        key_length: 256
       }
     end
 
@@ -22,20 +23,52 @@ describe Ably::Util::Crypto do
   end
 
   context 'get_default_params' do
-    it 'uses the defaults and generates a key if not provided' do
-      expect(Ably::Util::Crypto.get_default_params[:algorithm]).to eql('AES')
-      expect(Ably::Util::Crypto.get_default_params[:mode]).to eql('CBC')
-      expect(Ably::Util::Crypto.get_default_params[:key_length]).to eql(128)
-      expect(Ably::Util::Crypto.get_default_params[:key].unpack('b*').first.length).to eql(128)
+    context 'with just a :key param' do
+      let(:defaults) { Ably::Util::Crypto.get_default_params(key: secret_key) }
+
+      it 'uses the defaults' do
+        expect(defaults.algorithm).to eql('aes')
+        expect(defaults.mode).to eql('cbc')
+        expect(defaults.key_length).to eql(256)
+      end
+
+      it 'contains the provided key' do
+        expect(defaults.key).to eql(secret_key)
+      end
+
+      it 'returns a CipherParams object' do
+        expect(defaults).to be_a(Ably::Models::CipherParams)
+      end
     end
 
-    it 'uses the defaults and sets the key size when key is provided' do
-      key_192 = '123456781234567812345678'
-      params = Ably::Util::Crypto.get_default_params(key_192)
-      expect(params[:algorithm]).to eql('AES')
-      expect(params[:mode]).to eql('CBC')
-      expect(params[:key_length]).to eql(192)
-      expect(params[:key]).to eql(key_192)
+    context 'without a :key param' do
+      let(:cipher_params) { Ably::Util::Crypto.get_default_params }
+
+      it 'raises an exception' do
+        expect { cipher_params }.to raise_error(/key.*required/)
+      end
+    end
+
+    context 'with a base64-encoded :key param' do
+      let(:cipher_params) { Ably::Util::Crypto.get_default_params(key: Base64.encode64(secret_key)) }
+
+      it 'converts the key to binary' do
+        expect(cipher_params.key).to eql(secret_key)
+      end
+    end
+
+    context 'with provided params' do
+      let(:algorithm) { 'FOO' }
+      let(:mode) { 'BAR' }
+      let(:key_length) { 192 }
+      let(:key) { secret_key[0...24] }
+      let(:cipher_params) { Ably::Util::Crypto.get_default_params(key: key, algorithm: algorithm, mode: mode, key_length: key_length) }
+
+      it 'overrides the defaults' do
+        expect(cipher_params.algorithm).to eql('foo')
+        expect(cipher_params.mode).to eql('bar')
+        expect(cipher_params.key_length).to eql(192)
+      end
     end
   end
 

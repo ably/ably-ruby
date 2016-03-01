@@ -5,9 +5,9 @@ module Ably::Modules
   # Provides methods to allow this model's `data` property to be encoded and decoded based on the `encoding` property.
   #
   # This module expects the following:
-  # - A #hash method that returns the underlying hash object
-  # - A #set_hash_object(hash) method that updates the underlying hash object
-  # - A #raw_hash_object attribute that returns the original hash used to create this object
+  # - A #attributes method that returns the underlying hash object
+  # - A #set_attributes_object(attributes) method that updates the underlying hash object
+  # - A #raw_hash_object attribute that returns the original hash object used to create this object
   #
   module Encodeable
     # Encode a message using the channel options and register encoders for the client
@@ -46,20 +46,20 @@ module Ably::Modules
 
     def apply_encoders(method, channel)
       max_encoding_length = 512
-      message_hash = hash.dup
+      message_attributes = attributes.dup
 
       begin
-        if message_hash[:encoding].to_s.length > max_encoding_length
-          raise Ably::Exceptions::EncoderError("Encoding error, encoding value is too long: '#{message_hash[:encoding]}'", nil, 92100)
+        if message_attributes[:encoding].to_s.length > max_encoding_length
+          raise Ably::Exceptions::EncoderError("Encoding error, encoding value is too long: '#{message_attributes[:encoding]}'", nil, 92100)
         end
 
-        previous_encoding = message_hash[:encoding]
+        previous_encoding = message_attributes[:encoding]
         channel.client.encoders.each do |encoder|
-          encoder.send method, message_hash, channel.options
+          encoder.send method, message_attributes, channel.options
         end
-      end until previous_encoding == message_hash[:encoding]
+      end until previous_encoding == message_attributes[:encoding]
 
-      set_hash_object message_hash
+      set_attributes_object message_attributes
     rescue Ably::Exceptions::CipherError => cipher_error
       if channel.respond_to?(:emit)
         channel.client.logger.error "Encoder error #{cipher_error.code} trying to #{method} message: #{cipher_error.message}"
