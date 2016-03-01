@@ -1,12 +1,26 @@
 # Change Log
 
-## [v0.8.8](https://github.com/ably/ably-ruby/tree/v0.8.8)
+## [v0.8.4](https://github.com/ably/ably-ruby/tree/v0.8.9) (2015-03-01)
 
-[Full Changelog](https://github.com/ably/ably-ruby/compare/v0.8.7...v0.8.8)
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v0.8.7...v0.8.9)
+
+**Fixed bugs:**
+
+- Support enter\(data\) [\#79](https://github.com/ably/ably-ruby/issues/79)
+
+- Update documentation to hide private API methods [\#77](https://github.com/ably/ably-ruby/issues/77)
 
 **Closed issues:**
 
+- New Crypto Spec [\#80](https://github.com/ably/ably-ruby/issues/80)
+
 - Support :key in ClientOptions and deprecate :api\_key [\#73](https://github.com/ably/ably-ruby/issues/73)
+
+**Merged pull requests:**
+
+- Various fixes for open issues [\#82](https://github.com/ably/ably-ruby/pull/82) ([mattheworiordan](https://github.com/mattheworiordan))
+
+- Encryption spec update [\#81](https://github.com/ably/ably-ruby/pull/81) ([mattheworiordan](https://github.com/mattheworiordan))
 
 ## [v0.8.7](https://github.com/ably/ably-ruby/tree/v0.8.7) (2015-12-31)
 
