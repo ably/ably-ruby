@@ -60,8 +60,8 @@ module Ably::Realtime
       # Get the list of presence members
       #
       # @param [Hash,String] options an options Hash to filter members
-      # @option options [String] :client_id      optional client_id for the member
-      # @option options [String] :connection_id  optional connection_id for the member
+      # @option options [String] :client_id      optional client_id filter for the member
+      # @option options [String] :connection_id  optional connection_id filter for the member
       # @option options [String] :wait_for_sync  defaults to false, if true the get method waits for the initial presence sync following channel attachment to complete before returning the members present
       #
       # @yield [Array<Ably::Models::PresenceMessage>] array of present members

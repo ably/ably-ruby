@@ -23,7 +23,9 @@ module Ably
       # Obtain the set of members currently present for a channel
       #
       # @param [Hash] options the options for the set of members present
-      # @option options [Integer]      :limit      Maximum number of members to retrieve up to 1,000, defaults to 100
+      # @option options [Integer]   :limit           Maximum number of members to retrieve up to 1,000, defaults to 100
+      # @option options [String]    :client_id       optional client_id filter for the member
+      # @option options [String]    :connection_id   optional connection_id filter for the member
       #
       # @return [Ably::Models::PaginatedResult<Ably::Models::PresenceMessage>] First {Ably::Models::PaginatedResult page} of {Ably::Models::PresenceMessage} objects accessible with {Ably::Models::PaginatedResult#items #items}.
       #
