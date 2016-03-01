@@ -133,9 +133,9 @@ describe Ably::Realtime::Presence, :event_machine do
       context 'with supported data payload content type' do
         def register_presence_and_check_data(method_name, data)
           if method_name.to_s.match(/_client/)
-            presence_client_one.public_send(method_name, client_id, data: data)
+            presence_client_one.public_send(method_name, client_id, data)
           else
-            presence_client_one.public_send(method_name, data: data)
+            presence_client_one.public_send(method_name, data)
           end
 
           presence_client_one.subscribe do |presence_message|
@@ -188,9 +188,9 @@ describe Ably::Realtime::Presence, :event_machine do
       context 'with unsupported data payload content type' do
         def presence_action(method_name, data)
           if method_name.to_s.match(/_client/)
-            presence_client_one.public_send(method_name, client_id, data: data)
+            presence_client_one.public_send(method_name, client_id, data)
           else
-            presence_client_one.public_send(method_name, data: data)
+            presence_client_one.public_send(method_name, data)
           end
         end
 
@@ -745,21 +745,12 @@ describe Ably::Realtime::Presence, :event_machine do
     end
 
     context '#enter' do
-      it 'allows client_id to be set on enter for anonymous clients' do
-        channel_anonymous_client.presence.enter client_id: "123"
-
-        channel_anonymous_client.presence.subscribe do |presence|
-          expect(presence.client_id).to eq("123")
-          stop_reactor
-        end
-      end
-
       context 'data attribute' do
         context 'when provided as argument option to #enter' do
-          it 'remains intact following #leave' do
+          it 'changes to value provided in #leave' do
             leave_callback_called = false
 
-            presence_client_one.enter(data: 'stored') do
+            presence_client_one.enter('stored') do
               expect(presence_client_one.data).to eql('stored')
 
               presence_client_one.leave do |presence|
@@ -767,7 +758,7 @@ describe Ably::Realtime::Presence, :event_machine do
               end
 
               presence_client_one.on(:left) do
-                expect(presence_client_one.data).to eql('stored')
+                expect(presence_client_one.data).to eql(nil)
 
                 EventMachine.next_tick do
                   expect(leave_callback_called).to eql(true)
@@ -792,11 +783,6 @@ describe Ably::Realtime::Presence, :event_machine do
         end
       end
 
-      it 'raises an exception if client_id is not set' do
-        expect { channel_anonymous_client.presence.enter }.to raise_error(Ably::Exceptions::IncompatibleClientId, /without a client_id/)
-        stop_reactor
-      end
-
       context 'without necessary capabilities to join presence' do
         let(:restricted_client) do
           auto_close Ably::Realtime::Client.new(default_options.merge(key: restricted_api_key, log_level: :fatal))
@@ -805,7 +791,7 @@ describe Ably::Realtime::Presence, :event_machine do
         let(:restricted_presence) { restricted_channel.presence }
 
         it 'calls the Deferrable errback on capabilities failure' do
-          restricted_presence.enter(client_id: 'clientId').tap do |deferrable|
+          restricted_presence.enter_client('bob').tap do |deferrable|
             deferrable.callback { raise "Should not succeed" }
             deferrable.errback { stop_reactor }
           end
@@ -817,7 +803,7 @@ describe Ably::Realtime::Presence, :event_machine do
 
     context '#update' do
       it 'without previous #enter automatically enters' do
-        presence_client_one.update(data: data_payload) do
+        presence_client_one.update(data_payload) do
           EventMachine.add_timer(1) do
             expect(presence_client_one.state).to eq(:entered)
             stop_reactor
@@ -830,7 +816,7 @@ describe Ably::Realtime::Presence, :event_machine do
           presence_client_one.enter do
             presence_client_one.once_state_changed { fail 'State should not have changed ' }
 
-            presence_client_one.update(data: data_payload) do
+            presence_client_one.update(data_payload) do
               EventMachine.add_timer(1) do
                 expect(presence_client_one.state).to eq(:entered)
                 presence_client_one.off
@@ -842,8 +828,8 @@ describe Ably::Realtime::Presence, :event_machine do
       end
 
       it 'updates the data if :data argument provided' do
-        presence_client_one.enter(data: 'prior') do
-          presence_client_one.update(data: data_payload)
+        presence_client_one.enter('prior') do
+          presence_client_one.update(data_payload)
         end
         presence_client_one.subscribe(:update) do |message|
           expect(message.data).to eql(data_payload)
@@ -852,7 +838,7 @@ describe Ably::Realtime::Presence, :event_machine do
       end
 
       it 'updates the data to nil if :data argument is not provided (assumes nil value)' do
-        presence_client_one.enter(data: 'prior') do
+        presence_client_one.enter('prior') do
           presence_client_one.update
         end
         presence_client_one.subscribe(:update) do |message|
@@ -871,8 +857,8 @@ describe Ably::Realtime::Presence, :event_machine do
 
         context 'when set to a string' do
           it 'emits the new data for the leave event' do
-            presence_client_one.enter data: enter_data do
-              presence_client_one.leave data: data
+            presence_client_one.enter enter_data do
+              presence_client_one.leave data
             end
 
             presence_client_one.subscribe(:leave) do |presence_message|
@@ -883,9 +869,9 @@ describe Ably::Realtime::Presence, :event_machine do
         end
 
         context 'when set to nil' do
-          it 'emits a nil value for the data attribute when leaving' do
-            presence_client_one.enter data: enter_data do
-              presence_client_one.leave data: nil
+          it 'emits the last value for the data attribute when leaving' do
+            presence_client_one.enter enter_data do
+              presence_client_one.leave nil
             end
 
             presence_client_one.subscribe(:leave) do |presence_message|
@@ -895,9 +881,9 @@ describe Ably::Realtime::Presence, :event_machine do
           end
         end
 
-        context 'when not passed as an argument' do
-          it 'emits the previously defined value as a convenience' do
-            presence_client_one.enter data: enter_data do
+        context 'when not passed as an argument (i.e. nil)' do
+          it 'emits the previous value for the data attribute when leaving' do
+            presence_client_one.enter enter_data do
               presence_client_one.leave
             end
 
@@ -910,10 +896,10 @@ describe Ably::Realtime::Presence, :event_machine do
 
         context 'and sync is complete' do
           it 'does not cache members that have left' do
-            presence_client_one.enter data: enter_data do
+            presence_client_one.enter enter_data do
               expect(presence_client_one.members).to be_in_sync
               expect(presence_client_one.members.send(:members).count).to eql(1)
-              presence_client_one.leave data: data
+              presence_client_one.leave data
             end
 
             presence_client_one.subscribe(:leave) do |presence_message|
@@ -935,7 +921,7 @@ describe Ably::Realtime::Presence, :event_machine do
 
     context ':left event' do
       it 'emits the data defined in enter' do
-        channel_client_one.presence.enter(data: 'data') do
+        channel_client_one.presence.enter('data') do
           channel_client_one.presence.leave
         end
 
@@ -946,8 +932,8 @@ describe Ably::Realtime::Presence, :event_machine do
       end
 
       it 'emits the data defined in update' do
-        channel_client_one.presence.enter(data: 'something else') do
-          channel_client_one.presence.update(data: 'data') do
+        channel_client_one.presence.enter('something else') do
+          channel_client_one.presence.update('data') do
             channel_client_one.presence.leave
           end
         end
@@ -984,7 +970,7 @@ describe Ably::Realtime::Presence, :event_machine do
 
           it 'enters a channel and sets the data based on the provided :data option' do
             client_count.times do |client_id|
-              presence_client_one.enter_client("client:#{client_id}", data: data)
+              presence_client_one.enter_client("client:#{client_id}", data)
             end
 
             presence_anonymous_client.subscribe(:enter) do |presence|
@@ -1040,7 +1026,7 @@ describe Ably::Realtime::Presence, :event_machine do
 
             client_count.times do |client_id|
               presence_client_one.enter_client("client:#{client_id}") do
-                presence_client_one.update_client("client:#{client_id}", data: data) do
+                presence_client_one.update_client("client:#{client_id}", data) do
                   updated_callback_count += 1
                 end
               end
@@ -1075,7 +1061,7 @@ describe Ably::Realtime::Presence, :event_machine do
             updated_callback_count = 0
 
             client_count.times do |client_id|
-              presence_client_one.update_client("client:#{client_id}", data: data) do
+              presence_client_one.update_client("client:#{client_id}", data) do
                 updated_callback_count += 1
               end
             end
@@ -1105,8 +1091,8 @@ describe Ably::Realtime::Presence, :event_machine do
               left_callback_count = 0
 
               client_count.times do |client_id|
-                presence_client_one.enter_client("client:#{client_id}", data: random_str) do
-                  presence_client_one.leave_client("client:#{client_id}", data: data) do
+                presence_client_one.enter_client("client:#{client_id}", random_str) do
+                  presence_client_one.leave_client("client:#{client_id}", data) do
                     left_callback_count += 1
                   end
                 end
@@ -1150,8 +1136,8 @@ describe Ably::Realtime::Presence, :event_machine do
 
           context 'with a new value in :data option' do
             it 'emits the leave event with the new data value' do
-              presence_client_one.enter_client("client:unique", data: random_str) do
-                presence_client_one.leave_client("client:unique", data: data)
+              presence_client_one.enter_client("client:unique", random_str) do
+                presence_client_one.leave_client("client:unique", data)
               end
 
               presence_client_one.subscribe(:leave) do |presence_message|
@@ -1163,8 +1149,8 @@ describe Ably::Realtime::Presence, :event_machine do
 
           context 'with a nil value in :data option' do
             it 'emits the leave event with the previous value as a convenience' do
-              presence_client_one.enter_client("client:unique", data: data) do
-                presence_client_one.leave_client("client:unique", data: nil)
+              presence_client_one.enter_client("client:unique", data) do
+                presence_client_one.leave_client("client:unique", nil)
               end
 
               presence_client_one.subscribe(:leave) do |presence_message|
@@ -1176,7 +1162,7 @@ describe Ably::Realtime::Presence, :event_machine do
 
           context 'with no :data option' do
             it 'emits the leave event with the previous value as a convenience' do
-              presence_client_one.enter_client("client:unique", data: data) do
+              presence_client_one.enter_client("client:unique", data) do
                 presence_client_one.leave_client("client:unique")
               end
 
@@ -1519,7 +1505,7 @@ describe Ably::Realtime::Presence, :event_machine do
 
     context 'REST #get' do
       it 'returns current members' do
-        presence_client_one.enter(data: data_payload) do
+        presence_client_one.enter(data_payload) do
           members_page = channel_rest_client_one.presence.get
           this_member = members_page.items.first
 
@@ -1532,7 +1518,7 @@ describe Ably::Realtime::Presence, :event_machine do
       end
 
       it 'returns no members once left' do
-        presence_client_one.enter(data: data_payload) do
+        presence_client_one.enter(data_payload) do
           presence_client_one.leave do
             members_page = channel_rest_client_one.presence.get
             expect(members_page.items.count).to eql(0)
@@ -1562,11 +1548,13 @@ describe Ably::Realtime::Presence, :event_machine do
         let(:client_one)  { auto_close Ably::Realtime::Client.new(default_options) }
 
         it 'is converted into UTF_8' do
-          presence_client_one.enter(client_id: client_id)
-          presence_client_one.on(:entered) do |presence|
-            expect(presence.client_id.encoding).to eql(Encoding::UTF_8)
-            expect(presence.client_id.encode(Encoding::ASCII_8BIT)).to eql(client_id)
-            stop_reactor
+          channel_client_one.attach do
+            presence_client_one.subscribe(:enter) do |presence|
+              expect(presence.client_id.encoding).to eql(Encoding::UTF_8)
+              expect(presence.client_id.encode(Encoding::ASCII_8BIT)).to eql(client_id)
+              stop_reactor
+            end
+            presence_anonymous_client.enter_client(client_id)
           end
         end
       end
@@ -1587,7 +1575,7 @@ describe Ably::Realtime::Presence, :event_machine do
 
       it 'encrypts presence message data' do
         encrypted_channel.attach do
-          encrypted_channel.presence.enter data: data
+          encrypted_channel.presence.enter data
         end
 
         encrypted_channel.presence.__incoming_msgbus__.unsubscribe(:presence) # remove all subscribe callbacks that could decrypt the message
@@ -1606,7 +1594,7 @@ describe Ably::Realtime::Presence, :event_machine do
       context '#subscribe' do
         it 'emits decrypted enter events' do
           encrypted_channel.attach do
-            encrypted_channel.presence.enter data: data
+            encrypted_channel.presence.enter data
           end
 
           encrypted_channel.presence.subscribe(:enter) do |presence_message|
@@ -1618,8 +1606,8 @@ describe Ably::Realtime::Presence, :event_machine do
 
         it 'emits decrypted update events' do
           encrypted_channel.attach do
-            encrypted_channel.presence.enter(data: 'to be updated') do
-              encrypted_channel.presence.update data: data
+            encrypted_channel.presence.enter('to be updated') do
+              encrypted_channel.presence.update data
             end
           end
 
@@ -1632,7 +1620,7 @@ describe Ably::Realtime::Presence, :event_machine do
 
         it 'emits previously set data for leave events' do
           encrypted_channel.attach do
-            encrypted_channel.presence.enter(data: data) do
+            encrypted_channel.presence.enter(data) do
               encrypted_channel.presence.leave
             end
           end
@@ -1647,7 +1635,7 @@ describe Ably::Realtime::Presence, :event_machine do
 
       context '#get' do
         it 'returns a list of members with decrypted data' do
-          encrypted_channel.presence.enter(data: data) do
+          encrypted_channel.presence.enter(data) do
             encrypted_channel.presence.get do |members|
               member = members.first
               expect(member.encoding).to be_nil
@@ -1660,7 +1648,7 @@ describe Ably::Realtime::Presence, :event_machine do
 
       context 'REST #get' do
         it 'returns a list of members with decrypted data' do
-          encrypted_channel.presence.enter(data: data) do
+          encrypted_channel.presence.enter(data) do
             member = channel_rest_client_one.presence.get.items.first
             expect(member.encoding).to be_nil
             expect(member.data).to eql(data)
@@ -1675,7 +1663,7 @@ describe Ably::Realtime::Presence, :event_machine do
         let(:incompatible_encrypted_channel) { client_two.channel(channel_name, cipher: incompatible_cipher_options) }
 
         it 'delivers an unencoded presence message left with encoding value' do
-          encrypted_channel.presence.enter data: data
+          encrypted_channel.presence.enter data
 
           incompatible_encrypted_channel.presence.subscribe(:enter) do
             incompatible_encrypted_channel.presence.get do |members|
@@ -1696,7 +1684,7 @@ describe Ably::Realtime::Presence, :event_machine do
             end
 
             encrypted_channel.attach do
-              encrypted_channel.presence.enter data: data
+              encrypted_channel.presence.enter data
             end
           end
         end
@@ -1722,7 +1710,7 @@ describe Ably::Realtime::Presence, :event_machine do
             stop_reactor
           end
         end
-        presence_client_one.enter(data: data_payload) do
+        presence_client_one.enter(data_payload) do
           presence_client_one.leave
         end
       end

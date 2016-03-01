@@ -66,6 +66,7 @@ module Ably::Models
     )
 
     # Indicates this protocol message action will generate an ACK response such as :message or :presence
+    # @api private
     def self.ack_required?(for_action)
       [ACTION.Presence, ACTION.Message].include?(ACTION(for_action))
     end
@@ -135,12 +136,14 @@ module Ably::Models
       [1, attributes[:count].to_i].max
     end
 
+    # @api private
     def has_message_serial?
       message_serial && true
     rescue TypeError
       false
     end
 
+    # @api private
     def has_connection_serial?
       connection_serial && true
     rescue TypeError
@@ -155,6 +158,7 @@ module Ably::Models
       end
     end
 
+    # @api private
     def has_serial?
       has_connection_serial? || has_message_serial?
     end
@@ -166,6 +170,7 @@ module Ably::Models
         end
     end
 
+    # @api private
     def add_message(message)
       messages << message
     end
@@ -183,6 +188,7 @@ module Ably::Models
       0
     end
 
+    # @api private
     def has_presence_flag?
       flags & 1 == 1
     end
@@ -193,6 +199,7 @@ module Ably::Models
 
     # Indicates this protocol message will generate an ACK response when sent
     # Examples of protocol messages required ACK include :message and :presence
+    # @api private
     def ack_required?
       self.class.ack_required?(action)
     end
