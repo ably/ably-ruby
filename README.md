@@ -157,7 +157,7 @@ channel.presence.history do |presence_page|
 end
 ```
 
-### Symmetrical end-to-end encrypted payloads on a channel
+### Symmetric end-to-end encrypted payloads on a channel
 
 When a 128 bit or 256 bit key is provided to the library, all payloads are encrypted and decrypted automatically using that key on the channel. The secret key is never transmitted to Ably and thus it is the developer's responsibility to distribute a secret key to both publishers and subscribers.
 
@@ -218,7 +218,7 @@ presence_page.items.first.client_id # client ID of first member
 presence_page.next # retrieves the next page => #<Ably::Models::PaginatedResult ...>
 ```
 
-### Symmetrical end-to-end encrypted payloads on a channel
+### Symmetric end-to-end encrypted payloads on a channel
 
 When a 128 bit or 256 bit key is provided to the library, all payloads are encrypted and decrypted automatically using that key on the channel. The secret key is never transmitted to Ably and thus it is the developer's responsibility to distribute a secret key to both publishers and subscribers.
 
