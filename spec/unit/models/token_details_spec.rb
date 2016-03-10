@@ -118,4 +118,32 @@ describe Ably::Models::TokenDetails do
       end
     end
   end
+
+  context 'to_json' do
+    let(:token_json_parsed) { JSON.parse(Ably::Models::TokenDetails(token_attributes).to_json) }
+
+    context 'with all attributes and values' do
+      let(:token_attributes) do
+        { token: random_str, capability: random_str, keyName: random_str, issued: Time.now.to_i, expires: Time.now.to_i + 10, clientId: random_str }
+      end
+
+      it 'returns all attributes' do
+        token_attributes.each do |key, val|
+          expect(token_json_parsed[key.to_s]).to eql(val)
+        end
+        expect(token_attributes.keys.length).to eql(token_json_parsed.keys.length)
+      end
+    end
+
+    context 'with only a token string' do
+      let(:token_attributes) do
+        { token: random_str }
+      end
+
+      it 'returns populated attributes' do
+        expect(token_json_parsed['token']).to eql(token_attributes[:token])
+        expect(token_json_parsed.keys.length).to eql(1)
+      end
+    end
+  end
 end
