@@ -68,6 +68,10 @@ module Ably
       # @return [Hash]
       attr_reader :http_defaults
 
+      # Proxy details when configured with :host and :port, additionally may include :username and :password
+      # @return [Hash]
+      attr_reader :proxy
+
       # The registered encoders that are used to encode and decode message payloads
       # @return [Array<Ably::Models::MessageEncoder::Base>]
       # @api private
@@ -100,6 +104,7 @@ module Ably
       #                                                                The Proc should return a token string, {Ably::Models::TokenDetails} or JSON equivalent, {Ably::Models::TokenRequest} or JSON equivalent
       # @option options [Boolean]                 :query_time          when true will query the {https://www.ably.io Ably} system for the current time instead of using the local time
       # @option options [Hash]                    :token_params        convenience to pass in +token_params+ that will be used as a default for all token requests. See {Auth#create_token_request}
+      # @option options [Hash]                    :proxy               optional Proxy details to use for all REST and Realtime connections, must contain keys :host and :port, :username and :password are optional
       #
       # @option options [Integer]                 :http_open_timeout       (4 seconds) timeout in seconds for opening an HTTP connection for all HTTP requests
       # @option options [Integer]                 :http_request_timeout    (15 seconds) timeout in seconds for any single complete HTTP request and response
@@ -136,6 +141,7 @@ module Ably
         @custom_host      = options.delete(:rest_host)
         @custom_port      = options.delete(:port)
         @custom_tls_port  = options.delete(:tls_port)
+        @proxy            = options.delete(:proxy)
 
         @http_defaults = HTTP_DEFAULTS.dup
         options.each do |key, val|
@@ -244,6 +250,18 @@ module Ably
       # @return [URI::Generic] Default Ably REST endpoint used for all requests
       def endpoint
         endpoint_for_host(custom_host || [@environment, DOMAIN].compact.join('-'))
+      end
+
+      # @!attribute [r]
+      # @return [String] Proxy URL endpoint if configured
+      # @api private
+      def proxy_url
+        if proxy
+          credentials = if proxy.has_key?(:username) && proxy.has_key?(:password)
+            "#{proxy.fetch(:username)}:#{proxy.fetch(:password)}@"
+          end
+          "http://#{credentials}#{proxy.fetch(:host)}:#{proxy.fetch(:port)}"
+        end
       end
 
       # @!attribute [r] logger
@@ -416,7 +434,9 @@ module Ably
             open_timeout: http_defaults.fetch(:open_timeout),
             timeout:      http_defaults.fetch(:request_timeout)
           }
-        }
+        }.tap do |options|
+          options[:proxy] = proxy_url if proxy
+        end
       end
 
       # Return a Faraday middleware stack to initiate the Faraday::Connection with
