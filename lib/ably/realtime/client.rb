@@ -62,6 +62,7 @@ module Ably
       def_delegators :@rest_client, :encoders
       def_delegators :@rest_client, :use_tls?, :protocol, :protocol_binary?
       def_delegators :@rest_client, :environment, :custom_host, :custom_port, :custom_tls_port
+      def_delegators :@rest_client, :proxy, :proxy_url
       def_delegators :@rest_client, :log_level
 
       # Creates a {Ably::Realtime::Client Realtime Client} and configures the {Ably::Auth} object for the connection.
@@ -180,7 +181,7 @@ module Ably
         @fallback_endpoints[fallback_endpoint_index % @fallback_endpoints.count]
       end
 
-      private
+      # @api private
       def endpoint_for_host(host)
         port = if use_tls?
           custom_tls_port
