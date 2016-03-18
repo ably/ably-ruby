@@ -82,7 +82,7 @@ module RSpec
       if condition_block.call
         yield
       else
-        ::EventMachine.add_timer(0.1) do
+        ::EventMachine.add_timer(0.05) do
           wait_until condition_block, &block
         end
       end

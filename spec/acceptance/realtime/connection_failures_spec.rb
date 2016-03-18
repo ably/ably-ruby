@@ -399,14 +399,13 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                   expect(connection.manager).to receive(:reconnect_transport) do
                     next if stubbed_first_attempt
 
-                    EventMachine.next_tick do
-                      connection.manager.destroy_transport
-                    end
+                    # Open new transport
+                    connection.manager.setup_transport
 
-                    connection.manager.setup_transport do
-                      EventMachine.next_tick do
-                        stubbed_first_attempt = true
-                      end
+                    # But immediately kill it once available
+                    wait_until Proc.new { connection.transport } do
+                      connection.transport.close
+                      stubbed_first_attempt = true
                     end
                   end
                 end
