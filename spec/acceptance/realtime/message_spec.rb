@@ -628,7 +628,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
           connection.transport.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
             if protocol_message.messages.find { |message| message.name == event_name }
               EventMachine.add_timer(0.001) do
-                connection.transport.unbind # trigger failure
+                connection.transport.close # trigger failure
                 expect(message_state).to be_empty
                 connection.once :connected, &on_reconnected
               end
@@ -661,7 +661,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
             connection.transport.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
               if protocol_message.messages.find { |message| message.name == event_name }
                 EventMachine.add_timer(0.0001) do
-                  connection.transport.unbind # trigger failure
+                  connection.transport.close # trigger failure
                   connection.configure_new '0123456789abcdef', 'wVIsgTHAB1UvXh7z-1991d8586', -1 # force the resume connection key to be invalid
                 end
               end

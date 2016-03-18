@@ -448,7 +448,7 @@ describe Ably::Realtime::Connection, :event_machine do
           close_if_transport_available = proc do
             EventMachine.add_timer(0.001) do
               if connection.transport
-                connection.transport.close_connection_after_writing
+                connection.transport.close
               else
                 close_if_transport_available.call
               end
@@ -1201,7 +1201,7 @@ describe Ably::Realtime::Connection, :event_machine do
               end
             end
 
-            connection.transport.close_connection_after_writing
+            connection.transport.close
           end
         end
       end
@@ -1228,7 +1228,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 if connection.transport.nil?
                   close_connection_proc.call
                 else
-                  connection.transport.close_connection_after_writing
+                  connection.transport.close
                 end
               end
             end
@@ -1327,7 +1327,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 expect(connection_state_change.retry_in).to eql(0)
                 stop_reactor
               end
-              EventMachine.add_timer(0.005) { connection.transport.unbind }
+              EventMachine.add_timer(0.1) { connection.transport.close }
             end
           end
 
@@ -1337,7 +1337,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 expect(connection_state_change.retry_in).to eql(0)
                 stop_reactor
               end
-              connection.transport.unbind
+              connection.transport.close
             end
           end
 
@@ -1348,9 +1348,9 @@ describe Ably::Realtime::Connection, :event_machine do
                   expect(connection_state_change.retry_in).to be > 0
                   stop_reactor
                 end
-                EventMachine.add_timer(0.005) { connection.transport.unbind }
+                EventMachine.add_timer(0.1) { connection.transport.close }
               end
-              connection.transport.unbind
+              connection.transport.close
             end
           end
         end

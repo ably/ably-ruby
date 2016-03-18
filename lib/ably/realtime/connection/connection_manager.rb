@@ -70,12 +70,20 @@ module Ably::Realtime
       #
       # @api private
       def connection_opening_failed(error)
+        return if connection.closing? || connection.closed?
+
         if error.kind_of?(Ably::Exceptions::IncompatibleClientId)
           client.connection.transition_state_machine :failed, reason: error
           return
         end
 
-        logger.warn "ConnectionManager: Connection to #{connection.current_host}:#{connection.port} failed; #{error.message}"
+        log_msg = "ConnectionManager: Connection to #{connection.current_host}:#{connection.port} failed; #{error.message}"
+        if error.code == 3099 # Explicit close was requested so don't show this as a warning
+          logger.debug log_msg
+        else
+          logger.warn log_msg
+        end
+
         next_state = get_next_retry_state_info
         connection.transition_state_machine next_state.fetch(:state), retry_in: next_state.fetch(:pause), reason: Ably::Exceptions::ConnectionError.new("Connection failed: #{error.message}", nil, 80000)
       end
@@ -104,7 +112,7 @@ module Ably::Realtime
       def destroy_transport
         if transport
           unsubscribe_from_transport_events transport
-          transport.close_connection
+          transport.close
           connection.release_websocket_transport
         end
       end
@@ -116,7 +124,8 @@ module Ably::Realtime
         if !transport || transport.disconnected?
           setup_transport
         else
-          transport.reconnect connection.current_host, connection.port
+          destroy_transport
+          setup_transport
         end
       end
 
@@ -360,8 +369,10 @@ module Ably::Realtime
         last_state = state_history_ordered.first
 
         # If this method is called after the transition has been persisted to memory,
-        # then we need to ignore the current transition when reviewing the number of retries
-        if last_state[:state].to_sym == state && last_state.fetch(:transitioned_at).to_f > Time.now.to_f - 0.1
+        # then we should ignore the current state in our retry history i.e. if we've just
+        # moved to disconnected, and we are looking for disconnected state history, ignore the
+        # current state
+        if last_state[:state].to_sym == state
           state_history_ordered.shift
         end
 

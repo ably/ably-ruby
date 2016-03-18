@@ -3,7 +3,8 @@ require 'shared/protocol_msgbus_behaviour'
 
 describe Ably::Realtime::Connection::WebsocketTransport, :api_private do
   let(:client_ignored) { double('Ably::Realtime::Client').as_null_object }
-  let(:connection)     { instance_double('Ably::Realtime::Connection', client: client_ignored, id: nil) }
+  let(:logger)         { double('Logger').as_null_object }
+  let(:connection)     { instance_double('Ably::Realtime::Connection', client: client_ignored, id: nil, logger: logger) }
   let(:url)            { 'http://ably.io/' }
 
   let(:websocket_transport_without_eventmachine) do

@@ -403,19 +403,25 @@ module Ably
                 end
               end
 
-              url = URI(client.endpoint).tap do |endpoint|
-                endpoint.query = URI.encode_www_form(url_params)
-              end.to_s
-
               determine_host do |host|
-                begin
-                  logger.debug "Connection: Opening socket connection to #{host}:#{port} and URL '#{url}'"
-                  @transport = EventMachine.connect(host, port, WebsocketTransport, self, url) do |websocket_transport|
-                    websocket_deferrable.succeed websocket_transport
+                url = URI(client.endpoint).tap do |endpoint|
+                  endpoint.host = host
+                  endpoint.port = port
+                  endpoint.query = URI.encode_www_form(url_params)
+                end.to_s
+
+                logger.debug "Connection: Opening socket connection to #{url}'"
+                @transport = WebsocketTransport.new(self, url)
+                state_listener = Proc.new do |event|
+                  if transport.state == :connected
+                    websocket_deferrable.succeed transport
+                  elsif transport.state == :disconnected
+                    websocket_deferrable.fail Ably::Exceptions::TransportClosed.new(event.reason, 80009, event.code)
                   end
-                rescue EventMachine::ConnectionError => error
-                  websocket_deferrable.fail error
+                  transport.off &state_listener if transport
                 end
+                transport.on :connected, &state_listener
+                transport.on :disconnected, &state_listener
               end
             end
 

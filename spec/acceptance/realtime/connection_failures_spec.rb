@@ -169,7 +169,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
           context 'for the first time' do
             let(:client_options) do
-              default_options.merge(suspended_retry_timeout: 2, connection_state_ttl: 0, log_level: :error)
+              default_options.merge(suspended_retry_timeout: 2, connection_state_ttl: 0, log_level: :fatal)
             end
 
             it 'waits suspended_retry_timeout before attempting to reconnect' do
@@ -399,9 +399,12 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                   expect(connection.manager).to receive(:reconnect_transport) do
                     next if stubbed_first_attempt
 
+                    EventMachine.next_tick do
+                      connection.manager.destroy_transport
+                    end
+
                     connection.manager.setup_transport do
                       EventMachine.next_tick do
-                        connection.transport.unbind
                         stubbed_first_attempt = true
                       end
                     end
@@ -428,7 +431,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                 stop_reactor
               end
             end
-            connection.transport.close_connection_after_writing
+            connection.transport.close
           end
         end
       end
@@ -437,7 +440,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         it 'retains connection_id and updates the connection_key' do
           connection.once(:connected) do
             previous_connection_id = connection.id
-            connection.transport.close_connection_after_writing
+            connection.transport.close
 
             expect(connection).to receive(:configure_new).with(previous_connection_id, anything, anything).and_call_original
 
@@ -452,7 +455,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         it 'emits any error received from Ably but leaves the channels attached' do
           emitted_error = nil
           channel.attach do
-            connection.transport.close_connection_after_writing
+            connection.transport.close
 
             connection.once(:connecting) do
               connection.__incoming_protocol_msgbus__.unsubscribe
@@ -488,7 +491,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
           channel.attach do
             publishing_client_channel.attach do
-              connection.transport.close_connection_after_writing
+              connection.transport.close
 
               connection.once(:connected) do
                 publishing_client_channel.publish 'event', 'message'
@@ -499,7 +502,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
         it 'executes the resume callback', api_private: true do
           channel.attach do
-            connection.transport.close_connection_after_writing
+            connection.transport.close
             connection.on_resume do
               expect(connection).to be_connected
               stop_reactor
@@ -519,7 +522,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             channel.attach do
               publishing_client_channel.attach do
                 connection.transport.off # remove all event handlers that detect socket connection state has changed
-                connection.transport.close_connection_after_writing
+                connection.transport.close
 
                 publishing_client_channel.publish('event', 'message') do
                   EventMachine.add_timer(1) do
@@ -547,7 +550,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           let(:channel) { client.channel(random_str) }
 
           def kill_connection_transport_and_prevent_valid_resume
-            connection.transport.close_connection_after_writing
+            connection.transport.close
             connection.configure_new '0123456789abcdef', 'wVIsgTHAB1UvXh7z-1991d8586', -1 # force the resume connection key to be invalid
           end
 
@@ -603,7 +606,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
     end
 
     describe 'fallback host feature' do
-      let(:retry_every_for_tests)       { 0.2  }
+      let(:retry_every_for_tests)       { 0.2 }
       let(:max_time_in_state_for_tests) { 0.59 }
 
       let(:timeout_options) do
@@ -711,18 +714,26 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           before do
             allow(connection).to receive(:internet_up?).and_yield(true)
             @suspended = 0
+            allow(websocket).to receive(:close)
           end
+
+          let!(:websocket) { Ably::Realtime::Connection::WebsocketTransport.new(connection, "http://fake.url") }
 
           it 'uses a fallback host on every subsequent disconnected attempt until suspended' do
             request = 0
-            expect(EventMachine).to receive(:connect).exactly(retry_count_for_one_state).times do |host|
+
+            expect(Ably::Realtime::Connection::WebsocketTransport).to receive(:new).exactly(retry_count_for_one_state).times do |conn, url|
+              host = URI.parse(url).host
               if request == 0
                 expect(host).to eql(expected_host)
               else
                 fallback_hosts_used << host
               end
               request += 1
-              raise EventMachine::ConnectionError
+              EventMachine.next_tick do
+                websocket.emit :disconnected, double('event', reason: 'ignore', code: 1000)
+              end
+              websocket
             end
 
             connection.once(:suspended) do
@@ -734,7 +745,8 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
           it 'uses the primary host when suspended, and a fallback host on every subsequent suspended attempt' do
             request = 0
-            expect(EventMachine).to receive(:connect).at_least(:once) do |host|
+            expect(Ably::Realtime::Connection::WebsocketTransport).to receive(:new).at_least(:once) do |conn, url|
+              host = URI.parse(url).host
               if request == 0 || request == expected_retry_attempts + 1
                 expect(host).to eql(expected_host)
               else
@@ -742,7 +754,10 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                 fallback_hosts_used << host if @suspended > 0
               end
               request += 1
-              raise EventMachine::ConnectionError
+              EventMachine.next_tick do
+                websocket.emit :disconnected, double('event', reason: 'ignore', code: 1000)
+              end
+              websocket
             end
 
             connection.on(:suspended) do

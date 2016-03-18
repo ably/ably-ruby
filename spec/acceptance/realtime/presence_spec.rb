@@ -28,7 +28,7 @@ describe Ably::Realtime::Presence, :event_machine do
     def force_connection_failure(client)
       # Prevent any further SYNC messages coming in on this connection
       client.connection.transport.send(:driver).remove_all_listeners('message')
-      client.connection.transport.unbind
+      client.connection.transport.close
     end
 
     shared_examples_for 'a public presence method' do |method_name, expected_state, args, options = {}|

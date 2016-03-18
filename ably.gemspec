@@ -23,7 +23,7 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'statesman', '~> 1.0.0'
   spec.add_runtime_dependency 'faraday', '~> 0.9'
   spec.add_runtime_dependency 'json'
-  spec.add_runtime_dependency 'websocket-driver', '~> 0.6'
+  spec.add_runtime_dependency 'faye-websocket', '~> 0.10.3'
   spec.add_runtime_dependency 'msgpack', '>= 0.6.2'
   spec.add_runtime_dependency 'addressable', '>= 2.0.0'
 

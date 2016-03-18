@@ -1,5 +1,5 @@
 require 'eventmachine'
-require 'websocket/driver'
+require 'faye/websocket'
 require 'em-http-request'
 
 require 'ably/modules/event_emitter'
