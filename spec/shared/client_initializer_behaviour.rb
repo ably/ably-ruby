@@ -21,6 +21,11 @@ shared_examples 'a client initializer' do
     subject.kind_of?(Ably::Rest::Client)
   end
 
+  before do
+    # Prevent unit test ever using a real socket transport to connect
+    allow_any_instance_of(Ably::Realtime::Connection::WebsocketTransport).to receive(:new).and_return(double('Websocket').as_null_object)
+  end
+
   context 'with invalid arguments' do
     context 'empty hash' do
       let(:client_options) { Hash.new }
@@ -102,10 +107,6 @@ shared_examples 'a client initializer' do
     end
 
     context 'with a string key instead of options hash' do
-      before do
-        allow_any_instance_of(subject.class).to receive(:auto_connect).and_return(false)
-      end
-
       let(:client_options) { 'app.key:secret' }
 
       it 'sets the key' do
@@ -126,10 +127,6 @@ shared_examples 'a client initializer' do
     end
 
     context 'with a string token key instead of options hash' do
-      before do
-        allow_any_instance_of(subject.class).to receive(:auto_connect).and_return(false)
-      end
-
       let(:client_options) { 'app.kjhkasjhdsakdh127g7g1271' }
 
       it 'sets the token' do
@@ -163,10 +160,6 @@ shared_examples 'a client initializer' do
     end
 
     context 'endpoint' do
-      before do
-        allow_any_instance_of(subject.class).to receive(:auto_connect).and_return(false)
-      end
-
       it 'defaults to production' do
         expect(subject.endpoint.to_s).to eql("#{protocol}s://#{subdomain}.ably.io")
       end
@@ -215,10 +208,6 @@ shared_examples 'a client initializer' do
     end
 
     context 'tls' do
-      before do
-        allow_any_instance_of(subject.class).to receive(:auto_connect).and_return(false)
-      end
-
       context 'set to false' do
         let(:client_options) { default_options.merge(tls: false, auto_connect: false) }
 
@@ -237,10 +226,6 @@ shared_examples 'a client initializer' do
     end
 
     context 'logger' do
-      before do
-        allow_any_instance_of(subject.class).to receive(:auto_connect).and_return(false)
-      end
-
       context 'default' do
         it 'uses Ruby Logger' do
           expect(subject.logger.logger).to be_a(::Logger)
@@ -284,10 +269,6 @@ shared_examples 'a client initializer' do
   end
 
   context 'delegators' do
-    before do
-      allow_any_instance_of(subject.class).to receive(:auto_connect).and_return(false)
-    end
-
     let(:client_options) { 'app.key:secret' }
 
     it 'delegates :client_id to .auth' do

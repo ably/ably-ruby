@@ -110,7 +110,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
           context 'for the first time' do
             let(:client_options) do
-              default_options.merge(realtime_host: 'non.existent.host', disconnected_retry_timeout: 2, log_level: :error)
+              default_options.merge(realtime_host: 'non.existent.host', disconnected_retry_timeout: 2, log_level: :fatal)
             end
 
             it 'reattempts connection immediately and then waits disconnected_retry_timeout for a subsequent attempt' do
@@ -303,7 +303,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           context 'when retry intervals are stubbed to attempt reconnection quickly' do
             let(:client_options) do
               default_options.merge(
-                log_level: :error,
+                log_level: :fatal,
                 disconnected_retry_timeout: 0.1,
                 suspended_retry_timeout:    0.1,
                 connection_state_ttl:       0.2,
