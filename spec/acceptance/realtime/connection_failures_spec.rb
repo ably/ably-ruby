@@ -381,6 +381,10 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
             connection.once(:connected) do
               connection.once(:disconnected) do
+                # Prevent the connection from ever reaching CONNECTED state by
+                # stopping the incoming ProtocolMessage
+                connection.__incoming_protocol_msgbus__.unsubscribe
+
                 connection.once(:connecting) do
                   connection.once(:disconnected) do
                     disconnected_at = Time.now.to_f

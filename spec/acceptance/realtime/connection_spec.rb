@@ -1345,13 +1345,19 @@ describe Ably::Realtime::Connection, :event_machine do
 
           it 'contains the next retry period when an immediate reconnect will not occur' do
             connection.once(:connected) do
-              connection.once(:connecting) do
-                connection.once(:disconnected) do |connection_state_change|
-                  expect(connection_state_change.retry_in).to be > 0
-                  stop_reactor
-                end
-                wait_until Proc.new { connection.transport } do
-                  connection.transport.close
+              # Prevent the connection from ever reaching CONNECTED state by
+              # stopping the incoming ProtocolMessage
+              connection.__incoming_protocol_msgbus__.unsubscribe
+
+              connection.once(:disconnected) do
+                connection.once(:connecting) do
+                  connection.once(:disconnected) do |connection_state_change|
+                    expect(connection_state_change.retry_in).to be > 0
+                    stop_reactor
+                  end
+                  wait_until Proc.new { connection.transport } do
+                    connection.transport.close
+                  end
                 end
               end
               connection.transport.close
