@@ -227,10 +227,10 @@ secret_key = Ably::Util::Crypto.generate_random_key
 channel = client.channels.get('test', cipher: { key: secret_key })
 channel.publish nil, "sensitive data" # data will be encrypted before publish
 messages_page = channel.history
-messages_page.first.data #=> "sensitive data"
+messages_page.items.first.data #=> "sensitive data"
 ```
 
-### Generate Token
+### Generate a Token
 
 Tokens are issued by Ably and are readily usable by any client to connect to Ably:
 
