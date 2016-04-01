@@ -1,8 +1,16 @@
 # Change Log
 
-## [v0.8.4](https://github.com/ably/ably-ruby/tree/v0.8.9) (2015-03-01)
+## [v0.8.9](https://github.com/ably/ably-ruby/tree/v0.8.9) (2016-04-01)
 
-[Full Changelog](https://github.com/ably/ably-ruby/compare/v0.8.7...v0.8.9)
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v0.8.9...v0.8.10)
+
+**Fixed bugs:**
+
+- API keys have hyphens
+
+## [v0.8.9](https://github.com/ably/ably-ruby/tree/v0.8.9) (2016-03-01)
+
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v0.8.8...v0.8.9)
 
 **Fixed bugs:**
 
@@ -14,13 +22,19 @@
 
 - New Crypto Spec [\#80](https://github.com/ably/ably-ruby/issues/80)
 
-- Support :key in ClientOptions and deprecate :api\_key [\#73](https://github.com/ably/ably-ruby/issues/73)
-
 **Merged pull requests:**
 
 - Various fixes for open issues [\#82](https://github.com/ably/ably-ruby/pull/82) ([mattheworiordan](https://github.com/mattheworiordan))
 
 - Encryption spec update [\#81](https://github.com/ably/ably-ruby/pull/81) ([mattheworiordan](https://github.com/mattheworiordan))
+
+## [v0.8.8](https://github.com/ably/ably-ruby/tree/v0.8.8) (2016-01-26)
+
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v0.8.7...v0.8.8)
+
+**Closed issues:**
+
+- Support :key in ClientOptions and deprecate :api\_key [\#73](https://github.com/ably/ably-ruby/issues/73)
 
 ## [v0.8.7](https://github.com/ably/ably-ruby/tree/v0.8.7) (2015-12-31)
 
