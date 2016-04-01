@@ -120,7 +120,7 @@ module Ably
 
         options = options.clone
         if options.kind_of?(String)
-          options = if options.match(/^[\w]{2,}\.[\w]{2,}:[\w]{2,}$/)
+          options = if options.match(/^[\w-]{2,}\.[\w-]{2,}:[\w-]{2,}$/)
             { key: options }
           else
             { token: options }

@@ -106,18 +106,18 @@ shared_examples 'a client initializer' do
         allow_any_instance_of(subject.class).to receive(:auto_connect).and_return(false)
       end
 
-      let(:client_options) { 'app.key:secret' }
+      let(:client_options) { 'App.k3y:sec-r3t' }
 
       it 'sets the key' do
         expect(subject.auth.key).to eql(client_options)
       end
 
       it 'sets the key_name' do
-        expect(subject.auth.key_name).to eql('app.key')
+        expect(subject.auth.key_name).to eql('App.k3y')
       end
 
       it 'sets the key_secret' do
-        expect(subject.auth.key_secret).to eql('secret')
+        expect(subject.auth.key_secret).to eql('sec-r3t')
       end
 
       it 'uses basic auth' do
