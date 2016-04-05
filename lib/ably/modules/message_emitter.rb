@@ -4,6 +4,9 @@ module Ably::Modules
   # Message emitter, subscriber and unsubscriber (Pub/Sub) functionality common to Channels and Presence
   # In addition to standard Pub/Sub functionality, it allows subscribers to subscribe to :all.
   module MessageEmitter
+
+    include Ably::Modules::SafeYield
+
     # Subscribe to events on this object
     #
     # @param names [String,Symbol] Optional, the event name(s) to subscribe to. Defaults to `:all` events
@@ -50,8 +53,8 @@ module Ably::Modules
     #
     # @api private
     def emit_message(name, payload)
-      message_emitter_subscriptions[:all].each { |cb| cb.call(payload) }
-      message_emitter_subscriptions[name].each { |cb| cb.call(payload) } if name
+      message_emitter_subscriptions[:all].each { |cb| safe_yield(cb, payload) }
+      message_emitter_subscriptions[name].each { |cb| safe_yield(cb, payload) } if name
     end
 
     private

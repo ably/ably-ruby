@@ -908,6 +908,25 @@ describe Ably::Realtime::Channel, :event_machine do
         end
       end
 
+      context 'with a callback that raises an exception' do
+        let(:exception) { StandardError.new("Intentional error") }
+
+        it 'logs the error and continues' do
+          emitted_exception = false
+          expect(client.logger).to receive(:error).with(/#{exception.message}/)
+          channel.subscribe('click') do |message|
+            emitted_exception = true
+            raise exception
+          end
+          channel.publish('click', 'data') do
+            EventMachine.add_timer(1) do
+              expect(emitted_exception).to eql(true)
+              stop_reactor
+            end
+          end
+        end
+      end
+
       context 'many times with different event names' do
         it 'filters events accordingly to each callback' do
           click_callback = proc { |message| messages << message }
