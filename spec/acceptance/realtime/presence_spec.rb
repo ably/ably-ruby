@@ -1463,6 +1463,25 @@ describe Ably::Realtime::Presence, :event_machine do
           stop_reactor
         end
       end
+
+      context 'with a callback that raises an exception' do
+        let(:exception) { StandardError.new("Intentional error") }
+
+        it 'logs the error and continues' do
+          emitted_exception = false
+          expect(client_one.logger).to receive(:error).with(/#{exception.message}/)
+          presence_client_one.subscribe do |presence_message|
+            emitted_exception = true
+            raise exception
+          end
+          presence_client_one.enter do
+            EventMachine.add_timer(1) do
+              expect(emitted_exception).to eql(true)
+              stop_reactor
+            end
+          end
+        end
+      end
     end
 
     context '#unsubscribe' do
