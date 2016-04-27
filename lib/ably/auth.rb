@@ -165,6 +165,12 @@ module Ably
 
       authorise_with_token(request_token(@token_params, auth_options)).tap do |new_token_details|
         logger.debug "Auth: new token following authorisation: #{new_token_details}"
+
+        # If authorise was forced allow a block to be called so that the realtime library
+        # can force upgrade the authorisation
+        if auth_options[:force] && block_given?
+          yield new_token_details
+        end
       end
     end
 
