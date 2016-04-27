@@ -67,7 +67,7 @@ module Ably
       #      token_details #=> Ably::Models::TokenDetails
       #    end
       #
-      def authorise(token_params = {}, auth_options = {}, &success_callback)
+      def authorise(token_params = nil, auth_options = nil, &success_callback)
         async_wrap(success_callback) do
           auth_sync.authorise(token_params, auth_options)
         end.tap do |deferrable|
@@ -82,8 +82,8 @@ module Ably
       # @option (see Ably::Auth#authorise)
       # @return [Ably::Models::TokenDetails]
       #
-      def authorise_sync(token_params = {}, auth_options = {})
-        auth_sync.authorise(token_params, auth_options)
+      def authorise_sync(token_params = nil, auth_options = nil)
+        auth_sync.authorise(token_params, auth_options, &method(:upgrade_authentication_block).to_proc)
       end
 
       # def_delegator :auth_sync, :request_token, :request_token_sync

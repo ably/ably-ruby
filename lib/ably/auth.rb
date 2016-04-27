@@ -72,6 +72,7 @@ module Ably
       end
 
       split_api_key_into_key_and_secret! options if options[:key]
+      store_and_delete_basic_auth_key_from_options! options
 
       if using_basic_auth? && !api_key_present?
         raise ArgumentError, 'key is missing. Either an API key, token, or token auth method must be provided'
@@ -104,9 +105,9 @@ module Ably
     #
     # In the event that a new token request is made, the provided options are used.
     #
-    # @param [Hash] token_params the token params used for future token requests
-    # @param [Hash] auth_options the authentication options used for future token requests
-    # @option auth_options [Boolean]   :force   obtains a new token even if the current token is valid
+    # @param [Hash, nil] token_params the token params used for future token requests. When nil, previously configured token params are used
+    # @param [Hash, nil] auth_options the authentication options used for future token requests. When nil, previously configure authentication options are used
+    # @option auth_options [Boolean]   :force   obtains a new token even if the current token is valid. If the provided +auth_options+ Hash contains only this +:force+ attribute, the existing configured authentication options are not overwriten
     # @option (see #request_token)
     #
     # @return (see #create_token_request)
@@ -122,25 +123,47 @@ module Ably
     #      token_request
     #    end
     #
-    def authorise(token_params = {}, auth_options = {})
-      ensure_valid_auth_attributes auth_options
+    def authorise(token_params = nil, auth_options = nil)
+      if auth_options == { force: true }
+        auth_options = options.merge(force: true)
+      elsif auth_options.nil?
+        auth_options = options
+      else
+        ensure_valid_auth_attributes auth_options
 
-      auth_options = auth_options.clone
+        auth_options = auth_options.clone
 
-      if current_token_details && !auth_options.delete(:force)
+        if auth_options[:token_params]
+          token_params = auth_options.delete(:token_params).merge(token_params || {})
+        end
+
+        # If basic credentials are provided then overwrite existing options
+        # otherwise we need to retain the existing credentials in the auth options
+        split_api_key_into_key_and_secret! auth_options if auth_options[:key]
+        if auth_options[:key_name] && auth_options[:key_secret]
+          store_and_delete_basic_auth_key_from_options! auth_options
+        end
+
+        @options = auth_options.clone
+
+        # Force reauth and query the server time only happens once
+        # the otpions remain in auth_options though so they are passed to request_token
+        @options.delete(:query_time)
+        @options.delete(:force)
+
+        @options.freeze
+      end
+
+      unless token_params.nil?
+        @token_params = token_params
+        @token_params.freeze
+      end
+
+      if current_token_details && !auth_options[:force]
         return current_token_details unless current_token_details.expired?
       end
 
-      split_api_key_into_key_and_secret! auth_options if auth_options[:key]
-      @options = @options.merge(auth_options) # update defaults
-
-      # Query the server time only happens once
-      @options.delete(:query_time)
-
-      token_params = (auth_options.delete(:token_params) || {}).merge(token_params)
-      @token_params = @token_params.merge(token_params) # update defaults
-
-      authorise_with_token(request_token(token_params, auth_options)).tap do |new_token_details|
+      authorise_with_token(request_token(@token_params, auth_options)).tap do |new_token_details|
         logger.debug "Auth: new token following authorisation: #{new_token_details}"
       end
     end
@@ -276,11 +299,11 @@ module Ably
     end
 
     def key_name
-      options[:key_name]
+      @key_name
     end
 
     def key_secret
-      options[:key_secret]
+      @key_secret
     end
 
     # True when Basic Auth is being used to authenticate with Ably
@@ -487,6 +510,11 @@ module Ably
       options[:key_secret] = api_key_parts[:secret].encode(Encoding::UTF_8)
 
       options.delete :key
+    end
+
+    def store_and_delete_basic_auth_key_from_options!(options)
+      @key_name = options.delete(:key_name)
+      @key_secret = options.delete(:key_secret)
     end
 
     # Returns the current token if it exists or authorises and retrieves a token
