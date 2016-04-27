@@ -612,6 +612,24 @@ describe Ably::Auth do
         end
       end
 
+      context 'query_time: true' do
+        let(:local_time)  { @now - 60 }
+        let(:server_time) { @now }
+
+        before do
+          @now = Time.now
+          allow(Time).to receive(:now).and_return(local_time)
+        end
+
+        it 'only queries the server time once and then works out the offset, query_time option is never persisted' do
+          expect(client).to receive(:time).once.and_return(server_time)
+
+          auth.authorise({}, query_time: true)
+          auth.authorise({}, force: true)
+          expect(auth.auth_options).to_not have_key(:query_time)
+        end
+      end
+
       context 'with previous authorisation' do
         before do
           auth.authorise
@@ -640,10 +658,10 @@ describe Ably::Auth do
         expect(auth.token_params[:ttl]).to eql(26)
       end
 
-      it 'updates the persisted token params that are then used for subsequent authorise requests' do
-        expect(auth.options[:query_time]).to_not eql(true)
-        auth.authorise({}, query_time: true)
-        expect(auth.options[:query_time]).to eql(true)
+      it 'updates the persisted auth options that are then used for subsequent authorise requests' do
+        expect(auth.options[:authUrl]).to be_nil
+        auth.authorise({}, authUrl: 'http://foo.com')
+        expect(auth.options[:authUrl]).to eql('http://foo.com')
       end
 
       context 'with a Proc for the :auth_callback option' do

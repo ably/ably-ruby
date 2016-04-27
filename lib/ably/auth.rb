@@ -134,6 +134,9 @@ module Ably
       split_api_key_into_key_and_secret! auth_options if auth_options[:key]
       @options = @options.merge(auth_options) # update defaults
 
+      # Query the server time only happens once
+      @options.delete(:query_time)
+
       token_params = (auth_options.delete(:token_params) || {}).merge(token_params)
       @token_params = @token_params.merge(token_params) # update defaults
 
@@ -240,11 +243,8 @@ module Ably
 
       raise Ably::Exceptions::TokenRequestFailed, 'Key Name and Key Secret are required to generate a new token request' unless request_key_name && request_key_secret
 
-      timestamp = if auth_options[:query_time]
-        client.time
-      else
-        token_params.delete(:timestamp) || Time.now
-      end
+      ensure_current_time_is_based_on_server_time if auth_options[:query_time]
+      timestamp = token_params.delete(:timestamp) || current_time
       timestamp = Time.at(timestamp) if timestamp.kind_of?(Integer)
 
       ttl = [
@@ -411,6 +411,24 @@ module Ably
 
     def token_option
       @token_option
+    end
+
+    # Returns the current device clock time unless the
+    # the server time has previously been requested with query_time: true
+    # and the @server_time_offset is configured
+    def current_time
+      if @server_time_offset
+        Time.now + @server_time_offset
+      else
+        Time.now
+      end
+    end
+
+    # Get the difference in time between the server
+    # and the local clock and store this for future time requests
+    def ensure_current_time_is_based_on_server_time
+      server_time = client.time
+      @server_time_offset = server_time.to_f - Time.now.to_f
     end
 
     def ensure_valid_auth_attributes(attributes)
