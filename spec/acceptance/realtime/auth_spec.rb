@@ -269,6 +269,10 @@ describe Ably::Realtime::Auth, :event_machine do
           let(:identified_token_cb) { Proc.new do
             rest_client.auth.create_token_request({ client_id: 'bob' })
           end }
+          let(:downgraded_capability) { JSON.dump({ "bar" => ["subscribe"] }) }
+          let(:downgraded_token_cb)   { Proc.new do
+            rest_client.auth.create_token_request({ capability: downgraded_capability })
+          end }
 
           let(:client_options) { default_options.merge(auth_callback: basic_token_cb) }
 
@@ -316,26 +320,42 @@ describe Ably::Realtime::Auth, :event_machine do
             end
           end
 
-          it 'allows an upgrade of capabilities' do
-            skip "Current error from Realtime: Mismatched auth credentials for existing connection"
+          context 'when upgrading capabilities' do
+            let(:client_options) { default_options.merge(auth_callback: basic_token_cb, log_level: :error) }
 
-            client.connection.once(:connected) do
-            client.auth.authorise(nil, auth_callback: upgraded_token_cb, force: true)
-              client.connection.once(:failed) do
-                expect(client.connection.error_reason.message).to match(/incompatible.*client ID/)
-                stop_reactor
+            it 'is allowed' do
+              client.connection.once(:connected) do
+                channel = client.channels.get('foo')
+                channel.publish('not-allowed').errback do |error|
+                  expect(error.code).to eql(40160)
+                  expect(error.message).to match(/permission denied/)
+                  client.auth.authorise(nil, auth_callback: upgraded_token_cb, force: true)
+                  client.connection.once(:connected) do
+                    expect(client.connection.error_reason).to be_nil
+                    channel.subscribe('allowed') do |message|
+                      stop_reactor
+                    end
+                    channel.publish 'allowed'
+                  end
+                end
               end
             end
           end
 
-          it 'allows an upgrade from anonymous to identified' do
-            skip "Current error from Realtime: Mismatched clientId for existing connection"
+          context 'when downgrading capabilities' do
+            let(:client_options) { default_options.merge(auth_callback: basic_token_cb, log_level: :none) }
 
-            client.connection.once(:connected) do
-            client.auth.authorise(nil, auth_callback: identified_token_cb, force: true)
-              client.connection.once(:failed) do
-                expect(client.connection.error_reason.message).to match(/incompatible.*client ID/)
-                stop_reactor
+            it 'is allowed and channels are detached' do
+              client.connection.once(:connected) do
+                channel = client.channels.get('foo')
+                channel.attach do
+                  client.auth.authorise(nil, auth_callback: downgraded_token_cb, force: true)
+                  channel.once(:failed) do
+                    expect(channel.error_reason.code).to eql(40160)
+                    expect(channel.error_reason.message).to match(/Channel denied access/)
+                    stop_reactor
+                  end
+                end
               end
             end
           end
