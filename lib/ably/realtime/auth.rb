@@ -67,9 +67,9 @@ module Ably
       #      token_details #=> Ably::Models::TokenDetails
       #    end
       #
-      def authorise(token_params = {}, auth_options = {}, &success_callback)
+      def authorise(token_params = nil, auth_options = nil, &success_callback)
         async_wrap(success_callback) do
-          auth_sync.authorise(token_params, auth_options)
+          auth_sync.authorise(token_params, auth_options, &method(:upgrade_authentication_block).to_proc)
         end.tap do |deferrable|
           deferrable.errback do |error|
             client.connection.transition_state_machine :failed, reason: error if error.kind_of?(Ably::Exceptions::IncompatibleClientId)
@@ -82,8 +82,8 @@ module Ably
       # @option (see Ably::Auth#authorise)
       # @return [Ably::Models::TokenDetails]
       #
-      def authorise_sync(token_params = {}, auth_options = {})
-        auth_sync.authorise(token_params, auth_options)
+      def authorise_sync(token_params = nil, auth_options = nil)
+        auth_sync.authorise(token_params, auth_options, &method(:upgrade_authentication_block).to_proc)
       end
 
       # def_delegator :auth_sync, :request_token, :request_token_sync
@@ -195,6 +195,24 @@ module Ably
 
       def client
         @client
+      end
+
+      # If authorise is called with true, this block is executed so that it
+      # can perform the authentication upgrade
+      def upgrade_authentication_block(new_token)
+        # This block is called if the authorisation was forced
+        if client.connection.connected? || client.connection.connecting?
+          logger.debug "Realtime::Auth - authorise called with { force: true } so forcibly disconnecting transport to initiate auth upgrade"
+          block = Proc.new do
+            if client.connection.transport
+              logger.debug "Realtime::Auth - current transport disconnected"
+              client.connection.transport.disconnect
+            else
+              EventMachine.add_timer(0.1, &block)
+            end
+          end
+          block.call
+        end
       end
     end
   end

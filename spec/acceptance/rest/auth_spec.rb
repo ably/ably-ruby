@@ -612,6 +612,87 @@ describe Ably::Auth do
         end
       end
 
+      context 'query_time: true' do
+        let(:local_time)  { @now - 60 }
+        let(:server_time) { @now }
+
+        before do
+          @now = Time.now
+          allow(Time).to receive(:now).and_return(local_time)
+        end
+
+        it 'only queries the server time once and then works out the offset, query_time option is never persisted' do
+          expect(client).to receive(:time).once.and_return(server_time)
+
+          auth.authorise({}, query_time: true)
+          auth.authorise({}, force: true)
+          expect(auth.auth_options).to_not have_key(:query_time)
+        end
+      end
+
+      context 'TokenParams argument' do
+        let(:default_token_params) { { ttl: 23 } }
+
+        before do
+          auth.authorise default_token_params
+        end
+
+        it 'has no effect on the defaults when null and TokenParam defaults remain the same' do
+          old_token = auth.current_token_details
+          auth.authorise(nil, force: true)
+          expect(old_token).to_not eql(auth.current_token_details)
+          expect(auth.token_params[:ttl]).to eql(23)
+        end
+
+        it 'updates defaults when present and all previous configured TokenParams are discarded' do
+          old_token = auth.current_token_details
+          auth.authorise({ client_id: 'bob' }, { force: true })
+          expect(old_token).to_not eql(auth.current_token_details)
+          expect(auth.token_params[:ttl]).to_not eql(23)
+          expect(auth.token_params[:client_id]).to eql('bob')
+        end
+
+        it 'updates Auth#token_params attribute with an immutable hash' do
+          auth.authorise({ client_id: 'bob' }, { force: true })
+          expect { auth.token_params['key_name'] = 'new_name' }.to raise_error RuntimeError, /can't modify frozen.*Hash/
+        end
+      end
+
+      context 'AuthOptions argument' do
+        let(:token_ttl) { 2 }
+        let(:auth_callback) { Proc.new do
+          auth.create_token_request(ttl: token_ttl)
+        end }
+        let(:default_auth_options) { { auth_callback: auth_callback } }
+
+        before do
+          stub_const 'Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER', 0 # allow token to be used even if about to expire
+          stub_const 'Ably::Auth::TOKEN_DEFAULTS', Ably::Auth::TOKEN_DEFAULTS.merge(renew_token_buffer: 0) # Ensure tokens issued expire immediately after issue
+
+          auth.authorise(nil, default_auth_options)
+          @old_token = auth.current_token_details
+          sleep token_ttl + 0.5
+        end
+
+        it 'has no effect on the defaults when null and AuthOptions defaults remain the same' do
+          auth.authorise(nil, nil)
+          expect(@old_token).to_not eql(auth.current_token_details)
+          expect(auth.options[:auth_callback]).to eql(auth_callback)
+        end
+
+        it 'updates defaults when present and all previous configured AuthOptions are discarded' do
+          auth.authorise(nil, auth_method: :post)
+          expect(@old_token).to_not eql(auth.current_token_details)
+          expect(auth.options[:auth_callback]).to be_nil
+          expect(auth.options[:auth_method]).to eql(:post)
+        end
+
+        it 'updates Auth#options attribute with an immutable hash' do
+          auth.authorise(nil, auth_callback: Proc.new { '1231232.12321:12321312' })
+          expect { auth.options['key_name'] = 'new_name' }.to raise_error RuntimeError, /can't modify frozen.*Hash/
+        end
+      end
+
       context 'with previous authorisation' do
         before do
           auth.authorise
@@ -640,10 +721,10 @@ describe Ably::Auth do
         expect(auth.token_params[:ttl]).to eql(26)
       end
 
-      it 'updates the persisted token params that are then used for subsequent authorise requests' do
-        expect(auth.options[:query_time]).to_not eql(true)
-        auth.authorise({}, query_time: true)
-        expect(auth.options[:query_time]).to eql(true)
+      it 'updates the persisted auth options that are then used for subsequent authorise requests' do
+        expect(auth.options[:authUrl]).to be_nil
+        auth.authorise({}, authUrl: 'http://foo.com')
+        expect(auth.options[:authUrl]).to eql('http://foo.com')
       end
 
       context 'with a Proc for the :auth_callback option' do

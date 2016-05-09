@@ -72,6 +72,7 @@ module Ably
       end
 
       split_api_key_into_key_and_secret! options if options[:key]
+      store_and_delete_basic_auth_key_from_options! options
 
       if using_basic_auth? && !api_key_present?
         raise ArgumentError, 'key is missing. Either an API key, token, or token auth method must be provided'
@@ -104,9 +105,9 @@ module Ably
     #
     # In the event that a new token request is made, the provided options are used.
     #
-    # @param [Hash] token_params the token params used for future token requests
-    # @param [Hash] auth_options the authentication options used for future token requests
-    # @option auth_options [Boolean]   :force   obtains a new token even if the current token is valid
+    # @param [Hash, nil] token_params the token params used for future token requests. When nil, previously configured token params are used
+    # @param [Hash, nil] auth_options the authentication options used for future token requests. When nil, previously configure authentication options are used
+    # @option auth_options [Boolean]   :force   obtains a new token even if the current token is valid. If the provided +auth_options+ Hash contains only this +:force+ attribute, the existing configured authentication options are not overwriten
     # @option (see #request_token)
     #
     # @return (see #create_token_request)
@@ -122,23 +123,54 @@ module Ably
     #      token_request
     #    end
     #
-    def authorise(token_params = {}, auth_options = {})
-      ensure_valid_auth_attributes auth_options
+    def authorise(token_params = nil, auth_options = nil)
+      if auth_options == { force: true }
+        auth_options = options.merge(force: true)
+      elsif auth_options.nil?
+        auth_options = options
+      else
+        ensure_valid_auth_attributes auth_options
 
-      auth_options = auth_options.clone
+        auth_options = auth_options.clone
 
-      if current_token_details && !auth_options.delete(:force)
+        if auth_options[:token_params]
+          token_params = auth_options.delete(:token_params).merge(token_params || {})
+        end
+
+        # If basic credentials are provided then overwrite existing options
+        # otherwise we need to retain the existing credentials in the auth options
+        split_api_key_into_key_and_secret! auth_options if auth_options[:key]
+        if auth_options[:key_name] && auth_options[:key_secret]
+          store_and_delete_basic_auth_key_from_options! auth_options
+        end
+
+        @options = auth_options.clone
+
+        # Force reauth and query the server time only happens once
+        # the otpions remain in auth_options though so they are passed to request_token
+        @options.delete(:query_time)
+        @options.delete(:force)
+
+        @options.freeze
+      end
+
+      unless token_params.nil?
+        @token_params = token_params
+        @token_params.freeze
+      end
+
+      if current_token_details && !auth_options[:force]
         return current_token_details unless current_token_details.expired?
       end
 
-      split_api_key_into_key_and_secret! auth_options if auth_options[:key]
-      @options = @options.merge(auth_options) # update defaults
-
-      token_params = (auth_options.delete(:token_params) || {}).merge(token_params)
-      @token_params = @token_params.merge(token_params) # update defaults
-
-      authorise_with_token(request_token(token_params, auth_options)).tap do |new_token_details|
+      authorise_with_token(request_token(@token_params, auth_options)).tap do |new_token_details|
         logger.debug "Auth: new token following authorisation: #{new_token_details}"
+
+        # If authorise was forced allow a block to be called so that the realtime library
+        # can force upgrade the authorisation
+        if auth_options[:force] && block_given?
+          yield new_token_details
+        end
       end
     end
 
@@ -240,11 +272,8 @@ module Ably
 
       raise Ably::Exceptions::TokenRequestFailed, 'Key Name and Key Secret are required to generate a new token request' unless request_key_name && request_key_secret
 
-      timestamp = if auth_options[:query_time]
-        client.time
-      else
-        token_params.delete(:timestamp) || Time.now
-      end
+      ensure_current_time_is_based_on_server_time if auth_options[:query_time]
+      timestamp = token_params.delete(:timestamp) || current_time
       timestamp = Time.at(timestamp) if timestamp.kind_of?(Integer)
 
       ttl = [
@@ -276,11 +305,11 @@ module Ably
     end
 
     def key_name
-      options[:key_name]
+      @key_name
     end
 
     def key_secret
-      options[:key_secret]
+      @key_secret
     end
 
     # True when Basic Auth is being used to authenticate with Ably
@@ -413,6 +442,24 @@ module Ably
       @token_option
     end
 
+    # Returns the current device clock time unless the
+    # the server time has previously been requested with query_time: true
+    # and the @server_time_offset is configured
+    def current_time
+      if @server_time_offset
+        Time.now + @server_time_offset
+      else
+        Time.now
+      end
+    end
+
+    # Get the difference in time between the server
+    # and the local clock and store this for future time requests
+    def ensure_current_time_is_based_on_server_time
+      server_time = client.time
+      @server_time_offset = server_time.to_f - Time.now.to_f
+    end
+
     def ensure_valid_auth_attributes(attributes)
       if attributes[:timestamp]
         unless attributes[:timestamp].kind_of?(Time) || attributes[:timestamp].kind_of?(Numeric)
@@ -469,6 +516,11 @@ module Ably
       options[:key_secret] = api_key_parts[:secret].encode(Encoding::UTF_8)
 
       options.delete :key
+    end
+
+    def store_and_delete_basic_auth_key_from_options!(options)
+      @key_name = options.delete(:key_name)
+      @key_secret = options.delete(:key_secret)
     end
 
     # Returns the current token if it exists or authorises and retrieves a token

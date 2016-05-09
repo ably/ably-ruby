@@ -254,6 +254,195 @@ describe Ably::Realtime::Auth, :event_machine do
             end
           end
         end
+
+        context 'with force: true to trigger an authentication upgrade' do
+          let(:rest_client)      { Ably::Rest::Client.new(default_options) }
+          let(:client_publisher) { auto_close Ably::Realtime::Client.new(default_options) }
+          let(:basic_capability) { JSON.dump("foo" => ["subscribe"]) }
+          let(:basic_token_cb)   { Proc.new do
+            rest_client.auth.create_token_request({ capability: basic_capability })
+          end }
+          let(:upgraded_capability) { JSON.dump({ "foo" => ["subscribe", "publish"] }) }
+          let(:upgraded_token_cb)   { Proc.new do
+            rest_client.auth.create_token_request({ capability: upgraded_capability })
+          end }
+          let(:identified_token_cb) { Proc.new do
+            rest_client.auth.create_token_request({ client_id: 'bob' })
+          end }
+          let(:downgraded_capability) { JSON.dump({ "bar" => ["subscribe"] }) }
+          let(:downgraded_token_cb)   { Proc.new do
+            rest_client.auth.create_token_request({ capability: downgraded_capability })
+          end }
+
+          let(:client_options) { default_options.merge(auth_callback: basic_token_cb) }
+
+          it 'forces the connection to disconnect and reconnect with a new token when in the CONNECTED state' do
+            client.connection.once(:connected) do
+              existing_token = client.auth.current_token_details
+              client.auth.authorise(nil, force: true)
+              client.connection.once(:disconnected) do
+                client.connection.once(:connected) do
+                  expect(existing_token).to_not eql(client.auth.current_token_details)
+                  stop_reactor
+                end
+              end
+            end
+          end
+
+          it 'forces the connection to disconnect and reconnect with a new token when in the CONNECTING state' do
+            client.connection.once(:connecting) do
+              existing_token = client.auth.current_token_details
+              client.auth.authorise(nil, force: true)
+              client.connection.once(:disconnected) do
+                client.connection.once(:connected) do
+                  expect(existing_token).to_not eql(client.auth.current_token_details)
+                  stop_reactor
+                end
+              end
+            end
+          end
+
+          context 'when client is identified' do
+            let(:client_options) { default_options.merge(auth_callback: basic_token_cb, log_level: :none) }
+
+            let(:basic_token_cb)   { Proc.new do
+              rest_client.auth.create_token_request({ client_id: 'mike', capability: basic_capability })
+            end }
+
+            it 'transisitions the connection state to FAILED if the client_id changes' do
+              client.connection.once(:connected) do
+                client.auth.authorise(nil, auth_callback: identified_token_cb, force: true)
+                client.connection.once(:failed) do
+                  expect(client.connection.error_reason.message).to match(/incompatible.*client ID/)
+                  stop_reactor
+                end
+              end
+            end
+          end
+
+          context 'when upgrading capabilities' do
+            let(:client_options) { default_options.merge(auth_callback: basic_token_cb, log_level: :error) }
+
+            it 'is allowed' do
+              client.connection.once(:connected) do
+                channel = client.channels.get('foo')
+                channel.publish('not-allowed').errback do |error|
+                  expect(error.code).to eql(40160)
+                  expect(error.message).to match(/permission denied/)
+                  client.auth.authorise(nil, auth_callback: upgraded_token_cb, force: true)
+                  client.connection.once(:connected) do
+                    expect(client.connection.error_reason).to be_nil
+                    channel.subscribe('allowed') do |message|
+                      stop_reactor
+                    end
+                    channel.publish 'allowed'
+                  end
+                end
+              end
+            end
+          end
+
+          context 'when downgrading capabilities' do
+            let(:client_options) { default_options.merge(auth_callback: basic_token_cb, log_level: :none) }
+
+            it 'is allowed and channels are detached' do
+              client.connection.once(:connected) do
+                channel = client.channels.get('foo')
+                channel.attach do
+                  client.auth.authorise(nil, auth_callback: downgraded_token_cb, force: true)
+                  channel.once(:failed) do
+                    expect(channel.error_reason.code).to eql(40160)
+                    expect(channel.error_reason.message).to match(/Channel denied access/)
+                    stop_reactor
+                  end
+                end
+              end
+            end
+          end
+
+          it 'ensures message delivery continuity whilst upgrading' do
+            received_messages = []
+            subscriber_channel = client.channels.get('foo')
+            publisher_channel  = client_publisher.channels.get('foo')
+            subscriber_channel.attach do
+              subscriber_channel.subscribe do |message|
+                received_messages << message
+              end
+              publisher_channel.attach do
+                publisher_channel.publish('foo') do
+                  EventMachine.add_timer(2) do
+                    expect(received_messages.length).to eql(1)
+                    client.auth.authorise(nil, force: true)
+                    client.connection.once(:disconnected) do
+                      publisher_channel.publish('bar') do
+                        expect(received_messages.length).to eql(1)
+                      end
+                    end
+                    client.connection.once(:connected) do
+                      EventMachine.add_timer(2) do
+                        expect(received_messages.length).to eql(2)
+                        stop_reactor
+                      end
+                    end
+                  end
+                end
+              end
+            end
+          end
+
+          it 'does not change the connection state if current connection state is closing' do
+            client.connection.once(:connected) do
+              client.connection.once(:closing) do
+                client.auth.authorise(nil, force: true)
+                client.connection.once(:connected) do
+                  raise "Should not reconnect following auth force: true"
+                end
+                EventMachine.add_timer(4) do
+                  expect(client.connection).to be_closed
+                  stop_reactor
+                end
+              end
+              client.connection.close
+            end
+          end
+
+          it 'does not change the connection state if current connection state is closed' do
+            client.connection.once(:connected) do
+              client.connection.once(:closed) do
+                client.auth.authorise(nil, force: true)
+                client.connection.once(:connected) do
+                  raise "Should not reconnect following auth force: true"
+                end
+                EventMachine.add_timer(4) do
+                  expect(client.connection).to be_closed
+                  stop_reactor
+                end
+              end
+              client.connection.close
+            end
+          end
+
+          context 'when state is failed' do
+            let(:client_options) { default_options.merge(auth_callback: basic_token_cb, log_level: :none) }
+
+            it 'does not change the connection state' do
+              client.connection.once(:connected) do
+                client.connection.once(:failed) do
+                  client.auth.authorise(nil, force: true)
+                  client.connection.once(:connected) do
+                    raise "Should not reconnect following auth force: true"
+                  end
+                  EventMachine.add_timer(4) do
+                    expect(client.connection).to be_failed
+                    stop_reactor
+                  end
+                end
+                protocol_message = Ably::Models::ProtocolMessage.new(action: Ably::Models::ProtocolMessage::ACTION.Error.to_i)
+                client.connection.__incoming_protocol_msgbus__.publish :protocol_message, protocol_message
+              end
+            end
+          end
+        end
       end
 
       context '#authorise_async' do
