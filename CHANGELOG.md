@@ -1,12 +1,28 @@
 # Change Log
 
-## [v0.8.9](https://github.com/ably/ably-ruby/tree/v0.8.9) (2016-04-01)
+## [v0.8.12](https://github.com/ably/ably-ruby/tree/v0.8.12)
 
-[Full Changelog](https://github.com/ably/ably-ruby/compare/v0.8.9...v0.8.10)
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v0.8.11...v0.8.12)
 
 **Fixed bugs:**
 
-- API keys have hyphens
+- Ably::Exceptions::ConnectionError: SSL\_connect returned=1 errno=0 state=SSLv3 read server certificate B: certificate verify failed [\#87](https://github.com/ably/ably-ruby/issues/87)
+
+**Merged pull requests:**
+
+- Reauthorise [\#90](https://github.com/ably/ably-ruby/pull/90) ([mattheworiordan](https://github.com/mattheworiordan))
+
+## [v0.8.11](https://github.com/ably/ably-ruby/tree/v0.8.11) (2016-04-05)
+
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v0.8.10...v0.8.11)
+
+**Merged pull requests:**
+
+- Ensure message emitter callbacks are safe \(i.e. cannot break the EM\) [\#85](https://github.com/ably/ably-ruby/pull/85) ([mattheworiordan](https://github.com/mattheworiordan))
+
+## [v0.8.10](https://github.com/ably/ably-ruby/tree/v0.8.10) (2016-04-01)
+
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v0.8.9...v0.8.10)
 
 ## [v0.8.9](https://github.com/ably/ably-ruby/tree/v0.8.9) (2016-03-01)
 
