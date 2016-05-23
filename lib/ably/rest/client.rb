@@ -1,4 +1,5 @@
 require 'faraday'
+require 'faraday_middleware'
 require 'json'
 require 'logger'
 
@@ -425,6 +426,8 @@ module Ably
       def middleware
         @middleware ||= Faraday::RackBuilder.new do |builder|
           setup_outgoing_middleware builder
+
+          builder.use ::FaradayMiddleware::FollowRedirects, limit: 3
 
           # Raise exceptions if response code is invalid
           builder.use Ably::Rest::Middleware::Exceptions

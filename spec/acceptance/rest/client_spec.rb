@@ -262,6 +262,28 @@ describe Ably::Rest::Client do
           end
         end
       end
+
+      context 'when redirected' do
+        let(:channel) { client.channel(random_str) }
+        let(:client_options) { default_options.merge(key: api_key) }
+
+        it 'follows GET redirects opaquely' do
+          channel.publish 'event', 'message'
+          expect(client).to receive(:request).with(:get, anything, hash_including({ 'redirect-host' => 'local-site' }), anything).once.and_call_original
+          expect(channel.history('redirect-host' => 'local-site').items.first.name).to eql('event')
+        end
+
+        it 'follows POST redirects opaquely' do
+          allow(client).to receive(:request).and_wrap_original do |method, http_method, path, params = {}, options = {}|
+            method.call(http_method, path, params.merge('redirect-host' => 'local-site'), options)
+          end
+          expect(client).to receive(:send_request).
+                              with(anything, anything, hash_including({ 'redirect-host' => 'local-site' }), anything).
+                              twice.and_call_original
+          channel.publish 'event', 'message'
+          expect(channel.history.items.first.name).to eql('event')
+        end
+      end
     end
 
     context 'fallback hosts', :webmock do
