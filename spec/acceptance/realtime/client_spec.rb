@@ -209,6 +209,18 @@ describe Ably::Realtime::Client, :event_machine do
       end
     end
 
+    context 'when receiving a 307 redirect' do
+      it 'follows the redirect and continues' do
+        expect(EventMachine).to receive(:connect).with(anything, anything, anything, anything, /redirect-host=local-site/).once
+        expect(subject.rest_client.auth).to receive(:auth_params).once.and_wrap_original do |method|
+          method.call.merge('redirect-host' => 'local-site')
+        end
+        subject.connection.once(:connected) do
+          stop_reactor
+        end
+      end
+    end
+
     context '#connection' do
       it 'provides access to the Connection object' do
         expect(subject.connection).to be_a(Ably::Realtime::Connection)
