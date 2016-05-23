@@ -144,7 +144,7 @@ module Ably::Realtime
       end
 
       def process_connection_error(protocol_message)
-        connection.manager.error_received_from_server protocol_message.error
+        connection.manager.error_received_from_server(protocol_message.error || Ably::Models::ErrorInfo.new(message: 'Error reason unknown'))
       end
 
       def process_connected_message(protocol_message)
