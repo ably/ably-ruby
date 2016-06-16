@@ -194,15 +194,15 @@ module Ably
 
       # Sends a ping to Ably and yields the provided block when a heartbeat ping request is echoed from the server.
       # This can be useful for measuring true roundtrip client to Ably server latency for a simple message, or checking that an underlying transport is responding currently.
-      # The elapsed milliseconds is passed as an argument to the block and represents the time taken to echo a ping heartbeat once the connection is in the `:connected` state.
+      # The elapsed time in seconds is passed as an argument to the block and represents the time taken to echo a ping heartbeat once the connection is in the `:connected` state.
       #
-      # @yield [Integer] if a block is passed to this method, then this block will be called once the ping heartbeat is received with the time elapsed in milliseconds.
+      # @yield [Integer] if a block is passed to this method, then this block will be called once the ping heartbeat is received with the time elapsed in seconds.
       #                  If the ping is not received within an acceptable timeframe, the block will be called with +nil+ as he first argument
       #
       # @example
       #    client = Ably::Rest::Client.new(key: 'key.id:secret')
-      #    client.connection.ping do |ms_elapsed|
-      #      puts "Ping took #{ms_elapsed}ms"
+      #    client.connection.ping do |elapsed_s|
+      #      puts "Ping took #{elapsed_s}s"
       #    end
       #
       # @return [void]
@@ -219,7 +219,7 @@ module Ably
           if protocol_message.action == Ably::Models::ProtocolMessage::ACTION.Heartbeat
             finished = true
             __incoming_protocol_msgbus__.unsubscribe(:protocol_message, &wait_for_ping)
-            time_passed = (Time.now.to_f * 1000 - started.to_f * 1000).to_i
+            time_passed = Time.now.to_f - started.to_f
             safe_yield block, time_passed if block_given?
           end
         end
