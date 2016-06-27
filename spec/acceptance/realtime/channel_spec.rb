@@ -1158,12 +1158,24 @@ describe Ably::Realtime::Channel, :event_machine do
 
       context ':suspended' do
         context 'an :attached channel' do
-          let(:client_options) { default_options.merge(log_level: :fatal) }
+          let(:client_options) { default_options.merge(log_level: :debug) }
 
-          it 'transitions state to :detached' do
+          it 'transitions state to :suspended' do
             channel.attach do
-              channel.on(:detached) do
+              channel.on(:suspended) do
                 stop_reactor
+              end
+              client.connection.transition_state_machine :suspended
+            end
+          end
+
+          it 'transitions state to :attaching once the connection is re-opened' do
+            channel.attach do
+              channel.on(:suspended) do
+                client.connection.connect
+                channel.once(:attached) do
+                  stop_reactor
+                end
               end
               client.connection.transition_state_machine :suspended
             end

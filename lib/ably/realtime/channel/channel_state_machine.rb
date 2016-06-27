@@ -21,10 +21,11 @@ module Ably::Realtime
       end
 
       transition :from => :initialized,  :to => [:attaching]
-      transition :from => :attaching,    :to => [:attached, :detaching, :failed]
-      transition :from => :attached,     :to => [:detaching, :detached, :failed]
-      transition :from => :detaching,    :to => [:detached, :attaching, :failed]
+      transition :from => :attaching,    :to => [:attached, :detaching, :failed, :suspended]
+      transition :from => :attached,     :to => [:attaching, :detaching, :detached, :failed, :suspended]
+      transition :from => :detaching,    :to => [:attaching, :detached, :failed, :suspended]
       transition :from => :detached,     :to => [:attaching, :attached, :failed]
+      transition :from => :suspended,    :to => [:attaching, :detached, :failed]
       transition :from => :failed,       :to => [:attaching]
 
       after_transition do |channel, transition|
