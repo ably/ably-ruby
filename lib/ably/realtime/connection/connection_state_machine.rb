@@ -62,6 +62,11 @@ module Ably::Realtime
         connection.manager.respond_to_transport_disconnected_whilst_connected err
       end
 
+      after_transition(to: [:suspended]) do |connection, current_transition|
+        err = error_from_state_change(current_transition)
+        connection.manager.suspend_active_channels err
+      end
+
       after_transition(to: [:disconnected, :suspended]) do |connection|
         connection.manager.destroy_transport # never reuse a transport if the connection has failed
       end
@@ -69,6 +74,11 @@ module Ably::Realtime
       before_transition(to: [:failed]) do |connection, current_transition|
         err = error_from_state_change(current_transition)
         connection.manager.fail err
+      end
+
+      after_transition(to: [:failed]) do |connection, current_transition|
+        err = error_from_state_change(current_transition)
+        connection.manager.fail_active_channels err
       end
 
       after_transition(to: [:closing], from: [:initialized, :disconnected, :suspended]) do |connection|
@@ -81,6 +91,10 @@ module Ably::Realtime
 
       before_transition(to: [:closed], from: [:closing]) do |connection|
         connection.manager.destroy_transport
+      end
+
+      after_transition(to: [:closed]) do |connection|
+        connection.manager.detach_active_channels
       end
 
       # Transitions responsible for updating connection#error_reason

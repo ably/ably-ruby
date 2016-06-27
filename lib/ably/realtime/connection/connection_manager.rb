@@ -87,14 +87,20 @@ module Ably::Realtime
         if connection.key
           if protocol_message.connection_id == connection.id
             logger.debug "ConnectionManager: Connection resumed successfully - ID #{connection.id} and key #{connection.key}"
-            EventMachine.next_tick { connection.resumed }
+            EventMachine.next_tick { connection.trigger_resumed }
+            resend_pending_message_ack_queue
           else
             logger.debug "ConnectionManager: Connection was not resumed, old connection ID #{connection.id} has been updated with new connect ID #{protocol_message.connection_id} and key #{protocol_message.connection_key}"
-            detach_attached_channels protocol_message.error
+            connection.reset_client_serial
+            nack_queue_and_reattach_attaching_channels protocol_message.error
           end
         else
           logger.debug "ConnectionManager: New connection created with ID #{protocol_message.connection_id} and key #{protocol_message.connection_key}"
+          connection.reset_client_serial
         end
+
+        reattach_suspended_channels protocol_message.error
+
         connection.configure_new protocol_message.connection_id, protocol_message.connection_key, protocol_message.connection_serial
       end
 
@@ -213,6 +219,49 @@ module Ably::Realtime
       # @api private
       def retry_count_for_state(state)
         retries_for_state(state, ignore_states: [:connecting]).count
+      end
+
+      # Any message sent before an ACK/NACK was received on the previous transport
+      # need to be resent to the Ably service so that a subsequent ACK/NACK is received.
+      # It is up to Ably to ensure that duplicate messages are not retransmitted on the channel
+      # base on the serial numbers
+      #
+      # @api private
+      def resend_pending_message_ack_queue
+        connection.__pending_message_ack_queue__.delete_if do |protocol_message|
+          if protocol_message.channel == channel.name
+            connection.__outgoing_message_queue__ << protocol_message
+            connection.__outgoing_protocol_msgbus__.publish :protocol_message
+            true
+          end
+        end
+      end
+
+      # @api private
+      def suspend_active_channels(error)
+        channels.select do |channel|
+          channel.attached? || channel.attaching? || channel.detaching?
+        end.each do |channel|
+          channel.transition_state_machine! :suspended, reason: error
+        end
+      end
+
+      # @api private
+      def detach_active_channels
+        channels.select do |channel|
+          channel.attached? || channel.attaching? || channel.detaching?
+        end.each do |channel|
+          channel.transition_state_machine! :detaching # will always move to detached immediately if connection is closed
+        end
+      end
+
+      # @api private
+      def fail_active_channels(error)
+        channels.select do |channel|
+          channel.attached? || channel.attaching? || channel.detaching? || channel.suspended?
+        end.each do |channel|
+          channel.transition_state_machine! :failed, reason: error
+        end
       end
 
       private
@@ -443,12 +492,22 @@ module Ably::Realtime
         !@renewing_token
       end
 
-      def detach_attached_channels(error)
+      def reattach_suspended_channels(error)
+        channels.select do |channel|
+          channel.suspended?
+        end.each do |channel|
+          channel.emit :error, error
+          channel.transition_state_machine :attaching
+        end
+      end
+
+      def nack_queue_and_reattach_attaching_channels(error)
         channels.select do |channel|
           channel.attached? || channel.attaching?
         end.each do |channel|
-          logger.warn "Force detaching channel '#{channel.name}': #{error}"
-          channel.manager.suspend error
+          channel.manager.fail_messages_awaiting_ack error
+          channel.emit :error, error
+          channel.manager.request_reattach
         end
       end
 

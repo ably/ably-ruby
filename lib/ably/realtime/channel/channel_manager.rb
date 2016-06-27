@@ -12,8 +12,6 @@ module Ably::Realtime
       def initialize(channel, connection)
         @channel    = channel
         @connection = connection
-
-        setup_connection_event_handlers
       end
 
       # Commence attachment
@@ -49,9 +47,11 @@ module Ably::Realtime
         channel.emit :error, error
       end
 
-      # Detach a channel as a result of an error
-      def suspend(error)
-        channel.transition_state_machine! :detaching, reason: error
+      # Request channel to be reattached by sending an attach protocol message
+      def request_reattach
+        logger.debug "Explicit channel reattach request made"
+        send_attach_protocol_message
+        channel.transition_state_machine! :attaching unless channel.attaching?
       end
 
       # When a channel is no longer attached or has failed,
@@ -122,46 +122,6 @@ module Ably::Realtime
           action:  state.to_i,
           channel: channel.name
         )
-      end
-
-      # Any message sent before an ACK/NACK was received on the previous transport
-      # needs to be resent to the Ably service so that a subsequent ACK/NACK is received.
-      # It is up to Ably to ensure that duplicate messages are not retransmitted on the channel
-      # base on the serial numbers
-      #
-      # TODO: Move this into the Connection class, it does not belong in a Channel class
-      #
-      # @api private
-      def resend_pending_message_ack_queue
-        connection.__pending_message_ack_queue__.delete_if do |protocol_message|
-          if protocol_message.channel == channel.name
-            connection.__outgoing_message_queue__ << protocol_message
-            connection.__outgoing_protocol_msgbus__.publish :protocol_message
-            true
-          end
-        end
-      end
-
-      def setup_connection_event_handlers
-        connection.unsafe_on(:closed) do
-          channel.transition_state_machine :detaching if can_transition_to?(:detaching)
-        end
-
-        connection.unsafe_on(:suspended) do |error|
-          if can_transition_to?(:detaching)
-            channel.transition_state_machine :detaching, reason: Ably::Exceptions::ConnectionSuspended.new('Connection suspended', nil, 80002, error)
-          end
-        end
-
-        connection.unsafe_on(:failed) do |error|
-          if can_transition_to?(:failed) && !channel.detached?
-            channel.transition_state_machine :failed, reason: Ably::Exceptions::ConnectionFailed.new('Connection failed', nil, 80002, error)
-          end
-        end
-
-        connection.unsafe_on(:connected) do |error|
-          resend_pending_message_ack_queue
-        end
       end
 
       def logger
