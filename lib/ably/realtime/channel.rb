@@ -42,6 +42,7 @@ module Ably
         :attached,
         :detaching,
         :detached,
+        :suspended,
         :failed
       )
       include Ably::Modules::StateEmitter
