@@ -483,11 +483,13 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
           payload_description = "#{payload.class}#{" #{payload.encoding}" if payload.kind_of?(String)}"
 
           it "delivers a #{payload_description} payload to the receiver" do
-            encrypted_channel_client1.publish 'example', payload
-            encrypted_channel_client2.subscribe do |message|
-              expect(message.data).to eql(payload)
-              expect(message.encoding).to be_nil
-              stop_reactor
+            encrypted_channel_client2.attach do
+              encrypted_channel_client1.publish 'example', payload
+              encrypted_channel_client2.subscribe do |message|
+                expect(message.data).to eql(payload)
+                expect(message.encoding).to be_nil
+                stop_reactor
+              end
             end
           end
         end
