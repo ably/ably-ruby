@@ -974,6 +974,43 @@ describe Ably::Auth do
           hmac = hmac_for(Ably::Models::TokenRequest(token_request_attributes).attributes, key_secret)
           expect(subject['mac']).to eql(hmac)
         end
+
+        context 'lexicographic ordering of channels and operations' do
+          let(:token_attributes) do
+            {
+              key_name:   key_name,
+              ttl:        600,
+              capability: {
+                "channel2" => ["subscribe", "publish"],
+                "channel1" => ["subscribe", "history"]
+              },
+              client_id:  random_str,
+              nonce:      random_str,
+              timestamp:  Time.now.to_i
+            }
+          end
+
+          let(:token_attributes_ordered) do
+            token_attributes.merge(capability: {
+              "channel1" => ["history", "subscribe"],
+              "channel2" => ["publish", "subscribe"]
+            })
+          end
+
+          specify 'HMAC is lexicographic ordered and thus the HMAC is identical' do
+            hmac = auth.create_token_request(token_attributes).mac
+            hmac_ordered = auth.create_token_request(token_attributes_ordered).mac
+            expect(hmac).to eql(hmac_ordered)
+          end
+
+          it 'is valid when used for authentication' do
+            auth_callback = Proc.new do
+              auth.create_token_request(token_attributes)
+            end
+            client = Ably::Rest::Client.new(auth_callback: auth_callback, environment: environment, protocol: protocol)
+            client.auth.authorise
+          end
+        end
       end
     end
 

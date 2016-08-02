@@ -290,7 +290,14 @@ module Ably
         nonce:      token_params[:nonce] || SecureRandom.hex.force_encoding('UTF-8')
       }
 
-      token_request[:capability] = JSON.dump(token_request[:capability]) if token_request[:capability].is_a?(Hash)
+      if token_request[:capability].is_a?(Hash)
+        lexicographic_ordered_capabilities = Hash[
+          token_request[:capability].sort_by { |key, value| key }.map do |key, value|
+            [key, value.sort]
+          end
+        ]
+        token_request[:capability] = JSON.dump(lexicographic_ordered_capabilities)
+      end
 
       token_request[:mac] = sign_params(token_request, request_key_secret)
 
