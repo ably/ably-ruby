@@ -352,6 +352,8 @@ module Ably
             unless options[:send_auth_header] == false
               request.headers[:authorization] = auth.auth_header
             end
+            request.headers['X-Ably-Version'] = Ably::PROTOCOL_VERSION
+            request.headers['X-Ably-Lib'] = Ably::LIB_VERSION_ID
           end
 
         rescue Faraday::TimeoutError, Faraday::ClientError, Ably::Exceptions::ServerError => error

@@ -545,5 +545,22 @@ describe Ably::Rest::Client do
         expect(client.auth.options[:auth_url]).to eql(dummy_auth_url)
       end
     end
+
+    context 'version headers', :webmock do
+      let(:client_options) { default_options.merge(key: api_key) }
+      let!(:publish_message_stub) do
+        stub_request(:post, "#{client.endpoint.to_s.gsub('://', "://#{api_key}@")}/channels/foo/publish").
+          with(headers: {
+            'X-Ably-Version' => Ably::PROTOCOL_VERSION,
+            'X-Ably-Lib' => "ruby-#{Ably::VERSION}"
+          }).
+          to_return(status: 201, body: '{}', headers: { 'Content-Type' => 'application/json' })
+      end
+
+      it 'sends a protocol version and lib version header' do
+        client.channels.get('foo').publish("event")
+        expect(publish_message_stub).to have_been_requested
+      end
+    end
   end
 end

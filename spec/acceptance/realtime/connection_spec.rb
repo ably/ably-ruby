@@ -1356,5 +1356,25 @@ describe Ably::Realtime::Connection, :event_machine do
         end
       end
     end
+
+    context 'version params' do
+      it 'sends the protocol version param v' do
+        expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
+          uri = URI.parse(url)
+          expect(CGI::parse(uri.query)['v'][0]).to eql(Ably::PROTOCOL_VERSION)
+          stop_reactor
+        end
+        client
+      end
+
+      it 'sends the lib version param lib' do
+        expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
+          uri = URI.parse(url)
+          expect(CGI::parse(uri.query)['lib'][0]).to eql("ruby-#{Ably::VERSION}")
+          stop_reactor
+        end
+        client
+      end
+    end
   end
 end

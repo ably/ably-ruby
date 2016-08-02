@@ -387,7 +387,9 @@ module Ably
             auth_deferrable.callback do |auth_params|
               url_params = auth_params.merge(
                 format:    client.protocol,
-                echo:      client.echo_messages
+                echo:      client.echo_messages,
+                v:         Ably::PROTOCOL_VERSION,
+                lib:       Ably::LIB_VERSION_ID,
               )
 
               url_params['clientId'] = client.auth.client_id if client.auth.has_client_id?
