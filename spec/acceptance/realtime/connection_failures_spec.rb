@@ -13,6 +13,9 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
     let(:client) do
       auto_close Ably::Realtime::Client.new(client_options)
     end
+    let(:rest_client) do
+      Ably::Rest::Client.new(default_options)
+    end
 
     context 'authentication failure' do
       let(:client_options) do
@@ -811,7 +814,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
       context 'when an ERROR protocol message is received' do
         %i(connecting connected).each do |state|
           context "whilst #{state}" do
-            context 'with an error code in the range 40140 <= code < 40150 (RTN14b)' do
+            context 'with a token error code in the range 40140 <= code < 40150 (RTN14b)' do
               let(:client_options) { default_options.merge(use_token_auth: true) }
 
               it 'triggers a re-authentication' do
@@ -854,6 +857,54 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                 end
               end
             end
+          end
+        end
+      end
+
+      context "whilst resuming with a token error code in the region 40140 <= code < 40150 (RTN15c5)" do
+        before do
+          stub_const 'Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER', 0 # allow token to be used even if about to expire
+          stub_const 'Ably::Auth::TOKEN_DEFAULTS', Ably::Auth::TOKEN_DEFAULTS.merge(renew_token_buffer: 0) # Ensure tokens issued expire immediately after issue
+        end
+
+        let!(:four_second_token) {
+          rest_client.auth.request_token(ttl: 4).token
+        }
+
+        let!(:normal_token) {
+          rest_client.auth.request_token.token
+        }
+
+        let(:client_options) do
+          default_options.merge(auth_callback: Proc.new do
+            @requests ||= 0
+            @requests += 1
+
+            case @requests
+            when 1, 2
+              four_second_token
+            when 3
+              normal_token
+            end
+          end)
+        end
+
+        it 'triggers a re-authentication and then resumes the conenction' do
+          connection.once(:connected) do
+            connection_id = connection.id
+
+            # Lock the EventMachine for 4 seconds until the token has expired
+            sleep 5
+
+            connection.once(:connected) do
+              # We expect the first connect to fail immediately and never reach the connected state
+              expect(@requests).to eql(3)
+              expect(connection.id).to eql(connection_id)
+              stop_reactor
+            end
+
+            # Simulate an abrupt disconnection which will in turn resume but with an expired token
+            connection.transport.close_connection_after_writing
           end
         end
       end
