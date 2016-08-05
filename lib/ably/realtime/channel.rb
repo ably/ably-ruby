@@ -289,15 +289,17 @@ module Ably
         client.logger
       end
 
+      # Internal queue used for messages published that cannot yet be enqueued on the connection
+      # @api private
+      def __queue__
+        @queue
+      end
+
       # As we are using a state machine, do not allow change_state to be used
       # #transition_state_machine must be used instead
       private :change_state
 
       private
-      def queue
-        @queue
-      end
-
       def setup_event_handlers
         __incoming_msgbus__.subscribe(:message) do |message|
           message.decode(client.encoders, options) do |encode_error, error_message|
@@ -328,7 +330,7 @@ module Ably
           end
         end
 
-        queue.push(*messages)
+        __queue__.push(*messages)
 
         if attached?
           process_queue
@@ -370,14 +372,14 @@ module Ably
       end
 
       def messages_in_queue?
-        !queue.empty?
+        !__queue__.empty?
       end
 
       # Move messages from Channel Queue into Outgoing Connection Queue
       def process_queue
         condition = -> { attached? && messages_in_queue? }
         non_blocking_loop_while(condition) do
-          send_messages_within_protocol_message queue.shift(MAX_PROTOCOL_MESSAGE_BATCH_SIZE)
+          send_messages_within_protocol_message __queue__.shift(MAX_PROTOCOL_MESSAGE_BATCH_SIZE)
         end
       end
 
