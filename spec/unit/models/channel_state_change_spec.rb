@@ -36,6 +36,16 @@ describe Ably::Models::ChannelStateChange do
     end
   end
 
+  context '#resumed' do
+    it 'is false when ommitted' do
+      expect(subject.new(previous: true, current: true).resumed).to be_falsey
+    end
+
+    it 'is true when provided' do
+      expect(subject.new(previous: true, current: true, resumed: true).resumed).to be_truthy
+    end
+  end
+
   context 'invalid attributes' do
     it 'raises an argument error' do
       expect { subject.new(invalid: true, current: true, previous: true) }.to raise_error ArgumentError
