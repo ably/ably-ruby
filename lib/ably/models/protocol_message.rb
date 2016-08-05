@@ -193,6 +193,16 @@ module Ably::Models
       flags & 1 == 1
     end
 
+    # @api private
+    def has_backlog?
+      flags & 2 == 2
+    end
+
+    # @api private
+    def channel_resumed?
+      flags & 4 == 4
+    end
+
     def connection_details
       @connection_details ||= Ably::Models::ConnectionDetails(attributes[:connection_details])
     end
