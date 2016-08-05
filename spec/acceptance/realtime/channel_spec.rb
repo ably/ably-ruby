@@ -1157,10 +1157,22 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       context ':suspended' do
-        context 'an :attached channel' do
-          let(:client_options) { default_options.merge(log_level: :debug) }
+        context 'an :attaching channel' do
+          it 'transitions state to :suspended (RTL3c)' do
+            channel.on(:attaching) do
+              channel.on(:suspended) do
+                stop_reactor
+              end
+              client.connection.once_or_if(:connecting) do
+                client.connection.transition_state_machine :suspended
+              end
+            end
+            channel.attach
+          end
+        end
 
-          it 'transitions state to :suspended' do
+        context 'an :attached channel' do
+          it 'transitions state to :suspended (RTL3c)' do
             channel.attach do
               channel.on(:suspended) do
                 stop_reactor
@@ -1169,7 +1181,7 @@ describe Ably::Realtime::Channel, :event_machine do
             end
           end
 
-          it 'transitions state to :attaching once the connection is re-opened' do
+          it 'transitions state automatically to :attaching once the connection is re-established (RTN15c3)' do
             channel.attach do
               channel.on(:suspended) do
                 client.connection.connect

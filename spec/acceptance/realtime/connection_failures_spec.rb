@@ -100,7 +100,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             connection.once(:suspended) do
               expect(connection.state).to eq(:suspended)
 
-              expect(state_changes[:connecting]).to   eql(expected_retry_attempts)
+              expect(state_changes[:connecting]).to   eql(expected_retry_attempts + 1) # allow for initial connecting attempt
               expect(state_changes[:disconnected]).to eql(expected_retry_attempts)
 
               expect(time_passed).to be > max_time_in_state_for_tests
@@ -563,6 +563,36 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
         end
+
+        it 'retains the client_serial (RTN15c2, RTN15c3)' do
+          last_message = nil
+          channel = client.channels.get("foo")
+
+          connection.once(:connected) do
+            connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+              if protocol_message.action == :message
+                last_message = protocol_message
+              end
+            end
+
+            channel.publish("first") do
+              expect(last_message.message_serial).to eql(0)
+              channel.publish("second") do
+                expect(last_message.message_serial).to eql(1)
+                connection.once(:connected) do
+                  channel.publish("first on resumed connection") do
+                    # Message serial reset after failed resume
+                    expect(last_message.message_serial).to eql(2)
+                    stop_reactor
+                  end
+                end
+
+                # simulate connection dropped to re-establish web socket
+                connection.transition_state_machine :disconnected
+              end
+            end
+          end
+        end
       end
 
       context 'when failing to resume' do
@@ -589,19 +619,37 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          it 'detaches all channels' do
+          it 'issue a reattach for all attached channels and fail all message awaiting an ACK (RTN15c3)' do
             channel_count = 10
             channels = channel_count.times.map { |index| client.channel("channel-#{index}") }
             when_all(*channels.map(&:attach)) do
-              detached_channels = []
+              attached_channels = []
+              reattaching_channels = []
+              attach_protocol_messages = []
+              failed_messages = []
+
               channels.each do |channel|
-                channel.on(:detached) do |channel_state_change|
+                channel.publish("foo").errback do
+                  failed_messages << channel
+                end
+                channel.on(:attaching) do |channel_state_change|
                   error = channel_state_change.reason
                   expect(error.message).to match(/Unable to recover connection/i)
-                  detached_channels << channel
-                  next unless detached_channels.count == channel_count
-                  expect(detached_channels.count).to eql(channel_count)
+                  reattaching_channels << channel
+                end
+                channel.on(:attached) do
+                  attached_channels << channel
+                  next unless attached_channels.count == channel_count
+                  expect(reattaching_channels.count).to eql(channel_count)
+                  expect(failed_messages.count).to eql(channel_count)
+                  expect(attach_protocol_messages.uniq).to match(channels.map(&:name))
                   stop_reactor
+                end
+              end
+
+              connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                if protocol_message.action == :attach
+                  attach_protocol_messages << protocol_message.channel
                 end
               end
 
@@ -609,7 +657,86 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          it 'emits an error on the channel and sets the error reason' do
+          it 'issue a reattach for all attaching channels and fail all queued messages (RTN15c3)' do
+            channel_count = 10
+            channels = channel_count.times.map { |index| client.channel("channel-#{index}") }
+
+            channels.map(&:attach)
+
+            attached_channels = []
+            errors_emitted = []
+            attach_protocol_messages = []
+            failed_messages = []
+
+            channels.each do |channel|
+              channel.publish("foo").errback do
+                failed_messages << channel
+              end
+
+              channel.on(:error) do |error|
+                expect(error.message).to match(/Unable to recover connection/i)
+                errors_emitted << channel
+              end
+              channel.on(:attached) do
+                attached_channels << channel
+                next unless attached_channels.count == channel_count
+                expect(errors_emitted.count).to eql(channel_count)
+                expect(failed_messages.count).to eql(channel_count)
+                expect(attach_protocol_messages.uniq).to match(channels.map(&:name))
+                stop_reactor
+              end
+            end
+
+            connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+              if protocol_message.action == :attach
+                attach_protocol_messages << protocol_message.channel
+              end
+            end
+
+            client.connection.once(:connected) do
+              kill_connection_transport_and_prevent_valid_resume
+            end
+          end
+
+          it 'issue a attach for all suspended channels (RTN15c3)' do
+            channel_count = 10
+            channels = channel_count.times.map { |index| client.channel("channel-#{index}") }
+
+            when_all(*channels.map(&:attach)) do
+              # Force all channels into a suspended state
+              channels.map do |channel|
+                channel.transition_state_machine! :suspended
+                expect(channel).to be_suspended
+              end
+
+              attached_channels = []
+              reattaching_channels = []
+              attach_protocol_messages = []
+
+              channels.each do |channel|
+                channel.on(:attaching) do
+                  reattaching_channels << channel
+                end
+                channel.on(:attached) do
+                  attached_channels << channel
+                  next unless attached_channels.count == channel_count
+                  expect(reattaching_channels.count).to eql(channel_count)
+                  expect(attach_protocol_messages.uniq).to match(channels.map(&:name))
+                  stop_reactor
+                end
+              end
+
+              connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                if protocol_message.action == :attach
+                  attach_protocol_messages << protocol_message.channel
+                end
+              end
+
+              kill_connection_transport_and_prevent_valid_resume
+            end
+          end
+
+          it 'emits an error on each channel and sets the error reason' do
             channel.attach do
               kill_connection_transport_and_prevent_valid_resume
             end
@@ -617,8 +744,39 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             channel.on(:error) do |error|
               expect(error.message).to match(/Unable to recover connection/i)
               expect(error.code).to eql(80008)
-              expect(channel.error_reason).to eql(error)
-              stop_reactor
+              EventMachine.next_tick do
+                expect(channel.error_reason).to eql(error)
+                stop_reactor
+              end
+            end
+          end
+
+          it 'resets the client_serial (RTN15c3)' do
+            last_message = nil
+            channel = client.channels.get("foo")
+
+            connection.once(:connected) do
+              connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                if protocol_message.action == :message
+                  last_message = protocol_message
+                end
+              end
+
+              channel.publish("first") do
+                expect(last_message.message_serial).to eql(0)
+                channel.publish("second") do
+                  expect(last_message.message_serial).to eql(1)
+                  connection.once(:connected) do
+                    channel.publish("first on new connection") do
+                      # Message serial reset after failed resume
+                      expect(last_message.message_serial).to eql(0)
+                      stop_reactor
+                    end
+                  end
+
+                  kill_connection_transport_and_prevent_valid_resume
+                end
+              end
             end
           end
         end

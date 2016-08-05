@@ -90,9 +90,9 @@ module Ably::Realtime
             EventMachine.next_tick { connection.trigger_resumed }
             resend_pending_message_ack_queue
           else
-            logger.debug "ConnectionManager: Connection was not resumed, old connection ID #{connection.id} has been updated with new connect ID #{protocol_message.connection_id} and key #{protocol_message.connection_key}"
+            logger.debug "ConnectionManager: Connection was not resumed, old connection ID #{connection.id} has been updated with new connection ID #{protocol_message.connection_id} and key #{protocol_message.connection_key}"
             connection.reset_client_serial
-            nack_queue_and_reattach_attaching_channels protocol_message.error
+            nack_queue_and_reattach_attached_attaching_channels protocol_message.error
           end
         else
           logger.debug "ConnectionManager: New connection created with ID #{protocol_message.connection_id} and key #{protocol_message.connection_key}"
@@ -501,13 +501,13 @@ module Ably::Realtime
         end
       end
 
-      def nack_queue_and_reattach_attaching_channels(error)
+      def nack_queue_and_reattach_attached_attaching_channels(error)
         channels.select do |channel|
           channel.attached? || channel.attaching?
         end.each do |channel|
-          channel.manager.fail_messages_awaiting_ack error
+          channel.manager.fail_messages_awaiting_ack error, immediately: true
           channel.emit :error, error
-          channel.manager.request_reattach
+          channel.manager.request_reattach reason: error
         end
       end
 
