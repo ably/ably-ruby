@@ -649,6 +649,56 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
       end
+
+      context 'when an ERROR protocol message is received' do
+        %i(connecting connected).each do |state|
+          context "whilst #{state}" do
+            context 'with an error code in the range 40140 <= code < 40150 (RTN14b)' do
+              let(:client_options) { default_options.merge(use_token_auth: true) }
+
+              it 'triggers a re-authentication' do
+                connection.once(state) do
+                  current_token = client.auth.current_token_details
+
+                  error_message = Ably::Models::ProtocolMessage.new(action: Ably::Models::ProtocolMessage::ACTION.Error.to_i, error: { code: 40140 })
+                  connection.__incoming_protocol_msgbus__.publish :protocol_message, error_message
+
+                  connection.once(:connected) do
+                    expect(client.auth.current_token_details).to_not eql(current_token)
+                    stop_reactor
+                  end
+                end
+              end
+            end
+
+            context 'with an error code indicating an error other than a token failure (RTN14g, RTN15i)' do
+              it 'causes the connection to fail' do
+                connection.once(state) do
+                  connection.once(:failed) do
+                    stop_reactor
+                  end
+
+                  error_message = Ably::Models::ProtocolMessage.new(action: Ably::Models::ProtocolMessage::ACTION.Error.to_i, error: { code: 50000 })
+                  connection.__incoming_protocol_msgbus__.publish :protocol_message, error_message
+                end
+              end
+            end
+
+            context 'with no error code indicating an error other than a token failure (RTN14g, RTN15i)' do
+              it 'causes the connection to fail' do
+                connection.once(state) do
+                  connection.once(:failed) do
+                    stop_reactor
+                  end
+
+                  error_message = Ably::Models::ProtocolMessage.new(action: Ably::Models::ProtocolMessage::ACTION.Error.to_i)
+                  connection.__incoming_protocol_msgbus__.publish :protocol_message, error_message
+                end
+              end
+            end
+          end
+        end
+      end
     end
 
     describe 'fallback host feature' do
