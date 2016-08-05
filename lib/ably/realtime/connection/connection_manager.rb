@@ -152,6 +152,10 @@ module Ably::Realtime
         connection.logger.fatal "ConnectionManager: Connection failed - #{error}"
         connection.manager.destroy_transport
         connection.unsafe_once(:failed) { connection.emit :error, error }
+        channels.each do |channel|
+          next if channel.detached? || channel.initialized?
+          channel.transition_state_machine :failed, reason: error if channel.can_transition_to?(:failed)
+        end
       end
 
       # When a connection is disconnected whilst connecting, attempt reconnect and/or set state to :suspended or :failed
