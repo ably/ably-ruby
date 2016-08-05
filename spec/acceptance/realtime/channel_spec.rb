@@ -992,7 +992,7 @@ describe Ably::Realtime::Channel, :event_machine do
               channel.on(:failed) do |connection_state_change|
                 error = connection_state_change.reason
                 expect(error).to be_a(Ably::Exceptions::ConnectionFailed)
-                expect(error.code).to eql(80002)
+                expect(error.code).to eql(50000)
                 stop_reactor
               end
               fake_error connection_error
@@ -1003,7 +1003,7 @@ describe Ably::Realtime::Channel, :event_machine do
             channel.attach do
               channel.on(:error) do |error|
                 expect(error).to be_a(Ably::Exceptions::ConnectionFailed)
-                expect(error.code).to eql(80002)
+                expect(error.code).to eql(50000)
                 stop_reactor
               end
               fake_error connection_error
@@ -1015,7 +1015,7 @@ describe Ably::Realtime::Channel, :event_machine do
               channel.on(:failed) do |connection_state_change|
                 error = connection_state_change.reason
                 expect(error).to be_a(Ably::Exceptions::ConnectionFailed)
-                expect(error.code).to eql(80002)
+                expect(error.code).to eql(50000)
                 stop_reactor
               end
               fake_error connection_error
