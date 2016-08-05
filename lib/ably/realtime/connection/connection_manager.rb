@@ -163,7 +163,7 @@ module Ably::Realtime
 
         if error.kind_of?(Ably::Models::ErrorInfo)
           if RESOLVABLE_ERROR_CODES.fetch(:token_expired).include?(error.code)
-            next_state = get_next_retry_state_info
+            next_state = get_next_retry_state_info(1)
             logger.debug "ConnectionManager: Transport disconnected because of token expiry, pausing #{next_state.fetch(:pause)}s before reattempting to connect"
             EventMachine.add_timer(next_state.fetch(:pause)) { renew_token_and_reconnect error }
             return
@@ -206,7 +206,7 @@ module Ably::Realtime
       def error_received_from_server(error)
         case error.code
         when RESOLVABLE_ERROR_CODES.fetch(:token_expired)
-          next_state = get_next_retry_state_info
+          next_state = get_next_retry_state_info(1)
           connection.transition_state_machine next_state.fetch(:state), retry_in: next_state.fetch(:pause), reason: error
         else
           logger.error "ConnectionManager: Error #{error.class.name} code #{error.code} received from server '#{error.message}', transitioning to failed state"
@@ -314,7 +314,7 @@ module Ably::Realtime
         timers.fetch(key, []).each(&:cancel)
       end
 
-      def get_next_retry_state_info
+      def get_next_retry_state_info(allow_extra_immediate_retries = 0)
         retry_state = if connection_retry_from_suspended_state? || !can_reattempt_connect_for_state?(:disconnected)
           :suspended
         else
@@ -322,14 +322,14 @@ module Ably::Realtime
         end
         {
           state: retry_state,
-          pause: next_retry_pause(retry_state)
+          pause: next_retry_pause(retry_state, allow_extra_immediate_retries)
         }
       end
 
-      def next_retry_pause(retry_state)
+      def next_retry_pause(retry_state, allow_extra_immediate_retries = 0)
         return nil unless state_has_retry_timeout?(retry_state)
 
-        if retries_for_state(retry_state, ignore_states: [:connecting]).empty?
+        if retries_for_state(retry_state, ignore_states: [:connecting]).count <= allow_extra_immediate_retries
           0
         else
           retry_timeout_for(retry_state)
