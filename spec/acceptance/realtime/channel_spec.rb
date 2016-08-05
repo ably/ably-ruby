@@ -1318,6 +1318,73 @@ describe Ably::Realtime::Channel, :event_machine do
             end
           end
         end
+
+        context '#resume (RTL2f)' do
+          it 'is false when a channel first attaches' do
+            channel.attach
+            channel.on(:attached) do |channel_state_change|
+              expect(channel_state_change.resumed).to be_falsey
+              stop_reactor
+            end
+          end
+
+          it 'is true when a connection is recovered and the channel is attached' do
+            skip 'Awaiting implementation in the realtime system for 0.9 spec'
+
+            channel.attach
+            channel.once(:attached) do |channel_state_change|
+              connection_id = client.connection.id
+              expect(channel_state_change.resumed).to be_falsey
+
+              recover_client = auto_close Ably::Realtime::Client.new(client_options.merge(recover: client.connection.recovery_key))
+              recover_client.connection.once(:connected) do
+                expect(recover_client.connection.id).to eql(connection_id)
+                recover_channel = recover_client.channels.get(channel_name)
+                recover_channel.attach
+                recover_channel.once(:attached) do |recover_channel_state_change|
+                  expect(recover_channel_state_change.resumed).to be_truthy
+                  stop_reactor
+                end
+              end
+            end
+          end
+
+          it 'is false when a connection fails to recover and the channel is attached' do
+            client.connection.once(:connected) do
+              recovery_key = client.connection.recovery_key
+              client.connection.once(:closed) do
+                recover_client = auto_close Ably::Realtime::Client.new(client_options.merge(recover: recovery_key, log_level: :error))
+                recover_client.connection.once(:connected) do
+                  recover_channel = recover_client.channels.get(channel_name)
+                  recover_channel.attach
+                  recover_channel.once(:attached) do |recover_channel_state_change|
+                    expect(recover_channel_state_change.resumed).to be_falsey
+                    stop_reactor
+                  end
+                end
+              end
+
+              client.close
+            end
+          end
+
+          context 'when a resume fails' do
+            let(:client_options) { default_options.merge(log_level: :error) }
+
+            it 'is false when a resume fails to recover and the channel is automatically re-attached' do
+              channel.attach do
+                connection_id = client.connection.id
+                channel.once(:attached) do |channel_state_change|
+                  expect(client.connection.id).to_not eql(connection_id)
+                  expect(channel_state_change.resumed).to be_falsey
+                  stop_reactor
+                end
+                client.connection.transport.close_connection_after_writing
+                client.connection.configure_new '0123456789abcdef', 'wVIsgTHAB1UvXh7z-1991d8586', -1 # force the resume connection key to be invalid
+              end
+            end
+          end
+        end
       end
     end
   end
