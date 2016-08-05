@@ -172,7 +172,7 @@ module Ably
         unless connecting? || connected?
           raise exception_for_state_change_to(:connecting) unless can_transition_to?(:connecting)
           # If connect called in a suspended block, we want to ensure the other callbacks have finished their work first
-          EventMachine.next_tick { transition_state_machine :connecting }
+          EventMachine.next_tick { transition_state_machine :connecting if can_transition_to?(:connecting) }
         end
 
         Ably::Util::SafeDeferrable.new(logger).tap do |deferrable|

@@ -48,39 +48,56 @@ module Ably::Realtime
       end
 
       # Request channel to be reattached by sending an attach protocol message
-      def request_reattach
-        logger.debug "Explicit channel reattach request made"
+      def request_reattach(reason: nil)
         send_attach_protocol_message
-        channel.transition_state_machine! :attaching unless channel.attaching?
+        logger.debug "Explicit channel reattach request sent to Ably"
+        channel.transition_state_machine! :attaching, reason: reason unless channel.attaching?
+        channel.set_failed_channel_error_reason(reason) if reason
       end
 
       # When a channel is no longer attached or has failed,
       # all messages awaiting an ACK response should fail immediately
-      def fail_messages_awaiting_ack(error)
-        # Allow a short time for other queued operations to complete before failing all messages
-        EventMachine.add_timer(0.1) do
+      def fail_messages_awaiting_ack(error, immediately: false)
+        fail_proc = Proc.new do
           error = Ably::Exceptions::MessageDeliveryFailed.new("Channel cannot publish messages whilst state is '#{channel.state}'") unless error
           fail_messages_in_queue connection.__pending_message_ack_queue__, error
           fail_messages_in_queue connection.__outgoing_message_queue__, error
+          channel.__queue__.each do |message|
+            nack_message message, error
+          end
+          channel.__queue__.clear
+        end
+
+        # Allow a short time for other queued operations to complete before failing all messages
+        if immediately
+          fail_proc.call
+        else
+          EventMachine.add_timer(0.1) { fail_proc.call }
         end
       end
 
       def fail_messages_in_queue(queue, error)
         queue.delete_if do |protocol_message|
-          if protocol_message.channel == channel.name
-            nack_messages protocol_message, error
-            true
+          if [:presence, :message].include?(protocol_message.action)
+            if protocol_message.channel == channel.name
+              nack_messages protocol_message, error
+              true
+            end
           end
         end
       end
 
       def nack_messages(protocol_message, error)
         (protocol_message.messages + protocol_message.presence).each do |message|
-          logger.debug "Calling NACK failure callbacks for #{message.class.name} - #{message.to_json}, protocol message: #{protocol_message}"
-          message.fail error
+          nack_message message, error, protocol_message
         end
         logger.debug "Calling NACK failure callbacks for #{protocol_message.class.name} - #{protocol_message.to_json}"
         protocol_message.fail error
+      end
+
+      def nack_message(message, error, protocol_message = nil)
+        logger.debug "Calling NACK failure callbacks for #{message.class.name} - #{message.to_json} #{"protocol message: #{protocol_message}" if protocol_message}"
+        message.fail error
       end
 
       def drop_pending_queue_from_ack(ack_protocol_message)
