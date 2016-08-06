@@ -1079,13 +1079,28 @@ describe Ably::Realtime::Channel, :event_machine do
 
       context ':closed' do
         context 'an :attached channel' do
-          it 'transitions state to :detached' do
+          it 'transitions state to :detached (RTL3b)' do
             channel.attach do
               channel.on(:detached) do
                 stop_reactor
               end
               client.connection.close
             end
+          end
+        end
+
+        context 'an :attaching channel (RTL3b)' do
+          it 'transitions state to :detached' do
+            channel.on(:attaching) do
+              channel.on(:detached) do
+                stop_reactor
+              end
+              client.connection.__incoming_protocol_msgbus__.unsubscribe
+              client.connection.close
+              closed_message = Ably::Models::ProtocolMessage.new(action: 8) # CLOSED
+              client.connection.__incoming_protocol_msgbus__.publish :protocol_message, closed_message
+            end
+            channel.attach
           end
         end
 
@@ -1246,6 +1261,49 @@ describe Ably::Realtime::Channel, :event_machine do
                 stop_reactor
               end
               client.connection.transition_state_machine :suspended
+            end
+          end
+        end
+      end
+
+      context ':connected' do
+        context 'a :suspended channel' do
+          it 'is automatically reattached (RTL3d)' do
+            channel.attach do
+              channel.once(:suspended) do
+                client.connection.connect
+                channel.once(:attached) do
+                  stop_reactor
+                end
+              end
+              client.connection.transition_state_machine :suspended
+            end
+          end
+
+          context 'when re-attach attempt fails' do
+            let(:client_options) do
+              default_options.merge(realtime_request_timeout: 2, log_level: :fatal)
+            end
+
+            it 'returns to a suspended state (RTL3d)' do
+              channel.attach do
+                channel.once(:attached) do
+                  fail "Channel should not have become attached"
+                end
+
+                channel.once(:suspended) do
+                  client.connection.connect
+                  channel.once(:attaching) do
+                    # don't process any incoming ProtocolMessages so the connection never opens
+                    client.connection.__incoming_protocol_msgbus__.unsubscribe
+                    channel.once(:suspended) do |state_change|
+                      expect(state_change.reason.code).to eql(90007)
+                      stop_reactor
+                    end
+                  end
+                end
+                client.connection.transition_state_machine :suspended
+              end
             end
           end
         end
