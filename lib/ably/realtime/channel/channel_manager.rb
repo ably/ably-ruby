@@ -126,17 +126,31 @@ module Ably::Realtime
         connection.connect if connection.initialized?
       end
 
+      def realtime_request_timeout
+        connection.defaults.fetch(:realtime_request_timeout)
+      end
+
       def send_attach_protocol_message
-        send_state_change_protocol_message Ably::Models::ProtocolMessage::ACTION.Attach
+        send_state_change_protocol_message Ably::Models::ProtocolMessage::ACTION.Attach, :suspended # move to suspended
       end
 
       def send_detach_protocol_message
-        send_state_change_protocol_message Ably::Models::ProtocolMessage::ACTION.Detach
+        send_state_change_protocol_message Ably::Models::ProtocolMessage::ACTION.Detach, channel.state # return to current state
       end
 
-      def send_state_change_protocol_message(state)
+      def send_state_change_protocol_message(new_state, state_if_failed)
+        state_at_time_of_request = channel.state
+        failed_timer = EventMachine::Timer.new(realtime_request_timeout) do
+          if channel.state == state_at_time_of_request
+            error = Ably::Models::ErrorInfo.new(code: 90007, message: "Channel #{new_state} operation failed (timed out)")
+            channel.transition_state_machine state_if_failed, reason: error
+          end
+        end
+
+        channel.once_state_changed { failed_timer.cancel }
+
         connection.send_protocol_message(
-          action:  state.to_i,
+          action:  new_state.to_i,
           channel: channel.name
         )
       end
