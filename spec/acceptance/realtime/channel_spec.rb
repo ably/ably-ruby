@@ -7,6 +7,7 @@ describe Ably::Realtime::Channel, :event_machine do
     let(:client_options)  { default_options }
 
     let(:client)       { auto_close Ably::Realtime::Client.new(client_options) }
+    let(:connection)   { client.connection }
     let(:channel_name) { random_str }
     let(:payload)      { random_str }
     let(:channel)      { client.channel(channel_name) }
@@ -1439,6 +1440,61 @@ describe Ably::Realtime::Channel, :event_machine do
                 end
                 client.connection.transport.close_connection_after_writing
                 client.connection.configure_new '0123456789abcdef', 'wVIsgTHAB1UvXh7z-1991d8586', -1 # force the resume connection key to be invalid
+              end
+            end
+          end
+        end
+      end
+
+      context 'moves to' do
+        %w(suspended detached failed).each do |channel_state|
+          context(channel_state) do
+            specify 'all queued messages fail with NACK (RTL11)' do
+              channel.attach do
+                # Move to disconnected
+                disconnect_transport_proc = Proc.new do
+                  if connection.transport
+                    connection.transport.close_connection_after_writing
+                  else
+                    EventMachine.add_timer(0.05) { disconnect_transport_proc.call }
+                  end
+                end
+                disconnect_transport_proc.call
+
+                connection.on(:connecting) { disconnect_transport_proc.call }
+
+                connection.once(:disconnected) do
+                  channel.publish("foo").errback do |error|
+                    stop_reactor
+                  end
+                  channel.transition_state_machine channel_state.to_sym
+                end
+              end
+            end
+
+            specify 'all published messages awaiting an ACK do nothing (RTL11a)' do
+              connection_been_disconnected = false
+
+              channel.attach do
+                deferrable = channel.publish("foo")
+                deferrable.errback do |error|
+                  fail "Message publish should not fail"
+                end
+                deferrable.callback do |error|
+                  EventMachine.add_timer(0.5) do
+                    expect(connection_been_disconnected).to be_truthy
+                    stop_reactor
+                  end
+                end
+
+                # Allow 5ms for message to be sent into the socket TCP/IP stack
+                EventMachine.add_timer(0.005) do
+                  connection.transport.close_connection_after_writing
+                  connection.once(:disconnected) do
+                    connection_been_disconnected = true
+                    channel.transition_state_machine channel_state.to_sym
+                  end
+                end
               end
             end
           end

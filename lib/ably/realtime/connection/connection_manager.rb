@@ -92,7 +92,8 @@ module Ably::Realtime
           else
             logger.debug "ConnectionManager: Connection was not resumed, old connection ID #{connection.id} has been updated with new connection ID #{protocol_message.connection_id} and key #{protocol_message.connection_key}"
             connection.reset_client_serial
-            nack_queue_and_reattach_attached_attaching_channels protocol_message.error
+            nack_messages_on_all_channels protocol_message.error
+            force_reattach_on_channels protocol_message.error
           end
         else
           logger.debug "ConnectionManager: New connection created with ID #{protocol_message.connection_id} and key #{protocol_message.connection_key}"
@@ -233,7 +234,7 @@ module Ably::Realtime
       # @api private
       def resend_pending_message_ack_queue
         connection.__pending_message_ack_queue__.delete_if do |protocol_message|
-          if protocol_message.channel == channel.name
+          if protocol_message.ack_required?
             connection.__outgoing_message_queue__ << protocol_message
             connection.__outgoing_protocol_msgbus__.publish :protocol_message
             true
@@ -265,6 +266,12 @@ module Ably::Realtime
           channel.attached? || channel.attaching? || channel.detaching? || channel.suspended?
         end.each do |channel|
           channel.transition_state_machine! :failed, reason: error
+        end
+      end
+
+      def fail_queued_messages_for_all_channels(err)
+        client.channels.each do |channel|
+          channel.manager.fail_queued_messages err
         end
       end
 
@@ -505,11 +512,22 @@ module Ably::Realtime
         end
       end
 
-      def nack_queue_and_reattach_attached_attaching_channels(error)
+      # When continuity on a connection is lost all messages
+      # whether queued or awaiting an ACK must be NACK'd as we now have a new connection
+      def nack_messages_on_all_channels(error)
+        channels.each do |channel|
+          channel.manager.fail_messages_awaiting_ack error, immediately: true
+          channel.manager.fail_queued_messages error
+        end
+      end
+
+      # When continuity on a connection is lost all messages
+      # Channels in the ATTACHED or ATTACHING state should explicitly be re-attached
+      # by sending a new ATTACH to Ably
+      def force_reattach_on_channels(error)
         channels.select do |channel|
           channel.attached? || channel.attaching?
         end.each do |channel|
-          channel.manager.fail_messages_awaiting_ack error, immediately: true
           channel.emit :error, error
           channel.manager.request_reattach reason: error
         end
