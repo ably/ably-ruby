@@ -45,20 +45,14 @@ module Ably::Realtime
         channel.manager.detach err
       end
 
-      after_transition(to: [:detached]) do |channel, current_transition|
+      after_transition(to: [:detached, :failed, :suspended]) do |channel, current_transition|
         err = error_from_state_change(current_transition)
-        channel.manager.fail_messages_awaiting_ack err
-        channel.manager.emit_error err if err
-      end
-
-      after_transition(to: [:failed]) do |channel, current_transition|
-        err = error_from_state_change(current_transition)
-        channel.manager.fail_messages_awaiting_ack err
+        channel.manager.fail_queued_messages err
         channel.manager.emit_error err if err
       end
 
       # Transitions responsible for updating channel#error_reason
-      before_transition(to: [:failed]) do |channel, current_transition|
+      before_transition(to: [:failed, :suspended]) do |channel, current_transition|
         err = error_from_state_change(current_transition)
         channel.set_failed_channel_error_reason err if err
       end

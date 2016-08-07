@@ -81,6 +81,11 @@ module Ably::Realtime
         connection.manager.fail_active_channels err
       end
 
+      after_transition(to: [:suspended, :closed, :failed]) do |connection, current_transition|
+        err = error_from_state_change(current_transition)
+        connection.manager.fail_queued_messages_for_all_channels err
+      end
+
       after_transition(to: [:closing], from: [:initialized, :disconnected, :suspended]) do |connection|
         connection.manager.force_close_connection
       end

@@ -55,17 +55,12 @@ module Ably::Realtime
         channel.set_failed_channel_error_reason(reason) if reason
       end
 
-      # When a channel is no longer attached or has failed,
-      # all messages awaiting an ACK response should fail immediately
+      # When continuity on the connection is interrupted or channel becomes suspended (implying loss of continuity)
+      # then all messages published but awaiting an ACK from Ably should be failed with a NACK
       def fail_messages_awaiting_ack(error, immediately: false)
         fail_proc = Proc.new do
-          error = Ably::Exceptions::MessageDeliveryFailed.new("Channel cannot publish messages whilst state is '#{channel.state}'") unless error
+          error = Ably::Exceptions::MessageDeliveryFailed.new("Continuity of connection was lost so published messages awaiting ACK have failed") unless error
           fail_messages_in_queue connection.__pending_message_ack_queue__, error
-          fail_messages_in_queue connection.__outgoing_message_queue__, error
-          channel.__queue__.each do |message|
-            nack_message message, error
-          end
-          channel.__queue__.clear
         end
 
         # Allow a short time for other queued operations to complete before failing all messages
@@ -74,6 +69,18 @@ module Ably::Realtime
         else
           EventMachine.add_timer(0.1) { fail_proc.call }
         end
+      end
+
+      # When a channel becomes detached, suspended or failed,
+      # all queued messages should be failed immediately as we don't queue in
+      # any of those states
+      def fail_queued_messages(error)
+        error = Ably::Exceptions::MessageDeliveryFailed.new("Queueing messages on channel '#{channel.name}' in state '#{channel.state}' is not possible") unless error
+        fail_messages_in_queue connection.__outgoing_message_queue__, error
+        channel.__queue__.each do |message|
+          nack_message message, error
+        end
+        channel.__queue__.clear
       end
 
       def fail_messages_in_queue(queue, error)
