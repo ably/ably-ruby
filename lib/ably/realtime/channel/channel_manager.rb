@@ -55,6 +55,15 @@ module Ably::Realtime
         channel.set_failed_channel_error_reason(reason) if reason
       end
 
+      def duplicate_attached_received(error)
+        if error
+          channel.set_failed_channel_error_reason error
+          emit_error error
+        else
+          logger.debug "ChannelManager: Extra ATTACHED message received for #{channel.state} channel '#{channel.name}'"
+        end
+      end
+
       # When continuity on the connection is interrupted or channel becomes suspended (implying loss of continuity)
       # then all messages published but awaiting an ACK from Ably should be failed with a NACK
       def fail_messages_awaiting_ack(error, immediately: false)
