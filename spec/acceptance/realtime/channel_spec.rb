@@ -326,12 +326,57 @@ describe Ably::Realtime::Channel, :event_machine do
       end
     end
 
-    describe 'channel recovery in :attaching state' do
-      context 'the transport is disconnected before the ATTACHED protocol message is received' do
-        skip 'attach times out and fails if not ATTACHED protocol message received'
-        skip 'channel is ATTACHED if ATTACHED protocol message is later received'
-        skip 'sends an ATTACH protocol message in response to a channel message being received on the attaching channel'
+    describe 'automatic channel recovery' do
+      let(:realtime_request_timeout) { 2 }
+      let(:client_options) do
+        default_options.merge(realtime_request_timeout: 2, log_level: :fatal)
       end
+
+      context 'when an ATTACH request times out' do
+        it 'moves to the SUSPENDED state (RTL4f)' do
+          connection.once(:connected) do
+            attach_request_sent_at = Time.now
+            channel.attach
+            client.connection.__incoming_protocol_msgbus__.unsubscribe
+            channel.once(:suspended) do
+              expect(attach_request_sent_at.to_i).to be_within(realtime_request_timeout + 1).of(Time.now.to_i)
+              stop_reactor
+            end
+          end
+        end
+      end
+
+      context 'if a subsequent ATTACHED is received on an ATTACHED channel' do
+        it 'ignores the additional ATTACHED' do
+          channel.attach do
+            channel.once do |obj|
+              fail "No state change expected: #{obj}"
+            end
+            attached_message = Ably::Models::ProtocolMessage.new(action: 11, channel: channel_name) # ATTACHED
+            client.connection.__incoming_protocol_msgbus__.publish :protocol_message, attached_message
+            EventMachine.add_timer(1) do
+              channel.off
+              stop_reactor
+            end
+          end
+        end
+
+        it 'emits an error if the ATTACHED contains an error' do
+          channel.attach do
+            channel.on(:error) do |error|
+              expect(error.code).to eql(50505)
+              expect(channel.error_reason.code).to eql(50505)
+              stop_reactor
+            end
+            attached_message = Ably::Models::ProtocolMessage.new(action: 11, channel: channel_name, error: { code: 50505 }) # ATTACHED with error
+            client.connection.__incoming_protocol_msgbus__.publish :protocol_message, attached_message
+          end
+        end
+      end
+      #   skip 'attach times out and fails if not ATTACHED protocol message received'
+      #   skip 'channel is ATTACHED if ATTACHED protocol message is later received'
+      #   skip 'sends an ATTACH protocol message in response to a channel message being received on the attaching channel'
+      # end
     end
 
     context '#publish' do
