@@ -736,4 +736,56 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       end
     end
   end
+
+  context 'message encoding interoperability' do
+    let(:client_options)  { { key: api_key, environment: environment, protocol: :json } }
+    let(:realtime_client) do
+      auto_close Ably::Realtime::Client.new(client_options)
+    end
+    let(:rest_client) do
+      Ably::Rest::Client.new(client_options)
+    end
+    let(:channel_name) { "subscribe_send_text-#{random_str}" }
+    let(:realtime_channel) { realtime_client.channels.get(channel_name) }
+
+    fixtures_path = File.expand_path('../../../../lib/submodules/ably-common/test-resources/messages-encoding.json', __FILE__)
+
+    JSON.parse(File.read(fixtures_path))['messages'].each do |encoding_spec|
+      context "when decoding #{encoding_spec['expectedType']}" do
+        it 'ensures that client libraries have compatible encoding and decoding using common fixtures' do
+          realtime_channel.attach do
+            realtime_channel.subscribe do |message|
+              if encoding_spec['expectedHexValue']
+                expect(message.data.unpack('H*').first).to eql(encoding_spec['expectedHexValue'])
+              else
+                expect(message.data).to eql(encoding_spec['expectedValue'])
+              end
+              stop_reactor
+            end
+
+            raw_message = { "data": encoding_spec['data'], "encoding": encoding_spec['encoding'] }
+            rest_client.post("/channels/#{channel_name}/messages", JSON.dump(raw_message))
+          end
+        end
+      end
+
+      context "when encoding #{encoding_spec['expectedType']}" do
+        it 'ensures that client libraries have compatible encoding and decoding using common fixtures' do
+          data = if encoding_spec['expectedHexValue']
+            encoding_spec['expectedHexValue'].scan(/../).map { |x| x.hex }.pack('c*')
+          else
+            encoding_spec['expectedValue']
+          end
+
+          realtime_channel.publish("event", data) do
+            response = rest_client.get("/channels/#{channel_name}/messages")
+            message = response.body[0]
+            expect(message['encoding']).to eql(encoding_spec['encoding'])
+            expect(message['data']).to eql(encoding_spec['data'])
+            stop_reactor
+          end
+        end
+      end
+    end
+  end
 end
