@@ -215,7 +215,11 @@ module Ably
 
         raise exception_for_state_change_to(:detaching) if failed?
 
-        transition_state_machine :detaching if can_transition_to?(:detaching)
+        if can_transition_to?(:detaching)
+          transition_state_machine :detaching
+        else
+          transition_state_machine! :detached unless detached?
+        end
         deferrable_for_state_change_to(STATE.Detached, &success_block)
       end
 

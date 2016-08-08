@@ -107,19 +107,19 @@ module Ably
           event_names
         end
 
-        keys.each do |event_name|
-          if block_given?
-            callbacks[callbacks_event_coerced(event_name)].delete_if { |proc_hash| proc_hash[:block] == block }
-          else
-            callbacks[callbacks_event_coerced(event_name)].clear
-          end
-        end
-
         if event_names.empty?
           if block_given?
             callbacks_any.delete_if { |proc_hash| proc_hash[:block] == block }
           else
             callbacks_any.clear
+          end
+        end
+
+        keys.each do |event_name|
+          if block_given?
+            callbacks[callbacks_event_coerced(event_name)].delete_if { |proc_hash| proc_hash[:block] == block }
+          else
+            callbacks[callbacks_event_coerced(event_name)].clear
           end
         end
       end
