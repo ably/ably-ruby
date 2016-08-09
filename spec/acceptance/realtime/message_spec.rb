@@ -739,49 +739,115 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
 
   context 'message encoding interoperability' do
     let(:client_options)  { { key: api_key, environment: environment, protocol: :json } }
-    let(:realtime_client) do
-      auto_close Ably::Realtime::Client.new(client_options)
-    end
-    let(:rest_client) do
-      Ably::Rest::Client.new(client_options)
-    end
     let(:channel_name) { "subscribe_send_text-#{random_str}" }
-    let(:realtime_channel) { realtime_client.channels.get(channel_name) }
 
     fixtures_path = File.expand_path('../../../../lib/submodules/ably-common/test-resources/messages-encoding.json', __FILE__)
 
-    JSON.parse(File.read(fixtures_path))['messages'].each do |encoding_spec|
-      context "when decoding #{encoding_spec['expectedType']}" do
-        it 'ensures that client libraries have compatible encoding and decoding using common fixtures' do
-          realtime_channel.attach do
-            realtime_channel.subscribe do |message|
-              if encoding_spec['expectedHexValue']
-                expect(message.data.unpack('H*').first).to eql(encoding_spec['expectedHexValue'])
+    context 'over a JSON transport' do
+      let(:realtime_client) do
+        auto_close Ably::Realtime::Client.new(client_options)
+      end
+      let(:rest_client) do
+        Ably::Rest::Client.new(client_options)
+      end
+      let(:realtime_channel) { realtime_client.channels.get(channel_name) }
+
+      JSON.parse(File.read(fixtures_path))['messages'].each do |encoding_spec|
+        context "when decoding #{encoding_spec['expectedType']}" do
+          it 'ensures that client libraries have compatible encoding and decoding using common fixtures' do
+            realtime_channel.attach do
+              realtime_channel.subscribe do |message|
+                if encoding_spec['expectedHexValue']
+                  expect(message.data.unpack('H*').first).to eql(encoding_spec['expectedHexValue'])
+                else
+                  expect(message.data).to eql(encoding_spec['expectedValue'])
+                end
+                stop_reactor
+              end
+
+              raw_message = { "data" => encoding_spec['data'], "encoding" => encoding_spec['encoding'] }
+              rest_client.post("/channels/#{channel_name}/messages", JSON.dump(raw_message))
+            end
+          end
+        end
+
+        context "when encoding #{encoding_spec['expectedType']}" do
+          it 'ensures that client libraries have compatible encoding and decoding using common fixtures' do
+            data = if encoding_spec['expectedHexValue']
+              encoding_spec['expectedHexValue'].scan(/../).map { |x| x.hex }.pack('c*')
+            else
+              encoding_spec['expectedValue']
+            end
+
+            realtime_channel.publish("event", data) do
+              response = rest_client.get("/channels/#{channel_name}/messages")
+              message = response.body[0]
+              expect(message['encoding']).to eql(encoding_spec['encoding'])
+              if message['encoding'] == 'json'
+                expect(JSON.parse(encoding_spec['data'])).to eql(JSON.parse(message['data']))
               else
-                expect(message.data).to eql(encoding_spec['expectedValue'])
+                expect(encoding_spec['data']).to eql(message['data'])
               end
               stop_reactor
             end
-
-            raw_message = { "data": encoding_spec['data'], "encoding": encoding_spec['encoding'] }
-            rest_client.post("/channels/#{channel_name}/messages", JSON.dump(raw_message))
           end
         end
       end
+    end
 
-      context "when encoding #{encoding_spec['expectedType']}" do
-        it 'ensures that client libraries have compatible encoding and decoding using common fixtures' do
-          data = if encoding_spec['expectedHexValue']
-            encoding_spec['expectedHexValue'].scan(/../).map { |x| x.hex }.pack('c*')
-          else
-            encoding_spec['expectedValue']
+    context 'over a MsgPack transport' do
+      JSON.parse(File.read(fixtures_path))['messages'].each do |encoding_spec|
+        context "when publishing a #{encoding_spec['expectedType']} using JSON protocol" do
+          let(:rest_publish_client) do
+            Ably::Rest::Client.new(client_options.merge(protocol: :json))
           end
+          let(:realtime_subscribe_client) do
+            Ably::Realtime::Client.new(client_options.merge(protocol: :msgpack))
+          end
+          let(:realtime_subscribe_channel) { realtime_subscribe_client.channels.get(channel_name) }
 
-          realtime_channel.publish("event", data) do
-            response = rest_client.get("/channels/#{channel_name}/messages")
+          it 'receives the message over MsgPack and the data matches' do
+            expect(realtime_subscribe_client).to be_protocol_binary
+
+            realtime_subscribe_channel.attach do
+              realtime_subscribe_channel.subscribe do |message|
+                if encoding_spec['expectedHexValue']
+                  expect(message.data.unpack('H*').first).to eql(encoding_spec['expectedHexValue'])
+                else
+                  expect(message.data).to eql(encoding_spec['expectedValue'])
+                end
+                stop_reactor
+              end
+
+              raw_message = { "data" => encoding_spec['data'], "encoding" => encoding_spec['encoding'] }
+              rest_publish_client.post("/channels/#{channel_name}/messages", JSON.dump(raw_message))
+            end
+          end
+        end
+
+        context "when retrieving a #{encoding_spec['expectedType']} using JSON protocol" do
+          let(:rest_publish_client) do
+            Ably::Rest::Client.new(client_options.merge(protocol: :msgpack))
+          end
+          let(:rest_retrieve_client) do
+            Ably::Rest::Client.new(client_options.merge(protocol: :json))
+          end
+          let(:rest_publish_channel) { rest_publish_client.channels.get(channel_name) }
+
+          it 'is compatible with a publishes using MsgPack' do
+            expect(rest_publish_client).to be_protocol_binary
+
+            data = if encoding_spec['expectedHexValue']
+              encoding_spec['expectedHexValue'].scan(/../).map { |x| x.hex }.pack('c*')
+            else
+              encoding_spec['expectedValue']
+            end
+            rest_publish_channel.publish "event", data
+
+            response = rest_retrieve_client.get("/channels/#{channel_name}/messages")
             message = response.body[0]
             expect(message['encoding']).to eql(encoding_spec['encoding'])
-            expect(message['data']).to eql(encoding_spec['data'])
+            expect(encoding_spec['data']).to eql(message['data'])
             stop_reactor
           end
         end
