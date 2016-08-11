@@ -22,7 +22,11 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'em-http-request', '~> 1.1'
   spec.add_runtime_dependency 'statesman', '~> 1.0.0'
   spec.add_runtime_dependency 'faraday', '~> 0.9'
-  spec.add_runtime_dependency 'json'
+  if RUBY_VERSION.match(/^1/)
+    spec.add_runtime_dependency 'json', '< 2.0'
+  else
+    spec.add_runtime_dependency 'json'
+  end
   spec.add_runtime_dependency 'websocket-driver', '~> 0.6'
   spec.add_runtime_dependency 'msgpack', '>= 0.6.2'
   spec.add_runtime_dependency 'addressable', '>= 2.0.0'
@@ -37,7 +41,7 @@ Gem::Specification.new do |spec|
 
   spec.add_development_dependency 'coveralls'
 
-  if RUBY_VERSION.match(/^2/)
+  unless RUBY_VERSION.match(/^1/)
     spec.add_development_dependency 'pry'
     spec.add_development_dependency 'pry-byebug'
   end
