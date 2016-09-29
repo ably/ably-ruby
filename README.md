@@ -1,6 +1,5 @@
 # [Ably](https://www.ably.io)
 
-[![Build Status](https://travis-ci.org/ably/ably-ruby.png)](https://travis-ci.org/ably/ably-ruby)
 [![Gem Version](https://badge.fury.io/rb/ably.svg)](http://badge.fury.io/rb/ably)
 [![Coverage Status](https://coveralls.io/repos/ably/ably-ruby/badge.svg)](https://coveralls.io/r/ably/ably-ruby)
 

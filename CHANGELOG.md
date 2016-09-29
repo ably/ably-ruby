@@ -1,6 +1,14 @@
 # Change Log
 
-## [v0.8.12](https://github.com/ably/ably-ruby/tree/v0.8.12)
+## [Unreleased](https://github.com/ably/ably-ruby/tree/v0.8.13)
+
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v0.8.12...v0.8.13)
+
+**Merged pull requests:**
+
+- Ensure interoperability with other libraries with JSON protocol [\#94](https://github.com/ably/ably-ruby/pull/94) ([mattheworiordan](https://github.com/mattheworiordan))
+
+## [v0.8.12](https://github.com/ably/ably-ruby/tree/v0.8.12) (2016-05-23)
 
 [Full Changelog](https://github.com/ably/ably-ruby/compare/v0.8.11...v0.8.12)
 
