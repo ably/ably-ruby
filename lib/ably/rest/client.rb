@@ -78,10 +78,14 @@ module Ably
       # @api private
       attr_reader :options
 
+      # The list of fallback hosts to be used by this client
+      # if empty or nil then fallback host functionality is disabled
+      attr_reader :fallback_hosts
+
       # Creates a {Ably::Rest::Client Rest Client} and configures the {Ably::Auth} object for the connection.
       #
       # @param [Hash,String] options an options Hash used to configure the client and the authentication, or String with an API key or Token ID
-      # @option options [Boolean]                 :tls                (true) When fales, TLS is disabled. Please note Basic Auth is disallowed without TLS as secrets cannot be transmitted over unsecured connections.
+      # @option options [Boolean]                 :tls                 (true) When false, TLS is disabled. Please note Basic Auth is disallowed without TLS as secrets cannot be transmitted over unsecured connections.
       # @option options [String]                  :key                 API key comprising the key name and key secret in a single string
       # @option options [String]                  :token               Token string or {Models::TokenDetails} used to authenticate requests
       # @option options [String]                  :token_details       {Models::TokenDetails} used to authenticate requests
@@ -106,6 +110,9 @@ module Ably
       # @option options [Integer]                 :http_max_retry_count    (3) maximum number of fallback host retries for HTTP requests that fail due to network issues or server problems
       # @option options [Integer]                 :http_max_retry_duration (10 seconds) maximum elapsed time in which fallback host retries for HTTP requests will be attempted i.e. if the first default host attempt takes 5s, and then the subsequent fallback retry attempt takes 7s, no further fallback host attempts will be made as the total elapsed time of 12s exceeds the default 10s limit
       #
+      # @option options [Boolean]                 :fallback_hosts_use_default  (false) When true, forces the user of fallback hosts even if a non-default production endpoint is being used
+      # @option options [Array<String>]           :fallback_hosts              When an array of fallback hosts are provided, these fallback hosts are always used if a request fails to the primary endpoint. If an empty array is provided, the fallback host functionality is disabled
+      #
       # @return [Ably::Rest::Client]
       #
       # @example
@@ -129,6 +136,7 @@ module Ably
 
         @tls              = options.delete(:tls) == false ? false : true
         @environment      = options.delete(:environment) # nil is production
+        @environment      = nil if [:production, 'production'].include?(@environment)
         @protocol         = options.delete(:protocol) || :msgpack
         @debug_http       = options.delete(:debug_http)
         @log_level        = options.delete(:log_level) || ::Logger::WARN
@@ -136,6 +144,20 @@ module Ably
         @custom_host      = options.delete(:rest_host)
         @custom_port      = options.delete(:port)
         @custom_tls_port  = options.delete(:tls_port)
+
+        if options[:fallback_hosts_use_default] && options[:fallback_jhosts]
+          raise ArgumentError, "fallback_hosts_use_default cannot be set to trye when fallback_jhosts is also provided"
+        end
+        @fallback_hosts = case
+        when options.delete(:fallback_hosts_use_default)
+          Ably::FALLBACK_HOSTS
+        when options_fallback_hosts = options.delete(:fallback_hosts)
+          options_fallback_hosts
+        when environment || custom_host || options[:realtime_host] || custom_port || custom_tls_port
+          []
+        else
+          Ably::FALLBACK_HOSTS
+        end
 
         @http_defaults = HTTP_DEFAULTS.dup
         options.each do |key, val|
@@ -295,7 +317,7 @@ module Ably
       # Connection used to make HTTP requests
       #
       # @param [Hash] options
-      # @option options [Boolean] :use_fallback when true, one of the fallback connections is used randomly, see {Ably::FALLBACK_HOSTS}
+      # @option options [Boolean] :use_fallback when true, one of the fallback connections is used randomly, see the default {Ably::FALLBACK_HOSTS}
       #
       # @return [Faraday::Connection]
       #
@@ -309,20 +331,32 @@ module Ably
       end
 
       # Fallback connection used to make HTTP requests.
-      # Note, each request uses a random and then subsequent random {Ably::FALLBACK_HOSTS fallback host}
+      # Note, each request uses a random and then subsequent random {Ably::FALLBACK_HOSTS fallback hosts}
+      # are used (unless custom fallback hosts are provided with fallback_hosts)
       #
       # @return [Faraday::Connection]
       #
       # @api private
       def fallback_connection
         unless defined?(@fallback_connections) && @fallback_connections
-          @fallback_connections = Ably::FALLBACK_HOSTS.shuffle.map { |host| Faraday.new(endpoint_for_host(host).to_s, connection_options) }
+          @fallback_connections = fallback_hosts.shuffle.map { |host| Faraday.new(endpoint_for_host(host).to_s, connection_options) }
+          @fallback_connections << Faraday.new(endpoint.to_s, connection_options) # Try the original host last if all fallbacks have been used
         end
         @fallback_index ||= 0
 
         @fallback_connections[@fallback_index % @fallback_connections.count].tap do
           @fallback_index += 1
         end
+      end
+
+      # Library Ably version user agent
+      # @api private
+      def lib_version_id
+        @lib_version_id ||= [
+          'ruby',
+          Ably.lib_variant,
+          Ably::VERSION
+        ].compact.join('-')
       end
 
       private
@@ -352,14 +386,13 @@ module Ably
             unless options[:send_auth_header] == false
               request.headers[:authorization] = auth.auth_header
             end
-            request.headers['X-Ably-Version'] = Ably::PROTOCOL_VERSION
-            request.headers['X-Ably-Lib'] = Ably::LIB_VERSION_ID
           end
 
         rescue Faraday::TimeoutError, Faraday::ClientError, Ably::Exceptions::ServerError => error
           time_passed = Time.now - requested_at
           if can_fallback_to_alternate_ably_host? && retry_count < max_retry_count && time_passed <= max_retry_duration
             retry_count += 1
+            logger.warn "Ably::Rest::Client - Retry #{retry_count} for #{method} #{path} #{params} as initial attempt failed: #{error}"
             retry
           end
 
@@ -410,9 +443,11 @@ module Ably
         @connection_options ||= {
           builder: middleware,
           headers: {
-            content_type: mime_type,
-            accept:       mime_type,
-            user_agent:   user_agent
+            content_type:       mime_type,
+            accept:             mime_type,
+            user_agent:         user_agent,
+            'X-Ably-Version' => Ably::PROTOCOL_VERSION,
+            'X-Ably-Lib'     => lib_version_id
           },
           request: {
             open_timeout: http_defaults.fetch(:open_timeout),
@@ -439,7 +474,7 @@ module Ably
       end
 
       def can_fallback_to_alternate_ably_host?
-        !custom_host && !environment
+        fallback_hosts && !fallback_hosts.empty?
       end
 
       def initialize_default_encoders

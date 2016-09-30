@@ -320,7 +320,7 @@ module Ably::Realtime
       def can_reattempt_connect_for_state?(state)
         case state
         when :disconnected
-          time_spent_attempting_state(:disconnected, ignore_states: [:connecting]) < connection.defaults.fetch(:connection_state_ttl)
+          time_spent_attempting_state(:disconnected, ignore_states: [:connecting]) < connection.connection_state_ttl
         when :suspended
           true # suspended state remains indefinitely
         else

@@ -155,6 +155,11 @@ module Ably
         rest_client.register_encoder encoder
       end
 
+      # (see Ably::Rest::Client#fallback_hosts)
+      def fallback_hosts
+        rest_client.fallback_hosts
+      end
+
       # (see Ably::Rest::Client#logger)
       def logger
         @logger ||= Ably::Logger.new(self, log_level, rest_client.logger.custom_logger)
@@ -168,14 +173,15 @@ module Ably
       end
 
       # @!attribute [r] fallback_endpoint
-      # @return [URI::Generic] Fallback endpoint used to connect to the realtime Ably service. Note, after each connection attempt, a new random {Ably::FALLBACK_HOSTS fallback host} is used
+      # @return [URI::Generic] Fallback endpoint used to connect to the realtime Ably service. Note, after each connection attempt, a new random {Ably::FALLBACK_HOSTS fallback host} or provided fallback hosts are used
       # @api private
       def fallback_endpoint
         unless defined?(@fallback_endpoints) && @fallback_endpoints
-          @fallback_endpoints = Ably::FALLBACK_HOSTS.shuffle.map { |fallback_host| endpoint_for_host(fallback_host) }
+          @fallback_endpoints = fallback_hosts.shuffle.map { |fallback_host| endpoint_for_host(fallback_host) }
+          @fallback_endpoints << endpoint # Try the original host last if all fallbacks have been used
         end
 
-        fallback_endpoint_index = connection.manager.retry_count_for_state(:disconnected) + connection.manager.retry_count_for_state(:suspended)
+        fallback_endpoint_index = connection.manager.retry_count_for_state(:disconnected) + connection.manager.retry_count_for_state(:suspended) - 1
 
         @fallback_endpoints[fallback_endpoint_index % @fallback_endpoints.count]
       end

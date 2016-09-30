@@ -59,7 +59,12 @@ module Ably
 
       def to_s
         message = [super]
-        message << "#{@base_error}" if @base_error
+        if @base_error
+          message << "#{@base_error}"
+          if @base_error.respond_to?(:message) && @base_error.message.match(/certificate verify failed/i)
+            message << "See https://goo.gl/eKvfcR to resolve this issue."
+          end
+        end
         message.join(' < ')
       end
     end
