@@ -416,7 +416,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         end
       end
 
-      context 'when websocket transport is closed' do
+      context 'when websocket transport is abruptly disconnected' do
         it 'reconnects automatically' do
           fail_if_suspended_or_failed
 
@@ -429,6 +429,28 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               end
             end
             connection.transport.close_connection_after_writing
+          end
+        end
+
+        context 'hosts used' do
+          it 'reconnects with the default host' do
+            fail_if_suspended_or_failed
+
+            connection.once(:connected) do
+              connection.once(:disconnected) do
+                hosts = []
+                expect(connection).to receive(:create_transport).once.and_wrap_original do |original_method, *args, &block|
+                  hosts << args[0]
+                  original_method.call(*args, &block)
+                end
+                connection.once(:connected) do
+                  expect(hosts.first).to eql("sandbox-#{Ably::Realtime::Client::DOMAIN}")
+                  expect(hosts.length).to eql(1)
+                  stop_reactor
+                end
+              end
+              connection.transport.close_connection_after_writing
+            end
           end
         end
       end
@@ -627,7 +649,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         let(:client_options) { timeout_options.merge(realtime_host: expected_host) }
 
         it 'never uses a fallback host' do
-          expect(EventMachine).to receive(:connect).exactly(retry_count_for_all_states).times do |host|
+          expect(connection).to receive(:create_transport).exactly(retry_count_for_all_states).times do |host|
             expect(host).to eql(expected_host)
             raise EventMachine::ConnectionError
           end
@@ -645,7 +667,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         let(:client_options) { timeout_options.merge(tls_port: custom_port) }
 
         it 'never uses a fallback host' do
-          expect(EventMachine).to receive(:connect).exactly(retry_count_for_all_states).times do |host, port|
+          expect(connection).to receive(:create_transport).exactly(retry_count_for_all_states).times do |host, port|
             expect(port).to eql(custom_port)
             raise EventMachine::ConnectionError
           end
@@ -664,7 +686,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         let(:client_options) { timeout_options.merge(environment: environment) }
 
         it 'does not use a fallback host by default' do
-          expect(EventMachine).to receive(:connect).exactly(retry_count_for_all_states).times do |host|
+          expect(connection).to receive(:create_transport).exactly(retry_count_for_all_states).times do |host|
             expect(host).to eql(expected_host)
             raise EventMachine::ConnectionError
           end
@@ -683,7 +705,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
           it 'uses a fallback host on every subsequent disconnected attempt until suspended (#RTN17b, #TO3k7)' do
             request = 0
-            allow(EventMachine).to receive(:connect) do |host|
+            allow(connection).to receive(:create_transport) do |host|
               if request == 0
                 expect(host).to eql(expected_host)
               else
@@ -708,7 +730,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
           it 'uses a fallback host on every subsequent disconnected attempt until suspended (#RTN17b, #TO3k6)' do
             request = 0
-            allow(EventMachine).to receive(:connect) do |host|
+            allow(connection).to receive(:create_transport) do |host|
               if request == 0
                 expect(host).to eql(expected_host)
               else
@@ -743,7 +765,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
 
           it 'never uses a fallback host' do
-            expect(EventMachine).to receive(:connect).exactly(retry_count_for_all_states).times do |host|
+            expect(connection).to receive(:create_transport).exactly(retry_count_for_all_states).times do |host|
               expect(host).to eql(expected_host)
               raise EventMachine::ConnectionError
             end
@@ -764,7 +786,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
           it 'uses a fallback host on every subsequent disconnected attempt until suspended' do
             request = 0
-            expect(EventMachine).to receive(:connect).exactly(retry_count_for_one_state).times do |host|
+            expect(connection).to receive(:create_transport).exactly(retry_count_for_one_state).times do |host|
               if request == 0
                 expect(host).to eql(expected_host)
               else
@@ -783,7 +805,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
           it 'uses the primary host when suspended, and a fallback host on every subsequent suspended attempt' do
             request = 0
-            expect(EventMachine).to receive(:connect).at_least(:once) do |host|
+            expect(connection).to receive(:create_transport).at_least(:once) do |host|
               if request == 0 || request == expected_retry_attempts + 1
                 expect(host).to eql(expected_host)
               else
@@ -811,7 +833,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             let(:client_options) { timeout_options.merge(environment: 'production', fallback_hosts: fallback_hosts) }
 
             it 'uses a fallback host on every subsequent disconnected attempt until suspended (#RTN17b, #TO3k6)' do
-              allow(EventMachine).to receive(:connect) do |host|
+              allow(connection).to receive(:create_transport) do |host|
                 hosts_used << host
                 raise EventMachine::ConnectionError
               end
@@ -832,7 +854,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
             it 'uses a fallback host on every subsequent disconnected attempt until suspended (#RTN17b, #TO3k6)' do
               request = 0
-              allow(EventMachine).to receive(:connect) do |host|
+              allow(connection).to receive(:create_transport) do |host|
                 if request == 0
                   expect(host).to eql(expected_host)
                 else

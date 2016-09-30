@@ -412,7 +412,7 @@ module Ably
               determine_host do |host|
                 begin
                   logger.debug "Connection: Opening socket connection to #{host}:#{port}/#{url.path}?#{url.query}"
-                  @transport = EventMachine.connect(host, port, WebsocketTransport, self, url.to_s) do |websocket_transport|
+                  @transport = create_transport(host, port, url) do |websocket_transport|
                     websocket_deferrable.succeed websocket_transport
                   end
                 rescue EventMachine::ConnectionError => error
@@ -471,6 +471,11 @@ module Ably
       def can_publish_messages?
         connected? ||
           ( (initialized? || connecting? || disconnected?) && client.queue_messages )
+      end
+
+      # @api private
+      def create_transport(host, port, url, &block)
+        EventMachine.connect(host, port, WebsocketTransport, self, url.to_s, &block)
       end
 
       # As we are using a state machine, do not allow change_state to be used
