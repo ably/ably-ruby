@@ -1,6 +1,6 @@
 # Change Log
 
-## [Unreleased](https://github.com/ably/ably-ruby/tree/v0.8.14)
+## [v0.8.14](https://github.com/ably/ably-ruby/tree/v0.8.14)
 
 [Full Changelog](https://github.com/ably/ably-ruby/compare/v0.8.13...v0.8.14)
 
