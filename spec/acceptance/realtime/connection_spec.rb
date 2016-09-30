@@ -1375,6 +1375,27 @@ describe Ably::Realtime::Connection, :event_machine do
         end
         client
       end
+
+      context 'with variant' do
+        let(:variant) { 'foo ' }
+
+        before do
+          Ably.lib_variant = variant
+        end
+
+        after do
+          Ably.lib_variant = nil
+        end
+
+        it 'sends the lib version param lib with the variant' do
+          expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
+            uri = URI.parse(url)
+            expect(CGI::parse(uri.query)['lib'][0]).to eql("ruby-#{variant}-#{Ably::VERSION}")
+            stop_reactor
+          end
+          client
+        end
+      end
     end
   end
 end

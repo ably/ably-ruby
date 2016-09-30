@@ -389,7 +389,7 @@ module Ably
                 format:    client.protocol,
                 echo:      client.echo_messages,
                 v:         Ably::PROTOCOL_VERSION,
-                lib:       Ably::LIB_VERSION_ID,
+                lib:       client.rest_client.lib_version_id,
               )
 
               url_params['clientId'] = client.auth.client_id if client.auth.has_client_id?

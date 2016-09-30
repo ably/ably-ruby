@@ -547,19 +547,38 @@ describe Ably::Rest::Client do
     end
 
     context 'version headers', :webmock do
-      let(:client_options) { default_options.merge(key: api_key) }
-      let!(:publish_message_stub) do
-        stub_request(:post, "#{client.endpoint.to_s.gsub('://', "://#{api_key}@")}/channels/foo/publish").
-          with(headers: {
-            'X-Ably-Version' => Ably::PROTOCOL_VERSION,
-            'X-Ably-Lib' => "ruby-#{Ably::VERSION}"
-          }).
-          to_return(status: 201, body: '{}', headers: { 'Content-Type' => 'application/json' })
-      end
+      [nil, 'foo'].each do |variant|
+        context "with variant #{variant ? variant : 'none'}" do
+          if variant
+            before do
+              Ably.lib_variant = variant
+            end
 
-      it 'sends a protocol version and lib version header' do
-        client.channels.get('foo').publish("event")
-        expect(publish_message_stub).to have_been_requested
+            after do
+              Ably.lib_variant = nil
+            end
+          end
+
+          let(:client_options) { default_options.merge(key: api_key) }
+          let!(:publish_message_stub) do
+            lib = ['ruby']
+            lib << variant if variant
+            lib << Ably::VERSION
+
+
+            stub_request(:post, "#{client.endpoint.to_s.gsub('://', "://#{api_key}@")}/channels/foo/publish").
+              with(headers: {
+                'X-Ably-Version' => Ably::PROTOCOL_VERSION,
+                'X-Ably-Lib' => lib.join('-')
+              }).
+              to_return(status: 201, body: '{}', headers: { 'Content-Type' => 'application/json' })
+          end
+
+          it 'sends a protocol version and lib version header' do
+            client.channels.get('foo').publish("event")
+            expect(publish_message_stub).to have_been_requested
+          end
+        end
       end
     end
   end

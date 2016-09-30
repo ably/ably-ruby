@@ -325,6 +325,16 @@ module Ably
         end
       end
 
+      # Library Ably version user agent
+      # @api private
+      def lib_version_id
+        @lib_version_id ||= [
+          'ruby',
+          Ably.lib_variant,
+          Ably::VERSION
+        ].compact.join('-')
+      end
+
       private
       def request(method, path, params = {}, options = {})
         options = options.clone
@@ -352,8 +362,6 @@ module Ably
             unless options[:send_auth_header] == false
               request.headers[:authorization] = auth.auth_header
             end
-            request.headers['X-Ably-Version'] = Ably::PROTOCOL_VERSION
-            request.headers['X-Ably-Lib'] = Ably::LIB_VERSION_ID
           end
 
         rescue Faraday::TimeoutError, Faraday::ClientError, Ably::Exceptions::ServerError => error
@@ -410,9 +418,11 @@ module Ably
         @connection_options ||= {
           builder: middleware,
           headers: {
-            content_type: mime_type,
-            accept:       mime_type,
-            user_agent:   user_agent
+            content_type:       mime_type,
+            accept:             mime_type,
+            user_agent:         user_agent,
+            'X-Ably-Version' => Ably::PROTOCOL_VERSION,
+            'X-Ably-Lib'     => lib_version_id
           },
           request: {
             open_timeout: http_defaults.fetch(:open_timeout),
