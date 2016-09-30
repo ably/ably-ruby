@@ -1,5 +1,6 @@
 # encoding: utf-8
 require 'spec_helper'
+require 'webrick'
 
 describe Ably::Rest::Client do
   vary_by_protocol do
@@ -468,6 +469,127 @@ describe Ably::Rest::Client do
           it 'does not attempt the fallback hosts as this is an authentication failure' do
             expect { publish_block.call }.to raise_error(Ably::Exceptions::ServerError)
             expect(default_host_request_stub).to have_been_requested
+          end
+        end
+
+        context 'using a local web-server', webmock: false do
+          let(:primary_host) { 'local-rest.ably.io' }
+          let(:fallbacks) { ['local.ably.io', 'localhost'] }
+          let(:port) { rand(10000) + 2000 }
+          let(:channel_name) { 'foo' }
+          let(:request_timeout) { 3 }
+
+          after do
+            @web_server.shutdown
+          end
+
+          context 'and timing out the primary host' do
+            before do
+              @web_server = WEBrick::HTTPServer.new(:Port => port, :SSLEnable => false)
+              @web_server.mount_proc "/channels/#{channel_name}/publish" do |req, res|
+                if req.header["host"].first.include?(primary_host)
+                  @primary_host_requested = true
+                  sleep request_timeout + 0.5
+                else
+                  @fallback_request_count ||= 0
+                  @fallback_request_count += 1
+                  if @fallback_request_count <= fail_fallback_request_count
+                    sleep request_timeout + 0.5
+                  else
+                    res.status = 200
+                    res['Content-Type'] = 'application/json'
+                    res.body = '{}'
+                  end
+                end
+              end
+              Thread.new do
+                @web_server.start
+              end
+            end
+
+            context 'with request timeout less than max_retry_duration' do
+              let(:client_options) do
+                default_options.merge(
+                  rest_host: primary_host,
+                  fallback_hosts: fallbacks,
+                  token: 'fake.token',
+                  port: port,
+                  tls: false,
+                  http_request_timeout: request_timeout,
+                  max_retry_duration: request_timeout * 3
+                )
+              end
+              let(:fail_fallback_request_count) { 1 }
+
+              it 'tries one of the fallback hosts' do
+                client.channel(channel_name).publish('event', 'data')
+                expect(@primary_host_requested).to be_truthy
+                expect(@fallback_request_count).to eql(2)
+              end
+            end
+
+            context 'with request timeout less than max_retry_duration' do
+              let(:client_options) do
+                default_options.merge(
+                  rest_host: primary_host,
+                  fallback_hosts: fallbacks,
+                  token: 'fake.token',
+                  port: port,
+                  tls: false,
+                  http_request_timeout: request_timeout,
+                  max_retry_duration: request_timeout / 2
+                )
+              end
+              let(:fail_fallback_request_count) { 0 }
+
+              it 'tries one of the fallback hosts' do
+                client.channel(channel_name).publish('event', 'data')
+                expect(@primary_host_requested).to be_truthy
+                expect(@fallback_request_count).to eql(1)
+              end
+            end
+          end
+
+          context 'and failing the primary host' do
+            before do
+              @web_server = WEBrick::HTTPServer.new(:Port => port, :SSLEnable => false)
+              @web_server.mount_proc "/channels/#{channel_name}/publish" do |req, res|
+                if req.header["host"].first.include?(primary_host)
+                  @primary_host_requested = true
+                  res.status = 500
+                else
+                  @fallback_request_count ||= 0
+                  @fallback_request_count += 1
+                  if @fallback_request_count <= fail_fallback_request_count
+                    res.status = 500
+                  else
+                    res.status = 200
+                    res['Content-Type'] = 'application/json'
+                    res.body = '{}'
+                  end
+                end
+              end
+              Thread.new do
+                @web_server.start
+              end
+            end
+
+            let(:client_options) do
+              default_options.merge(
+                rest_host: primary_host,
+                fallback_hosts: fallbacks,
+                token: 'fake.token',
+                port: port,
+                tls: false
+              )
+            end
+            let(:fail_fallback_request_count) { 1 }
+
+            it 'tries one of the fallback hosts' do
+              client.channel(channel_name).publish('event', 'data')
+              expect(@primary_host_requested).to be_truthy
+              expect(@fallback_request_count).to eql(2)
+            end
           end
         end
       end

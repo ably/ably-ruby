@@ -85,7 +85,7 @@ module Ably
       # Creates a {Ably::Rest::Client Rest Client} and configures the {Ably::Auth} object for the connection.
       #
       # @param [Hash,String] options an options Hash used to configure the client and the authentication, or String with an API key or Token ID
-      # @option options [Boolean]                 :tls                (true) When fales, TLS is disabled. Please note Basic Auth is disallowed without TLS as secrets cannot be transmitted over unsecured connections.
+      # @option options [Boolean]                 :tls                 (true) When false, TLS is disabled. Please note Basic Auth is disallowed without TLS as secrets cannot be transmitted over unsecured connections.
       # @option options [String]                  :key                 API key comprising the key name and key secret in a single string
       # @option options [String]                  :token               Token string or {Models::TokenDetails} used to authenticate requests
       # @option options [String]                  :token_details       {Models::TokenDetails} used to authenticate requests
@@ -392,6 +392,7 @@ module Ably
           time_passed = Time.now - requested_at
           if can_fallback_to_alternate_ably_host? && retry_count < max_retry_count && time_passed <= max_retry_duration
             retry_count += 1
+            logger.warn "Ably::Rest::Client - Retry #{retry_count} for #{method} #{path} #{params} as initial attempt failed: #{error}"
             retry
           end
 
