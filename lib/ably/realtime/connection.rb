@@ -64,8 +64,9 @@ module Ably
       DEFAULTS = {
         disconnected_retry_timeout: 15, # when the connection enters the DISCONNECTED state, after this delay in milliseconds, if the state is still DISCONNECTED, the client library will attempt to reconnect automatically
         suspended_retry_timeout:    30, # when the connection enters the SUSPENDED state, after this delay in milliseconds, if the state is still SUSPENDED, the client library will attempt to reconnect automatically
-        connection_state_ttl:       60, # the duration that Ably will persist the connection state when a Realtime client is abruptly disconnected
-        realtime_request_timeout:   10  # default timeout when establishing a connection, or sending a HEARTBEAT, CONNECT, ATTACH, DETACH or CLOSE ProtocolMessage
+        connection_state_ttl:       120, # the duration that Ably will persist the connection state when a Realtime client is abruptly disconnected
+        max_connection_state_ttl:   nil, # allow a max TTL to be passed in for CI test purposes thus overiding any connection_state_ttl sent from Ably
+        realtime_request_timeout:   10,  # default timeout when establishing a connection, or sending a HEARTBEAT, CONNECT, ATTACH, DETACH or CLOSE ProtocolMessage
       }.freeze
 
       # A unique public identifier for this connection, used to identify this member in presence events and messages
@@ -478,6 +479,17 @@ module Ably
         EventMachine.connect(host, port, WebsocketTransport, self, url.to_s, &block)
       end
 
+      # @api private
+      def connection_state_ttl
+        defaults[:max_connection_state_ttl] || # undocumented max TTL configuration
+          (details && details.connection_state_ttl) ||
+          defaults.fetch(:connection_state_ttl)
+      end
+
+      def connection_state_ttl=(val)
+        @connection_state_ttl = val
+      end
+
       # As we are using a state machine, do not allow change_state to be used
       # #transition_state_machine must be used instead
       private :change_state
@@ -532,7 +544,18 @@ module Ably
       end
 
       def connection_resumable?
-        !key.nil? && !serial.nil?
+        !key.nil? && !serial.nil? && connection_state_available?
+      end
+
+      def connection_state_available?
+        return true if connected?
+
+        connected_last = state_history.reverse.find { |connected| connected.fetch(:state) == :connected }
+        if connected_last.nil? || (connected_last.fetch(:transitioned_at) < Time.now - connection_state_ttl)
+          false
+        else
+          true
+        end
       end
 
       def connection_recoverable?

@@ -62,7 +62,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             log_level: :none,
             disconnected_retry_timeout: retry_every_for_tests,
             suspended_retry_timeout:    retry_every_for_tests,
-            connection_state_ttl:       max_time_in_state_for_tests
+            max_connection_state_ttl:   max_time_in_state_for_tests
           )
         end
 
@@ -169,7 +169,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
           context 'for the first time' do
             let(:client_options) do
-              default_options.merge(suspended_retry_timeout: 2, connection_state_ttl: 0, log_level: :error)
+              default_options.merge(suspended_retry_timeout: 2, max_connection_state_ttl: 0, log_level: :error)
             end
 
             it 'waits suspended_retry_timeout before attempting to reconnect' do
@@ -306,7 +306,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                 log_level: :error,
                 disconnected_retry_timeout: 0.1,
                 suspended_retry_timeout:    0.1,
-                connection_state_ttl:       0.2,
+                max_connection_state_ttl:   0.2,
                 realtime_host:              'non.existent.host'
               )
             end
@@ -370,7 +370,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               log_level: :none,
               disconnected_retry_timeout: retry_every,
               suspended_retry_timeout:    retry_every,
-              connection_state_ttl:       60
+              max_connection_state_ttl:   60
             )
           end
 
@@ -444,7 +444,8 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                   original_method.call(*args, &block)
                 end
                 connection.once(:connected) do
-                  expect(hosts.first).to eql("sandbox-#{Ably::Realtime::Client::DOMAIN}")
+                  host = "#{"#{environment}-" if environment && environment.to_s != 'production'}#{Ably::Realtime::Client::DOMAIN}"
+                  expect(hosts.first).to eql(host)
                   expect(hosts.length).to eql(1)
                   stop_reactor
                 end
@@ -621,6 +622,32 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
         end
+
+        context 'as the DISCONNECTED window to resume has passed' do
+          let(:channel) { client.channel(random_str) }
+
+          def kill_connection_transport_and_prevent_valid_resume
+            connection.transport.close_connection_after_writing
+          end
+
+          it 'starts a new connection automatically and does not try and resume' do
+            connection.once(:connected) do
+              previous_connection_id  = connection.id
+              previous_connection_key = connection.key
+
+              five_minutes_time = Time.now + 5 * 60
+              allow(Time).to receive(:now) { five_minutes_time }
+
+              connection.once(:connected) do
+                expect(connection.key).to_not eql(previous_connection_key)
+                expect(connection.id).to_not eql(previous_connection_id)
+                stop_reactor
+              end
+
+              kill_connection_transport_and_prevent_valid_resume
+            end
+          end
+        end
       end
     end
 
@@ -634,7 +661,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           log_level:                  :none,
           disconnected_retry_timeout: retry_every_for_tests,
           suspended_retry_timeout:    retry_every_for_tests,
-          connection_state_ttl:       max_time_in_state_for_tests
+          max_connection_state_ttl:   max_time_in_state_for_tests
         )
       end
 

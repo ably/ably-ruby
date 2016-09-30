@@ -833,6 +833,22 @@ describe Ably::Realtime::Connection, :event_machine do
           end
         end
       end
+
+      context 'with a different connection_state_ttl' do
+        before do
+          old_defaults = Ably::Realtime::Connection::DEFAULTS
+          stub_const 'Ably::Realtime::Connection::DEFAULTS', old_defaults.merge(connection_state_ttl: 15)
+        end
+
+        it 'updates the private Connection#connection_state_ttl' do
+          expect(connection.connection_state_ttl).to eql(15)
+
+          connection.once(:connected) do
+            expect(connection.connection_state_ttl).to be > 15
+            stop_reactor
+          end
+        end
+      end
     end
 
     context 'recovery' do
@@ -848,14 +864,14 @@ describe Ably::Realtime::Connection, :event_machine do
           log_level:                  :none,
           disconnected_retry_timeout: 0.1,
           suspended_retry_timeout:    0.1,
-          connection_state_ttl:       0.2,
+          max_connection_state_ttl:   0.2,
           realtime_request_timeout:   5
         )
       end
 
       describe '#recovery_key' do
         def self.available_states
-          [:connecting, :connected, :disconnected, :suspended, :failed]
+          [:connecting, :connected, :disconnected]
         end
         let(:available_states) { self.class.available_states }
         let(:states)           { Hash.new }
@@ -968,19 +984,25 @@ describe Ably::Realtime::Connection, :event_machine do
         context 'when messages have been sent whilst the old connection is disconnected' do
           describe 'the new connection' do
             it 'recovers server-side queued messages' do
+              connection_id, recovery_key = nil, nil
+
               channel.attach do
-                connection.transition_state_machine! :failed
+                connection_id = client.connection.id
+                recovery_key = client.connection.recovery_key
+                connection.transport.__incoming_protocol_msgbus__
+                publishing_client_channel.publish('event', 'message') do
+                  connection.transition_state_machine! :failed
+                end
               end
 
               connection.on(:failed) do
-                publishing_client_channel.publish('event', 'message') do
-                  recover_client = auto_close Ably::Realtime::Client.new(default_options.merge(recover: client.connection.recovery_key))
-                  recover_client_channel = recover_client.channel(channel_name)
-                  recover_client_channel.attach do
-                    recover_client_channel.subscribe('event') do |message|
-                      expect(message.data).to eql('message')
-                      stop_reactor
-                    end
+                recover_client = auto_close Ably::Realtime::Client.new(default_options.merge(recover: recovery_key))
+                recover_client_channel = recover_client.channel(channel_name)
+                recover_client_channel.attach do
+                  expect(recover_client.connection.id).to eql(connection_id)
+                  recover_client_channel.subscribe('event') do |message|
+                    expect(message.data).to eql('message')
+                    stop_reactor
                   end
                 end
               end
@@ -1212,7 +1234,7 @@ describe Ably::Realtime::Connection, :event_machine do
             log_level:                  :fatal,
             disconnected_retry_timeout: 0.02,
             suspended_retry_timeout:    60,
-            connection_state_ttl:       0.05
+            max_connection_state_ttl:   0.05
           )
         end
 
