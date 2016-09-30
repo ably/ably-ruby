@@ -1,6 +1,22 @@
 # Change Log
 
-## [Unreleased](https://github.com/ably/ably-ruby/tree/v0.8.13)
+## [Unreleased](https://github.com/ably/ably-ruby/tree/v0.8.14)
+
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v0.8.13...v0.8.14)
+
+**Fixed bugs:**
+
+- Several problems with fallback hosts [\#95](https://github.com/ably/ably-ruby/issues/95)
+
+**Closed issues:**
+
+- Catch common SSL error and show docs [\#96](https://github.com/ably/ably-ruby/issues/96)
+
+**Merged pull requests:**
+
+- Fallback host improvements [\#97](https://github.com/ably/ably-ruby/pull/97) ([mattheworiordan](https://github.com/mattheworiordan))
+
+## [v0.8.13](https://github.com/ably/ably-ruby/tree/v0.8.13) (2016-09-29)
 
 [Full Changelog](https://github.com/ably/ably-ruby/compare/v0.8.12...v0.8.13)
 
