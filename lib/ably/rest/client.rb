@@ -78,6 +78,10 @@ module Ably
       # @api private
       attr_reader :options
 
+      # The list of fallback hosts to be used by this client
+      # if empty or nil then fallback host functionality is disabled
+      attr_reader :fallback_hosts
+
       # Creates a {Ably::Rest::Client Rest Client} and configures the {Ably::Auth} object for the connection.
       #
       # @param [Hash,String] options an options Hash used to configure the client and the authentication, or String with an API key or Token ID
@@ -106,6 +110,9 @@ module Ably
       # @option options [Integer]                 :http_max_retry_count    (3) maximum number of fallback host retries for HTTP requests that fail due to network issues or server problems
       # @option options [Integer]                 :http_max_retry_duration (10 seconds) maximum elapsed time in which fallback host retries for HTTP requests will be attempted i.e. if the first default host attempt takes 5s, and then the subsequent fallback retry attempt takes 7s, no further fallback host attempts will be made as the total elapsed time of 12s exceeds the default 10s limit
       #
+      # @option options [Boolean]                 :fallback_hosts_use_default  (false) When true, forces the user of fallback hosts even if a non-default production endpoint is being used
+      # @option options [Array<String>]           :fallback_hosts              When an array of fallback hosts are provided, these fallback hosts are always used if a request fails to the primary endpoint. If an empty array is provided, the fallback host functionality is disabled
+      #
       # @return [Ably::Rest::Client]
       #
       # @example
@@ -129,6 +136,7 @@ module Ably
 
         @tls              = options.delete(:tls) == false ? false : true
         @environment      = options.delete(:environment) # nil is production
+        @environment      = nil if [:production, 'production'].include?(@environment)
         @protocol         = options.delete(:protocol) || :msgpack
         @debug_http       = options.delete(:debug_http)
         @log_level        = options.delete(:log_level) || ::Logger::WARN
@@ -136,6 +144,19 @@ module Ably
         @custom_host      = options.delete(:rest_host)
         @custom_port      = options.delete(:port)
         @custom_tls_port  = options.delete(:tls_port)
+
+        if options[:fallback_hosts_use_default] && options[:fallback_jhosts]
+          raise ArgumentError, "fallback_hosts_use_default cannot be set to trye when fallback_jhosts is also provided"
+        end
+        @fallback_hosts = if options.delete(:fallback_hosts_use_default)
+          Ably::FALLBACK_HOSTS
+        elsif fallback_hosts = options.delete(:fallback_hosts)
+          fallback_hosts
+        elsif !custom_host && !environment
+          Ably::FALLBACK_HOSTS
+        else
+          []
+        end
 
         @http_defaults = HTTP_DEFAULTS.dup
         options.each do |key, val|
@@ -295,7 +316,7 @@ module Ably
       # Connection used to make HTTP requests
       #
       # @param [Hash] options
-      # @option options [Boolean] :use_fallback when true, one of the fallback connections is used randomly, see {Ably::FALLBACK_HOSTS}
+      # @option options [Boolean] :use_fallback when true, one of the fallback connections is used randomly, see the default {Ably::FALLBACK_HOSTS}
       #
       # @return [Faraday::Connection]
       #
@@ -309,14 +330,15 @@ module Ably
       end
 
       # Fallback connection used to make HTTP requests.
-      # Note, each request uses a random and then subsequent random {Ably::FALLBACK_HOSTS fallback host}
+      # Note, each request uses a random and then subsequent random {Ably::FALLBACK_HOSTS fallback hosts}
+      # are used (unless custom fallback hosts are provided with fallback_hosts)
       #
       # @return [Faraday::Connection]
       #
       # @api private
       def fallback_connection
         unless defined?(@fallback_connections) && @fallback_connections
-          @fallback_connections = Ably::FALLBACK_HOSTS.shuffle.map { |host| Faraday.new(endpoint_for_host(host).to_s, connection_options) }
+          @fallback_connections = fallback_hosts.shuffle.map { |host| Faraday.new(endpoint_for_host(host).to_s, connection_options) }
         end
         @fallback_index ||= 0
 
@@ -449,7 +471,7 @@ module Ably
       end
 
       def can_fallback_to_alternate_ably_host?
-        !custom_host && !environment
+        fallback_hosts && !fallback_hosts.empty?
       end
 
       def initialize_default_encoders
