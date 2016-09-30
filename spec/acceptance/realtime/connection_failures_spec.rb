@@ -716,7 +716,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
 
             connection.once(:suspended) do
-              expect(fallback_hosts_used.uniq).to match_array(Ably::FALLBACK_HOSTS)
+              expect(fallback_hosts_used.uniq).to match_array(Ably::FALLBACK_HOSTS + [expected_host])
               stop_reactor
             end
           end
@@ -741,7 +741,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
 
             connection.once(:suspended) do
-              expect(fallback_hosts_used.uniq).to match_array(fallback_hosts)
+              expect(fallback_hosts_used.uniq).to match_array(fallback_hosts + [expected_host])
               stop_reactor
             end
           end
@@ -784,44 +784,48 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             @suspended = 0
           end
 
-          it 'uses a fallback host on every subsequent disconnected attempt until suspended' do
-            request = 0
-            expect(connection).to receive(:create_transport).exactly(retry_count_for_one_state).times do |host|
-              if request == 0
-                expect(host).to eql(expected_host)
-              else
-                fallback_hosts_used << host
+          context 'and default options' do
+            let(:max_time_in_state_for_tests) { 2 } # allow time for 3 attempts, 2 configured fallbacks + primary host
+
+            it 'uses a fallback host + the original host once on every subsequent disconnected attempt until suspended' do
+              request = 0
+              expect(connection).to receive(:create_transport).exactly(retry_count_for_one_state).times do |host|
+                if request == 0
+                  expect(host).to eql(expected_host)
+                else
+                  fallback_hosts_used << host
+                end
+                request += 1
+                raise EventMachine::ConnectionError
               end
-              request += 1
-              raise EventMachine::ConnectionError
-            end
 
-            connection.once(:suspended) do
-              fallback_hosts_used.pop # remove suspended attempt host
-              expect(fallback_hosts_used.uniq).to match_array(custom_hosts)
-              stop_reactor
-            end
-          end
-
-          it 'uses the primary host when suspended, and a fallback host on every subsequent suspended attempt' do
-            request = 0
-            expect(connection).to receive(:create_transport).at_least(:once) do |host|
-              if request == 0 || request == expected_retry_attempts + 1
-                expect(host).to eql(expected_host)
-              else
-                expect(custom_hosts).to include(host)
-                fallback_hosts_used << host if @suspended > 0
-              end
-              request += 1
-              raise EventMachine::ConnectionError
-            end
-
-            connection.on(:suspended) do
-              @suspended += 1
-
-              if @suspended > 3
-                expect(fallback_hosts_used.uniq).to match_array(custom_hosts)
+              connection.once(:suspended) do
+                fallback_hosts_used.pop # remove suspended attempt host
+                expect(fallback_hosts_used.uniq).to match_array(custom_hosts + [expected_host])
                 stop_reactor
+              end
+            end
+
+            it 'uses the primary host when suspended, and then every fallback host and the primary host again on every subsequent suspended attempt' do
+              request = 0
+              expect(connection).to receive(:create_transport).at_least(:once) do |host|
+                if request == 0 || request == expected_retry_attempts + 1
+                  expect(host).to eql(expected_host)
+                else
+                  expect(custom_hosts + [expected_host]).to include(host)
+                  fallback_hosts_used << host if @suspended > 0
+                end
+                request += 1
+                raise EventMachine::ConnectionError
+              end
+
+              connection.on(:suspended) do
+                @suspended += 1
+
+                if @suspended > 4
+                  expect(fallback_hosts_used.uniq).to match_array(custom_hosts + [expected_host])
+                  stop_reactor
+                end
               end
             end
           end
@@ -865,7 +869,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               end
 
               connection.once(:suspended) do
-                expect(fallback_hosts_used.uniq).to match_array(fallback_hosts)
+                expect(fallback_hosts_used.uniq).to match_array(fallback_hosts + [expected_host])
                 stop_reactor
               end
             end

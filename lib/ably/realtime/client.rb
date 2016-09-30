@@ -178,9 +178,10 @@ module Ably
       def fallback_endpoint
         unless defined?(@fallback_endpoints) && @fallback_endpoints
           @fallback_endpoints = fallback_hosts.shuffle.map { |fallback_host| endpoint_for_host(fallback_host) }
+          @fallback_endpoints << endpoint # Try the original host last if all fallbacks have been used
         end
 
-        fallback_endpoint_index = connection.manager.retry_count_for_state(:disconnected) + connection.manager.retry_count_for_state(:suspended)
+        fallback_endpoint_index = connection.manager.retry_count_for_state(:disconnected) + connection.manager.retry_count_for_state(:suspended) - 1
 
         @fallback_endpoints[fallback_endpoint_index % @fallback_endpoints.count]
       end

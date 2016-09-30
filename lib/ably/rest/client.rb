@@ -340,6 +340,7 @@ module Ably
       def fallback_connection
         unless defined?(@fallback_connections) && @fallback_connections
           @fallback_connections = fallback_hosts.shuffle.map { |host| Faraday.new(endpoint_for_host(host).to_s, connection_options) }
+          @fallback_connections << Faraday.new(endpoint.to_s, connection_options) # Try the original host last if all fallbacks have been used
         end
         @fallback_index ||= 0
 
