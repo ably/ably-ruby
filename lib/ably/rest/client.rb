@@ -148,14 +148,15 @@ module Ably
         if options[:fallback_hosts_use_default] && options[:fallback_jhosts]
           raise ArgumentError, "fallback_hosts_use_default cannot be set to trye when fallback_jhosts is also provided"
         end
-        @fallback_hosts = if options.delete(:fallback_hosts_use_default)
+        @fallback_hosts = case
+        when options.delete(:fallback_hosts_use_default)
           Ably::FALLBACK_HOSTS
-        elsif fallback_hosts = options.delete(:fallback_hosts)
-          fallback_hosts
-        elsif !custom_host && !environment
-          Ably::FALLBACK_HOSTS
-        else
+        when options_fallback_hosts = options.delete(:fallback_hosts)
+          options_fallback_hosts
+        when environment || custom_host || options[:realtime_host] || custom_port || custom_tls_port
           []
+        else
+          Ably::FALLBACK_HOSTS
         end
 
         @http_defaults = HTTP_DEFAULTS.dup

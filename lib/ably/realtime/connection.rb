@@ -407,12 +407,12 @@ module Ably
 
               url = URI(client.endpoint).tap do |endpoint|
                 endpoint.query = URI.encode_www_form(url_params)
-              end.to_s
+              end
 
               determine_host do |host|
                 begin
-                  logger.debug "Connection: Opening socket connection to #{host}:#{port} and URL '#{url}'"
-                  @transport = EventMachine.connect(host, port, WebsocketTransport, self, url) do |websocket_transport|
+                  logger.debug "Connection: Opening socket connection to #{host}:#{port}/#{url.path}?#{url.query}"
+                  @transport = EventMachine.connect(host, port, WebsocketTransport, self, url.to_s) do |websocket_transport|
                     websocket_deferrable.succeed websocket_transport
                   end
                 rescue EventMachine::ConnectionError => error
@@ -555,7 +555,7 @@ module Ably
       end
 
       def can_use_fallback_hosts?
-        if production? && !custom_port? && !custom_host?
+        if client.fallback_hosts && !client.fallback_hosts.empty?
           if connecting? && previous_state
             use_fallback_if_disconnected? || use_fallback_if_suspended?
           end

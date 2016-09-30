@@ -663,7 +663,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         let(:expected_host)  { "#{environment}-#{Ably::Realtime::Client::DOMAIN}" }
         let(:client_options) { timeout_options.merge(environment: environment) }
 
-        it 'never uses a fallback host' do
+        it 'does not use a fallback host by default' do
           expect(EventMachine).to receive(:connect).exactly(retry_count_for_all_states).times do |host|
             expect(host).to eql(expected_host)
             raise EventMachine::ConnectionError
@@ -671,6 +671,55 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
           connection.once(:suspended) do
             connection.once(:suspended) do
+              stop_reactor
+            end
+          end
+        end
+
+        context ':fallback_hosts_use_default is true' do
+          let(:max_time_in_state_for_tests) { 4 }
+          let(:fallback_hosts_used) { Array.new }
+          let(:client_options) { timeout_options.merge(environment: environment, fallback_hosts_use_default: true) }
+
+          it 'uses a fallback host on every subsequent disconnected attempt until suspended (#RTN17b, #TO3k7)' do
+            request = 0
+            allow(EventMachine).to receive(:connect) do |host|
+              if request == 0
+                expect(host).to eql(expected_host)
+              else
+                fallback_hosts_used << host
+              end
+              request += 1
+              raise EventMachine::ConnectionError
+            end
+
+            connection.once(:suspended) do
+              expect(fallback_hosts_used.uniq).to match_array(Ably::FALLBACK_HOSTS)
+              stop_reactor
+            end
+          end
+        end
+
+        context ':fallback_hosts array is provided' do
+          let(:max_time_in_state_for_tests) { 4 }
+          let(:fallback_hosts) { %w(a.foo.com b.foo.com) }
+          let(:fallback_hosts_used) { Array.new }
+          let(:client_options) { timeout_options.merge(environment: environment, fallback_hosts: fallback_hosts) }
+
+          it 'uses a fallback host on every subsequent disconnected attempt until suspended (#RTN17b, #TO3k6)' do
+            request = 0
+            allow(EventMachine).to receive(:connect) do |host|
+              if request == 0
+                expect(host).to eql(expected_host)
+              else
+                fallback_hosts_used << host
+              end
+              request += 1
+              raise EventMachine::ConnectionError
+            end
+
+            connection.once(:suspended) do
+              expect(fallback_hosts_used.uniq).to match_array(fallback_hosts)
               stop_reactor
             end
           end
@@ -750,6 +799,51 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
               if @suspended > 3
                 expect(fallback_hosts_used.uniq).to match_array(custom_hosts)
+                stop_reactor
+              end
+            end
+          end
+
+          context ':fallback_hosts array is provided by an empty array' do
+            let(:max_time_in_state_for_tests) { 3 }
+            let(:fallback_hosts) { [] }
+            let(:hosts_used) { Array.new }
+            let(:client_options) { timeout_options.merge(environment: 'production', fallback_hosts: fallback_hosts) }
+
+            it 'uses a fallback host on every subsequent disconnected attempt until suspended (#RTN17b, #TO3k6)' do
+              allow(EventMachine).to receive(:connect) do |host|
+                hosts_used << host
+                raise EventMachine::ConnectionError
+              end
+
+              connection.once(:suspended) do
+                expect(hosts_used.uniq.length).to eql(1)
+                expect(hosts_used.uniq.first).to eql(expected_host)
+                stop_reactor
+              end
+            end
+          end
+
+          context ':fallback_hosts array is provided' do
+            let(:max_time_in_state_for_tests) { 3 }
+            let(:fallback_hosts) { %w(a.foo.com b.foo.com) }
+            let(:fallback_hosts_used) { Array.new }
+            let(:client_options) { timeout_options.merge(environment: 'production', fallback_hosts: fallback_hosts) }
+
+            it 'uses a fallback host on every subsequent disconnected attempt until suspended (#RTN17b, #TO3k6)' do
+              request = 0
+              allow(EventMachine).to receive(:connect) do |host|
+                if request == 0
+                  expect(host).to eql(expected_host)
+                else
+                  fallback_hosts_used << host
+                end
+                request += 1
+                raise EventMachine::ConnectionError
+              end
+
+              connection.once(:suspended) do
+                expect(fallback_hosts_used.uniq).to match_array(fallback_hosts)
                 stop_reactor
               end
             end
