@@ -62,7 +62,7 @@ describe Ably::Realtime::Client, :event_machine do
             context 'with valid :key and :use_token_auth option set to true' do
               let(:client_options)  { default_options.merge(use_token_auth: true) }
 
-              it 'automatically authorises on connect and generates a token' do
+              it 'automatically authorizes on connect and generates a token' do
                 connection.on(:connected) do
                   expect(subject.auth.current_token_details).to_not be_nil
                   expect(auth_params[:access_token]).to_not be_nil
@@ -116,7 +116,7 @@ describe Ably::Realtime::Client, :event_machine do
 
           context 'when the returned token has a client_id' do
             it "sets Auth#client_id to the new token's client_id immediately when connecting" do
-              subject.auth.authorise do
+              subject.auth.authorize do
                 expect(subject.connection).to be_connecting
                 expect(subject.auth.client_id).to eql(client_id)
                 stop_reactor
@@ -124,7 +124,7 @@ describe Ably::Realtime::Client, :event_machine do
             end
 
             it "sets Client#client_id to the new token's client_id immediately when connecting" do
-              subject.auth.authorise do
+              subject.auth.authorize do
                 expect(subject.connection).to be_connecting
                 expect(subject.client_id).to eql(client_id)
                 stop_reactor

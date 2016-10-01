@@ -285,14 +285,14 @@ module Ably
 
         response = case method.to_sym
         when :get
-          reauthorise_on_authorisation_failure do
+          reauthorize_on_authorisation_failure do
             send_request(method, path, params, headers: headers)
           end
         when :post
           path_with_params = Addressable::URI.new
           path_with_params.query_values = params || {}
           query = path_with_params.query
-          reauthorise_on_authorisation_failure do
+          reauthorize_on_authorisation_failure do
             send_request(method, "#{path}#{"?#{query}" unless query.nil? || query.empty?}", body, headers: headers)
           end
         end
@@ -414,10 +414,10 @@ module Ably
       private
       def raw_request(method, path, params = {}, options = {})
         options = options.clone
-        if options.delete(:disable_automatic_reauthorise) == true
+        if options.delete(:disable_automatic_reauthorize) == true
           send_request(method, path, params, options)
         else
-          reauthorise_on_authorisation_failure do
+          reauthorize_on_authorisation_failure do
             send_request(method, path, params, options)
           end
         end
@@ -464,11 +464,11 @@ module Ably
         end
       end
 
-      def reauthorise_on_authorisation_failure
+      def reauthorize_on_authorisation_failure
         yield
       rescue Ably::Exceptions::TokenExpired => e
         if auth.token_renewable?
-          auth.authorise(nil, force: true)
+          auth.authorize(nil, force: true)
           yield
         else
           raise e

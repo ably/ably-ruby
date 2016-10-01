@@ -60,9 +60,9 @@ describe Ably::Realtime::Connection, :event_machine do
 
         context 'for renewable tokens' do
           context 'that are valid for the duration of the test' do
-            context 'with valid pre authorised token expiring in the future' do
+            context 'with valid pre authorized token expiring in the future' do
               it 'uses the existing token created by Auth' do
-                client.auth.authorise(ttl: 300)
+                client.auth.authorize(ttl: 300)
                 expect(client.auth).to_not receive(:request_token)
                 connection.once(:connected) do
                   stop_reactor
@@ -101,8 +101,8 @@ describe Ably::Realtime::Connection, :event_machine do
             context 'opening a new connection' do
               context 'with almost expired tokens' do
                 before do
-                  # Authorise synchronously to ensure token has been issued
-                  client.auth.authorise_sync(ttl: ttl)
+                  # Authorize synchronously to ensure token has been issued
+                  client.auth.authorize_sync(ttl: ttl)
                 end
 
                 let(:ttl) { 2 }
