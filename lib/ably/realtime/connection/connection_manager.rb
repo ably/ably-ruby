@@ -402,8 +402,8 @@ module Ably::Realtime
           @renewing_token = true
           logger.info "ConnectionManager: Token has expired and is renewable, renewing token now"
 
-          client.auth.authorise(nil, force: true).tap do |authorise_deferrable|
-            authorise_deferrable.callback do |token_details|
+          client.auth.authorize(nil, force: true).tap do |authorize_deferrable|
+            authorize_deferrable.callback do |token_details|
               logger.info 'ConnectionManager: Token renewed succesfully following expiration'
 
               connection.once_state_changed { @renewing_token = false }
@@ -415,7 +415,7 @@ module Ably::Realtime
               end
             end
 
-            authorise_deferrable.errback do |auth_error|
+            authorize_deferrable.errback do |auth_error|
               @renewing_token = false
               logger.error "ConnectionManager: Error authorising following token expiry: #{auth_error}"
               connection.transition_state_machine :failed, reason: auth_error

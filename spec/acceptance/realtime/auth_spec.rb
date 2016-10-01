@@ -73,7 +73,7 @@ describe Ably::Realtime::Auth, :event_machine do
       context '#current_token_details' do
         it 'contains the current token after auth' do
           expect(auth.current_token_details).to be_nil
-          auth.authorise do
+          auth.authorize do
             expect(auth.current_token_details).to be_a(Ably::Models::TokenDetails)
             stop_reactor
           end
@@ -93,7 +93,7 @@ describe Ably::Realtime::Auth, :event_machine do
         let(:client_options) { default_options.merge(auto_connect: false) }
 
         it 'contains the configured auth options' do
-          auth.authorise({}, auth_url: auth_url, auth_params: auth_params) do
+          auth.authorize({}, auth_url: auth_url, auth_params: auth_params) do
             expect(auth.options[:auth_url]).to eql(auth_url)
             stop_reactor
           end
@@ -104,7 +104,7 @@ describe Ably::Realtime::Auth, :event_machine do
         let(:custom_ttl) { 33 }
 
         it 'contains the configured auth options' do
-          auth.authorise(ttl: custom_ttl) do
+          auth.authorize(ttl: custom_ttl) do
             expect(auth.token_params[:ttl]).to eql(custom_ttl)
             stop_reactor
           end
@@ -113,7 +113,7 @@ describe Ably::Realtime::Auth, :event_machine do
 
       context '#using_basic_auth?' do
         it 'is false when using Token Auth' do
-          auth.authorise do
+          auth.authorize do
             expect(auth).to_not be_using_basic_auth
             stop_reactor
           end
@@ -122,7 +122,7 @@ describe Ably::Realtime::Auth, :event_machine do
 
       context '#using_token_auth?' do
         it 'is true when using Token Auth' do
-          auth.authorise do
+          auth.authorize do
             expect(auth).to be_using_token_auth
             stop_reactor
           end
@@ -176,9 +176,9 @@ describe Ably::Realtime::Auth, :event_machine do
         end
       end
 
-      context '#authorise' do
+      context '#authorize' do
         it 'returns a token asynchronously' do
-          auth.authorise(ttl: custom_ttl, client_id: custom_client_id) do |token_details|
+          auth.authorize(ttl: custom_ttl, client_id: custom_client_id) do |token_details|
             expect(token_details).to be_a(Ably::Models::TokenDetails)
             expect(token_details.expires.to_i).to be_within(3).of(Time.now.to_i + custom_ttl)
             expect(token_details.client_id).to eql(custom_client_id)
@@ -271,7 +271,7 @@ describe Ably::Realtime::Auth, :event_machine do
           context 'and an incompatible client_id in a TokenDetails object passed to the auth callback' do
             it 'rejects a TokenDetails object with an incompatible client_id and raises an exception' do
               client.connection.once(:connected) do
-                client.auth.authorise({}, force: true)
+                client.auth.authorize({}, force: true)
                 client.connection.on(:error) do |error|
                   expect(error).to be_a(Ably::Exceptions::IncompatibleClientId)
                   EventMachine.add_timer(0.1) do
@@ -308,7 +308,7 @@ describe Ably::Realtime::Auth, :event_machine do
           it 'forces the connection to disconnect and reconnect with a new token when in the CONNECTED state' do
             client.connection.once(:connected) do
               existing_token = client.auth.current_token_details
-              client.auth.authorise(nil, force: true)
+              client.auth.authorize(nil, force: true)
               client.connection.once(:disconnected) do
                 client.connection.once(:connected) do
                   expect(existing_token).to_not eql(client.auth.current_token_details)
@@ -321,7 +321,7 @@ describe Ably::Realtime::Auth, :event_machine do
           it 'forces the connection to disconnect and reconnect with a new token when in the CONNECTING state' do
             client.connection.once(:connecting) do
               existing_token = client.auth.current_token_details
-              client.auth.authorise(nil, force: true)
+              client.auth.authorize(nil, force: true)
               client.connection.once(:disconnected) do
                 client.connection.once(:connected) do
                   expect(existing_token).to_not eql(client.auth.current_token_details)
@@ -340,7 +340,7 @@ describe Ably::Realtime::Auth, :event_machine do
 
             it 'transisitions the connection state to FAILED if the client_id changes' do
               client.connection.once(:connected) do
-                client.auth.authorise(nil, auth_callback: identified_token_cb, force: true)
+                client.auth.authorize(nil, auth_callback: identified_token_cb, force: true)
                 client.connection.once(:failed) do
                   expect(client.connection.error_reason.message).to match(/incompatible.*client ID/)
                   stop_reactor
@@ -358,7 +358,7 @@ describe Ably::Realtime::Auth, :event_machine do
                 channel.publish('not-allowed').errback do |error|
                   expect(error.code).to eql(40160)
                   expect(error.message).to match(/permission denied/)
-                  client.auth.authorise(nil, auth_callback: upgraded_token_cb, force: true)
+                  client.auth.authorize(nil, auth_callback: upgraded_token_cb, force: true)
                   client.connection.once(:connected) do
                     expect(client.connection.error_reason).to be_nil
                     channel.subscribe('allowed') do |message|
@@ -378,7 +378,7 @@ describe Ably::Realtime::Auth, :event_machine do
               client.connection.once(:connected) do
                 channel = client.channels.get('foo')
                 channel.attach do
-                  client.auth.authorise(nil, auth_callback: downgraded_token_cb, force: true)
+                  client.auth.authorize(nil, auth_callback: downgraded_token_cb, force: true)
                   channel.once(:failed) do
                     expect(channel.error_reason.code).to eql(40160)
                     expect(channel.error_reason.message).to match(/Channel denied access/)
@@ -401,7 +401,7 @@ describe Ably::Realtime::Auth, :event_machine do
                 publisher_channel.publish('foo') do
                   EventMachine.add_timer(2) do
                     expect(received_messages.length).to eql(1)
-                    client.auth.authorise(nil, force: true)
+                    client.auth.authorize(nil, force: true)
                     client.connection.once(:disconnected) do
                       publisher_channel.publish('bar') do
                         expect(received_messages.length).to eql(1)
@@ -422,7 +422,7 @@ describe Ably::Realtime::Auth, :event_machine do
           it 'does not change the connection state if current connection state is closing' do
             client.connection.once(:connected) do
               client.connection.once(:closing) do
-                client.auth.authorise(nil, force: true)
+                client.auth.authorize(nil, force: true)
                 client.connection.once(:connected) do
                   raise "Should not reconnect following auth force: true"
                 end
@@ -438,7 +438,7 @@ describe Ably::Realtime::Auth, :event_machine do
           it 'does not change the connection state if current connection state is closed' do
             client.connection.once(:connected) do
               client.connection.once(:closed) do
-                client.auth.authorise(nil, force: true)
+                client.auth.authorize(nil, force: true)
                 client.connection.once(:connected) do
                   raise "Should not reconnect following auth force: true"
                 end
@@ -457,7 +457,7 @@ describe Ably::Realtime::Auth, :event_machine do
             it 'does not change the connection state' do
               client.connection.once(:connected) do
                 client.connection.once(:failed) do
-                  client.auth.authorise(nil, force: true)
+                  client.auth.authorize(nil, force: true)
                   client.connection.once(:connected) do
                     raise "Should not reconnect following auth force: true"
                   end
@@ -474,10 +474,10 @@ describe Ably::Realtime::Auth, :event_machine do
         end
       end
 
-      context '#authorise_async' do
+      context '#authorize_async' do
         it 'returns a token synchronously' do
-          auth.authorise_sync(ttl: custom_ttl, client_id: custom_client_id).tap do |token_details|
-            expect(auth.authorise_sync).to be_a(Ably::Models::TokenDetails)
+          auth.authorize_sync(ttl: custom_ttl, client_id: custom_client_id).tap do |token_details|
+            expect(auth.authorize_sync).to be_a(Ably::Models::TokenDetails)
             expect(token_details.expires.to_i).to be_within(3).of(Time.now.to_i + custom_ttl)
             expect(token_details.client_id).to eql(custom_client_id)
             stop_reactor
@@ -693,6 +693,48 @@ describe Ably::Realtime::Auth, :event_machine do
               stop_reactor
             end
           end
+        end
+      end
+    end
+
+    context 'deprecated #authorise' do
+      let(:client_options)  { default_options.merge(key: api_key, logger: custom_logger_object) }
+      let(:custom_logger) do
+        Class.new do
+          def initialize
+            @messages = []
+          end
+
+          [:fatal, :error, :warn, :info, :debug].each do |severity|
+            define_method severity do |message|
+              @messages << [severity, message]
+            end
+          end
+
+          def logs
+            @messages
+          end
+
+          def level
+            1
+          end
+
+          def level=(new_level)
+          end
+        end
+      end
+      let(:custom_logger_object) { custom_logger.new }
+
+      it 'logs a deprecation warning (#RSA10l)' do
+        client.auth.authorise
+        expect(custom_logger_object.logs.find { |severity, message| message.match(/authorise.*deprecated/i)} ).to_not be_nil
+        stop_reactor
+      end
+
+      it 'returns a valid token (#RSA10l)' do
+        client.auth.authorise do |response|
+          expect(response).to be_a(Ably::Models::TokenDetails)
+          stop_reactor
         end
       end
     end
