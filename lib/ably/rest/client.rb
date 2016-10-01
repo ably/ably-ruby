@@ -251,15 +251,67 @@ module Ably
       # Perform an HTTP GET request to the API using configured authentication
       #
       # @return [Faraday::Response]
+      #
+      # @api private
       def get(path, params = {}, options = {})
-        request(:get, path, params, options)
+        raw_request(:get, path, params, options)
       end
 
       # Perform an HTTP POST request to the API using configured authentication
       #
       # @return [Faraday::Response]
+      #
+      # @api private
       def post(path, params, options = {})
-        request(:post, path, params, options)
+        raw_request(:post, path, params, options)
+      end
+
+      # Perform an HTTP request to the Ably API
+      # This is a convenience for customers who wish to use bleeding edge REST API functionality
+      # that is either not documented or is not included in the API for our client libraries.
+      # The REST client library provides a function to issue HTTP requests to the Ably endpoints
+      # with all the built in functionality of the library such as authentication, paging,
+      # fallback hosts, MsgPack and JSON support etc.
+      #
+      # @param method  [Symbol]    The HTTP method symbol such as +:get+, +:post+, +:put+
+      # @param path    [String]    The path of the URL such +/channel/foo/publish+
+      # @param params  [Hash, nil] Optional querystring params
+      # @param body    [Hash, nil] Optional body for the POST or PUT request, must be nil or a JSON-like object
+      # @param headers [Hash, nil] Optional additional headers
+      #
+      # @return [Ably::Models::HttpPaginatedResponse<>]
+      def request(method, path, params = {}, body = nil, headers = {}, options = {})
+        raise "Method #{method.to_s.upcase} not supported" unless [:get, :put, :post].include?(method.to_sym)
+
+        response = case method.to_sym
+        when :get
+          reauthorise_on_authorisation_failure do
+            send_request(method, path, params, headers: headers)
+          end
+        when :post
+          path_with_params = Addressable::URI.new
+          path_with_params.query_values = params || {}
+          query = path_with_params.query
+          reauthorise_on_authorisation_failure do
+            send_request(method, "#{path}#{"?#{query}" unless query.nil? || query.empty?}", body, headers: headers)
+          end
+        end
+
+        paginated_options = {
+          async_blocking_operations: options.delete(:async_blocking_operations),
+        }
+
+        Ably::Models::HttpPaginatedResponse.new(response, path, self, paginated_options)
+
+      rescue Exceptions::ResourceMissing, Exceptions::ForbiddenRequest, Exceptions::ResourceMissing => e
+        response = Models::HttpPaginatedResponse::ErrorResponse.new(e.status, e.code, e.message)
+        Models::HttpPaginatedResponse.new(response, path, self)
+      rescue Exceptions::TokenExpired, Exceptions::UnauthorizedRequest => e
+        response = Models::HttpPaginatedResponse::ErrorResponse.new(e.status, e.code, e.message)
+        Models::HttpPaginatedResponse.new(response, path, self)
+      rescue Exceptions::InvalidRequest, Exceptions::ServerError => e
+        response = Models::HttpPaginatedResponse::ErrorResponse.new(e.status, e.code, e.message)
+        Models::HttpPaginatedResponse.new(response, path, self)
       end
 
       # @!attribute [r] endpoint
@@ -360,7 +412,7 @@ module Ably
       end
 
       private
-      def request(method, path, params = {}, options = {})
+      def raw_request(method, path, params = {}, options = {})
         options = options.clone
         if options.delete(:disable_automatic_reauthorise) == true
           send_request(method, path, params, options)
@@ -385,6 +437,11 @@ module Ably
           connection(use_fallback: use_fallback).send(method, path, params) do |request|
             unless options[:send_auth_header] == false
               request.headers[:authorization] = auth.auth_header
+              if options[:headers]
+                options[:headers].map do |key, val|
+                  request.headers[key] = val
+                end
+              end
             end
           end
 

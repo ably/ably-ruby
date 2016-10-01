@@ -42,7 +42,7 @@ module Ably::Models
       (200..299).include?(http_response.status.to_i)
     end
 
-    # Ably error code from X-Ably-Errorcode header if available from response
+    # Ably error code from +X-Ably-Errorcode+ header if available from response
     # @return [Integer]
     def error_code
       if http_response.headers['X-Ably-Errorcode']
@@ -50,7 +50,7 @@ module Ably::Models
       end
     end
 
-    # Error message from X-Ably-Errormessage header if available from response
+    # Error message from +X-Ably-Errormessage+ header if available from response
     # @return [String]
     def error_message
       http_response.headers['X-Ably-Errormessage']
@@ -60,6 +60,31 @@ module Ably::Models
     # @return [Hash<String, String>]
     def headers
       http_response.headers || {}
+    end
+
+    # Farady compatible response object used when an exception is raised
+    # @api private
+    class ErrorResponse
+      def initialize(status, error_code, error_message)
+        @status = status
+        @error_code = error_code
+        @error_message = error_message
+      end
+
+      def status
+        @status
+      end
+
+      def headers
+        {
+          'X-Ably-Errorcode' => @error_code,
+          'X-Ably-Errormessage' => @error_message
+        }
+      end
+
+      def body
+        nil
+      end
     end
   end
 end
