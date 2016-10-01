@@ -137,7 +137,7 @@ describe Ably::Rest do
 
       context 'when auth#token_renewable?' do
         before do
-          client.auth.authorise
+          client.auth.authorize
         end
 
         it 'should automatically reissue a token' do
