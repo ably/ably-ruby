@@ -402,7 +402,7 @@ module Ably::Realtime
           @renewing_token = true
           logger.info "ConnectionManager: Token has expired and is renewable, renewing token now"
 
-          client.auth.authorize(nil, force: true).tap do |authorize_deferrable|
+          client.auth.authorize.tap do |authorize_deferrable|
             authorize_deferrable.callback do |token_details|
               logger.info 'ConnectionManager: Token renewed succesfully following expiration'
 

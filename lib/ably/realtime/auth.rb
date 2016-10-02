@@ -214,7 +214,7 @@ module Ably
       def upgrade_authentication_block(new_token)
         # This block is called if the authorisation was forced
         if client.connection.connected? || client.connection.connecting?
-          logger.debug "Realtime::Auth - authorize called with { force: true } so forcibly disconnecting transport to initiate auth upgrade"
+          logger.debug "Realtime::Auth - authorize was called so forcibly disconnecting transport to initiate auth upgrade"
           block = Proc.new do
             if client.connection.transport
               logger.debug "Realtime::Auth - current transport disconnected"
