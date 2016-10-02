@@ -37,7 +37,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rspec', '~> 3.2.0' # version lock, see config.around(:example, :event_machine) in event_machine_helper.rb
   spec.add_development_dependency 'rspec-retry'
   spec.add_development_dependency 'yard'
-  spec.add_development_dependency 'webmock'
+  spec.add_development_dependency 'webmock', '~> 2.0'
 
   spec.add_development_dependency 'coveralls'
 
