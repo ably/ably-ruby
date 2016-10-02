@@ -468,7 +468,7 @@ module Ably
         yield
       rescue Ably::Exceptions::TokenExpired => e
         if auth.token_renewable?
-          auth.authorize(nil, force: true)
+          auth.authorize
           yield
         else
           raise e
