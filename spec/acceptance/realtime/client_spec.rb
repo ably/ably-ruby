@@ -259,7 +259,7 @@ describe Ably::Realtime::Client, :event_machine do
 
           it 'provides paging' do
             10.times do
-              subject.rest_client.request(:post, "/channels/#{channel_name}/publish", {}, { 'name': 'test' })
+              subject.rest_client.request(:post, "/channels/#{channel_name}/publish", {}, { 'name' => 'test' })
             end
 
             subject.request(:get, "/channels/#{channel_name}/messages", { limit: 2 }).callback do |response|
