@@ -144,6 +144,16 @@ module Ably
         connection.connect(&block)
       end
 
+      # (see Ably::Rest::Client#request)
+      # @yield [Ably::Models::HttpPaginatedResponse<>] An Array of Stats
+      #
+      # @return [Ably::Util::SafeDeferrable]
+      def request(method, path, params = {}, body = nil, headers = {}, &callback)
+        async_wrap(callback) do
+          rest_client.request(method, path, params, body, headers, async_blocking_operations: true)
+        end
+      end
+
       # @!attribute [r] endpoint
       # @return [URI::Generic] Default Ably Realtime endpoint used for all requests
       def endpoint

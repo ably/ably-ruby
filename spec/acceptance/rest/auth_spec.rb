@@ -445,8 +445,8 @@ describe Ably::Auth do
             expect(request_token.client_id).to eql(client_id)
           end
 
-          context 'when authorised' do
-            before { auth.authorise(token_params, auth_callback: auth_callback) }
+          context 'when authorized' do
+            before { auth.authorize(token_params, auth_callback: auth_callback) }
 
             it "sets Auth#client_id to the new token's client_id" do
               expect(auth.client_id).to eql(client_id)
@@ -500,8 +500,8 @@ describe Ably::Auth do
             expect(token_details.capability).to eql(capability)
           end
 
-          context 'when authorised' do
-            before { auth.authorise(token_params, auth_callback: auth_callback) }
+          context 'when authorized' do
+            before { auth.authorize(token_params, auth_callback: auth_callback) }
 
             it "sets Auth#client_id to the new token's client_id" do
               expect(auth.client_id).to eql(client_id)
@@ -583,13 +583,13 @@ describe Ably::Auth do
       end
     end
 
-    context 'before #authorise has been called' do
+    context 'before #authorize has been called' do
       it 'has no current_token_details' do
         expect(auth.current_token_details).to be_nil
       end
     end
 
-    describe '#authorise' do
+    describe '#authorize (#RSA10, #RSA10j)' do
       context 'when called for the first time since the client has been instantiated' do
         let(:auth_options) do
           { auth_url: 'http://somewhere.com/' }
@@ -600,15 +600,15 @@ describe Ably::Auth do
 
         it 'passes all auth_options and token_params to #request_token' do
           expect(auth).to receive(:request_token).with(token_params, auth_options)
-          auth.authorise token_params, auth_options
+          auth.authorize token_params, auth_options
         end
 
         it 'returns a valid token' do
-          expect(auth.authorise).to be_a(Ably::Models::TokenDetails)
+          expect(auth.authorize).to be_a(Ably::Models::TokenDetails)
         end
 
-        it 'issues a new token if option :force => true' do
-          expect { auth.authorise(force: true) }.to change { auth.current_token_details }
+        it 'issues a new token every time (#RSA10a)' do
+          expect { auth.authorize }.to change { auth.current_token_details }
         end
       end
 
@@ -624,8 +624,8 @@ describe Ably::Auth do
         it 'only queries the server time once and then works out the offset, query_time option is never persisted' do
           expect(client).to receive(:time).once.and_return(server_time)
 
-          auth.authorise({}, query_time: true)
-          auth.authorise({}, force: true)
+          auth.authorize({}, query_time: true)
+          auth.authorize({})
           expect(auth.auth_options).to_not have_key(:query_time)
         end
       end
@@ -634,26 +634,26 @@ describe Ably::Auth do
         let(:default_token_params) { { ttl: 23 } }
 
         before do
-          auth.authorise default_token_params
+          auth.authorize default_token_params
         end
 
         it 'has no effect on the defaults when null and TokenParam defaults remain the same' do
           old_token = auth.current_token_details
-          auth.authorise(nil, force: true)
+          auth.authorize
           expect(old_token).to_not eql(auth.current_token_details)
           expect(auth.token_params[:ttl]).to eql(23)
         end
 
         it 'updates defaults when present and all previous configured TokenParams are discarded' do
           old_token = auth.current_token_details
-          auth.authorise({ client_id: 'bob' }, { force: true })
+          auth.authorize({ client_id: 'bob' })
           expect(old_token).to_not eql(auth.current_token_details)
           expect(auth.token_params[:ttl]).to_not eql(23)
           expect(auth.token_params[:client_id]).to eql('bob')
         end
 
         it 'updates Auth#token_params attribute with an immutable hash' do
-          auth.authorise({ client_id: 'bob' }, { force: true })
+          auth.authorize({ client_id: 'bob' })
           expect { auth.token_params['key_name'] = 'new_name' }.to raise_error RuntimeError, /can't modify frozen.*Hash/
         end
       end
@@ -669,68 +669,63 @@ describe Ably::Auth do
           stub_const 'Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER', 0 # allow token to be used even if about to expire
           stub_const 'Ably::Auth::TOKEN_DEFAULTS', Ably::Auth::TOKEN_DEFAULTS.merge(renew_token_buffer: 0) # Ensure tokens issued expire immediately after issue
 
-          auth.authorise(nil, default_auth_options)
+          auth.authorize(nil, default_auth_options)
           @old_token = auth.current_token_details
           sleep token_ttl + 0.5
         end
 
         it 'has no effect on the defaults when null and AuthOptions defaults remain the same' do
-          auth.authorise(nil, nil)
+          auth.authorize(nil, nil)
           expect(@old_token).to_not eql(auth.current_token_details)
           expect(auth.options[:auth_callback]).to eql(auth_callback)
         end
 
         it 'updates defaults when present and all previous configured AuthOptions are discarded' do
-          auth.authorise(nil, auth_method: :post)
+          auth.authorize(nil, auth_method: :post)
           expect(@old_token).to_not eql(auth.current_token_details)
           expect(auth.options[:auth_callback]).to be_nil
           expect(auth.options[:auth_method]).to eql(:post)
         end
 
         it 'updates Auth#options attribute with an immutable hash' do
-          auth.authorise(nil, auth_callback: Proc.new { '1231232.12321:12321312' })
+          auth.authorize(nil, auth_callback: Proc.new { '1231232.12321:12321312' })
           expect { auth.options['key_name'] = 'new_name' }.to raise_error RuntimeError, /can't modify frozen.*Hash/
         end
       end
 
       context 'with previous authorisation' do
         before do
-          auth.authorise
+          auth.authorize
           expect(auth.current_token_details).to_not be_expired
-        end
-
-        it 'does not request a token if current_token_details has not expired' do
-          expect(auth).to_not receive(:request_token)
-          auth.authorise
         end
 
         it 'requests a new token if token is expired' do
           allow(auth.current_token_details).to receive(:expired?).and_return(true)
           expect(auth).to receive(:request_token)
-          expect { auth.authorise }.to change { auth.current_token_details }
+          expect { auth.authorize }.to change { auth.current_token_details }
         end
 
-        it 'issues a new token if option :force => true' do
-          expect { auth.authorise({}, force: true) }.to change { auth.current_token_details }
+        it 'issues a new token every time #authorize is called' do
+          expect { auth.authorize({}) }.to change { auth.current_token_details }
         end
       end
 
-      it 'updates the persisted token params that are then used for subsequent authorise requests' do
+      it 'updates the persisted token params that are then used for subsequent authorize requests' do
         expect(auth.token_params[:ttl]).to_not eql(26)
-        auth.authorise(ttl: 26)
+        auth.authorize(ttl: 26)
         expect(auth.token_params[:ttl]).to eql(26)
       end
 
-      it 'updates the persisted auth options that are then used for subsequent authorise requests' do
+      it 'updates the persisted auth options that are then used for subsequent authorize requests' do
         expect(auth.options[:authUrl]).to be_nil
-        auth.authorise({}, authUrl: 'http://foo.com')
+        auth.authorize({}, authUrl: 'http://foo.com')
         expect(auth.options[:authUrl]).to eql('http://foo.com')
       end
 
       context 'with a Proc for the :auth_callback option' do
         let(:client_id) { random_str }
         let!(:token) do
-          auth.authorise({}, auth_callback: Proc.new do
+          auth.authorize({}, auth_callback: Proc.new do
             @block_called ||= 0
             @block_called += 1
             auth.create_token_request(client_id: client_id)
@@ -800,7 +795,7 @@ describe Ably::Auth do
           let(:auth_token_object) { auth_client.auth.request_token }
 
           it 'rejects a TokenDetails object with an incompatible client_id and raises an exception' do
-            expect { client.auth.authorise({}, force: true) }.to raise_error Ably::Exceptions::IncompatibleClientId
+            expect { client.auth.authorize({}) }.to raise_error Ably::Exceptions::IncompatibleClientId
           end
         end
 
@@ -808,7 +803,7 @@ describe Ably::Auth do
           let(:auth_token_object) { auth_client.auth.create_token_request }
 
           it 'rejects a TokenRequests object with an incompatible client_id and raises an exception' do
-            expect { client.auth.authorise({}, force: true) }.to raise_error Ably::Exceptions::IncompatibleClientId
+            expect { client.auth.authorize({}) }.to raise_error Ably::Exceptions::IncompatibleClientId
           end
         end
 
@@ -816,7 +811,7 @@ describe Ably::Auth do
           let(:auth_token_object) { auth_client.auth.request_token(client_id: 'different').token }
 
           it 'rejects a TokenRequests object with an incompatible client_id and raises an exception' do
-            client.auth.authorise({}, force: true)
+            client.auth.authorize({})
             expect(client.client_id).to eql(client_id)
           end
         end
@@ -838,7 +833,7 @@ describe Ably::Auth do
         auth_callback = Proc.new { subject }
         client_without_api_key = Ably::Rest::Client.new(default_options.merge(auth_callback: auth_callback))
         expect(client_without_api_key.auth).to be_using_token_auth
-        expect { client_without_api_key.auth.authorise }.to_not raise_error
+        expect { client_without_api_key.auth.authorize }.to_not raise_error
       end
 
       it 'uses the key name from the client' do
@@ -897,7 +892,7 @@ describe Ably::Auth do
         it 'uses these capabilities when Ably issues an actual token' do
           auth_callback = Proc.new { subject }
           client_without_api_key = Ably::Rest::Client.new(default_options.merge(auth_callback: auth_callback))
-          client_without_api_key.auth.authorise
+          client_without_api_key.auth.authorize
           expect(client_without_api_key.auth.current_token_details.capability).to eql(capability)
         end
       end
@@ -1008,7 +1003,7 @@ describe Ably::Auth do
               auth.create_token_request(token_attributes)
             end
             client = Ably::Rest::Client.new(auth_callback: auth_callback, environment: environment, protocol: protocol)
-            client.auth.authorise
+            client.auth.authorize
           end
         end
       end
@@ -1200,6 +1195,45 @@ describe Ably::Auth do
 
       specify '#using_basic_auth? is true' do
         expect(auth).to be_using_basic_auth
+      end
+    end
+
+    context 'deprecated #authorise' do
+      let(:client_options)  { default_options.merge(key: api_key, logger: custom_logger_object) }
+      let(:custom_logger) do
+        Class.new do
+          def initialize
+            @messages = []
+          end
+
+          [:fatal, :error, :warn, :info, :debug].each do |severity|
+            define_method severity do |message|
+              @messages << [severity, message]
+            end
+          end
+
+          def logs
+            @messages
+          end
+
+          def level
+            1
+          end
+
+          def level=(new_level)
+          end
+        end
+      end
+      let(:custom_logger_object) { custom_logger.new }
+
+      it 'logs a deprecation warning (#RSA10l)' do
+        client.auth.authorise
+        expect(custom_logger_object.logs.find { |severity, message| message.match(/authorise.*deprecated/i)} ).to_not be_nil
+      end
+
+      it 'returns a valid token (#RSA10l)' do
+        response = client.auth.authorise
+        expect(response).to be_a(Ably::Models::TokenDetails)
       end
     end
   end

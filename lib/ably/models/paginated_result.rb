@@ -32,6 +32,11 @@ module Ably::Models
       @make_async    = options.fetch(:async_blocking_operations, false)
 
       @items = http_response.body
+      if @items.nil? || @items.to_s.strip.empty?
+        @items = []
+      end
+      @items = [@items] if @items.kind_of?(Hash)
+
       @items = coerce_items_into(items, @coerce_into) if @coerce_into
       @items = items.map { |item| yield item } if block_given?
     end

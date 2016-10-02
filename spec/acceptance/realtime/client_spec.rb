@@ -62,7 +62,7 @@ describe Ably::Realtime::Client, :event_machine do
             context 'with valid :key and :use_token_auth option set to true' do
               let(:client_options)  { default_options.merge(use_token_auth: true) }
 
-              it 'automatically authorises on connect and generates a token' do
+              it 'automatically authorizes on connect and generates a token' do
                 connection.on(:connected) do
                   expect(subject.auth.current_token_details).to_not be_nil
                   expect(auth_params[:access_token]).to_not be_nil
@@ -116,7 +116,7 @@ describe Ably::Realtime::Client, :event_machine do
 
           context 'when the returned token has a client_id' do
             it "sets Auth#client_id to the new token's client_id immediately when connecting" do
-              subject.auth.authorise do
+              subject.auth.authorize do
                 expect(subject.connection).to be_connecting
                 expect(subject.auth.client_id).to eql(client_id)
                 stop_reactor
@@ -124,7 +124,7 @@ describe Ably::Realtime::Client, :event_machine do
             end
 
             it "sets Client#client_id to the new token's client_id immediately when connecting" do
-              subject.auth.authorise do
+              subject.auth.authorize do
                 expect(subject.connection).to be_connecting
                 expect(subject.client_id).to eql(client_id)
                 stop_reactor
@@ -227,6 +227,58 @@ describe Ably::Realtime::Client, :event_machine do
       it 'provides access to the Realtime::Auth object' do
         expect(subject.auth).to be_a(Ably::Realtime::Auth)
         stop_reactor
+      end
+    end
+
+    context '#request (#RSC19*)' do
+      let(:client_options) { default_options.merge(key: api_key) }
+
+      context 'get' do
+        it 'returns an HttpPaginatedResponse object' do
+          subject.request(:get, 'time').callback do |response|
+            expect(response).to be_a(Ably::Models::HttpPaginatedResponse)
+            expect(response.status_code).to eql(200)
+            stop_reactor
+          end
+        end
+
+        context '404 request to invalid URL' do
+          it 'returns an object with 404 status code and error message' do
+            subject.request(:get, 'does-not-exist').callback do |response|
+              expect(response).to be_a(Ably::Models::HttpPaginatedResponse)
+              expect(response.error_message).to match(/Could not find/)
+              expect(response.error_code).to eql(40400)
+              expect(response.status_code).to eql(404)
+              stop_reactor
+            end
+          end
+        end
+
+        context 'paged results' do
+          let(:channel_name) { random_str }
+
+          it 'provides paging' do
+            10.times do
+              subject.rest_client.request(:post, "/channels/#{channel_name}/publish", {}, { 'name': 'test' })
+            end
+
+            subject.request(:get, "/channels/#{channel_name}/messages", { limit: 2 }).callback do |response|
+              expect(response.items.length).to eql(2)
+              expect(response).to be_has_next
+              response.next do |next_page|
+                expect(next_page.items.length).to eql(2)
+                expect(next_page).to be_has_next
+                first_page_ids = response.items.map { |message| message['id'] }.uniq.sort
+                next_page_ids = next_page.items.map { |message| message['id'] }.uniq.sort
+                expect(first_page_ids).to_not eql(next_page_ids)
+                next_page.next do |third_page|
+                  expect(third_page.items.length).to eql(2)
+                  stop_reactor
+                end
+              end
+            end
+          end
+        end
       end
     end
   end

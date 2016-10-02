@@ -54,8 +54,8 @@ module Ably
       #
       # In the event that a new token request is made, the provided options are used
       #
-      # @param (see Ably::Auth#authorise)
-      # @option (see Ably::Auth#authorise)
+      # @param (see Ably::Auth#authorize)
+      # @option (see Ably::Auth#authorize)
       #
       # @return [Ably::Util::SafeDeferrable]
       # @yield [Ably::Models::TokenDetails]
@@ -63,13 +63,13 @@ module Ably
       # @example
       #    # will issue a simple token request using basic auth
       #    client = Ably::Rest::Client.new(key: 'key.id:secret')
-      #    client.auth.authorise do |token_details|
+      #    client.auth.authorize do |token_details|
       #      token_details #=> Ably::Models::TokenDetails
       #    end
       #
-      def authorise(token_params = nil, auth_options = nil, &success_callback)
+      def authorize(token_params = nil, auth_options = nil, &success_callback)
         async_wrap(success_callback) do
-          auth_sync.authorise(token_params, auth_options, &method(:upgrade_authentication_block).to_proc)
+          auth_sync.authorize(token_params, auth_options, &method(:upgrade_authentication_block).to_proc)
         end.tap do |deferrable|
           deferrable.errback do |error|
             client.connection.transition_state_machine :failed, reason: error if error.kind_of?(Ably::Exceptions::IncompatibleClientId)
@@ -77,13 +77,25 @@ module Ably
         end
       end
 
-      # Synchronous version of {#authorise}. See {Ably::Auth#authorise} for method definition
-      # @param (see Ably::Auth#authorise)
-      # @option (see Ably::Auth#authorise)
+      # @deprecated Use {#authorize} instead
+      def authorise(*args, &block)
+        logger.warn "Auth#authorise is deprecated and will be removed in 1.0. Please use Auth#authorize instead"
+        authorize(*args, &block)
+      end
+
+      # Synchronous version of {#authorize}. See {Ably::Auth#authorize} for method definition
+      # @param (see Ably::Auth#authorize)
+      # @option (see Ably::Auth#authorize)
       # @return [Ably::Models::TokenDetails]
       #
-      def authorise_sync(token_params = nil, auth_options = nil)
-        auth_sync.authorise(token_params, auth_options, &method(:upgrade_authentication_block).to_proc)
+      def authorize_sync(token_params = nil, auth_options = nil)
+        auth_sync.authorize(token_params, auth_options, &method(:upgrade_authentication_block).to_proc)
+      end
+
+      # @deprecated Use {#authorize_sync} instead
+      def authorise_sync(*args)
+        logger.warn "Auth#authorise_sync is deprecated and will be removed in 1.0. Please use Auth#authorize_sync instead"
+        authorize_sync(*args)
       end
 
       # def_delegator :auth_sync, :request_token, :request_token_sync
@@ -113,8 +125,8 @@ module Ably
       end
 
       # Synchronous version of {#request_token}. See {Ably::Auth#request_token} for method definition
-      # @param (see Ably::Auth#authorise)
-      # @option (see Ably::Auth#authorise)
+      # @param (see Ably::Auth#authorize)
+      # @option (see Ably::Auth#authorize)
       # @return [Ably::Models::TokenDetails]
       #
       def request_token_sync(token_params = {}, auth_options = {})
@@ -140,8 +152,8 @@ module Ably
       end
 
       # Synchronous version of {#create_token_request}. See {Ably::Auth#create_token_request} for method definition
-      # @param (see Ably::Auth#authorise)
-      # @option (see Ably::Auth#authorise)
+      # @param (see Ably::Auth#authorize)
+      # @option (see Ably::Auth#authorize)
       # @return [Ably::Models::TokenRequest]
       #
       def create_token_request_sync(token_params = {}, auth_options = {})
@@ -149,7 +161,7 @@ module Ably
       end
 
       # Auth header string used in HTTP requests to Ably
-      # Will reauthorise implicitly if required and capable
+      # Will reauthorize implicitly if required and capable
       #
       # @return [Ably::Util::SafeDeferrable]
       # @yield [String] HTTP authentication value used in HTTP_AUTHORIZATION header
@@ -168,7 +180,7 @@ module Ably
       end
 
       # Auth params used in URI endpoint for Realtime connections
-      # Will reauthorise implicitly if required and capable
+      # Will reauthorize implicitly if required and capable
       #
       # @return [Ably::Util::SafeDeferrable]
       # @yield [Hash] Auth params for a new Realtime connection
@@ -197,12 +209,12 @@ module Ably
         @client
       end
 
-      # If authorise is called with true, this block is executed so that it
+      # If authorize is called with true, this block is executed so that it
       # can perform the authentication upgrade
       def upgrade_authentication_block(new_token)
         # This block is called if the authorisation was forced
         if client.connection.connected? || client.connection.connecting?
-          logger.debug "Realtime::Auth - authorise called with { force: true } so forcibly disconnecting transport to initiate auth upgrade"
+          logger.debug "Realtime::Auth - authorize was called so forcibly disconnecting transport to initiate auth upgrade"
           block = Proc.new do
             if client.connection.transport
               logger.debug "Realtime::Auth - current transport disconnected"

@@ -855,5 +855,48 @@ describe Ably::Rest::Client do
         end
       end
     end
+
+    context '#request (#RSC19*)' do
+      let(:client_options) { default_options.merge(key: api_key) }
+
+      context 'get' do
+        it 'returns an HttpPaginatedResponse object' do
+          response = client.request(:get, 'time')
+          expect(response).to be_a(Ably::Models::HttpPaginatedResponse)
+          expect(response.status_code).to eql(200)
+        end
+
+        context '404 request to invalid URL' do
+          it 'returns an object with 404 status code and error message' do
+            response = client.request(:get, 'does-not-exist')
+            expect(response).to be_a(Ably::Models::HttpPaginatedResponse)
+            expect(response.error_message).to match(/Could not find/)
+            expect(response.error_code).to eql(40400)
+            expect(response.status_code).to eql(404)
+          end
+        end
+
+        context 'paged results' do
+          let(:channel_name) { random_str }
+
+          it 'provides paging' do
+            10.times do
+              client.request(:post, "/channels/#{channel_name}/publish", {}, { 'name': 'test' })
+            end
+            response = client.request(:get, "/channels/#{channel_name}/messages", { limit: 2 })
+            expect(response.items.length).to eql(2)
+            expect(response).to be_has_next
+            next_page = response.next
+            expect(next_page.items.length).to eql(2)
+            expect(next_page).to be_has_next
+            first_page_ids = response.items.map { |message| message['id'] }.uniq.sort
+            next_page_ids = next_page.items.map { |message| message['id'] }.uniq.sort
+            expect(first_page_ids).to_not eql(next_page_ids)
+            next_page = next_page.next
+            expect(next_page.items.length).to eql(2)
+          end
+        end
+      end
+    end
   end
 end
