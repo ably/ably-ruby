@@ -271,7 +271,7 @@ describe Ably::Realtime::Auth, :event_machine do
           context 'and an incompatible client_id in a TokenDetails object passed to the auth callback' do
             it 'rejects a TokenDetails object with an incompatible client_id and raises an exception' do
               client.connection.once(:connected) do
-                client.auth.authorize({}, force: true)
+                client.auth.authorize({})
                 client.connection.on(:error) do |error|
                   expect(error).to be_a(Ably::Exceptions::IncompatibleClientId)
                   EventMachine.add_timer(0.1) do
@@ -284,7 +284,7 @@ describe Ably::Realtime::Auth, :event_machine do
           end
         end
 
-        context 'with force: true to trigger an authentication upgrade' do
+        context 'when already authenticated with a valid token' do
           let(:rest_client)      { Ably::Rest::Client.new(default_options) }
           let(:client_publisher) { auto_close Ably::Realtime::Client.new(default_options) }
           let(:basic_capability) { JSON.dump("foo" => ["subscribe"]) }
@@ -308,7 +308,7 @@ describe Ably::Realtime::Auth, :event_machine do
           it 'forces the connection to disconnect and reconnect with a new token when in the CONNECTED state' do
             client.connection.once(:connected) do
               existing_token = client.auth.current_token_details
-              client.auth.authorize(nil, force: true)
+              client.auth.authorize(nil)
               client.connection.once(:disconnected) do
                 client.connection.once(:connected) do
                   expect(existing_token).to_not eql(client.auth.current_token_details)
@@ -321,7 +321,7 @@ describe Ably::Realtime::Auth, :event_machine do
           it 'forces the connection to disconnect and reconnect with a new token when in the CONNECTING state' do
             client.connection.once(:connecting) do
               existing_token = client.auth.current_token_details
-              client.auth.authorize(nil, force: true)
+              client.auth.authorize(nil)
               client.connection.once(:disconnected) do
                 client.connection.once(:connected) do
                   expect(existing_token).to_not eql(client.auth.current_token_details)
@@ -340,7 +340,7 @@ describe Ably::Realtime::Auth, :event_machine do
 
             it 'transisitions the connection state to FAILED if the client_id changes' do
               client.connection.once(:connected) do
-                client.auth.authorize(nil, auth_callback: identified_token_cb, force: true)
+                client.auth.authorize(nil, auth_callback: identified_token_cb)
                 client.connection.once(:failed) do
                   expect(client.connection.error_reason.message).to match(/incompatible.*client ID/)
                   stop_reactor
@@ -358,7 +358,7 @@ describe Ably::Realtime::Auth, :event_machine do
                 channel.publish('not-allowed').errback do |error|
                   expect(error.code).to eql(40160)
                   expect(error.message).to match(/permission denied/)
-                  client.auth.authorize(nil, auth_callback: upgraded_token_cb, force: true)
+                  client.auth.authorize(nil, auth_callback: upgraded_token_cb)
                   client.connection.once(:connected) do
                     expect(client.connection.error_reason).to be_nil
                     channel.subscribe('allowed') do |message|
@@ -378,7 +378,7 @@ describe Ably::Realtime::Auth, :event_machine do
               client.connection.once(:connected) do
                 channel = client.channels.get('foo')
                 channel.attach do
-                  client.auth.authorize(nil, auth_callback: downgraded_token_cb, force: true)
+                  client.auth.authorize(nil, auth_callback: downgraded_token_cb)
                   channel.once(:failed) do
                     expect(channel.error_reason.code).to eql(40160)
                     expect(channel.error_reason.message).to match(/Channel denied access/)
@@ -401,7 +401,7 @@ describe Ably::Realtime::Auth, :event_machine do
                 publisher_channel.publish('foo') do
                   EventMachine.add_timer(2) do
                     expect(received_messages.length).to eql(1)
-                    client.auth.authorize(nil, force: true)
+                    client.auth.authorize(nil)
                     client.connection.once(:disconnected) do
                       publisher_channel.publish('bar') do
                         expect(received_messages.length).to eql(1)
@@ -422,9 +422,9 @@ describe Ably::Realtime::Auth, :event_machine do
           it 'does not change the connection state if current connection state is closing' do
             client.connection.once(:connected) do
               client.connection.once(:closing) do
-                client.auth.authorize(nil, force: true)
+                client.auth.authorize(nil)
                 client.connection.once(:connected) do
-                  raise "Should not reconnect following auth force: true"
+                  raise "Should not reconnect following #authorize"
                 end
                 EventMachine.add_timer(4) do
                   expect(client.connection).to be_closed
@@ -438,9 +438,9 @@ describe Ably::Realtime::Auth, :event_machine do
           it 'does not change the connection state if current connection state is closed' do
             client.connection.once(:connected) do
               client.connection.once(:closed) do
-                client.auth.authorize(nil, force: true)
+                client.auth.authorize(nil)
                 client.connection.once(:connected) do
-                  raise "Should not reconnect following auth force: true"
+                  raise "Should not reconnect following #authorize"
                 end
                 EventMachine.add_timer(4) do
                   expect(client.connection).to be_closed
@@ -457,9 +457,9 @@ describe Ably::Realtime::Auth, :event_machine do
             it 'does not change the connection state' do
               client.connection.once(:connected) do
                 client.connection.once(:failed) do
-                  client.auth.authorize(nil, force: true)
+                  client.auth.authorize(nil)
                   client.connection.once(:connected) do
-                    raise "Should not reconnect following auth force: true"
+                    raise "Should not reconnect following #authorize"
                   end
                   EventMachine.add_timer(4) do
                     expect(client.connection).to be_failed

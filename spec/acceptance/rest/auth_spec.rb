@@ -589,7 +589,7 @@ describe Ably::Auth do
       end
     end
 
-    describe '#authorize' do
+    describe '#authorize (#RSA10, #RSA10j)' do
       context 'when called for the first time since the client has been instantiated' do
         let(:auth_options) do
           { auth_url: 'http://somewhere.com/' }
@@ -607,8 +607,8 @@ describe Ably::Auth do
           expect(auth.authorize).to be_a(Ably::Models::TokenDetails)
         end
 
-        it 'issues a new token if option :force => true' do
-          expect { auth.authorize(force: true) }.to change { auth.current_token_details }
+        it 'issues a new token every time (#RSA10a)' do
+          expect { auth.authorize }.to change { auth.current_token_details }
         end
       end
 
@@ -625,7 +625,7 @@ describe Ably::Auth do
           expect(client).to receive(:time).once.and_return(server_time)
 
           auth.authorize({}, query_time: true)
-          auth.authorize({}, force: true)
+          auth.authorize({})
           expect(auth.auth_options).to_not have_key(:query_time)
         end
       end
@@ -639,21 +639,21 @@ describe Ably::Auth do
 
         it 'has no effect on the defaults when null and TokenParam defaults remain the same' do
           old_token = auth.current_token_details
-          auth.authorize(nil, force: true)
+          auth.authorize
           expect(old_token).to_not eql(auth.current_token_details)
           expect(auth.token_params[:ttl]).to eql(23)
         end
 
         it 'updates defaults when present and all previous configured TokenParams are discarded' do
           old_token = auth.current_token_details
-          auth.authorize({ client_id: 'bob' }, { force: true })
+          auth.authorize({ client_id: 'bob' })
           expect(old_token).to_not eql(auth.current_token_details)
           expect(auth.token_params[:ttl]).to_not eql(23)
           expect(auth.token_params[:client_id]).to eql('bob')
         end
 
         it 'updates Auth#token_params attribute with an immutable hash' do
-          auth.authorize({ client_id: 'bob' }, { force: true })
+          auth.authorize({ client_id: 'bob' })
           expect { auth.token_params['key_name'] = 'new_name' }.to raise_error RuntimeError, /can't modify frozen.*Hash/
         end
       end
@@ -699,19 +699,14 @@ describe Ably::Auth do
           expect(auth.current_token_details).to_not be_expired
         end
 
-        it 'does not request a token if current_token_details has not expired' do
-          expect(auth).to_not receive(:request_token)
-          auth.authorize
-        end
-
         it 'requests a new token if token is expired' do
           allow(auth.current_token_details).to receive(:expired?).and_return(true)
           expect(auth).to receive(:request_token)
           expect { auth.authorize }.to change { auth.current_token_details }
         end
 
-        it 'issues a new token if option :force => true' do
-          expect { auth.authorize({}, force: true) }.to change { auth.current_token_details }
+        it 'issues a new token every time #authorize is called' do
+          expect { auth.authorize({}) }.to change { auth.current_token_details }
         end
       end
 
@@ -800,7 +795,7 @@ describe Ably::Auth do
           let(:auth_token_object) { auth_client.auth.request_token }
 
           it 'rejects a TokenDetails object with an incompatible client_id and raises an exception' do
-            expect { client.auth.authorize({}, force: true) }.to raise_error Ably::Exceptions::IncompatibleClientId
+            expect { client.auth.authorize({}) }.to raise_error Ably::Exceptions::IncompatibleClientId
           end
         end
 
@@ -808,7 +803,7 @@ describe Ably::Auth do
           let(:auth_token_object) { auth_client.auth.create_token_request }
 
           it 'rejects a TokenRequests object with an incompatible client_id and raises an exception' do
-            expect { client.auth.authorize({}, force: true) }.to raise_error Ably::Exceptions::IncompatibleClientId
+            expect { client.auth.authorize({}) }.to raise_error Ably::Exceptions::IncompatibleClientId
           end
         end
 
@@ -816,7 +811,7 @@ describe Ably::Auth do
           let(:auth_token_object) { auth_client.auth.request_token(client_id: 'different').token }
 
           it 'rejects a TokenRequests object with an incompatible client_id and raises an exception' do
-            client.auth.authorize({}, force: true)
+            client.auth.authorize({})
             expect(client.client_id).to eql(client_id)
           end
         end

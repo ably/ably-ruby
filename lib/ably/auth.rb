@@ -65,8 +65,6 @@ module Ably
       @token_params        = token_params.dup
       @token_option        = options[:token] || options[:token_details]
 
-      @options.delete :force # Forcing token auth for every request is not a valid default
-
       if options[:key] && (options[:key_secret] || options[:key_name])
         raise ArgumentError, 'key and key_name or key_secret are mutually exclusive. Provider either a key or key_name & key_secret'
       end
@@ -107,7 +105,6 @@ module Ably
     #
     # @param [Hash, nil] token_params the token params used for future token requests. When nil, previously configured token params are used
     # @param [Hash, nil] auth_options the authentication options used for future token requests. When nil, previously configure authentication options are used
-    # @option auth_options [Boolean]   :force   obtains a new token even if the current token is valid. If the provided +auth_options+ Hash contains only this +:force+ attribute, the existing configured authentication options are not overwriten
     # @option (see #request_token)
     #
     # @return (see #create_token_request)
@@ -124,10 +121,8 @@ module Ably
     #    end
     #
     def authorize(token_params = nil, auth_options = nil)
-      if auth_options == { force: true }
-        auth_options = options.merge(force: true)
-      elsif auth_options.nil?
-        auth_options = options
+      if auth_options.nil?
+        auth_options = options # Use default options
       else
         ensure_valid_auth_attributes auth_options
 
@@ -146,29 +141,24 @@ module Ably
 
         @options = auth_options.clone
 
-        # Force reauth and query the server time only happens once
-        # the otpions remain in auth_options though so they are passed to request_token
+        # Query the server time only happens once
+        # the options remain in auth_options though so they are passed to request_token
         @options.delete(:query_time)
-        @options.delete(:force)
 
         @options.freeze
       end
 
+      # Unless provided, defaults are used
       unless token_params.nil?
         @token_params = token_params
         @token_params.freeze
       end
 
-      if current_token_details && !auth_options[:force]
-        return current_token_details unless current_token_details.expired?
-      end
-
       authorize_with_token(request_token(@token_params, auth_options)).tap do |new_token_details|
         logger.debug "Auth: new token following authorisation: #{new_token_details}"
 
-        # If authorize was forced allow a block to be called so that the realtime library
-        # can force upgrade the authorisation
-        if auth_options[:force] && block_given?
+        # If authorize the realtime library required auth, then yield the token in a block
+        if block_given?
           yield new_token_details
         end
       end
@@ -455,6 +445,14 @@ module Ably
       @token_option
     end
 
+    def authorize_when_necessary
+      if current_token_details && !current_token_details.expired?
+        return current_token_details
+      else
+        authorize
+      end
+    end
+
     # Returns the current device clock time unless the
     # the server time has previously been requested with query_time: true
     # and the @server_time_offset is configured
@@ -539,13 +537,14 @@ module Ably
     # Returns the current token if it exists or authorizes and retrieves a token
     def token_auth_string
       if !current_token_details && token_option
+        logger.debug "Auth: Token auth string missing, authorizing implicitly now"
         # A TokenRequest was configured in the ClientOptions +:token field+ and no current token exists
         # Note: If a Token or TokenDetails is provided in the initializer, the token is stored in +current_token_details+
         authorize_with_token send_token_request(token_option)
         current_token_details.token
       else
         # Authorize will use the current token if one exists and is not expired, otherwise a new token will be issued
-        authorize.token
+        authorize_when_necessary.token
       end
     end
 
