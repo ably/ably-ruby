@@ -1,6 +1,6 @@
 module Ably
-  VERSION = '0.8.14'
-  PROTOCOL_VERSION = '0.8'
+  VERSION = '0.9.0'
+  PROTOCOL_VERSION = '0.9'
 
   # Allow a variant to be configured for all instances of this client library
   # such as ruby-rest-[VERSION]
