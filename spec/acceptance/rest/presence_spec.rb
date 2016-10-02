@@ -69,10 +69,7 @@ describe Ably::Rest::Presence do
             }
           end
           let(:endpoint) do
-            client.endpoint.tap do |client_end_point|
-              client_end_point.user = key_name
-              client_end_point.password = key_secret
-            end
+            client.endpoint
           end
           let!(:get_stub) {
             query_params = query_options.map { |k, v| "#{k}=#{v}" }.join('&')
@@ -182,10 +179,7 @@ describe Ably::Rest::Presence do
         let(:user) { 'appid.keyuid' }
         let(:secret) { random_str(8) }
         let(:endpoint) do
-          client.endpoint.tap do |client_end_point|
-            client_end_point.user = user
-            client_end_point.password = secret
-          end
+          client.endpoint
         end
         let(:client) do
           Ably::Rest::Client.new(key: "#{user}:#{secret}")
@@ -310,10 +304,7 @@ describe Ably::Rest::Presence do
       let(:user) { 'appid.keyuid' }
       let(:secret) { random_str(8) }
       let(:endpoint) do
-        client.endpoint.tap do |client_end_point|
-          client_end_point.user = user
-          client_end_point.password = secret
-        end
+        client.endpoint
       end
       let(:client) do
         Ably::Rest::Client.new(client_options.merge(key: "#{user}:#{secret}"))
