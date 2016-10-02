@@ -881,7 +881,7 @@ describe Ably::Rest::Client do
 
           it 'provides paging' do
             10.times do
-              client.request(:post, "/channels/#{channel_name}/publish", {}, { 'name': 'test' })
+              client.request(:post, "/channels/#{channel_name}/publish", {}, { 'name' => 'test' })
             end
             response = client.request(:get, "/channels/#{channel_name}/messages", { limit: 2 })
             expect(response.items.length).to eql(2)
