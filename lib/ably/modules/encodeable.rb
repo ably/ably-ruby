@@ -26,6 +26,16 @@ module Ably::Modules
         end
       end
 
+      # Return an Array of Message or Presence objects from the encoded Array of JSON-like objects, using the optional channel options
+      # @param message_objects [Array<Hash>] Array of JSON-like objects with encoded messages
+      # @param channel_options [Hash] Channel options, currently reserved for Encryption options
+      # @return [Array<Message,Presence>]
+      def from_encoded_array(message_object_array, channel_options = {})
+        Array(message_object_array).map do |message_object|
+          from_encoded(message_object, channel_options)
+        end
+      end
+
       # Register an encoder for this object
       # @api private
       def register_encoder(encoder, options = {})
