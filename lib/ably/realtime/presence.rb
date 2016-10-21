@@ -346,7 +346,10 @@ module Ably::Realtime
       }
 
       Ably::Models::PresenceMessage.new(model, logger: logger).tap do |presence_message|
-        presence_message.encode self.channel
+        presence_message.encode(client.encoders, channel.options) do |encode_error, error_message|
+          client.logger.error error_message
+          emit :error, encode_error
+        end
       end
     end
 

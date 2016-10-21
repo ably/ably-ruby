@@ -383,4 +383,106 @@ describe Ably::Models::PresenceMessage do
       end
     end
   end
+
+
+  context '#from_encoded (TP4)' do
+    context 'with no encoding' do
+      let(:message_data) do
+        { action: 2, data: 'data-string' }
+      end
+      let(:from_encoded) { subject.from_encoded(message_data) }
+
+      it 'returns a presence message object' do
+        expect(from_encoded).to be_a(Ably::Models::PresenceMessage)
+        expect(from_encoded.action).to eq(:enter)
+        expect(from_encoded.data).to eql('data-string')
+        expect(from_encoded.encoding).to be_nil
+      end
+
+      context 'with a block' do
+        it 'does not call the block' do
+          block_called = false
+          subject.from_encoded(message_data) do |exception, message|
+            block_called = true
+          end
+          expect(block_called).to be_falsey
+        end
+      end
+    end
+
+    context 'with an encoding' do
+      let(:hash_data)           { { 'key' => 'value', 'key2' => 123 } }
+      let(:message_data) do
+        { action: 'leave', data: JSON.dump(hash_data), encoding: 'json' }
+      end
+      let(:from_encoded) { subject.from_encoded(message_data) }
+
+      it 'returns a presence message object' do
+        expect(from_encoded).to be_a(Ably::Models::PresenceMessage)
+        expect(from_encoded.action).to eq(:leave)
+        expect(from_encoded.data).to eql(hash_data)
+        expect(from_encoded.encoding).to be_nil
+      end
+    end
+
+    context 'with a custom encoding' do
+      let(:hash_data)           { { 'key' => 'value', 'key2' => 123 } }
+      let(:message_data) do
+        { action: 1, data: JSON.dump(hash_data), encoding: 'foo/json' }
+      end
+      let(:from_encoded) { subject.from_encoded(message_data) }
+
+      it 'returns a presence message object with the residual incompatible transforms left in the encoding property' do
+        expect(from_encoded).to be_a(Ably::Models::PresenceMessage)
+        expect(from_encoded.action).to eq(1)
+        expect(from_encoded.data).to eql(hash_data)
+        expect(from_encoded.encoding).to eql('foo')
+      end
+    end
+
+    context 'with a Cipher encoding' do
+      let(:hash_data)           { { 'key' => 'value', 'key2' => 123 } }
+      let(:cipher_params)       { { key: Ably::Util::Crypto.generate_random_key(128), algorithm: 'aes', mode: 'cbc', key_length: 128 } }
+      let(:crypto)              { Ably::Util::Crypto.new(cipher_params) }
+      let(:payload)             { random_str }
+      let(:message_data) do
+        { action: 1, data: crypto.encrypt(payload), encoding: 'utf-8/cipher+aes-128-cbc' }
+      end
+      let(:channel_options)     { { cipher: cipher_params } }
+      let(:from_encoded)        { subject.from_encoded(message_data, channel_options) }
+
+      it 'returns a presence message object with the residual incompatible transforms left in the encoding property' do
+        expect(from_encoded).to be_a(Ably::Models::PresenceMessage)
+        expect(from_encoded.data).to eql(payload)
+        expect(from_encoded.encoding).to be_nil
+      end
+    end
+
+    context 'with invalid Cipher encoding' do
+      let(:hash_data)           { { 'key' => 'value', 'key2' => 123 } }
+      let(:cipher_params)       { { key: Ably::Util::Crypto.generate_random_key(128), algorithm: 'aes', mode: 'cbc', key_length: 128 } }
+      let(:unencryped_payload)  { random_str }
+      let(:message_data) do
+        { action: 1, data: unencryped_payload, encoding: 'utf-8/cipher+aes-128-cbc' }
+      end
+      let(:channel_options)     { { cipher: cipher_params } }
+
+      context 'without a block' do
+        it 'raises an exception' do
+          expect { subject.from_encoded(message_data, channel_options) }.to raise_exception(Ably::Exceptions::CipherError)
+        end
+      end
+
+      context 'with a block' do
+        it 'calls the block with the exception' do
+          block_called = false
+          subject.from_encoded(message_data, channel_options) do |exception, message|
+            expect(exception).to be_a(Ably::Exceptions::CipherError)
+            block_called = true
+          end
+          expect(block_called).to be_truthy
+        end
+      end
+    end
+  end
 end

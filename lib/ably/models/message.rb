@@ -1,3 +1,5 @@
+require 'ably/models/message_encoders/base'
+
 module Ably::Models
   # Convert messsage argument to a {Message} object and associate with a protocol message if provided
   #
@@ -42,6 +44,9 @@ module Ably::Models
     include Ably::Modules::Encodeable
     include Ably::Modules::ModelCommon
     include Ably::Modules::SafeDeferrable if defined?(Ably::Realtime)
+
+    # Statically register a default set of encoders for this class
+    Ably::Models::MessageEncoders.register_default_encoders self
 
     # {Message} initializer
     #
