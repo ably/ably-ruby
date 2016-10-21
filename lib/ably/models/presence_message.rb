@@ -52,6 +52,9 @@ module Ably::Models
       :update
     )
 
+    # Statically register a default set of encoders for this class
+    Ably::Models::MessageEncoders.register_default_encoders self
+
     # {PresenceMessage} initializer
     #
     # @param  attributes  [Hash]            object with the underlying presence message key value attributes

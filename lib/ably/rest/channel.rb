@@ -65,7 +65,7 @@ module Ably
 
         payload = messages.map do |message|
           Ably::Models::Message(message.dup).tap do |msg|
-            msg.encode self
+            msg.encode client.encoders, options
 
             next if msg.client_id.nil?
             if msg.client_id == '*'
@@ -134,7 +134,7 @@ module Ably
       end
 
       def decode_message(message)
-        message.decode self
+        message.decode client.encoders, options
       rescue Ably::Exceptions::CipherError, Ably::Exceptions::EncoderError => e
         client.logger.error "Decoding Error on channel '#{name}', message event name '#{message.name}'. #{e.class.name}: #{e.message}"
       end

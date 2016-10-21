@@ -10,20 +10,50 @@ module Ably::Modules
   # - A #raw_hash_object attribute that returns the original hash object used to create this object
   #
   module Encodeable
+    def self.included(base)
+      base.extend(ClassMethods)
+    end
+
+    module ClassMethods
+      # Return a Message or Presence object from the encoded JSON-like object, using the optional channel options
+      # @param message_object [Hash] JSON-like object representation of an encoded message
+      # @param channel_options [Hash] Channel options, currently reserved for Encryption options
+      # @yield [Ably::Exceptions::BaseAblyException] yields an Ably exception if decoding fails
+      # @return [Message,Presence]
+      def from_encoded(message_object, channel_options = {}, &error_block)
+        new(message_object).tap do |message|
+          message.decode(encoders, channel_options, &error_block)
+        end
+      end
+
+      # Register an encoder for this object
+      # @api private
+      def register_encoder(encoder, options = {})
+        encoders << Ably::Models::MessageEncoders.encoder_from(encoder, options)
+      end
+
+      private
+      def encoders
+        @encoders ||= []
+      end
+    end
+
     # Encode a message using the channel options and register encoders for the client
-    # @param channel [Ably::Realtime::Channel]
+    # @param encoders [Array<Ably::Models::MessageEncoders::Base>] List of encoders to apply to the message
+    # @param channel_options [Hash] Channel options, currently reserved for Encryption options
     # @return [void]
     # @api private
-    def encode(channel)
-      apply_encoders :encode, channel
+    def encode(encoders, channel_options, &error_block)
+      apply_encoders :encode, encoders, channel_options, &error_block
     end
 
     # Decode a message using the channel options and registered encoders for the client
-    # @param channel [Ably::Realtime::Channel]
+    # @param encoders [Array<Ably::Models::MessageEncoders::Base>] List of encoders to apply to the message
+    # @param channel_options [Hash] Channel options, currently reserved for Encryption options
     # @return [void]
     # @api private
-    def decode(channel)
-      apply_encoders :decode, channel
+    def decode(encoders, channel_options, &error_block)
+      apply_encoders :decode, encoders, channel_options, &error_block
     end
 
     # The original encoding of this message when it was received as a raw message from the Ably service
@@ -44,7 +74,7 @@ module Ably::Modules
       end
     end
 
-    def apply_encoders(method, channel)
+    def apply_encoders(method, encoders, channel_options, &error_callback)
       max_encoding_length = 512
       message_attributes = attributes.dup
 
@@ -54,16 +84,15 @@ module Ably::Modules
         end
 
         previous_encoding = message_attributes[:encoding]
-        channel.client.encoders.each do |encoder|
-          encoder.send method, message_attributes, channel.options
+        encoders.each do |encoder|
+          encoder.send method, message_attributes, channel_options
         end
       end until previous_encoding == message_attributes[:encoding]
 
       set_attributes_object message_attributes
     rescue Ably::Exceptions::CipherError => cipher_error
-      if channel.respond_to?(:emit)
-        channel.client.logger.error "Encoder error #{cipher_error.code} trying to #{method} message: #{cipher_error.message}"
-        channel.emit :error, cipher_error
+      if block_given?
+        yield cipher_error, "Encoder error #{cipher_error.code} trying to #{method} message: #{cipher_error.message}"
       else
         raise cipher_error
       end
