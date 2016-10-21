@@ -481,4 +481,23 @@ describe Ably::Models::Message do
       end
     end
   end
+
+  context '#from_encoded_array (TM3)' do
+    context 'with no encoding' do
+      let(:message_data) do
+        [{ name: 'name1', data: 'data-string' }, { name: 'name2', data: 'data-string' }]
+      end
+      let(:from_encoded) { subject.from_encoded_array(message_data) }
+
+      it 'returns an Array of message objects' do
+        first = from_encoded.first
+        expect(first).to be_a(Ably::Models::Message)
+        expect(first.name).to eql('name1')
+        expect(first.data).to eql('data-string')
+        expect(first.encoding).to be_nil
+        last = from_encoded.last
+        expect(last.name).to eql('name2')
+      end
+    end
+  end
 end
