@@ -485,4 +485,23 @@ describe Ably::Models::PresenceMessage do
       end
     end
   end
+
+  context '#from_encoded_array (TP4)' do
+    context 'with no encoding' do
+      let(:message_data) do
+        [{ action: 1, data: 'data-string' }, { action: 2, data: 'data-string' }]
+      end
+      let(:from_encoded) { subject.from_encoded_array(message_data) }
+
+      it 'returns an Array of presence message objects' do
+        first = from_encoded.first
+        expect(first).to be_a(Ably::Models::PresenceMessage)
+        expect(first.action).to eq(1)
+        expect(first.data).to eql('data-string')
+        expect(first.encoding).to be_nil
+        last = from_encoded.last
+        expect(last.action).to eq(:enter)
+      end
+    end
+  end
 end
