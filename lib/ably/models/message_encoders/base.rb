@@ -13,10 +13,11 @@ module Ably::Models::MessageEncoders
   # Base interface for an Ably Encoder
   #
   class Base
-    attr_reader :client
+    attr_reader :client, :options
 
-    def initialize(client)
+    def initialize(client, options)
       @client = client
+      @options = options
     end
 
     # #encode is called once before a message is sent to Ably
@@ -94,11 +95,26 @@ module Ably::Models::MessageEncoders
     end
   end
 
-  def self.register_default_encoders(client)
+  # @api private
+  def self.register_default_encoders(client, binary_protocol: false)
     client.register_encoder Ably::Models::MessageEncoders::Utf8
     client.register_encoder Ably::Models::MessageEncoders::Json
     client.register_encoder Ably::Models::MessageEncoders::Cipher
-    client.register_encoder Ably::Models::MessageEncoders::Base64
+    client.register_encoder Ably::Models::MessageEncoders::Base64, binary_protocol: binary_protocol
+  end
+
+  # @api private
+  def self.encoder_from(encoder, options)
+    encoder_klass = if encoder.kind_of?(String)
+      encoder.split('::').inject(Kernel) do |base, klass_name|
+        base.public_send(:const_get, klass_name)
+      end
+    else
+      encoder
+    end
+
+    raise "Encoder must inherit from `Ably::Models::MessageEncoders::Base`" unless encoder_klass.ancestors.include?(Ably::Models::MessageEncoders::Base)
+    encoder_klass.new(self, options)
   end
 end
 

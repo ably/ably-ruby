@@ -346,18 +346,8 @@ module Ably
       # @return [void]
       #
       # @api private
-      def register_encoder(encoder)
-        encoder_klass = if encoder.kind_of?(String)
-          encoder.split('::').inject(Kernel) do |base, klass_name|
-            base.public_send(:const_get, klass_name)
-          end
-        else
-          encoder
-        end
-
-        raise "Encoder must inherit from `Ably::Models::MessageEncoders::Base`" unless encoder_klass.ancestors.include?(Ably::Models::MessageEncoders::Base)
-
-        encoders << encoder_klass.new(self)
+      def register_encoder(encoder, options = {})
+        encoders << Ably::Models::MessageEncoders.encoder_from(encoder, options)
       end
 
       # @!attribute [r] protocol_binary?
@@ -535,7 +525,7 @@ module Ably
       end
 
       def initialize_default_encoders
-        Ably::Models::MessageEncoders.register_default_encoders self
+        Ably::Models::MessageEncoders.register_default_encoders self, binary_protocol: protocol == :msgpack
       end
     end
   end

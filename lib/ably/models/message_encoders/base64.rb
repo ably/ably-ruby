@@ -34,7 +34,7 @@ module Ably::Models::MessageEncoders
     end
 
     def transport_protocol_text?
-      !client.protocol_binary?
+      !options[:binary_protocol]
     end
   end
 end
