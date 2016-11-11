@@ -146,4 +146,79 @@ describe Ably::Models::TokenDetails do
       end
     end
   end
+
+  context 'from_json (TD7)' do
+    let(:issued_time) { Time.now }
+    let(:expires_time) { Time.now + 24*60*60 }
+    let(:capabilities) { { '*' => ['publish'] } }
+
+    context 'with Ruby idiomatic Hash object' do
+      subject { Ably::Models::TokenDetails.from_json(token_details_object) }
+
+      let(:token_details_object) do
+        {
+          token: 'val1',
+          key_name: 'val2',
+          issued: issued_time.to_i * 1000,
+          expires: expires_time.to_i * 1000,
+          capability: capabilities,
+          client_id: 'val3'
+        }
+      end
+
+      it 'returns a valid TokenDetails object' do
+        expect(subject.token).to eql('val1')
+        expect(subject.key_name).to eql('val2')
+        expect(subject.issued.to_f).to be_within(1).of(issued_time.to_f)
+        expect(subject.expires.to_f).to be_within(1).of(expires_time.to_f)
+        expect(subject.capability).to eql(capabilities)
+        expect(subject.client_id).to eql('val3')
+      end
+    end
+
+    context 'with JSON-like object' do
+      subject { Ably::Models::TokenDetails.from_json(token_details_object) }
+
+      let(:token_details_object) do
+        {
+          'keyName' => 'val2',
+          'issued' => issued_time.to_i * 1000,
+          'expires' => expires_time.to_i * 1000,
+          'capability' => JSON.dump(capabilities),
+          'clientId' => 'val3'
+        }
+      end
+
+      it 'returns a valid TokenDetails object' do
+        expect(subject.token).to be_nil
+        expect(subject.key_name).to eql('val2')
+        expect(subject.issued.to_f).to be_within(1).of(issued_time.to_f)
+        expect(subject.expires.to_f).to be_within(1).of(expires_time.to_f)
+        expect(subject.capability).to eql(capabilities)
+        expect(subject.client_id).to eql('val3')
+      end
+    end
+
+    context 'with JSON string' do
+      subject { Ably::Models::TokenDetails.from_json(JSON.dump(token_details_object)) }
+
+      let(:token_details_object) do
+        {
+          'keyName' => 'val2',
+          'issued' => issued_time.to_i * 1000,
+          'expires' => expires_time.to_i * 1000,
+          'clientId' => 'val3'
+        }
+      end
+
+      it 'returns a valid TokenDetails object' do
+        expect(subject.token).to be_nil
+        expect(subject.key_name).to eql('val2')
+        expect(subject.issued.to_f).to be_within(1).of(issued_time.to_f)
+        expect(subject.expires.to_f).to be_within(1).of(expires_time.to_f)
+        expect(subject.capability).to be_nil
+        expect(subject.client_id).to eql('val3')
+      end
+    end
+  end
 end
