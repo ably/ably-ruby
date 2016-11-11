@@ -299,7 +299,10 @@ module Ably
 
       def setup_event_handlers
         __incoming_msgbus__.subscribe(:message) do |message|
-          message.decode self
+          message.decode(client.encoders, options) do |encode_error, error_message|
+            client.logger.error error_message
+            emit :error, encode_error
+          end
           emit_message message.name, message
         end
 
@@ -387,7 +390,10 @@ module Ably
 
       def create_message(message)
         Ably::Models::Message(message.dup).tap do |msg|
-          msg.encode self
+          msg.encode(client.encoders, options) do |encode_error, error_message|
+            client.logger.error error_message
+            emit :error, encode_error
+          end
         end
       end
 
