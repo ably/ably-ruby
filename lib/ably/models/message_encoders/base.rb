@@ -15,7 +15,7 @@ module Ably::Models::MessageEncoders
   class Base
     attr_reader :client, :options
 
-    def initialize(client, options)
+    def initialize(client, options = {})
       @client = client
       @options = options
     end
