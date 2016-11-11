@@ -122,5 +122,8 @@ module Ably
     class ChannelInactive < BaseAblyException; end
 
     class IncompatibleClientId < BaseAblyException; end
+
+    # Token request has missing or invalid attributes
+    class InvalidTokenRequest < BaseAblyException; end
   end
 end

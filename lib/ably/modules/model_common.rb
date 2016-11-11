@@ -8,6 +8,10 @@ module Ably::Modules
     include Conversions
     include MessagePack
 
+    def self.included(base)
+      base.extend(ClassMethods)
+    end
+
     # Provide a normal Hash accessor to the underlying raw message object
     #
     # @return [Object]
@@ -36,6 +40,19 @@ module Ably::Modules
     # @return [Integer] Compute a hash-code for this hash. Two hashes with the same content will have the same hash code
     def hash
       attributes.hash
+    end
+
+    module ClassMethods
+      # Return a new instance of this object using the provided JSON-like object or JSON string
+      # @param [Hash, String] JSON-like object or JSON string
+      # @return a new instance o this object
+      def from_json(json_like_object)
+        if json_like_object.kind_of?(String)
+          new(JSON.parse(json_like_object))
+        else
+          new(json_like_object)
+        end
+      end
     end
 
     private
