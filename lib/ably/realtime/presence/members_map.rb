@@ -167,7 +167,7 @@ module Ably::Realtime
         presence.__incoming_msgbus__.subscribe(:presence, :sync) do |presence_message|
           presence_message.decode(client.encoders, channel.options) do |encode_error, error_message|
             client.logger.error error_message
-            emit :error, encode_error
+            channel.emit :error, encode_error
           end
           update_members_and_emit_events presence_message
         end
