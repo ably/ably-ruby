@@ -367,11 +367,11 @@ describe Ably::Realtime::Channel, :event_machine do
             # All 3 messages should be batched into a single Protocol Message by the client library
             # message.id = "{protocol_message.id}:{protocol_message_index}"
             # Check that all messages share the same protocol_message.id
-            message_id = messages.map { |msg| msg.id.split(':')[0] }
+            message_id = messages.map { |msg| msg.id.split(':')[0...-1].join(':') }
             expect(message_id.uniq.count).to eql(1)
 
             # Check that messages use index 0,1,2 in the ID
-            message_indexes = messages.map { |msg| msg.id.split(':')[1] }
+            message_indexes = messages.map { |msg| msg.id.split(':').last }
             expect(message_indexes).to include("0", "1", "2")
             stop_reactor
           end
