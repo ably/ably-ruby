@@ -40,11 +40,10 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'yard', '~> 0.9'
   spec.add_development_dependency 'webmock', '~> 2.0'
 
-  unless RUBY_VERSION.match(/^1/)
+  if RUBY_VERSION.match(/^1/)
+    spec.add_development_dependency 'public_suffix', '~> 1.4.6' # Later versions do not support Ruby 1.9
+  else
     spec.add_development_dependency 'coveralls'
-  end
-
-  unless RUBY_VERSION.match(/^1/)
     spec.add_development_dependency 'pry'
     spec.add_development_dependency 'pry-byebug'
   end
