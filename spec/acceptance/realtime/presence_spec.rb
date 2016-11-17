@@ -1226,11 +1226,11 @@ describe Ably::Realtime::Presence, :event_machine do
         let(:client_options)      { default_options.merge(log_level: :none) }
 
         def connect_members_deferrables
-          (members_per_page * pages + 1).times.map do |index|
+          (members_per_page * pages + 1).times.map do |mem_index|
             # rate limit to 10 per second
             EventMachine::DefaultDeferrable.new.tap do |deferrable|
-              EventMachine.add_timer(index / 10) do
-                presence_client_one.enter_client("client:#{index}").tap do |enter_deferrable|
+              EventMachine.add_timer(mem_index/10) do
+                presence_client_one.enter_client("client:#{mem_index}").tap do |enter_deferrable|
                   enter_deferrable.callback { |*args| deferrable.succeed *args }
                   enter_deferrable.errback { |*args| deferrable.fail *args }
                 end
