@@ -1278,6 +1278,22 @@ describe Ably::Realtime::Connection, :event_machine do
     end
 
     context 'connection state change' do
+      # See https://github.com/ably/ably-ruby/issues/103
+      it 'emits event to all and single subscribers' do
+        connected_emitted = []
+        block = Proc.new do |state_change|
+          if state_change.current == :connected
+            connected_emitted << state_change
+            EventMachine.add_timer(0.5) do
+              expect(connected_emitted.length).to eql(2)
+              stop_reactor
+            end
+          end
+        end
+        connection.on(&block)
+        connection.on(:connected, &block)
+      end
+
       it 'emits a ConnectionStateChange object' do
         connection.on(:connected) do |connection_state_change|
           expect(connection_state_change).to be_a(Ably::Models::ConnectionStateChange)

@@ -128,17 +128,34 @@ describe Ably::Modules::EventEmitter do
   end
 
   context '#on' do
-    it 'calls the block every time an event is emitted only' do
-      block_called = 0
-      subject.on('event') { block_called += 1 }
-      3.times { subject.emit 'event', 'data' }
-      expect(block_called).to eql(3)
+    context 'with event specified' do
+      it 'calls the block every time an event is emitted only' do
+        block_called = 0
+        subject.on('event') { block_called += 1 }
+        3.times { subject.emit 'event', 'data' }
+        expect(block_called).to eql(3)
+      end
+
+      it 'catches exceptions in the provided block, logs the error and continues' do
+        expect(subject.logger).to receive(:error).with(/Intentional exception/)
+        subject.on(:event) { raise 'Intentional exception' }
+        subject.emit :event
+      end
     end
 
-    it 'catches exceptions in the provided block, logs the error and continues' do
-      expect(subject.logger).to receive(:error).with(/Intentional exception/)
-      subject.on(:event) { raise 'Intentional exception' }
-      subject.emit :event
+    context 'with no event specified' do
+      it 'calls the block every time an event is emitted only' do
+        block_called = 0
+        subject.on { block_called += 1 }
+        3.times { subject.emit 'event', 'data' }
+        expect(block_called).to eql(3)
+      end
+
+      it 'catches exceptions in the provided block, logs the error and continues' do
+        expect(subject.logger).to receive(:error).with(/Intentional exception/)
+        subject.on { raise 'Intentional exception' }
+        subject.emit :event
+      end
     end
   end
 
@@ -157,25 +174,50 @@ describe Ably::Modules::EventEmitter do
   end
 
   context '#once' do
-    it 'calls the block the first time an event is emitted only' do
-      block_called = 0
-      subject.once('event') { block_called += 1 }
-      3.times { subject.emit 'event', 'data' }
-      expect(block_called).to eql(1)
+    context 'with event specified' do
+      it 'calls the block the first time an event is emitted only' do
+        block_called = 0
+        subject.once('event') { block_called += 1 }
+        3.times { subject.emit 'event', 'data' }
+        expect(block_called).to eql(1)
+      end
+
+      it 'does not remove other blocks after it is called' do
+        block_called = 0
+        subject.once('event') { block_called += 1 }
+        subject.on('event')   { block_called += 1 }
+        3.times { subject.emit 'event', 'data' }
+        expect(block_called).to eql(4)
+      end
+
+      it 'catches exceptions in the provided block, logs the error and continues' do
+        expect(subject.logger).to receive(:error).with(/Intentional exception/)
+        subject.once(:event) { raise 'Intentional exception' }
+        subject.emit :event
+      end
     end
 
-    it 'does not remove other blocks after it is called' do
-      block_called = 0
-      subject.once('event') { block_called += 1 }
-      subject.on('event')   { block_called += 1 }
-      3.times { subject.emit 'event', 'data' }
-      expect(block_called).to eql(4)
-    end
+    context 'with no event specified' do
+      it 'calls the block the first time an event is emitted only' do
+        block_called = 0
+        subject.once { block_called += 1 }
+        3.times { subject.emit 'event', 'data' }
+        expect(block_called).to eql(1)
+      end
 
-    it 'catches exceptions in the provided block, logs the error and continues' do
-      expect(subject.logger).to receive(:error).with(/Intentional exception/)
-      subject.once(:event) { raise 'Intentional exception' }
-      subject.emit :event
+      it 'does not remove other blocks after it is called' do
+        block_called = 0
+        subject.once { block_called += 1 }
+        subject.on   { block_called += 1 }
+        3.times { subject.emit 'event', 'data' }
+        expect(block_called).to eql(4)
+      end
+
+      it 'catches exceptions in the provided block, logs the error and continues' do
+        expect(subject.logger).to receive(:error).with(/Intentional exception/)
+        subject.once { raise 'Intentional exception' }
+        subject.emit :event
+      end
     end
   end
 
@@ -196,41 +238,57 @@ describe Ably::Modules::EventEmitter do
   context '#off' do
     let(:callback) { Proc.new { |msg| obj.received_message msg } }
 
-    before do
-      subject.on(:message, &callback)
+    context 'with event specified in on handler' do
+      before do
+        subject.on(:message, &callback)
+      end
+
+      after do
+        subject.emit :message, msg
+      end
+
+      context 'with event names as arguments' do
+        it 'deletes matching callbacks' do
+          expect(obj).to_not receive(:received_message).with(msg)
+          subject.off(:message, &callback)
+        end
+
+        it 'deletes all callbacks if not block given' do
+          expect(obj).to_not receive(:received_message).with(msg)
+          subject.off(:message)
+        end
+
+        it 'continues if the block does not exist' do
+          expect(obj).to receive(:received_message).with(msg)
+          subject.off(:message) { true }
+        end
+      end
+
+      context 'without any event names' do
+        it 'deletes all matching callbacks' do
+          expect(obj).to_not receive(:received_message).with(msg)
+          subject.off(&callback)
+        end
+
+        it 'deletes all callbacks if not block given' do
+          expect(obj).to_not receive(:received_message).with(msg)
+          subject.off
+        end
+      end
     end
 
-    after do
+    it 'removes handler added with no event specified' do
+      subject.on(&callback)
+      expect(obj).to_not receive(:received_message).with(msg)
+      subject.off(&callback)
       subject.emit :message, msg
     end
 
-    context 'with event names as arguments' do
-      it 'deletes matching callbacks' do
-        expect(obj).to_not receive(:received_message).with(msg)
-        subject.off(:message, &callback)
-      end
-
-      it 'deletes all callbacks if not block given' do
-        expect(obj).to_not receive(:received_message).with(msg)
-        subject.off(:message)
-      end
-
-      it 'continues if the block does not exist' do
-        expect(obj).to receive(:received_message).with(msg)
-        subject.off(:message) { true }
-      end
-    end
-
-    context 'without any event names' do
-      it 'deletes all matching callbacks' do
-        expect(obj).to_not receive(:received_message).with(msg)
-        subject.off(&callback)
-      end
-
-      it 'deletes all callbacks if not block given' do
-        expect(obj).to_not receive(:received_message).with(msg)
-        subject.off
-      end
+    it 'leaves handler when event specified' do
+      subject.on(&callback)
+      expect(obj).to receive(:received_message).with(msg)
+      subject.off(:foo, &callback)
+      subject.emit :message, msg
     end
   end
 end
