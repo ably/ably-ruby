@@ -68,6 +68,9 @@ module Ably
       #
       # @param (see Ably::Rest::Client#initialize)
       # @option options (see Ably::Rest::Client#initialize)
+      # @option options [Proc]                    :auth_callback       when provided, the Proc will be called with the token params hash as the first argument, whenever a new token is required.
+      #                                                                Whilst the proc is called synchronously, it does not block the EventMachine reactor as it is run in a separate thread.
+      #                                                                The Proc should return a token string, {Ably::Models::TokenDetails} or JSON equivalent, {Ably::Models::TokenRequest} or JSON equivalent
       # @option options [Boolean] :queue_messages If false, this disables the default behaviour whereby the library queues messages on a connection in the disconnected or connecting states
       # @option options [Boolean] :echo_messages  If false, prevents messages originating from this connection being echoed back on the same connection
       # @option options [String]  :recover        When a recover option is specified a connection inherits the state of a previous connection that may have existed under a different instance of the Realtime library, please refer to the API documentation for further information on connection state recovery

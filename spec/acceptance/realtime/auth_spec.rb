@@ -186,6 +186,35 @@ describe Ably::Realtime::Auth, :event_machine do
           end
         end
 
+        context 'with auth_callback blocking' do
+          let(:rest_auth_client) { Ably::Rest::Client.new(default_options.merge(key: api_key)) }
+          let(:client_options)   { default_options.merge(auth_callback: auth_callback) }
+          let(:pause)            { 5 }
+
+          context 'with a slow auth callback response' do
+            let(:auth_callback) do
+              Proc.new do
+                sleep pause
+                rest_auth_client.auth.request_token
+              end
+            end
+
+            it 'asynchronously authenticates' do
+              timers_called = 0
+              block = Proc.new do
+                timers_called += 1
+                EventMachine.add_timer(0.5, &block)
+              end
+              block.call
+              client.connect
+              client.connection.on(:connected) do
+                expect(timers_called).to be >= (pause-1) / 0.5
+                stop_reactor
+              end
+            end
+          end
+        end
+
         context 'when implicitly called, with an explicit ClientOptions client_id' do
           let(:client_id)        { random_str }
           let(:client_options)   { default_options.merge(auth_callback: Proc.new { auth_token_object }, client_id: client_id, log_level: :none) }
