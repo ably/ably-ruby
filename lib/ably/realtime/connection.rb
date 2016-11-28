@@ -122,9 +122,9 @@ module Ably
       # @api public
       def initialize(client, options)
         @client                        = client
-        @client_serial                 = -1
         @__outgoing_message_queue__    = []
         @__pending_message_ack_queue__ = []
+        reset_client_serial
 
         @defaults = DEFAULTS.dup
         options.each do |key, val|
@@ -171,7 +171,8 @@ module Ably
       def connect(&success_block)
         unless connecting? || connected?
           raise exception_for_state_change_to(:connecting) unless can_transition_to?(:connecting)
-          transition_state_machine :connecting
+          # If connect called in a suspended block, we want to ensure the other callbacks have finished their work first
+          EventMachine.next_tick { transition_state_machine :connecting if can_transition_to?(:connecting) }
         end
 
         Ably::Util::SafeDeferrable.new(logger).tap do |deferrable|
@@ -451,7 +452,7 @@ module Ably
 
       # Executes registered callbacks for a successful connection resume event
       # @api private
-      def resumed
+      def trigger_resumed
         resume_callbacks.each(&:call)
       end
 
@@ -490,6 +491,13 @@ module Ably
         @connection_state_ttl = val
       end
 
+      # Resets the client serial (msgSerial) sent to Ably for each new {Ably::Models::ProtocolMessage}
+      # (see #client_serial)
+      # @api private
+      def reset_client_serial
+        @client_serial = -1
+      end
+
       # As we are using a state machine, do not allow change_state to be used
       # #transition_state_machine must be used instead
       private :change_state
@@ -500,7 +508,7 @@ module Ably
       # Note that this is different to the connection serial that contains the last known serial number
       # received from the server.
       #
-      # A client serial number therefore does not guarantee a message has been received, only sent.
+      # A client serial number (referred to as msgSerial in Ably) does not guarantee a message has been received, only sent.
       # A connection serial guarantees the server has received the message and is thus used for connection
       # recovery and resumes.
       # @return [Integer] starting at -1 indicating no messages sent, 0 when the first message is sent

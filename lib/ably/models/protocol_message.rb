@@ -68,7 +68,7 @@ module Ably::Models
     # Indicates this protocol message action will generate an ACK response such as :message or :presence
     # @api private
     def self.ack_required?(for_action)
-      [ACTION.Presence, ACTION.Message].include?(ACTION(for_action))
+      ACTION(for_action).match_any?(ACTION.Presence, ACTION.Message)
     end
 
     # {ProtocolMessage} initializer
@@ -191,6 +191,16 @@ module Ably::Models
     # @api private
     def has_presence_flag?
       flags & 1 == 1
+    end
+
+    # @api private
+    def has_backlog?
+      flags & 2 == 2
+    end
+
+    # @api private
+    def channel_resumed?
+      flags & 4 == 4
     end
 
     def connection_details

@@ -13,6 +13,9 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
     let(:client) do
       auto_close Ably::Realtime::Client.new(client_options)
     end
+    let(:rest_client) do
+      Ably::Rest::Client.new(default_options)
+    end
 
     context 'authentication failure' do
       let(:client_options) do
@@ -100,7 +103,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             connection.once(:suspended) do
               expect(connection.state).to eq(:suspended)
 
-              expect(state_changes[:connecting]).to   eql(expected_retry_attempts)
+              expect(state_changes[:connecting]).to   eql(expected_retry_attempts + 1) # allow for initial connecting attempt
               expect(state_changes[:disconnected]).to eql(expected_retry_attempts)
 
               expect(time_passed).to be > max_time_in_state_for_tests
@@ -563,6 +566,36 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
         end
+
+        it 'retains the client_serial (RTN15c2, RTN15c3)' do
+          last_message = nil
+          channel = client.channels.get("foo")
+
+          connection.once(:connected) do
+            connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+              if protocol_message.action == :message
+                last_message = protocol_message
+              end
+            end
+
+            channel.publish("first") do
+              expect(last_message.message_serial).to eql(0)
+              channel.publish("second") do
+                expect(last_message.message_serial).to eql(1)
+                connection.once(:connected) do
+                  channel.publish("first on resumed connection") do
+                    # Message serial reset after failed resume
+                    expect(last_message.message_serial).to eql(2)
+                    stop_reactor
+                  end
+                end
+
+                # simulate connection dropped to re-establish web socket
+                connection.transition_state_machine :disconnected
+              end
+            end
+          end
+        end
       end
 
       context 'when failing to resume' do
@@ -589,19 +622,37 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          it 'detaches all channels' do
+          it 'issue a reattach for all attached channels and fail all message awaiting an ACK (RTN15c3)' do
             channel_count = 10
             channels = channel_count.times.map { |index| client.channel("channel-#{index}") }
             when_all(*channels.map(&:attach)) do
-              detached_channels = []
+              attached_channels = []
+              reattaching_channels = []
+              attach_protocol_messages = []
+              failed_messages = []
+
               channels.each do |channel|
-                channel.on(:detached) do |channel_state_change|
+                channel.publish("foo").errback do
+                  failed_messages << channel
+                end
+                channel.on(:attaching) do |channel_state_change|
                   error = channel_state_change.reason
                   expect(error.message).to match(/Unable to recover connection/i)
-                  detached_channels << channel
-                  next unless detached_channels.count == channel_count
-                  expect(detached_channels.count).to eql(channel_count)
+                  reattaching_channels << channel
+                end
+                channel.on(:attached) do
+                  attached_channels << channel
+                  next unless attached_channels.count == channel_count
+                  expect(reattaching_channels.count).to eql(channel_count)
+                  expect(failed_messages.count).to eql(channel_count)
+                  expect(attach_protocol_messages.uniq).to match(channels.map(&:name))
                   stop_reactor
+                end
+              end
+
+              connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                if protocol_message.action == :attach
+                  attach_protocol_messages << protocol_message.channel
                 end
               end
 
@@ -609,7 +660,86 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          it 'emits an error on the channel and sets the error reason' do
+          it 'issue a reattach for all attaching channels and fail all queued messages (RTN15c3)' do
+            channel_count = 10
+            channels = channel_count.times.map { |index| client.channel("channel-#{index}") }
+
+            channels.map(&:attach)
+
+            attached_channels = []
+            errors_emitted = []
+            attach_protocol_messages = []
+            failed_messages = []
+
+            channels.each do |channel|
+              channel.publish("foo").errback do
+                failed_messages << channel
+              end
+
+              channel.on(:error) do |error|
+                expect(error.message).to match(/Unable to recover connection/i)
+                errors_emitted << channel
+              end
+              channel.on(:attached) do
+                attached_channels << channel
+                next unless attached_channels.count == channel_count
+                expect(errors_emitted.count).to eql(channel_count)
+                expect(failed_messages.count).to eql(channel_count)
+                expect(attach_protocol_messages.uniq).to match(channels.map(&:name))
+                stop_reactor
+              end
+            end
+
+            connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+              if protocol_message.action == :attach
+                attach_protocol_messages << protocol_message.channel
+              end
+            end
+
+            client.connection.once(:connected) do
+              kill_connection_transport_and_prevent_valid_resume
+            end
+          end
+
+          it 'issue a attach for all suspended channels (RTN15c3)' do
+            channel_count = 10
+            channels = channel_count.times.map { |index| client.channel("channel-#{index}") }
+
+            when_all(*channels.map(&:attach)) do
+              # Force all channels into a suspended state
+              channels.map do |channel|
+                channel.transition_state_machine! :suspended
+                expect(channel).to be_suspended
+              end
+
+              attached_channels = []
+              reattaching_channels = []
+              attach_protocol_messages = []
+
+              channels.each do |channel|
+                channel.on(:attaching) do
+                  reattaching_channels << channel
+                end
+                channel.on(:attached) do
+                  attached_channels << channel
+                  next unless attached_channels.count == channel_count
+                  expect(reattaching_channels.count).to eql(channel_count)
+                  expect(attach_protocol_messages.uniq).to match(channels.map(&:name))
+                  stop_reactor
+                end
+              end
+
+              connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                if protocol_message.action == :attach
+                  attach_protocol_messages << protocol_message.channel
+                end
+              end
+
+              kill_connection_transport_and_prevent_valid_resume
+            end
+          end
+
+          it 'emits an error on each channel and sets the error reason' do
             channel.attach do
               kill_connection_transport_and_prevent_valid_resume
             end
@@ -617,8 +747,39 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             channel.on(:error) do |error|
               expect(error.message).to match(/Unable to recover connection/i)
               expect(error.code).to eql(80008)
-              expect(channel.error_reason).to eql(error)
-              stop_reactor
+              EventMachine.next_tick do
+                expect(channel.error_reason).to eql(error)
+                stop_reactor
+              end
+            end
+          end
+
+          it 'resets the client_serial (RTN15c3)' do
+            last_message = nil
+            channel = client.channels.get("foo")
+
+            connection.once(:connected) do
+              connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                if protocol_message.action == :message
+                  last_message = protocol_message
+                end
+              end
+
+              channel.publish("first") do
+                expect(last_message.message_serial).to eql(0)
+                channel.publish("second") do
+                  expect(last_message.message_serial).to eql(1)
+                  connection.once(:connected) do
+                    channel.publish("first on new connection") do
+                      # Message serial reset after failed resume
+                      expect(last_message.message_serial).to eql(0)
+                      stop_reactor
+                    end
+                  end
+
+                  kill_connection_transport_and_prevent_valid_resume
+                end
+              end
             end
           end
         end
@@ -646,6 +807,126 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
               kill_connection_transport_and_prevent_valid_resume
             end
+          end
+        end
+      end
+
+      context 'when an ERROR protocol message is received' do
+        %i(connecting connected).each do |state|
+          context "whilst #{state}" do
+            context 'with a token error code in the range 40140 <= code < 40150 (RTN14b)' do
+              let(:client_options) { default_options.merge(use_token_auth: true) }
+
+              it 'triggers a re-authentication' do
+                connection.once(state) do
+                  current_token = client.auth.current_token_details
+
+                  error_message = Ably::Models::ProtocolMessage.new(action: Ably::Models::ProtocolMessage::ACTION.Error.to_i, error: { code: 40140 })
+                  connection.__incoming_protocol_msgbus__.publish :protocol_message, error_message
+
+                  connection.once(:connected) do
+                    expect(client.auth.current_token_details).to_not eql(current_token)
+                    stop_reactor
+                  end
+                end
+              end
+            end
+
+            context 'with an error code indicating an error other than a token failure (RTN14g, RTN15i)' do
+              it 'causes the connection to fail' do
+                connection.once(state) do
+                  connection.once(:failed) do
+                    stop_reactor
+                  end
+
+                  error_message = Ably::Models::ProtocolMessage.new(action: Ably::Models::ProtocolMessage::ACTION.Error.to_i, error: { code: 50000 })
+                  connection.__incoming_protocol_msgbus__.publish :protocol_message, error_message
+                end
+              end
+            end
+
+            context 'with no error code indicating an error other than a token failure (RTN14g, RTN15i)' do
+              it 'causes the connection to fail' do
+                connection.once(state) do
+                  connection.once(:failed) do
+                    stop_reactor
+                  end
+
+                  error_message = Ably::Models::ProtocolMessage.new(action: Ably::Models::ProtocolMessage::ACTION.Error.to_i)
+                  connection.__incoming_protocol_msgbus__.publish :protocol_message, error_message
+                end
+              end
+            end
+          end
+        end
+      end
+
+      context "whilst resuming" do
+        context "with a token error code in the region 40140 <= code < 40150 (RTN15c5)" do
+          before do
+            stub_const 'Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER', 0 # allow token to be used even if about to expire
+            stub_const 'Ably::Auth::TOKEN_DEFAULTS', Ably::Auth::TOKEN_DEFAULTS.merge(renew_token_buffer: 0) # Ensure tokens issued expire immediately after issue
+          end
+
+          let!(:four_second_token) {
+            rest_client.auth.request_token(ttl: 4).token
+          }
+
+          let!(:normal_token) {
+            rest_client.auth.request_token.token
+          }
+
+          let(:client_options) do
+            default_options.merge(auth_callback: Proc.new do
+              @requests ||= 0
+              @requests += 1
+
+              case @requests
+              when 1, 2
+                four_second_token
+              when 3
+                normal_token
+              end
+            end)
+          end
+
+          it 'triggers a re-authentication and then resumes the connection' do
+            connection.once(:connected) do
+              connection_id = connection.id
+
+              # Lock the EventMachine for 4 seconds until the token has expired
+              sleep 5
+
+              connection.once(:connected) do
+                # We expect the first connect to fail immediately and never reach the connected state
+                expect(@requests).to eql(3)
+                expect(connection.id).to eql(connection_id)
+                stop_reactor
+              end
+
+              # Simulate an abrupt disconnection which will in turn resume but with an expired token
+              connection.transport.close_connection_after_writing
+            end
+          end
+        end
+      end
+
+      context 'with any other error (RTN15c4)' do
+        it 'moves the connection to the failed state' do
+          channel = client.channels.get("foo")
+          channel.attach do
+            connection.once(:failed) do |state_change|
+              expect(state_change.reason.code).to eql(40400)
+              expect(connection.error_reason.code).to eql(40400)
+              expect(channel).to be_failed
+              expect(channel.error_reason.code).to eql(40400)
+              stop_reactor
+            end
+
+            allow(client.rest_client.auth).to receive(:key).and_return("invalid.key:secret")
+
+            # Simulate an abrupt disconnection which will in turn resume with an invalid key
+            connection.transport.close_connection_after_writing
           end
         end
       end

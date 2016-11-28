@@ -12,8 +12,6 @@ module Ably::Realtime
       def initialize(channel, connection)
         @channel    = channel
         @connection = connection
-
-        setup_connection_event_handlers
       end
 
       # Commence attachment
@@ -21,26 +19,31 @@ module Ably::Realtime
         if can_transition_to?(:attached)
           connect_if_connection_initialized
           send_attach_protocol_message
+          resend_attach_protocol_message_if_connection_disconnected_before_ack
         end
       end
 
       # Commence attachment
-      def detach(error = nil)
+      def detach(error, previous_state)
         if connection.closed? || connection.connecting? || connection.suspended?
           channel.transition_state_machine :detached, reason: error
         elsif can_transition_to?(:detached)
-          send_detach_protocol_message
+          send_detach_protocol_message previous_state
         end
       end
 
       # Channel is attached, notify presence if sync is expected
       def attached(attached_protocol_message)
-        if attached_protocol_message.has_presence_flag?
-          channel.presence.manager.sync_expected
-        else
-          channel.presence.manager.sync_not_expected
+        # If no attached ProtocolMessage then this attached request was triggered by the client
+        # library, such as returning to attached whne detach has failed
+        if attached_protocol_message
+          if attached_protocol_message.has_presence_flag?
+            channel.presence.manager.sync_expected
+          else
+            channel.presence.manager.sync_not_expected
+          end
+          channel.set_attached_serial attached_protocol_message.channel_serial
         end
-        channel.set_attached_serial attached_protocol_message.channel_serial
       end
 
       # An error has occurred on the channel
@@ -49,38 +52,73 @@ module Ably::Realtime
         channel.emit :error, error
       end
 
-      # Detach a channel as a result of an error
-      def suspend(error)
-        channel.transition_state_machine! :detaching, reason: error
+      # Request channel to be reattached by sending an attach protocol message
+      def request_reattach(reason: nil)
+        send_attach_protocol_message
+        logger.debug "Explicit channel reattach request sent to Ably"
+        channel.transition_state_machine! :attaching, reason: reason unless channel.attaching?
+        channel.set_failed_channel_error_reason(reason) if reason
       end
 
-      # When a channel is no longer attached or has failed,
-      # all messages awaiting an ACK response should fail immediately
-      def fail_messages_awaiting_ack(error)
-        # Allow a short time for other queued operations to complete before failing all messages
-        EventMachine.add_timer(0.1) do
-          error = Ably::Exceptions::MessageDeliveryFailed.new("Channel cannot publish messages whilst state is '#{channel.state}'") unless error
-          fail_messages_in_queue connection.__pending_message_ack_queue__, error
-          fail_messages_in_queue connection.__outgoing_message_queue__, error
+      def duplicate_attached_received(error)
+        if error
+          channel.set_failed_channel_error_reason error
+          emit_error error
+        else
+          logger.debug "ChannelManager: Extra ATTACHED message received for #{channel.state} channel '#{channel.name}'"
         end
+      end
+
+      # When continuity on the connection is interrupted or channel becomes suspended (implying loss of continuity)
+      # then all messages published but awaiting an ACK from Ably should be failed with a NACK
+      def fail_messages_awaiting_ack(error, immediately: false)
+        fail_proc = Proc.new do
+          error = Ably::Exceptions::MessageDeliveryFailed.new("Continuity of connection was lost so published messages awaiting ACK have failed") unless error
+          fail_messages_in_queue connection.__pending_message_ack_queue__, error
+        end
+
+        # Allow a short time for other queued operations to complete before failing all messages
+        if immediately
+          fail_proc.call
+        else
+          EventMachine.add_timer(0.1) { fail_proc.call }
+        end
+      end
+
+      # When a channel becomes detached, suspended or failed,
+      # all queued messages should be failed immediately as we don't queue in
+      # any of those states
+      def fail_queued_messages(error)
+        error = Ably::Exceptions::MessageDeliveryFailed.new("Queued messages on channel '#{channel.name}' in state '#{channel.state}' will never be delivered") unless error
+        fail_messages_in_queue connection.__outgoing_message_queue__, error
+        channel.__queue__.each do |message|
+          nack_message message, error
+        end
+        channel.__queue__.clear
       end
 
       def fail_messages_in_queue(queue, error)
         queue.delete_if do |protocol_message|
-          if protocol_message.channel == channel.name
-            nack_messages protocol_message, error
-            true
+          if protocol_message.action.match_any?(:presence, :message)
+            if protocol_message.channel == channel.name
+              nack_messages protocol_message, error
+              true
+            end
           end
         end
       end
 
       def nack_messages(protocol_message, error)
         (protocol_message.messages + protocol_message.presence).each do |message|
-          logger.debug "Calling NACK failure callbacks for #{message.class.name} - #{message.to_json}, protocol message: #{protocol_message}"
-          message.fail error
+          nack_message message, error, protocol_message
         end
         logger.debug "Calling NACK failure callbacks for #{protocol_message.class.name} - #{protocol_message.to_json}"
         protocol_message.fail error
+      end
+
+      def nack_message(message, error, protocol_message = nil)
+        logger.debug "Calling NACK failure callbacks for #{message.class.name} - #{message.to_json} #{"protocol message: #{protocol_message}" if protocol_message}"
+        message.fail error
       end
 
       def drop_pending_queue_from_ack(ack_protocol_message)
@@ -109,59 +147,55 @@ module Ably::Realtime
         connection.connect if connection.initialized?
       end
 
+      def realtime_request_timeout
+        connection.defaults.fetch(:realtime_request_timeout)
+      end
+
       def send_attach_protocol_message
-        send_state_change_protocol_message Ably::Models::ProtocolMessage::ACTION.Attach
+        send_state_change_protocol_message Ably::Models::ProtocolMessage::ACTION.Attach, :suspended # move to suspended
       end
 
-      def send_detach_protocol_message
-        send_state_change_protocol_message Ably::Models::ProtocolMessage::ACTION.Detach
+      def send_detach_protocol_message(previous_state)
+        send_state_change_protocol_message Ably::Models::ProtocolMessage::ACTION.Detach, previous_state # return to previous state if failed
       end
 
-      def send_state_change_protocol_message(state)
+      def resend_attach_protocol_message_if_connection_disconnected_before_ack
+        connection.once_or_if(:connected) do
+          attach_confirmed = false
+          channel_attaching_done = false
+
+          channel.once(:attached) do
+            attach_confirmed = true
+          end
+
+          channel.once_state_changed do
+            # Once the state has changed from attaching, whether success or failure
+            # the job of this channel attqaching is done
+            channel_attaching_done = true
+          end
+
+          connection.once(:connected) do
+            send_attach_protocol_message unless attach_confirmed || channel_attaching_done
+            resend_attach_protocol_message_if_connection_disconnected_before_ack
+          end
+        end
+      end
+
+      def send_state_change_protocol_message(new_state, state_if_failed)
+        state_at_time_of_request = channel.state
+        failed_timer = EventMachine::Timer.new(realtime_request_timeout) do
+          if channel.state == state_at_time_of_request
+            error = Ably::Models::ErrorInfo.new(code: 90007, message: "Channel #{new_state} operation failed (timed out)")
+            channel.transition_state_machine state_if_failed, reason: error
+          end
+        end
+
+        channel.once_state_changed { failed_timer.cancel }
+
         connection.send_protocol_message(
-          action:  state.to_i,
+          action:  new_state.to_i,
           channel: channel.name
         )
-      end
-
-      # Any message sent before an ACK/NACK was received on the previous transport
-      # needs to be resent to the Ably service so that a subsequent ACK/NACK is received.
-      # It is up to Ably to ensure that duplicate messages are not retransmitted on the channel
-      # base on the serial numbers
-      #
-      # TODO: Move this into the Connection class, it does not belong in a Channel class
-      #
-      # @api private
-      def resend_pending_message_ack_queue
-        connection.__pending_message_ack_queue__.delete_if do |protocol_message|
-          if protocol_message.channel == channel.name
-            connection.__outgoing_message_queue__ << protocol_message
-            connection.__outgoing_protocol_msgbus__.publish :protocol_message
-            true
-          end
-        end
-      end
-
-      def setup_connection_event_handlers
-        connection.unsafe_on(:closed) do
-          channel.transition_state_machine :detaching if can_transition_to?(:detaching)
-        end
-
-        connection.unsafe_on(:suspended) do |error|
-          if can_transition_to?(:detaching)
-            channel.transition_state_machine :detaching, reason: Ably::Exceptions::ConnectionSuspended.new('Connection suspended', nil, 80002, error)
-          end
-        end
-
-        connection.unsafe_on(:failed) do |error|
-          if can_transition_to?(:failed) && !channel.detached?
-            channel.transition_state_machine :failed, reason: Ably::Exceptions::ConnectionFailed.new('Connection failed', nil, 80002, error)
-          end
-        end
-
-        connection.unsafe_on(:connected) do |error|
-          resend_pending_message_ack_queue
-        end
       end
 
       def logger
