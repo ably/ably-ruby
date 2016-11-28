@@ -13,6 +13,10 @@ describe Ably::Realtime::Channel, :event_machine do
     let(:channel)      { client.channel(channel_name) }
     let(:messages)     { [] }
 
+    def disconnect_transport
+      connection.transport.unbind
+    end
+
     describe 'initialization' do
       context 'with :auto_connect option set to false on connection' do
         let(:client) do
@@ -88,6 +92,46 @@ describe Ably::Realtime::Channel, :event_machine do
         end
       end
 
+      context 'when an ATTACHED acknowledge is not received on the current connection' do
+        # As soon as the client sends the ATTACH on a CONNECTED connection
+        # simulate a transport failure that triggers the DISCONNECTED state twice
+        it 'sends another ATTACH each time the connection becomes connected' do
+          attached_messages = []
+          client.connection.__outgoing_protocol_msgbus__.on(:protocol_message) do |protocol_message|
+            if protocol_message.action == :attach
+              attached_messages << protocol_message
+              if attached_messages.count < 3
+                EventMachine.next_tick do
+                  disconnect_transport
+                end
+              end
+            end
+          end
+
+          connection.once(:connected) do
+            connection.once(:disconnected) do
+              expect(attached_messages.count).to eql(1)
+              connection.once(:disconnected) do
+                expect(attached_messages.count).to eql(2)
+                connection.once(:connected) do
+                  EventMachine.add_timer(0.1) do
+                    expect(attached_messages.count).to eql(3)
+                  end
+                end
+              end
+            end
+            channel.attach
+          end
+
+          channel.once(:attached) do
+            EventMachine.add_timer(1) do
+              expect(attached_messages.count).to eql(3)
+              stop_reactor
+            end
+          end
+        end
+      end
+
       context 'when state is :failed' do
         let(:client_options) { default_options.merge(log_level: :fatal) }
 
@@ -148,8 +192,11 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       context 'failure as a result of insufficient key permissions' do
+        let(:auth_options) do
+          default_options.merge(key: restricted_api_key, log_level: :fatal, use_token_auth: true)
+        end
         let(:restricted_client) do
-          auto_close Ably::Realtime::Client.new(default_options.merge(key: restricted_api_key, log_level: :fatal))
+          auto_close Ably::Realtime::Client.new(auth_options)
         end
         let(:restricted_channel) { restricted_client.channel("cannot_subscribe") }
 
@@ -210,51 +257,73 @@ describe Ably::Realtime::Channel, :event_machine do
     end
 
     describe '#detach' do
-      it 'detaches from a channel' do
-        channel.attach do
-          channel.detach
-          channel.on(:detached) do
-            expect(channel.state).to eq(:detached)
-            stop_reactor
-          end
-        end
-      end
-
-      it 'detaches from a channel and calls the provided block' do
-        channel.attach do
-          expect(channel.state).to eq(:attached)
-          channel.detach do
-            expect(channel.state).to eq(:detached)
-            stop_reactor
-          end
-        end
-      end
-
-      it 'emits :detaching then :detached events' do
-        channel.once(:detaching) do
-          channel.once(:detached) do
-            stop_reactor
+      context 'when state is :attached' do
+        it 'it detaches from a channel (RTL5d)' do
+          channel.attach do
+            channel.detach
+            channel.on(:detached) do
+              expect(channel.state).to eq(:detached)
+              stop_reactor
+            end
           end
         end
 
-        channel.attach do
-          channel.detach
+        it 'detaches from a channel and calls the provided block (RTL5d, RTL5e)' do
+          channel.attach do
+            expect(channel.state).to eq(:attached)
+            channel.detach do
+              expect(channel.state).to eq(:detached)
+              stop_reactor
+            end
+          end
         end
-      end
 
-      it 'returns a SafeDeferrable that catches exceptions in callbacks and logs them' do
-        channel.attach do
-          expect(channel.detach).to be_a(Ably::Util::SafeDeferrable)
-          stop_reactor
+        it 'emits :detaching then :detached events' do
+          channel.once(:detaching) do
+            channel.once(:detached) do
+              stop_reactor
+            end
+          end
+
+          channel.attach do
+            channel.detach
+          end
         end
-      end
 
-      it 'calls the Deferrable callback on success' do
-        channel.attach do
-          channel.detach.callback do
-            expect(channel).to be_a(Ably::Realtime::Channel)
-            expect(channel.state).to eq(:detached)
+        it 'returns a SafeDeferrable that catches exceptions in callbacks and logs them' do
+          channel.attach do
+            expect(channel.detach).to be_a(Ably::Util::SafeDeferrable)
             stop_reactor
+          end
+        end
+
+        it 'calls the Deferrable callback on success' do
+          channel.attach do
+            channel.detach.callback do
+              expect(channel).to be_a(Ably::Realtime::Channel)
+              expect(channel.state).to eq(:detached)
+              stop_reactor
+            end
+          end
+        end
+
+        context 'and DETACHED message is not received within realtime request timeout' do
+          let(:request_timeout) { 2 }
+          let(:client_options) { default_options.merge(realtime_request_timeout: request_timeout) }
+
+          it 'fails the deferrable and returns to the previous state (RTL5f, RTL5e)' do
+            channel.attach do
+              # don't process any incoming ProtocolMessages so the channel never becomes detached
+              connection.__incoming_protocol_msgbus__.unsubscribe
+              detached_requested_at = Time.now.to_i
+              channel.detach do
+                raise "The detach should not succeed if no incoming protocol messages are processed"
+              end.errback do
+                expect(channel).to be_attached
+                expect(Time.now.to_i - detached_requested_at).to be_within(1).of(request_timeout)
+                stop_reactor
+              end
+            end
           end
         end
       end
@@ -262,7 +331,7 @@ describe Ably::Realtime::Channel, :event_machine do
       context 'when state is :failed' do
         let(:client_options) { default_options.merge(log_level: :fatal) }
 
-        it 'raises an exception' do
+        it 'raises an exception (RTL5b)' do
           channel.attach do
             channel.transition_state_machine :failed, reason: RuntimeError.new
             expect(channel).to be_failed
@@ -273,32 +342,31 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       context 'when state is :attaching' do
-        it 'moves straight to :detaching state and skips :attached' do
-          channel.once(:attaching) do
-            channel.once(:attached) { raise 'Attached should never be reached' }
-
-            channel.once(:detaching) do
-              channel.once(:detached) do
-                stop_reactor
+        it 'waits for the attach to complete and then moves to detached' do
+          connection.once(:connected) do
+            channel.once(:attaching) do
+              reached_attached = false
+              channel.once(:attached) do
+                channel.once(:detached) do
+                  stop_reactor
+                end
               end
+              channel.detach
             end
-
-            channel.detach
+            channel.attach
           end
-
-          channel.attach
         end
       end
 
       context 'when state is :detaching' do
-        it 'ignores subsequent #detach calls but calls the callback if provided' do
+        it 'ignores subsequent #detach calls but calls the callback if provided (RTL5i)' do
           channel.once(:detaching) do
-            channel.detach
             channel.once(:detached) do
               channel.detach do
                 stop_reactor
               end
             end
+            channel.detach
           end
 
           channel.attach do
@@ -307,8 +375,28 @@ describe Ably::Realtime::Channel, :event_machine do
         end
       end
 
+      context 'when state is :suspended' do
+        it 'moves the channel state immediately to DETACHED state (RTL5j)' do
+          channel.attach do
+            channel.once(:suspended) do
+              channel.on do |channel_state_change|
+                expect(channel_state_change.current).to eq(:detached)
+                expect(channel.state).to eq(:detached)
+                EventMachine.add_timer(1) do
+                  stop_reactor
+                end
+              end
+              EventMachine.next_tick do
+                channel.detach
+              end
+            end
+            channel.transition_state_machine :suspended
+          end
+        end
+      end
+
       context 'when state is :initialized' do
-        it 'does nothing as there is no channel to detach' do
+        it 'does nothing as there is no channel to detach (RTL5a)' do
           expect(channel).to be_initialized
           channel.detach do
             expect(channel).to be_initialized
@@ -321,6 +409,131 @@ describe Ably::Realtime::Channel, :event_machine do
           channel.detach.callback do
             expect(channel).to be_initialized
             stop_reactor
+          end
+        end
+      end
+
+      context 'when state is :detached' do
+        it 'does nothing as the channel is detached (RTL5a)' do
+          channel.attach do
+            channel.detach do
+              expect(channel).to be_detached
+              channel.on do
+                raise "Channel state should not change when calling detached if already detached"
+              end
+              channel.detach do
+                EventMachine.add_timer(1) { stop_reactor }
+              end
+            end
+          end
+        end
+      end
+
+      context 'when connection state is' do
+        context 'closing' do
+          it 'raises an exception (RTL5b)' do
+            connection.once(:connected) do
+              channel.attach do
+                connection.once(:closing) do
+                  expect { channel.detach }.to raise_error Ably::Exceptions::InvalidStateChange
+                  stop_reactor
+                end
+                connection.close
+              end
+            end
+          end
+        end
+
+        context 'failed and channel is failed' do
+          let(:client_options) do
+            default_options.merge(log_level: :none)
+          end
+          it 'raises an exception (RTL5b)' do
+            connection.once(:connected) do
+              channel.attach do
+                connection.once(:failed) do
+                  expect(channel).to be_failed
+                  expect { channel.detach }.to raise_error Ably::Exceptions::InvalidStateChange
+                  stop_reactor
+                end
+                error = Ably::Exceptions::ConnectionFailed.new('forced failure', 500, 50000)
+                client.connection.manager.error_received_from_server error
+              end
+            end
+          end
+        end
+
+        context 'failed and channel is detached' do
+          let(:client_options) do
+            default_options.merge(log_level: :none)
+          end
+          it 'raises an exception (RTL5b)' do
+            connection.once(:connected) do
+              channel.attach do
+                channel.detach do
+                  connection.once(:failed) do
+                    expect(channel).to be_detached
+                    expect { channel.detach }.to raise_error Ably::Exceptions::InvalidStateChange
+                    stop_reactor
+                  end
+                  error = Ably::Exceptions::ConnectionFailed.new('forced failure', 500, 50000)
+                  client.connection.manager.error_received_from_server error
+                end
+              end
+            end
+          end
+        end
+
+        context 'initialized' do
+          it 'does the detach operation once the connection state is connected (RTL5h)' do
+            expect(connection).to be_initialized
+            channel.attach
+            channel.detach
+            connection.once(:connected) do
+              channel.once(:attached) do
+                channel.once(:detached) do
+                  stop_reactor
+                end
+              end
+            end
+          end
+        end
+
+        context 'connecting' do
+          it 'does the detach operation once the connection state is connected (RTL5h)' do
+            connection.once(:connecting) do
+              channel.attach
+              channel.detach
+              connection.once(:connected) do
+                channel.once(:attached) do
+                  channel.once(:detached) do
+                    stop_reactor
+                  end
+                end
+              end
+            end
+          end
+        end
+
+        context 'disconnected' do
+          let(:client_options) do
+            default_options.merge(log_level: :fatal)
+          end
+          it 'does the detach operation once the connection state is connected (RTL5h)' do
+            connection.once(:connected) do
+              connection.once(:disconnected) do
+                channel.attach
+                channel.detach
+                connection.once(:connected) do
+                  channel.once(:attached) do
+                    channel.once(:detached) do
+                      stop_reactor
+                    end
+                  end
+                end
+              end
+              disconnect_transport
+            end
           end
         end
       end
@@ -446,7 +659,7 @@ describe Ably::Realtime::Channel, :event_machine do
           end
 
           context 'and connection state disconnected' do
-            let(:client_options)  { default_options.merge(queue_messages: false, :log_level => :error ) }
+            let(:client_options)  { default_options.merge(queue_messages: false) }
             it 'raises an exception' do
               client.connection.once(:connected) do
                 client.connection.once(:disconnected) do
