@@ -1245,8 +1245,25 @@ describe Ably::Realtime::Channel, :event_machine do
           client.connection.manager.error_received_from_server error
         end
 
+        context 'an :attaching channel' do
+          it 'transitions state to :failed (RTL3a)' do
+            connection.once(:connected) do
+              channel.once(:attaching) do
+                channel.on(:failed) do |connection_state_change|
+                  error = connection_state_change.reason
+                  expect(error).to be_a(Ably::Exceptions::ConnectionFailed)
+                  expect(error.code).to eql(50000)
+                  stop_reactor
+                end
+                fake_error connection_error
+              end
+              channel.attach
+            end
+          end
+        end
+
         context 'an :attached channel' do
-          it 'transitions state to :failed' do
+          it 'transitions state to :failed (RTL3a)' do
             channel.attach do
               channel.on(:failed) do |connection_state_change|
                 error = connection_state_change.reason
@@ -1258,7 +1275,7 @@ describe Ably::Realtime::Channel, :event_machine do
             end
           end
 
-          it 'emits an error event on the channel' do
+          it 'emits an error event on the channel (RTL3a)' do
             channel.attach do
               channel.on(:error) do |error|
                 expect(error).to be_a(Ably::Exceptions::ConnectionFailed)
@@ -1269,7 +1286,7 @@ describe Ably::Realtime::Channel, :event_machine do
             end
           end
 
-          it 'updates the channel error_reason' do
+          it 'updates the channel error_reason (RTL3a)' do
             channel.attach do
               channel.on(:failed) do |connection_state_change|
                 error = connection_state_change.reason
@@ -1283,7 +1300,7 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'a :detached channel' do
-          it 'remains in the :detached state' do
+          it 'remains in the :detached state (RTL3a)' do
             channel.attach do
               channel.on(:failed) { raise 'Failed state should not have been reached' }
               channel.on(:error)  { raise 'Error should not have been emitted' }
@@ -1303,7 +1320,7 @@ describe Ably::Realtime::Channel, :event_machine do
         context 'a :failed channel' do
           let(:original_error) { RuntimeError.new }
 
-          it 'remains in the :failed state and ignores the failure error' do
+          it 'remains in the :failed state and ignores the failure error (RTL3a)' do
             channel.attach do
               channel.on(:error) do
                 channel.on(:failed) { raise 'Failed state should not have been reached' }
@@ -1364,7 +1381,7 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'a :detached channel' do
-          it 'remains in the :detached state' do
+          it 'remains in the :detached state (RTL3b)' do
             channel.attach do
               channel.detach do
                 channel.on(:detached) { raise 'Detached state should not have been reached' }
@@ -1385,7 +1402,7 @@ describe Ably::Realtime::Channel, :event_machine do
           let(:client_options)   { default_options.merge(log_level: :fatal) }
           let(:original_error) { Ably::Models::ErrorInfo.new(message: 'Error') }
 
-          it 'remains in the :failed state and retains the error_reason' do
+          it 'remains in the :failed state and retains the error_reason (RTL3b)' do
             channel.attach do
               channel.once(:error) do
                 channel.on(:detached) { raise 'Detached state should not have been reached' }
@@ -1469,7 +1486,7 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'a :detached channel' do
-          it 'remains in the :detached state' do
+          it 'remains in the :detached state (RTL3c)' do
             channel.attach do
               channel.detach do
                 channel.on(:detached) { raise 'Detached state should not have been reached' }
@@ -1490,7 +1507,7 @@ describe Ably::Realtime::Channel, :event_machine do
           let(:original_error) { RuntimeError.new }
           let(:client_options) { default_options.merge(log_level: :fatal) }
 
-          it 'remains in the :failed state and retains the error_reason' do
+          it 'remains in the :failed state and retains the error_reason (RTL3c)' do
             channel.attach do
               channel.once(:error) do
                 channel.on(:detached) { raise 'Detached state should not have been reached' }
@@ -1564,6 +1581,83 @@ describe Ably::Realtime::Channel, :event_machine do
                 client.connection.transition_state_machine :suspended
               end
             end
+          end
+        end
+      end
+
+      context ':disconnected' do
+        context 'with an initialized channel' do
+          it 'has no effect on the channel states (RTL3e)' do
+            connection.once(:connected) do
+              expect(channel).to be_initialized
+              connection.once(:disconnected) do
+                expect(channel).to be_initialized
+                stop_reactor
+              end
+              disconnect_transport
+            end
+          end
+        end
+
+        context 'with an attaching channel' do
+          it 'has no effect on the channel states (RTL3e)' do
+            connection.once(:connected) do
+              channel.once(:attaching) do
+                connection.once(:disconnected) do
+                  expect(channel).to be_attaching
+                  stop_reactor
+                end
+                disconnect_transport
+              end
+              channel.attach
+            end
+          end
+        end
+
+        context 'with an attached channel' do
+          it 'has no effect on the channel states (RTL3e)' do
+            channel.attach do
+              connection.once(:disconnected) do
+                expect(channel).to be_attached
+                stop_reactor
+              end
+              disconnect_transport
+            end
+          end
+        end
+
+        context 'with a detached channel' do
+          it 'has no effect on the channel states (RTL3e)' do
+            channel.attach do
+              channel.detach do
+                connection.once(:disconnected) do
+                  expect(channel).to be_detached
+                  stop_reactor
+                end
+                disconnect_transport
+              end
+            end
+          end
+        end
+
+        context 'with a failed channel' do
+          let(:client_options) do
+            default_options.merge(
+              token_params: { capability: { "foo": ["*"] } },
+              use_token_auth: true,
+              log_level: :fatal
+            )
+          end
+
+          it 'has no effect on the channel states (RTL3e)' do
+            channel.once(:failed) do
+              connection.once(:disconnected) do
+                expect(channel).to be_failed
+                stop_reactor
+              end
+              disconnect_transport
+            end
+            channel.attach
           end
         end
       end
