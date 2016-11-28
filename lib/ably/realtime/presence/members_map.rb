@@ -173,7 +173,11 @@ module Ably::Realtime
         end
 
         resume_sync_proc = method(:resume_sync).to_proc
-        connection.on_resume(&resume_sync_proc)
+
+        channel.once(:attached) do
+          connection.on_resume(&resume_sync_proc)
+        end
+
         once(:in_sync, :failed) do
           connection.off_resume(&resume_sync_proc)
         end
@@ -189,7 +193,7 @@ module Ably::Realtime
           action:         Ably::Models::ProtocolMessage::ACTION.Sync.to_i,
           channel:        channel.name,
           channel_serial: sync_serial
-        )
+        ) if channel.attached?
       end
 
       # When channel serial in ProtocolMessage SYNC is nil or
