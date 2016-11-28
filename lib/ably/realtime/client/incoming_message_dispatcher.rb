@@ -43,11 +43,11 @@ module Ably::Realtime
           raise ArgumentError, "Expected a ProtocolMessage. Received #{protocol_message}"
         end
 
-        unless [:nack, :error].include?(protocol_message.action)
+        unless protocol_message.action.match_any?(:nack, :error)
           logger.debug "#{protocol_message.action} received: #{protocol_message}"
         end
 
-        if [:sync, :presence, :message].any? { |prevent_duplicate| protocol_message.action == prevent_duplicate }
+        if protocol_message.action.match_any?(:sync, :presence, :message)
           if connection.serial && protocol_message.has_connection_serial? && protocol_message.connection_serial <= connection.serial
             error_target = if protocol_message.channel
               get_channel(protocol_message.channel)

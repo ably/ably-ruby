@@ -89,7 +89,7 @@ module Ably::Realtime
       # all queued messages should be failed immediately as we don't queue in
       # any of those states
       def fail_queued_messages(error)
-        error = Ably::Exceptions::MessageDeliveryFailed.new("Queueing messages on channel '#{channel.name}' in state '#{channel.state}' is not possible") unless error
+        error = Ably::Exceptions::MessageDeliveryFailed.new("Queued messages on channel '#{channel.name}' in state '#{channel.state}' will never be delivered") unless error
         fail_messages_in_queue connection.__outgoing_message_queue__, error
         channel.__queue__.each do |message|
           nack_message message, error
@@ -99,7 +99,7 @@ module Ably::Realtime
 
       def fail_messages_in_queue(queue, error)
         queue.delete_if do |protocol_message|
-          if [:presence, :message].include?(protocol_message.action)
+          if protocol_message.action.match_any?(:presence, :message)
             if protocol_message.channel == channel.name
               nack_messages protocol_message, error
               true
