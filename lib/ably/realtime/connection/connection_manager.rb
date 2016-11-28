@@ -151,7 +151,7 @@ module Ably::Realtime
       # @api private
       def fail(error)
         connection.logger.fatal "ConnectionManager: Connection failed - #{error}"
-        connection.manager.destroy_transport
+        destroy_transport
         connection.unsafe_once(:failed) { connection.emit :error, error }
         channels.each do |channel|
           next if channel.detached? || channel.initialized?

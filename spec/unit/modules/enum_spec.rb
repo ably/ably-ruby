@@ -41,6 +41,33 @@ describe Ably::Modules::Enum, :api_private do
     end
   end
 
+  context 'using include? to compare Enum values' do
+    subject { enum }
+
+    it 'allows same type comparison' do
+      expect([subject.ValueZero].include?(subject.ValueZero)).to eql(true)
+    end
+
+    it 'allows different type comparison 1' do
+      expect([subject.ValueZero].include?(:value_zero)).to eql(true)
+    end
+
+    it 'allows different type comparison 2' do
+      skip 'Unless we monkeypath Symbols, the == operator is never invoked'
+      expect([:value_zero].include?(subject.ValueZero)).to eql(true)
+    end
+
+    context '#match_any? replacement for include?' do
+      it 'matches any value in the arguments provided' do
+        expect(subject.ValueZero.match_any?(:value_foo, :value_zero)).to eql(true)
+      end
+
+      it 'returns false if there are no matches in any value in the arguments provided' do
+        expect(subject.ValueZero.match_any?(:value_x, :value_y)).to eql(false)
+      end
+    end
+  end
+
   context 'defined Enum from Array class' do
     subject { enum }
 

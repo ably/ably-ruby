@@ -178,6 +178,10 @@ module Ably::Modules
           end
         end
 
+        def match_any?(*enums)
+          enums.any? { |enum| self.==(enum) }
+        end
+
         private
         def name
           @name
