@@ -196,7 +196,15 @@ module Ably
           raise Ably::Exceptions::InvalidStateChange.new("Cannot ATTACH channel when the connection is in a closed, suspended or failed state. Connection state: #{connection.state}")
         end
 
-        transition_state_machine :attaching if can_transition_to?(:attaching)
+        if !attached?
+          if detaching?
+            # Let the pending operation complete (RTL4h)
+            once_state_changed { transition_state_machine :attaching if can_transition_to?(:attaching) }
+          else
+            transition_state_machine :attaching if can_transition_to?(:attaching)
+          end
+        end
+
         deferrable_for_state_change_to(STATE.Attached, &success_block)
       end
 
@@ -215,14 +223,17 @@ module Ably
 
         raise exception_for_state_change_to(:detaching) if failed? || connection.closing? || connection.failed?
 
-        if attaching?
-          # Let the pending operation complete (RTL5i)
-          once_state_changed { transition_state_machine :detaching }
-        elsif can_transition_to?(:detaching)
-          transition_state_machine :detaching
-        else
-          transition_state_machine! :detached unless detached?
+        if !detached?
+          if attaching?
+            # Let the pending operation complete (RTL5i)
+            once_state_changed { transition_state_machine :detaching if can_transition_to?(:detaching) }
+          elsif can_transition_to?(:detaching)
+            transition_state_machine :detaching
+          else
+            transition_state_machine! :detached
+          end
         end
+
         deferrable_for_state_change_to(STATE.Detached, &success_block)
       end
 

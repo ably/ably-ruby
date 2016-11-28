@@ -41,41 +41,67 @@ describe Ably::Realtime::Channel, :event_machine do
     end
 
     describe '#attach' do
-      it 'emits attaching then attached events' do
-        channel.once(:attaching) do
-          channel.once(:attached) do
+      context 'when initialized' do
+        it 'emits attaching then attached events' do
+          channel.once(:attaching) do
+            channel.once(:attached) do
+              stop_reactor
+            end
+          end
+
+          channel.attach
+        end
+
+        it 'ignores subsequent #attach calls but calls the success callback if provided' do
+          channel.once(:attaching) do
+            channel.attach
+            channel.once(:attached) do
+              channel.attach do
+                stop_reactor
+              end
+            end
+          end
+
+          channel.attach
+        end
+
+        it 'attaches to a channel' do
+          channel.attach
+          channel.on(:attached) do
+            expect(channel.state).to eq(:attached)
             stop_reactor
           end
         end
 
-        channel.attach
-      end
-
-      it 'ignores subsequent #attach calls but calls the success callback if provided' do
-        channel.once(:attaching) do
-          channel.attach
-          channel.once(:attached) do
-            channel.attach do
-              stop_reactor
-            end
+        it 'attaches to a channel and calls the provided block (RTL4d)' do
+          channel.attach do
+            expect(channel.state).to eq(:attached)
+            stop_reactor
           end
         end
 
-        channel.attach
-      end
-
-      it 'attaches to a channel' do
-        channel.attach
-        channel.on(:attached) do
-          expect(channel.state).to eq(:attached)
-          stop_reactor
-        end
-      end
-
-      it 'attaches to a channel and calls the provided block' do
-        channel.attach do
-          expect(channel.state).to eq(:attached)
-          stop_reactor
+        it 'sends an ATTACH and waits for an ATTACHED (RTL4c)' do
+          connection.once(:connected) do
+            attach_count = 0
+            attached_count = 0
+            test_complete = false
+            client.connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+              next if test_complete
+              attached_count += 1 if protocol_message.action == :attached
+            end
+            client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+              next if test_complete
+              attach_count += 1 if protocol_message.action == :attach
+            end
+            channel.attach do
+              EventMachine.add_timer(1) do
+                test_complete = true
+                expect(attach_count).to eql(1)
+                expect(attached_count).to eql(1)
+                stop_reactor
+              end
+            end
+          end
         end
       end
 
@@ -84,7 +110,7 @@ describe Ably::Realtime::Channel, :event_machine do
         stop_reactor
       end
 
-      it 'calls the SafeDeferrable callback on success' do
+      it 'calls the SafeDeferrable callback on success (RTL4d)' do
         channel.attach.callback do
           expect(channel).to be_a(Ably::Realtime::Channel)
           expect(channel.state).to eq(:attached)
@@ -132,15 +158,35 @@ describe Ably::Realtime::Channel, :event_machine do
         end
       end
 
+      context 'when state is :attached' do
+        it 'does nothing (RTL4a)' do
+          channel.attach do
+            stopping = false
+            client.connection.__outgoing_protocol_msgbus__.once(:protocol_message) do |protocol_message|
+              raise "No outgoing messages should be sent as already ATTACHED" unless stopping
+            end
+            5.times do |index|
+              EventMachine.add_timer(0.2 * index) { channel.attach }
+            end
+            EventMachine.add_timer(1.5) do
+              stopping = true
+              stop_reactor
+            end
+          end
+        end
+      end
+
       context 'when state is :failed' do
         let(:client_options) { default_options.merge(log_level: :fatal) }
 
-        it 'reattaches' do
+        it 'reattaches and sets the errorReason to nil (RTL4g)' do
           channel.attach do
             channel.transition_state_machine :failed, reason: RuntimeError.new
             expect(channel).to be_failed
+            expect(channel.error_reason).to_not be_nil
             channel.attach do
               expect(channel).to be_attached
+              expect(channel.error_reason).to be_nil
               stop_reactor
             end
           end
@@ -148,14 +194,16 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       context 'when state is :detaching' do
-        it 'moves straight to attaching and skips detached' do
+        it 'does the attach operation after the completion of the pending request (RTL4h)' do
           channel.once(:detaching) do
-            channel.once(:detached) { raise 'Detach should not have been reached' }
-
-            channel.once(:attaching) do
-              channel.once(:attached) do
-                channel.off
-                stop_reactor
+            channel.once(:detached) do
+              channel.once(:attaching) do
+                channel.once(:attached) do
+                  EventMachine.add_timer(1) do
+                    expect(channel).to be_attached
+                    stop_reactor
+                  end
+                end
               end
             end
 
@@ -193,14 +241,20 @@ describe Ably::Realtime::Channel, :event_machine do
 
       context 'failure as a result of insufficient key permissions' do
         let(:auth_options) do
-          default_options.merge(key: restricted_api_key, log_level: :fatal, use_token_auth: true)
+          default_options.merge(
+            key: restricted_api_key,
+            log_level: :fatal,
+            use_token_auth: true,
+            # TODO: Use wildcard / default when intersection issue resolved, realtime#780
+            token_params: { capability: { "canpublish:foo": ["publish"] } }
+          )
         end
         let(:restricted_client) do
           auto_close Ably::Realtime::Client.new(auth_options)
         end
-        let(:restricted_channel) { restricted_client.channel("cannot_subscribe") }
+        let(:restricted_channel) { restricted_client.channel("cansubscribe:foo") }
 
-        it 'emits failed event' do
+        it 'emits failed event (RTL4e)' do
           restricted_channel.attach
           restricted_channel.on(:failed) do |connection_state|
             expect(restricted_channel.state).to eq(:failed)
@@ -209,7 +263,7 @@ describe Ably::Realtime::Channel, :event_machine do
           end
         end
 
-        it 'calls the errback of the returned Deferrable' do
+        it 'calls the errback of the returned Deferrable (RTL4d)' do
           restricted_channel.attach.errback do |error|
             expect(restricted_channel.state).to eq(:failed)
             expect(error.status).to eq(401)
@@ -239,18 +293,46 @@ describe Ably::Realtime::Channel, :event_machine do
             restricted_channel.attach
             restricted_channel.once(:failed) do
               restricted_client.close do
-                # A direct call to #authorize is synchronous
-                restricted_client.auth.authorize({}, key: api_key)
-
-                restricted_client.connect do
-                  restricted_channel.once(:attached) do
-                    expect(restricted_channel.error_reason).to be_nil
-                    stop_reactor
+                token_params = { capability: { "cansubscribe:foo": ["subscribe"] } }
+                restricted_client.auth.authorize(token_params) do
+                  restricted_client.connect do
+                    restricted_channel.once(:attached) do
+                      expect(restricted_channel.error_reason).to be_nil
+                      stop_reactor
+                    end
+                    restricted_channel.attach
                   end
-                  restricted_channel.attach
                 end
               end
             end
+          end
+        end
+      end
+
+      context 'with connection state' do
+        it 'is initialized (RTL4i)' do
+          expect(connection).to be_initialized
+          channel.attach do
+            stop_reactor
+          end
+        end
+
+        it 'is connecting (RTL4i)' do
+          connection.once(:connecting) do
+            channel.attach do
+              stop_reactor
+            end
+          end
+        end
+
+        it 'is disconnected (RTL4i)' do
+          connection.once(:connected) do
+            connection.once(:disconnected) do
+              channel.attach do
+                stop_reactor
+              end
+            end
+            disconnect_transport
           end
         end
       end
@@ -586,10 +668,8 @@ describe Ably::Realtime::Channel, :event_machine do
           end
         end
       end
-      #   skip 'attach times out and fails if not ATTACHED protocol message received'
-      #   skip 'channel is ATTACHED if ATTACHED protocol message is later received'
-      #   skip 'sends an ATTACH protocol message in response to a channel message being received on the attaching channel'
-      # end
+
+      # skip 'sends an ATTACH protocol message in response to a channel message being received on the attaching channel'
     end
 
     context '#publish' do
@@ -1341,7 +1421,7 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'a channel ATTACH request' do
-          it 'raises an exception' do
+          it 'raises an exception (RTL4b)' do
             client.connect do
               client.connection.once(:failed) do
                 expect { channel.attach }.to raise_error Ably::Exceptions::InvalidStateChange
@@ -1423,7 +1503,7 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'a channel ATTACH request when connection CLOSED' do
-          it 'raises an exception' do
+          it 'raises an exception (RTL4b)' do
             client.connect do
               client.connection.once(:closed) do
                 expect { channel.attach }.to raise_error Ably::Exceptions::InvalidStateChange
@@ -1435,7 +1515,7 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'a channel ATTACH request when connection CLOSING' do
-          it 'raises an exception' do
+          it 'raises an exception (RTL4b)' do
             client.connect do
               client.connection.once(:closing) do
                 expect { channel.attach }.to raise_error Ably::Exceptions::InvalidStateChange
@@ -1527,7 +1607,7 @@ describe Ably::Realtime::Channel, :event_machine do
           end
         end
 
-        context 'a channel ATTACH request when connection SUSPENDED' do
+        context 'a channel ATTACH request when connection SUSPENDED (RTL4b)' do
           let(:client_options) { default_options.merge(log_level: :fatal) }
 
           it 'raises an exception' do
