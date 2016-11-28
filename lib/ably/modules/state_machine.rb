@@ -22,7 +22,7 @@ module Ably::Modules
     #
     # @return [void]
     def transition_state(state, *args)
-      unless result = transition_to(state, *args)
+      unless result = transition_to(state.to_sym, *args)
         exception = exception_for_state_change_to(state)
         object.emit :error, exception
         logger.fatal "#{self.class}: #{exception.message}"

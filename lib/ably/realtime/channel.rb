@@ -213,9 +213,12 @@ module Ably
           end
         end
 
-        raise exception_for_state_change_to(:detaching) if failed?
+        raise exception_for_state_change_to(:detaching) if failed? || connection.closing? || connection.failed?
 
-        if can_transition_to?(:detaching)
+        if attaching?
+          # Let the pending operation complete (RTL5i)
+          once_state_changed { transition_state_machine :detaching }
+        elsif can_transition_to?(:detaching)
           transition_state_machine :detaching
         else
           transition_state_machine! :detached unless detached?

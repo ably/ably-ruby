@@ -23,7 +23,7 @@ module Ably::Realtime
       transition :from => :initialized,  :to => [:attaching]
       transition :from => :attaching,    :to => [:attached, :detaching, :failed, :suspended]
       transition :from => :attached,     :to => [:attaching, :detaching, :detached, :failed, :suspended]
-      transition :from => :detaching,    :to => [:attaching, :detached, :failed, :suspended]
+      transition :from => :detaching,    :to => [:detached, :attaching, :attached, :failed, :suspended]
       transition :from => :detached,     :to => [:attaching, :attached, :failed]
       transition :from => :suspended,    :to => [:attaching, :detached, :failed]
       transition :from => :failed,       :to => [:attaching]
@@ -42,7 +42,7 @@ module Ably::Realtime
 
       after_transition(to: [:detaching]) do |channel, current_transition|
         err = error_from_state_change(current_transition)
-        channel.manager.detach err
+        channel.manager.detach err, current_transition.metadata.previous
       end
 
       after_transition(to: [:detached, :failed, :suspended]) do |channel, current_transition|
