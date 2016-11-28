@@ -68,7 +68,7 @@ module Ably::Models
     # Indicates this protocol message action will generate an ACK response such as :message or :presence
     # @api private
     def self.ack_required?(for_action)
-      [ACTION.Presence, ACTION.Message].include?(ACTION(for_action))
+      ACTION(for_action).match_any?(ACTION.Presence, ACTION.Message)
     end
 
     # {ProtocolMessage} initializer
