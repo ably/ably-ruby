@@ -108,7 +108,7 @@ describe Ably::Models::TokenRequest do
     end
   end
 
-  context 'from_json (TE6)' do
+  context 'from_json (#TE6)' do
     let(:timestamp) { Time.now }
     let(:capabilities) { { '*' => ['publish'] } }
     let(:ttl_seconds) { 60 * 1000 }

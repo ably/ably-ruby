@@ -127,7 +127,7 @@ describe Ably::Modules::EventEmitter do
     end
   end
 
-  context '#on (RTE3)' do
+  context '#on (#RTE3)' do
     context 'with event specified' do
       it 'calls the block every time an event is emitted only' do
         block_called = 0
@@ -173,7 +173,7 @@ describe Ably::Modules::EventEmitter do
     end
   end
 
-  context '#once (RTE4)' do
+  context '#once (#RTE4)' do
     context 'with event specified' do
       it 'calls the block the first time an event is emitted only' do
         block_called = 0

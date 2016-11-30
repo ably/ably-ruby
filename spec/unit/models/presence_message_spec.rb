@@ -385,7 +385,7 @@ describe Ably::Models::PresenceMessage do
   end
 
 
-  context '#from_encoded (TP4)' do
+  context '#from_encoded (#TP4)' do
     context 'with no encoding' do
       let(:message_data) do
         { action: 2, data: 'data-string' }
@@ -486,7 +486,7 @@ describe Ably::Models::PresenceMessage do
     end
   end
 
-  context '#from_encoded_array (TP4)' do
+  context '#from_encoded_array (#TP4)' do
     context 'with no encoding' do
       let(:message_data) do
         [{ action: 1, data: 'data-string' }, { action: 2, data: 'data-string' }]
