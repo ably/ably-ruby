@@ -198,7 +198,7 @@ module Ably
 
         if !attached?
           if detaching?
-            # Let the pending operation complete (RTL4h)
+            # Let the pending operation complete (#RTL4h)
             once_state_changed { transition_state_machine :attaching if can_transition_to?(:attaching) }
           else
             transition_state_machine :attaching if can_transition_to?(:attaching)
@@ -225,7 +225,7 @@ module Ably
 
         if !detached?
           if attaching?
-            # Let the pending operation complete (RTL5i)
+            # Let the pending operation complete (#RTL5i)
             once_state_changed { transition_state_machine :detaching if can_transition_to?(:detaching) }
           elsif can_transition_to?(:detaching)
             transition_state_machine :detaching
