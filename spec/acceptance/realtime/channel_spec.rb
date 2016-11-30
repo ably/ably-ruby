@@ -73,14 +73,14 @@ describe Ably::Realtime::Channel, :event_machine do
           end
         end
 
-        it 'attaches to a channel and calls the provided block (RTL4d)' do
+        it 'attaches to a channel and calls the provided block (#RTL4d)' do
           channel.attach do
             expect(channel.state).to eq(:attached)
             stop_reactor
           end
         end
 
-        it 'sends an ATTACH and waits for an ATTACHED (RTL4c)' do
+        it 'sends an ATTACH and waits for an ATTACHED (#RTL4c)' do
           connection.once(:connected) do
             attach_count = 0
             attached_count = 0
@@ -110,7 +110,7 @@ describe Ably::Realtime::Channel, :event_machine do
         stop_reactor
       end
 
-      it 'calls the SafeDeferrable callback on success (RTL4d)' do
+      it 'calls the SafeDeferrable callback on success (#RTL4d)' do
         channel.attach.callback do
           expect(channel).to be_a(Ably::Realtime::Channel)
           expect(channel.state).to eq(:attached)
@@ -159,7 +159,7 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       context 'when state is :attached' do
-        it 'does nothing (RTL4a)' do
+        it 'does nothing (#RTL4a)' do
           channel.attach do
             stopping = false
             client.connection.__outgoing_protocol_msgbus__.once(:protocol_message) do |protocol_message|
@@ -179,7 +179,7 @@ describe Ably::Realtime::Channel, :event_machine do
       context 'when state is :failed' do
         let(:client_options) { default_options.merge(log_level: :fatal) }
 
-        it 'reattaches and sets the errorReason to nil (RTL4g)' do
+        it 'reattaches and sets the errorReason to nil (#RTL4g)' do
           channel.attach do
             channel.transition_state_machine :failed, reason: RuntimeError.new
             expect(channel).to be_failed
@@ -194,7 +194,7 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       context 'when state is :detaching' do
-        it 'does the attach operation after the completion of the pending request (RTL4h)' do
+        it 'does the attach operation after the completion of the pending request (#RTL4h)' do
           channel.once(:detaching) do
             channel.once(:detached) do
               channel.once(:attaching) do
@@ -254,7 +254,7 @@ describe Ably::Realtime::Channel, :event_machine do
         end
         let(:restricted_channel) { restricted_client.channel("cansubscribe:foo") }
 
-        it 'emits failed event (RTL4e)' do
+        it 'emits failed event (#RTL4e)' do
           restricted_channel.attach
           restricted_channel.on(:failed) do |connection_state|
             expect(restricted_channel.state).to eq(:failed)
@@ -263,7 +263,7 @@ describe Ably::Realtime::Channel, :event_machine do
           end
         end
 
-        it 'calls the errback of the returned Deferrable (RTL4d)' do
+        it 'calls the errback of the returned Deferrable (#RTL4d)' do
           restricted_channel.attach.errback do |error|
             expect(restricted_channel.state).to eq(:failed)
             expect(error.status).to eq(401)
@@ -310,14 +310,14 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       context 'with connection state' do
-        it 'is initialized (RTL4i)' do
+        it 'is initialized (#RTL4i)' do
           expect(connection).to be_initialized
           channel.attach do
             stop_reactor
           end
         end
 
-        it 'is connecting (RTL4i)' do
+        it 'is connecting (#RTL4i)' do
           connection.once(:connecting) do
             channel.attach do
               stop_reactor
@@ -325,7 +325,7 @@ describe Ably::Realtime::Channel, :event_machine do
           end
         end
 
-        it 'is disconnected (RTL4i)' do
+        it 'is disconnected (#RTL4i)' do
           connection.once(:connected) do
             connection.once(:disconnected) do
               channel.attach do
@@ -340,7 +340,7 @@ describe Ably::Realtime::Channel, :event_machine do
 
     describe '#detach' do
       context 'when state is :attached' do
-        it 'it detaches from a channel (RTL5d)' do
+        it 'it detaches from a channel (#RTL5d)' do
           channel.attach do
             channel.detach
             channel.on(:detached) do
@@ -350,7 +350,7 @@ describe Ably::Realtime::Channel, :event_machine do
           end
         end
 
-        it 'detaches from a channel and calls the provided block (RTL5d, RTL5e)' do
+        it 'detaches from a channel and calls the provided block (#RTL5d, #RTL5e)' do
           channel.attach do
             expect(channel.state).to eq(:attached)
             channel.detach do
@@ -393,7 +393,7 @@ describe Ably::Realtime::Channel, :event_machine do
           let(:request_timeout) { 2 }
           let(:client_options) { default_options.merge(realtime_request_timeout: request_timeout) }
 
-          it 'fails the deferrable and returns to the previous state (RTL5f, RTL5e)' do
+          it 'fails the deferrable and returns to the previous state (#RTL5f, #RTL5e)' do
             channel.attach do
               # don't process any incoming ProtocolMessages so the channel never becomes detached
               connection.__incoming_protocol_msgbus__.unsubscribe
@@ -413,7 +413,7 @@ describe Ably::Realtime::Channel, :event_machine do
       context 'when state is :failed' do
         let(:client_options) { default_options.merge(log_level: :fatal) }
 
-        it 'raises an exception (RTL5b)' do
+        it 'raises an exception (#RTL5b)' do
           channel.attach do
             channel.transition_state_machine :failed, reason: RuntimeError.new
             expect(channel).to be_failed
@@ -441,7 +441,7 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       context 'when state is :detaching' do
-        it 'ignores subsequent #detach calls but calls the callback if provided (RTL5i)' do
+        it 'ignores subsequent #detach calls but calls the callback if provided (#RTL5i)' do
           channel.once(:detaching) do
             channel.once(:detached) do
               channel.detach do
@@ -458,7 +458,7 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       context 'when state is :suspended' do
-        it 'moves the channel state immediately to DETACHED state (RTL5j)' do
+        it 'moves the channel state immediately to DETACHED state (#RTL5j)' do
           channel.attach do
             channel.once(:suspended) do
               channel.on do |channel_state_change|
@@ -478,7 +478,7 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       context 'when state is :initialized' do
-        it 'does nothing as there is no channel to detach (RTL5a)' do
+        it 'does nothing as there is no channel to detach (#RTL5a)' do
           expect(channel).to be_initialized
           channel.detach do
             expect(channel).to be_initialized
@@ -496,7 +496,7 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       context 'when state is :detached' do
-        it 'does nothing as the channel is detached (RTL5a)' do
+        it 'does nothing as the channel is detached (#RTL5a)' do
           channel.attach do
             channel.detach do
               expect(channel).to be_detached
@@ -513,7 +513,7 @@ describe Ably::Realtime::Channel, :event_machine do
 
       context 'when connection state is' do
         context 'closing' do
-          it 'raises an exception (RTL5b)' do
+          it 'raises an exception (#RTL5b)' do
             connection.once(:connected) do
               channel.attach do
                 connection.once(:closing) do
@@ -530,7 +530,7 @@ describe Ably::Realtime::Channel, :event_machine do
           let(:client_options) do
             default_options.merge(log_level: :none)
           end
-          it 'raises an exception (RTL5b)' do
+          it 'raises an exception (#RTL5b)' do
             connection.once(:connected) do
               channel.attach do
                 connection.once(:failed) do
@@ -549,7 +549,7 @@ describe Ably::Realtime::Channel, :event_machine do
           let(:client_options) do
             default_options.merge(log_level: :none)
           end
-          it 'raises an exception (RTL5b)' do
+          it 'raises an exception (#RTL5b)' do
             connection.once(:connected) do
               channel.attach do
                 channel.detach do
@@ -567,7 +567,7 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'initialized' do
-          it 'does the detach operation once the connection state is connected (RTL5h)' do
+          it 'does the detach operation once the connection state is connected (#RTL5h)' do
             expect(connection).to be_initialized
             channel.attach
             channel.detach
@@ -582,7 +582,7 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'connecting' do
-          it 'does the detach operation once the connection state is connected (RTL5h)' do
+          it 'does the detach operation once the connection state is connected (#RTL5h)' do
             connection.once(:connecting) do
               channel.attach
               channel.detach
@@ -601,7 +601,7 @@ describe Ably::Realtime::Channel, :event_machine do
           let(:client_options) do
             default_options.merge(log_level: :fatal)
           end
-          it 'does the detach operation once the connection state is connected (RTL5h)' do
+          it 'does the detach operation once the connection state is connected (#RTL5h)' do
             connection.once(:connected) do
               connection.once(:disconnected) do
                 channel.attach
@@ -628,7 +628,7 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       context 'when an ATTACH request times out' do
-        it 'moves to the SUSPENDED state (RTL4f)' do
+        it 'moves to the SUSPENDED state (#RTL4f)' do
           connection.once(:connected) do
             attach_request_sent_at = Time.now
             channel.attach
@@ -1326,7 +1326,7 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'an :attaching channel' do
-          it 'transitions state to :failed (RTL3a)' do
+          it 'transitions state to :failed (#RTL3a)' do
             connection.once(:connected) do
               channel.once(:attaching) do
                 channel.on(:failed) do |connection_state_change|
@@ -1343,7 +1343,7 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'an :attached channel' do
-          it 'transitions state to :failed (RTL3a)' do
+          it 'transitions state to :failed (#RTL3a)' do
             channel.attach do
               channel.on(:failed) do |connection_state_change|
                 error = connection_state_change.reason
@@ -1355,7 +1355,7 @@ describe Ably::Realtime::Channel, :event_machine do
             end
           end
 
-          it 'emits an error event on the channel (RTL3a)' do
+          it 'emits an error event on the channel (#RTL3a)' do
             channel.attach do
               channel.on(:error) do |error|
                 expect(error).to be_a(Ably::Exceptions::ConnectionFailed)
@@ -1366,7 +1366,7 @@ describe Ably::Realtime::Channel, :event_machine do
             end
           end
 
-          it 'updates the channel error_reason (RTL3a)' do
+          it 'updates the channel error_reason (#RTL3a)' do
             channel.attach do
               channel.on(:failed) do |connection_state_change|
                 error = connection_state_change.reason
@@ -1380,7 +1380,7 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'a :detached channel' do
-          it 'remains in the :detached state (RTL3a)' do
+          it 'remains in the :detached state (#RTL3a)' do
             channel.attach do
               channel.on(:failed) { raise 'Failed state should not have been reached' }
               channel.on(:error)  { raise 'Error should not have been emitted' }
@@ -1400,7 +1400,7 @@ describe Ably::Realtime::Channel, :event_machine do
         context 'a :failed channel' do
           let(:original_error) { RuntimeError.new }
 
-          it 'remains in the :failed state and ignores the failure error (RTL3a)' do
+          it 'remains in the :failed state and ignores the failure error (#RTL3a)' do
             channel.attach do
               channel.on(:error) do
                 channel.on(:failed) { raise 'Failed state should not have been reached' }
@@ -1421,7 +1421,7 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'a channel ATTACH request' do
-          it 'raises an exception (RTL4b)' do
+          it 'raises an exception (#RTL4b)' do
             client.connect do
               client.connection.once(:failed) do
                 expect { channel.attach }.to raise_error Ably::Exceptions::InvalidStateChange
@@ -1435,7 +1435,7 @@ describe Ably::Realtime::Channel, :event_machine do
 
       context ':closed' do
         context 'an :attached channel' do
-          it 'transitions state to :detached (RTL3b)' do
+          it 'transitions state to :detached (#RTL3b)' do
             channel.attach do
               channel.on(:detached) do
                 stop_reactor
@@ -1445,7 +1445,7 @@ describe Ably::Realtime::Channel, :event_machine do
           end
         end
 
-        context 'an :attaching channel (RTL3b)' do
+        context 'an :attaching channel (#RTL3b)' do
           it 'transitions state to :detached' do
             channel.on(:attaching) do
               channel.on(:detached) do
@@ -1461,7 +1461,7 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'a :detached channel' do
-          it 'remains in the :detached state (RTL3b)' do
+          it 'remains in the :detached state (#RTL3b)' do
             channel.attach do
               channel.detach do
                 channel.on(:detached) { raise 'Detached state should not have been reached' }
@@ -1482,7 +1482,7 @@ describe Ably::Realtime::Channel, :event_machine do
           let(:client_options)   { default_options.merge(log_level: :fatal) }
           let(:original_error) { Ably::Models::ErrorInfo.new(message: 'Error') }
 
-          it 'remains in the :failed state and retains the error_reason (RTL3b)' do
+          it 'remains in the :failed state and retains the error_reason (#RTL3b)' do
             channel.attach do
               channel.once(:error) do
                 channel.on(:detached) { raise 'Detached state should not have been reached' }
@@ -1503,7 +1503,7 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'a channel ATTACH request when connection CLOSED' do
-          it 'raises an exception (RTL4b)' do
+          it 'raises an exception (#RTL4b)' do
             client.connect do
               client.connection.once(:closed) do
                 expect { channel.attach }.to raise_error Ably::Exceptions::InvalidStateChange
@@ -1515,7 +1515,7 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'a channel ATTACH request when connection CLOSING' do
-          it 'raises an exception (RTL4b)' do
+          it 'raises an exception (#RTL4b)' do
             client.connect do
               client.connection.once(:closing) do
                 expect { channel.attach }.to raise_error Ably::Exceptions::InvalidStateChange
@@ -1529,7 +1529,7 @@ describe Ably::Realtime::Channel, :event_machine do
 
       context ':suspended' do
         context 'an :attaching channel' do
-          it 'transitions state to :suspended (RTL3c)' do
+          it 'transitions state to :suspended (#RTL3c)' do
             channel.on(:attaching) do
               channel.on(:suspended) do
                 stop_reactor
@@ -1543,7 +1543,7 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'an :attached channel' do
-          it 'transitions state to :suspended (RTL3c)' do
+          it 'transitions state to :suspended (#RTL3c)' do
             channel.attach do
               channel.on(:suspended) do
                 stop_reactor
@@ -1552,7 +1552,7 @@ describe Ably::Realtime::Channel, :event_machine do
             end
           end
 
-          it 'transitions state automatically to :attaching once the connection is re-established (RTN15c3)' do
+          it 'transitions state automatically to :attaching once the connection is re-established (#RTN15c3)' do
             channel.attach do
               channel.on(:suspended) do
                 client.connection.connect
@@ -1566,7 +1566,7 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'a :detached channel' do
-          it 'remains in the :detached state (RTL3c)' do
+          it 'remains in the :detached state (#RTL3c)' do
             channel.attach do
               channel.detach do
                 channel.on(:detached) { raise 'Detached state should not have been reached' }
@@ -1587,7 +1587,7 @@ describe Ably::Realtime::Channel, :event_machine do
           let(:original_error) { RuntimeError.new }
           let(:client_options) { default_options.merge(log_level: :fatal) }
 
-          it 'remains in the :failed state and retains the error_reason (RTL3c)' do
+          it 'remains in the :failed state and retains the error_reason (#RTL3c)' do
             channel.attach do
               channel.once(:error) do
                 channel.on(:detached) { raise 'Detached state should not have been reached' }
@@ -1607,7 +1607,7 @@ describe Ably::Realtime::Channel, :event_machine do
           end
         end
 
-        context 'a channel ATTACH request when connection SUSPENDED (RTL4b)' do
+        context 'a channel ATTACH request when connection SUSPENDED (#RTL4b)' do
           let(:client_options) { default_options.merge(log_level: :fatal) }
 
           it 'raises an exception' do
@@ -1624,7 +1624,7 @@ describe Ably::Realtime::Channel, :event_machine do
 
       context ':connected' do
         context 'a :suspended channel' do
-          it 'is automatically reattached (RTL3d)' do
+          it 'is automatically reattached (#RTL3d)' do
             channel.attach do
               channel.once(:suspended) do
                 client.connection.connect
@@ -1641,7 +1641,7 @@ describe Ably::Realtime::Channel, :event_machine do
               default_options.merge(realtime_request_timeout: 2, log_level: :fatal)
             end
 
-            it 'returns to a suspended state (RTL3d)' do
+            it 'returns to a suspended state (#RTL3d)' do
               channel.attach do
                 channel.once(:attached) do
                   fail "Channel should not have become attached"
@@ -1667,7 +1667,7 @@ describe Ably::Realtime::Channel, :event_machine do
 
       context ':disconnected' do
         context 'with an initialized channel' do
-          it 'has no effect on the channel states (RTL3e)' do
+          it 'has no effect on the channel states (#RTL3e)' do
             connection.once(:connected) do
               expect(channel).to be_initialized
               connection.once(:disconnected) do
@@ -1680,7 +1680,7 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'with an attaching channel' do
-          it 'has no effect on the channel states (RTL3e)' do
+          it 'has no effect on the channel states (#RTL3e)' do
             connection.once(:connected) do
               channel.once(:attaching) do
                 connection.once(:disconnected) do
@@ -1695,7 +1695,7 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'with an attached channel' do
-          it 'has no effect on the channel states (RTL3e)' do
+          it 'has no effect on the channel states (#RTL3e)' do
             channel.attach do
               connection.once(:disconnected) do
                 expect(channel).to be_attached
@@ -1707,7 +1707,7 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'with a detached channel' do
-          it 'has no effect on the channel states (RTL3e)' do
+          it 'has no effect on the channel states (#RTL3e)' do
             channel.attach do
               channel.detach do
                 connection.once(:disconnected) do
@@ -1729,7 +1729,7 @@ describe Ably::Realtime::Channel, :event_machine do
             )
           end
 
-          it 'has no effect on the channel states (RTL3e)' do
+          it 'has no effect on the channel states (#RTL3e)' do
             channel.once(:failed) do
               connection.once(:disconnected) do
                 expect(channel).to be_failed
@@ -1810,7 +1810,7 @@ describe Ably::Realtime::Channel, :event_machine do
           end
         end
 
-        context '#resume (RTL2f)' do
+        context '#resume (#RTL2f)' do
           it 'is false when a channel first attaches' do
             channel.attach
             channel.on(:attached) do |channel_state_change|
@@ -1881,7 +1881,7 @@ describe Ably::Realtime::Channel, :event_machine do
       context 'moves to' do
         %w(suspended detached failed).each do |channel_state|
           context(channel_state) do
-            specify 'all queued messages fail with NACK (RTL11)' do
+            specify 'all queued messages fail with NACK (#RTL11)' do
               channel.attach do
                 # Move to disconnected
                 disconnect_transport_proc = Proc.new do
@@ -1904,7 +1904,7 @@ describe Ably::Realtime::Channel, :event_machine do
               end
             end
 
-            specify 'all published messages awaiting an ACK do nothing (RTL11a)' do
+            specify 'all published messages awaiting an ACK do nothing (#RTL11a)' do
               connection_been_disconnected = false
 
               channel.attach do

@@ -147,7 +147,7 @@ describe Ably::Models::TokenDetails do
     end
   end
 
-  context 'from_json (TD7)' do
+  context 'from_json (#TD7)' do
     let(:issued_time) { Time.now }
     let(:expires_time) { Time.now + 24*60*60 }
     let(:capabilities) { { '*' => ['publish'] } }

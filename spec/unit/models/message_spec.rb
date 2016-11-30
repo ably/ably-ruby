@@ -380,7 +380,7 @@ describe Ably::Models::Message do
     end
   end
 
-  context '#from_encoded (TM3)' do
+  context '#from_encoded (#TM3)' do
     context 'with no encoding' do
       let(:message_data) do
         { name: 'name', data: 'data-string' }
@@ -482,7 +482,7 @@ describe Ably::Models::Message do
     end
   end
 
-  context '#from_encoded_array (TM3)' do
+  context '#from_encoded_array (#TM3)' do
     context 'with no encoding' do
       let(:message_data) do
         [{ name: 'name1', data: 'data-string' }, { name: 'name2', data: 'data-string' }]

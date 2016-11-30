@@ -567,7 +567,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
 
-        it 'retains the client_serial (RTN15c2, RTN15c3)' do
+        it 'retains the client_serial (#RTN15c2, #RTN15c3)' do
           last_message = nil
           channel = client.channels.get("foo")
 
@@ -622,7 +622,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          it 'issue a reattach for all attached channels and fail all message awaiting an ACK (RTN15c3)' do
+          it 'issue a reattach for all attached channels and fail all message awaiting an ACK (#RTN15c3)' do
             channel_count = 10
             channels = channel_count.times.map { |index| client.channel("channel-#{index}") }
             when_all(*channels.map(&:attach)) do
@@ -660,7 +660,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          it 'issue a reattach for all attaching channels and fail all queued messages (RTN15c3)' do
+          it 'issue a reattach for all attaching channels and fail all queued messages (#RTN15c3)' do
             channel_count = 10
             channels = channel_count.times.map { |index| client.channel("channel-#{index}") }
 
@@ -701,7 +701,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          it 'issue a attach for all suspended channels (RTN15c3)' do
+          it 'issue a attach for all suspended channels (#RTN15c3)' do
             channel_count = 10
             channels = channel_count.times.map { |index| client.channel("channel-#{index}") }
 
@@ -754,7 +754,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          it 'resets the client_serial (RTN15c3)' do
+          it 'resets the client_serial (#RTN15c3)' do
             last_message = nil
             channel = client.channels.get("foo")
 
@@ -814,7 +814,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
       context 'when an ERROR protocol message is received' do
         %i(connecting connected).each do |state|
           context "whilst #{state}" do
-            context 'with a token error code in the range 40140 <= code < 40150 (RTN14b)' do
+            context 'with a token error code in the range 40140 <= code < 40150 (#RTN14b)' do
               let(:client_options) { default_options.merge(use_token_auth: true) }
 
               it 'triggers a re-authentication' do
@@ -832,7 +832,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               end
             end
 
-            context 'with an error code indicating an error other than a token failure (RTN14g, RTN15i)' do
+            context 'with an error code indicating an error other than a token failure (#RTN14g, #RTN15i)' do
               it 'causes the connection to fail' do
                 connection.once(state) do
                   connection.once(:failed) do
@@ -845,7 +845,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               end
             end
 
-            context 'with no error code indicating an error other than a token failure (RTN14g, RTN15i)' do
+            context 'with no error code indicating an error other than a token failure (#RTN14g, #RTN15i)' do
               it 'causes the connection to fail' do
                 connection.once(state) do
                   connection.once(:failed) do
@@ -862,7 +862,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
       end
 
       context "whilst resuming" do
-        context "with a token error code in the region 40140 <= code < 40150 (RTN15c5)" do
+        context "with a token error code in the region 40140 <= code < 40150 (#{}RTN15c5)" do
           before do
             stub_const 'Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER', 0 # allow token to be used even if about to expire
             stub_const 'Ably::Auth::TOKEN_DEFAULTS', Ably::Auth::TOKEN_DEFAULTS.merge(renew_token_buffer: 0) # Ensure tokens issued expire immediately after issue
@@ -911,7 +911,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         end
       end
 
-      context 'with any other error (RTN15c4)' do
+      context 'with any other error (#RTN15c4)' do
         it 'moves the connection to the failed state' do
           channel = client.channels.get("foo")
           channel.attach do
