@@ -100,7 +100,7 @@ describe Ably::Util::Crypto do
     let(:encryption_data_128) { JSON.parse(File.read(File.join(resources_root, 'crypto-data-128.json'))) }
     let(:encryption_data_256) { JSON.parse(File.read(File.join(resources_root, 'crypto-data-256.json'))) }
 
-    shared_examples 'an Ably encrypter and decrypter' do
+    shared_examples 'an Ably encrypter and decrypter (#RTL7d)' do
       let(:algorithm)      { data['algorithm'].upcase }
       let(:mode)           { data['mode'].upcase }
       let(:key_length)     { data['keylength'] }
