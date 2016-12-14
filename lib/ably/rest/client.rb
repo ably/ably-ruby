@@ -134,6 +134,7 @@ module Ably
           end
         end
 
+        @realtime_client  = options.delete(:realtime_client)
         @tls              = options.delete(:tls) == false ? false : true
         @environment      = options.delete(:environment) # nil is production
         @environment      = nil if [:production, 'production'].include?(@environment)
@@ -399,6 +400,18 @@ module Ably
           Ably.lib_variant,
           Ably::VERSION
         ].compact.join('-')
+      end
+
+      # Allowable duration for an external auth request
+      # For REST client this defaults to request_timeout
+      # For Realtime clients this defaults to realtime_request_timeout
+      # @api private
+      def auth_request_timeout
+        if @realtime_client
+          @realtime_client.connection.defaults.fetch(:realtime_request_timeout)
+        else
+          http_defaults.fetch(:request_timeout)
+        end
       end
 
       private

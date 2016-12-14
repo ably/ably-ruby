@@ -137,7 +137,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 end
                 let(:client_options) { default_options.merge(auth_callback: token_callback) }
 
-                it 'renews the token on connect, and makes one immediate subsequent attempt to obtain a new token' do
+                it 'renews the token on connect, and makes one immediate subsequent attempt to obtain a new token (#RSA4b)' do
                   started_at = Time.now.to_f
                   connection.once(:disconnected) do
                     connection.once(:disconnected) do |connection_state_change|
@@ -322,13 +322,14 @@ describe Ably::Realtime::Connection, :event_machine do
             let!(:expired_token_details) do
               # Request a token synchronously
               token_client = auto_close Ably::Realtime::Client.new(default_options)
-              token_client.auth.request_token_sync(ttl: 0.01)
+              token_client.auth.request_token_sync(ttl: ttl)
             end
 
             context 'opening a new connection' do
               let(:client_options) { default_options.merge(key: nil, token: expired_token_details.token, log_level: :none) }
+              let(:ttl) { 0.01 }
 
-              it 'transitions state to failed', em_timeout: 10 do
+              it 'transitions state to failed (#RSA4a)', em_timeout: 10 do
                 EventMachine.add_timer(1) do # wait for token to expire
                   expect(expired_token_details).to be_expired
                   connection.once(:connected) { raise 'Connection should never connect as token has expired' }
@@ -341,7 +342,17 @@ describe Ably::Realtime::Connection, :event_machine do
             end
 
             context 'when connected' do
-              skip 'transitions state to failed'
+              let(:client_options) { default_options.merge(key: nil, token: expired_token_details.token, log_level: :none) }
+              let(:ttl) { 4 }
+
+              it 'transitions state to failed (#RSA4a)' do
+                connection.once(:connected) do
+                  connection.once(:failed) do
+                    expect(client.connection.error_reason.code).to eql(40142)
+                    stop_reactor
+                  end
+                end
+              end
             end
           end
         end
