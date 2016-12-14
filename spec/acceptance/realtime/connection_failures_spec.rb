@@ -53,6 +53,152 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
       end
+
+      context 'with auth_url' do
+        context 'opening a new connection' do
+          context 'request fails due to network failure' do
+            let(:client_options) { default_options.reject { |k, v| k == :key }.merge(auth_url: "http://#{random_str}.domain.will.never.resolve.to/path", log_level: :fatal) }
+
+            specify 'the connection moves to the disconnected state and tries again, returning again to the disconnected state (#RSA4c, #RSA4c1, #RSA4c2)' do
+              states = Hash.new { |hash, key| hash[key] = [] }
+
+              connection.once(:connected) { raise "Connection can never move to connected because of auth failures" }
+
+              connection.on do |connection_state|
+                states[connection_state.current.to_sym] << Time.now
+                if states[:disconnected].count == 2 && connection_state.current == :disconnected
+                  expect(connection.error_reason).to be_a(Ably::Exceptions::ConnectionError)
+                  expect(connection.error_reason.message).to match(/auth_url/)
+                  EventMachine.add_timer(2) do
+                    expect(states.keys).to include(:connecting, :disconnected)
+                    expect(states[:connecting].count).to eql(2)
+                    expect(states[:connected].count).to eql(0)
+                    stop_reactor
+                  end
+                end
+              end
+            end
+          end
+
+          context 'request fails due to invalid content', :webmock do
+            let(:auth_endpoint) { "http://#{random_str}.domain.will.never.resolve.to/authenticate" }
+            let(:client_options) { default_options.reject { |k, v| k == :key }.merge(auth_url: auth_endpoint, log_level: :fatal) }
+
+            before do
+               stub_request(:get, auth_endpoint).
+                 to_return(:status => 200, :body => "", :headers => { "Content-type" => "text/html" })
+            end
+
+            specify 'the connection moves to the disconnected state and tries again, returning again to the disconnected state (#RSA4c, #RSA4c1, #RSA4c2)' do
+              states = Hash.new { |hash, key| hash[key] = [] }
+
+              connection.once(:connected) { raise "Connection can never move to connected because of auth failures" }
+
+              connection.on do |connection_state|
+                states[connection_state.current.to_sym] << Time.now
+                if states[:disconnected].count == 2 && connection_state.current == :disconnected
+                  expect(connection.error_reason).to be_a(Ably::Exceptions::ConnectionError)
+                  expect(connection.error_reason.message).to match(/auth_url/)
+                  expect(connection.error_reason.message).to match(/Content Type.*not supported/)
+                  EventMachine.add_timer(2) do
+                    expect(states.keys).to include(:connecting, :disconnected)
+                    expect(states[:connecting].count).to eql(2)
+                    expect(states[:connected].count).to eql(0)
+                    stop_reactor
+                  end
+                end
+              end
+            end
+          end
+        end
+
+        context 'existing CONNECTED connection' do
+          context 'authorize request failure leaves connection in existing condition' do
+            let(:auth_options) { { auth_url: "http://#{random_str}.domain.will.never.resolve.to/path" } }
+            let(:client_options) { default_options.merge(use_token_auth: true, log_level: :fatal) }
+
+            specify 'the connection remains in the CONNECTED state and authorize fails (#RSA4c, #RSA4c1, #RSA4c3)' do
+              connection.once(:connected) do
+                connection.on { raise "State should not change and should stay connected" }
+
+                client.auth.authorize(nil, auth_options).tap do |deferrable|
+                  deferrable.callback { raise "Authorize should not succeed" }
+                  deferrable.errback do |err|
+                    expect(err).to be_a(Ably::Exceptions::ConnectionError)
+                    expect(err.message).to match(/auth_url/)
+
+                    EventMachine.add_timer(1) do
+                      expect(connection).to be_connected
+                      connection.off
+                      stop_reactor
+                    end
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+
+      context 'with auth_callback' do
+        context 'opening a new connection' do
+          context 'when callback fails due to an exception' do
+            let(:client_options) { default_options.reject { |k, v| k == :key }.merge(auth_callback: Proc.new { raise "Cannot issue token" }, log_level: :fatal) }
+
+            it 'the connection moves to the disconnected state and tries again, returning again to the disconnected state (#RSA4c, #RSA4c1, #RSA4c2)' do
+              states = Hash.new { |hash, key| hash[key] = [] }
+
+              connection.once(:connected) { raise "Connection can never move to connected because of auth failures" }
+
+              connection.on do |connection_state|
+                states[connection_state.current.to_sym] << Time.now
+                if states[:disconnected].count == 2 && connection_state.current == :disconnected
+                  expect(connection.error_reason).to be_a(Ably::Exceptions::ConnectionError)
+                  expect(connection.error_reason.message).to match(/auth_callback/)
+                  EventMachine.add_timer(2) do
+                    expect(states.keys).to include(:connecting, :disconnected)
+                    expect(states[:connecting].count).to eql(2)
+                    expect(states[:connected].count).to eql(0)
+                    stop_reactor
+                  end
+                end
+              end
+            end
+          end
+
+          context 'existing CONNECTED connection' do
+            context 'when callback fails due to the request taking longer than realtime_request_timeout' do
+              let(:request_timeout) { 3 }
+              let(:client_options) { default_options.merge(
+                realtime_request_timeout: request_timeout,
+                use_token_auth: true,
+                log_level: :fatal)
+              }
+              let(:auth_options) { { auth_callback: Proc.new { sleep 10 }, } }
+
+              it 'the authorization request fails as configured in the realtime_request_timeout (#RSA4c, #RSA4c1, #RSA4c3)' do
+                connection.once(:connected) do
+                  connection.on { raise "State should not change and should stay connected" }
+
+                  client.auth.authorize(nil, auth_options).tap do |deferrable|
+                    deferrable.callback { raise "Authorize should not succeed" }
+                    deferrable.errback do |err|
+                      expect(err).to be_a(Ably::Exceptions::ConnectionError)
+                      expect(err.message).to match(/auth_callback/)
+
+                      EventMachine.add_timer(1) do
+                        expect(connection).to be_connected
+                        connection.off
+                        stop_reactor
+                      end
+                    end
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
     end
 
     context 'automatic connection retry' do

@@ -98,11 +98,6 @@ module Ably
         authorize_sync(*args)
       end
 
-      # def_delegator :auth_sync, :request_token, :request_token_sync
-      # def_delegator :auth_sync, :create_token_request, :create_token_request_sync
-      # def_delegator :auth_sync, :auth_header, :auth_header_sync
-      # def_delegator :auth_sync, :auth_params, :auth_params_sync
-
       # Request a {Ably::Models::TokenDetails} which can be used to make authenticated token based requests
       #
       # @param (see Ably::Auth#request_token)
@@ -186,7 +181,11 @@ module Ably
       # @yield [Hash] Auth params for a new Realtime connection
       #
       def auth_params(&success_callback)
-        async_wrap(success_callback) do
+        fail_callback = Proc.new do |error, deferrable|
+          logger.error "Failed to authenticate: #{error}"
+          deferrable.fail Ably::Exceptions::AuthenticationFailed.new(error.message, 500, 80019)
+        end
+        async_wrap(success_callback, fail_callback) do
           auth_params_sync
         end
       end

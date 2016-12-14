@@ -77,7 +77,7 @@ module Ably::Realtime
 
         logger.warn "ConnectionManager: Connection to #{connection.current_host}:#{connection.port} failed; #{error.message}"
         next_state = get_next_retry_state_info
-        connection.transition_state_machine next_state.fetch(:state), retry_in: next_state.fetch(:pause), reason: Ably::Exceptions::ConnectionError.new("Connection failed: #{error.message}", nil, 80000)
+        connection.transition_state_machine next_state.fetch(:state), retry_in: next_state.fetch(:pause), reason: Ably::Exceptions::ConnectionError.new("Connection failed: #{error.message}", nil, 80000, error)
       end
 
       # Called whenever a new connection is made

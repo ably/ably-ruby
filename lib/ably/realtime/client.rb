@@ -91,7 +91,7 @@ module Ably
       #    client = Ably::Realtime::Client.new(key: 'key.id:secret', client_id: 'john')
       #
       def initialize(options)
-        @rest_client           = Ably::Rest::Client.new(options)
+        @rest_client           = Ably::Rest::Client.new(options.merge(realtime_client: self))
         @auth                  = Ably::Realtime::Auth.new(self)
         @channels              = Ably::Realtime::Channels.new(self)
         @connection            = Ably::Realtime::Connection.new(self, options)

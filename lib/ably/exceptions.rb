@@ -11,10 +11,17 @@ module Ably
     #   @return [String] Ably specific error code
     class BaseAblyException < StandardError
       attr_reader :status, :code
-      def initialize(message, status = nil, code = nil)
+
+      def initialize(message, status = nil, code = nil, base_exception = nil, options = {})
         super message
+
+        @base_exception = base_exception
         @status = status
+        @status ||= base_exception.status if base_exception && base_exception.respond_to?(:status)
+        @status ||= options[:fallback_status]
         @code = code
+        @code ||= base_exception.code if base_exception && base_exception.respond_to?(:code)
+        @code ||= options[:fallback_code]
       end
 
       def to_s
@@ -23,6 +30,7 @@ module Ably
           additional_info = []
           additional_info << "code: #{code}" if code
           additional_info << "http status: #{status}" if status
+          additional_info << "base exception: #{@base_exception.class}" if @base_exception
           message << "(#{additional_info.join(', ')})"
         end
         message.join(' ')
@@ -52,16 +60,15 @@ module Ably
 
     # Connection error from Realtime or REST service
     class ConnectionError < BaseAblyException
-      def initialize(message, status = nil, code = nil, base_error = nil)
-        super message, status, code
-        @base_error = base_error
+      def initialize(message, status = nil, code = nil, base_exception = nil, options = {})
+        super message, status, code, base_exception, options
       end
 
       def to_s
         message = [super]
-        if @base_error
-          message << "#{@base_error}"
-          if @base_error.respond_to?(:message) && @base_error.message.match(/certificate verify failed/i)
+        if @base_exception
+          message << "#{@base_exception}"
+          if @base_exception.respond_to?(:message) && @base_exception.message.match(/certificate verify failed/i)
             message << "See https://goo.gl/eKvfcR to resolve this issue."
           end
         end
@@ -83,6 +90,8 @@ module Ably
 
     # Connection failed
     class ConnectionFailed < ConnectionError; end
+
+    class AuthenticationFailed < ConnectionError; end
 
     # Invalid State Change error on a {https://github.com/gocardless/statesman Statesman State Machine}
     class InvalidStateChange < BaseAblyException; end

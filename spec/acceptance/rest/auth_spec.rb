@@ -404,7 +404,7 @@ describe Ably::Auth do
             end
 
             it 'raises ServerError' do
-              expect { auth.request_token({}, auth_options) }.to raise_error(Ably::Exceptions::ServerError)
+              expect { auth.request_token({}, auth_options) }.to raise_error(Ably::Exceptions::AuthenticationFailed)
             end
           end
 
@@ -415,7 +415,7 @@ describe Ably::Auth do
             end
 
             it 'raises InvalidResponseBody' do
-              expect { auth.request_token({}, auth_options) }.to raise_error(Ably::Exceptions::InvalidResponseBody)
+              expect { auth.request_token({}, auth_options) }.to raise_error(Ably::Exceptions::AuthenticationFailed, /Content Type.*not supported/)
             end
           end
         end
@@ -1048,6 +1048,42 @@ describe Ably::Auth do
         it 'cannot be renewed automatically' do
           expect(token_auth_client.auth).to_not be_token_renewable
         end
+
+        context 'and the token expires' do
+          let(:ttl) { 1 }
+
+          before do
+            stub_const 'Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER', 0 # allow token to be used even if about to expire
+            stub_const 'Ably::Auth::TOKEN_DEFAULTS', Ably::Auth::TOKEN_DEFAULTS.merge(renew_token_buffer: 0) # Ensure tokens issued expire immediately after issue
+
+            @token = auth.request_token(ttl: ttl)
+            WebMock.enable!
+            WebMock.disable_net_connect!
+
+            token_expired = {
+              "error" => {
+                "statusCode" => 401,
+                "code" => 40140,
+                "message" => "Token expired"
+              }
+            }
+
+            stub_request(:post, "https://#{environment}-rest.ably.io/channels/foo/publish").
+              to_return(status: 401, body: token_expired.to_json, headers: { 'Content-Type' => 'application/json' })
+          end
+
+          after do
+            WebMock.allow_net_connect!
+            WebMock.disable!
+          end
+
+          let(:token) { @token.token }
+
+          it 'should indicate an error and not retry the request (#RSA4a)' do
+            sleep ttl + 1
+            expect { token_auth_client.channels.get('foo').publish 'event' }.to raise_error(Ably::Exceptions::TokenExpired)
+          end
+        end
       end
 
       context 'when implicit as a result of using :client_id' do
@@ -1104,6 +1140,54 @@ describe Ably::Auth do
           specify '#client_id contains the client_id' do
             expect(client.auth.client_id).to eql(client_id)
           end
+        end
+      end
+
+      context 'when token expires' do
+        before do
+          stub_const 'Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER', 0 # allow token to be used even if about to expire
+          stub_const 'Ably::Auth::TOKEN_DEFAULTS', Ably::Auth::TOKEN_DEFAULTS.merge(renew_token_buffer: 0) # Ensure tokens issued expire immediately after issue
+        end
+
+        after do
+          WebMock.allow_net_connect!
+          WebMock.disable!
+        end
+
+        let(:client_options) { default_options.merge(use_token_auth: true, key: api_key, token_params: { ttl: 2 }) }
+        let(:channel) { client.channels.get(random_str) }
+        let(:token_expired_response) do
+          {
+            "error" => {
+              "statusCode" => 401,
+              "code" => 40140,
+              "message" => "Token expired"
+            }
+          }
+        end
+
+        it 'automatically renews the token (#RSA4b)' do
+          expect(auth.current_token_details).to be_nil
+          channel.publish 'event'
+          token = auth.current_token_details
+          expect(token).to_not be_nil
+          sleep 2
+          channel.publish 'event'
+          expect(auth.current_token_details).to_not eql(token)
+        end
+
+        it 'fails if the token renewal fails (#RSA4b)' do
+          expect(auth.current_token_details).to be_nil
+          channel.publish 'event'
+          token = auth.current_token_details
+          expect(token).to_not be_nil
+          sleep 2
+          WebMock.enable!
+          WebMock.disable_net_connect!
+          stub_request(:post, "https://#{environment}-rest.ably.io/keys/#{TestApp.instance.key_name}/requestToken").
+              to_return(status: 401, body: token_expired_response.to_json, headers: { 'Content-Type' => 'application/json' })
+          expect { channel.publish 'event' }.to raise_error Ably::Exceptions::TokenExpired
+          expect(auth.current_token_details).to eql(token)
         end
       end
 

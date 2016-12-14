@@ -212,9 +212,21 @@ module Ably
       auth_options = self.options.merge(auth_options)
 
       token_request = if auth_callback = auth_options.delete(:auth_callback)
-        auth_callback.call(token_params)
+        begin
+          Timeout::timeout(client.auth_request_timeout) do
+            auth_callback.call(token_params)
+          end
+        rescue StandardError => err
+          raise Ably::Exceptions::AuthenticationFailed.new("auth_callback failed: #{err.message}", nil, nil, err, fallback_status: 500, fallback_code: 80019)
+        end
       elsif auth_url = auth_options.delete(:auth_url)
-        token_request_from_auth_url(auth_url, auth_options, token_params)
+        begin
+          Timeout::timeout(client.auth_request_timeout) do
+            token_request_from_auth_url(auth_url, auth_options, token_params)
+          end
+        rescue StandardError => err
+          raise Ably::Exceptions::AuthenticationFailed.new("auth_url failed: #{err.message}", nil, nil, err, fallback_status: 500, fallback_code: 80019)
+        end
       else
         create_token_request(token_params, auth_options)
       end
@@ -592,7 +604,7 @@ module Ably
       )
     end
 
-    # Retrieve a token request from a specified URL, expects a JSON response
+    # Retrieve a token request from a specified URL, expects a JSON or text response
     #
     # @return [Hash]
     def token_request_from_auth_url(auth_url, auth_options, token_params)
