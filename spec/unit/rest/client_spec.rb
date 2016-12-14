@@ -14,7 +14,7 @@ describe Ably::Rest::Client do
       context 'disabled' do
         let(:client_options) { { key: 'appid.keyuid:keysecret', tls: false } }
 
-        it 'fails for any operation with basic auth and attempting to send an API key over a non-secure connection' do
+        it 'fails for any operation with basic auth and attempting to send an API key over a non-secure connection (#RSA1)' do
           expect { subject.channel('a').publish('event', 'message') }.to raise_error(Ably::Exceptions::InsecureRequest)
         end
       end

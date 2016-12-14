@@ -1407,26 +1407,26 @@ describe Ably::Realtime::Connection, :event_machine do
     end
 
     context 'version params' do
-      it 'sends the protocol version param v' do
+      it 'sends the protocol version param v (#G4, #RTN2f)' do
         expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
           uri = URI.parse(url)
-          expect(CGI::parse(uri.query)['v'][0]).to eql(Ably::PROTOCOL_VERSION)
+          expect(CGI::parse(uri.query)['v'][0]).to eql('0.9')
           stop_reactor
         end
         client
       end
 
-      it 'sends the lib version param lib' do
+      it 'sends the lib version param lib (#RTN2g)' do
         expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
           uri = URI.parse(url)
-          expect(CGI::parse(uri.query)['lib'][0]).to eql("ruby-#{Ably::VERSION}")
+          expect(CGI::parse(uri.query)['lib'][0]).to match(/^ruby-0\.9\.\d+(-[\w\.]+)?+$/)
           stop_reactor
         end
         client
       end
 
       context 'with variant' do
-        let(:variant) { 'foo ' }
+        let(:variant) { 'foo' }
 
         before do
           Ably.lib_variant = variant
@@ -1436,10 +1436,10 @@ describe Ably::Realtime::Connection, :event_machine do
           Ably.lib_variant = nil
         end
 
-        it 'sends the lib version param lib with the variant' do
+        it 'sends the lib version param lib with the variant (#RTN2g + #RSC7b)' do
           expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
             uri = URI.parse(url)
-            expect(CGI::parse(uri.query)['lib'][0]).to eql("ruby-#{variant}-#{Ably::VERSION}")
+            expect(CGI::parse(uri.query)['lib'][0]).to match(/^ruby-#{variant}-0\.9\.\d+(-[\w\.]+)?$/)
             stop_reactor
           end
           client
