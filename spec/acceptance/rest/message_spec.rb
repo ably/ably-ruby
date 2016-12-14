@@ -61,6 +61,35 @@ describe Ably::Rest::Channel, 'messages' do
       end
     end
 
+    context 'with supported extra payload content type (#RSL1h, #RSL6a2)' do
+      context 'JSON Object (Hash)' do
+        let(:data) { { 'push' => { 'title' => 'Testing' } } }
+
+        it 'is encoded and decoded to the same hash' do
+          skip 'Extras field not supported in realtime'
+          channel.publish 'event', {}, extras: data
+          expect(channel.history.items.first.extras).to eql(data)
+        end
+      end
+
+      context 'JSON Array' do
+        let(:data) { { 'push' => [ nil, true, false, 55, 'string', { 'Hash' => true }, ['array'] ] } }
+
+        it 'is encoded and decoded to the same Array' do
+          skip 'Extras field not supported in realtime'
+          channel.publish 'event', {}, extras: data
+          expect(channel.history.items.first.extras).to eql(data)
+        end
+      end
+
+      context 'nil' do
+        it 'is encoded and decoded to the same Array' do
+          channel.publish 'event', {}, extras: nil
+          expect(channel.history.items.first.extras).to be_nil
+        end
+      end
+    end
+
     context 'with unsupported data payload content type' do
       context 'Integer' do
         let(:data) { 1 }

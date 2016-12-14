@@ -25,6 +25,38 @@ describe Ably::Models::Message do
     end
   end
 
+  context '#extras (#TM2i)' do
+    let(:model) { subject.new({ extras: extras }, protocol_message: protocol_message) }
+
+    context 'when missing' do
+      let(:model) { subject.new({}, protocol_message: protocol_message) }
+      it 'is nil' do
+        expect(model.extras).to be_nil
+      end
+    end
+
+    context 'when a string' do
+      let(:extras) { 'string' }
+      it 'raises an exception' do
+        expect { model.extras }.to raise_error ArgumentError, /extras contains an unsupported type/
+      end
+    end
+
+    context 'when a Hash' do
+      let(:extras) { { key: 'value' } }
+      it 'contains a Hash Json object' do
+        expect(model.extras).to eq(extras)
+      end
+    end
+
+    context 'when a Json Array' do
+      let(:extras) { [{ 'key' => 'value' }] }
+      it 'contains a Json Array object' do
+        expect(model.extras).to eq(extras)
+      end
+    end
+  end
+
   context '#connection_id attribute' do
     let(:protocol_connection_id) { random_str }
     let(:protocol_message) { Ably::Models::ProtocolMessage.new('connectionId' => protocol_connection_id, action: 1, timestamp: protocol_message_timestamp) }
