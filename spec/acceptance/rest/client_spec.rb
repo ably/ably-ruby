@@ -272,7 +272,7 @@ describe Ably::Rest::Client do
       context 'configured' do
         let(:client_options) { default_options.merge(key: api_key, environment: 'production') }
 
-        it 'should make connection attempts to A.ably-realtime.com, B.ably-realtime.com, C.ably-realtime.com, D.ably-realtime.com, E.ably-realtime.com' do
+        it 'should make connection attempts to A.ably-realtime.com, B.ably-realtime.com, C.ably-realtime.com, D.ably-realtime.com, E.ably-realtime.com (#RSC15a)' do
           hosts = []
           5.times do
             hosts << client.fallback_connection.host
@@ -281,7 +281,7 @@ describe Ably::Rest::Client do
         end
       end
 
-      context 'when environment is NOT production' do
+      context 'when environment is NOT production (#RSC15b)' do
         let(:client_options) { default_options.merge(environment: 'sandbox', key: api_key) }
         let!(:default_host_request_stub) do
           stub_request(:post, "https://#{environment}-#{Ably::Rest::Client::DOMAIN}#{path}").to_return do
@@ -327,7 +327,7 @@ describe Ably::Rest::Client do
             end
           end
 
-          it "tries fallback hosts #{http_defaults.fetch(:max_retry_count)} times" do
+          it "tries fallback hosts #{http_defaults.fetch(:max_retry_count)} times (#RSC15b, #RSC15b)" do
             expect { publish_block.call }.to raise_error Ably::Exceptions::ConnectionError, /ssl error message/
             expect(default_host_request_stub).to have_been_requested
             expect(first_fallback_request_stub).to have_been_requested
@@ -363,6 +363,43 @@ describe Ably::Rest::Client do
             expect(default_host_request_stub).to have_been_requested
             expect(first_fallback_request_stub).to have_been_requested
             expect(second_fallback_request_stub).to have_been_requested
+          end
+        end
+
+        context 'and first request to primary endpoint fails' do
+          let(:client_options) do
+            default_options.merge(
+              environment: nil,
+              key: api_key,
+              http_max_retry_duration: max_retry_duration,
+              http_max_retry_count: max_retry_count,
+              log_level: :error
+            )
+          end
+          let(:requests) { [] }
+          let!(:default_host_request_stub) do
+            stub_request(:post, "https://#{Ably::Rest::Client::DOMAIN}#{path}").to_return do
+              requests << true
+              if requests.count == 1
+                raise Faraday::ConnectionFailed.new('connection failure error message')
+              else
+                {
+                  headers: { 'Content-Type' => 'application/json' },
+                  status: 200,
+                  body: {}.to_json
+                }
+              end
+            end
+          end
+
+          it "tries a fallback host, and for the next request tries the primary endpoint again (#RSC15e)" do
+            expect { publish_block.call }.to raise_error Ably::Exceptions::ConnectionError, /ssl error message/
+            expect(default_host_request_stub).to have_been_requested
+            expect(first_fallback_request_stub).to have_been_requested
+            expect(requests.count).to eql(1)
+
+            publish_block.call
+            expect(requests.count).to eql(2)
           end
         end
 
@@ -404,7 +441,7 @@ describe Ably::Rest::Client do
             stub_request(:post, "https://#{Ably::Rest::Client::DOMAIN}#{path}").to_return(&fallback_block)
           end
 
-          it 'attempts the fallback hosts as this is an authentication failure' do
+          it 'attempts the fallback hosts as this is an authentication failure (#RSC15d)' do
             expect { publish_block.call }.to raise_error(Ably::Exceptions::ServerError)
             expect(default_host_request_stub).to have_been_requested
             expect(first_fallback_request_stub).to have_been_requested
@@ -453,7 +490,7 @@ describe Ably::Rest::Client do
             production_options.merge(fallback_hosts: custom_hosts)
           }
 
-          it 'attempts the fallback hosts as this is an authentication failure (#RSC15b, #TO3k6)' do
+          it 'attempts the fallback hosts as this is an authentication failure (#RSC15b, #RSC15a, #TO3k6)' do
             expect { publish_block.call }.to raise_error(Ably::Exceptions::ServerError)
             expect(default_host_request_stub).to have_been_requested
             expect(first_fallback_request_stub).to have_been_requested
@@ -461,7 +498,7 @@ describe Ably::Rest::Client do
           end
         end
 
-        context 'with an empty array of fallback hosts provided (#RSC15b, #TO3k6)' do
+        context 'with an empty array of fallback hosts provided (#RSC15b, #RSC15a, #TO3k6)' do
           let(:client_options) {
             production_options.merge(fallback_hosts: [])
           }
@@ -521,7 +558,7 @@ describe Ably::Rest::Client do
               end
               let(:fail_fallback_request_count) { 1 }
 
-              it 'tries one of the fallback hosts' do
+              it 'tries one of the fallback hosts (#RSC15d)' do
                 client.channel(channel_name).publish('event', 'data')
                 expect(@primary_host_requested).to be_truthy
                 expect(@fallback_request_count).to eql(2)
@@ -542,7 +579,7 @@ describe Ably::Rest::Client do
               end
               let(:fail_fallback_request_count) { 0 }
 
-              it 'tries one of the fallback hosts' do
+              it 'tries one of the fallback hosts (#RSC15d)' do
                 client.channel(channel_name).publish('event', 'data')
                 expect(@primary_host_requested).to be_truthy
                 expect(@fallback_request_count).to eql(1)
@@ -635,7 +672,7 @@ describe Ably::Rest::Client do
             production_options.merge(fallback_hosts: custom_hosts)
           }
 
-          it 'attempts the fallback hosts as this is an authentication failure' do
+          it 'attempts the fallback hosts as this is not an authentication failure' do
             expect { publish_block.call }.to raise_error(Ably::Exceptions::ServerError)
             expect(default_host_request_stub).to have_been_requested
             expect(first_fallback_request_stub).to have_been_requested
@@ -848,9 +885,10 @@ describe Ably::Rest::Client do
               to_return(status: 201, body: '{}', headers: { 'Content-Type' => 'application/json' })
           end
 
-          it 'sends a protocol version and lib version header' do
+          it 'sends a protocol version and lib version header (#G4, #RSC7a, #RSC7b)' do
             client.channels.get('foo').publish("event")
             expect(publish_message_stub).to have_been_requested
+            expect(Ably::PROTOCOL_VERSION).to eql('0.9')
           end
         end
       end
