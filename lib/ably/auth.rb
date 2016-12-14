@@ -150,11 +150,13 @@ module Ably
 
       # Unless provided, defaults are used
       unless token_params.nil?
-        @token_params = token_params
+        @token_params = token_params.clone
+        # Timestamp is only valid for this request
+        @token_params.delete(:timestamp)
         @token_params.freeze
       end
 
-      authorize_with_token(request_token(@token_params, auth_options)).tap do |new_token_details|
+      authorize_with_token(request_token(token_params || @token_params, auth_options)).tap do |new_token_details|
         logger.debug "Auth: new token following authorisation: #{new_token_details}"
 
         # If authorize the realtime library required auth, then yield the token in a block

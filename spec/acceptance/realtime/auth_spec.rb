@@ -338,7 +338,7 @@ describe Ably::Realtime::Auth, :event_machine do
               rest_client.auth.create_token_request({ client_id: 'mike', capability: basic_capability })
             end }
 
-            it 'transisitions the connection state to FAILED if the client_id changes' do
+            it 'transisitions the connection state to FAILED if the client_id changes (#RSA15c)' do
               client.connection.once(:connected) do
                 client.auth.authorize(nil, auth_callback: identified_token_cb)
                 client.connection.once(:failed) do
