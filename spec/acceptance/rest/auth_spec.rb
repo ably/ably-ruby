@@ -404,7 +404,7 @@ describe Ably::Auth do
             end
 
             it 'raises ServerError' do
-              expect { auth.request_token({}, auth_options) }.to raise_error(Ably::Exceptions::ServerError)
+              expect { auth.request_token({}, auth_options) }.to raise_error(Ably::Exceptions::AuthenticationFailed)
             end
           end
 
@@ -415,7 +415,7 @@ describe Ably::Auth do
             end
 
             it 'raises InvalidResponseBody' do
-              expect { auth.request_token({}, auth_options) }.to raise_error(Ably::Exceptions::InvalidResponseBody)
+              expect { auth.request_token({}, auth_options) }.to raise_error(Ably::Exceptions::AuthenticationFailed, /Content Type.*not supported/)
             end
           end
         end
