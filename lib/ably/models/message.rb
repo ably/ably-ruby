@@ -124,6 +124,17 @@ module Ably::Models
       @protocol_message
     end
 
+    # Contains any arbitrary key value pairs which may also contain other primitive JSON types, JSON-encodable objects or JSON-encodable arrays.
+    # The extras field is provided to contain message metadata and/or ancillary payloads in support of specific functionality, e.g. push
+    # @api private
+    def extras
+      attributes[:extras].tap do |val|
+        unless val.kind_of?(IdiomaticRubyWrapper) || val.kind_of?(Array) || val.kind_of?(Hash) || val.nil?
+          raise ArgumentError, "extras contains an unsupported type #{val.class}"
+        end
+      end
+    end
+
     private
     def raw_hash_object
       @raw_hash_object

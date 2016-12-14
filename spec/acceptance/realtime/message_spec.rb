@@ -75,6 +75,42 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       end
     end
 
+    context 'with supported extra payload content type (#RTL6h, #RSL6a2)' do
+      def publish_and_check_extras(extras)
+        channel.attach
+        channel.publish 'event', {}, extras: extras
+        channel.subscribe do |message|
+          expect(message.extras).to eql(extras)
+          stop_reactor
+        end
+      end
+
+      context 'JSON Object (Hash)' do
+        let(:data) { { 'push' => { 'title' => 'Testing' } } }
+
+        it 'is encoded and decoded to the same hash' do
+          skip 'Extras field not supported in realtime'
+          publish_and_check_extras data
+        end
+      end
+
+      context 'JSON Array' do
+        let(:data) { { 'push' => [ nil, true, false, 55, 'string', { 'Hash' => true }, ['array'] ] } }
+
+        it 'is encoded and decoded to the same Array' do
+          skip 'Extras field not supported in realtime'
+          publish_and_check_extras data
+        end
+      end
+
+      context 'nil' do
+        it 'is encoded and decoded to the same Array' do
+          channel.publish 'event', {}, extras: nil
+          publish_and_check_extras nil
+        end
+      end
+    end
+
     context 'with unsupported data payload content type' do
       context 'Integer' do
         let(:data) { 1 }
