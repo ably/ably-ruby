@@ -182,7 +182,7 @@ describe Ably::Auth do
       context 'with :query_time option' do
         let(:options) { { query_time: true } }
 
-        it 'queries the server for the time' do
+        it 'queries the server for the time (#RSA10k)' do
           expect(client).to receive(:time).and_call_original
           auth.request_token({}, options)
         end
@@ -621,7 +621,7 @@ describe Ably::Auth do
           allow(Time).to receive(:now).and_return(local_time)
         end
 
-        it 'only queries the server time once and then works out the offset, query_time option is never persisted' do
+        it 'only queries the server time once and then works out the offset, query_time option is never persisted (#RSA10k)' do
           expect(client).to receive(:time).once.and_return(server_time)
 
           auth.authorize({}, query_time: true)
@@ -644,7 +644,7 @@ describe Ably::Auth do
           expect(auth.token_params[:ttl]).to eql(23)
         end
 
-        it 'updates defaults when present and all previous configured TokenParams are discarded' do
+        it 'updates defaults when present and all previous configured TokenParams are discarded (#RSA10g)' do
           old_token = auth.current_token_details
           auth.authorize({ client_id: 'bob' })
           expect(old_token).to_not eql(auth.current_token_details)
@@ -655,6 +655,14 @@ describe Ably::Auth do
         it 'updates Auth#token_params attribute with an immutable hash' do
           auth.authorize({ client_id: 'bob' })
           expect { auth.token_params['key_name'] = 'new_name' }.to raise_error RuntimeError, /can't modify frozen.*Hash/
+        end
+
+        it 'uses TokenParams#timestamp for this request but obtains a new timestamp for subsequence requests (#RSA10g)' do
+          timestamp = Time.now.to_i
+          expect(auth).to receive(:create_token_request).with({ timestamp: Time.now.to_i }, {}).once.and_call_original
+          expect(auth).to receive(:create_token_request).with({}, {}).once.and_call_original
+          auth.authorize(timestamp: Time.now.to_i)
+          auth.authorize
         end
       end
 
@@ -680,7 +688,7 @@ describe Ably::Auth do
           expect(auth.options[:auth_callback]).to eql(auth_callback)
         end
 
-        it 'updates defaults when present and all previous configured AuthOptions are discarded' do
+        it 'updates defaults when present and all previous configured AuthOptions are discarded (#RSA10g)' do
           auth.authorize(nil, auth_method: :post)
           expect(@old_token).to_not eql(auth.current_token_details)
           expect(auth.options[:auth_callback]).to be_nil
@@ -690,6 +698,18 @@ describe Ably::Auth do
         it 'updates Auth#options attribute with an immutable hash' do
           auth.authorize(nil, auth_callback: Proc.new { '1231232.12321:12321312' })
           expect { auth.options['key_name'] = 'new_name' }.to raise_error RuntimeError, /can't modify frozen.*Hash/
+        end
+
+        it 'uses AuthOptions#query_time for this request and will not query_time for subsequent requests (#RSA10g)' do
+          expect(client).to receive(:time).once.and_call_original
+          auth.authorize({}, query_time: true)
+          auth.authorize
+        end
+
+        it 'uses AuthOptions#query_time for this request and will query_time again if provided subsequently' do
+          expect(client).to receive(:time).twice.and_call_original
+          auth.authorize({}, query_time: true)
+          auth.authorize({}, query_time: true)
         end
       end
 

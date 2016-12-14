@@ -117,7 +117,7 @@ describe Ably::Realtime::Client, :event_machine do
           context 'when the returned token has a client_id' do
             it "sets Auth#client_id to the new token's client_id immediately when connecting" do
               subject.auth.authorize do
-                expect(subject.connection).to be_connecting
+                expect(subject.connection).to be_connected
                 expect(subject.auth.client_id).to eql(client_id)
                 stop_reactor
               end
@@ -125,7 +125,7 @@ describe Ably::Realtime::Client, :event_machine do
 
             it "sets Client#client_id to the new token's client_id immediately when connecting" do
               subject.auth.authorize do
-                expect(subject.connection).to be_connecting
+                expect(subject.connection).to be_connected
                 expect(subject.client_id).to eql(client_id)
                 stop_reactor
               end
