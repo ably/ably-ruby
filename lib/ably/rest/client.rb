@@ -1,6 +1,7 @@
 require 'faraday'
 require 'json'
 require 'logger'
+require 'uri'
 
 require 'ably/rest/middleware/exceptions'
 

@@ -1,3 +1,5 @@
+require 'uri'
+
 module Ably
   module Realtime
     # Client for the Ably Realtime API
