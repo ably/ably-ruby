@@ -105,8 +105,8 @@ module Ably::Realtime
           end
 
           once(:in_sync, &in_sync_callback)
-
           once(:failed, &failed_callback)
+
           channel.unsafe_once(:detaching, :detached, :failed) do |error_reason|
             failed_callback.call error_reason
           end
@@ -167,7 +167,6 @@ module Ably::Realtime
         presence.__incoming_msgbus__.subscribe(:presence, :sync) do |presence_message|
           presence_message.decode(client.encoders, channel.options) do |encode_error, error_message|
             client.logger.error error_message
-            channel.emit :error, encode_error
           end
           update_members_and_emit_events presence_message
         end
@@ -226,7 +225,6 @@ module Ably::Realtime
 
         error = Ably::Exceptions::ProtocolError.new("Protocol error, presence message is missing connectionId", 400, 80013)
         logger.error "PresenceMap: On channel '#{channel.name}' error: #{error}"
-        channel.emit :error, error
       end
 
       # If the message received is older than the last known event for presence

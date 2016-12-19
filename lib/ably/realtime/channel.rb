@@ -23,8 +23,6 @@ module Ably
     #   Channel::STATE.Detached
     #   Channel::STATE.Failed
     #
-    # Channels emit errors - use +on(:error)+ to subscribe to errors
-    #
     # @!attribute [r] state
     #   @return {Ably::Realtime::Connection::STATE} channel state
     #
@@ -36,6 +34,8 @@ module Ably
       include Ably::Modules::MessageEmitter
       extend Ably::Modules::Enum
 
+      # ChannelState
+      # The permited states for this channel
       STATE = ruby_enum('STATE',
         :initialized,
         :attaching,
@@ -45,6 +45,13 @@ module Ably
         :suspended,
         :failed
       )
+
+      # ChannelEvent
+      # The permitted channel events that are emitted for this channel
+      EVENT = ruby_enum('EVENT',
+        STATE.to_sym_arr + [:update]
+      )
+
       include Ably::Modules::StateEmitter
       include Ably::Modules::UsesStateMachine
       ensure_state_machine_emits 'Ably::Models::ChannelStateChange'
@@ -282,7 +289,7 @@ module Ably
       end
 
       # @api private
-      def set_failed_channel_error_reason(error)
+      def set_channel_error_reason(error)
         @error_reason = error
       end
 
@@ -322,7 +329,6 @@ module Ably
         __incoming_msgbus__.subscribe(:message) do |message|
           message.decode(client.encoders, options) do |encode_error, error_message|
             client.logger.error error_message
-            emit :error, encode_error
           end
           emit_message message.name, message
         end
@@ -340,10 +346,10 @@ module Ably
           create_message(raw_msg).tap do |message|
             next if message.client_id.nil?
             if message.client_id == '*'
-              raise Ably::Exceptions::IncompatibleClientId.new('Wildcard client_id is reserved and cannot be used when publishing messages', 400, 40012)
+              raise Ably::Exceptions::IncompatibleClientId.new('Wildcard client_id is reserved and cannot be used when publishing messages')
             end
             unless client.auth.can_assume_client_id?(message.client_id)
-              raise Ably::Exceptions::IncompatibleClientId.new("Cannot publish with client_id '#{message.client_id}' as it is incompatible with the current configured client_id '#{client.client_id}'", 400, 40012)
+              raise Ably::Exceptions::IncompatibleClientId.new("Cannot publish with client_id '#{message.client_id}' as it is incompatible with the current configured client_id '#{client.client_id}'")
             end
           end
         end
@@ -413,7 +419,6 @@ module Ably
         Ably::Models::Message(message.dup).tap do |msg|
           msg.encode(client.encoders, options) do |encode_error, error_message|
             client.logger.error error_message
-            emit :error, encode_error
           end
         end
       end

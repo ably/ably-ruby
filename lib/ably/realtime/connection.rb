@@ -25,8 +25,6 @@ module Ably
     #   Connection::STATE.Closed
     #   Connection::STATE.Failed
     #
-    # Connection emit errors - use `on(:error)` to subscribe to errors
-    #
     # @example
     #    client = Ably::Realtime::Client.new('key.id:secret')
     #    client.connection.on(:connected) do
@@ -42,7 +40,8 @@ module Ably
       include Ably::Modules::SafeYield
       extend Ably::Modules::Enum
 
-      # Valid Connection states
+      # ConnectionState
+      # The permited states for this connection
       STATE = ruby_enum('STATE',
         :initialized,
         :connecting,
@@ -53,6 +52,13 @@ module Ably
         :closed,
         :failed
       )
+
+      # ConnectionEvent
+      # The permitted connection events that are emitted for this connection
+      EVENT = ruby_enum('EVENT',
+        STATE.to_sym_arr + [:update]
+      )
+
       include Ably::Modules::StateEmitter
       include Ably::Modules::UsesStateMachine
       ensure_state_machine_emits 'Ably::Models::ConnectionStateChange'

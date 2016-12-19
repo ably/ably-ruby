@@ -19,7 +19,6 @@ module Ably::Realtime
         if can_transition_to?(:attached)
           connect_if_connection_initialized
           send_attach_protocol_message
-          resend_attach_protocol_message_if_connection_disconnected_before_ack
         end
       end
 
@@ -47,25 +46,28 @@ module Ably::Realtime
       end
 
       # An error has occurred on the channel
-      def emit_error(error)
+      def log_channel_error(error)
         logger.error "ChannelManager: Channel '#{channel.name}' error: #{error}"
-        channel.emit :error, error
       end
 
       # Request channel to be reattached by sending an attach protocol message
       def request_reattach(reason: nil)
         send_attach_protocol_message
-        logger.debug "Explicit channel reattach request sent to Ably"
+        logger.debug "Explicit channel reattach request sent to Ably due to #{reason}"
+        channel.set_channel_error_reason(reason) if reason
         channel.transition_state_machine! :attaching, reason: reason unless channel.attaching?
-        channel.set_failed_channel_error_reason(reason) if reason
       end
 
-      def duplicate_attached_received(error)
-        if error
-          channel.set_failed_channel_error_reason error
-          emit_error error
+      def duplicate_attached_received(reason, resumed)
+        if reason
+          channel.set_channel_error_reason reason
+          log_channel_error reason
+        end
+
+        if resumed
+          logger.debug "ChannelManager: Additional resumed ATTACHED message received for #{channel.state} channel '#{channel.name}'"
         else
-          logger.debug "ChannelManager: Extra ATTACHED message received for #{channel.state} channel '#{channel.name}'"
+          channel.emit :update, Ably::Models::ChannelStateChange.new(current: channel.state, previous: channel.state, reason: reason, resumed: false)
         end
       end
 
@@ -132,6 +134,8 @@ module Ably::Realtime
       end
 
       private
+      attr_reader :pending_state_change_timer
+
       def channel
         @channel
       end
@@ -159,38 +163,34 @@ module Ably::Realtime
         send_state_change_protocol_message Ably::Models::ProtocolMessage::ACTION.Detach, previous_state # return to previous state if failed
       end
 
-      def resend_attach_protocol_message_if_connection_disconnected_before_ack
-        connection.once_or_if(:connected) do
-          attach_confirmed = false
-          channel_attaching_done = false
-
-          channel.once(:attached) do
-            attach_confirmed = true
-          end
-
-          channel.once_state_changed do
-            # Once the state has changed from attaching, whether success or failure
-            # the job of this channel attqaching is done
-            channel_attaching_done = true
-          end
-
-          connection.once(:connected) do
-            send_attach_protocol_message unless attach_confirmed || channel_attaching_done
-            resend_attach_protocol_message_if_connection_disconnected_before_ack
-          end
-        end
-      end
-
       def send_state_change_protocol_message(new_state, state_if_failed)
         state_at_time_of_request = channel.state
-        failed_timer = EventMachine::Timer.new(realtime_request_timeout) do
+        @pending_state_change_timer = EventMachine::Timer.new(realtime_request_timeout) do
           if channel.state == state_at_time_of_request
             error = Ably::Models::ErrorInfo.new(code: 90007, message: "Channel #{new_state} operation failed (timed out)")
             channel.transition_state_machine state_if_failed, reason: error
           end
         end
 
-        channel.once_state_changed { failed_timer.cancel }
+        channel.once_state_changed do
+          pending_state_change_timer.cancel
+          @pending_state_change_timer = nil
+        end
+
+        resend_if_disconnected_and_connected = Proc.new do
+          connection.once(:disconnected) do
+            next unless pending_state_change_timer
+            connection.once(:connected) do
+              next unless pending_state_change_timer
+              connection.send_protocol_message(
+                action:  new_state.to_i,
+                channel: channel.name
+              )
+              resend_if_disconnected_and_connected.call
+            end
+          end
+        end
+        resend_if_disconnected_and_connected.call
 
         connection.send_protocol_message(
           action:  new_state.to_i,

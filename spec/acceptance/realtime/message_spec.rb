@@ -363,8 +363,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
         end
         2.times { |i| EventMachine.add_timer(i.to_f / 5) { channel.publish('event', 'data') } }
 
-        channel.on(:error) do |error|
-          expect(error.message).to match(/duplicate/)
+        expect(client.logger).to receive(:error).with(/duplicate/) do
           EventMachine.add_timer(0.5) do
             expect(messages_received.count).to eql(2)
             stop_reactor
@@ -568,15 +567,12 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
           end
         end
 
-        it 'emits a Cipher error on the channel (#RTL7e)' do
+        it 'logs a Cipher error (#RTL7e)' do
           unencrypted_channel_client2.attach do
-            encrypted_channel_client1.publish 'example', payload
-            unencrypted_channel_client2.on(:error) do |error|
-              expect(error).to be_a(Ably::Exceptions::CipherError)
-              expect(error.code).to eql(92001)
-              expect(error.message).to match(/Message cannot be decrypted/)
+            expect(other_client.logger).to receive(:error).with(/Message cannot be decrypted/) do
               stop_reactor
             end
+            encrypted_channel_client1.publish 'example', payload
           end
         end
       end
@@ -602,10 +598,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
         it 'emits a Cipher error on the channel (#RTL7e)' do
           encrypted_channel_client2.attach do
             encrypted_channel_client1.publish 'example', payload
-            encrypted_channel_client2.on(:error) do |error|
-              expect(error).to be_a(Ably::Exceptions::CipherError)
-              expect(error.code).to eql(92002)
-              expect(error.message).to match(/Cipher algorithm [\w-]+ does not match/)
+            expect(other_client.logger).to receive(:error).with(/Cipher algorithm [\w-]+ does not match/) do
               stop_reactor
             end
           end
@@ -635,10 +628,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
         it 'emits a Cipher error on the channel' do
           encrypted_channel_client2.attach do
             encrypted_channel_client1.publish 'example', payload
-            encrypted_channel_client2.on(:error) do |error|
-              expect(error).to be_a(Ably::Exceptions::CipherError)
-              expect(error.code).to eql(92003)
-              expect(error.message).to match(/CipherError decrypting data/)
+            expect(other_client.logger).to receive(:error).with(/CipherError decrypting data/) do
               stop_reactor
             end
           end

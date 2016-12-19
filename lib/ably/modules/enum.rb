@@ -49,11 +49,11 @@ module Ably::Modules
           def get(identifier)
             case identifier
             when Symbol
-              by_symbol.fetch(identifier)
+              by_symbol.fetch(identifier) { raise KeyError, "#{name} key not found: :#{identifier}" }
             when String
-              by_symbol.fetch(convert_to_snake_case_symbol(identifier))
+              by_symbol.fetch(convert_to_snake_case_symbol(identifier)) { raise KeyError, "#{name} key not found: '#{identifier}'" }
             when Numeric
-              by_index.fetch(identifier)
+              by_index.fetch(identifier) { raise KeyError, "#{name} key not found: #{identifier}" }
             when ancestors.first
               identifier
             else
@@ -87,6 +87,12 @@ module Ably::Modules
           # The name provided in the constructor for this Enum
           def name
             @enum_name
+          end
+
+          # Array of Enum values as symbols
+          # @return [Array<Symbol>]
+          def to_sym_arr
+            @by_symbol.keys
           end
 
           private
@@ -158,7 +164,7 @@ module Ably::Modules
 
         # Allow comparison of Enum objects based on:
         #
-        # * Other equivalent Enum objects
+        # * Other equivalent Enum objects compared by Symbol (not Integer value)
         # * Symbol
         # * String
         # * Integer index of Enum
@@ -171,10 +177,10 @@ module Ably::Modules
             self.to_sym == convert_to_snake_case_symbol(other)
           when Numeric
             self.to_i == other.to_i
-          when self.class
-            self.to_i == other.to_i
           else
-            false
+            if other.kind_of?(Ably::Modules::Enum::Base)
+              self.to_sym == other.to_sym
+            end
           end
         end
 

@@ -134,7 +134,7 @@ describe Ably::Models::ProtocolMessage do
       end
     end
 
-    context '#flags' do
+    context '#flags (#TR4i)' do
       context 'when nil' do
         let(:protocol_message) { new_protocol_message({}) }
 
@@ -151,8 +151,36 @@ describe Ably::Models::ProtocolMessage do
         end
       end
 
-      context 'when has_presence' do
+      context 'when presence flag present' do
         let(:protocol_message) { new_protocol_message(flags: 1) }
+
+        it '#has_presence_flag? is true' do
+          expect(protocol_message.has_presence_flag?).to be_truthy
+        end
+
+        it '#has_channel_resumed_flag? is false' do
+          expect(protocol_message.has_channel_resumed_flag?).to be_falsey
+        end
+      end
+
+      context 'when channel resumed flag present' do
+        let(:protocol_message) { new_protocol_message(flags: 4) }
+
+        it '#has_channel_resumed_flag? is true' do
+          expect(protocol_message.has_channel_resumed_flag?).to be_truthy
+        end
+
+        it '#has_presence_flag? is false' do
+          expect(protocol_message.has_presence_flag?).to be_falsey
+        end
+      end
+
+      context 'when channel resumed and presence flags present' do
+        let(:protocol_message) { new_protocol_message(flags: 5) }
+
+        it '#has_channel_resumed_flag? is true' do
+          expect(protocol_message.has_channel_resumed_flag?).to be_truthy
+        end
 
         it '#has_presence_flag? is true' do
           expect(protocol_message.has_presence_flag?).to be_truthy
@@ -164,6 +192,10 @@ describe Ably::Models::ProtocolMessage do
 
         it '#has_presence_flag? is false' do
           expect(protocol_message.has_presence_flag?).to be_falsey
+        end
+
+        it '#has_backlog_flag? is true' do
+          expect(protocol_message.has_backlog_flag?).to be_truthy
         end
       end
     end
