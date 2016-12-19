@@ -150,19 +150,23 @@ describe Ably::Realtime::Connection, :event_machine do
                 end
 
                 context 'when disconnected_retry_timeout is 0.5 seconds' do
-                  let(:client_options) { default_options.merge(disconnected_retry_timeout: 0.5, auth_callback: token_callback, log_level: :error) }
+                  let(:client_options) { default_options.merge(disconnected_retry_timeout: 0.5, auth_callback: token_callback) }
 
                   it 'renews the token on connect, and continues to attempt renew based on the retry schedule' do
-                    started_at = Time.now.to_f
                     disconnect_count = 0
+                    first_disconnected_at = nil
                     connection.on(:disconnected) do |connection_state_change|
+                      first_disconnected_at ||= begin
+                        Time.now.to_f
+                      end
                       expect(connection_state_change.reason.code).to eql(40142) # token expired
-                      disconnect_count += 1
-                      if disconnect_count == 6
-                        expect(Time.now.to_f - started_at).to be > 4 * 0.5 # at least 4 0.5 second pauses should have happened
-                        expect(Time.now.to_f - started_at).to be < 9 # allow 1.5 seconds for each authentication cycle
+                      if disconnect_count == 4 # 3 attempts to reconnect after initial
+                        # First disconnect reattempts immediately, 3 x subsequent with 0.5 second pause
+                        expect(Time.now.to_f - first_disconnected_at).to be > 3 * 0.5
+                        expect(Time.now.to_f - first_disconnected_at).to be < 9 # allow 1.5 seconds for each authentication cycle
                         stop_reactor
                       end
+                      disconnect_count += 1
                     end
                   end
                 end
@@ -229,6 +233,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 end
 
                 context 'connection state' do
+                  let(:publish_count) { 10 }
                   let(:ttl)           { 4 }
                   let(:auth_requests) { [] }
                   let(:token_callback) do
@@ -243,13 +248,14 @@ describe Ably::Realtime::Connection, :event_machine do
                   let(:publishing_channel) { publishing_client.channels.get(channel_name) }
                   let(:messages_received)  { [] }
 
-                  def publish_and_check_first_disconnect
-                    10.times.each { |index| publishing_channel.publish('event', index.to_s) }
+                  def publish_and_check_disconnect(iteration: 1)
+                    total_expected = publish_count * iteration
+                    publish_count.times.each { |index| publishing_channel.publish('event', (total_expected - publish_count + index).to_s) }
                     channel.subscribe('event') do |message|
                       messages_received << message.data.to_i
-                      if messages_received.count == 10
-                        expect(messages_received).to match(10.times)
-                        expect(auth_requests.count).to eql(2)
+                      if messages_received.count == total_expected
+                        expect(messages_received).to match(total_expected.times)
+                        expect(auth_requests.count).to eql(iteration + 1)
                         EventMachine.add_timer(1) do
                           channel.unsubscribe 'event'
                           yield
@@ -258,25 +264,20 @@ describe Ably::Realtime::Connection, :event_machine do
                     end
                   end
 
-                  def publish_and_check_second_disconnect
-                    10.times.each { |index| publishing_channel.publish('event', (index + 10).to_s) }
-                    channel.subscribe('event') do |message|
-                      messages_received << message.data.to_i
-                      if messages_received.count == 20
-                        expect(messages_received).to match(20.times)
-                        expect(auth_requests.count).to eql(3)
-                        stop_reactor
-                      end
-                    end
-                  end
-
-                  it 'retains messages published when disconnected twice during authentication', em_timeout: 20 do
+                  it 'retains messages published when disconnected three times during authentication', em_timeout: 30 do
+                    skip "Blocked by realtime issue https://github.com/ably/realtime/issues/800"
                     publishing_channel.attach do
                       channel.attach do
                         connection.once(:disconnected) do
-                          publish_and_check_first_disconnect do
+                          publish_and_check_disconnect(iteration: 1) do
                             connection.once(:disconnected) do
-                              publish_and_check_second_disconnect
+                              publish_and_check_disconnect(iteration: 2) do
+                                connection.once(:disconnected) do
+                                  publish_and_check_disconnect(iteration: 3) do
+                                    stop_reactor
+                                  end
+                                end
+                              end
                             end
                           end
                         end
@@ -682,7 +683,6 @@ describe Ably::Realtime::Connection, :event_machine do
 
         def log_connection_changes
           connection.on(:closing) { events[:closing_emitted] = true }
-          connection.on(:error)   { events[:error_emitted] = true }
 
           connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
             events[:closed_message_from_server_received] = true if protocol_message.action == :closed
@@ -695,7 +695,6 @@ describe Ably::Realtime::Connection, :event_machine do
               expect(connection.state).to eq(:closed)
 
               EventMachine.add_timer(1) do # allow for all subscribers on incoming message bes
-                expect(events[:error_emitted]).to_not eql(true)
                 expect(events[:closed_message_from_server_received]).to_not eql(true)
                 expect(events[:closing_emitted]).to eql(true)
                 stop_reactor
@@ -712,7 +711,6 @@ describe Ably::Realtime::Connection, :event_machine do
             connection.on(:connected) do
               connection.on(:closed) do
                 EventMachine.add_timer(1) do # allow for all subscribers on incoming message bus
-                  expect(events[:error_emitted]).to_not eql(true)
                   expect(events[:closed_message_from_server_received]).to eql(true)
                   expect(events[:closing_emitted]).to eql(true)
                   stop_reactor
@@ -743,14 +741,13 @@ describe Ably::Realtime::Connection, :event_machine do
                 connection.on(:closed) do
                   expect(Time.now - close_requested_at).to be >= custom_timeout
                   expect(connection.state).to eq(:closed)
-                  expect(events[:error_emitted]).to_not eql(true)
                   expect(events[:closed_message_from_server_received]).to_not eql(true)
                   expect(events[:closing_emitted]).to eql(true)
                   stop_reactor
                 end
 
                 log_connection_changes
-                connection.close
+                EventMachine.next_tick { connection.close }
               end
             end
           end
@@ -1035,13 +1032,13 @@ describe Ably::Realtime::Connection, :event_machine do
         context 'with invalid formatted value sent to server' do
           let(:client_options) { default_options.merge(recover: 'not-a-valid-connection-key:1', log_level: :none) }
 
-          it 'emits a fatal error on the connection object, sets the #error_reason and disconnects' do
-            connection.once(:error) do |error|
+          it 'sets the #error_reason and moves the connection to FAILED' do
+            connection.once(:failed) do |state_change|
               expect(connection.state).to eq(:failed)
-              expect(error.message).to match(/Invalid connectionKey/i)
+              expect(state_change.reason.message).to match(/Invalid connectionKey/i)
               expect(connection.error_reason.message).to match(/Invalid connectionKey/i)
               expect(connection.error_reason.code).to eql(80018)
-              expect(connection.error_reason).to eql(error)
+              expect(connection.error_reason).to eql(state_change.reason)
               stop_reactor
             end
           end
@@ -1050,13 +1047,13 @@ describe Ably::Realtime::Connection, :event_machine do
         context 'with expired (missing) value sent to server' do
           let(:client_options) { default_options.merge(recover: 'wVIsgTHAB1UvXh7z-1991d8586:0', log_level: :fatal) }
 
-          it 'emits an error on the connection object, sets the #error_reason, yet will connect anyway' do
-            connection.once(:error) do |error|
+          it 'connects but sets the error reason and includes the reason in the state change' do
+            connection.once(:connected) do |state_change|
               expect(connection.state).to eq(:connected)
-              expect(error.message).to match(/Unable to recover connection/i)
+              expect(state_change.reason.message).to match(/Unable to recover connection/i)
               expect(connection.error_reason.message).to match(/Unable to recover connection/i)
               expect(connection.error_reason.code).to eql(80008)
-              expect(connection.error_reason).to eql(error)
+              expect(connection.error_reason).to eql(state_change.reason)
               stop_reactor
             end
           end
@@ -1087,22 +1084,20 @@ describe Ably::Realtime::Connection, :event_machine do
     end
 
     context 'when a state transition is unsupported' do
-      let(:client_options) { default_options.merge(log_level: :none) } # silence FATAL errors
+      let(:client_options) { default_options.merge(log_level: :fatal) } # silence FATAL errors
 
-      it 'emits a InvalidStateChange' do
+      it 'logs the invalid state change as fatal' do
         connection.connect do
           connection.transition_state_machine :initialized
+          EventMachine.add_timer(1) { stop_reactor }
         end
 
-        connection.on(:error) do |error|
-          expect(error).to be_a(Ably::Exceptions::InvalidStateChange)
-          stop_reactor
-        end
+        expect(client.logger).to receive(:fatal).with(/Unable to transition/).at_least(:once)
       end
     end
 
     context 'protocol failure' do
-      let(:client_options) { default_options.merge(protocol: :json) }
+      let(:client_options) { default_options.merge(protocol: :json, log_level: :none) }
 
       context 'receiving an invalid ProtocolMessage' do
         it 'emits an error on the connection and logs a fatal error message' do
@@ -1110,9 +1105,9 @@ describe Ably::Realtime::Connection, :event_machine do
             connection.transport.send(:driver).emit 'message', OpenStruct.new(data: { action: 500 }.to_json)
           end
 
-          expect(client.logger).to receive(:fatal).with(/Invalid Protocol Message/)
-          connection.on(:error) do |error|
-            expect(error.message).to match(/Invalid Protocol Message/)
+          expect(client.logger).to receive(:fatal).with(/Invalid Protocol Message/).at_least(:once)
+          connection.on(:failed) do |state_change|
+            expect(state_change.reason.message).to match(/Invalid Protocol Message/)
             stop_reactor
           end
         end
@@ -1249,10 +1244,10 @@ describe Ably::Realtime::Connection, :event_machine do
           )
         end
 
-        it 'detaches the channels and prevents publishing of messages on those channels' do
+        it 'moves the channels into the suspended state and prevents publishing of messages on those channels' do
           channel.attach do
-            channel.once(:detached) do
-              expect { channel.publish 'test' }.to raise_error(Ably::Exceptions::ChannelInactive)
+            channel.once(:suspended) do
+              expect { channel.publish 'test' }.to raise_error(Ably::Exceptions::MessageQueueingDisabled)
               stop_reactor
             end
 

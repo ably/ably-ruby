@@ -225,8 +225,9 @@ describe Ably::Realtime::Auth, :event_machine do
 
             it 'rejects a TokenDetails object with an incompatible client_id and raises an exception' do
               client.connect
-              client.connection.on(:error) do |error|
-                expect(error).to be_a(Ably::Exceptions::IncompatibleClientId)
+              client.connection.on(:failed) do |state_change|
+                expect(state_change.reason).to be_a(Ably::Exceptions::AuthenticationFailed)
+                expect(state_change.reason.code).to eql(40012)
                 EventMachine.add_timer(0.1) do
                   expect(client.connection).to be_failed
                   stop_reactor
@@ -240,8 +241,9 @@ describe Ably::Realtime::Auth, :event_machine do
 
             it 'rejects a TokenRequests object with an incompatible client_id and raises an exception' do
               client.connect
-              client.connection.on(:error) do |error|
-                expect(error).to be_a(Ably::Exceptions::IncompatibleClientId)
+              client.connection.on(:failed) do |state_change|
+                expect(state_change.reason).to be_a(Ably::Exceptions::AuthenticationFailed)
+                expect(state_change.reason.code).to eql(40012)
                 EventMachine.add_timer(0.1) do
                   expect(client.connection).to be_failed
                   stop_reactor
@@ -272,8 +274,9 @@ describe Ably::Realtime::Auth, :event_machine do
             it 'rejects a TokenDetails object with an incompatible client_id and raises an exception' do
               client.connection.once(:connected) do
                 client.auth.authorize({})
-                client.connection.on(:error) do |error|
-                  expect(error).to be_a(Ably::Exceptions::IncompatibleClientId)
+                client.connection.on(:failed) do |state_change|
+                  expect(state_change.reason).to be_a(Ably::Exceptions::IncompatibleClientId)
+                  expect(state_change.reason.code).to eql(40012)
                   EventMachine.add_timer(0.1) do
                     expect(client.connection).to be_failed
                     stop_reactor

@@ -271,15 +271,6 @@ describe Ably::Realtime::Channel, :event_machine do
           end
         end
 
-        it 'emits an error event' do
-          restricted_channel.attach
-          restricted_channel.on(:error) do |error|
-            expect(restricted_channel.state).to eq(:failed)
-            expect(error.status).to eq(401)
-            stop_reactor
-          end
-        end
-
         it 'updates the error_reason' do
           restricted_channel.attach
           restricted_channel.on(:failed) do
@@ -642,12 +633,12 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       context 'if a subsequent ATTACHED is received on an ATTACHED channel' do
-        it 'ignores the additional ATTACHED' do
+        it 'ignores the additional ATTACHED if resumed is true (#RTL12)' do
           channel.attach do
             channel.once do |obj|
               fail "No state change expected: #{obj}"
             end
-            attached_message = Ably::Models::ProtocolMessage.new(action: 11, channel: channel_name) # ATTACHED
+            attached_message = Ably::Models::ProtocolMessage.new(action: 11, channel: channel_name, flags: 4) # ATTACHED with resumed flag
             client.connection.__incoming_protocol_msgbus__.publish :protocol_message, attached_message
             EventMachine.add_timer(1) do
               channel.off
@@ -656,14 +647,34 @@ describe Ably::Realtime::Channel, :event_machine do
           end
         end
 
-        it 'emits an error if the ATTACHED contains an error' do
+        it 'emits an UPDATE only when resumed is true (#RTL12)' do
           channel.attach do
-            channel.on(:error) do |error|
-              expect(error.code).to eql(50505)
+            expect(channel.error_reason).to be_nil
+            channel.on(:update) do |state_change|
+              expect(state_change.current).to eq(:attached)
+              expect(state_change.previous).to eq(:attached)
+              expect(state_change.resumed).to be_falsey
+              expect(state_change.reason).to be_nil
+              expect(channel.error_reason).to be_nil
+              stop_reactor
+            end
+            attached_message = Ably::Models::ProtocolMessage.new(action: 11, channel: channel_name, flags: 0) # No resumed flag
+            client.connection.__incoming_protocol_msgbus__.publish :protocol_message, attached_message
+          end
+        end
+
+        it 'emits an UPDATE when resumed is true and includes the reason error from the ProtocolMessage (#RTL12)' do
+          channel.attach do
+            expect(channel.error_reason).to be_nil
+            channel.on(:update) do |state_change|
+              expect(state_change.current).to eq(:attached)
+              expect(state_change.previous).to eq(:attached)
+              expect(state_change.resumed).to be_falsey
+              expect(state_change.reason.code).to eql(50505)
               expect(channel.error_reason.code).to eql(50505)
               stop_reactor
             end
-            attached_message = Ably::Models::ProtocolMessage.new(action: 11, channel: channel_name, error: { code: 50505 }) # ATTACHED with error
+            attached_message = Ably::Models::ProtocolMessage.new(action: 11, channel: channel_name, error: { code: 50505 }, flags: 0) # No resumed flag with error
             client.connection.__incoming_protocol_msgbus__.publish :protocol_message, attached_message
           end
         end
@@ -1355,17 +1366,6 @@ describe Ably::Realtime::Channel, :event_machine do
             end
           end
 
-          it 'emits an error event on the channel (#RTL3a)' do
-            channel.attach do
-              channel.on(:error) do |error|
-                expect(error).to be_a(Ably::Exceptions::ConnectionFailed)
-                expect(error.code).to eql(50000)
-                stop_reactor
-              end
-              fake_error connection_error
-            end
-          end
-
           it 'updates the channel error_reason (#RTL3a)' do
             channel.attach do
               channel.on(:failed) do |connection_state_change|
@@ -1383,7 +1383,6 @@ describe Ably::Realtime::Channel, :event_machine do
           it 'remains in the :detached state (#RTL3a)' do
             channel.attach do
               channel.on(:failed) { raise 'Failed state should not have been reached' }
-              channel.on(:error)  { raise 'Error should not have been emitted' }
 
               channel.detach do
                 EventMachine.add_timer(1) do
@@ -1402,9 +1401,8 @@ describe Ably::Realtime::Channel, :event_machine do
 
           it 'remains in the :failed state and ignores the failure error (#RTL3a)' do
             channel.attach do
-              channel.on(:error) do
+              channel.on(:failed) do
                 channel.on(:failed) { raise 'Failed state should not have been reached' }
-                channel.on(:error)  { raise 'Error should not have been emitted' }
 
                 EventMachine.add_timer(1) do
                   expect(channel).to be_failed
@@ -1465,7 +1463,6 @@ describe Ably::Realtime::Channel, :event_machine do
             channel.attach do
               channel.detach do
                 channel.on(:detached) { raise 'Detached state should not have been reached' }
-                channel.on(:error)    { raise 'Error should not have been emitted' }
 
                 EventMachine.add_timer(1) do
                   expect(channel).to be_detached
@@ -1486,7 +1483,6 @@ describe Ably::Realtime::Channel, :event_machine do
             channel.attach do
               channel.once(:error) do
                 channel.on(:detached) { raise 'Detached state should not have been reached' }
-                channel.on(:error)    { raise 'Error should not have been emitted' }
 
                 EventMachine.add_timer(1) do
                   expect(channel).to be_failed
@@ -1570,7 +1566,6 @@ describe Ably::Realtime::Channel, :event_machine do
             channel.attach do
               channel.detach do
                 channel.on(:detached) { raise 'Detached state should not have been reached' }
-                channel.on(:error)    { raise 'Error should not have been emitted' }
 
                 EventMachine.add_timer(1) do
                   expect(channel).to be_detached
@@ -1591,7 +1586,6 @@ describe Ably::Realtime::Channel, :event_machine do
             channel.attach do
               channel.once(:error) do
                 channel.on(:detached) { raise 'Detached state should not have been reached' }
-                channel.on(:error)    { raise 'Error should not have been emitted' }
 
                 EventMachine.add_timer(1) do
                   expect(channel).to be_failed

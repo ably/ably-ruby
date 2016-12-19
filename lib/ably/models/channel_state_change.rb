@@ -8,6 +8,8 @@ module Ably::Models
   #   @return [Connection::STATE] Previous channel state
   # @!attribute [r] reason
   #   @return [Ably::Models::ErrorInfo] Object describing the reason for a state change when not initiated by the consumer of the client library
+  # @!attribute [r] resumed
+  #   @return [Boolean] True when a channel is resumed, false when continuity on the channel is no longer provided indicating that the developer is now responsible for recovering lost messages on this channel through other means, such as using the hisory API
   #
   class ChannelStateChange
     include Ably::Modules::ModelCommon
@@ -28,7 +30,7 @@ module Ably::Models
       raise ArgumentError, e
     end
 
-    %w(current previous reason protocol_message).each do |attribute|
+    %w(current previous reason).each do |attribute|
       define_method attribute do
         @hash_object[attribute.to_sym]
       end
@@ -36,6 +38,12 @@ module Ably::Models
 
     def resumed
       !!@hash_object[:resumed]
+    end
+    alias_method :resumed?, :resumed
+
+    # @api private
+    def protocol_message
+      @hash_object[:protocol_message]
     end
 
     def to_s

@@ -48,7 +48,6 @@ module Ably::Realtime
         error = current_transition.metadata.reason
         if is_error_type?(error)
           connection.logger.warn "ConnectionManager: Connected with error - #{error.message}"
-          connection.emit :error, error
         end
       end
 

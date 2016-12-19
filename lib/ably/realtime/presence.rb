@@ -13,8 +13,7 @@ module Ably::Realtime
       :entering,
       :entered,
       :leaving,
-      :left,
-      :failed
+      :left
     )
     include Ably::Modules::StateEmitter
     include Ably::Modules::UsesStateMachine
@@ -79,6 +78,7 @@ module Ably::Realtime
             deferrable_succeed deferrable, &success_block
           end
         else
+          current_state = state
           change_state STATE.Entering
           send_protocol_message_and_transition_state_to(
             Ably::Models::PresenceMessage::ACTION.Enter,
@@ -86,7 +86,7 @@ module Ably::Realtime
             target_state: STATE.Entered,
             data:         data,
             client_id:    client_id,
-            failed_state: STATE.Failed,
+            failed_state: current_state, # return to current state if enter fails
             &success_block
           )
         end
@@ -138,6 +138,7 @@ module Ably::Realtime
             deferrable_succeed deferrable, &success_block
           end
         else
+          current_state = state
           change_state STATE.Leaving
           send_protocol_message_and_transition_state_to(
             Ably::Models::PresenceMessage::ACTION.Leave,
@@ -145,7 +146,7 @@ module Ably::Realtime
             target_state: STATE.Left,
             data:         data,
             client_id:    client_id,
-            failed_state: STATE.Failed,
+            failed_state: current_state, # return to current state if leave fails
             &success_block
           )
         end
@@ -348,7 +349,6 @@ module Ably::Realtime
       Ably::Models::PresenceMessage.new(model, logger: logger).tap do |presence_message|
         presence_message.encode(client.encoders, channel.options) do |encode_error, error_message|
           client.logger.error error_message
-          emit :error, encode_error
         end
       end
     end
@@ -370,13 +370,13 @@ module Ably::Realtime
 
     def ensure_supported_client_id(check_client_id)
       unless check_client_id
-        raise Ably::Exceptions::IncompatibleClientId.new('Unable to enter/update/leave presence channel without a client_id', 400, 40012)
+        raise Ably::Exceptions::IncompatibleClientId.new('Unable to enter/update/leave presence channel without a client_id')
       end
       if check_client_id == '*'
-        raise Ably::Exceptions::IncompatibleClientId.new('Unable to enter/update/leave presence channel with the reserved wildcard client_id', 400, 40012)
+        raise Ably::Exceptions::IncompatibleClientId.new('Unable to enter/update/leave presence channel with the reserved wildcard client_id')
       end
       unless client.auth.can_assume_client_id?(check_client_id)
-        raise Ably::Exceptions::IncompatibleClientId.new("Cannot enter with provided client_id '#{check_client_id}' as it is incompatible with the current configured client_id '#{client.client_id}'", 400, 40012)
+        raise Ably::Exceptions::IncompatibleClientId.new("Cannot enter with provided client_id '#{check_client_id}' as it is incompatible with the current configured client_id '#{client.client_id}'")
       end
     end
 
