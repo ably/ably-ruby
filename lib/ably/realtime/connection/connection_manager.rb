@@ -12,7 +12,7 @@ module Ably::Realtime
     class ConnectionManager
       # Error codes from the server that can potentially be resolved
       RESOLVABLE_ERROR_CODES = {
-        token_expired: Ably::Rest::Middleware::Exceptions::TOKEN_EXPIRED_CODE
+        token_expired: Ably::Exceptions::TOKEN_EXPIRED_CODE
       }
 
       def initialize(connection)
@@ -70,9 +70,13 @@ module Ably::Realtime
       #
       # @api private
       def connection_opening_failed(error)
-        if error.kind_of?(Ably::Exceptions::IncompatibleClientId)
-          client.connection.transition_state_machine :failed, reason: error
-          return
+        if error.kind_of?(Ably::Exceptions::BaseAblyException)
+          # Authentication errors that indicate the authentication failure is terminal should move to the failed state
+          if ([401, 403].include?(error.status) && !RESOLVABLE_ERROR_CODES.fetch(:token_expired).include?(error.code)) ||
+             (error.code == Ably::Exceptions::INVALID_CLIENT_ID)
+            client.connection.transition_state_machine :failed, reason: error
+            return
+          end
         end
 
         logger.warn "ConnectionManager: Connection to #{connection.current_host}:#{connection.port} failed; #{error.message}"
@@ -152,7 +156,6 @@ module Ably::Realtime
       def fail(error)
         connection.logger.fatal "ConnectionManager: Connection failed - #{error}"
         destroy_transport
-        connection.unsafe_once(:failed) { connection.emit :error, error }
         channels.each do |channel|
           next if channel.detached? || channel.initialized?
           channel.transition_state_machine :failed, reason: error if channel.can_transition_to?(:failed)
@@ -196,7 +199,6 @@ module Ably::Realtime
         end
 
         if error.kind_of?(Ably::Models::ErrorInfo) && !RESOLVABLE_ERROR_CODES.fetch(:token_expired).include?(error.code)
-          connection.emit :error, error
           logger.error "ConnectionManager: Error in Disconnected ProtocolMessage received from the server - #{error}"
         end
 
@@ -269,9 +271,12 @@ module Ably::Realtime
         end
       end
 
-      def fail_queued_messages_for_all_channels(err)
-        client.channels.each do |channel|
-          channel.manager.fail_queued_messages err
+      # When continuity on a connection is lost all messages
+      # whether queued or awaiting an ACK must be NACK'd as we now have a new connection
+      def nack_messages_on_all_channels(error)
+        channels.each do |channel|
+          channel.manager.fail_messages_awaiting_ack error, immediately: true
+          channel.manager.fail_queued_messages error
         end
       end
 
@@ -507,17 +512,7 @@ module Ably::Realtime
         channels.select do |channel|
           channel.suspended?
         end.each do |channel|
-          channel.emit :error, error
           channel.transition_state_machine :attaching
-        end
-      end
-
-      # When continuity on a connection is lost all messages
-      # whether queued or awaiting an ACK must be NACK'd as we now have a new connection
-      def nack_messages_on_all_channels(error)
-        channels.each do |channel|
-          channel.manager.fail_messages_awaiting_ack error, immediately: true
-          channel.manager.fail_queued_messages error
         end
       end
 
@@ -528,7 +523,6 @@ module Ably::Realtime
         channels.select do |channel|
           channel.attached? || channel.attaching?
         end.each do |channel|
-          channel.emit :error, error
           channel.manager.request_reattach reason: error
         end
       end

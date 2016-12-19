@@ -177,12 +177,16 @@ describe Ably::Realtime::Auth, :event_machine do
       end
 
       context '#authorize' do
-        it 'returns a token asynchronously' do
-          auth.authorize(ttl: custom_ttl, client_id: custom_client_id) do |token_details|
-            expect(token_details).to be_a(Ably::Models::TokenDetails)
-            expect(token_details.expires.to_i).to be_within(3).of(Time.now.to_i + custom_ttl)
-            expect(token_details.client_id).to eql(custom_client_id)
-            stop_reactor
+        context 'with token auth' do
+          let(:client_options) { default_options.merge(use_token_auth: true) }
+
+          it 'returns a token asynchronously' do
+            auth.authorize(ttl: custom_ttl, client_id: custom_client_id) do |token_details|
+              expect(token_details).to be_a(Ably::Models::TokenDetails)
+              expect(token_details.expires.to_i).to be_within(3).of(Time.now.to_i + custom_ttl)
+              expect(token_details.client_id).to eql(custom_client_id)
+              stop_reactor
+            end
           end
         end
 
@@ -225,8 +229,9 @@ describe Ably::Realtime::Auth, :event_machine do
 
             it 'rejects a TokenDetails object with an incompatible client_id and raises an exception' do
               client.connect
-              client.connection.on(:error) do |error|
-                expect(error).to be_a(Ably::Exceptions::IncompatibleClientId)
+              client.connection.on(:failed) do |state_change|
+                expect(state_change.reason).to be_a(Ably::Exceptions::AuthenticationFailed)
+                expect(state_change.reason.code).to eql(40012)
                 EventMachine.add_timer(0.1) do
                   expect(client.connection).to be_failed
                   stop_reactor
@@ -240,8 +245,9 @@ describe Ably::Realtime::Auth, :event_machine do
 
             it 'rejects a TokenRequests object with an incompatible client_id and raises an exception' do
               client.connect
-              client.connection.on(:error) do |error|
-                expect(error).to be_a(Ably::Exceptions::IncompatibleClientId)
+              client.connection.on(:failed) do |state_change|
+                expect(state_change.reason).to be_a(Ably::Exceptions::AuthenticationFailed)
+                expect(state_change.reason.code).to eql(40012)
                 EventMachine.add_timer(0.1) do
                   expect(client.connection).to be_failed
                   stop_reactor
@@ -272,8 +278,9 @@ describe Ably::Realtime::Auth, :event_machine do
             it 'rejects a TokenDetails object with an incompatible client_id and raises an exception' do
               client.connection.once(:connected) do
                 client.auth.authorize({})
-                client.connection.on(:error) do |error|
-                  expect(error).to be_a(Ably::Exceptions::IncompatibleClientId)
+                client.connection.on(:failed) do |state_change|
+                  expect(state_change.reason).to be_a(Ably::Exceptions::IncompatibleClientId)
+                  expect(state_change.reason.code).to eql(40012)
                   EventMachine.add_timer(0.1) do
                     expect(client.connection).to be_failed
                     stop_reactor
@@ -338,11 +345,12 @@ describe Ably::Realtime::Auth, :event_machine do
               rest_client.auth.create_token_request({ client_id: 'mike', capability: basic_capability })
             end }
 
-            it 'transisitions the connection state to FAILED if the client_id changes (#RSA15c)' do
+            it 'transitions the connection state to FAILED if the client_id changes (#RSA15c)' do
               client.connection.once(:connected) do
                 client.auth.authorize(nil, auth_callback: identified_token_cb)
                 client.connection.once(:failed) do
-                  expect(client.connection.error_reason.message).to match(/incompatible.*client ID/)
+                  expect(client.connection.error_reason.message).to match(/incompatible.*clientId/i)
+                  expect(client.connection.error_reason.code).to eql(40012)
                   stop_reactor
                 end
               end

@@ -1,5 +1,8 @@
 module Ably
   module Exceptions
+    TOKEN_EXPIRED_CODE = 40140..40149
+    INVALID_CLIENT_ID = 40012
+
     # Base Ably exception class that contains status and code values used by Ably
     # Refer to https://github.com/ably/ably-common/blob/master/protocol/errors.json
     #
@@ -34,6 +37,14 @@ module Ably
           message << "(#{additional_info.join(', ')})"
         end
         message.join(' ')
+      end
+
+      def as_json
+        {
+          message: "#{self.class}: #{message}",
+          status: @status,
+          code: @code
+        }.delete_if { |key, val| val.nil? }
       end
     end
 
@@ -130,7 +141,11 @@ module Ably
     # When a channel is detached / failed, certain operations are not permitted such as publishing messages
     class ChannelInactive < BaseAblyException; end
 
-    class IncompatibleClientId < BaseAblyException; end
+    class IncompatibleClientId < BaseAblyException
+      def initialize(messages, status = 400, code = INVALID_CLIENT_ID, *args)
+        super(message, status, code, *args)
+      end
+    end
 
     # Token request has missing or invalid attributes
     class InvalidTokenRequest < BaseAblyException; end

@@ -1696,9 +1696,7 @@ describe Ably::Realtime::Presence, :event_machine do
 
         it 'emits an error when cipher does not match and presence data cannot be decoded' do
           incompatible_encrypted_channel.attach do
-            incompatible_encrypted_channel.on(:error) do |error|
-              expect(error).to be_a(Ably::Exceptions::CipherError)
-              expect(error.message).to match(/Cipher algorithm AES-128-CBC does not match/)
+            expect(client_two.logger).to receive(:error).with(/Cipher algorithm AES-128-CBC does not match/) do
               stop_reactor
             end
 

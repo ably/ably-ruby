@@ -183,7 +183,12 @@ module Ably
       def auth_params(&success_callback)
         fail_callback = Proc.new do |error, deferrable|
           logger.error "Failed to authenticate: #{error}"
-          deferrable.fail Ably::Exceptions::AuthenticationFailed.new(error.message, 500, 80019)
+          if error.kind_of?(Ably::Exceptions::BaseAblyException)
+            # Use base exception if it exists carrying forward the status codes
+            deferrable.fail Ably::Exceptions::AuthenticationFailed.new(error.message, nil, nil, error)
+          else
+            deferrable.fail Ably::Exceptions::AuthenticationFailed.new(error.message, 500, 80019)
+          end
         end
         async_wrap(success_callback, fail_callback) do
           auth_params_sync

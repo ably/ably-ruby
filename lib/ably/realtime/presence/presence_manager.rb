@@ -43,15 +43,15 @@ module Ably::Realtime
 
       def setup_channel_event_handlers
         channel.unsafe_on(:detached) do
-          presence.transition_state_machine :left if presence.can_transition_to?(:left)
+          if !presence.initialized?
+            presence.transition_state_machine :left if presence.can_transition_to?(:left)
+          end
         end
 
         channel.unsafe_on(:failed) do |metadata|
-          presence.transition_state_machine :failed, metadata if presence.can_transition_to?(:failed)
-        end
-
-        presence.unsafe_on(:entered) do |message|
-          presence.set_connection_id message.connection_id
+          if !presence.initialized?
+            presence.transition_state_machine :left, metadata if presence.can_transition_to?(:left)
+          end
         end
       end
     end
