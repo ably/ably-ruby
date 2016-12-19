@@ -621,8 +621,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
 
-        it 'emits any error received from Ably but leaves the channels attached' do
-          emitted_error = nil
+        it 'includes the error received in the connection state change from Ably but leaves the channels attached' do
           channel.attach do
             connection.transport.close_connection_after_writing
 
@@ -636,18 +635,14 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               Ably::Realtime::Client::IncomingMessageDispatcher.new(client, connection)
             end
 
-            connection.once(:connected) do
+            connection.once(:connected) do |connection_state_change|
               EM.add_timer(0.5) do
-                expect(emitted_error).to be_a(Ably::Exceptions::Standard)
-                expect(emitted_error.message).to match(/Injected error/)
+                expect(connection_state_change.reason).to be_a(Ably::Exceptions::Standard)
+                expect(connection_state_change.reason.message).to match(/Injected error/)
                 expect(connection.error_reason).to be_a(Ably::Exceptions::Standard)
                 expect(channel).to be_attached
                 stop_reactor
               end
-            end
-
-            connection.once(:error) do |error|
-              emitted_error = error
             end
           end
         end
@@ -813,7 +808,6 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             channels.map(&:attach)
 
             attached_channels = []
-            errors_emitted = []
             attach_protocol_messages = []
             failed_messages = []
 
@@ -822,14 +816,10 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                 failed_messages << channel
               end
 
-              channel.on(:error) do |error|
-                expect(error.message).to match(/Unable to recover connection/i)
-                errors_emitted << channel
-              end
-              channel.on(:attached) do
+              channel.on(:attached) do |state_change|
                 attached_channels << channel
+                expect(state_change).to_not be_resumed
                 next unless attached_channels.count == channel_count
-                expect(errors_emitted.count).to eql(channel_count)
                 expect(failed_messages.count).to eql(channel_count)
                 expect(attach_protocol_messages.uniq).to match(channels.map(&:name))
                 stop_reactor
@@ -885,18 +875,18 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          it 'emits an error on each channel and sets the error reason' do
+          it 'sets the error reason on each channel' do
             channel.attach do
-              kill_connection_transport_and_prevent_valid_resume
-            end
+              channel.on(:attaching) do |state_change|
+                expect(state_change.reason.message).to match(/Unable to recover connection/i)
+                expect(state_change.reason.code).to eql(80008)
+                expect(channel.error_reason.code).to eql(80008)
 
-            channel.on(:error) do |error|
-              expect(error.message).to match(/Unable to recover connection/i)
-              expect(error.code).to eql(80008)
-              EventMachine.next_tick do
-                expect(channel.error_reason).to eql(error)
-                stop_reactor
+                channel.on(:attached) do |state_change|
+                  stop_reactor
+                end
               end
+              kill_connection_transport_and_prevent_valid_resume
             end
           end
 
@@ -1024,13 +1014,13 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
           let(:client_options) do
             default_options.merge(auth_callback: Proc.new do
-              @requests ||= 0
-              @requests += 1
+              @auth_requests ||= 0
+              @auth_requests += 1
 
-              case @requests
-              when 1, 2
+              case @auth_requests
+              when 1
                 four_second_token
-              when 3
+              when 2
                 normal_token
               end
             end)
@@ -1040,18 +1030,28 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             connection.once(:connected) do
               connection_id = connection.id
 
-              # Lock the EventMachine for 4 seconds until the token has expired
-              sleep 5
+              connecting_attempts = 0
+              connection.on(:connecting) { connecting_attempts += 1 }
 
               connection.once(:connected) do
-                # We expect the first connect to fail immediately and never reach the connected state
-                expect(@requests).to eql(3)
+                expect(@auth_requests).to eql(2) # initial + reconnect fails due to expiry & then obtains new token
+                expect(connecting_attempts).to eql(2) # reconnect with failed token, then reconnect with successful token
                 expect(connection.id).to eql(connection_id)
                 stop_reactor
               end
 
-              # Simulate an abrupt disconnection which will in turn resume but with an expired token
-              connection.transport.close_connection_after_writing
+              # Prevent token expired DISCONNECTED arriving on the transport
+              # Instead we want to let the client lib catch a transport closed event
+              # Then attempt to reconnect with an expired token
+              connection.transport.__incoming_protocol_msgbus__.unsubscribe
+
+              EventMachine.next_tick do
+                # Lock the EventMachine for 4 seconds until the token has expired
+                sleep 5
+
+                # Simulate an abrupt disconnection which will in turn resume but with an expired token
+                connection.transport.close_connection_after_writing
+              end
             end
           end
         end

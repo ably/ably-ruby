@@ -49,13 +49,7 @@ module Ably::Realtime
 
         if protocol_message.action.match_any?(:sync, :presence, :message)
           if connection.serial && protocol_message.has_connection_serial? && protocol_message.connection_serial <= connection.serial
-            error_target = if protocol_message.channel
-              get_channel(protocol_message.channel)
-            else
-              connection
-            end
             error_message = "Protocol error, duplicate message received for serial #{protocol_message.connection_serial}"
-            error_target.emit :error, Ably::Exceptions::ProtocolError.new(error_message, 400, 80013)
             logger.error error_message
             return
           end
@@ -100,9 +94,9 @@ module Ably::Realtime
           when ACTION.Attached
             get_channel(protocol_message.channel).tap do |channel|
               if channel.attached?
-                channel.manager.duplicate_attached_received protocol_message.error
+                channel.manager.duplicate_attached_received protocol_message.error, protocol_message.has_channel_resumed_flag?
               else
-                channel.transition_state_machine :attached, reason: protocol_message.error, resumed: protocol_message.channel_resumed?, protocol_message: protocol_message
+                channel.transition_state_machine :attached, reason: protocol_message.error, resumed: protocol_message.has_channel_resumed_flag?, protocol_message: protocol_message
               end
             end
 
@@ -133,7 +127,6 @@ module Ably::Realtime
 
           else
             error = Ably::Exceptions::ProtocolError.new("Protocol Message Action #{protocol_message.action} is unsupported by this MessageDispatcher", 400, 80013)
-            client.connection.emit :error, error
             logger.fatal error.message
         end
       end
@@ -157,7 +150,7 @@ module Ably::Realtime
           client.connection.set_connection_details protocol_message.connection_details
           connection.transition_state_machine :connected, reason: protocol_message.error, protocol_message: protocol_message
         else
-          reason = Ably::Exceptions::IncompatibleClientId.new("Client ID '#{protocol_message.connection_details.client_id}' specified by the server is incompatible with the library's configured client ID '#{client.client_id}'", 400, 40012)
+          reason = Ably::Exceptions::IncompatibleClientId.new("Client ID '#{protocol_message.connection_details.client_id}' specified by the server is incompatible with the library's configured client ID '#{client.client_id}'")
           connection.transition_state_machine :failed, reason: reason, protocol_message: protocol_message
         end
       end

@@ -13,8 +13,7 @@ module Ably::Realtime
       :entering,
       :entered,
       :leaving,
-      :left,
-      :failed
+      :left
     )
     include Ably::Modules::StateEmitter
     include Ably::Modules::UsesStateMachine
@@ -22,11 +21,6 @@ module Ably::Realtime
     # {Ably::Realtime::Channel} this Presence object is associated with
     # @return [Ably::Realtime::Channel]
     attr_reader :channel
-
-    # A unique identifier for this channel client based on their connection, disambiguating situations
-    # where a given client_id is present on multiple connections simultaneously.
-    # @return [String]
-    attr_reader :connection_id
 
     # The client_id for the member present on this channel
     # @return [String]
@@ -79,6 +73,7 @@ module Ably::Realtime
             deferrable_succeed deferrable, &success_block
           end
         else
+          current_state = state
           change_state STATE.Entering
           send_protocol_message_and_transition_state_to(
             Ably::Models::PresenceMessage::ACTION.Enter,
@@ -86,7 +81,7 @@ module Ably::Realtime
             target_state: STATE.Entered,
             data:         data,
             client_id:    client_id,
-            failed_state: STATE.Failed,
+            failed_state: current_state, # return to current state if enter fails
             &success_block
           )
         end
@@ -138,6 +133,7 @@ module Ably::Realtime
             deferrable_succeed deferrable, &success_block
           end
         else
+          current_state = state
           change_state STATE.Leaving
           send_protocol_message_and_transition_state_to(
             Ably::Models::PresenceMessage::ACTION.Leave,
@@ -145,7 +141,7 @@ module Ably::Realtime
             target_state: STATE.Left,
             data:         data,
             client_id:    client_id,
-            failed_state: STATE.Failed,
+            failed_state: current_state, # return to current state if leave fails
             &success_block
           )
         end
@@ -297,13 +293,6 @@ module Ably::Realtime
       )
     end
 
-    # Configure the connection ID for this presence channel.
-    # Typically configured only once when a user first enters a presence channel.
-    # @api private
-    def set_connection_id(new_connection_id)
-      @connection_id = new_connection_id
-    end
-
     # Used by {Ably::Modules::StateEmitter} to debug action changes
     # @api private
     def logger
@@ -348,7 +337,6 @@ module Ably::Realtime
       Ably::Models::PresenceMessage.new(model, logger: logger).tap do |presence_message|
         presence_message.encode(client.encoders, channel.options) do |encode_error, error_message|
           client.logger.error error_message
-          emit :error, encode_error
         end
       end
     end
@@ -370,13 +358,13 @@ module Ably::Realtime
 
     def ensure_supported_client_id(check_client_id)
       unless check_client_id
-        raise Ably::Exceptions::IncompatibleClientId.new('Unable to enter/update/leave presence channel without a client_id', 400, 40012)
+        raise Ably::Exceptions::IncompatibleClientId.new('Unable to enter/update/leave presence channel without a client_id')
       end
       if check_client_id == '*'
-        raise Ably::Exceptions::IncompatibleClientId.new('Unable to enter/update/leave presence channel with the reserved wildcard client_id', 400, 40012)
+        raise Ably::Exceptions::IncompatibleClientId.new('Unable to enter/update/leave presence channel with the reserved wildcard client_id')
       end
       unless client.auth.can_assume_client_id?(check_client_id)
-        raise Ably::Exceptions::IncompatibleClientId.new("Cannot enter with provided client_id '#{check_client_id}' as it is incompatible with the current configured client_id '#{client.client_id}'", 400, 40012)
+        raise Ably::Exceptions::IncompatibleClientId.new("Cannot enter with provided client_id '#{check_client_id}' as it is incompatible with the current configured client_id '#{client.client_id}'")
       end
     end
 

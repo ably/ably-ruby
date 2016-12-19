@@ -4,7 +4,8 @@ module Ably::Modules
   # module, and the class is an {EventEmitter}.  It then emits state changes.
   #
   # It also ensures the EventEmitter is configured to retrict permitted events to the
-  # the available STATEs and :error.
+  # the available STATEs or EVENTs if defined i.e. if EVENTs includes an additional type such as
+  # :update, then it will support all EVENTs being emitted. EVENTs must be a superset of STATEs
   #
   # @note This module requires that the method #logger is defined.
   #
@@ -153,8 +154,10 @@ module Ably::Modules
 
     def self.included(klass)
       klass.configure_event_emitter coerce_into: Proc.new { |event|
-        if event == :error
-          :error
+        # Special case allows EVENT instead of STATE to be emitted
+        # Relies on the assumption that EVENT is a superset of STATE
+        if klass.const_defined?(:EVENT)
+          klass::EVENT(event)
         else
           klass::STATE(event)
         end

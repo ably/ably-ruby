@@ -90,8 +90,12 @@ module Ably
       if token_option
         token_details = convert_to_token_details(token_option)
         if token_details
-          token_details = authorize_with_token(token_details)
-          logger.debug "Auth: new token passed in to the initializer: #{token_details}"
+          begin
+            token_details = authorize_with_token(token_details)
+            logger.debug "Auth: new token passed in to the initializer: #{token_details}"
+          rescue StandardError => e
+            logger.error "Auth: Implicit authorization using the provided token failed: #{e}"
+          end
         end
       end
 
@@ -437,7 +441,7 @@ module Ably
 
       # If client_id is defined and not a wildcard, prevent it changing, this is not supported
       if client_id && client_id != '*' &&  new_client_id != client_id
-        raise Ably::Exceptions::IncompatibleClientId.new("Client ID is immutable once configured for a client. Client ID cannot be changed to '#{new_client_id}'", 400, 40012)
+        raise Ably::Exceptions::IncompatibleClientId.new("Client ID is immutable once configured for a client. Client ID cannot be changed to '#{new_client_id}'")
       end
       @client_id_validated = true
       @client_id = new_client_id
@@ -637,7 +641,7 @@ module Ably
     def authorize_with_token(new_token_details)
       if new_token_details && !new_token_details.from_token_string?
         if !token_client_id_allowed?(new_token_details.client_id)
-          raise Ably::Exceptions::IncompatibleClientId.new("Client ID '#{new_token_details.client_id}' in the token is incompatible with the current client ID '#{client_id}'", 400, 40012)
+          raise Ably::Exceptions::IncompatibleClientId.new("Client ID '#{new_token_details.client_id}' in the token is incompatible with the current client ID '#{client_id}'")
         end
         configure_client_id new_token_details.client_id
       end

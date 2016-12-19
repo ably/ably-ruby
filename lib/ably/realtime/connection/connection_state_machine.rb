@@ -48,7 +48,6 @@ module Ably::Realtime
         error = current_transition.metadata.reason
         if is_error_type?(error)
           connection.logger.warn "ConnectionManager: Connected with error - #{error.message}"
-          connection.emit :error, error
         end
       end
 
@@ -81,9 +80,11 @@ module Ably::Realtime
         connection.manager.fail_active_channels err
       end
 
+      # RTN7C - If a connection enters the SUSPENDED, CLOSED or FAILED state...
+      #   the client should consider the delivery of those messages as failed
       after_transition(to: [:suspended, :closed, :failed]) do |connection, current_transition|
         err = error_from_state_change(current_transition)
-        connection.manager.fail_queued_messages_for_all_channels err
+        connection.manager.nack_messages_on_all_channels err
       end
 
       after_transition(to: [:closing], from: [:initialized, :disconnected, :suspended]) do |connection|

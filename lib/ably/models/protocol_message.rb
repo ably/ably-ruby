@@ -194,12 +194,12 @@ module Ably::Models
     end
 
     # @api private
-    def has_backlog?
+    def has_backlog_flag?
       flags & 2 == 2
     end
 
     # @api private
-    def channel_resumed?
+    def has_channel_resumed_flag?
       flags & 4 == 4
     end
 
