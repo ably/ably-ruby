@@ -38,11 +38,12 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rspec', '~> 3.2.0' # version lock, see config.around(:example, :event_machine) in event_machine_helper.rb
   spec.add_development_dependency 'rspec-retry', '~> 0.4'
   spec.add_development_dependency 'yard', '~> 0.9'
-  spec.add_development_dependency 'webmock', '~> 2.0'
 
   if RUBY_VERSION.match(/^1/)
     spec.add_development_dependency 'public_suffix', '~> 1.4.6' # Later versions do not support Ruby 1.9
+    spec.add_development_dependency 'webmock', '2.2'
   else
+    spec.add_development_dependency 'webmock', '~> 2.2'
     spec.add_development_dependency 'coveralls'
     spec.add_development_dependency 'pry'
     spec.add_development_dependency 'pry-byebug'
