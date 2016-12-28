@@ -73,6 +73,7 @@ module Ably
         connection_state_ttl:       120, # the duration that Ably will persist the connection state when a Realtime client is abruptly disconnected
         max_connection_state_ttl:   nil, # allow a max TTL to be passed in, usually for CI test purposes thus overiding any connection_state_ttl sent from Ably
         realtime_request_timeout:   10,  # default timeout when establishing a connection, or sending a HEARTBEAT, CONNECT, ATTACH, DETACH or CLOSE ProtocolMessage
+        websocket_heartbeats_disabled: false,
       }.freeze
 
       # A unique public identifier for this connection, used to identify this member in presence events and messages
@@ -394,11 +395,14 @@ module Ably
           client.auth.auth_params.tap do |auth_deferrable|
             auth_deferrable.callback do |auth_params|
               url_params = auth_params.merge(
-                format:    client.protocol,
-                echo:      client.echo_messages,
-                v:         Ably::PROTOCOL_VERSION,
-                lib:       client.rest_client.lib_version_id,
+                format:     client.protocol,
+                echo:       client.echo_messages,
+                v:          Ably::PROTOCOL_VERSION,
+                lib:        client.rest_client.lib_version_id,
               )
+
+              # Use native websocket heartbeats if possible
+              url_params['heartbeats'] = 'false' unless defaults.fetch(:websocket_heartbeats_disabled)
 
               url_params['clientId'] = client.auth.client_id if client.auth.has_client_id?
 
@@ -497,11 +501,31 @@ module Ably
         @connection_state_ttl = val
       end
 
+      # @api private
+      def heartbeat_interval
+        # See RTN23a
+        (details && details.max_idle_interval).to_i +
+          defaults.fetch(:realtime_request_timeout)
+      end
+
       # Resets the client serial (msgSerial) sent to Ably for each new {Ably::Models::ProtocolMessage}
       # (see #client_serial)
       # @api private
       def reset_client_serial
         @client_serial = -1
+      end
+
+      # When a hearbeat or any other message from Ably is received
+      # we know it's alive, see #RTN23
+      # @api private
+      def set_connection_confirmed_alive
+        @last_liveness_event = Time.now
+        manager.reset_liveness_timer
+      end
+
+      # @api private
+      def time_since_connection_confirmed_alive?
+        Time.now.to_i - @last_liveness_event.to_i
       end
 
       # As we are using a state machine, do not allow change_state to be used

@@ -8,6 +8,8 @@ module Ably::Models
   #
   # @!attribute [r] action
   #   @return [ACTION] Protocol Message action {Ably::Modules::Enum} from list of {ACTION}. Returns nil if action is unsupported by protocol
+  # @!attribute [r] auth
+  #   @return [Ably::Models::AuthDetails] Authentication details used to perform authentication upgrades over an existing transport
   # @!attribute [r] count
   #   @return [Integer] The count field is used for ACK and NACK actions. See {http://docs.ably.io/client-lib-development-guide/protocol/#message-acknowledgement message acknowledgement protocol}
   # @!attribute [r] error
@@ -15,7 +17,7 @@ module Ably::Models
   # @!attribute [r] channel
   #   @return [String] Channel name for messages
   # @!attribute [r] channel_serial
-  #   @return [String] Contains a serial number for a message on the current channelƒ
+  #   @return [String] Contains a serial number for a message on the current channel
   # @!attribute [r] connection_id
   #   @return [String] Contains a string public identifier for the connection
   # @!attribute [r] connection_key

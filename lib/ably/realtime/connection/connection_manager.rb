@@ -312,6 +312,19 @@ module Ably::Realtime
         end
       end
 
+      # Liveness timer ensures a connection that has not heard from Ably in heartbeat_interval
+      # is moved to the disconnected state automatically
+      def reset_liveness_timer
+        @liveness_timer.cancel if @liveness_timer
+        @liveness_timer = EventMachine::Timer.new(connection.heartbeat_interval + 0.1) do
+          if connection.connected? && (connection.time_since_connection_confirmed_alive? >= connection.heartbeat_interval)
+            msg = "No activity seen from realtime in #{connection.heartbeat_interval}; assuming connection has dropped";
+            error = Ably::Exceptions::ConnectionTimeout.new(msg, 80003, 408)
+            connection.transition_state_machine! :disconnected, reason: error
+          end
+        end
+      end
+
       private
       def connection
         @connection
