@@ -823,7 +823,7 @@ describe Ably::Realtime::Connection, :event_machine do
         end
       end
 
-      it 'contains the ConnectionDetails object once connected' do
+      it 'contains the ConnectionDetails object once connected (#RTN21)' do
         connection.on(:connected) do
           expect(connection.details).to be_a(Ably::Models::ConnectionDetails)
           expect(connection.details.connection_key).to_not be_nil
@@ -832,7 +832,7 @@ describe Ably::Realtime::Connection, :event_machine do
         end
       end
 
-      it 'contains the new ConnectionDetails object once a subsequent connection is created' do
+      it 'contains the new ConnectionDetails object once a subsequent connection is created (#RTN21)' do
         connection.once(:connected) do
           expect(connection.details.connection_key).to_not be_nil
           old_key = connection.details.connection_key
@@ -847,13 +847,13 @@ describe Ably::Realtime::Connection, :event_machine do
         end
       end
 
-      context 'with a different connection_state_ttl' do
+      context 'with a different default connection_state_ttl' do
         before do
           old_defaults = Ably::Realtime::Connection::DEFAULTS
           stub_const 'Ably::Realtime::Connection::DEFAULTS', old_defaults.merge(connection_state_ttl: 15)
         end
 
-        it 'updates the private Connection#connection_state_ttl' do
+        it 'updates the private Connection#connection_state_ttl when received from Ably in ConnectionDetails' do
           expect(connection.connection_state_ttl).to eql(15)
 
           connection.once(:connected) do
@@ -955,7 +955,7 @@ describe Ably::Realtime::Connection, :event_machine do
       context "opening a new connection using a recently disconnected connection's #recovery_key" do
         context 'connection#id and connection#key after recovery' do
           it 'remains the same for id and party for key' do
-            connection_key_consistent_part_regex = /.*?!(\w{5,})-/
+            connection_key_consistent_part_regex = /.*?!([\w-]{5,})-\w+/
             previous_connection_id  = nil
             previous_connection_key = nil
 
@@ -1400,6 +1400,95 @@ describe Ably::Realtime::Connection, :event_machine do
                 EventMachine.add_timer(0.005) { connection.transport.unbind }
               end
               connection.transport.unbind
+            end
+          end
+        end
+      end
+
+      context 'whilst CONNECTED' do
+        context 'when a CONNECTED message is received (#RTN24)' do
+          let(:connection_key) { random_str(32) }
+          let(:protocol_message_attributes) do
+            {
+              action: Ably::Models::ProtocolMessage::ACTION.Connected.to_i,
+              connection_serial: 55,
+              connection_details: {
+                client_id: 'bob',
+                connection_key: connection_key,
+                connection_state_ttl: 33 * 1000,
+                max_frame_size: 555,
+                max_inbound_rate: 999,
+                max_message_size: 1310,
+                server_id: 'us-east-1-a.foo.com',
+                max_idle_interval: 4 * 1000
+              }
+            }
+          end
+
+          it 'emits an UPDATE event' do
+            connection.once(:connected) do
+              connection.once(:update) do |connection_state_change|
+                expect(connection_state_change.current).to eq(:connected)
+                expect(connection_state_change.previous).to eq(:connected)
+                expect(connection_state_change.retry_in).to be_nil
+                expect(connection_state_change.reason).to be_nil
+                expect(connection.state).to eq(:connected)
+                stop_reactor
+              end
+
+              connection.__incoming_protocol_msgbus__.publish :protocol_message, Ably::Models::ProtocolMessage.new(protocol_message_attributes)
+            end
+          end
+
+          it 'updates the ConnectionDetail and Connection attributes (#RTC8a1)' do
+            connection.once(:connected) do
+              expect(client.auth.client_id).to eql('*')
+
+              connection.once(:update) do |connection_state_change|
+                expect(client.auth.client_id).to eql('bob')
+                expect(connection.key).to eql(connection_key)
+                expect(connection.serial).to eql(55)
+                expect(connection.connection_state_ttl).to eql(33)
+
+                expect(connection.details.client_id).to eql('bob')
+                expect(connection.details.connection_key).to eql(connection_key)
+                expect(connection.details.connection_state_ttl).to eql(33)
+                expect(connection.details.max_frame_size).to eql(555)
+                expect(connection.details.max_inbound_rate).to eql(999)
+                expect(connection.details.max_message_size).to eql(1310)
+                expect(connection.details.server_id).to eql('us-east-1-a.foo.com')
+                expect(connection.details.max_idle_interval).to eql(4)
+                stop_reactor
+              end
+
+              connection.__incoming_protocol_msgbus__.publish :protocol_message, Ably::Models::ProtocolMessage.new(protocol_message_attributes)
+            end
+          end
+        end
+
+        context 'when a CONNECTED message with an error is received' do
+          let(:protocol_message_attributes) do
+            {
+              action: Ably::Models::ProtocolMessage::ACTION.Connected.to_i,
+              connection_serial: 22,
+              error: { code: 50000, message: 'Internal failure' },
+            }
+          end
+
+          it 'emits an UPDATE event' do
+            connection.once(:connected) do
+              connection.on(:update) do |connection_state_change|
+                expect(connection_state_change.current).to eq(:connected)
+                expect(connection_state_change.previous).to eq(:connected)
+                expect(connection_state_change.retry_in).to be_nil
+                expect(connection_state_change.reason).to be_a(Ably::Models::ErrorInfo)
+                expect(connection_state_change.reason.code).to eql(50000)
+                expect(connection_state_change.reason.message).to match(/Internal failure/)
+                expect(connection.state).to eq(:connected)
+                stop_reactor
+              end
+
+              connection.__incoming_protocol_msgbus__.publish :protocol_message, Ably::Models::ProtocolMessage.new(protocol_message_attributes)
             end
           end
         end

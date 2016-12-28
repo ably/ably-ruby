@@ -6,6 +6,7 @@ describe Ably::Models::ConnectionDetails do
 
   subject { Ably::Models::ConnectionDetails }
 
+  # Spec model items CD2*
   it_behaves_like 'a model', with_simple_attributes: %w(client_id connection_key max_message_size max_frame_size max_inbound_rate) do
     let(:model_args) { [] }
   end
@@ -13,11 +14,21 @@ describe Ably::Models::ConnectionDetails do
   context 'attributes' do
     let(:connection_state_ttl_ms) { 5_000 }
 
-    context '#connection_state_ttl' do
+    context '#connection_state_ttl (#CD2f)' do
       subject { Ably::Models::ConnectionDetails.new({ connection_state_ttl: connection_state_ttl_ms }) }
 
       it 'retrieves attribute :connection_state_ttl and converts it from ms to s' do
         expect(subject.connection_state_ttl).to eql(connection_state_ttl_ms / 1000)
+      end
+    end
+
+    let(:max_idle_interval) { 6_000 }
+
+    context '#max_idle_interval (#CD2h)' do
+      subject { Ably::Models::ConnectionDetails.new({ max_idle_interval: max_idle_interval }) }
+
+      it 'retrieves attribute :max_idle_interval and converts it from ms to s' do
+        expect(subject.max_idle_interval).to eql(max_idle_interval / 1000)
       end
     end
   end
