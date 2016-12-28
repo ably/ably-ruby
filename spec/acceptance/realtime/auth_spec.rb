@@ -131,7 +131,7 @@ describe Ably::Realtime::Auth, :event_machine do
       end
     end
 
-    context do
+    context 'methods' do
       let(:custom_ttl)       { 33 }
       let(:custom_client_id) { random_str }
 
@@ -741,6 +741,65 @@ describe Ably::Realtime::Auth, :event_machine do
             expect(token_details.expires.to_i).to be_within(3).of(Time.now.to_i + custom_ttl)
             expect(token_details.client_id).to eql(custom_client_id)
             stop_reactor
+          end
+        end
+      end
+    end
+
+    context 'server initiated AUTH ProtocolMessage' do
+      before do
+        stub_const 'Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER', 0 # allow token to be used even if about to expire
+        stub_const 'Ably::Auth::TOKEN_DEFAULTS', Ably::Auth::TOKEN_DEFAULTS.merge(renew_token_buffer: 0) # Ensure tokens issued expire immediately after issue
+      end
+
+      context 'when received' do
+        # Ably in all environments other than production will send AUTH 5 seconds before expiry, so
+        # set TTL to 8s and wait (3s window)
+        let(:client_options) { default_options.merge(use_token_auth: :true, token_params: { ttl: 8 }) }
+
+        it 'should immediately start a new authentication process (#RTN22)' do
+          client.connection.once(:connected) do
+            original_token = auth.current_token_details
+            received_auth = false
+
+            client.connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+              received_auth = true if protocol_message.action == :auth
+            end
+
+            client.connection.once(:update) do
+              expect(received_auth).to be_truthy
+              expect(original_token).to_not eql(auth.current_token_details)
+              stop_reactor
+            end
+          end
+        end
+      end
+
+      context 'when not received' do
+        # Ably in all environments other than production will send AUTH 5 seconds before expiry, so
+        # set TTL to 5s so that the window for Realtime to send has passed
+        let(:client_options) { default_options.merge(use_token_auth: :true, token_params: { ttl: 5 }) }
+
+        it 'should expect the connection to be disconnected by the server but should resume automatically (#RTN22a)' do
+          client.connection.once(:connected) do
+            original_token = auth.current_token_details
+            original_conn_id = client.connection.id
+            received_auth = false
+
+            client.connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+              received_auth = true if protocol_message.action == :auth
+            end
+
+            client.connection.once(:disconnected) do |state_change|
+              expect(state_change.reason.code).to eql(40142)
+
+              client.connection.once(:connected) do
+                expect(received_auth).to be_falsey
+                expect(original_token).to_not eql(auth.current_token_details)
+                expect(original_conn_id).to eql(client.connection.id)
+                stop_reactor
+              end
+            end
           end
         end
       end

@@ -126,6 +126,9 @@ module Ably::Realtime
               channel.__incoming_msgbus__.publish :message, message
             end
 
+          when ACTION.Auth
+            client.auth.authorize
+
           else
             error = Ably::Exceptions::ProtocolError.new("Protocol Message Action #{protocol_message.action} is unsupported by this MessageDispatcher", 400, 80013)
             logger.fatal error.message
