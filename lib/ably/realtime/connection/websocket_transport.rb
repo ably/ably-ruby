@@ -170,6 +170,10 @@ module Ably::Realtime
           end
         end
 
+        driver.on("ping") do
+          __incoming_protocol_msgbus__.publish :protocol_message, Ably::Models::ProtocolMessage.new(action: Ably::Models::ProtocolMessage::ACTION.Heartbeat, source: :websocket)
+        end
+
         driver.on("error") do |error|
           logger.error "WebsocketTransport: Protocol Error on transports - #{error.message}"
         end

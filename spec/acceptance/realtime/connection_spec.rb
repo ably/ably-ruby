@@ -813,6 +813,108 @@ describe Ably::Realtime::Connection, :event_machine do
       end
     end
 
+    context 'Heartbeats (#RTN23)' do
+      context 'heartbeat interval' do
+        context 'when reduced artificially' do
+          let(:protocol_message_attributes) do
+            {
+              action: Ably::Models::ProtocolMessage::ACTION.Connected.to_i,
+              connection_serial: 55,
+              connection_details: {
+                max_idle_interval: 2 * 1000
+              }
+            }
+          end
+          let(:client_options) { default_options.merge(realtime_request_timeout: 3) }
+          let(:expected_heartbeat_interval) { 5 }
+
+          it 'is the sum of the max_idle_interval and realtime_request_timeout (#RTN23a)' do
+            connection.once(:connected) do
+              connection.__incoming_protocol_msgbus__.publish :protocol_message, Ably::Models::ProtocolMessage.new(protocol_message_attributes)
+              EventMachine.next_tick do
+                expect(connection.heartbeat_interval).to eql(expected_heartbeat_interval)
+                stop_reactor
+              end
+            end
+          end
+
+          it 'disconnects the transport if no heartbeat received since connected (#RTN23a)' do
+            connection.once(:connected) do
+              connection.__incoming_protocol_msgbus__.publish :protocol_message, Ably::Models::ProtocolMessage.new(protocol_message_attributes)
+              last_received_at = Time.now
+              connection.once(:disconnected) do
+                expect(Time.now.to_i - last_received_at.to_i).to be_within(2).of(expected_heartbeat_interval)
+                stop_reactor
+              end
+            end
+          end
+
+          it 'disconnects the transport if no heartbeat received since last event received (#RTN23a)' do
+            connection.once(:connected) do
+              connection.__incoming_protocol_msgbus__.publish :protocol_message, Ably::Models::ProtocolMessage.new(protocol_message_attributes)
+              last_received_at = Time.now
+              EventMachine.add_timer(3) { client.channels.get('foo').attach }
+              connection.once(:disconnected) do
+                expect(Time.now.to_i - last_received_at.to_i).to be_within(2).of(expected_heartbeat_interval + 3)
+                stop_reactor
+              end
+            end
+          end
+        end
+      end
+
+      context 'transport-level heartbeats are supported in the websocket transport' do
+        it 'provides the heartbeats argument in the websocket connection params (#RTN23b)' do
+          expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
+            uri = URI.parse(url)
+            expect(CGI::parse(uri.query)['heartbeats'][0]).to eql('false')
+            stop_reactor
+          end
+          client
+        end
+
+        it 'receives websocket heartbeat messages (#RTN23b) [slow test as need to wait for heartbeat]', em_timeout: 45 do
+          skip "Heartbeats param is missing from realtime implementation, see https://github.com/ably/realtime/issues/656"
+
+          connection.once(:connected) do
+            connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+              if protocol_message.action == :heartbeat
+                puts protocol_message.attributes
+                expect(protocol_message.attributes[:source]).to eql('websocket')
+                expect(connection.time_since_connection_confirmed_alive?).to be_within(1).of(0)
+                stop_reactor
+              end
+            end
+          end
+        end
+      end
+
+      context 'with websocket heartbeats disabled (undocumented)' do
+        let(:client_options) { default_options.merge(websocket_heartbeats_disabled: true) }
+
+        it 'does not provide the heartbeats argument in the websocket connection params (#RTN23b)' do
+          expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
+            uri = URI.parse(url)
+            expect(CGI::parse(uri.query)['heartbeats'][0]).to be_nil
+            stop_reactor
+          end
+          client
+        end
+
+        it 'receives websocket protocol messages (#RTN23b) [slow test as need to wait for heartbeat]', em_timeout: 45 do
+          connection.once(:connected) do
+            connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+              if protocol_message.action == :heartbeat
+                expect(protocol_message.attributes[:source]).to_not eql('websocket')
+                expect(connection.time_since_connection_confirmed_alive?).to be_within(1).of(0)
+                stop_reactor
+              end
+            end
+          end
+        end
+      end
+    end
+
     context '#details' do
       let(:connection) { client.connection }
 

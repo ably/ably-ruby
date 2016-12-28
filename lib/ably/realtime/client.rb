@@ -80,6 +80,7 @@ module Ably
       #
       # @option options [Integer] :disconnected_retry_timeout  (15 seconds). When the connection enters the DISCONNECTED state, after this delay in milliseconds, if the state is still DISCONNECTED, the client library will attempt to reconnect automatically
       # @option options [Integer] :suspended_retry_timeout     (30 seconds). When the connection enters the SUSPENDED state, after this delay in milliseconds, if the state is still SUSPENDED, the client library will attempt to reconnect automatically
+      # @option options [Boolean] :disable_websocket_heartbeats   WebSocket heartbeats are more efficient than protocol level heartbeats, however they can be disabled for development purposes
       #
       # @return [Ably::Realtime::Client]
       #
