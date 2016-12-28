@@ -62,7 +62,8 @@ module Ably::Models
       detached:     13,
       presence:     14,
       message:      15,
-      sync:         16
+      sync:         16,
+      auth:         17
     )
 
     # Indicates this protocol message action will generate an ACK response such as :message or :presence
@@ -205,6 +206,10 @@ module Ably::Models
 
     def connection_details
       @connection_details ||= Ably::Models::ConnectionDetails(attributes[:connection_details])
+    end
+
+    def auth
+      @auth ||= Ably::Models::AuthDetails(attributes[:auth])
     end
 
     # Indicates this protocol message will generate an ACK response when sent

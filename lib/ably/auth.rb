@@ -77,7 +77,7 @@ module Ably
       end
 
       if options[:client_id] == '*'
-        raise ArgumentError, 'A client cannot be configured with a wildcard client_id'
+        raise ArgumentError, 'A client cannot be configured with a wildcard client_id, only a token can have a wildcard client_id privilege'
       end
 
       if has_client_id? && !token_creatable_externally? && !token_option

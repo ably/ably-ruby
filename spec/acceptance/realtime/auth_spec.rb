@@ -88,8 +88,9 @@ describe Ably::Realtime::Auth, :event_machine do
       end
 
       context '#options (auth_options)' do
+        let(:token_str) { auth.request_token_sync.token }
         let(:auth_url) { "https://echo.ably.io/?type=text" }
-        let(:auth_params) { { :body => random_str } }
+        let(:auth_params) { { :body => token_str } }
         let(:client_options) { default_options.merge(auto_connect: false) }
 
         it 'contains the configured auth options' do
@@ -311,29 +312,278 @@ describe Ably::Realtime::Auth, :event_machine do
           end }
 
           let(:client_options) { default_options.merge(auth_callback: basic_token_cb) }
+          let(:connection) { client.connection }
 
-          it 'forces the connection to disconnect and reconnect with a new token when in the CONNECTED state' do
-            client.connection.once(:connected) do
-              existing_token = client.auth.current_token_details
-              client.auth.authorize(nil)
-              client.connection.once(:disconnected) do
-                client.connection.once(:connected) do
-                  expect(existing_token).to_not eql(client.auth.current_token_details)
-                  stop_reactor
+          context 'when INITIALIZED' do
+            let(:client_options) { default_options.merge(auth_callback: basic_token_cb, auto_connect: false) }
+
+            it 'obtains a token and connects to Ably (#RTC8c, #RTC8b1)' do
+              has_connected = false
+              EventMachine.add_timer(0.2) do
+                expect(client.connection).to be_initialized
+                connection.once(:connected) do
+                  expect(client.auth.client_id).to_not be_nil
+                  has_connected = true
+                end
+                client.auth.authorize(nil, auth_callback: identified_token_cb) do |token|
+                  expect(token.client_id).to eql('bob')
+                  EventMachine.add_timer(0.25) do
+                    expect(has_connected).to be_truthy
+                    stop_reactor
+                  end
                 end
               end
             end
           end
 
-          it 'forces the connection to disconnect and reconnect with a new token when in the CONNECTING state' do
-            client.connection.once(:connecting) do
-              existing_token = client.auth.current_token_details
-              client.auth.authorize(nil)
-              client.connection.once(:disconnected) do
-                client.connection.once(:connected) do
-                  expect(existing_token).to_not eql(client.auth.current_token_details)
-                  stop_reactor
+          context 'when CONNECTING' do
+            let(:client_options) { default_options.merge(auth_callback: basic_token_cb) }
+
+            it 'aborts the current connection process, obtains a token, and connects to Ably again (#RTC8b)' do
+              connected_count = 0
+              connection.once(:connecting) do
+                connection.once(:connected) { connected_count += 1 }
+
+                client.auth.authorize(nil, auth_callback: identified_token_cb) do |token|
+                  expect(token.client_id).to eql('bob')
+                  EventMachine.add_timer(0.25) do
+                    expect(connected_count).to eql(1)
+                    stop_reactor
+                  end
                 end
+              end
+            end
+          end
+
+          context 'when FAILED' do
+            let(:client_options) { default_options.merge(token: 'this.token:is.invalid', log_level: :none) }
+
+            it 'obtains a token and connects to Ably (#RTC8c, #RTC8b1)' do
+              has_connected = false
+              connection.once(:failed) do
+                client.connection.once(:connected) do
+                  has_connected = true
+                end
+                client.auth.authorize(nil, auth_callback: basic_token_cb) do
+                  EventMachine.add_timer(0.25) do
+                    expect(has_connected).to be_truthy
+                    stop_reactor
+                  end
+                end
+              end
+            end
+          end
+
+          context 'when CLOSED' do
+            it 'obtains a token and connects to Ably (#RTC8c, #RTC8b1, #RTC8a3)' do
+              has_connected = false
+              connection.once(:connected) do
+                connection.once(:closed) do
+                  client.connection.once(:connected) do
+                    has_connected = true
+                  end
+                  client.auth.authorize(nil, auth_callback: basic_token_cb) do
+                    EventMachine.add_timer(0.25) do
+                      expect(has_connected).to be_truthy
+                      stop_reactor
+                    end
+                  end
+                end
+                connection.close
+              end
+            end
+          end
+
+          context 'when in the CONNECTED state' do
+            context 'with a valid token in the AUTH ProtocolMessage sent' do
+              let(:client_options) { default_options.merge(use_token_auth: true) }
+
+              it 'obtains a new token (that upgrades from anonymous to identified) and upgrades the connection after receiving an updated CONNECTED ProtocolMessage (#RTC8a, #RTC8a3)' do
+                skip "This capability to upgrade from anonymous to identified is not yet implemented, see https://github.com/ably/wiki/issues/182"
+
+                client.connection.once(:connected) do
+                  existing_token = client.auth.current_token_details
+                  expect(client.connection.details.client_id).to be_nil
+                  auth_sent = false
+                  has_updated = false
+                  new_connected_message_received = false
+
+                  client.connection.once(:disconnected) { raise "Should not disconnnect during auth process"}
+                  client.connection.once(:update) do
+                    expect(auth_sent).to be_truthy
+                    expect(new_connected_message_received).to be_truthy
+                    expect(existing_token).to_not eql(client.auth.current_token_details)
+                    expect(client.auth.client_id).to_not be_nil
+                    expect(client.connection.details.client_id).to_not be_nil
+                    has_updated = true
+                  end
+
+                  connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                    auth_sent = true if protocol_message.action == :auth
+                  end
+                  connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                    new_connected_message_received = true if protocol_message.action == :connected
+                  end
+
+                  client.auth.authorize(nil, auth_callback: identified_token_cb) do
+                    EventMachine.add_timer(0.25) do
+                      expect(has_updated).to be_truthy
+                      stop_reactor
+                    end
+                  end
+                end
+              end
+
+              it 'obtains a new token (as anonymous user before & after) and upgrades the connection after receiving an updated CONNECTED ProtocolMessage (#RTC8a, #RTC8a3)' do
+                client.connection.once(:connected) do
+                  existing_token = client.auth.current_token_details
+                  auth_sent = false
+                  has_updated = false
+                  new_connected_message_received = false
+
+                  client.connection.once(:disconnected) { raise "Should not disconnnect during auth process"}
+                  client.connection.once(:update) do
+                    EventMachine.next_tick do
+                      expect(auth_sent).to be_truthy
+                      expect(new_connected_message_received).to be_truthy
+                      expect(existing_token).to_not eql(client.auth.current_token_details)
+                      has_updated = true
+                    end
+                  end
+
+                  connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                    auth_sent = true if protocol_message.action == :auth
+                  end
+                  connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                    new_connected_message_received = true if protocol_message.action == :connected
+                  end
+
+                  client.auth.authorize do
+                    EventMachine.add_timer(0.25) do
+                      expect(has_updated).to be_truthy
+                      stop_reactor
+                    end
+                  end
+                end
+              end
+            end
+          end
+
+          context 'when DISCONNECTED' do
+            def disconnect_transport(connection)
+              if connection.transport
+                connection.transport.close_connection_after_writing
+              else
+                EventMachine.next_tick { disconnect_transport connection }
+              end
+            end
+
+            it 'obtains a token, upgrades from anonymous to identified, and connects to Ably immediately (#RTC8c, #RTC8b1)' do
+              skip "This capability to upgrade from anonymous to identified is not yet implemented, see https://github.com/ably/wiki/issues/182"
+
+              disconnected_waiting = false
+              has_connected = false
+
+              connection.once(:connected) do
+                expect(client.auth.client_id).to be_nil
+
+                connection.on(:disconnected) do |connection_state_change|
+                  # Once we detect the connection will remain DISCONNECTED for 15s, then we can call authorize
+                  # else we can't be sure authorize was responsible for the reconnect
+                  if connection_state_change.retry_in > 1
+                    disconnected_waiting = true
+
+                    client.connection.once(:connected) do
+                      expect(client.auth.client_id).to_not be_nil
+                      has_connected = true
+                    end
+
+                    client.auth.authorize(nil, auth_callback: identified_token_cb) do
+                      EventMachine.add_timer(0.25) do
+                        expect(has_connected).to be_truthy
+                        stop_reactor
+                      end
+                    end
+                  end
+                end
+
+                connection.on(:connecting) do
+                  disconnect_transport connection unless disconnected_waiting
+                end
+                disconnect_transport connection
+              end
+            end
+
+            it 'obtains a similar anonymous token and connects to Ably immediately (#RTC8c, #RTC8b1)' do
+              disconnected_waiting = false
+              has_connected = false
+
+              connection.once(:connected) do
+                expect(client.auth.client_id).to be_nil
+
+                connection.on(:disconnected) do |connection_state_change|
+                  # Once we detect the connection will remain DISCONNECTED for 15s, then we can call authorize
+                  # else we can't be sure authorize was responsible for the reconnect
+                  if connection_state_change.retry_in > 1
+                    disconnected_waiting = true
+
+                    client.connection.once(:connected) do
+                      expect(client.auth.client_id).to be_nil
+                      has_connected = true
+                    end
+
+                    client.auth.authorize do
+                      EventMachine.add_timer(0.25) do
+                        expect(has_connected).to be_truthy
+                        stop_reactor
+                      end
+                    end
+                  end
+                end
+
+                connection.on(:connecting) do
+                  disconnect_transport connection unless disconnected_waiting
+                end
+                disconnect_transport connection
+              end
+            end
+          end
+
+          context 'when SUSPENDED' do
+            let(:client_options) do
+              default_options.merge(
+                disconnected_retry_timeout: 0.1,
+                max_connection_state_ttl: 0.3,
+                use_token_auth: true
+              )
+            end
+
+            it 'obtains a token and connects to Ably immediately (#RTC8c, #RTC8b1)' do
+              been_suspended = false
+              has_connected = false
+
+              connection.once(:connected) do
+                connection.on(:suspended) do |connection_state_change|
+                  been_suspended = true
+
+                  client.connection.once(:connected) do
+                    has_connected = true
+                  end
+
+                  client.auth.authorize do
+                    EventMachine.add_timer(0.25) do
+                      expect(has_connected).to be_truthy
+                      stop_reactor
+                    end
+                  end
+                end
+
+                connection.on(:connecting) do
+                  EventMachine.add_timer(0.01) do
+                    connection.transport.close_connection_after_writing unless been_suspended
+                  end
+                end
+                connection.transport.close_connection_after_writing
               end
             end
           end
@@ -345,7 +595,7 @@ describe Ably::Realtime::Auth, :event_machine do
               rest_client.auth.create_token_request({ client_id: 'mike', capability: basic_capability })
             end }
 
-            it 'transitions the connection state to FAILED if the client_id changes (#RSA15c)' do
+            it 'transitions the connection state to FAILED if the client_id changes (#RSA15c, #RTC8a2)' do
               client.connection.once(:connected) do
                 client.auth.authorize(nil, auth_callback: identified_token_cb)
                 client.connection.once(:failed) do
@@ -357,33 +607,85 @@ describe Ably::Realtime::Auth, :event_machine do
             end
           end
 
+          context 'when auth fails' do
+            let(:client_options) { default_options.merge(auth_callback: basic_token_cb, log_level: :none) }
+
+            it 'transitions the connection state to the FAILED state (#RSA15c, #RTC8a2, #RTC8a3)' do
+              connection_failed = false
+
+              client.connection.once(:connected) do
+                client.auth.authorize(nil, auth_callback: Proc.new { 'invalid.token:will.cause.failure' }).tap do |deferrable|
+                  deferrable.errback do |error|
+                    EventMachine.add_timer(0.2) do
+                      expect(connection_failed).to eql(true)
+                      expect(error.message).to match(/Invalid accessToken/i)
+                      expect(error.code).to eql(40005)
+                      stop_reactor
+                    end
+                  end
+                  deferrable.callback { raise "Authorize should not succed" }
+                end
+              end
+
+              client.connection.once(:failed) do
+                expect(client.connection.error_reason.message).to match(/Invalid accessToken/i)
+                expect(client.connection.error_reason.code).to eql(40005)
+                connection_failed = true
+              end
+            end
+          end
+
+          context 'when the authCallback fails' do
+            let(:client_options) { default_options.merge(auth_callback: basic_token_cb, log_level: :none) }
+
+            it 'calls the error callback of authorize and leaves the connection intact (#RSA4c3)' do
+              client.connection.once(:connected) do
+                client.auth.authorize(nil, auth_callback: Proc.new { raise 'Exception raised' }).errback do |error|
+                  EventMachine.add_timer(0.2) do
+                    expect(connection).to be_connected
+                    expect(error.message).to match(/Exception raised/i)
+                    stop_reactor
+                  end
+                end
+                client.connection.once(:failed) do
+                  raise "Connection should not fail"
+                end
+              end
+            end
+          end
+
           context 'when upgrading capabilities' do
             let(:client_options) { default_options.merge(auth_callback: basic_token_cb, log_level: :error) }
 
-            it 'is allowed' do
+            it 'is allowed (#RTC8a1)' do
               client.connection.once(:connected) do
+                client.connection.once(:disconnected) { raise 'Upgrade does not require a disconnect' }
+
                 channel = client.channels.get('foo')
                 channel.publish('not-allowed').errback do |error|
                   expect(error.code).to eql(40160)
                   expect(error.message).to match(/permission denied/)
+
                   client.auth.authorize(nil, auth_callback: upgraded_token_cb)
-                  client.connection.once(:connected) do
+                  client.connection.once(:update) do
                     expect(client.connection.error_reason).to be_nil
-                    channel.subscribe('allowed') do |message|
+                    channel.subscribe('now-allowed') do |message|
                       stop_reactor
                     end
-                    channel.publish 'allowed'
+                    channel.publish 'now-allowed'
                   end
                 end
               end
             end
           end
 
-          context 'when downgrading capabilities' do
+          context 'when downgrading capabilities (#RTC8a1)' do
             let(:client_options) { default_options.merge(auth_callback: basic_token_cb, log_level: :none) }
 
             it 'is allowed and channels are detached' do
               client.connection.once(:connected) do
+                client.connection.once(:disconnected) { raise 'Upgrade does not require a disconnect' }
+
                 channel = client.channels.get('foo')
                 channel.attach do
                   client.auth.authorize(nil, auth_callback: downgraded_token_cb)
@@ -397,11 +699,13 @@ describe Ably::Realtime::Auth, :event_machine do
             end
           end
 
-          it 'ensures message delivery continuity whilst upgrading' do
+          it 'ensures message delivery continuity whilst upgrading (#RTC8a1)' do
             received_messages = []
             subscriber_channel = client.channels.get('foo')
             publisher_channel  = client_publisher.channels.get('foo')
             subscriber_channel.attach do
+              client.connection.once(:disconnected) { raise 'Upgrade does not require a disconnect' }
+
               subscriber_channel.subscribe do |message|
                 received_messages << message
               end
@@ -409,73 +713,21 @@ describe Ably::Realtime::Auth, :event_machine do
                 publisher_channel.publish('foo') do
                   EventMachine.add_timer(2) do
                     expect(received_messages.length).to eql(1)
-                    client.auth.authorize(nil)
-                    client.connection.once(:disconnected) do
-                      publisher_channel.publish('bar') do
-                        expect(received_messages.length).to eql(1)
-                      end
-                    end
-                    client.connection.once(:connected) do
+
+                    client.connection.once(:update) do
                       EventMachine.add_timer(2) do
                         expect(received_messages.length).to eql(2)
                         stop_reactor
                       end
                     end
+
+                    client.auth.authorize(nil)
+
+                    publisher_channel.publish('bar') do
+                      expect(received_messages.length).to eql(1)
+                    end
                   end
                 end
-              end
-            end
-          end
-
-          it 'does not change the connection state if current connection state is closing' do
-            client.connection.once(:connected) do
-              client.connection.once(:closing) do
-                client.auth.authorize(nil)
-                client.connection.once(:connected) do
-                  raise "Should not reconnect following #authorize"
-                end
-                EventMachine.add_timer(4) do
-                  expect(client.connection).to be_closed
-                  stop_reactor
-                end
-              end
-              client.connection.close
-            end
-          end
-
-          it 'does not change the connection state if current connection state is closed' do
-            client.connection.once(:connected) do
-              client.connection.once(:closed) do
-                client.auth.authorize(nil)
-                client.connection.once(:connected) do
-                  raise "Should not reconnect following #authorize"
-                end
-                EventMachine.add_timer(4) do
-                  expect(client.connection).to be_closed
-                  stop_reactor
-                end
-              end
-              client.connection.close
-            end
-          end
-
-          context 'when state is failed' do
-            let(:client_options) { default_options.merge(auth_callback: basic_token_cb, log_level: :none) }
-
-            it 'does not change the connection state' do
-              client.connection.once(:connected) do
-                client.connection.once(:failed) do
-                  client.auth.authorize(nil)
-                  client.connection.once(:connected) do
-                    raise "Should not reconnect following #authorize"
-                  end
-                  EventMachine.add_timer(4) do
-                    expect(client.connection).to be_failed
-                    stop_reactor
-                  end
-                end
-                protocol_message = Ably::Models::ProtocolMessage.new(action: Ably::Models::ProtocolMessage::ACTION.Error.to_i)
-                client.connection.__incoming_protocol_msgbus__.publish :protocol_message, protocol_message
               end
             end
           end

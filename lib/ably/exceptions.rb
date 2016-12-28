@@ -107,6 +107,8 @@ module Ably
     # Invalid State Change error on a {https://github.com/gocardless/statesman Statesman State Machine}
     class InvalidStateChange < BaseAblyException; end
 
+    class InvalidState < BaseAblyException; end
+
     # A generic Ably exception taht supports a status & code.
     # See https://github.com/ably/ably-common/blob/master/protocol/errors.json for a list of Ably errors
     class Standard < BaseAblyException; end
