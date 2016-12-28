@@ -948,7 +948,8 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
       end
 
       context 'when an ERROR protocol message is received' do
-        %i(connecting connected).each do |state|
+        %w(connecting connected).each do |state|
+          state = state.to_sym
           context "whilst #{state}" do
             context 'with a token error code in the range 40140 <= code < 40150 (#RTN14b)' do
               let(:client_options) { default_options.merge(use_token_auth: true) }

@@ -253,7 +253,8 @@ describe Ably::Realtime::Connection, :event_machine do
                   let(:publishing_channel) { publishing_client.channels.get(channel_name) }
                   let(:messages_received)  { [] }
 
-                  def publish_and_check_disconnect(iteration: 1)
+                  def publish_and_check_disconnect(options = {})
+                    iteration = options.fetch(:iteration) { 1 }
                     total_expected = publish_count * iteration
                     publish_count.times.each { |index| publishing_channel.publish('event', (total_expected - publish_count + index).to_s) }
                     channel.subscribe('event') do |message|

@@ -51,7 +51,10 @@ module Ably::Realtime
       end
 
       # Request channel to be reattached by sending an attach protocol message
-      def request_reattach(reason: nil)
+      # @param [Hash] options
+      # @option options [Ably::Models::ErrorInfo]  :reason
+      def request_reattach(options = {})
+        reason = options[:reason]
         send_attach_protocol_message
         logger.debug "Explicit channel reattach request sent to Ably due to #{reason}"
         channel.set_channel_error_reason(reason) if reason
@@ -73,7 +76,11 @@ module Ably::Realtime
 
       # When continuity on the connection is interrupted or channel becomes suspended (implying loss of continuity)
       # then all messages published but awaiting an ACK from Ably should be failed with a NACK
-      def fail_messages_awaiting_ack(error, immediately: false)
+      # @param [Hash] options
+      # @option options [Boolean]  :immediately
+      def fail_messages_awaiting_ack(error, options = {})
+        immediately = options[:immediately] || false
+
         fail_proc = Proc.new do
           error = Ably::Exceptions::MessageDeliveryFailed.new("Continuity of connection was lost so published messages awaiting ACK have failed") unless error
           fail_messages_in_queue connection.__pending_message_ack_queue__, error
