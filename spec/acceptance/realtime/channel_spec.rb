@@ -246,7 +246,7 @@ describe Ably::Realtime::Channel, :event_machine do
             log_level: :fatal,
             use_token_auth: true,
             # TODO: Use wildcard / default when intersection issue resolved, realtime#780
-            token_params: { capability: { "canpublish:foo": ["publish"] } }
+            token_params: { capability: { "canpublish:foo" => ["publish"] } }
           )
         end
         let(:restricted_client) do
@@ -284,7 +284,7 @@ describe Ably::Realtime::Channel, :event_machine do
             restricted_channel.attach
             restricted_channel.once(:failed) do
               restricted_client.close do
-                token_params = { capability: { "cansubscribe:foo": ["subscribe"] } }
+                token_params = { capability: { "cansubscribe:foo" => ["subscribe"] } }
                 restricted_client.auth.authorize(token_params) do
                   restricted_channel.once(:attached) do
                     expect(restricted_channel.error_reason).to be_nil
@@ -1715,7 +1715,7 @@ describe Ably::Realtime::Channel, :event_machine do
         context 'with a failed channel' do
           let(:client_options) do
             default_options.merge(
-              token_params: { capability: { "foo": ["*"] } },
+              token_params: { capability: { "foo" =>["*"] } },
               use_token_auth: true,
               log_level: :fatal
             )
