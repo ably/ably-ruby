@@ -146,6 +146,12 @@ module Ably::Realtime
         end
       end
 
+      # @api private
+      def release_and_establish_new_transport
+        destroy_transport
+        setup_transport
+      end
+
       # Reconnect the {Ably::Realtime::Connection::WebsocketTransport} if possible, otherwise set up a new transport
       #
       # @api private

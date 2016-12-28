@@ -44,13 +44,15 @@ module Ably
       def_delegators :auth_sync, :using_basic_auth?, :using_token_auth?
       def_delegators :auth_sync, :token_renewable?, :authentication_security_requirements_met?
       def_delegators :client, :logger
+      def_delegators :client, :connection
 
       def initialize(client)
         @client = client
         @auth_sync = client.rest_client.auth
       end
 
-      # Ensures valid auth credentials are present for the library instance. This may rely on an already-known and valid token, and will obtain a new token if necessary.
+      # For new connections, ensures valid auth credentials are present for the library instance. This may rely on an already-known and valid token, and will obtain a new token if necessary.
+      # If a connection is already established, the connection will be upgraded with a new token
       #
       # In the event that a new token request is made, the provided options are used
       #
@@ -68,11 +70,50 @@ module Ably
       #    end
       #
       def authorize(token_params = nil, auth_options = nil, &success_callback)
-        async_wrap(success_callback) do
-          auth_sync.authorize(token_params, auth_options, &method(:upgrade_authentication_block).to_proc)
-        end.tap do |deferrable|
-          deferrable.errback do |error|
-            client.connection.transition_state_machine :failed, reason: error if error.kind_of?(Ably::Exceptions::IncompatibleClientId)
+        Ably::Util::SafeDeferrable.new(logger).tap do |authorize_method_deferrable|
+          # Wrap the sync authorize method and wait for the result from the deferrable
+          async_wrap do
+            auth_sync.authorize(token_params, auth_options)
+          end.tap do |auth_operation|
+            # Authorize operation succeeded and we have a new token, now let's perform inline authentication
+            auth_operation.callback do |token|
+              case connection.state.to_sym
+              when :initialized, :disconnected, :suspended, :closed, :closing, :failed
+                connection.connect
+              when :connected
+                perform_inline_auth token
+              when :connecting
+                # Fail all current connection attempts and try again with the new token, see #RTC8b
+                connection.manager.release_and_establish_new_transport
+              else
+                logger.fatal "Auth#authorize: unsupported state #{connection.state}"
+                authorize_method_deferrable.fail Ably::Exceptions::InvalidState.new("Unsupported state #{connection.state} for Auth#authorize")
+                next
+              end
+
+              # Indicate success or failure based on response from realtime, see #RTC8b1
+              auth_deferrable_resolved = false
+
+              connection.once(:connected, :update) do
+                auth_deferrable_resolved = true
+                authorize_method_deferrable.succeed token
+              end
+              connection.once(:suspended, :closed, :failed) do |state_change|
+                auth_deferrable_resolved = true
+                authorize_method_deferrable.fail state_change.reason
+              end
+            end
+
+            # Authorize failed, likely due to auth_url or auth_callback failing
+            auth_operation.errback do |error|
+              client.connection.transition_state_machine :failed, reason: error if error.kind_of?(Ably::Exceptions::IncompatibleClientId)
+              authorize_method_deferrable.fail error
+            end
+          end
+
+          # Call the block provided to this method upon success of this deferrable
+          authorize_method_deferrable.callback do |token|
+            yield token if block_given?
           end
         end
       end
@@ -84,12 +125,15 @@ module Ably
       end
 
       # Synchronous version of {#authorize}. See {Ably::Auth#authorize} for method definition
+      # Please note that authorize_sync will however not upgrade the current connection's token as this requires
+      # an synchronous operation to send the new authentication details to Ably over a realtime connection
+      #
       # @param (see Ably::Auth#authorize)
       # @option (see Ably::Auth#authorize)
       # @return [Ably::Models::TokenDetails]
       #
       def authorize_sync(token_params = nil, auth_options = nil)
-        auth_sync.authorize(token_params, auth_options, &method(:upgrade_authentication_block).to_proc)
+        auth_sync.authorize(token_params, auth_options)
       end
 
       # @deprecated Use {#authorize_sync} instead
@@ -213,22 +257,14 @@ module Ably
         @client
       end
 
-      # If authorize is called with true, this block is executed so that it
-      # can perform the authentication upgrade
-      def upgrade_authentication_block(new_token)
-        # This block is called if the authorisation was forced
-        if client.connection.connected? || client.connection.connecting?
-          logger.debug "Realtime::Auth - authorize was called so forcibly disconnecting transport to initiate auth upgrade"
-          block = Proc.new do
-            if client.connection.transport
-              logger.debug "Realtime::Auth - current transport disconnected"
-              client.connection.transport.disconnect
-            else
-              EventMachine.add_timer(0.1, &block)
-            end
-          end
-          block.call
-        end
+      # Sends an AUTH ProtocolMessage on the existing connection triggering
+      # an inline AUTH process, see #RTC8a
+      def perform_inline_auth(token)
+        logger.debug "Performing inline AUTH with Ably using token #{token}"
+        connection.send_protocol_message(
+          action: Ably::Models::ProtocolMessage::ACTION.Auth.to_i,
+          auth: { access_token: token.token }
+        )
       end
     end
   end

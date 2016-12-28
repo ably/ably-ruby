@@ -286,13 +286,11 @@ describe Ably::Realtime::Channel, :event_machine do
               restricted_client.close do
                 token_params = { capability: { "cansubscribe:foo": ["subscribe"] } }
                 restricted_client.auth.authorize(token_params) do
-                  restricted_client.connect do
-                    restricted_channel.once(:attached) do
-                      expect(restricted_channel.error_reason).to be_nil
-                      stop_reactor
-                    end
-                    restricted_channel.attach
+                  restricted_channel.once(:attached) do
+                    expect(restricted_channel.error_reason).to be_nil
+                    stop_reactor
                   end
+                  restricted_channel.attach
                 end
               end
             end
@@ -1882,7 +1880,7 @@ describe Ably::Realtime::Channel, :event_machine do
                   if connection.transport
                     connection.transport.close_connection_after_writing
                   else
-                    EventMachine.add_timer(0.05) { disconnect_transport_proc.call }
+                    EventMachine.next_tick { disconnect_transport_proc.call }
                   end
                 end
                 disconnect_transport_proc.call
