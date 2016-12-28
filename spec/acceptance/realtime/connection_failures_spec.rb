@@ -606,7 +606,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
       end
 
       context 'after successfully reconnecting and resuming' do
-        it 'retains connection_id and updates the connection_key' do
+        it 'retains connection_id and updates the connection_key (#RTN15e, #RTN16d)' do
           connection.once(:connected) do
             previous_connection_id = connection.id
             connection.transport.close_connection_after_writing
