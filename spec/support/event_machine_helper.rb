@@ -9,17 +9,33 @@ module RSpec
     DEFAULT_TIMEOUT = 15
 
     def run_reactor(timeout = DEFAULT_TIMEOUT)
-      Timeout::timeout(timeout + 0.5) do
-        ::EventMachine.run do
-          yield
-        end
+      ::EventMachine.run do
+        puts ">>Reactor started"
+        yield
       end
+    rescue RuntimeError => e
+      if e.message.match(/eventmachine not initialized/)
+        require 'pry'; binding.pry
+        puts ">>>Trying something drastic, trying again"
+        ::EventMachine.stop rescue puts ">> Failed to staop"
+        run_reactor(timeout)
+      end
+    end
+
+    # Calling skip by default breaks out the EventMachine loop and causes odd errors:
+    # Failure/Error: let(:client)         { auto_close Ably::Realtime::Client.new(client_options) }
+    #   RuntimeError:
+    #     eventmachine not initialized: evma_signal_loopbreak
+    def skip(*args)
+      puts ">> EM STOPPE before skip"
+      ::EventMachine.stop
+      super
     end
 
     def stop_reactor
       unless realtime_clients.empty?
         realtime_clients.shift.tap do |client|
-          # Ensure close appens outside of the caller as this can cause errbacks on Deferrables
+          # Ensure close gappens outside of the caller as this can cause errbacks on Deferrables
           # e.g. connection.connect { connection.close } => # Error as calling close within the connected callback
           ::EventMachine.add_timer(0.05) do
             client.close if client.connection.can_transition_to?(:closing)
@@ -31,6 +47,7 @@ module RSpec
 
       ::EventMachine.next_tick do
         ::EventMachine.stop
+        puts ">>> EVENT MACHINE STOPPED"
       end
     end
 
@@ -114,13 +131,21 @@ RSpec.configure do |config|
 
     event_machine_block = Proc.new do
       RSpec::EventMachine.run_reactor(timeout) do
-        example_group_instance.instance_exec(example, &example_block)
+        EM.next_tick do
+          example_group_instance.instance_exec(example, &example_block)
+        end
       end
     end
 
     example.example.instance_variable_set('@example_block', event_machine_block)
 
     example.run
+  end
+
+  config.after(:example, :event_machine) do |example|
+    puts ">>> FINISHED #{EM.defers_finished?}"
+    puts ">>> RUNNING #{EM.reactor_running?}"
+    ::EventMachine.stop rescue puts ">>> FAILED sTO STOP"
   end
 
   config.before(:example) do
