@@ -111,7 +111,6 @@ module Ably::Realtime
 
       before_transition(to: [:connected, :closed]) do |connection, current_transition|
         err = error_from_state_change(current_transition)
-
         if err
           connection.set_failed_connection_error_reason err
         else

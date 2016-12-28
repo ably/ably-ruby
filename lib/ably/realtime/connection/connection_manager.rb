@@ -74,7 +74,7 @@ module Ably::Realtime
           # Authentication errors that indicate the authentication failure is terminal should move to the failed state
           if ([401, 403].include?(error.status) && !RESOLVABLE_ERROR_CODES.fetch(:token_expired).include?(error.code)) ||
              (error.code == Ably::Exceptions::INVALID_CLIENT_ID)
-            client.connection.transition_state_machine :failed, reason: error
+            connection.transition_state_machine :failed, reason: error
             return
           end
         end
@@ -88,6 +88,12 @@ module Ably::Realtime
       #
       # @api private
       def connected(protocol_message)
+        # ClientID validity is already checked as part of the incoming message processing
+        client.auth.configure_client_id protocol_message.connection_details.client_id
+
+        # Update the connection details and any associated defaults
+        connection.set_connection_details protocol_message.connection_details
+
         if connection.key
           if protocol_message.connection_id == connection.id
             logger.debug "ConnectionManager: Connection resumed successfully - ID #{connection.id} and key #{connection.key}"
@@ -107,6 +113,26 @@ module Ably::Realtime
         reattach_suspended_channels protocol_message.error
 
         connection.configure_new protocol_message.connection_id, protocol_message.connection_key, protocol_message.connection_serial
+      end
+
+      # When connection is CONNECTED and receives an update
+      # Update the Connection details and emit an UPDATE event #RTN4h
+      def connected_update(protocol_message)
+        # ClientID validity is already checked as part of the incoming message processing
+        client.auth.configure_client_id protocol_message.connection_details.client_id
+
+        # Update the connection details and any associated defaults
+        connection.set_connection_details protocol_message.connection_details
+
+        connection.configure_new protocol_message.connection_id, protocol_message.connection_key, protocol_message.connection_serial
+
+        state_change = Ably::Models::ConnectionStateChange.new(
+          current: connection.state,
+          previous: connection.state,
+          reason: protocol_message.error,
+          protocol_message: protocol_message
+        )
+        connection.emit :update, state_change
       end
 
       # Ensures the underlying transport has been disconnected and all event emitter callbacks removed

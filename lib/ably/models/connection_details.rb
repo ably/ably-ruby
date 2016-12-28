@@ -27,18 +27,21 @@ module Ably::Models
     # @option attributes [Integer]   :max_message_size      maximum individual message size in bytes
     # @option attributes [Integer]   :max_frame_size        maximum size for a single frame of data sent to Ably. This restriction applies to a {Ably::Models::ProtocolMessage} sent over a realtime connection, or the total body size for a REST request
     # @option attributes [Integer]   :max_inbound_rate      maximum allowable number of requests per second from a client
+    # @option attributes [Integer]   :max_idle_interval     is the maximum length of time in seconds that the server will allow no activity to occur in the server->client direction. After such a period of inactivity, the server will send a @HEARTBEAT@ or transport-level ping to the client. If the value is 0, the server will allow arbitrarily-long levels of inactivity.
     # @option attributes [Integer]   :connection_state_ttl  duration in seconds that Ably will persist the connection state when a Realtime client is abruptly disconnected
     # @option attributes [String]    :server_id             unique identifier of the Ably server where the connection is established
     #
     def initialize(attributes = {})
       @hash_object = IdiomaticRubyWrapper(attributes.clone)
-      if self.attributes[:connection_state_ttl]
-        self.attributes[:connection_state_ttl] = (self.attributes[:connection_state_ttl].to_f / 1000).round
+      [:connection_state_ttl, :max_idle_interval].each do |duration_field|
+        if self.attributes[duration_field]
+          self.attributes[duration_field] = (self.attributes[duration_field].to_f / 1000).round
+        end
       end
       self.attributes.freeze
     end
 
-    %w(client_id connection_key max_message_size max_frame_size max_inbound_rate connection_state_ttl server_id).each do |attribute|
+    %w(client_id connection_key max_message_size max_frame_size max_inbound_rate connection_state_ttl max_idle_interval server_id).each do |attribute|
       define_method attribute do
         attributes[attribute.to_sym]
       end

@@ -71,7 +71,7 @@ module Ably
         disconnected_retry_timeout: 15, # when the connection enters the DISCONNECTED state, after this delay in milliseconds, if the state is still DISCONNECTED, the client library will attempt to reconnect automatically
         suspended_retry_timeout:    30, # when the connection enters the SUSPENDED state, after this delay in milliseconds, if the state is still SUSPENDED, the client library will attempt to reconnect automatically
         connection_state_ttl:       120, # the duration that Ably will persist the connection state when a Realtime client is abruptly disconnected
-        max_connection_state_ttl:   nil, # allow a max TTL to be passed in for CI test purposes thus overiding any connection_state_ttl sent from Ably
+        max_connection_state_ttl:   nil, # allow a max TTL to be passed in, usually for CI test purposes thus overiding any connection_state_ttl sent from Ably
         realtime_request_timeout:   10,  # default timeout when establishing a connection, or sending a HEARTBEAT, CONNECT, ATTACH, DETACH or CLOSE ProtocolMessage
       }.freeze
 

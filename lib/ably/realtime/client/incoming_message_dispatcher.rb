@@ -69,9 +69,10 @@ module Ably::Realtime
           when ACTION.Connect
           when ACTION.Connected
             if connection.disconnected? || connection.closing? || connection.closed? || connection.failed?
-              logger.debug "Incoming CONNECTED ProtocolMessage discarded as connection has moved on and is in state: #{connection.state}"
+              logger.warn "Out-of-order incoming CONNECTED ProtocolMessage discarded as connection has moved on and is in state: #{connection.state}"
             elsif connection.connected?
-              logger.error "CONNECTED ProtocolMessage should not have been received when the connection is in the CONNECTED state"
+              logger.debug "Updated CONNECTED ProtocolMessage received (whilst connected)"
+              process_connected_update_message protocol_message
             else
               process_connected_message protocol_message
             end
@@ -146,11 +147,18 @@ module Ably::Realtime
 
       def process_connected_message(protocol_message)
         if client.auth.token_client_id_allowed?(protocol_message.connection_details.client_id)
-          client.auth.configure_client_id protocol_message.connection_details.client_id
-          client.connection.set_connection_details protocol_message.connection_details
           connection.transition_state_machine :connected, reason: protocol_message.error, protocol_message: protocol_message
         else
           reason = Ably::Exceptions::IncompatibleClientId.new("Client ID '#{protocol_message.connection_details.client_id}' specified by the server is incompatible with the library's configured client ID '#{client.client_id}'")
+          connection.transition_state_machine :failed, reason: reason, protocol_message: protocol_message
+        end
+      end
+
+      def process_connected_update_message(protocol_message)
+        if client.auth.token_client_id_allowed?(protocol_message.connection_details.client_id)
+          connection.manager.connected_update protocol_message
+        else
+          reason = Ably::Exceptions::IncompatibleClientId.new("Client ID '#{protocol_message.connection_details.client_id}' in CONNECTED update specified by the server is incompatible with the library's configured client ID '#{client.client_id}'")
           connection.transition_state_machine :failed, reason: reason, protocol_message: protocol_message
         end
       end
