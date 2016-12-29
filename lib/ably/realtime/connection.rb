@@ -539,9 +539,8 @@ module Ably
       # Note that this is different to the connection serial that contains the last known serial number
       # received from the server.
       #
-      # A client serial number (referred to as msgSerial in Ably) does not guarantee a message has been received, only sent.
-      # A connection serial guarantees the server has received the message and is thus used for connection
-      # recovery and resumes.
+      # A message serial number does not guarantee a message has been received, only sent.
+      # A connection serial guarantees the server has received the message and is thus used for connection recovery and resumes.
       # @return [Integer] starting at -1 indicating no messages sent, 0 when the first message is sent
       def client_serial
         @client_serial
