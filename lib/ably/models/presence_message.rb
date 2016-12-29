@@ -123,7 +123,6 @@ module Ably::Models
       end.to_json
     end
 
-
     # Assign this presence message to a ProtocolMessage before delivery to the Ably system
     # @api private
     def assign_to_protocol_message(protocol_message)
@@ -143,6 +142,17 @@ module Ably::Models
     def protocol_message
       raise RuntimeError, 'Presence Message is not yet published with a ProtocolMessage. ProtocolMessage is nil' if @protocol_message.nil?
       @protocol_message
+    end
+
+    # Create a static shallow clone of this object with the optional attributes to overide existing values
+    # Shallow clones have no dependency on the originating ProtocolMessage as all field values are stored as opposed to calculated
+    # Clones are useful when the original PresenceMessage needs to be mutated, such as storing in a PresenceMap with action :present
+    def shallow_clone(new_attributes = {})
+      self.class.new(attributes.to_hash.merge(
+        id: id,
+        connection_id: connection_id,
+        timestamp: as_since_epoch(timestamp)
+      ).merge(new_attributes))
     end
 
     private

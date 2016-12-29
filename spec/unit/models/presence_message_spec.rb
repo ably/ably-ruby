@@ -504,4 +504,52 @@ describe Ably::Models::PresenceMessage do
       end
     end
   end
+
+  context '#shallow_clone' do
+    context 'with inherited attributes from ProtocolMessage' do
+      let(:protocol_message) {
+        Ably::Models::ProtocolMessage.new('id' => 'fooId', 'connectionId' => protocol_connection_id, 'action' =>  1, 'timestamp' => protocol_message_timestamp)
+      }
+      let(:protocol_connection_id) { random_str }
+      let(:model) { subject.new({ 'action' => 2 }, protocol_message: protocol_message) }
+
+      it 'creates a duplicate of the message without any ProtocolMessage dependency' do
+        clone = model.shallow_clone
+        expect(clone.id).to match(/fooId/)
+        expect(clone.connection_id).to eql(protocol_connection_id)
+        expect(as_since_epoch(clone.timestamp)).to eq(protocol_message_timestamp)
+        expect(clone.action).to eq(2)
+      end
+    end
+
+    context 'with embedded attributes for all fields' do
+      let(:message_timestamp) { as_since_epoch(Time.now) + 100 }
+      let(:connection_id) { random_str }
+      let(:model) { subject.new({ 'action' => 3, 'id' => 'fooId', 'connectionId' => connection_id, 'timestamp' => message_timestamp }) }
+
+      it 'creates a duplicate of the message without any ProtocolMessage dependency' do
+        clone = model.shallow_clone
+        expect(clone.id).to eql('fooId')
+        expect(clone.connection_id).to eql(connection_id)
+        expect(as_since_epoch(clone.timestamp)).to eq(message_timestamp)
+        expect(clone.action).to eq(3)
+      end
+    end
+
+    context 'with new attributes passed in to the method' do
+      let(:protocol_message) {
+        Ably::Models::ProtocolMessage.new('id' => 'fooId', 'connectionId' => protocol_connection_id, 'action' =>  1, 'timestamp' => protocol_message_timestamp)
+      }
+      let(:protocol_connection_id) { random_str }
+      let(:model) { subject.new({ 'action' => 2 }, protocol_message: protocol_message) }
+
+      it 'creates a duplicate of the message without any ProtocolMessage dependency' do
+        clone = model.shallow_clone(id: 'newId', action: 1, timestamp: protocol_message_timestamp + 1000)
+        expect(clone.id).to match(/newId/)
+        expect(clone.connection_id).to eql(protocol_connection_id)
+        expect(as_since_epoch(clone.timestamp)).to eq(protocol_message_timestamp + 1000)
+        expect(clone.action).to eq(1)
+      end
+    end
+  end
 end

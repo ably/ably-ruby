@@ -228,16 +228,41 @@ module Ably::Realtime
       end
 
       # If the message received is older than the last known event for presence
-      # then skip.  This can occur during a SYNC operation.  For example:
+      # then skip (return false). This can occur during a SYNC operation.  For example:
       #   - SYNC starts
       #   - LEAVE event received for clientId 5
       #   - SYNC present even received for clientId 5 with a timestamp before LEAVE event because the LEAVE occured before the SYNC operation completed
       #
-      # @return [Boolean]
+      # @return [Boolean] true when +new_message+ is newer than the existing member in the PresenceMap
       #
-      def should_update_member?(presence_message)
-        if members[presence_message.member_key]
-          members[presence_message.member_key].fetch(:message).timestamp < presence_message.timestamp
+      def should_update_member?(new_message)
+        if members[new_message.member_key]
+          existing_message = members[new_message.member_key].fetch(:message)
+
+          # If both are messages published by clients (not fabricated), use the ID to determine newness, see #RTP2b2
+          if new_message.id.start_with?(new_message.connection_id) && existing_message.id.start_with?(existing_message.connection_id)
+            new_message_parts = new_message.id.match(/(\d+):(\d+)$/)
+            existing_message_parts = existing_message.id.match(/(\d+):(\d+)$/)
+
+            if !new_message_parts || !existing_message_parts
+              logger.fatal { "#{self.class.name}: Message IDs for new message #{new_message.id} or old message #{existing_message.id} are invalid. \nNew message: #{new_message.to_json}" }
+              return existing_message.timestamp < new_message.timestamp
+            end
+
+            # ID is in the format "connid:msgSerial:index" such as "aaaaaa:0:0"
+            # if msgSerial is greater then the new_message should update the member
+            # if msgSerial is equal and index is greater, then update the member
+            if new_message_parts[1].to_i > existing_message_parts[1].to_i # msgSerial
+              true
+            elsif new_message_parts[1].to_i == existing_message_parts[1].to_i # msgSerial equal
+              new_message_parts[2].to_i > existing_message_parts[2].to_i # compare index
+            else
+              false
+            end
+          else
+            # This message is fabricated or could not be validated so rely on timestamps, see #RTP2b1
+            new_message.timestamp > existing_message.timestamp
+          end
         else
           true
         end
@@ -245,7 +270,9 @@ module Ably::Realtime
 
       def add_presence_member(presence_message)
         logger.debug { "#{self.class.name}: Member '#{presence_message.member_key}' for event '#{presence_message.action}' #{members.has_key?(presence_message.member_key) ? 'updated' : 'added'}.\n#{presence_message.to_json}" }
-        members[presence_message.member_key] = { present: true, message: presence_message }
+        # Mutate the PresenceMessage so that the action is :present, see #RTP2d
+        present_presence_message = presence_message.shallow_clone(action: Ably::Models::PresenceMessage::ACTION.Present)
+        members[presence_message.member_key] = { present: true, message: present_presence_message }
         presence.emit_message presence_message.action, presence_message
       end
 
