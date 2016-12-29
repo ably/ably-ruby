@@ -210,7 +210,7 @@ module Ably::Realtime
       send_presence_action_for_client(Ably::Models::PresenceMessage::ACTION.Update, client_id, data, &success_block)
     end
 
-    # Get the presence state for this Channel.
+    # Get the presence members for this Channel.
     #
     # @param (see Ably::Realtime::Presence::MembersMap#get)
     # @option options (see Ably::Realtime::Presence::MembersMap#get)
@@ -222,9 +222,9 @@ module Ably::Realtime
 
       ensure_channel_attached(deferrable) do
         members.get(options).tap do |members_map_deferrable|
-          members_map_deferrable.callback do |*args|
-            safe_yield(block, *args) if block_given?
-            deferrable.succeed(*args)
+          members_map_deferrable.callback do |members|
+            safe_yield(block, members) if block_given?
+            deferrable.succeed(members)
           end
           members_map_deferrable.errback do |*args|
             deferrable.fail(*args)
