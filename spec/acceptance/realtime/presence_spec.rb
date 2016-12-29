@@ -520,7 +520,8 @@ describe Ably::Realtime::Presence, :event_machine do
         def setup_members_on(presence)
           enter_expected_count.times do |index|
             # 10 messages per second max rate on simulation accounts
-            EventMachine.add_timer(index / 10) do
+            rate = index.to_f / 10
+            EventMachine.add_timer(rate) do
               presence.enter_client("client:#{index}") do |message|
                 entered << message
                 next unless entered.count == enter_expected_count
@@ -594,11 +595,12 @@ describe Ably::Realtime::Presence, :event_machine do
 
                 presence_anonymous_client.subscribe(:present) do |present_message|
                   present << present_message
-                  leave_member = present_message unless leave_member
 
                   if present.count == enter_expected_count
                     presence_anonymous_client.get do |members|
-                      expect(members.find { |member| member.client_id == leave_member.client_id}.action).to eq(:present)
+                      member = members.find { |member| member.client_id == leave_member.client_id}
+                      expect(member).to_not be_nil
+                      expect(member.action).to eq(:present)
                       EventMachine.add_timer(1) do
                         presence_anonymous_client.unsubscribe
                         stop_reactor
@@ -608,7 +610,7 @@ describe Ably::Realtime::Presence, :event_machine do
                 end
 
                 presence_anonymous_client.subscribe(:leave) do |leave_message|
-                  raise 'Leave event should not have been fired because it is out of date'
+                  raise "Leave event for #{leave_message} should not have been fired because it is out of date"
                 end
 
                 anonymous_client.connect do
@@ -616,10 +618,12 @@ describe Ably::Realtime::Presence, :event_machine do
                     if protocol_message.action == :sync
                       sync_pages_received << protocol_message
                       if sync_pages_received.count == 1
+                        first_member = protocol_message.presence[0] # get the first member in the SYNC set
                         leave_action = Ably::Models::PresenceMessage::ACTION.Leave
                         leave_member = Ably::Models::PresenceMessage.new(
-                          leave_member.as_json.merge('action' => leave_action, 'timestamp' => as_since_epoch(started_at))
+                          first_member.as_json.merge('action' => leave_action, 'timestamp' => as_since_epoch(started_at))
                         )
+                        # After the SYNC has started, no inject that member has having left with a timestamp before the sync
                         presence_anonymous_client.__incoming_msgbus__.publish :presence, leave_member
                       end
                     end
