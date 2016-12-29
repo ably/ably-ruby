@@ -93,6 +93,17 @@ module Ably
       #    client = Ably::Realtime::Client.new(key: 'key.id:secret', client_id: 'john')
       #
       def initialize(options)
+        raise ArgumentError, 'Options Hash is expected' if options.nil?
+
+        options = options.clone
+        if options.kind_of?(String)
+          options = if options.match(Ably::Auth::API_KEY_REGEX)
+            { key: options }
+          else
+            { token: options }
+          end
+        end
+
         @rest_client           = Ably::Rest::Client.new(options.merge(realtime_client: self))
         @auth                  = Ably::Realtime::Auth.new(self)
         @channels              = Ably::Realtime::Channels.new(self)
