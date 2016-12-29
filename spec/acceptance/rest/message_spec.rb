@@ -282,8 +282,8 @@ describe Ably::Rest::Channel, 'messages' do
           end
 
           it 'logs a Cipher exception (#RTL7e)' do
-            expect(other_client.logger).to receive(:error) do |message|
-              expect(message).to match(/Message cannot be decrypted/)
+            expect(other_client.logger).to receive(:error) do |*args, &block|
+              expect(args.concat([block ? block.call : nil]).join(',')).to match(/Message cannot be decrypted/)
             end
             other_client_unencrypted_channel.history
           end
@@ -309,8 +309,8 @@ describe Ably::Rest::Channel, 'messages' do
           end
 
           it 'logs a Cipher exception (#RTL7e)' do
-            expect(other_client.logger).to receive(:error) do |message|
-              expect(message).to match(/Cipher algorithm [\w-]+ does not match/)
+            expect(other_client.logger).to receive(:error) do |*args, &block|
+              expect(args.concat([block ? block.call : nil]).join(',')).to match(/Cipher algorithm [\w-]+ does not match/)
             end
             encrypted_channel_client2.history
           end
@@ -336,8 +336,8 @@ describe Ably::Rest::Channel, 'messages' do
           end
 
           it 'logs a Cipher exception' do
-            expect(other_client.logger).to receive(:error) do |message|
-              expect(message).to match(/CipherError decrypting data/)
+            expect(other_client.logger).to receive(:error) do |*args, &block|
+              expect(args.concat([block ? block.call : nil]).join(',')).to match(/CipherError decrypting data/)
             end
             encrypted_channel_client2.history
           end

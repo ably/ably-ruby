@@ -92,9 +92,9 @@ module Ably
         if token_details
           begin
             token_details = authorize_with_token(token_details)
-            logger.debug "Auth: new token passed in to the initializer: #{token_details}"
+            logger.debug { "Auth: new token passed in to the initializer: #{token_details}" }
           rescue StandardError => e
-            logger.error "Auth: Implicit authorization using the provided token failed: #{e}"
+            logger.error { "Auth: Implicit authorization using the provided token failed: #{e}" }
           end
         end
       end
@@ -161,7 +161,7 @@ module Ably
       end
 
       authorize_with_token(request_token(token_params || @token_params, auth_options)).tap do |new_token_details|
-        logger.debug "Auth: new token following authorisation: #{new_token_details}"
+        logger.debug { "Auth: new token following authorisation: #{new_token_details}" }
 
         # If authorize the realtime library required auth, then yield the token in a block
         if block_given?
@@ -172,7 +172,7 @@ module Ably
 
     # @deprecated Use {#authorize} instead
     def authorise(*args, &block)
-      logger.warn "Auth#authorise is deprecated and will be removed in 1.0. Please use Auth#authorize instead"
+      logger.warn { "Auth#authorise is deprecated and will be removed in 1.0. Please use Auth#authorize instead" }
       authorize(*args, &block)
     end
 
@@ -555,7 +555,7 @@ module Ably
     # Returns the current token if it exists or authorizes and retrieves a token
     def token_auth_string
       if !current_token_details && token_option
-        logger.debug "Auth: Token auth string missing, authorizing implicitly now"
+        logger.debug { "Auth: Token auth string missing, authorizing implicitly now" }
         # A TokenRequest was configured in the ClientOptions +:token field+ and no current token exists
         # Note: If a Token or TokenDetails is provided in the initializer, the token is stored in +current_token_details+
         authorize_with_token send_token_request(token_option)

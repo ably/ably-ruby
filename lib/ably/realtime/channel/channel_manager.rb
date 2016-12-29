@@ -47,7 +47,7 @@ module Ably::Realtime
 
       # An error has occurred on the channel
       def log_channel_error(error)
-        logger.error "ChannelManager: Channel '#{channel.name}' error: #{error}"
+        logger.error { "ChannelManager: Channel '#{channel.name}' error: #{error}" }
       end
 
       # Request channel to be reattached by sending an attach protocol message
@@ -56,7 +56,7 @@ module Ably::Realtime
       def request_reattach(options = {})
         reason = options[:reason]
         send_attach_protocol_message
-        logger.debug "Explicit channel reattach request sent to Ably due to #{reason}"
+        logger.debug { "Explicit channel reattach request sent to Ably due to #{reason}" }
         channel.set_channel_error_reason(reason) if reason
         channel.transition_state_machine! :attaching, reason: reason unless channel.attaching?
       end
@@ -68,7 +68,7 @@ module Ably::Realtime
         end
 
         if resumed
-          logger.debug "ChannelManager: Additional resumed ATTACHED message received for #{channel.state} channel '#{channel.name}'"
+          logger.debug { "ChannelManager: Additional resumed ATTACHED message received for #{channel.state} channel '#{channel.name}'" }
         else
           channel.emit :update, Ably::Models::ChannelStateChange.new(current: channel.state, previous: channel.state, reason: reason, resumed: false)
         end
@@ -82,7 +82,7 @@ module Ably::Realtime
         when :attached, :suspended
           channel.transition_state_machine :attaching, reason: reason
         else
-          logger.debug "ChannelManager: DETACHED ProtocolMessage received, but no action to take as not DETACHING, ATTACHED OR SUSPENDED"
+          logger.debug { "ChannelManager: DETACHED ProtocolMessage received, but no action to take as not DETACHING, ATTACHED OR SUSPENDED" }
         end
       end
 
@@ -133,12 +133,12 @@ module Ably::Realtime
         (protocol_message.messages + protocol_message.presence).each do |message|
           nack_message message, error, protocol_message
         end
-        logger.debug "Calling NACK failure callbacks for #{protocol_message.class.name} - #{protocol_message.to_json}"
+        logger.debug { "Calling NACK failure callbacks for #{protocol_message.class.name} - #{protocol_message.to_json}" }
         protocol_message.fail error
       end
 
       def nack_message(message, error, protocol_message = nil)
-        logger.debug "Calling NACK failure callbacks for #{message.class.name} - #{message.to_json} #{"protocol message: #{protocol_message}" if protocol_message}"
+        logger.debug { "Calling NACK failure callbacks for #{message.class.name} - #{message.to_json} #{"protocol message: #{protocol_message}" if protocol_message}" }
         message.fail error
       end
 

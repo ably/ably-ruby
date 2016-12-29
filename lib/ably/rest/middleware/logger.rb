@@ -17,8 +17,8 @@ module Ably
         def_delegators :@logger, :debug, :info, :warn, :error, :fatal
 
         def call(env)
-          debug "=> URL: #{env.method} #{env.url}, Headers: #{dump_headers env.request_headers}"
-          debug "=> Body: #{body_for(env)}"
+          debug { "=> URL: #{env.method} #{env.url}, Headers: #{dump_headers env.request_headers}" }
+          debug { "=> Body: #{body_for(env)}" }
           super
         end
 

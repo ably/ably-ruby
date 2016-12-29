@@ -269,14 +269,18 @@ describe Ably::Modules::StateEmitter do
 
       context 'success block' do
         it 'catches exceptions in the provided block, logs the error and continues' do
-          expect(subject.logger).to receive(:error).with(/Success exception/)
+          expect(subject.logger).to receive(:error) do |*args, &block|
+            expect(args.concat([block ? block.call : nil]).join(',')).to match(/Success exception/)
+          end
           subject.change_state target_state
         end
       end
 
       context 'failure block' do
         it 'catches exceptions in the provided block, logs the error and continues' do
-          expect(subject.logger).to receive(:error).with(/Failure exception/)
+          expect(subject.logger).to receive(:error) do |*args, &block|
+            expect(args.concat([block ? block.call : nil]).join(',')).to match(/Failure exception/)
+          end
           subject.change_state :connecting
         end
       end
@@ -343,7 +347,9 @@ describe Ably::Modules::StateEmitter do
 
     it 'catches exceptions in the provided block, logs the error and continues' do
       subject.once_state_changed { raise 'Intentional exception' }
-      expect(subject.logger).to receive(:error).with(/Intentional exception/)
+      expect(subject.logger).to receive(:error) do |*args, &block|
+        expect(args.concat([block ? block.call : nil]).join(',')).to match(/Intentional exception/)
+      end
       subject.change_state :connected
     end
   end

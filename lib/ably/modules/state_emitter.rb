@@ -52,7 +52,7 @@ module Ably::Modules
     # @api private
     def state=(new_state, *args)
       if state != new_state
-        logger.debug("#{self.class}: StateEmitter changed from #{state} => #{new_state}") if respond_to?(:logger, true)
+        logger.debug { "#{self.class}: StateEmitter changed from #{state} => #{new_state}" } if respond_to?(:logger, true)
         @state = STATE(new_state)
         emit @state, *args
       end

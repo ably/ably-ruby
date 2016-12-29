@@ -86,7 +86,7 @@ module Ably
                 # Fail all current connection attempts and try again with the new token, see #RTC8b
                 connection.manager.release_and_establish_new_transport
               else
-                logger.fatal "Auth#authorize: unsupported state #{connection.state}"
+                logger.fatal { "Auth#authorize: unsupported state #{connection.state}" }
                 authorize_method_deferrable.fail Ably::Exceptions::InvalidState.new("Unsupported state #{connection.state} for Auth#authorize")
                 next
               end
@@ -120,7 +120,7 @@ module Ably
 
       # @deprecated Use {#authorize} instead
       def authorise(*args, &block)
-        logger.warn "Auth#authorise is deprecated and will be removed in 1.0. Please use Auth#authorize instead"
+        logger.warn { "Auth#authorise is deprecated and will be removed in 1.0. Please use Auth#authorize instead" }
         authorize(*args, &block)
       end
 
@@ -138,7 +138,7 @@ module Ably
 
       # @deprecated Use {#authorize_sync} instead
       def authorise_sync(*args)
-        logger.warn "Auth#authorise_sync is deprecated and will be removed in 1.0. Please use Auth#authorize_sync instead"
+        logger.warn { "Auth#authorise_sync is deprecated and will be removed in 1.0. Please use Auth#authorize_sync instead" }
         authorize_sync(*args)
       end
 
@@ -226,7 +226,7 @@ module Ably
       #
       def auth_params(&success_callback)
         fail_callback = Proc.new do |error, deferrable|
-          logger.error "Failed to authenticate: #{error}"
+          logger.error { "Failed to authenticate: #{error}" }
           if error.kind_of?(Ably::Exceptions::BaseAblyException)
             # Use base exception if it exists carrying forward the status codes
             deferrable.fail Ably::Exceptions::AuthenticationFailed.new(error.message, nil, nil, error)
@@ -260,7 +260,7 @@ module Ably
       # Sends an AUTH ProtocolMessage on the existing connection triggering
       # an inline AUTH process, see #RTC8a
       def perform_inline_auth(token)
-        logger.debug "Performing inline AUTH with Ably using token #{token}"
+        logger.debug { "Performing inline AUTH with Ably using token #{token}" }
         connection.send_protocol_message(
           action: Ably::Models::ProtocolMessage::ACTION.Auth.to_i,
           auth: { access_token: token.token }

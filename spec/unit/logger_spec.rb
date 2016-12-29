@@ -18,7 +18,9 @@ describe Ably::Logger do
 
   context 'internals', :api_private do
     it 'delegates to the logger object' do
-      expect(subject.logger).to receive(:warn).with('message')
+      expect(subject.logger).to receive(:warn) do |*args, &block|
+        expect(args.concat([block ? block.call : nil]).join(',')).to match(/message/)
+      end
       subject.warn 'message'
     end
 
@@ -138,8 +140,32 @@ describe Ably::Logger do
       end
 
       it 'delegates log messages to logger', :api_private do
-        expect(custom_logger_object).to receive(:fatal).with('message')
+        expect(custom_logger_object).to receive(:fatal) do |*args, &block|
+          expect(args.concat([block ? block.call : nil]).join(',')).to match(/message/)
+        end
         subject.fatal 'message'
+      end
+    end
+  end
+
+  context 'with blocks', :prevent_log_stubbing do
+    it 'does not call the block unless the log level is met' do
+      log_level_blocks = []
+      subject.warn { log_level_blocks << :warn }
+      subject.info { log_level_blocks << :info }
+      subject.debug { log_level_blocks << :debug }
+      expect(log_level_blocks).to contain_exactly(:warn, :info)
+    end
+
+    context 'with an exception in the logger block' do
+      before do
+        expect(subject.logger).to receive(:error) do |*args, &block|
+        expect(args.concat([block ? block.call : nil]).join(',')).to match(/Raise an error in the block/)
+        end
+      end
+
+      it 'catches the error and continues' do
+        subject.info { raise "Raise an error in the block" }
       end
     end
   end

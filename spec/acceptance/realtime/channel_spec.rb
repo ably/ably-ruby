@@ -1261,7 +1261,9 @@ describe Ably::Realtime::Channel, :event_machine do
 
         it 'logs the error and continues' do
           emitted_exception = false
-          expect(client.logger).to receive(:error).with(/#{exception.message}/)
+          expect(client.logger).to receive(:error) do |*args, &block|
+            expect(args.concat([block ? block.call : nil]).join(',')).to match(/#{exception.message}/)
+          end
           channel.subscribe('click') do |message|
             emitted_exception = true
             raise exception

@@ -781,7 +781,8 @@ describe Ably::Realtime::Connection, :event_machine do
       context 'with a success block that raises an exception' do
         it 'catches the exception and logs the error' do
           connection.on(:connected) do
-            expect(connection.logger).to receive(:error).with(/Forced exception/) do
+            expect(connection.logger).to receive(:error) do |*args, &block|
+              expect(args.concat([block ? block.call : nil]).join(',')).to match(/Forced exception/)
               stop_reactor
             end
             connection.ping { raise 'Forced exception' }
@@ -795,7 +796,8 @@ describe Ably::Realtime::Connection, :event_machine do
         it 'logs a warning' do
           connection.once(:connected) do
             allow(connection).to receive(:defaults).and_return(connection.defaults.merge(realtime_request_timeout: 0.0001))
-            expect(connection.logger).to receive(:warn).with(/Ping timed out/) do
+            expect(connection.logger).to receive(:warn) do |*args, &block|
+              expect(block.call).to match(/Ping timed out/)
               stop_reactor
             end
             connection.ping
@@ -1200,7 +1202,9 @@ describe Ably::Realtime::Connection, :event_machine do
           EventMachine.add_timer(1) { stop_reactor }
         end
 
-        expect(client.logger).to receive(:fatal).with(/Unable to transition/).at_least(:once)
+        expect(client.logger).to receive(:fatal).at_least(:once) do |*args, &block|
+          expect(args.concat([block ? block.call : nil]).join(',')).to match(/Unable to transition/)
+        end
       end
     end
 
@@ -1213,7 +1217,9 @@ describe Ably::Realtime::Connection, :event_machine do
             connection.transport.send(:driver).emit 'message', OpenStruct.new(data: { action: 500 }.to_json)
           end
 
-          expect(client.logger).to receive(:fatal).with(/Invalid Protocol Message/).at_least(:once)
+          expect(client.logger).to receive(:fatal).at_least(:once) do |*args, &block|
+            expect(args.concat([block ? block.call : nil]).join(',')).to match(/Invalid Protocol Message/)
+          end
           connection.on(:failed) do |state_change|
             expect(state_change.reason.message).to match(/Invalid Protocol Message/)
             stop_reactor

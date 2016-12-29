@@ -363,7 +363,9 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
         end
         2.times { |i| EventMachine.add_timer(i.to_f / 5) { channel.publish('event', 'data') } }
 
-        expect(client.logger).to receive(:error).with(/duplicate/) do
+        expect(client.logger).to receive(:error) do |*args, &block|
+          expect(args.concat([block ? block.call : nil]).join(',')).to match(/duplicate/)
+
           EventMachine.add_timer(0.5) do
             expect(messages_received.count).to eql(2)
             stop_reactor
@@ -569,7 +571,8 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
 
         it 'logs a Cipher error (#RTL7e)' do
           unencrypted_channel_client2.attach do
-            expect(other_client.logger).to receive(:error).with(/Message cannot be decrypted/) do
+            expect(other_client.logger).to receive(:error) do |*args, &block|
+              expect(args.concat([block ? block.call : nil]).join(',')).to match(/Message cannot be decrypted/)
               stop_reactor
             end
             encrypted_channel_client1.publish 'example', payload
@@ -598,7 +601,8 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
         it 'emits a Cipher error on the channel (#RTL7e)' do
           encrypted_channel_client2.attach do
             encrypted_channel_client1.publish 'example', payload
-            expect(other_client.logger).to receive(:error).with(/Cipher algorithm [\w-]+ does not match/) do
+            expect(other_client.logger).to receive(:error) do |*args, &block|
+              expect(args.concat([block ? block.call : nil]).join(',')).to match(/Cipher algorithm [\w-]+ does not match/)
               stop_reactor
             end
           end
@@ -628,7 +632,8 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
         it 'emits a Cipher error on the channel' do
           encrypted_channel_client2.attach do
             encrypted_channel_client1.publish 'example', payload
-            expect(other_client.logger).to receive(:error).with(/CipherError decrypting data/) do
+            expect(other_client.logger).to receive(:error) do |*args, &block|
+              expect(args.concat([block ? block.call : nil]).join(',')).to match(/CipherError decrypting data/)
               stop_reactor
             end
           end

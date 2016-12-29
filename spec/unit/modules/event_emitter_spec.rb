@@ -137,7 +137,9 @@ describe Ably::Modules::EventEmitter do
       end
 
       it 'catches exceptions in the provided block, logs the error and continues' do
-        expect(subject.logger).to receive(:error).with(/Intentional exception/)
+        expect(subject.logger).to receive(:error) do |*args, &block|
+          expect(args.concat([block ? block.call : nil]).join(',')).to match(/Intentional exception/)
+        end
         subject.on(:event) { raise 'Intentional exception' }
         subject.emit :event
       end
@@ -152,7 +154,9 @@ describe Ably::Modules::EventEmitter do
       end
 
       it 'catches exceptions in the provided block, logs the error and continues' do
-        expect(subject.logger).to receive(:error).with(/Intentional exception/)
+        expect(subject.logger).to receive(:error) do |*args, &block|
+          expect(args.concat([block ? block.call : nil]).join(',')).to match(/Intentional exception/)
+        end
         subject.on { raise 'Intentional exception' }
         subject.emit :event
       end
@@ -191,7 +195,9 @@ describe Ably::Modules::EventEmitter do
       end
 
       it 'catches exceptions in the provided block, logs the error and continues' do
-        expect(subject.logger).to receive(:error).with(/Intentional exception/)
+        expect(subject.logger).to receive(:error) do |*args, &block|
+          expect(args.concat([block ? block.call : nil]).join(',')).to match(/Intentional exception/)
+        end
         subject.once(:event) { raise 'Intentional exception' }
         subject.emit :event
       end
@@ -214,7 +220,9 @@ describe Ably::Modules::EventEmitter do
       end
 
       it 'catches exceptions in the provided block, logs the error and continues' do
-        expect(subject.logger).to receive(:error).with(/Intentional exception/)
+        expect(subject.logger).to receive(:error) do |*args, &block|
+          expect(args.concat([block ? block.call : nil]).join(',')).to match(/Intentional exception/)
+        end
         subject.once { raise 'Intentional exception' }
         subject.emit :event
       end
