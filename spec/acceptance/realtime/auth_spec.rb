@@ -5,6 +5,14 @@ require 'spec_helper'
 # wrapper around the Ably::Auth object
 #
 describe Ably::Realtime::Auth, :event_machine do
+  def disconnect_transport(connection)
+    if connection.transport
+      connection.transport.close_connection_after_writing
+    else
+      EventMachine.next_tick { disconnect_transport connection }
+    end
+  end
+
   vary_by_protocol do
     let(:default_options) { { key: api_key, environment: environment, protocol: protocol } }
     let(:client_options)  { default_options }
@@ -470,14 +478,6 @@ describe Ably::Realtime::Auth, :event_machine do
           end
 
           context 'when DISCONNECTED' do
-            def disconnect_transport(connection)
-              if connection.transport
-                connection.transport.close_connection_after_writing
-              else
-                EventMachine.next_tick { disconnect_transport connection }
-              end
-            end
-
             it 'obtains a token, upgrades from anonymous to identified, and connects to Ably immediately (#RTC8c, #RTC8b1)' do
               skip "This capability to upgrade from anonymous to identified is not yet implemented, see https://github.com/ably/wiki/issues/182"
 
@@ -579,11 +579,9 @@ describe Ably::Realtime::Auth, :event_machine do
                 end
 
                 connection.on(:connecting) do
-                  EventMachine.add_timer(0.01) do
-                    connection.transport.close_connection_after_writing unless been_suspended
-                  end
+                  disconnect_transport connection unless been_suspended
                 end
-                connection.transport.close_connection_after_writing
+                disconnect_transport connection
               end
             end
           end
@@ -753,9 +751,11 @@ describe Ably::Realtime::Auth, :event_machine do
       end
 
       context 'when received' do
-        # Ably in all environments other than production will send AUTH 5 seconds before expiry, so
-        # set TTL to 8s and wait (3s window)
-        let(:client_options) { default_options.merge(use_token_auth: :true, token_params: { ttl: 8 }) }
+        # Ably in all environments other than locla will send AUTH 30 seconds before expiry
+        # We set the TTL to 33s and wait (3s window)
+        # In local env, that window is 5 seconds instead of 30 seconds
+        let(:local_offset) { ENV['ABLY_ENV'] == 'local' ? 25 : 0 }
+        let(:client_options) { default_options.merge(use_token_auth: :true, token_params: { ttl: 33 - local_offset }) }
 
         it 'should immediately start a new authentication process (#RTN22)' do
           client.connection.once(:connected) do
@@ -1017,7 +1017,7 @@ describe Ably::Realtime::Auth, :event_machine do
     end
 
     context 'deprecated #authorise' do
-      let(:client_options)  { default_options.merge(key: api_key, logger: custom_logger_object) }
+      let(:client_options)  { default_options.merge(key: api_key, logger: custom_logger_object, use_token_auth: true) }
       let(:custom_logger) do
         Class.new do
           def initialize

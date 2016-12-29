@@ -18,7 +18,6 @@ module Ably::Realtime
       def initialize(connection)
         @connection     = connection
         @timers         = Hash.new { |hash, key| hash[key] = [] }
-        @renewing_token = false
 
         connection.unsafe_on(:closed) do
           connection.reset_resume_info
@@ -199,7 +198,7 @@ module Ably::Realtime
       # @api private
       def respond_to_transport_disconnected_when_connecting(error)
         return unless connection.disconnected? || connection.suspended? # do nothing if state has changed through an explicit request
-        return unless can_retry_connection? # do not always reattempt connection or change state as client may be re-authorising
+        return if currently_renewing_token? # do not always reattempt connection or change state as client may be re-authorising
 
         if error.kind_of?(Ably::Models::ErrorInfo)
           if RESOLVABLE_ERROR_CODES.fetch(:token_expired).include?(error.code)
@@ -504,31 +503,17 @@ module Ably::Realtime
 
       def renew_token_and_reconnect(error)
         if client.auth.token_renewable?
-          if @renewing_token
+          if currently_renewing_token?
             logger.error { 'ConnectionManager: Attempting to renew token whilst another token renewal is underway. Aborting current renew token request' }
             return
           end
 
-          @renewing_token = true
           logger.info { "ConnectionManager: Token has expired and is renewable, renewing token now" }
 
+          # Authorize implicitly reconnects, see #RTC8
           client.auth.authorize.tap do |authorize_deferrable|
             authorize_deferrable.callback do |token_details|
               logger.info { 'ConnectionManager: Token renewed succesfully following expiration' }
-
-              connection.once_state_changed { @renewing_token = false }
-
-              if token_details && !token_details.expired?
-                connection.connect
-              else
-                connection.transition_state_machine :failed, reason: error unless connection.failed?
-              end
-            end
-
-            authorize_deferrable.errback do |auth_error|
-              @renewing_token = false
-              logger.error { "ConnectionManager: Error authorising following token expiry: #{auth_error}" }
-              connection.transition_state_machine :failed, reason: auth_error
             end
           end
         else
@@ -549,8 +534,8 @@ module Ably::Realtime
         end
       end
 
-      def can_retry_connection?
-        !@renewing_token
+      def currently_renewing_token?
+        client.auth.authorization_in_flight?
       end
 
       def reattach_suspended_channels(error)

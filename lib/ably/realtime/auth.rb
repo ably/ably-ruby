@@ -73,7 +73,7 @@ module Ably
         Ably::Util::SafeDeferrable.new(logger).tap do |authorize_method_deferrable|
           # Wrap the sync authorize method and wait for the result from the deferrable
           async_wrap do
-            auth_sync.authorize(token_params, auth_options)
+            authorize_sync(token_params, auth_options)
           end.tap do |auth_operation|
             # Authorize operation succeeded and we have a new token, now let's perform inline authentication
             auth_operation.callback do |token|
@@ -133,7 +133,15 @@ module Ably
       # @return [Ably::Models::TokenDetails]
       #
       def authorize_sync(token_params = nil, auth_options = nil)
+        @authorization_in_flight = true
         auth_sync.authorize(token_params, auth_options)
+      ensure
+        @authorization_in_flight = false
+      end
+
+      # @api private
+      def authorization_in_flight?
+        @authorization_in_flight
       end
 
       # @deprecated Use {#authorize_sync} instead

@@ -1303,7 +1303,7 @@ describe Ably::Auth do
     end
 
     context 'deprecated #authorise' do
-      let(:client_options)  { default_options.merge(key: api_key, logger: custom_logger_object) }
+      let(:client_options)  { default_options.merge(key: api_key, logger: custom_logger_object, use_token_auth: true) }
       let(:custom_logger) do
         Class.new do
           def initialize
