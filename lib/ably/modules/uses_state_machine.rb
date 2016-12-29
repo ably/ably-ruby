@@ -67,9 +67,9 @@ module Ably::Modules
 
     def log_state_machine_state_change
       if state_machine.previous_state
-        logger.debug "#{self.class.name}: Transitioned from #{state_machine.previous_state} => #{state_machine.current_state}"
+        logger.debug { "#{self.class.name}: Transitioned from #{state_machine.previous_state} => #{state_machine.current_state}" }
       else
-        logger.debug "#{self.class.name}: Transitioned to #{state_machine.current_state}"
+        logger.debug { "#{self.class.name}: Transitioned to #{state_machine.current_state}" }
       end
     end
 

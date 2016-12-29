@@ -27,7 +27,7 @@ module Ably::Realtime
 
       def get_channel(channel_name)
         channels.fetch(channel_name) do
-          logger.warn "Received channel message for non-existent channel"
+          logger.warn { "Received channel message for non-existent channel" }
           Ably::Realtime::Models::NilChannel.new
         end
       end
@@ -44,7 +44,7 @@ module Ably::Realtime
         end
 
         unless protocol_message.action.match_any?(:nack, :error)
-          logger.debug "#{protocol_message.action} received: #{protocol_message}"
+          logger.debug { "#{protocol_message.action} received: #{protocol_message}" }
         end
 
         if protocol_message.action.match_any?(:sync, :presence, :message)
@@ -63,15 +63,15 @@ module Ably::Realtime
             ack_pending_queue_for_message_serial(protocol_message) if protocol_message.has_message_serial?
 
           when ACTION.Nack
-            logger.warn "NACK received: #{protocol_message}"
+            logger.warn { "NACK received: #{protocol_message}" }
             nack_pending_queue_for_message_serial(protocol_message) if protocol_message.has_message_serial?
 
           when ACTION.Connect
           when ACTION.Connected
             if connection.disconnected? || connection.closing? || connection.closed? || connection.failed?
-              logger.warn "Out-of-order incoming CONNECTED ProtocolMessage discarded as connection has moved on and is in state: #{connection.state}"
+              logger.warn { "Out-of-order incoming CONNECTED ProtocolMessage discarded as connection has moved on and is in state: #{connection.state}" }
             elsif connection.connected?
-              logger.debug "Updated CONNECTED ProtocolMessage received (whilst connected)"
+              logger.debug { "Updated CONNECTED ProtocolMessage received (whilst connected)" }
               process_connected_update_message protocol_message
             else
               process_connected_message protocol_message
@@ -138,11 +138,11 @@ module Ably::Realtime
       end
 
       def dispatch_channel_error(protocol_message)
-        logger.warn "Channel Error message received: #{protocol_message.error}"
+        logger.warn { "Channel Error message received: #{protocol_message.error}" }
         if !protocol_message.has_message_serial?
           get_channel(protocol_message.channel).transition_state_machine :failed, reason: protocol_message.error
         else
-          logger.fatal "Cannot process ProtocolMessage ERROR with message serial as not yet implemented: #{protocol_message}"
+          logger.fatal { "Cannot process ProtocolMessage ERROR with message serial as not yet implemented: #{protocol_message}" }
         end
       end
 
@@ -188,14 +188,14 @@ module Ably::Realtime
 
       def ack_messages(messages)
         messages.each do |message|
-          logger.debug "Calling ACK success callbacks for #{message.class.name} - #{message.to_json}"
+          logger.debug { "Calling ACK success callbacks for #{message.class.name} - #{message.to_json}" }
           message.succeed message
         end
       end
 
       def nack_messages(messages, protocol_message)
         messages.each do |message|
-          logger.debug "Calling NACK failure callbacks for #{message.class.name} - #{message.to_json}, protocol message: #{protocol_message}"
+          logger.debug { "Calling NACK failure callbacks for #{message.class.name} - #{message.to_json}, protocol message: #{protocol_message}" }
           message.fail protocol_message.error
         end
       end

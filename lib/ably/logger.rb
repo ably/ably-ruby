@@ -34,7 +34,16 @@ module Ably
     # @return {Integer}
     attr_reader :log_level
 
-    def_delegators :logger, :fatal, :error, :warn, :info, :debug
+    # Catch exceptiosn in blocks passed to the logger, log the error and continue
+    %w(fatal error warn info debug).each do |method_name|
+      define_method(method_name) do |*args, &block|
+        begin
+          logger.public_send(method_name, *args, &block)
+        rescue StandardError => e
+          logger.error "Logger: Failed to log #{method_name} block - #{e.class}: #{e.message}\n#{e.backtrace.join("\n")}"
+        end
+      end
+    end
 
     private
     def client

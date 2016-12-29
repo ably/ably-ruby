@@ -90,7 +90,7 @@ module Ably
       def decode_message(presence_message)
         presence_message.decode client.encoders, channel.options
       rescue Ably::Exceptions::CipherError, Ably::Exceptions::EncoderError => e
-        client.logger.error "Decoding Error on presence channel '#{channel.name}', presence message client_id '#{presence_message.client_id}'. #{e.class.name}: #{e.message}"
+        client.logger.error { "Decoding Error on presence channel '#{channel.name}', presence message client_id '#{presence_message.client_id}'. #{e.class.name}: #{e.message}" }
       end
     end
   end

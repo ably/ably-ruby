@@ -206,7 +206,7 @@ module Ably::Realtime
         return unless ensure_presence_message_is_valid(presence_message)
 
         unless should_update_member?(presence_message)
-          logger.debug "#{self.class.name}: Skipped presence member #{presence_message.action} on channel #{presence.channel.name}.\n#{presence_message.to_json}"
+          logger.debug { "#{self.class.name}: Skipped presence member #{presence_message.action} on channel #{presence.channel.name}.\n#{presence_message.to_json}" }
           return
         end
 
@@ -224,7 +224,7 @@ module Ably::Realtime
         return true if presence_message.connection_id
 
         error = Ably::Exceptions::ProtocolError.new("Protocol error, presence message is missing connectionId", 400, 80013)
-        logger.error "PresenceMap: On channel '#{channel.name}' error: #{error}"
+        logger.error { "PresenceMap: On channel '#{channel.name}' error: #{error}" }
       end
 
       # If the message received is older than the last known event for presence
@@ -244,13 +244,13 @@ module Ably::Realtime
       end
 
       def add_presence_member(presence_message)
-        logger.debug "#{self.class.name}: Member '#{presence_message.member_key}' for event '#{presence_message.action}' #{members.has_key?(presence_message.member_key) ? 'updated' : 'added'}.\n#{presence_message.to_json}"
+        logger.debug { "#{self.class.name}: Member '#{presence_message.member_key}' for event '#{presence_message.action}' #{members.has_key?(presence_message.member_key) ? 'updated' : 'added'}.\n#{presence_message.to_json}" }
         members[presence_message.member_key] = { present: true, message: presence_message }
         presence.emit_message presence_message.action, presence_message
       end
 
       def remove_presence_member(presence_message)
-        logger.debug "#{self.class.name}: Member '#{presence_message.member_key}' removed.\n#{presence_message.to_json}"
+        logger.debug { "#{self.class.name}: Member '#{presence_message.member_key}' removed.\n#{presence_message.to_json}" }
 
         if in_sync?
           members.delete presence_message.member_key

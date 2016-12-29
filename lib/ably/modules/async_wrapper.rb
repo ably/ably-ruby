@@ -51,7 +51,7 @@ module Ably::Modules
             if custom_error_handling
               custom_error_handling.call err, deferrable
             else
-              logger.error "An exception in an AsyncWrapper block was caught. #{err.class}: #{err.message}\n#{err.backtrace.join("\n")}"
+              logger.error { "An exception in an AsyncWrapper block was caught. #{err.class}: #{err.message}\n#{err.backtrace.join("\n")}" }
               deferrable.fail err
             end
           end

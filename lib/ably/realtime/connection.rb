@@ -245,7 +245,7 @@ module Ably
           next if finished
           finished = true
           __incoming_protocol_msgbus__.unsubscribe(:protocol_message, &wait_for_ping)
-          logger.warn "Ping timed out after #{defaults.fetch(:realtime_request_timeout)}s"
+          logger.warn { "Ping timed out after #{defaults.fetch(:realtime_request_timeout)}s" }
           safe_yield block, nil if block_given?
         end
       end
@@ -373,7 +373,7 @@ module Ably
           Ably::Models::ProtocolMessage.new(protocol_message, logger: logger).tap do |message|
             add_message_to_outgoing_queue message
             notify_message_dispatcher_of_new_message message
-            logger.debug("Connection: Prot msg queued =>: #{message.action} #{message}")
+            logger.debug { "Connection: Prot msg queued =>: #{message.action} #{message}" }
           end
         end
       end
@@ -409,10 +409,10 @@ module Ably
 
               if connection_resumable?
                 url_params.merge! resume: key, connection_serial: serial
-                logger.debug "Resuming connection key #{key} with serial #{serial}"
+                logger.debug { "Resuming connection key #{key} with serial #{serial}" }
               elsif connection_recoverable?
                 url_params.merge! recover: connection_recover_parts[:recover], connection_serial: connection_recover_parts[:connection_serial]
-                logger.debug "Recovering connection with key #{client.recover}"
+                logger.debug { "Recovering connection with key #{client.recover}" }
                 once(:connected, :closed, :failed) do
                   client.disable_automatic_connection_recovery
                 end
@@ -424,7 +424,7 @@ module Ably
 
               determine_host do |host|
                 begin
-                  logger.debug "Connection: Opening socket connection to #{host}:#{port}/#{url.path}?#{url.query}"
+                  logger.debug { "Connection: Opening socket connection to #{host}:#{port}/#{url.path}?#{url.query}" }
                   @transport = create_transport(host, port, url) do |websocket_transport|
                     websocket_deferrable.succeed websocket_transport
                   end

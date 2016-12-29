@@ -258,7 +258,8 @@ describe Ably::Realtime::Presence, :event_machine do
 
       it 'catches exceptions in the provided method block and logs them to the logger' do
         setup_test(method_name, args, options) do
-          expect(presence_client_one.logger).to receive(:error).with(/Intentional exception/) do
+          expect(presence_client_one.logger).to receive(:error) do |*args, &block|
+            expect(args.concat([block ? block.call : nil]).join(',')).to match(/Intentional exception/)
             stop_reactor
           end
           presence_client_one.public_send(method_name, args) { raise 'Intentional exception' }
@@ -1193,7 +1194,8 @@ describe Ably::Realtime::Presence, :event_machine do
       end
 
       it 'catches exceptions in the provided method block' do
-        expect(presence_client_one.logger).to receive(:error).with(/Intentional exception/) do
+        expect(presence_client_one.logger).to receive(:error) do |*args, &block|
+          expect(args.concat([block ? block.call : nil]).join(',')).to match(/Intentional exception/)
           stop_reactor
         end
         presence_client_one.get { raise 'Intentional exception' }
@@ -1469,7 +1471,9 @@ describe Ably::Realtime::Presence, :event_machine do
 
         it 'logs the error and continues' do
           emitted_exception = false
-          expect(client_one.logger).to receive(:error).with(/#{exception.message}/)
+          expect(client_one.logger).to receive(:error) do |*args, &block|
+            expect(args.concat([block ? block.call : nil]).join(',')).to match(/#{exception.message}/)
+          end
           presence_client_one.subscribe do |presence_message|
             emitted_exception = true
             raise exception
@@ -1696,7 +1700,8 @@ describe Ably::Realtime::Presence, :event_machine do
 
         it 'emits an error when cipher does not match and presence data cannot be decoded' do
           incompatible_encrypted_channel.attach do
-            expect(client_two.logger).to receive(:error).with(/Cipher algorithm AES-128-CBC does not match/) do
+            expect(client_two.logger).to receive(:error) do |*args, &block|
+              expect(args.concat([block ? block.call : nil]).join(',')).to match(/Cipher algorithm AES-128-CBC does not match/)
               stop_reactor
             end
 

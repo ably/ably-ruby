@@ -20,7 +20,9 @@ shared_examples 'a safe Deferrable' do
     end
 
     it 'catches exceptions in the callback and logs the error to the logger' do
-      expect(subject.send(:logger)).to receive(:error).with(/#{exception.message}/)
+      expect(subject.send(:logger)).to receive(:error) do |*args, &block|
+        expect(args.concat([block ? block.call : nil]).join(',')).to match(/#{exception.message}/)
+      end
       subject.errback do
         raise exception
       end
@@ -49,7 +51,9 @@ shared_examples 'a safe Deferrable' do
     end
 
     it 'catches exceptions in the callback and logs the error to the logger' do
-      expect(subject.send(:logger)).to receive(:error).with(/#{exception.message}/)
+      expect(subject.send(:logger)).to receive(:error) do |*args, &block|
+        expect(args.concat([block ? block.call : nil]).join(',')).to match(/#{exception.message}/)
+      end
       subject.callback do
         raise exception
       end
