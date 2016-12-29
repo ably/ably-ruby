@@ -20,7 +20,7 @@ module Ably::Realtime
         state state_enum.to_sym, initial: index == 0
       end
 
-      transition :from => :initialized,  :to => [:attaching]
+      transition :from => :initialized,  :to => [:attaching, :failed]
       transition :from => :attaching,    :to => [:attached, :detaching, :failed, :suspended]
       transition :from => :attached,     :to => [:attaching, :detaching, :detached, :failed, :suspended]
       transition :from => :detaching,    :to => [:detached, :attaching, :attached, :failed, :suspended]
@@ -49,6 +49,10 @@ module Ably::Realtime
         err = error_from_state_change(current_transition)
         channel.manager.fail_queued_messages err
         channel.manager.log_channel_error err if err
+      end
+
+      after_transition(to: [:suspended]) do |channel, current_transition|
+        channel.manager.start_attach_from_suspended_timer
       end
 
       # Transitions responsible for updating channel#error_reason

@@ -74,6 +74,18 @@ module Ably::Realtime
         end
       end
 
+      # Handle DETACED messages, see #RTL13 for server-initated detaches
+      def detached_received(reason)
+        case channel.state.to_sym
+        when :detaching
+          channel.transition_state_machine :detached, reason: reason
+        when :attached, :suspended
+          channel.transition_state_machine :attaching, reason: reason
+        else
+          logger.debug "ChannelManager: DETACHED ProtocolMessage received, but no action to take as not DETACHING, ATTACHED OR SUSPENDED"
+        end
+      end
+
       # When continuity on the connection is interrupted or channel becomes suspended (implying loss of continuity)
       # then all messages published but awaiting an ACK from Ably should be failed with a NACK
       # @param [Hash] options
@@ -140,6 +152,20 @@ module Ably::Realtime
         end
       end
 
+      # If the connection is still connected and the channel still suspended after
+      # channel_retry_timeout has passed, then attempt to reattach automatically, see #RTL13b
+      def start_attach_from_suspended_timer
+        cancel_attach_from_suspended_timer
+        if connection.connected?
+          channel.once { |event| cancel_attach_from_suspended_timer unless event == :update }
+          connection.once { |event| cancel_attach_from_suspended_timer unless event == :update }
+
+          @attach_from_suspended_timer = EventMachine::Timer.new(channel_retry_timeout) do
+            channel.transition_state_machine! :attaching
+          end
+        end
+      end
+
       private
       attr_reader :pending_state_change_timer
 
@@ -153,6 +179,11 @@ module Ably::Realtime
 
       def_delegators :channel, :can_transition_to?
 
+      def cancel_attach_from_suspended_timer
+        @attach_from_suspended_timer.cancel if @attach_from_suspended_timer
+        @attach_from_suspended_timer = nil
+      end
+
       # If the connection has not previously connected, connect now
       def connect_if_connection_initialized
         connection.connect if connection.initialized?
@@ -160,6 +191,10 @@ module Ably::Realtime
 
       def realtime_request_timeout
         connection.defaults.fetch(:realtime_request_timeout)
+      end
+
+      def channel_retry_timeout
+        connection.defaults.fetch(:channel_retry_timeout)
       end
 
       def send_attach_protocol_message
@@ -180,7 +215,7 @@ module Ably::Realtime
         end
 
         channel.once_state_changed do
-          pending_state_change_timer.cancel
+          @pending_state_change_timer.cancel if @pending_state_change_timer
           @pending_state_change_timer = nil
         end
 

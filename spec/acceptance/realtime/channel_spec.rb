@@ -1925,5 +1925,145 @@ describe Ably::Realtime::Channel, :event_machine do
         end
       end
     end
+
+    context 'when it receives a server-initiated DETACHED (#RTL13)' do
+      let(:detached_action) { 13 }
+
+      context 'and channel is initialized (#RTL13)' do
+        it 'does nothing' do
+          connection.once(:connected) do
+            channel.on { raise 'Channel state should not change' }
+
+            detach_message = Ably::Models::ProtocolMessage.new(action: detached_action, channel: channel_name)
+            client.connection.__incoming_protocol_msgbus__.publish :protocol_message, detach_message
+
+            EventMachine.add_timer(1) { stop_reactor }
+          end
+        end
+      end
+
+      context 'and channel is failed' do
+        let(:client_options) {
+          default_options.merge(
+            use_token_auth: true,
+            token_params: { capability: { "foo" => ["publish"] } },
+            log_level: :fatal
+          )
+        }
+
+        it 'does nothing (#RTL13)' do
+          connection.once(:connected) do
+            channel.attach
+            channel.once(:failed) do
+              channel.on { raise 'Channel state should not change' }
+
+              detach_message = Ably::Models::ProtocolMessage.new(action: detached_action, channel: channel_name)
+              client.connection.__incoming_protocol_msgbus__.publish :protocol_message, detach_message
+
+              EventMachine.add_timer(1) { stop_reactor }
+            end
+          end
+        end
+      end
+
+      context 'and channel is attached' do
+        it 'reattaches immediately (#RTL13a)' do
+          channel.attach do
+            channel.once(:attaching) do |state_change|
+              expect(state_change.reason.code).to eql(50505)
+              channel.once(:attached) do
+                stop_reactor
+              end
+            end
+
+            detach_message = Ably::Models::ProtocolMessage.new(action: detached_action, channel: channel_name, error: { code: 50505 })
+            client.connection.__incoming_protocol_msgbus__.publish :protocol_message, detach_message
+          end
+        end
+      end
+
+      context 'and channel is suspended' do
+        it 'reattaches immediately (#RTL13a)' do
+          channel.attach do
+            channel.once(:suspended) do
+              channel.once(:attaching) do |state_change|
+                expect(state_change.reason.code).to eql(50505)
+                channel.once(:attached) do
+                  stop_reactor
+                end
+              end
+
+              detach_message = Ably::Models::ProtocolMessage.new(action: detached_action, channel: channel_name, error: { code: 50505 })
+              client.connection.__incoming_protocol_msgbus__.publish :protocol_message, detach_message
+            end
+
+            channel.transition_state_machine! :suspended
+          end
+        end
+      end
+
+      context 'and channel is attaching' do
+        let(:client_options) { default_options.merge(channel_retry_timeout: 2, realtime_request_timeout: 1, log_level: :fatal) }
+
+        it 'will move to the SUSPENDED state and then attempt to ATTACH with the ATTACHING state (#RTL13b)' do
+          connection.once(:connected) do
+            # Prevent any incoming or outgoing ATTACH/ATTACHED message from Ably
+            prevent_protocol_messages_proc = Proc.new do
+              if client.connection.transport
+                client.connection.transport.__incoming_protocol_msgbus__.unsubscribe
+                client.connection.transport.__outgoing_protocol_msgbus__.unsubscribe
+              else
+                EventMachine.next_tick { prevent_protocol_messages_proc.call }
+              end
+            end
+            prevent_protocol_messages_proc.call
+          end
+
+          channel.once(:attaching) do
+            attaching_at = Time.now
+            # First attaching fails during server-initiated ATTACHED received
+            channel.once(:suspended) do |state_change|
+              expect(Time.now.to_i - attaching_at.to_i).to be_within(1).of(1)
+
+              suspended_at = Time.now
+              # Automatic attach happens at channel_retry_timeout
+              channel.once(:attaching) do
+                expect(Time.now.to_i - attaching_at.to_i).to be_within(1).of(2)
+                channel.once(:suspended) do
+                  channel.once(:attaching) do
+                    channel.once(:attached) do
+                      stop_reactor
+                    end
+                    # Simulate ATTACHED from Ably
+                    attached_message = Ably::Models::ProtocolMessage.new(action: 11, channel: channel_name) # ATTACHED
+                    client.connection.__incoming_protocol_msgbus__.publish :protocol_message, attached_message
+                  end
+                end
+              end
+            end
+
+            detach_message = Ably::Models::ProtocolMessage.new(action: detached_action, channel: channel_name)
+            client.connection.__incoming_protocol_msgbus__.publish :protocol_message, detach_message
+          end
+          channel.attach
+        end
+      end
+    end
+
+    context 'when it receives an ERROR ProtocolMessage' do
+      let(:client_options) { default_options.merge(log_level: :fatal) }
+
+      it 'should transition to the failed state and the error_reason should be set (#RTL14)' do
+        channel.attach do
+          channel.once(:failed) do |state_change|
+            expect(state_change.reason.code).to eql(50505)
+            expect(channel.error_reason.code).to eql(50505)
+            stop_reactor
+          end
+          error_message = Ably::Models::ProtocolMessage.new(action: 9, channel: channel_name, error: { code: 50505 }) # ProtocolMessage ERROR type
+          client.connection.__incoming_protocol_msgbus__.publish :protocol_message, error_message
+        end
+      end
+    end
   end
 end

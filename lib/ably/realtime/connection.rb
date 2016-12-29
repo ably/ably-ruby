@@ -68,6 +68,7 @@ module Ably
 
       # Defaults for automatic connection recovery and timeouts
       DEFAULTS = {
+        channel_retry_timeout:      15, # when a channel becomes SUSPENDED, after this delay in seconds, the channel will automatically attempt to reattach if the connection is CONNECTED
         disconnected_retry_timeout: 15, # when the connection enters the DISCONNECTED state, after this delay in milliseconds, if the state is still DISCONNECTED, the client library will attempt to reconnect automatically
         suspended_retry_timeout:    30, # when the connection enters the SUSPENDED state, after this delay in milliseconds, if the state is still SUSPENDED, the client library will attempt to reconnect automatically
         connection_state_ttl:       120, # the duration that Ably will persist the connection state when a Realtime client is abruptly disconnected

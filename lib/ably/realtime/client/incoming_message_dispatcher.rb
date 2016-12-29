@@ -104,7 +104,7 @@ module Ably::Realtime
           when ACTION.Detach
           when ACTION.Detached
             get_channel(protocol_message.channel).tap do |channel|
-              channel.transition_state_machine :detached unless channel.detached?
+              channel.manager.detached_received protocol_message.error
             end
 
           when ACTION.Sync
@@ -142,7 +142,7 @@ module Ably::Realtime
         if !protocol_message.has_message_serial?
           get_channel(protocol_message.channel).transition_state_machine :failed, reason: protocol_message.error
         else
-          logger.fatal "Cannot process ProtocolMessage as not yet implemented: #{protocol_message}"
+          logger.fatal "Cannot process ProtocolMessage ERROR with message serial as not yet implemented: #{protocol_message}"
         end
       end
 
