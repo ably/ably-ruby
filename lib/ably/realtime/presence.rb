@@ -242,9 +242,8 @@ module Ably::Realtime
     # @return [void]
     #
     def subscribe(*actions, &callback)
-      ensure_channel_attached do
-        super
-      end
+      implicit_attach
+      super
     end
 
     # Unsubscribe the matching block for presence events on the associated Channel.
@@ -351,7 +350,7 @@ module Ably::Realtime
       if channel.attached?
         yield
       else
-        attach_channel_then { yield }
+        attach_channel_then(deferrable) { yield }
       end
       deferrable
     end
@@ -411,13 +410,23 @@ module Ably::Realtime
       end
     end
 
-    def attach_channel_then
+    def attach_channel_then(deferrable)
       if channel.detached? || channel.failed?
-        raise Ably::Exceptions::InvalidStateChange.new("Operation is not allowed when channel is in #{channel.state}", 400, 91001)
+        deferrable.fail Ably::Exceptions::InvalidState.new("Operation is not allowed when channel is in #{channel.state}", 400, 91001)
       else
-        channel.unsafe_once(Channel::STATE.Attached) { yield }
+        channel.unsafe_once(:attached, :detached, :failed) do |channel_state_change|
+          if channel_state_change.current == :attached
+            yield
+          else
+            deferrable.fail Ably::Exceptions::InvalidState.new("Operation failed as channel transitioned to #{channel_state_change.current}", 400, 91001)
+          end
+        end
         channel.attach
       end
+    end
+
+    def implicit_attach
+      channel.attach if channel.initialized?
     end
 
     def client
