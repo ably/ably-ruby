@@ -220,7 +220,7 @@ module Ably::Realtime
     def get(options = {}, &block)
       deferrable = create_deferrable
 
-      ensure_channel_attached(deferrable) do
+      ensure_channel_attached(deferrable, allow_suspended: true) do
         members.get(options).tap do |members_map_deferrable|
           members_map_deferrable.callback do |members|
             safe_yield(block, members) if block_given?
@@ -346,8 +346,10 @@ module Ably::Realtime
       end
     end
 
-    def ensure_channel_attached(deferrable = nil)
+    def ensure_channel_attached(deferrable = nil, options = {})
       if channel.attached?
+        yield
+      elsif options[:allow_suspended] && channel.suspended?
         yield
       else
         attach_channel_then(deferrable) { yield }
