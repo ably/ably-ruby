@@ -78,7 +78,7 @@ module Ably::Realtime
       # @return [Ably::Util::SafeDeferrable] Deferrable that supports both success (callback) and failure (errback) callbacks
       #
       def get(options = {}, &block)
-        wait_for_sync = options.fetch(:wait_for_sync, false)
+        wait_for_sync = options.fetch(:wait_for_sync, true)
         deferrable    = Ably::Util::SafeDeferrable.new(logger)
 
         result_block = proc do

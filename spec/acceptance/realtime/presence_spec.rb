@@ -417,7 +417,7 @@ describe Ably::Realtime::Presence, :event_machine do
 
             presence_anonymous_client.get do |members|
               expect(members.first.client_id).to eql(client_one.client_id)
-              expect(members.first.action).to eq(:enter)
+              expect(members.first.action).to eq(:present)
 
               presence_anonymous_client.subscribe(:leave) do |leave_presence_message|
                 expect(leave_presence_message.client_id).to eql(client_one.client_id)
@@ -498,7 +498,7 @@ describe Ably::Realtime::Presence, :event_machine do
 
         it 'ensures uniqueness from this member_key (#RTP2a)' do
           channel_anonymous_client.attach do
-            presence_anonymous_client.get(wait_for_sync: true) do |members|
+            presence_anonymous_client.get do |members|
               expect(members.length).to eql(0)
 
               ## Fabricate members
@@ -583,7 +583,7 @@ describe Ably::Realtime::Presence, :event_machine do
                 end
               end
 
-              presence_anonymous_client.get(wait_for_sync: true) do |members|
+              presence_anonymous_client.get do |members|
                 expect(members.length).to eql(page_size + 2)
                 expect(members.find { |member| member.client_id == 'a' }).to be_nil
                 expect(members.find { |member| member.client_id == 'b' }.timestamp.to_i).to eql(now / 1000)
@@ -666,7 +666,7 @@ describe Ably::Realtime::Presence, :event_machine do
           presence_client_one.enter do
             channel_anonymous_client.attach do
               expect(channel_anonymous_client.presence).to_not be_sync_complete
-              channel_anonymous_client.presence.get(wait_for_sync: true) do
+              channel_anonymous_client.presence.get do
                 expect(channel_anonymous_client.presence).to be_sync_complete
                 EventMachine.next_tick do
                   expect(flag_checked).to eql(true)
@@ -728,7 +728,7 @@ describe Ably::Realtime::Presence, :event_machine do
                     member_entered = true
                   end
 
-                  presence_anonymous_client.get(wait_for_sync: true) do |members|
+                  presence_anonymous_client.get do |members|
                     expect(members.find { |member| member.client_id == enter_client_id }.action).to eq(:present)
                     stop_reactor
                   end
@@ -841,7 +841,7 @@ describe Ably::Realtime::Presence, :event_machine do
               end
             end
 
-            it 'does not emit :present after the :leave event has been emitted, and that member is not included in the list of members via #get with :wait_for_sync (#RTP2f)' do
+            it 'does not emit :present after the :leave event has been emitted, and that member is not included in the list of members via #get (#RTP2f)' do
               left_client = 10
               left_client_id = "client:#{left_client}"
 
@@ -863,7 +863,7 @@ describe Ably::Realtime::Presence, :event_machine do
                   member_left_emitted = true
                 end
 
-                presence_anonymous_client.get(wait_for_sync: true) do |members|
+                presence_anonymous_client.get do |members|
                   expect(members.count).to eql(enter_expected_count - 1)
                   expect(member_left_emitted).to eql(true)
                   expect(members.map(&:client_id)).to_not include(left_client_id)
@@ -890,15 +890,15 @@ describe Ably::Realtime::Presence, :event_machine do
           end
 
           context '#get' do
-            context 'with :wait_for_sync option set to true' do
-              it 'waits until sync is complete', em_timeout: 30 do # allow for slow connections and lots of messages
+            context 'by default' do
+              it 'waits until sync is complete (#RTP11c1)', em_timeout: 30 do # allow for slow connections and lots of messages
                 enter_expected_count.times do |indx|
                   EventMachine.add_timer(indx / 10) do
                     presence_client_one.enter_client("client:#{indx}") do |message|
                       entered << message
                       next unless entered.count == enter_expected_count
 
-                      presence_anonymous_client.get(wait_for_sync: true) do |members|
+                      presence_anonymous_client.get do |members|
                         expect(members.map(&:client_id).uniq.count).to eql(enter_expected_count)
                         expect(members.count).to eql(enter_expected_count)
                         stop_reactor
@@ -909,7 +909,7 @@ describe Ably::Realtime::Presence, :event_machine do
               end
             end
 
-            context 'by default' do
+            context 'with :wait_for_sync option set to false (#RTP11c1)' do
               it 'it does not wait for sync', em_timeout: 30 do # allow for slow connections and lots of messages
                 enter_expected_count.times do |indx|
                   EventMachine.add_timer(indx / 10) do
@@ -918,7 +918,7 @@ describe Ably::Realtime::Presence, :event_machine do
                       next unless entered.count == enter_expected_count
 
                       channel_anonymous_client.attach do
-                        presence_anonymous_client.get do |members|
+                        presence_anonymous_client.get(wait_for_sync: false) do |members|
                           expect(presence_anonymous_client.members).to_not be_in_sync
                           expect(members.count).to eql(0)
                           stop_reactor
