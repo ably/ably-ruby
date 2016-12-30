@@ -33,6 +33,11 @@ module Ably::Realtime
         @members  = Hash.new
         @absent_member_cleanup_queue = []
 
+        # Each SYNC session has a unique ID so that following SYNC
+        # any members present in the map without this session ID are
+        # not present according to Ably, see #RTP19
+        @sync_session_id = -1
+
         setup_event_handlers
       end
 
@@ -140,6 +145,8 @@ module Ably::Realtime
       end
 
       private
+      attr_reader :sync_session_id
+
       def members
         @members
       end
@@ -183,6 +190,8 @@ module Ably::Realtime
         resume_sync_proc = method(:resume_sync).to_proc
 
         on(:sync_starting) do
+          @sync_session_id += 1
+
           channel.once(:attached) do
             connection.on_resume(&resume_sync_proc)
           end
@@ -193,6 +202,7 @@ module Ably::Realtime
 
           once(:in_sync) do
             clean_up_absent_members
+            clean_up_members_not_present_in_sync
           end
         end
       end
@@ -276,7 +286,7 @@ module Ably::Realtime
         logger.debug { "#{self.class.name}: Member '#{presence_message.member_key}' for event '#{presence_message.action}' #{members.has_key?(presence_message.member_key) ? 'updated' : 'added'}.\n#{presence_message.to_json}" }
         # Mutate the PresenceMessage so that the action is :present, see #RTP2d
         present_presence_message = presence_message.shallow_clone(action: Ably::Models::PresenceMessage::ACTION.Present)
-        members[presence_message.member_key] = { present: true, message: present_presence_message }
+        members[presence_message.member_key] = { present: true, message: present_presence_message, sync_session_id: sync_session_id }
         presence.emit_message presence_message.action, presence_message
       end
 
@@ -286,7 +296,7 @@ module Ably::Realtime
         if in_sync?
           members.delete presence_message.member_key
         else
-          members[presence_message.member_key] = { present: false, message: presence_message }
+          members[presence_message.member_key] = { present: false, message: presence_message, sync_session_id: sync_session_id }
           absent_member_cleanup_queue << presence_message.member_key
         end
 
@@ -311,6 +321,17 @@ module Ably::Realtime
 
       def clean_up_absent_members
         members.delete absent_member_cleanup_queue.shift
+      end
+
+      def clean_up_members_not_present_in_sync
+        members.select do |member_key, member|
+          member.fetch(:sync_session_id) != sync_session_id
+        end.each do |member_key, member|
+          presence_message = member.fetch(:message).shallow_clone(action: Ably::Models::PresenceMessage::ACTION.Leave, id: nil)
+          logger.debug { "#{self.class.name}: Fabricating a LEAVE event for member '#{presence_message.id}' was not present in recently completed SYNC session ID '#{sync_session_id}'.\n#{presence_message.to_json}" }
+          members.delete(member_key)
+          presence.emit_message Ably::Models::PresenceMessage::ACTION.Leave, presence_message
+        end
       end
     end
   end
