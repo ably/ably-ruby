@@ -68,7 +68,9 @@ module Ably::Realtime
 
           when ACTION.Connect
           when ACTION.Connected
-            if connection.disconnected? || connection.closing? || connection.closed? || connection.failed?
+            if connection.closing?
+              logger.debug { "Out-of-order incoming CONNECTED ProtocolMessage discarded as connection has moved on and is in state: #{connection.state}" }
+            elsif connection.disconnected? || connection.closing? || connection.closed? || connection.failed?
               logger.warn { "Out-of-order incoming CONNECTED ProtocolMessage discarded as connection has moved on and is in state: #{connection.state}" }
             elsif connection.connected?
               logger.debug { "Updated CONNECTED ProtocolMessage received (whilst connected)" }
