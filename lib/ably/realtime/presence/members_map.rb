@@ -29,8 +29,14 @@ module Ably::Realtime
       def initialize(presence)
         @presence = presence
 
-        @state    = STATE(:initialized)
-        @members  = Hash.new
+        @state = STATE(:initialized)
+
+        # Two sets of members maintained
+        # @members contains all members present on the channel
+        # @local_members contains only this connection's members for the purpose of re-entering the member if channel continuity is lost
+        reset_members
+        reset_local_members
+
         @absent_member_cleanup_queue = []
 
         # Each SYNC session has a unique ID so that following SYNC
@@ -144,11 +150,25 @@ module Ably::Realtime
         present_members.each(&block)
       end
 
+      # A copy of the local members present i.e. members entered from this connection
+      # and thus the responsibility of this library to re-enter on the channel automatically if the
+      # channel loses continuity
+      #
+      # @return [Array<PresenceMessage>]
+      # @api private
+      def local_members
+        @local_members
+      end
+
       private
       attr_reader :sync_session_id
 
       def members
         @members
+      end
+
+      def reset_members
+        @members = Hash.new
       end
 
       def sync_serial
@@ -161,6 +181,10 @@ module Ably::Realtime
 
       def absent_member_cleanup_queue
         @absent_member_cleanup_queue
+      end
+
+      def reset_local_members
+        @local_members = Hash.new
       end
 
       def channel
@@ -187,6 +211,12 @@ module Ably::Realtime
           update_members_and_emit_events presence_message
         end
 
+        setup_local_event_handlers
+
+        channel.on(:failed, :detached) do
+          reset_members
+        end
+
         resume_sync_proc = method(:resume_sync).to_proc
 
         on(:sync_starting) do
@@ -207,6 +237,23 @@ module Ably::Realtime
         end
       end
 
+      # Listen for events that change the PresenceMap state and thus
+      # need to be replicated to the local member set
+      def setup_local_event_handlers
+        on(:in_sync) do
+          @local_members = members.select do |member_key, member|
+            member.fetch(:message).client_id == connection.id
+          end.each_with_object({}) do |(member_key, member), hash_object|
+            hash_object[member_key] = member.fetch(:message)
+          end
+        end
+
+        # Ensure the local members map is cleared if the channel will never attempt presence state recovery, #RTP5a
+        channel.on(:detached, :failed) do
+          reset_local_members
+        end
+      end
+
       # Trigger a manual SYNC operation to resume member synchronisation from last known cursor position
       def resume_sync
         connection.send_protocol_message(
@@ -221,6 +268,7 @@ module Ably::Realtime
 
         unless should_update_member?(presence_message)
           logger.debug { "#{self.class.name}: Skipped presence member #{presence_message.action} on channel #{presence.channel.name}.\n#{presence_message.to_json}" }
+          touch_presence_member presence_message
           return
         end
 
@@ -286,7 +334,7 @@ module Ably::Realtime
         logger.debug { "#{self.class.name}: Member '#{presence_message.member_key}' for event '#{presence_message.action}' #{members.has_key?(presence_message.member_key) ? 'updated' : 'added'}.\n#{presence_message.to_json}" }
         # Mutate the PresenceMessage so that the action is :present, see #RTP2d
         present_presence_message = presence_message.shallow_clone(action: Ably::Models::PresenceMessage::ACTION.Present)
-        members[presence_message.member_key] = { present: true, message: present_presence_message, sync_session_id: sync_session_id }
+        member_set_upsert present_presence_message, true
         presence.emit_message presence_message.action, presence_message
       end
 
@@ -294,13 +342,29 @@ module Ably::Realtime
         logger.debug { "#{self.class.name}: Member '#{presence_message.member_key}' removed.\n#{presence_message.to_json}" }
 
         if in_sync?
-          members.delete presence_message.member_key
+          member_set_delete presence_message
         else
-          members[presence_message.member_key] = { present: false, message: presence_message, sync_session_id: sync_session_id }
-          absent_member_cleanup_queue << presence_message.member_key
+          member_set_upsert presence_message, false
+          absent_member_cleanup_queue << presence_message
         end
 
         presence.emit_message presence_message.action, presence_message
+      end
+
+      # No update is necessary for this member as older / no change during update
+      # however we need to update the sync_session_id so that this member is not removed following SYNC
+      def touch_presence_member(presence_message)
+        members.fetch(presence_message.member_key)[:sync_session_id] = sync_session_id
+      end
+
+      def member_set_upsert(presence_message, present)
+        members[presence_message.member_key] = { present: present, message: presence_message, sync_session_id: sync_session_id }
+        local_members[presence_message.member_key] = presence_message if presence_message.connection_id == connection.id
+      end
+
+      def member_set_delete(presence_message)
+        members.delete presence_message.member_key
+        local_members.delete presence_message.member_key
       end
 
       def present_members
@@ -320,7 +384,9 @@ module Ably::Realtime
       end
 
       def clean_up_absent_members
-        members.delete absent_member_cleanup_queue.shift
+        while member_to_remove = absent_member_cleanup_queue.shift
+          member_set_delete member_to_remove
+        end
       end
 
       def clean_up_members_not_present_in_sync
@@ -328,8 +394,8 @@ module Ably::Realtime
           member.fetch(:sync_session_id) != sync_session_id
         end.each do |member_key, member|
           presence_message = member.fetch(:message).shallow_clone(action: Ably::Models::PresenceMessage::ACTION.Leave, id: nil)
-          logger.debug { "#{self.class.name}: Fabricating a LEAVE event for member '#{presence_message.id}' was not present in recently completed SYNC session ID '#{sync_session_id}'.\n#{presence_message.to_json}" }
-          members.delete(member_key)
+          logger.debug { "#{self.class.name}: Fabricating a LEAVE event for member '#{presence_message.member_key}' was not present in recently completed SYNC session ID '#{sync_session_id}'.\n#{presence_message.to_json}" }
+          member_set_delete member.fetch(:message)
           presence.emit_message Ably::Models::PresenceMessage::ACTION.Leave, presence_message
         end
       end
