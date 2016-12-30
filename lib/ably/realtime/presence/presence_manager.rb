@@ -28,6 +28,25 @@ module Ably::Realtime
         presence.members.change_state :sync_starting
       end
 
+      # Process presence messages from SYNC messages. Sync can be server-initiated or triggered following ATTACH
+      #
+      # @return [void]
+      #
+      # @api private
+      def sync_process_messages(serial, presence_messages)
+        unless presence.members.sync_starting?
+          presence.members.change_state :sync_starting
+        end
+
+        presence.members.update_sync_serial serial
+
+        presence_messages.each do |presence_message|
+          presence.__incoming_msgbus__.publish :sync, presence_message
+        end
+
+        presence.members.change_state :in_sync if presence.members.sync_serial_cursor_at_end?
+      end
+
       # There server has indicated that there are no SYNC ProtocolMessages to come because
       # there are no members on this channel
       #
