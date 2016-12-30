@@ -56,8 +56,30 @@ describe Ably::Realtime::Presence, :event_machine do
             channel_client_one.attach do
               channel_client_one.transition_state_machine :detaching
               channel_client_one.once(:detached) do
-                expect { presence_client_one.public_send(method_name, args) }.to raise_error Ably::Exceptions::InvalidStateChange, /Operation is not allowed when channel is in STATE.detached/i
-                stop_reactor
+                presence_client_one.public_send(method_name, args).tap do |deferrable|
+                  deferrable.callback { raise 'Get should not succeed' }
+                  deferrable.errback do |error|
+                    expect(error).to be_a(Ably::Exceptions::InvalidState)
+                    expect(error.message).to match(/Operation is not allowed when channel is in STATE.Detached/)
+                    stop_reactor
+                  end
+                end
+              end
+            end
+          end
+        end
+
+        it 'raise an exception if the channel becomes detached' do
+          setup_test(method_name, args, options) do
+            channel_client_one.attach do
+              channel_client_one.transition_state_machine :detaching
+              presence_client_one.public_send(method_name, args).tap do |deferrable|
+                deferrable.callback { raise 'Get should not succeed' }
+                deferrable.errback do |error|
+                  expect(error).to be_a(Ably::Exceptions::InvalidState)
+                  expect(error.message).to match(/Operation failed as channel transitioned to STATE.Detached/)
+                  stop_reactor
+                end
               end
             end
           end
@@ -68,8 +90,30 @@ describe Ably::Realtime::Presence, :event_machine do
             channel_client_one.attach do
               channel_client_one.transition_state_machine :failed
               expect(channel_client_one.state).to eq(:failed)
-              expect { presence_client_one.public_send(method_name, args) }.to raise_error Ably::Exceptions::InvalidStateChange, /Operation is not allowed when channel is in STATE.failed/i
-              stop_reactor
+              presence_client_one.public_send(method_name, args).tap do |deferrable|
+                deferrable.callback { raise 'Get should not succeed' }
+                deferrable.errback do |error|
+                  expect(error).to be_a(Ably::Exceptions::InvalidState)
+                  expect(error.message).to match(/Operation is not allowed when channel is in STATE.Failed/)
+                  stop_reactor
+                end
+              end
+            end
+          end
+        end
+
+        it 'raise an exception if the channel becomes failed' do
+          setup_test(method_name, args, options) do
+            channel_client_one.attach do
+              presence_client_one.public_send(method_name, args).tap do |deferrable|
+                deferrable.callback { raise 'Get should not succeed' }
+                deferrable.errback do |error|
+                  expect(error).to be_a(Ably::Exceptions::MessageDeliveryFailed)
+                  stop_reactor
+                end
+              end
+              channel_client_one.transition_state_machine :failed
+              expect(channel_client_one.state).to eq(:failed)
             end
           end
         end
@@ -1414,22 +1458,41 @@ describe Ably::Realtime::Presence, :event_machine do
         presence_client_one.get { raise 'Intentional exception' }
       end
 
-      it 'raise an exception if the channel is detached' do
+      it 'implicitly attaches the channel (#RTP11b)' do
+        expect(channel_client_one).to be_initialized
+        presence_client_one.get do |members|
+          expect(channel_client_one).to be_attached
+          stop_reactor
+        end
+      end
+
+      it 'fails if the connection is DETACHED (#RTP11b)' do
         channel_client_one.attach do
-          channel_client_one.transition_state_machine :detaching
-          channel_client_one.once(:detached) do
-            expect { presence_client_one.get }.to raise_error Ably::Exceptions::InvalidStateChange, /Operation is not allowed when channel is in STATE.detached/i
-            stop_reactor
+          channel_client_one.detach do
+            presence_client_one.get.tap do |deferrable|
+              deferrable.callback { raise 'Get should not succeed' }
+              deferrable.errback do |error|
+                expect(error).to be_a(Ably::Exceptions::InvalidState)
+                expect(error.message).to match(/Operation is not allowed when channel is in STATE.Detached/)
+                stop_reactor
+              end
+            end
           end
         end
       end
 
-      it 'raise an exception if the channel is failed' do
+      it 'fails if the connection is FAILED (#RTP11b)' do
         channel_client_one.attach do
           channel_client_one.transition_state_machine :failed
           expect(channel_client_one.state).to eq(:failed)
-          expect { presence_client_one.get }.to raise_error Ably::Exceptions::InvalidStateChange, /Operation is not allowed when channel is in STATE.failed/i
-          stop_reactor
+          presence_client_one.get.tap do |deferrable|
+            deferrable.callback { raise 'Get should not succeed' }
+            deferrable.errback do |error|
+              expect(error).to be_a(Ably::Exceptions::InvalidState)
+              expect(error.message).to match(/Operation is not allowed when channel is in STATE.Failed/)
+              stop_reactor
+            end
+          end
         end
       end
 
@@ -1455,7 +1518,7 @@ describe Ably::Realtime::Presence, :event_machine do
         end
 
         context 'when :wait_for_sync is true' do
-          it 'fails if the connection fails' do
+          it 'fails if the connection becomes FAILED (#RTP11b)' do
             when_all(*connect_members_deferrables) do
               channel_client_two.attach do
                 client_two.connection.transport.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
@@ -1478,7 +1541,7 @@ describe Ably::Realtime::Presence, :event_machine do
             end
           end
 
-          it 'fails if the channel is detached' do
+          it 'fails if the channel becomes detached (#RTP11b)' do
             when_all(*connect_members_deferrables) do
               channel_client_two.attach do
                 client_two.connection.transport.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
@@ -1502,9 +1565,7 @@ describe Ably::Realtime::Presence, :event_machine do
         end
       end
 
-      # skip 'it fails if the connection changes to failed state'
-
-      it 'returns the current members on the channel' do
+      it 'returns the current members on the channel (#RTP11a)' do
         presence_client_one.enter do
           presence_client_one.get do |members|
             expect(members.count).to eq(1)
@@ -1519,7 +1580,7 @@ describe Ably::Realtime::Presence, :event_machine do
         end
       end
 
-      it 'filters by connection_id option if provided' do
+      it 'filters by connection_id option if provided (#RTP11c3)' do
         presence_client_one.enter do
           presence_client_two.enter
         end
@@ -1541,7 +1602,7 @@ describe Ably::Realtime::Presence, :event_machine do
         end
       end
 
-      it 'filters by client_id option if provided' do
+      it 'filters by client_id option if provided (#RTP11c2)' do
         presence_client_one.enter do
           presence_client_two.enter
         end
@@ -1565,10 +1626,19 @@ describe Ably::Realtime::Presence, :event_machine do
         end
       end
 
-      it 'does not wait for SYNC to complete if :wait_for_sync option is false' do
+      it 'does not wait for SYNC to complete if :wait_for_sync option is false (#RTP11c1)' do
         presence_client_one.enter do
           presence_client_two.get(wait_for_sync: false) do |members|
             expect(members.count).to eql(0)
+            stop_reactor
+          end
+        end
+      end
+
+      it 'returns the list of members and waits for SYNC to complete by default (#RTP11a)' do
+        presence_client_one.enter do
+          presence_client_two.get do |members|
+            expect(members.count).to eql(1)
             stop_reactor
           end
         end
