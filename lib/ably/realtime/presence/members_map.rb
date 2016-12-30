@@ -54,7 +54,16 @@ module Ably::Realtime
       # @api private
       def update_sync_serial(serial)
         @sync_serial = serial
-        change_state :in_sync if sync_serial_cursor_at_end?
+      end
+
+      # When channel serial in ProtocolMessage SYNC is nil or
+      # an empty cursor appears after the ':' such as 'cf30e75054887:psl_7g:client:189'.
+      # That is an indication that there are no more SYNC messages.
+      #
+      # @api private
+      #
+      def sync_serial_cursor_at_end?
+        sync_serial.nil? || sync_serial.to_s.match(/^[\w-]+:?$/)
       end
 
       # Get the list of presence members
@@ -62,7 +71,7 @@ module Ably::Realtime
       # @param [Hash,String] options an options Hash to filter members
       # @option options [String] :client_id      optional client_id filter for the member
       # @option options [String] :connection_id  optional connection_id filter for the member
-      # @option options [String] :wait_for_sync  defaults to false, if true the get method waits for the initial presence sync following channel attachment to complete before returning the members present
+      # @option options [String] :wait_for_sync  defaults to true, if true the get method waits for the initial presence sync following channel attachment to complete before returning the members present, else it immediately returns the members present currently
       #
       # @yield [Array<Ably::Models::PresenceMessage>] array of present members
       #
@@ -173,16 +182,18 @@ module Ably::Realtime
 
         resume_sync_proc = method(:resume_sync).to_proc
 
-        channel.once(:attached) do
-          connection.on_resume(&resume_sync_proc)
-        end
+        on(:sync_starting) do
+          channel.once(:attached) do
+            connection.on_resume(&resume_sync_proc)
+          end
 
-        once(:in_sync, :failed) do
-          connection.off_resume(&resume_sync_proc)
-        end
+          once(:in_sync, :failed) do
+            connection.off_resume(&resume_sync_proc)
+          end
 
-        once(:in_sync) do
-          clean_up_absent_members
+          once(:in_sync) do
+            clean_up_absent_members
+          end
         end
       end
 
@@ -193,13 +204,6 @@ module Ably::Realtime
           channel:        channel.name,
           channel_serial: sync_serial
         ) if channel.attached?
-      end
-
-      # When channel serial in ProtocolMessage SYNC is nil or
-      # an empty cursor appears after the ':' such as 'cf30e75054887:psl_7g:client:189'.
-      # That is an indication that there are no more SYNC messages.
-      def sync_serial_cursor_at_end?
-        sync_serial.nil? || sync_serial.to_s.match(/^[\w-]+:?$/)
       end
 
       def update_members_and_emit_events(presence_message)

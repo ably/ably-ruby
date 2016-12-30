@@ -1989,5 +1989,102 @@ describe Ably::Realtime::Presence, :event_machine do
         end
       end
     end
+
+    context 'server-initiated sync' do
+      context 'with multiple SYNC pages' do
+        let(:present_action) { 1 }
+        let(:leave_action) { 3 }
+        let(:presence_sync_1) do
+          [
+            { client_id: 'a', connection_id: 'one', id: 'one:0:0', action: present_action },
+            { client_id: 'b', connection_id: 'one', id: 'one:0:1', action: present_action }
+          ]
+        end
+        let(:presence_sync_2) do
+          [
+            { client_id: 'a', connection_id: 'one', id: 'one:1:0', action: leave_action }
+          ]
+        end
+
+        it 'is initiated with a SYNC message and completed with a later SYNC message with no cursor value part of the channelSerial (#RTP18a, #RTP18b) ', em_timeout: 15 do
+          presence_anonymous_client.get do |members|
+            expect(members.length).to eql(0)
+            expect(presence_anonymous_client).to be_sync_complete
+
+            presence_anonymous_client.subscribe(:present) do
+              expect(presence_anonymous_client).to_not be_sync_complete
+              presence_anonymous_client.get do |members|
+                expect(presence_anonymous_client).to be_sync_complete
+                expect(members.length).to eql(1)
+                expect(members.first.client_id).to eql('b')
+                stop_reactor
+              end
+            end
+
+            ## Fabricate server-initiated SYNC in two parts
+            action = Ably::Models::ProtocolMessage::ACTION.Sync
+            sync_message = Ably::Models::ProtocolMessage.new(
+              action: action,
+              connection_serial: 10,
+              channel_serial: 'sequenceid:cursor',
+              channel: channel_name,
+              presence: presence_sync_1,
+              timestamp: Time.now.to_i * 1000
+            )
+            anonymous_client.connection.__incoming_protocol_msgbus__.publish :protocol_message, sync_message
+
+            sync_message = Ably::Models::ProtocolMessage.new(
+              action: action,
+              connection_serial: 11,
+              channel_serial: 'sequenceid:', # indicates SYNC is complete
+              channel: channel_name,
+              presence: presence_sync_2,
+              timestamp: Time.now.to_i * 1000
+            )
+            anonymous_client.connection.__incoming_protocol_msgbus__.publish :protocol_message, sync_message
+          end
+        end
+      end
+
+      context 'with a single SYNC page' do
+        let(:present_action) { 1 }
+        let(:leave_action) { 3 }
+        let(:presence_sync) do
+          [
+            { client_id: 'a', connection_id: 'one', id: 'one:0:0', action: present_action },
+            { client_id: 'b', connection_id: 'one', id: 'one:0:1', action: present_action },
+            { client_id: 'a', connection_id: 'one', id: 'one:1:0', action: leave_action }
+          ]
+        end
+
+        it 'is initiated and completed with a single SYNC message (and no channelSerial) (#RTP18a, #RTP18c) ', em_timeout: 15 do
+          presence_anonymous_client.get do |members|
+            expect(members.length).to eql(0)
+            expect(presence_anonymous_client).to be_sync_complete
+
+            presence_anonymous_client.subscribe(:present) do
+              expect(presence_anonymous_client).to_not be_sync_complete
+              presence_anonymous_client.get do |members|
+                expect(presence_anonymous_client).to be_sync_complete
+                expect(members.length).to eql(1)
+                expect(members.first.client_id).to eql('b')
+                stop_reactor
+              end
+            end
+
+            ## Fabricate server-initiated SYNC in two parts
+            action = Ably::Models::ProtocolMessage::ACTION.Sync
+            sync_message = Ably::Models::ProtocolMessage.new(
+              action: action,
+              connection_serial: 10,
+              channel: channel_name,
+              presence: presence_sync,
+              timestamp: Time.now.to_i * 1000
+            )
+            anonymous_client.connection.__incoming_protocol_msgbus__.publish :protocol_message, sync_message
+          end
+        end
+      end
+    end
   end
 end
