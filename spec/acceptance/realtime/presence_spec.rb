@@ -2085,6 +2085,75 @@ describe Ably::Realtime::Presence, :event_machine do
           end
         end
       end
+
+      context 'when members exist in the PresenceMap before a SYNC completes' do
+        let(:enter_action) { Ably::Models::PresenceMessage::ACTION.Enter.to_i }
+        let(:present_action) { Ably::Models::PresenceMessage::ACTION.Present.to_i }
+        let(:presence_sync_protocol_message) do
+          [
+            { client_id: 'a', connection_id: 'one', id: 'one:0:0', action: present_action },
+            { client_id: 'b', connection_id: 'one', id: 'one:0:1', action: present_action }
+          ]
+        end
+        let(:presence_enter_message) do
+          Ably::Models::PresenceMessage.new(
+            'id' => "#{random_str}:#{random_str}:0",
+            'clientId' => random_str,
+            'connectionId' => random_str,
+            'timestamp' => as_since_epoch(Time.now),
+            'action' => enter_action
+          )
+        end
+
+        it 'removes the members that are no longer present (#RTP19)', em_timeout: 15 do
+          presence_anonymous_client.get do |members|
+            expect(members.length).to eql(0)
+
+            # Now inject a fake member into the PresenceMap by faking the receive of a Presence message from Ably into the Presence object
+            presence_anonymous_client.__incoming_msgbus__.publish :presence, presence_enter_message
+
+            EventMachine.next_tick do
+              presence_anonymous_client.get do |members|
+                expect(members.length).to eql(1)
+                expect(members.first.client_id).to eql(presence_enter_message.client_id)
+
+                presence_events = []
+                presence_anonymous_client.subscribe do |presence_message|
+                  presence_events << [presence_message.client_id, presence_message.action.to_sym]
+                  if presence_message.action == :leave
+                    expect(presence_message.id).to be_nil
+                    expect(presence_message.timestamp.to_f * 1000).to be_within(20).of(Time.now.to_f * 1000)
+                  end
+                end
+
+                ## Fabricate server-initiated SYNC in two parts
+                action = Ably::Models::ProtocolMessage::ACTION.Sync
+                sync_message = Ably::Models::ProtocolMessage.new(
+                  action: action,
+                  connection_serial: 10,
+                  channel: channel_name,
+                  presence: presence_sync_protocol_message,
+                  timestamp: Time.now.to_i * 1000
+                )
+                anonymous_client.connection.__incoming_protocol_msgbus__.publish :protocol_message, sync_message
+
+                EventMachine.next_tick do
+                  presence_anonymous_client.get do |members|
+                    expect(members.length).to eql(2)
+                    expect(members.find { |member| member.client_id == presence_enter_message.client_id}).to be_nil
+                    expect(presence_events).to contain_exactly(
+                      ['a', :present],
+                      ['b', :present],
+                      [presence_enter_message.client_id, :leave]
+                    )
+                    stop_reactor
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
     end
   end
 end
