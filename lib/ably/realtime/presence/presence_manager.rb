@@ -44,7 +44,7 @@ module Ably::Realtime
           presence.__incoming_msgbus__.publish :sync, presence_message
         end
 
-        presence.members.change_state :in_sync if presence.members.sync_serial_cursor_at_end?
+        presence.members.change_state :finalizing_sync if presence.members.sync_serial_cursor_at_end?
       end
 
       # There server has indicated that there are no SYNC ProtocolMessages to come because
@@ -54,7 +54,8 @@ module Ably::Realtime
       #
       # @api private
       def sync_not_expected
-        presence.members.change_state :in_sync
+        logger.debug { "#{self.class.name}: Emitting leave events for all members as a SYNC is not expected and thus there are no members on the channel" }
+        presence.members.change_state :sync_none
       end
 
       private
@@ -72,6 +73,10 @@ module Ably::Realtime
             presence.transition_state_machine :left, metadata if presence.can_transition_to?(:left)
           end
         end
+      end
+
+      def logger
+        presence.channel.client.logger
       end
     end
   end

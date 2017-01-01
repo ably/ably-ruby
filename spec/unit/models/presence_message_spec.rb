@@ -550,6 +550,29 @@ describe Ably::Models::PresenceMessage do
         expect(as_since_epoch(clone.timestamp)).to eq(protocol_message_timestamp + 1000)
         expect(clone.action).to eq(1)
       end
+
+      context 'with an invalid ProtocolMessage (missing an ID)' do
+        let(:protocol_message) {
+          Ably::Models::ProtocolMessage.new('connectionId' => protocol_connection_id, 'action' =>  1, 'timestamp' => protocol_message_timestamp)
+        }
+        it 'allows an ID to be passed in to the shallow clone that takes precedence' do
+          clone = model.shallow_clone(id: 'newId', action: 1, timestamp: protocol_message_timestamp + 1000)
+          expect(clone.id).to match(/newId/)
+        end
+      end
+
+      context 'with mixing of cases' do
+        it 'resolves case issues and can use camelCase or snake_case' do
+          clone = model.shallow_clone(connectionId: 'camelCaseSym')
+          expect(clone.connection_id).to match(/camelCaseSym/)
+
+          clone = model.shallow_clone('connectionId' => 'camelCaseStr')
+          expect(clone.connection_id).to match(/camelCaseStr/)
+
+          clone = model.shallow_clone(connection_id: 'snake_case_sym')
+          expect(clone.connection_id).to match(/snake_case_sym/)
+        end
+      end
     end
   end
 end

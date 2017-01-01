@@ -97,7 +97,7 @@ module Ably::Realtime
           when ACTION.Attached
             get_channel(protocol_message.channel).tap do |channel|
               if channel.attached?
-                channel.manager.duplicate_attached_received protocol_message.error, protocol_message.has_channel_resumed_flag?
+                channel.manager.duplicate_attached_received protocol_message
               else
                 channel.transition_state_machine :attached, reason: protocol_message.error, resumed: protocol_message.has_channel_resumed_flag?, protocol_message: protocol_message
               end
