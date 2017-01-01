@@ -177,7 +177,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 end
 
                 context 'using implicit token auth' do
-                  let(:client_options) { default_options.merge(use_token_auth: true, token_params: { ttl: ttl }) }
+                  let(:client_options) { default_options.merge(use_token_auth: true, default_token_params: { ttl: ttl }) }
 
                   before do
                     stub_const 'Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER', -10 # ensure client lib thinks token is still valid
@@ -207,7 +207,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 let(:ttl)          { 5 }
                 let(:channel_name) { random_str }
                 let(:channel)      { client.channel(channel_name) }
-                let(:client_options) { default_options.merge(use_token_auth: true, token_params: { ttl: ttl }) }
+                let(:client_options) { default_options.merge(use_token_auth: true, default_token_params: { ttl: ttl }) }
 
                 context 'the server' do
                   it 'disconnects the client, and the client automatically renews the token and then reconnects', em_timeout: 15 do
