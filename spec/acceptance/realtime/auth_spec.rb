@@ -755,7 +755,7 @@ describe Ably::Realtime::Auth, :event_machine do
         # We set the TTL to 33s and wait (3s window)
         # In local env, that window is 5 seconds instead of 30 seconds
         let(:local_offset) { ENV['ABLY_ENV'] == 'local' ? 25 : 0 }
-        let(:client_options) { default_options.merge(use_token_auth: :true, token_params: { ttl: 33 - local_offset }) }
+        let(:client_options) { default_options.merge(use_token_auth: :true, default_token_params: { ttl: 33 - local_offset }) }
 
         it 'should immediately start a new authentication process (#RTN22)' do
           client.connection.once(:connected) do
@@ -778,7 +778,7 @@ describe Ably::Realtime::Auth, :event_machine do
       context 'when not received' do
         # Ably in all environments other than production will send AUTH 5 seconds before expiry, so
         # set TTL to 5s so that the window for Realtime to send has passed
-        let(:client_options) { default_options.merge(use_token_auth: :true, token_params: { ttl: 5 }) }
+        let(:client_options) { default_options.merge(use_token_auth: :true, default_token_params: { ttl: 5 }) }
 
         it 'should expect the connection to be disconnected by the server but should resume automatically (#RTN22a)' do
           client.connection.once(:connected) do

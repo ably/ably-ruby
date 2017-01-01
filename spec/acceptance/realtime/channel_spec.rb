@@ -119,7 +119,7 @@ describe Ably::Realtime::Channel, :event_machine do
           let(:not_allowed_params) do
             { capability: { "only_this_channel" => ["*"] } }
           end
-          let(:client_options) { default_options.merge(token_params: not_allowed_params, use_token_auth: true, log_level: :fatal) }
+          let(:client_options) { default_options.merge(default_token_params: not_allowed_params, use_token_auth: true, log_level: :fatal) }
 
           it 'registers the listener anyway (#RTL7c)' do
             channel.subscribe do |message|
@@ -277,7 +277,7 @@ describe Ably::Realtime::Channel, :event_machine do
             log_level: :fatal,
             use_token_auth: true,
             # TODO: Use wildcard / default when intersection issue resolved, realtime#780
-            token_params: { capability: { "canpublish:foo" => ["publish"] } }
+            default_token_params: { capability: { "canpublish:foo" => ["publish"] } }
           )
         end
         let(:restricted_client) do
@@ -1748,7 +1748,7 @@ describe Ably::Realtime::Channel, :event_machine do
         context 'with a failed channel' do
           let(:client_options) do
             default_options.merge(
-              token_params: { capability: { "foo" =>["*"] } },
+              default_token_params: { capability: { "foo" =>["*"] } },
               use_token_auth: true,
               log_level: :fatal
             )
@@ -1979,7 +1979,7 @@ describe Ably::Realtime::Channel, :event_machine do
         let(:client_options) {
           default_options.merge(
             use_token_auth: true,
-            token_params: { capability: { "foo" => ["publish"] } },
+            default_token_params: { capability: { "foo" => ["publish"] } },
             log_level: :fatal
           )
         }

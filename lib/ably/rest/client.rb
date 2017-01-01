@@ -104,7 +104,7 @@ module Ably
       # @option options [Proc]                    :auth_callback       when provided, the Proc will be called with the token params hash as the first argument, whenever a new token is required.
       #                                                                The Proc should return a token string, {Ably::Models::TokenDetails} or JSON equivalent, {Ably::Models::TokenRequest} or JSON equivalent
       # @option options [Boolean]                 :query_time          when true will query the {https://www.ably.io Ably} system for the current time instead of using the local time
-      # @option options [Hash]                    :token_params        convenience to pass in +token_params+ that will be used as a default for all token requests. See {Auth#create_token_request}
+      # @option options [Hash]                    :default_token_params   convenience to pass in +token_params+ that will be used as a default for all token requests. See {Auth#create_token_request}
       #
       # @option options [Integer]                 :http_open_timeout       (4 seconds) timeout in seconds for opening an HTTP connection for all HTTP requests
       # @option options [Integer]                 :http_request_timeout    (15 seconds) timeout in seconds for any single complete HTTP request and response
@@ -184,7 +184,7 @@ module Ably
         end
         raise ArgumentError, 'Protocol is invalid.  Must be either :msgpack or :json' unless [:msgpack, :json].include?(@protocol)
 
-        token_params = options.delete(:token_params) || {}
+        token_params = options.delete(:default_token_params) || {}
         @options  = options
         @auth     = Auth.new(self, token_params, options)
         @channels = Ably::Rest::Channels.new(self)

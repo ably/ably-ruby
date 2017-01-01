@@ -70,6 +70,21 @@ describe Ably::Rest::Client do
         end
       end
 
+      context 'with :default_token_params' do
+        let(:client) do
+          Ably::Rest::Client.new(client_options.merge(
+            default_token_params: { client_id: 'bob' },
+            use_token_auth: true,
+            key: api_key
+          ))
+        end
+
+        it 'overides the default token params (#TO3j11)' do
+          client.auth.authorize
+          expect(client.auth.client_id).to eql('bob')
+        end
+      end
+
       context 'with an :auth_callback Proc (clientId provided in library options instead of as a token_request param)' do
         let(:client) { Ably::Rest::Client.new(client_options.merge(client_id: client_id, auth_callback: Proc.new { token_request })) }
         let(:token_request) { client.auth.create_token_request({}, key_name: key_name, key_secret: key_secret) }

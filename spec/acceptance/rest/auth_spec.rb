@@ -788,7 +788,7 @@ describe Ably::Auth do
             @block_called = 0
           end
 
-          let(:token_client)   { Ably::Rest::Client.new(default_options.merge(key: api_key, token_params: { ttl: 3 })) }
+          let(:token_client)   { Ably::Rest::Client.new(default_options.merge(key: api_key, default_token_params: { ttl: 3 })) }
           let(:client_options) {
             default_options.merge(token: token_client.auth.request_token.token, auth_callback: Proc.new do
               @block_called += 1
@@ -1174,7 +1174,7 @@ describe Ably::Auth do
           WebMock.disable!
         end
 
-        let(:client_options) { default_options.merge(use_token_auth: true, key: api_key, token_params: { ttl: 2 }) }
+        let(:client_options) { default_options.merge(use_token_auth: true, key: api_key, default_token_params: { ttl: 2 }) }
         let(:channel) { client.channels.get(random_str) }
         let(:token_expired_response) do
           {
