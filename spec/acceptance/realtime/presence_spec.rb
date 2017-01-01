@@ -799,7 +799,7 @@ describe Ably::Realtime::Presence, :event_machine do
           end
 
           context 'and a member leaves before the SYNC operation is complete' do
-            it 'emits :leave immediately as the member leaves (#RTP2f, #RTP2g)' do
+            it 'emits :leave immediately as the member leaves and cleans up the ABSENT member after (#RTP2f, #RTP2g)' do
               all_client_ids = enter_expected_count.times.map { |id| "client:#{id}" }
 
               setup_members_on(presence_client_one) do
@@ -813,7 +813,14 @@ describe Ably::Realtime::Presence, :event_machine do
                 presence_anonymous_client.subscribe(:leave) do |leave_message|
                   expect(leave_message.client_id).to eql(leave_member.client_id)
                   expect(present.count).to be < enter_expected_count
-                  EventMachine.add_timer(1) do
+
+                  # Hacky accessing a private method, but absent members are intentionally not exposed to any public APIs
+                  expect(presence_anonymous_client.members.send(:absent_members).length).to eql(1)
+
+                  presence_anonymous_client.members.once(:in_sync) do
+                    # Check that members count is exact indicating the members with LEAVE action after sync are removed
+                    expect(presence_anonymous_client).to be_sync_complete
+                    expect(presence_anonymous_client.members.length).to eql(enter_expected_count - 1)
                     presence_anonymous_client.unsubscribe
                     stop_reactor
                   end
@@ -2295,7 +2302,7 @@ describe Ably::Realtime::Presence, :event_machine do
       end
     end
 
-    context "current connection's member map copy" do
+    context "local PresenceMap for presence members entered by this client" do
       it "maintains a copy of the member map for any member that shares this connection's connection ID (#RTP17)" do
         presence_client_one.enter do
           presence_client_two.enter do
@@ -2310,6 +2317,269 @@ describe Ably::Realtime::Presence, :event_machine do
                   stop_reactor
                 end
               end
+            end
+          end
+        end
+      end
+
+      context 'when a channel becomes attached again' do
+        let(:attached_action) { Ably::Models::ProtocolMessage::ACTION.Attached.to_i }
+        let(:sync_action) { Ably::Models::ProtocolMessage::ACTION.Sync.to_i }
+        let(:presence_action) { Ably::Models::ProtocolMessage::ACTION.Presence.to_i }
+        let(:present_action) { Ably::Models::PresenceMessage::ACTION.Present.to_i }
+        let(:resume_flag) { 4 }
+        let(:presence_flag) { 1 }
+
+        def fabricate_incoming_protocol_message(protocol_message)
+          client_one.connection.__incoming_protocol_msgbus__.publish :protocol_message, protocol_message
+        end
+
+        # Prevents any messages from the WebSocket transport being sent / received
+        # Connection protocol message subscriptions are still active, but nothing reaches or comes from the WebSocket transport
+        def cripple_websocket_transport
+          client_one.connection.transport.__incoming_protocol_msgbus__.unsubscribe
+          client_one.connection.transport.__outgoing_protocol_msgbus__.unsubscribe
+        end
+
+        context 'and the resume flag is true' do
+          context 'and the presence flag is false' do
+            it 'does not send any presence events as the PresenceMap is in sync (#RTP5c1)' do
+              presence_client_one.enter do
+                client_one.connection.transport.__outgoing_protocol_msgbus__.subscribe do |message|
+                  raise "No presence state updates to Ably are expected. Message sent: #{message.to_json}" if client_one.connection.connected?
+                end
+
+                cripple_websocket_transport
+
+                fabricate_incoming_protocol_message Ably::Models::ProtocolMessage.new(
+                  action: attached_action,
+                  channel: channel_name,
+                  flags: resume_flag
+                )
+
+                EventMachine.add_timer(1) do
+                  presence_client_one.get do |members|
+                    expect(members.length).to eql(1)
+                    expect(presence_client_one.members.local_members.length).to eql(1)
+                    stop_reactor
+                  end
+                end
+              end
+            end
+          end
+
+          context 'and the presence flag is true' do
+            context 'and following the SYNC all local MemberMap members are present in the PresenceMap' do
+              it 'does nothing as MemberMap is in sync (#RTP5c2)' do
+                presence_client_one.enter do
+                  expect(presence_client_one.members.length).to eql(1)
+                  expect(presence_client_one.members.local_members.length).to eql(1)
+
+                  presence_client_one.members.once(:in_sync) do
+                    presence_client_one.get do |members|
+                      expect(members.length).to eql(1)
+                      expect(presence_client_one.members.local_members.length).to eql(1)
+                      stop_reactor
+                    end
+                  end
+
+                  client_one.connection.transport.__outgoing_protocol_msgbus__.subscribe do |message|
+                    raise "No presence state updates to Ably are expected. Message sent: #{message.to_json}" if client_one.connection.connected?
+                  end
+
+                  cripple_websocket_transport
+
+                  fabricate_incoming_protocol_message Ably::Models::ProtocolMessage.new(
+                    action: attached_action,
+                    channel: channel_name,
+                    flags: resume_flag + presence_flag
+                  )
+
+                  fabricate_incoming_protocol_message Ably::Models::ProtocolMessage.new(
+                    action: sync_action,
+                    channel: channel_name,
+                    presence: presence_client_one.members.map(&:shallow_clone).map(&:as_json),
+                    channelSerial: nil # no further SYNC messages expected
+                  )
+                end
+              end
+            end
+
+            context 'and following the SYNC a local MemberMap member is not present in the PresenceMap' do
+              it 're-enters the missing members automatically (#RTP5c2)' do
+                sync_check_completed = false
+
+                presence_client_one.enter do
+                  expect(presence_client_one.members.length).to eql(1)
+                  expect(presence_client_one.members.local_members.length).to eql(1)
+
+                  client_one.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |message|
+                    next if message.action == :close # ignore finalization of connection
+
+                    expect(message.action).to eq(:presence)
+                    presence_message = message.presence.first
+                    expect(presence_message.action).to eq(:enter)
+                    expect(presence_message.client_id).to eq(client_one.auth.client_id)
+
+                    presence_client_one.subscribe(:enter) do |message|
+                      expect(message.connection_id).to eql(client_one.connection.id)
+                      expect(message.client_id).to eq(client_one.auth.client_id)
+
+                      EventMachine.next_tick do
+                        expect(presence_client_one.members.length).to eql(2)
+                        expect(presence_client_one.members.local_members.length).to eql(1)
+                        expect(sync_check_completed).to be_truthy
+                        stop_reactor
+                      end
+                    end
+
+                    # Fabricate Ably sending back the Enter PresenceMessage to the client a short while after
+                    # ensuring the PresenceMap for a short period does not have this member as to be expected in reality
+                    EventMachine.add_timer(0.2) do
+                      connection_id = random_str
+                      fabricate_incoming_protocol_message Ably::Models::ProtocolMessage.new(
+                        action: presence_action,
+                        channel: channel_name,
+                        connectionId: client_one.connection.id,
+                        connectionSerial: 50,
+                        timestamp: as_since_epoch(Time.now),
+                        presence: [presence_message.shallow_clone(id: "#{client_one.connection.id}:0:0", timestamp: as_since_epoch(Time.now)).as_json]
+                      )
+                    end
+                  end
+
+                  presence_client_one.members.once(:in_sync) do
+                    # For a brief period, the client will have re-entered the missing members from the local_members
+                    # but the enter from Ably will have not been received, so at this point the local_members will be empty
+                    presence_client_one.get do |members|
+                      expect(members.length).to eql(1)
+                      expect(members.first.connection_id).to_not eql(client_one.connection.id)
+                      expect(presence_client_one.members.local_members.length).to eql(0)
+                      sync_check_completed = true
+                    end
+                  end
+
+                  cripple_websocket_transport
+
+                  fabricate_incoming_protocol_message Ably::Models::ProtocolMessage.new(
+                    action: attached_action,
+                    channel: channel_name,
+                    flags: resume_flag + presence_flag
+                  )
+
+                  # Complete the SYNC but without the member who was entered by this client
+                  connection_id = random_str
+                  fabricate_incoming_protocol_message Ably::Models::ProtocolMessage.new(
+                    action: sync_action,
+                    channel: channel_name,
+                    timestamp: as_since_epoch(Time.now),
+                    presence: [{ id: "#{connection_id}:0:0", action: present_action, connection_id: connection_id, client_id: random_str }],
+                    chanenlSerial: nil # no further SYNC messages expected
+                  )
+                end
+              end
+            end
+          end
+        end
+
+        context 'and the resume flag is false' do
+          context 'and the presence flag is false' do
+            let(:member_data) { random_str }
+
+            it 'immediately resends all local presence members (#RTP5c2, #RTP19a)' do
+              in_sync_confirmed_no_local_members = false
+              local_member_leave_event_fired = false
+
+              presence_client_one.enter(member_data) do
+                presence_client_one.subscribe(:leave) do |message|
+                  # The local member will leave the PresenceMap due to the ATTACHED without Presence
+                  local_member_leave_event_fired = true
+                end
+
+                # Local members re-entered automatically appear as updates due to the
+                # fabricated ATTACHED message sent and the members already being present
+                presence_client_one.subscribe(:update) do |message|
+                  expect(local_member_leave_event_fired).to be_truthy
+                  expect(message.data).to eq(member_data)
+                  expect(message.client_id).to eq(client_one.auth.client_id)
+                  EventMachine.next_tick do
+                    expect(presence_client_one.members.length).to eql(1)
+                    expect(presence_client_one.members.local_members.length).to eql(1)
+                    expect(in_sync_confirmed_no_local_members).to be_truthy
+                    stop_reactor
+                  end
+                end
+
+                presence_client_one.members.once(:in_sync) do
+                  # Immediately after SYNC (no sync actually occurred, but this event fires immediately after a channel SYNCs or is not expecting to SYNC)
+                  expect(presence_client_one.members.length).to eql(0)
+                  expect(presence_client_one.members.local_members.length).to eql(0)
+                  in_sync_confirmed_no_local_members = true
+                end
+
+                # ATTACHED ProtocolMessage with no presence flag will clear the presence set immediately, #RTP19a
+                fabricate_incoming_protocol_message Ably::Models::ProtocolMessage.new(
+                  action: attached_action,
+                  channel: channel_name,
+                  flags: 0 # no resume or presence flag
+                )
+              end
+            end
+          end
+        end
+
+        context 'when re-entering a client automatically, if the re-enter fails for any reason' do
+          let(:client_one_options) do
+            client_options.merge(client_id: client_one_id, log_level: :error)
+          end
+          let(:client_one) { auto_close Ably::Realtime::Client.new(client_one_options) }
+
+          it 'should emit an ErrorInfo with error code 91004 (#RTP5c3)' do
+            presence_client_one.enter
+
+            # Wait for client to be entered
+            presence_client_one.subscribe(:enter) do
+              # Local member should not be re-entered as the request to re-enter will timeout
+              presence_client_one.subscribe(:update) do |message|
+                raise "Unexpected update, this should not happen as the re-enter fails"
+              end
+
+              channel_client_one.on(:update) do |channel_state_change|
+                next if channel_state_change.reason.nil? # first update is generated by the fabricated ATTACHED
+
+                expect(channel_state_change.reason.code).to eql(91004)
+                expect(channel_state_change.reason.message).to match(/#{client_one_id}/)
+                expect(channel_state_change.reason.message).to match(/Fabricated/) # fabricated message
+                expect(channel_state_change.reason.message).to match(/2345/) # fabricated error code
+                stop_reactor
+              end
+
+              cripple_websocket_transport
+
+              client_one.connection.__outgoing_protocol_msgbus__.subscribe do |protocol_message|
+                if protocol_message.action == :presence
+                  # Fabricate a NACK for the re-enter message
+                  EventMachine.add_timer(0.1) do
+                    fabricate_incoming_protocol_message Ably::Models::ProtocolMessage.new(
+                      action: Ably::Models::ProtocolMessage::ACTION.Nack.to_i ,
+                      channel: channel_name,
+                      count: 1,
+                      msg_serial: protocol_message.message_serial,
+                      error: {
+                        message: 'Fabricated',
+                        code: 2345
+                      }
+                    )
+                  end
+                end
+              end
+
+              # ATTACHED ProtocolMessage with no presence flag will clear the presence set immediately, #RTP19a
+              fabricate_incoming_protocol_message Ably::Models::ProtocolMessage.new(
+                action: attached_action,
+                channel: channel_name,
+                flags: 0 # no resume or presence flag
+              )
             end
           end
         end

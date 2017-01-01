@@ -148,11 +148,13 @@ module Ably::Models
     # Shallow clones have no dependency on the originating ProtocolMessage as all field values are stored as opposed to calculated
     # Clones are useful when the original PresenceMessage needs to be mutated, such as storing in a PresenceMap with action :present
     def shallow_clone(new_attributes = {})
+      new_attributes = IdiomaticRubyWrapper(new_attributes.clone.freeze, stop_at: [:data])
+
       self.class.new(attributes.to_hash.merge(
-        id: id,
-        connection_id: connection_id,
-        timestamp: as_since_epoch(timestamp)
-      ).merge(new_attributes))
+        id: new_attributes[:id] || id,
+        connection_id: new_attributes[:connection_id] || connection_id,
+        timestamp: new_attributes[:timestamp] || as_since_epoch(timestamp)
+      ).merge(new_attributes.to_hash))
     end
 
     private
