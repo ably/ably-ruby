@@ -103,6 +103,37 @@ describe Ably::Realtime::Channel, :event_machine do
             end
           end
         end
+
+        it 'implicitly attaches the channel (#RTL7c)' do
+          expect(channel).to be_initialized
+          channel.subscribe { |message| }
+          channel.once(:attached) do
+            stop_reactor
+          end
+        end
+
+        context 'when the implicit channel attach fails' do
+          let(:allowed_params) do
+            { capability: { "*" => ["*"] } }
+          end
+          let(:not_allowed_params) do
+            { capability: { "only_this_channel" => ["*"] } }
+          end
+          let(:client_options) { default_options.merge(token_params: not_allowed_params, use_token_auth: true, log_level: :fatal) }
+
+          it 'registers the listener anyway (#RTL7c)' do
+            channel.subscribe do |message|
+              stop_reactor
+            end
+            channel.once(:failed) do
+              client.auth.authorize(allowed_params) do
+                channel.attach do
+                  channel.publish 'foo'
+                end
+              end
+            end
+          end
+        end
       end
 
       it 'returns a SafeDeferrable that catches exceptions in callbacks and logs them' do
