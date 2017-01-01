@@ -277,7 +277,13 @@ module Ably::Realtime
               message: "unable to automatically re-enter presence channel for client_id '#{presence_message_client_id}'. Source error code #{error.code} and message '#{error.message}'",
               code: 91004
             )
-            channel.emit :update, Ably::Models::ChannelStateChange.new(current: channel.state, previous: channel.state, reason: re_enter_error, resumed: true)
+            channel.emit :update, Ably::Models::ChannelStateChange.new(
+              current: channel.state,
+              previous: channel.state,
+              event: Ably::Realtime::Channel::EVENT(:update),
+              reason: re_enter_error,
+              resumed: true
+            )
           end
         end
       end

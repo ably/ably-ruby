@@ -69,6 +69,7 @@ module Ably::Realtime
           channel.emit :update, Ably::Models::ChannelStateChange.new(
             current: channel.state,
             previous: channel.state,
+            event: Ably::Realtime::Channel::EVENT(:update),
             reason: protocol_message.error,
             resumed: false,
           )

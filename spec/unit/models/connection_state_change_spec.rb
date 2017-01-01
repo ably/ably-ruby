@@ -6,7 +6,7 @@ describe Ably::Models::ConnectionStateChange do
 
   subject { Ably::Models::ConnectionStateChange }
 
-  context '#current' do
+  context '#current (#TA2)' do
     it 'is required' do
       expect { subject.new(previous: true) }.to raise_error ArgumentError
     end
@@ -16,7 +16,7 @@ describe Ably::Models::ConnectionStateChange do
     end
   end
 
-  context '#previous' do
+  context '#previous(#TA2)' do
     it 'is required' do
       expect { subject.new(current: true) }.to raise_error ArgumentError
     end
@@ -26,7 +26,18 @@ describe Ably::Models::ConnectionStateChange do
     end
   end
 
-  context '#retry_in' do
+  context '#event(#TA5)' do
+    it 'is not required' do
+      expect { subject.new(previous: true, current: true) }.to_not raise_error
+    end
+
+    it 'is an attribute' do
+      expect(subject.new(event: unique, current: true, previous: true).event).to eql(unique)
+    end
+  end
+
+
+  context '#retry_in (#TA2)' do
     it 'is not required' do
       expect { subject.new(previous: true, current: true) }.to_not raise_error
     end
@@ -36,7 +47,7 @@ describe Ably::Models::ConnectionStateChange do
     end
   end
 
-  context '#reason' do
+  context '#reason (#TA3)' do
     it 'is not required' do
       expect { subject.new(previous: true, current: true) }.to_not raise_error
     end

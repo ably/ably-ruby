@@ -128,6 +128,7 @@ module Ably::Realtime
         state_change = Ably::Models::ConnectionStateChange.new(
           current: connection.state,
           previous: connection.state,
+          event: Ably::Realtime::Connection::EVENT(:update),
           reason: protocol_message.error,
           protocol_message: protocol_message
         )

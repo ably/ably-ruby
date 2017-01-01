@@ -26,6 +26,16 @@ describe Ably::Models::ChannelStateChange do
     end
   end
 
+  context '#event (#TH5)' do
+    it 'is not required' do
+      expect { subject.new(previous: true, current: true) }.to_not raise_error
+    end
+
+    it 'is an attribute' do
+      expect(subject.new(event: unique, previous: unique, current: true).event).to eql(unique)
+    end
+  end
+
   context '#reason (#TH3)' do
     it 'is not required' do
       expect { subject.new(previous: true, current: true) }.to_not raise_error

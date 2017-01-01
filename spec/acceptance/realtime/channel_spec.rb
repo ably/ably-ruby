@@ -1787,6 +1787,7 @@ describe Ably::Realtime::Channel, :event_machine do
       context 'ChannelStateChange object' do
         it 'has current state' do
           channel.on(:attached) do |channel_state_change|
+            expect(channel_state_change.current).to be_a(Ably::Realtime::Channel::STATE)
             expect(channel_state_change.current).to eq(:attached)
             stop_reactor
           end
@@ -1795,7 +1796,17 @@ describe Ably::Realtime::Channel, :event_machine do
 
         it 'has a previous state' do
           channel.on(:attached) do |channel_state_change|
+            expect(channel_state_change.previous).to be_a(Ably::Realtime::Channel::STATE)
             expect(channel_state_change.previous).to eq(:attaching)
+            stop_reactor
+          end
+          channel.attach
+        end
+
+        it 'has the event that generated the state change (#TA5)' do
+          channel.on(:attached) do |channel_state_change|
+            expect(channel_state_change.event).to be_a(Ably::Realtime::Channel::EVENT)
+            expect(channel_state_change.event).to eq(:attached)
             stop_reactor
           end
           channel.attach

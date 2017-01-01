@@ -75,7 +75,11 @@ module Ably::Modules
 
     def emit_object(new_state, emit_params)
       if self.class.emits_klass
-        self.class.emits_klass.new((emit_params || {}).merge(current: STATE(new_state), previous: STATE(state_machine.current_state)))
+        self.class.emits_klass.new((emit_params || {}).merge(
+          current: STATE(new_state),
+          previous: STATE(state_machine.current_state),
+          event: EVENT(new_state)
+        ))
       else
         emit_params
       end
