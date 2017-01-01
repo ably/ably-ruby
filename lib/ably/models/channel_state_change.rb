@@ -15,13 +15,14 @@ module Ably::Models
     include Ably::Modules::ModelCommon
 
     def initialize(hash_object)
-      unless (hash_object.keys - [:current, :previous, :reason, :protocol_message, :resumed]).empty?
-        raise ArgumentError, 'Invalid attributes, expecting :current, :previous, :reason, :resumed'
+      unless (hash_object.keys - [:current, :previous, :event, :reason, :resumed, :protocol_message]).empty?
+        raise ArgumentError, 'Invalid attributes, expecting :current, :previous, :event, :reason, :resumed'
       end
 
       @hash_object = {
         current: hash_object.fetch(:current),
         previous: hash_object.fetch(:previous),
+        event: hash_object[:event],
         reason: hash_object[:reason],
         protocol_message: hash_object[:protocol_message],
         resumed: hash_object[:resumed]
@@ -30,7 +31,7 @@ module Ably::Models
       raise ArgumentError, e
     end
 
-    %w(current previous reason).each do |attribute|
+    %w(current previous event reason).each do |attribute|
       define_method attribute do
         @hash_object[attribute.to_sym]
       end

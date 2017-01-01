@@ -1424,6 +1424,7 @@ describe Ably::Realtime::Connection, :event_machine do
       context 'ConnectionStateChange object' do
         it 'has current state' do
           connection.on(:connected) do |connection_state_change|
+            expect(connection_state_change.current).to be_a(Ably::Realtime::Connection::STATE)
             expect(connection_state_change.current).to eq(:connected)
             stop_reactor
           end
@@ -1431,7 +1432,16 @@ describe Ably::Realtime::Connection, :event_machine do
 
         it 'has a previous state' do
           connection.on(:connected) do |connection_state_change|
+            expect(connection_state_change.previous).to be_a(Ably::Realtime::Connection::STATE)
             expect(connection_state_change.previous).to eq(:connecting)
+            stop_reactor
+          end
+        end
+
+        it 'has the event that generated the state change (#TH5)' do
+          connection.on(:connected) do |connection_state_change|
+            expect(connection_state_change.event).to be_a(Ably::Realtime::Connection::EVENT)
+            expect(connection_state_change.event).to eq(:connected)
             stop_reactor
           end
         end
