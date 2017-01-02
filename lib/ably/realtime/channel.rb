@@ -355,6 +355,9 @@ module Ably
             if message.client_id == '*'
               raise Ably::Exceptions::IncompatibleClientId.new('Wildcard client_id is reserved and cannot be used when publishing messages')
             end
+            if message.client_id && !message.client_id.kind_of?(String)
+              raise Ably::Exceptions::IncompatibleClientId.new('client_id must be a String when publishing messages')
+            end
             unless client.auth.can_assume_client_id?(message.client_id)
               raise Ably::Exceptions::IncompatibleClientId.new("Cannot publish with client_id '#{message.client_id}' as it is incompatible with the current configured client_id '#{client.client_id}'")
             end

@@ -51,6 +51,14 @@ describe Ably::Rest::Client do
         end
       end
 
+      context 'with a non string :client_id' do
+        let(:client) { Ably::Rest::Client.new(client_options.merge(key: api_key, client_id: 1)) }
+
+        it 'raises an ArgumentError' do
+          expect { client.auth }.to raise_error ArgumentError, /client_id.*String/
+        end
+      end
+
       context 'with an invalid wildcard "*" :client_id' do
         it 'raises an exception' do
           expect { Ably::Rest::Client.new(client_options.merge(key: api_key, client_id: '*')) }.to raise_error ArgumentError
