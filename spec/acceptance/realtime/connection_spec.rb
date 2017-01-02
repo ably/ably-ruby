@@ -764,19 +764,109 @@ describe Ably::Realtime::Connection, :event_machine do
     end
 
     context '#ping' do
-      it 'echoes a heart beat' do
+      it 'echoes a heart beat (#RTN13a)' do
         connection.on(:connected) do
           connection.ping do |time_elapsed|
             expect(time_elapsed).to be > 0
+            expect(time_elapsed).to be < 3
             stop_reactor
           end
         end
       end
 
-      context 'when not connected' do
-        it 'raises an exception' do
-          expect { connection.ping }.to raise_error RuntimeError, /Cannot send a ping when connection/
-          stop_reactor
+      it 'sends a unique ID in each protocol message (#RTN13e)' do
+        connection.on(:connected) do
+          heartbeat_ids = []
+          pings_complete = []
+          connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+            if protocol_message.action == :heartbeat
+              heartbeat_ids << protocol_message.id
+            end
+          end
+
+          ping_block = Proc.new do
+            pings_complete << true
+            if pings_complete.length == 3
+              expect(heartbeat_ids.uniq.length).to eql(3)
+              stop_reactor
+            end
+          end
+
+          connection.ping(&ping_block)
+          connection.ping(&ping_block)
+          connection.ping(&ping_block)
+        end
+      end
+
+      it 'waits until the connection becomes CONNECTED when in the CONNETING state' do
+        connection.once(:connecting) do
+          connection.ping do |time_elapsed|
+            expect(connection.state).to eq(:connected)
+            stop_reactor
+          end
+        end
+      end
+
+      context 'with incompatible states' do
+        let(:client_options) { default_options.merge(log_level: :none) }
+
+        context 'when not connected' do
+          it 'fails the deferrable (#RTN13b)' do
+            connection.ping.errback do |error|
+              expect(error.message).to match(/Cannot send a ping when.*initialized/i)
+              stop_reactor
+            end
+          end
+        end
+
+        context 'when suspended' do
+          it 'fails the deferrable (#RTN13b)' do
+            connection.once(:connected) do
+              connection.transition_state_machine! :suspended
+              connection.ping.errback do |error|
+                expect(error.message).to match(/Cannot send a ping when.*suspended/i)
+                stop_reactor
+              end
+            end
+          end
+        end
+
+        context 'when failed' do
+          it 'fails the deferrable (#RTN13b)' do
+            connection.once(:connected) do
+              connection.transition_state_machine! :failed
+              connection.ping.errback do |error|
+                expect(error.message).to match(/Cannot send a ping when.*failed/i)
+                stop_reactor
+              end
+            end
+          end
+        end
+
+        context 'when closed' do
+          it 'fails the deferrable (#RTN13b)' do
+            connection.once(:connected) do
+              connection.close
+              connection.once(:closed) do
+                connection.ping.errback do |error|
+                  expect(error.message).to match(/Cannot send a ping when.*closed/i)
+                  stop_reactor
+                end
+              end
+            end
+          end
+        end
+
+        context 'when it becomes closed' do
+          it 'fails the deferrable (#RTN13b)' do
+            connection.once(:connected) do
+              connection.ping.errback do |error|
+                expect(error.message).to match(/Ping failed as connection has changed state to.*closing/i)
+                stop_reactor
+              end
+              connection.close
+            end
+          end
         end
       end
 
@@ -795,14 +885,22 @@ describe Ably::Realtime::Connection, :event_machine do
       context 'when ping times out' do
         let(:client_options) { default_options.merge(log_level: :error) }
 
-        it 'logs a warning' do
+        it 'fails the deferrable logs a warning (#RTN13a, #RTN13c)' do
+          message_logged = false
           connection.once(:connected) do
             allow(connection).to receive(:defaults).and_return(connection.defaults.merge(realtime_request_timeout: 0.0001))
             expect(connection.logger).to receive(:warn) do |*args, &block|
               expect(block.call).to match(/Ping timed out/)
-              stop_reactor
+              message_logged = true
             end
-            connection.ping
+            connection.ping.errback do |error|
+              EventMachine.add_timer(0.1) do
+                expect(error.message).to match(/Ping timed out/)
+                expect(error.code).to eql(50003)
+                expect(message_logged).to be_truthy
+                stop_reactor
+              end
+            end
           end
         end
 

@@ -1,3 +1,5 @@
+require 'securerandom'
+
 module Ably
   module Realtime
     # The Connection class represents the connection associated with an Ably Realtime instance.
@@ -215,38 +217,53 @@ module Ably
       #      puts "Ping took #{elapsed_s}s"
       #    end
       #
-      # @return [void]
+      # @return [Ably::Util::SafeDeferrable]
       #
       def ping(&block)
-        raise RuntimeError, 'Cannot send a ping when connection is not open' if initialized?
-        raise RuntimeError, 'Cannot send a ping when connection is in a closed or failed state' if closed? || failed?
+        Ably::Util::SafeDeferrable.new(logger).tap do |deferrable|
+          if initialized? || suspended? || closing? || closed? || failed?
+            deferrable.fail Ably::Models::ErrorInfo.new(message: "Cannot send a ping when the connection is #{state}", code: 80003)
+            next
+          end
 
-        started = nil
-        finished = false
+          started = nil
+          finished = false
+          ping_id = SecureRandom.hex(16)
+          heartbeat_action = Ably::Models::ProtocolMessage::ACTION.Heartbeat
 
-        wait_for_ping = Proc.new do |protocol_message|
-          next if finished
-          if protocol_message.action == Ably::Models::ProtocolMessage::ACTION.Heartbeat
+          wait_for_ping = Proc.new do |protocol_message|
+            next if finished
+            if protocol_message.action == heartbeat_action && protocol_message.id == ping_id
+              finished = true
+              __incoming_protocol_msgbus__.unsubscribe(:protocol_message, &wait_for_ping)
+              time_passed = Time.now.to_f - started.to_f
+              deferrable.succeed time_passed
+              safe_yield block, time_passed if block_given?
+            end
+          end
+
+          once_or_if(STATE.Connected) do
+            next if finished
+            started = Time.now
+            send_protocol_message action: heartbeat_action.to_i, id: ping_id
+            __incoming_protocol_msgbus__.subscribe :protocol_message, &wait_for_ping
+          end
+
+          once_or_if([:suspended, :closing, :closed, :failed]) do
+            next if finished
+            finished = true
+            deferrable.fail Ably::Models::ErrorInfo.new(message: "Ping failed as connection has changed state to #{state}", code: 80003)
+          end
+
+          EventMachine.add_timer(defaults.fetch(:realtime_request_timeout)) do
+            next if finished
             finished = true
             __incoming_protocol_msgbus__.unsubscribe(:protocol_message, &wait_for_ping)
-            time_passed = Time.now.to_f - started.to_f
-            safe_yield block, time_passed if block_given?
+            error_msg = "Ping timed out after #{defaults.fetch(:realtime_request_timeout)}s"
+            logger.warn { error_msg }
+            deferrable.fail Ably::Models::ErrorInfo.new(message: error_msg, code: 50003)
+            safe_yield block, nil if block_given?
           end
-        end
-
-        once_or_if(STATE.Connected) do
-          next if finished
-          started = Time.now
-          send_protocol_message action: Ably::Models::ProtocolMessage::ACTION.Heartbeat.to_i
-          __incoming_protocol_msgbus__.subscribe :protocol_message, &wait_for_ping
-        end
-
-        EventMachine.add_timer(defaults.fetch(:realtime_request_timeout)) do
-          next if finished
-          finished = true
-          __incoming_protocol_msgbus__.unsubscribe(:protocol_message, &wait_for_ping)
-          logger.warn { "Ping timed out after #{defaults.fetch(:realtime_request_timeout)}s" }
-          safe_yield block, nil if block_given?
         end
       end
 
