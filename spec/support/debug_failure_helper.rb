@@ -5,6 +5,9 @@ RSpec.configure do |config|
     @log_output = []
     %w(fatal error warn info debug).each do |method_name|
       allow_any_instance_of(Ably::Logger).to receive(method_name.to_sym).and_wrap_original do |method, *args, &block|
+        # Don't log shutdown sequence to keep log noise to a minimum
+        next if RSpec.const_defined?(:EventMachine) && RSpec::EventMachine.reactor_stopping?
+
         prefix = "#{Time.now.strftime('%H:%M:%S.%L')} [\e[33m#{method_name}\e[0m] "
 
         begin
