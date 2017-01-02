@@ -1195,7 +1195,7 @@ describe Ably::Auth do
           WebMock.disable!
         end
 
-        let(:client_options) { default_options.merge(use_token_auth: true, key: api_key, default_token_params: { ttl: 2 }) }
+        let(:client_options) { default_options.merge(use_token_auth: true, key: api_key, query_time: true, default_token_params: { ttl: 2 }) }
         let(:channel) { client.channels.get(random_str) }
         let(:token_expired_response) do
           {
@@ -1212,7 +1212,7 @@ describe Ably::Auth do
           channel.publish 'event'
           token = auth.current_token_details
           expect(token).to_not be_nil
-          sleep 2
+          sleep 2.5
           channel.publish 'event'
           expect(auth.current_token_details).to_not eql(token)
         end
@@ -1222,7 +1222,7 @@ describe Ably::Auth do
           channel.publish 'event'
           token = auth.current_token_details
           expect(token).to_not be_nil
-          sleep 2
+          sleep 2.5
           WebMock.enable!
           WebMock.disable_net_connect!
           stub_request(:post, "https://#{environment}-rest.ably.io/keys/#{TestApp.instance.key_name}/requestToken").
