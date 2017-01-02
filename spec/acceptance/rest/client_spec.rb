@@ -319,7 +319,8 @@ describe Ably::Rest::Client do
             environment: nil,
             key: api_key,
             http_max_retry_duration: max_retry_duration,
-            http_max_retry_count: max_retry_count
+            http_max_retry_count: max_retry_count,
+            log_level: :error
           )
         end
 
@@ -502,7 +503,7 @@ describe Ably::Rest::Client do
           end
 
           let(:client_options) {
-            production_options.merge(fallback_hosts: custom_hosts)
+            production_options.merge(fallback_hosts: custom_hosts, log_level: :error)
           }
 
           it 'attempts the fallback hosts as this is an authentication failure (#RSC15b, #RSC15a, #TO3k6)' do
@@ -537,7 +538,7 @@ describe Ably::Rest::Client do
 
           context 'and timing out the primary host' do
             before do
-              @web_server = WEBrick::HTTPServer.new(:Port => port, :SSLEnable => false)
+              @web_server = WEBrick::HTTPServer.new(:Port => port, :SSLEnable => false, :AccessLog => [], Logger: WEBrick::Log.new("/dev/null"))
               @web_server.mount_proc "/channels/#{channel_name}/publish" do |req, res|
                 if req.header["host"].first.include?(primary_host)
                   @primary_host_requested = true
@@ -568,7 +569,8 @@ describe Ably::Rest::Client do
                   port: port,
                   tls: false,
                   http_request_timeout: request_timeout,
-                  max_retry_duration: request_timeout * 3
+                  max_retry_duration: request_timeout * 3,
+                  log_level: :error
                 )
               end
               let(:fail_fallback_request_count) { 1 }
@@ -589,7 +591,8 @@ describe Ably::Rest::Client do
                   port: port,
                   tls: false,
                   http_request_timeout: request_timeout,
-                  max_retry_duration: request_timeout / 2
+                  max_retry_duration: request_timeout / 2,
+                  log_level: :error
                 )
               end
               let(:fail_fallback_request_count) { 0 }
@@ -604,7 +607,7 @@ describe Ably::Rest::Client do
 
           context 'and failing the primary host' do
             before do
-              @web_server = WEBrick::HTTPServer.new(:Port => port, :SSLEnable => false)
+              @web_server = WEBrick::HTTPServer.new(:Port => port, :SSLEnable => false, :AccessLog => [], Logger: WEBrick::Log.new("/dev/null"))
               @web_server.mount_proc "/channels/#{channel_name}/publish" do |req, res|
                 if req.header["host"].first.include?(primary_host)
                   @primary_host_requested = true
@@ -632,7 +635,8 @@ describe Ably::Rest::Client do
                 fallback_hosts: fallbacks,
                 token: 'fake.token',
                 port: port,
-                tls: false
+                tls: false,
+                log_level: :error
               )
             end
             let(:fail_fallback_request_count) { 1 }
@@ -684,7 +688,7 @@ describe Ably::Rest::Client do
           end
 
           let(:client_options) {
-            production_options.merge(fallback_hosts: custom_hosts)
+            production_options.merge(fallback_hosts: custom_hosts, log_level: :error)
           }
 
           it 'attempts the fallback hosts as this is not an authentication failure' do
@@ -713,10 +717,6 @@ describe Ably::Rest::Client do
             stub_const 'Ably::FALLBACK_HOSTS', custom_hosts
           end
 
-          let(:client_options) {
-            production_options.merge(fallback_hosts_use_default: true)
-          }
-
           let!(:first_fallback_request_stub) do
             stub_request(:post, "https://#{Ably::FALLBACK_HOSTS[0]}#{path}").to_return(&fallback_block)
           end
@@ -726,7 +726,7 @@ describe Ably::Rest::Client do
           end
 
           let(:client_options) {
-            production_options.merge(fallback_hosts: custom_hosts)
+            production_options.merge(fallback_hosts: custom_hosts, log_level: :error)
           }
 
           it 'attempts the default fallback hosts as this is an authentication failure' do
