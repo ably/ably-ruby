@@ -623,10 +623,12 @@ describe Ably::Realtime::Connection, :event_machine do
         it 'the sent message msgSerial is 0 but the connection serial remains at -1' do
           channel.attach do
             connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
-              connection.__outgoing_protocol_msgbus__.unsubscribe
-              expect(protocol_message['msgSerial']).to eql(0)
-              expect(connection.serial).to eql(-1)
-              stop_reactor
+              if protocol_message.action == :message
+                connection.__outgoing_protocol_msgbus__.unsubscribe
+                expect(protocol_message['msgSerial']).to eql(0)
+                expect(connection.serial).to eql(-1)
+                stop_reactor
+              end
             end
             channel.publish('event', 'data')
           end

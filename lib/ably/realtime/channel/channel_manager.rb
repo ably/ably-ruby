@@ -162,8 +162,8 @@ module Ably::Realtime
       def start_attach_from_suspended_timer
         cancel_attach_from_suspended_timer
         if connection.connected?
-          channel.once { |event| cancel_attach_from_suspended_timer unless event == :update }
-          connection.once { |event| cancel_attach_from_suspended_timer unless event == :update }
+          channel.unsafe_once { |event| cancel_attach_from_suspended_timer unless event == :update }
+          connection.unsafe_once { |event| cancel_attach_from_suspended_timer unless event == :update }
 
           @attach_from_suspended_timer = EventMachine::Timer.new(channel_retry_timeout) do
             channel.transition_state_machine! :attaching
@@ -225,9 +225,9 @@ module Ably::Realtime
         end
 
         resend_if_disconnected_and_connected = Proc.new do
-          connection.once(:disconnected) do
+          connection.unsafe_once(:disconnected) do
             next unless pending_state_change_timer
-            connection.once(:connected) do
+            connection.unsafe_once(:connected) do
               next unless pending_state_change_timer
               connection.send_protocol_message(
                 action:  new_state.to_i,

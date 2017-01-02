@@ -685,7 +685,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
             channel.attach do
               publishing_client_channel.attach do
-                connection.transport.off # remove all event handlers that detect socket connection state has changed
+                connection.transport.unsafe_off # remove all event handlers that detect socket connection state has changed
                 connection.transport.close_connection_after_writing
 
                 publishing_client_channel.publish('event', 'message') do

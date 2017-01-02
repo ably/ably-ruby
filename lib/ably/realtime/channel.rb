@@ -333,7 +333,7 @@ module Ably
           emit_message message.name, message
         end
 
-        on(STATE.Attached) do
+        unsafe_on(STATE.Attached) do
           process_queue
         end
       end

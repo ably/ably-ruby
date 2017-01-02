@@ -94,11 +94,11 @@ module Ably
               # Indicate success or failure based on response from realtime, see #RTC8b1
               auth_deferrable_resolved = false
 
-              connection.once(:connected, :update) do
+              connection.unsafe_once(:connected, :update) do
                 auth_deferrable_resolved = true
                 authorize_method_deferrable.succeed token
               end
-              connection.once(:suspended, :closed, :failed) do |state_change|
+              connection.unsafe_once(:suspended, :closed, :failed) do |state_change|
                 auth_deferrable_resolved = true
                 authorize_method_deferrable.fail state_change.reason
               end
