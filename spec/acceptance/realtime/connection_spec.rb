@@ -597,11 +597,13 @@ describe Ably::Realtime::Connection, :event_machine do
       end
 
       context 'when closing' do
-        it 'raises an exception before the connection is closed' do
+        it 'fails the deferrable before the connection is closed' do
           connection.connect do
             connection.once(:closing) do
-              expect { connection.connect }.to raise_error Ably::Exceptions::InvalidStateChange
-              stop_reactor
+              connection.connect.errback do |error|
+                expect(error).to be_a(Ably::Exceptions::InvalidStateChange)
+                stop_reactor
+              end
             end
             connection.close
           end
@@ -1461,8 +1463,10 @@ describe Ably::Realtime::Connection, :event_machine do
         it 'moves the channels into the suspended state and prevents publishing of messages on those channels' do
           channel.attach do
             channel.once(:suspended) do
-              expect { channel.publish 'test' }.to raise_error(Ably::Exceptions::MessageQueueingDisabled)
-              stop_reactor
+              channel.publish('test').errback do |error|
+                expect(error).to be_a(Ably::Exceptions::MessageQueueingDisabled)
+                stop_reactor
+              end
             end
 
             close_connection_proc = Proc.new do
@@ -1490,8 +1494,10 @@ describe Ably::Realtime::Connection, :event_machine do
         it 'sets all channels to failed and prevents publishing of messages on those channels' do
           channel.attach
           channel.once(:failed) do
-            expect { channel.publish 'test' }.to raise_error(Ably::Exceptions::ChannelInactive)
-            stop_reactor
+            channel.publish('test').errback do |error|
+              expect(error).to be_a(Ably::Exceptions::ChannelInactive)
+              stop_reactor
+            end
           end
         end
       end

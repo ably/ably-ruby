@@ -130,20 +130,24 @@ describe Ably::Realtime::Presence, :event_machine do
           let(:client_one) { auto_close Ably::Realtime::Client.new(default_options.merge(queue_messages: false, client_id: client_id)) }
 
           context 'and connection state initialized' do
-            it 'raises an exception' do
-              expect { presence_client_one.public_send(method_name, args) }.to raise_error Ably::Exceptions::MessageQueueingDisabled
+            it 'fails the deferrable' do
+              presence_client_one.public_send(method_name, args).errback do |error|
+                expect(error).to be_a(Ably::Exceptions::MessageQueueingDisabled)
+                stop_reactor
+              end
               expect(client_one.connection).to be_initialized
-              stop_reactor
             end
           end
 
           context 'and connection state connecting' do
-            it 'raises an exception' do
+            it 'fails the deferrable' do
               client_one.connect
               EventMachine.next_tick do
-                expect { presence_client_one.public_send(method_name, args) }.to raise_error Ably::Exceptions::MessageQueueingDisabled
+                presence_client_one.public_send(method_name, args).errback do |error|
+                  expect(error).to be_a(Ably::Exceptions::MessageQueueingDisabled)
+                  stop_reactor
+                end
                 expect(client_one.connection).to be_connecting
-                stop_reactor
               end
             end
           end
@@ -151,12 +155,14 @@ describe Ably::Realtime::Presence, :event_machine do
           context 'and connection state disconnected' do
             let(:client_one) { auto_close Ably::Realtime::Client.new(default_options.merge(queue_messages: false, client_id: client_id, :log_level => :error)) }
 
-            it 'raises an exception' do
+            it 'fails the deferrable' do
               client_one.connection.once(:connected) do
                 client_one.connection.once(:disconnected) do
-                  expect { presence_client_one.public_send(method_name, args) }.to raise_error Ably::Exceptions::MessageQueueingDisabled
+                  presence_client_one.public_send(method_name, args).errback do |error|
+                    expect(error).to be_a(Ably::Exceptions::MessageQueueingDisabled)
+                    stop_reactor
+                  end
                   expect(client_one.connection).to be_disconnected
-                  stop_reactor
                 end
                 client_one.connection.transition_state_machine :disconnected
               end

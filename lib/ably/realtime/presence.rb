@@ -66,7 +66,9 @@ module Ably::Realtime
 
       return deferrable_succeed(deferrable, &success_block) if state == STATE.Entered
 
-      ensure_presence_publishable_on_connection
+      requirements_failed_deferrable = ensure_presence_publishable_on_connection_deferrable
+      return requirements_failed_deferrable if requirements_failed_deferrable
+
       ensure_channel_attached(deferrable) do
         if entering?
           once_or_if(STATE.Entered, else: proc { |args| deferrable_fail deferrable, *args }) do
@@ -126,7 +128,9 @@ module Ably::Realtime
 
       return deferrable_succeed(deferrable, &success_block) if state == STATE.Left
 
-      ensure_presence_publishable_on_connection
+      requirements_failed_deferrable = ensure_presence_publishable_on_connection_deferrable
+      return requirements_failed_deferrable if requirements_failed_deferrable
+
       ensure_channel_attached(deferrable) do
         if leaving?
           once_or_if(STATE.Left, else: proc { |error|deferrable_fail deferrable, *args }) do
@@ -179,7 +183,9 @@ module Ably::Realtime
 
       @data = data
 
-      ensure_presence_publishable_on_connection
+      requirements_failed_deferrable = ensure_presence_publishable_on_connection_deferrable
+      return requirements_failed_deferrable if requirements_failed_deferrable
+
       ensure_channel_attached(deferrable) do
         send_protocol_message_and_transition_state_to(
           Ably::Models::PresenceMessage::ACTION.Update,
@@ -274,7 +280,10 @@ module Ably::Realtime
     #
     def history(options = {}, &callback)
       if options.delete(:until_attach)
-        raise ArgumentError, 'option :until_attach cannot be specified if the channel is not attached' unless channel.attached?
+        unless channel.attached?
+          error = Ably::Exceptions::InvalidRequest.new('option :until_attach is invalid as the channel is not attached')
+          return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
+        end
         options[:from_serial] = channel.attached_serial
       end
 
@@ -340,9 +349,10 @@ module Ably::Realtime
       end
     end
 
-    def ensure_presence_publishable_on_connection
+    def ensure_presence_publishable_on_connection_deferrable
       if !connection.can_publish_messages?
-        raise Ably::Exceptions::MessageQueueingDisabled.new("Message cannot be published. Client is configured to disallow queueing of messages and connection is currently #{connection.state}")
+        error = Ably::Exceptions::MessageQueueingDisabled.new("Message cannot be published. Client is configured to disallow queueing of messages and connection is currently #{connection.state}")
+        Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
       end
     end
 
@@ -401,7 +411,8 @@ module Ably::Realtime
     end
 
     def send_presence_action_for_client(action, client_id, data, &success_block)
-      ensure_presence_publishable_on_connection
+      requirements_failed_deferrable = ensure_presence_publishable_on_connection_deferrable
+      return requirements_failed_deferrable if requirements_failed_deferrable
 
       deferrable = create_deferrable
       ensure_channel_attached(deferrable) do

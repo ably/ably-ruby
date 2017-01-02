@@ -236,7 +236,7 @@ describe Ably::Realtime::Auth, :event_machine do
           context 'and an incompatible client_id in a TokenDetails object passed to the auth callback' do
             let(:auth_token_object) { rest_auth_client.auth.request_token }
 
-            it 'rejects a TokenDetails object with an incompatible client_id and raises an exception' do
+            it 'rejects a TokenDetails object with an incompatible client_id and fails with an exception' do
               client.connect
               client.connection.on(:failed) do |state_change|
                 expect(state_change.reason).to be_a(Ably::Exceptions::AuthenticationFailed)
@@ -249,10 +249,10 @@ describe Ably::Realtime::Auth, :event_machine do
             end
           end
 
-          context 'and an incompatible client_id in a TokenRequest object passed to the auth callback and raises an exception' do
+          context 'and an incompatible client_id in a TokenRequest object passed to the auth callback and fails with an exception' do
             let(:auth_token_object) { rest_auth_client.auth.create_token_request }
 
-            it 'rejects a TokenRequests object with an incompatible client_id and raises an exception' do
+            it 'rejects a TokenRequests object with an incompatible client_id and fails with an exception' do
               client.connect
               client.connection.on(:failed) do |state_change|
                 expect(state_change.reason).to be_a(Ably::Exceptions::AuthenticationFailed)
@@ -284,7 +284,7 @@ describe Ably::Realtime::Auth, :event_machine do
           let(:invalid_auth_token) { Ably::Rest::Client.new(default_options.merge(key: api_key, client_id: 'invalid')).auth.request_token }
 
           context 'and an incompatible client_id in a TokenDetails object passed to the auth callback' do
-            it 'rejects a TokenDetails object with an incompatible client_id and raises an exception' do
+            it 'rejects a TokenDetails object with an incompatible client_id and fails with an exception' do
               client.connection.once(:connected) do
                 client.auth.authorize({})
                 client.connection.on(:failed) do |state_change|
