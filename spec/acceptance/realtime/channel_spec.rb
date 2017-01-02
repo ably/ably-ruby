@@ -842,6 +842,15 @@ describe Ably::Realtime::Channel, :event_machine do
             end
           end
         end
+
+        context 'and additional invalid attributes' do
+          let(:client_id) { 1 }
+
+          it 'throws an exception' do
+            expect { channel.publish([name: 'event', client_id: 1]) }.to raise_error ArgumentError, /client_id must be a String/
+            stop_reactor
+          end
+        end
       end
 
       context 'with an array of Hash objects with :name and :data attributes' do
@@ -1087,6 +1096,13 @@ describe Ably::Realtime::Channel, :event_machine do
           context 'with a wildcard client_id in the message' do
             it 'throws an exception' do
               expect { channel.publish([name: 'event', client_id: '*']) }.to raise_error Ably::Exceptions::IncompatibleClientId
+              stop_reactor
+            end
+          end
+
+          context 'with a non-String client_id in the message' do
+            it 'throws an exception' do
+              expect { channel.publish([name: 'event', client_id: 1]) }.to raise_error ArgumentError, /client_id must be a String/
               stop_reactor
             end
           end

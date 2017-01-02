@@ -381,6 +381,13 @@ describe Ably::Realtime::Presence, :event_machine do
             stop_reactor
           end
         end
+
+        context 'and a client_id that is not a string type' do
+          it 'throws an exception' do
+            expect { presence_channel.public_send(method_name, 1) }.to raise_error Ably::Exceptions::IncompatibleClientId
+            stop_reactor
+          end
+        end
       end
 
       context ":#{method_name} when authenticated with a valid client_id" do

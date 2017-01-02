@@ -374,6 +374,9 @@ module Ably::Realtime
       if check_client_id == '*'
         raise Ably::Exceptions::IncompatibleClientId.new('Unable to enter/update/leave presence channel with the reserved wildcard client_id')
       end
+      unless check_client_id.kind_of?(String)
+        raise Ably::Exceptions::IncompatibleClientId.new('Unable to enter/update/leave with a non String client_id value')
+      end
       unless client.auth.can_assume_client_id?(check_client_id)
         raise Ably::Exceptions::IncompatibleClientId.new("Cannot enter with provided client_id '#{check_client_id}' as it is incompatible with the current configured client_id '#{client.client_id}'")
       end
