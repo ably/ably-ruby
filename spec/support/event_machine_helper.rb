@@ -123,7 +123,7 @@ RSpec.configure do |config|
     example.run
   end
 
-  config.before(:example) do
+  config.before(:example, :event_machine) do
     # Ensure EventMachine shutdown hooks are deregistered for every test
     EventMachine.instance_variable_set '@tails', []
   end
