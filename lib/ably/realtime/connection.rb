@@ -160,7 +160,9 @@ module Ably
       #
       def close(&success_block)
         unless closing? || closed?
-          raise exception_for_state_change_to(:closing) unless can_transition_to?(:closing)
+          unless can_transition_to?(:closing)
+            return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, exception_for_state_change_to(:closing))
+          end
           transition_state_machine :closing
         end
         deferrable_for_state_change_to(STATE.Closed, &success_block)
@@ -180,7 +182,9 @@ module Ably
       #
       def connect(&success_block)
         unless connecting? || connected?
-          raise exception_for_state_change_to(:connecting) unless can_transition_to?(:connecting)
+          unless can_transition_to?(:connecting)
+            return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, exception_for_state_change_to(:connecting))
+          end
           # If connect called in a suspended block, we want to ensure the other callbacks have finished their work first
           EventMachine.next_tick { transition_state_machine :connecting if can_transition_to?(:connecting) }
         end
@@ -220,12 +224,12 @@ module Ably
       # @return [Ably::Util::SafeDeferrable]
       #
       def ping(&block)
-        Ably::Util::SafeDeferrable.new(logger).tap do |deferrable|
-          if initialized? || suspended? || closing? || closed? || failed?
-            deferrable.fail Ably::Models::ErrorInfo.new(message: "Cannot send a ping when the connection is #{state}", code: 80003)
-            next
-          end
+        if initialized? || suspended? || closing? || closed? || failed?
+          error = Ably::Models::ErrorInfo.new(message: "Cannot send a ping when the connection is #{state}", code: 80003)
+          return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
+        end
 
+        Ably::Util::SafeDeferrable.new(logger).tap do |deferrable|
           started = nil
           finished = false
           ping_id = SecureRandom.hex(16)

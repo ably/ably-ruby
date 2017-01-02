@@ -433,12 +433,14 @@ describe Ably::Realtime::Channel, :event_machine do
       context 'when state is :failed' do
         let(:client_options) { default_options.merge(log_level: :fatal) }
 
-        it 'raises an exception (#RTL5b)' do
+        it 'fails the deferrable (#RTL5b)' do
           channel.attach do
             channel.transition_state_machine :failed, reason: RuntimeError.new
             expect(channel).to be_failed
-            expect { channel.detach }.to raise_error Ably::Exceptions::InvalidStateChange
-            stop_reactor
+            channel.detach.errback do |error|
+              expect(error).to be_a(Ably::Exceptions::InvalidStateChange)
+              stop_reactor
+            end
           end
         end
       end
@@ -533,12 +535,14 @@ describe Ably::Realtime::Channel, :event_machine do
 
       context 'when connection state is' do
         context 'closing' do
-          it 'raises an exception (#RTL5b)' do
+          it 'fails the deferrable (#RTL5b)' do
             connection.once(:connected) do
               channel.attach do
                 connection.once(:closing) do
-                  expect { channel.detach }.to raise_error Ably::Exceptions::InvalidStateChange
-                  stop_reactor
+                  channel.detach.errback do |error|
+                    expect(error).to be_a(Ably::Exceptions::InvalidStateChange)
+                    stop_reactor
+                  end
                 end
                 connection.close
               end
@@ -550,13 +554,16 @@ describe Ably::Realtime::Channel, :event_machine do
           let(:client_options) do
             default_options.merge(log_level: :none)
           end
-          it 'raises an exception (#RTL5b)' do
+
+          it 'fails the deferrable (#RTL5b)' do
             connection.once(:connected) do
               channel.attach do
                 connection.once(:failed) do
                   expect(channel).to be_failed
-                  expect { channel.detach }.to raise_error Ably::Exceptions::InvalidStateChange
-                  stop_reactor
+                  channel.detach.errback do |error|
+                    expect(error).to be_a(Ably::Exceptions::InvalidStateChange)
+                    stop_reactor
+                  end
                 end
                 error = Ably::Exceptions::ConnectionFailed.new('forced failure', 500, 50000)
                 client.connection.manager.error_received_from_server error
@@ -569,14 +576,17 @@ describe Ably::Realtime::Channel, :event_machine do
           let(:client_options) do
             default_options.merge(log_level: :none)
           end
-          it 'raises an exception (#RTL5b)' do
+
+          it 'fails the deferrable (#RTL5b)' do
             connection.once(:connected) do
               channel.attach do
                 channel.detach do
                   connection.once(:failed) do
                     expect(channel).to be_detached
-                    expect { channel.detach }.to raise_error Ably::Exceptions::InvalidStateChange
-                    stop_reactor
+                    channel.detach.errback do |error|
+                      expect(error).to be_a(Ably::Exceptions::InvalidStateChange)
+                      stop_reactor
+                    end
                   end
                   error = Ably::Exceptions::ConnectionFailed.new('forced failure', 500, 50000)
                   client.connection.manager.error_received_from_server error
@@ -760,32 +770,38 @@ describe Ably::Realtime::Channel, :event_machine do
           let(:client_options)  { default_options.merge(queue_messages: false) }
 
           context 'and connection state initialized' do
-            it 'raises an exception' do
-              expect { channel.publish('event') }.to raise_error Ably::Exceptions::MessageQueueingDisabled
+            it 'fails the deferrable' do
               expect(client.connection).to be_initialized
-              stop_reactor
+              channel.publish('event').errback do |error|
+                expect(error).to be_a(Ably::Exceptions::MessageQueueingDisabled)
+                stop_reactor
+              end
             end
           end
 
           context 'and connection state connecting' do
-            it 'raises an exception' do
+            it 'fails the deferrable' do
               client.connect
               EventMachine.next_tick do
-                expect { channel.publish('event') }.to raise_error Ably::Exceptions::MessageQueueingDisabled
                 expect(client.connection).to be_connecting
-                stop_reactor
+                channel.publish('event').errback do |error|
+                  expect(error).to be_a(Ably::Exceptions::MessageQueueingDisabled)
+                  stop_reactor
+                end
               end
             end
           end
 
           context 'and connection state disconnected' do
             let(:client_options)  { default_options.merge(queue_messages: false) }
-            it 'raises an exception' do
+            it 'fails the deferrable' do
               client.connection.once(:connected) do
                 client.connection.once(:disconnected) do
-                  expect { channel.publish('event') }.to raise_error Ably::Exceptions::MessageQueueingDisabled
                   expect(client.connection).to be_disconnected
-                  stop_reactor
+                  channel.publish('event').errback do |error|
+                    expect(error).to be_a(Ably::Exceptions::MessageQueueingDisabled)
+                    stop_reactor
+                  end
                 end
                 client.connection.transition_state_machine :disconnected
               end
@@ -1450,11 +1466,13 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'a channel ATTACH request' do
-          it 'raises an exception (#RTL4b)' do
+          it 'fails the deferrable (#RTL4b)' do
             client.connect do
               client.connection.once(:failed) do
-                expect { channel.attach }.to raise_error Ably::Exceptions::InvalidStateChange
-                stop_reactor
+                channel.attach.errback do |error|
+                  expect(error).to be_a(Ably::Exceptions::InvalidStateChange)
+                  stop_reactor
+                end
               end
               fake_error connection_error
             end
@@ -1530,11 +1548,13 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'a channel ATTACH request when connection CLOSED' do
-          it 'raises an exception (#RTL4b)' do
+          it 'fails the deferrable (#RTL4b)' do
             client.connect do
               client.connection.once(:closed) do
-                expect { channel.attach }.to raise_error Ably::Exceptions::InvalidStateChange
-                stop_reactor
+                channel.attach.errback do |error|
+                  expect(error).to be_a(Ably::Exceptions::InvalidStateChange)
+                  stop_reactor
+                end
               end
               client.close
             end
@@ -1542,11 +1562,13 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'a channel ATTACH request when connection CLOSING' do
-          it 'raises an exception (#RTL4b)' do
+          it 'fails the deferrable (#RTL4b)' do
             client.connect do
               client.connection.once(:closing) do
-                expect { channel.attach }.to raise_error Ably::Exceptions::InvalidStateChange
-                stop_reactor
+                channel.attach.errback do |error|
+                  expect(error).to be_a(Ably::Exceptions::InvalidStateChange)
+                  stop_reactor
+                end
               end
               client.close
             end
@@ -1635,11 +1657,13 @@ describe Ably::Realtime::Channel, :event_machine do
         context 'a channel ATTACH request when connection SUSPENDED (#RTL4b)' do
           let(:client_options) { default_options.merge(log_level: :fatal) }
 
-          it 'raises an exception' do
+          it 'fails the deferrable' do
             client.connect do
               client.connection.once(:suspended) do
-                expect { channel.attach }.to raise_error Ably::Exceptions::InvalidStateChange
-                stop_reactor
+                channel.attach.errback do |error|
+                  expect(error).to be_a(Ably::Exceptions::InvalidStateChange)
+                  stop_reactor
+                end
               end
               client.connection.transition_state_machine :suspended
             end

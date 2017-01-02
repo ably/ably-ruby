@@ -362,7 +362,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
         context 'when connection state is :failed' do
           describe '#close' do
-            it 'will not transition state to :close and raises a InvalidStateChange exception' do
+            it 'will not transition state to :close and fails with an InvalidStateChange exception' do
               connection.on(:connected) { raise 'Connection should not have reached :connected state' }
 
               connection.once(:suspended) do
@@ -371,8 +371,11 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
               connection.once(:failed) do
                 expect(connection.state).to eq(:failed)
-                expect { connection.close }.to raise_error Ably::Exceptions::InvalidStateChange, /Unable to transition from failed => closing/
-                stop_reactor
+                connection.close.errback do |error|
+                  expect(error).to be_a(Ably::Exceptions::InvalidStateChange)
+                  expect(error.message).to match(/Unable to transition from failed => closing/)
+                  stop_reactor
+                end
               end
             end
           end

@@ -146,11 +146,14 @@ module Ably
       #   end
       #
       def publish(name, data = nil, attributes = {}, &success_block)
-        raise Ably::Exceptions::ChannelInactive.new('Cannot publish messages on a detached channel') if detached? || detaching?
-        raise Ably::Exceptions::ChannelInactive.new('Cannot publish messages on a failed channel') if failed?
+        if detached? || detaching? || failed?
+          error = Ably::Exceptions::ChannelInactive.new("Cannot publish messages on a channel in state #{state}")
+          return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
+        end
 
         if !connection.can_publish_messages?
-          raise Ably::Exceptions::MessageQueueingDisabled.new("Message cannot be published. Client is configured to disallow queueing of messages and connection is currently #{connection.state}")
+          error = Ably::Exceptions::MessageQueueingDisabled.new("Message cannot be published. Client is configured to disallow queueing of messages and connection is currently #{connection.state}")
+          return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
         end
 
         messages = if name.kind_of?(Enumerable)
@@ -200,7 +203,8 @@ module Ably
       #
       def attach(&success_block)
         if connection.closing? || connection.closed? || connection.suspended? || connection.failed?
-          raise Ably::Exceptions::InvalidStateChange.new("Cannot ATTACH channel when the connection is in a closed, suspended or failed state. Connection state: #{connection.state}")
+          error = Ably::Exceptions::InvalidStateChange.new("Cannot ATTACH channel when the connection is in a closed, suspended or failed state. Connection state: #{connection.state}")
+          return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
         end
 
         if !attached?
@@ -223,12 +227,12 @@ module Ably
       def detach(&success_block)
         if initialized?
           success_block.call if block_given?
-          return Ably::Util::SafeDeferrable.new(logger).tap do |deferrable|
-            EventMachine.next_tick { deferrable.succeed }
-          end
+          return Ably::Util::SafeDeferrable.new_and_succeed_immediately(logger)
         end
 
-        raise exception_for_state_change_to(:detaching) if failed? || connection.closing? || connection.failed?
+        if failed? || connection.closing? || connection.failed?
+          return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, exception_for_state_change_to(:detaching))
+        end
 
         if !detached?
           if attaching?
@@ -270,7 +274,10 @@ module Ably
       #
       def history(options = {}, &callback)
         if options.delete(:until_attach)
-          raise ArgumentError, 'option :until_attach is invalid as the channel is not attached' unless attached?
+          unless attached?
+            error = Ably::Exceptions::InvalidRequest.new('option :until_attach is invalid as the channel is not attached' )
+            return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
+          end
           options[:from_serial] = attached_serial
         end
 
