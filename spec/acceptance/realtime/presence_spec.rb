@@ -723,9 +723,9 @@ describe Ably::Realtime::Presence, :event_machine do
       end
     end
 
-    context '201 existing (present) members on a channel (3 SYNC pages)' do
-      context 'requiring at least 3 SYNC ProtocolMessages', em_timeout: 40 do
-        let(:enter_expected_count) { 201 }
+    context '101 existing (present) members on a channel (2 SYNC pages)' do
+      context 'requiring at least 2 SYNC ProtocolMessages', em_timeout: 40 do
+        let(:enter_expected_count) { 101 }
         let(:present) { [] }
         let(:entered) { [] }
         let(:sync_pages_received) { [] }
@@ -2067,7 +2067,7 @@ describe Ably::Realtime::Presence, :event_machine do
     end
 
     context 'connection failure mid-way through a large member sync' do
-      let(:members_count) { 250 }
+      let(:members_count) { 201 }
       let(:sync_pages_received) { [] }
       let(:client_options)  { default_options.merge(log_level: :error) }
 
