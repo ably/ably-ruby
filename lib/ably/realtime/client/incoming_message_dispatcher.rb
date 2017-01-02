@@ -87,7 +87,7 @@ module Ably::Realtime
             connection.transition_state_machine :closed unless connection.closed?
 
           when ACTION.Error
-            if protocol_message.channel && !protocol_message.has_message_serial?
+            if protocol_message.channel
               dispatch_channel_error protocol_message
             else
               process_connection_error protocol_message
