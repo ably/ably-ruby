@@ -42,7 +42,16 @@ describe Ably::Realtime::Presence, :event_machine do
 
       def setup_test(method_name, args, options)
         if options[:enter_first]
+          acked = false
+          received = false
           presence_client_one.public_send(method_name.to_s.gsub(/leave|update/, 'enter'), args) do
+            acked = true
+            yield if acked & received
+          end
+          presence_client_one.subscribe do |presence_message|
+            expect(presence_message.action).to eq(:enter)
+            presence_client_one.unsubscribe
+            received = true
             yield
           end
         else
