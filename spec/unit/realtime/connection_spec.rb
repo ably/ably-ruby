@@ -5,7 +5,10 @@ describe Ably::Realtime::Connection do
   let(:client) { instance_double('Ably::Realtime::Client', logger: double('logger').as_null_object) }
 
   subject do
-    Ably::Realtime::Connection.new(client, {})
+    Ably::Realtime::Connection.new(client, {}).tap do |connection|
+      connection.__incoming_protocol_msgbus__.unsubscribe
+      connection.__outgoing_protocol_msgbus__.unsubscribe
+    end
   end
 
   before do
