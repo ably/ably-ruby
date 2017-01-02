@@ -129,10 +129,18 @@ module Ably
     def authorize(token_params = nil, auth_options = nil)
       if auth_options.nil?
         auth_options = options # Use default options
+
+        if options.has_key?(:query_time)
+          @options = options.dup
+          # Query the server time only happens once
+          # the options remain in auth_options though so they are passed to request_token
+          @options.delete(:query_time)
+          @options.freeze
+        end
       else
         ensure_valid_auth_attributes auth_options
 
-        auth_options = auth_options.clone
+        auth_options = auth_options.dup
 
         if auth_options[:token_params]
           token_params = auth_options.delete(:token_params).merge(token_params || {})
@@ -145,7 +153,7 @@ module Ably
           store_and_delete_basic_auth_key_from_options! auth_options
         end
 
-        @options = auth_options.clone
+        @options = auth_options.dup
 
         # Query the server time only happens once
         # the options remain in auth_options though so they are passed to request_token
@@ -156,7 +164,7 @@ module Ably
 
       # Unless provided, defaults are used
       unless token_params.nil?
-        @token_params = token_params.clone
+        @token_params = token_params.dup
         # Timestamp is only valid for this request
         @token_params.delete(:timestamp)
         @token_params.freeze
@@ -279,7 +287,7 @@ module Ably
     def create_token_request(token_params = {}, auth_options = {})
       ensure_valid_auth_attributes auth_options
 
-      auth_options = auth_options.clone
+      auth_options = auth_options.dup
       token_params = (auth_options[:token_params] || {}).merge(token_params)
 
       split_api_key_into_key_and_secret! auth_options if auth_options[:key]
