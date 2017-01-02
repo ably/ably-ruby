@@ -83,13 +83,13 @@ describe Ably::Modules::EventEmitter do
           allow(obj).to receive(:received_message)
         end
 
-        it 'is unaffected and processes the prior event callbacks once' do
+        it 'is unaffected and processes the prior event callbacks once (#RTE6b)' do
           expect(obj).to receive(:received_message).with(msg).twice
           expect(obj).to_not receive(:received_message_from_new_callbacks).with(msg)
           subject.emit :message, msg
         end
 
-        it 'adds them for the next emitted event' do
+        it 'adds them for the next emitted event (#RTE6b)' do
           expect(obj).to receive(:received_message_from_new_callbacks).with(msg).twice
 
           # New callbacks are added in this emit
@@ -110,12 +110,12 @@ describe Ably::Modules::EventEmitter do
           end
         end
 
-        it 'is unaffected and processes the prior event callbacks once' do
+        it 'is unaffected and processes the prior event callbacks once (#RTE6b)' do
           expect(obj).to receive(:received_message).with(msg).twice
           subject.emit :message, msg
         end
 
-        it 'removes them for the next emitted event' do
+        it 'removes them for the next emitted event (#RTE6b)' do
           expect(obj).to receive(:received_message).with(msg).twice
 
           # Callbacks are removed in this emit
