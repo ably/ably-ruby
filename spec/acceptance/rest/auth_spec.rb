@@ -612,7 +612,7 @@ describe Ably::Auth do
         end
       end
 
-      context 'query_time: true' do
+      context 'query_time: true with authorize' do
         let(:local_time)  { @now - 60 }
         let(:server_time) { @now }
 
@@ -625,6 +625,27 @@ describe Ably::Auth do
           expect(client).to receive(:time).once.and_return(server_time)
 
           auth.authorize({}, query_time: true)
+          auth.authorize({})
+          expect(auth.auth_options).to_not have_key(:query_time)
+        end
+      end
+
+      context 'query_time: true ClientOption when instanced' do
+        let(:local_time)  { @now - 60 }
+        let(:server_time) { @now }
+
+        let(:client_options)  { default_options.merge(key: api_key, query_time: true) }
+
+        before do
+          @now = Time.now
+          allow(Time).to receive(:now).and_return(local_time)
+        end
+
+        it 'only queries the server time once and then works out the offset, query_time option is never persisted (#RSA10k)' do
+          expect(client).to receive(:time).once.and_return(server_time)
+
+          auth.authorize({})
+          auth.authorize({})
           auth.authorize({})
           expect(auth.auth_options).to_not have_key(:query_time)
         end
