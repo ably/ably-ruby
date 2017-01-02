@@ -490,7 +490,7 @@ module Ably::Realtime
         transport.unsafe_on(:disconnected) do |reason|
           if connection.closing?
             connection.transition_state_machine :closed
-          elsif !connection.closed? && !connection.disconnected?
+          elsif !connection.closed? && !connection.disconnected? && !connection.failed?
             exception = if reason
               Ably::Exceptions::TransportClosed.new(reason, nil, 80003)
             else

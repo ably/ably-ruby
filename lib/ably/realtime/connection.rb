@@ -190,12 +190,12 @@ module Ably
           succeed_callback = deferrable.method(:succeed)
           fail_callback    = deferrable.method(:fail)
 
-          once(:connected) do
+          unsafe_once(:connected) do
             deferrable.succeed
             off(&fail_callback)
           end
 
-          once(:failed, :closed, :closing) do
+          unsafe_once(:failed, :closed, :closing) do
             deferrable.fail
             off(&succeed_callback)
           end
@@ -413,7 +413,7 @@ module Ably
               elsif connection_recoverable?
                 url_params.merge! recover: connection_recover_parts[:recover], connection_serial: connection_recover_parts[:connection_serial]
                 logger.debug { "Recovering connection with key #{client.recover}" }
-                once(:connected, :closed, :failed) do
+                unsafe_once(:connected, :closed, :failed) do
                   client.disable_automatic_connection_recovery
                 end
               end

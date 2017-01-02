@@ -126,8 +126,8 @@ module Ably::Realtime
             channel.off(&failed_callback)
           end
 
-          once(:in_sync, &in_sync_callback)
-          once(:failed, &failed_callback)
+          unsafe_once(:in_sync, &in_sync_callback)
+          unsafe_once(:failed, &failed_callback)
 
           channel.unsafe_once(:detaching, :detached, :failed) do |error_reason|
             failed_callback.call error_reason
@@ -213,38 +213,38 @@ module Ably::Realtime
           update_members_and_emit_events presence_message
         end
 
-        channel.on(:failed, :detached) do
+        channel.unsafe_on(:failed, :detached) do
           reset_members
           reset_local_members
         end
 
         resume_sync_proc = method(:resume_sync).to_proc
 
-        on(:sync_starting) do
+        unsafe_on(:sync_starting) do
           @sync_session_id += 1
 
-          channel.once(:attached) do
+          channel.unsafe_once(:attached) do
             connection.on_resume(&resume_sync_proc)
           end
 
-          once(:in_sync, :failed) do
+          unsafe_once(:in_sync, :failed) do
             connection.off_resume(&resume_sync_proc)
           end
         end
 
-        on(:sync_none) do
+        unsafe_on(:sync_none) do
           @sync_session_id += 1
           # Immediately change to finalizing which will result in all members being cleaned up
           change_state :finalizing_sync
         end
 
-        on(:finalizing_sync) do
+        unsafe_on(:finalizing_sync) do
           clean_up_absent_members
           clean_up_members_not_present_in_sync
           change_state :in_sync
         end
 
-        on(:in_sync) do
+        unsafe_on(:in_sync) do
           update_local_member_state
         end
       end

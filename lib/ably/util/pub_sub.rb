@@ -38,7 +38,7 @@ module Ably::Util
 
         alias_method :subscribe, :unsafe_on
         alias_method :publish, :emit
-        alias_method :unsubscribe, :off
+        alias_method :unsubscribe, :unsafe_off
       end
     end
   end

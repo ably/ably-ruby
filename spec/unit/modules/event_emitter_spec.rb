@@ -323,5 +323,99 @@ describe Ably::Modules::EventEmitter do
         end
       end
     end
+
+    context 'with unsafe_on subscribers' do
+      before do
+        subject.unsafe_on(&callback)
+      end
+
+      after do
+        subject.emit :message, msg
+      end
+
+      it 'does not deregister them' do
+        expect(obj).to receive(:received_message).with(msg)
+        subject.off
+      end
+    end
+
+    context 'with unsafe_once subscribers' do
+      before do
+        subject.unsafe_once(&callback)
+      end
+
+      after do
+        subject.emit :message, msg
+      end
+
+      it 'does not deregister them' do
+        expect(obj).to receive(:received_message).with(msg)
+        subject.off
+      end
+    end
+  end
+
+  context '#unsafe_off' do
+    let(:callback) { Proc.new { |msg| obj.received_message msg } }
+
+    context 'with unsafe_on subscribers' do
+      before do
+        subject.unsafe_on(&callback)
+      end
+
+      after do
+        subject.emit :message, msg
+      end
+
+      it 'deregisters them' do
+        expect(obj).to_not receive(:received_message).with(msg)
+        subject.unsafe_off
+      end
+    end
+
+    context 'with unsafe_once subscribers' do
+      before do
+        subject.unsafe_once(&callback)
+      end
+
+      after do
+        subject.emit :message, msg
+      end
+
+      it 'deregister them' do
+        expect(obj).to_not receive(:received_message).with(msg)
+        subject.unsafe_off
+      end
+    end
+
+    context 'with on subscribers' do
+      before do
+        subject.on(&callback)
+      end
+
+      after do
+        subject.emit :message, msg
+      end
+
+      it 'does not deregister them' do
+        expect(obj).to receive(:received_message).with(msg)
+        subject.unsafe_off
+      end
+    end
+
+    context 'with once subscribers' do
+      before do
+        subject.once(&callback)
+      end
+
+      after do
+        subject.emit :message, msg
+      end
+
+      it 'does not deregister them' do
+        expect(obj).to receive(:received_message).with(msg)
+        subject.unsafe_off
+      end
+    end
   end
 end

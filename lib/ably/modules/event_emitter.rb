@@ -54,7 +54,7 @@ module Ably
       end
 
       # Equivalent of {#on} but any exception raised in a block will bubble up and cause this client library to fail.
-      # This method should only be used internally by the client library.
+      # This method is designed to be used internally by the client library.
       # @api private
       def unsafe_on(*event_names, &block)
         add_callback event_names, proc_for_block(block, unsafe: true)
@@ -70,7 +70,7 @@ module Ably
       end
 
       # Equivalent of {#once} but any exception raised in a block will bubble up and cause this client library to fail.
-      # This method should only be used internally by the client library.
+      # This method is designed to be used internally by the client library.
       # @api private
       def unsafe_once(*event_names, &block)
         add_callback event_names, proc_for_block(block, delete_once_run: true, unsafe: true)
@@ -101,6 +101,18 @@ module Ably
       #
       # @return [void]
       def off(*event_names, &block)
+        off_internal(false, *event_names, &block)
+      end
+
+      # Equivalent of {#off} but only unsafe listeners are removed.
+      # This method is designed to be used internally by the client library.
+      # @api private
+      def unsafe_off(*event_names, &block)
+        off_internal(true, *event_names, &block)
+      end
+
+      private
+      def off_internal(unsafe, *event_names, &block)
         keys = if event_names.empty?
           callbacks.keys
         else
@@ -108,23 +120,26 @@ module Ably
         end
 
         if event_names.empty?
-          if block_given?
-            callbacks_any.delete_if { |proc_hash| proc_hash[:block] == block }
-          else
-            callbacks_any.clear
+          callbacks_any.delete_if do |proc_hash|
+            if block_given?
+              (proc_hash[:unsafe] == unsafe) && (proc_hash[:block] == block)
+            else
+              proc_hash[:unsafe] == unsafe
+            end
           end
         end
 
         keys.each do |event_name|
-          if block_given?
-            callbacks[callbacks_event_coerced(event_name)].delete_if { |proc_hash| proc_hash[:block] == block }
-          else
-            callbacks[callbacks_event_coerced(event_name)].clear
+          callbacks[callbacks_event_coerced(event_name)].delete_if do |proc_hash|
+            if block_given?
+              (proc_hash[:unsafe] == unsafe) && (proc_hash[:block] == block)
+            else
+              proc_hash[:unsafe] == unsafe
+            end
           end
         end
       end
 
-      private
       def self.included(klass)
         klass.extend ClassMethods
       end
@@ -148,7 +163,7 @@ module Ably
             true if options[:delete_once_run]
           end,
           block: block,
-          unsafe: options[:unsafe]
+          unsafe: options[:unsafe] || false
         }
       end
 
