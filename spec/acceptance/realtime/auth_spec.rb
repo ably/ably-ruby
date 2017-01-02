@@ -721,9 +721,7 @@ describe Ably::Realtime::Auth, :event_machine do
 
                     client.auth.authorize(nil)
 
-                    publisher_channel.publish('bar') do
-                      expect(received_messages.length).to eql(1)
-                    end
+                    publisher_channel.publish('bar')
                   end
                 end
               end
