@@ -226,6 +226,20 @@ module Ably::Realtime
     def get(options = {}, &block)
       deferrable = create_deferrable
 
+      # #RTP11d Don't return PresenceMap when wait for sync is true
+      #   if the map is stale
+      wait_for_sync = options.fetch(:wait_for_sync, true)
+      if wait_for_sync && channel.suspended?
+        EventMachine.next_tick do
+          deferrable.fail Ably::Exceptions::InvalidState.new(
+            'Presence state is out of sync as channel is SUSPENDED. Presence#get on a SUSPENDED channel is only supported with option wait_for_sync: false',
+            nil,
+            91005
+          )
+        end
+        return deferrable
+      end
+
       ensure_channel_attached(deferrable, allow_suspended: true) do
         members.get(options).tap do |members_map_deferrable|
           members_map_deferrable.callback do |members|
