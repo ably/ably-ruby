@@ -114,10 +114,6 @@ shared_examples 'a client initializer' do
 
       it 'sets the key_name' do
         expect(subject.auth.key_name).to eql('App.k3y')
-        while true
-          sleep 0.5
-          puts '...'
-        end
       end
 
       it 'sets the key_secret' do
