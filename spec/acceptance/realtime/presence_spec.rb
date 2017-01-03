@@ -1497,11 +1497,12 @@ describe Ably::Realtime::Presence, :event_machine do
 
       context 'when the channel is SUSPENDED' do
         context 'with wait_for_sync: true' do
-          it 'returns the current PresenceMap and does not wait for the channel to change to the ATTACHED state (#RTP11d)' do
+          it 'results in an error with @code@ @91005@ and a @message@ stating that the presence state is out of sync (#RTP11d)' do
             presence_client_one.enter do
               channel_client_one.transition_state_machine! :suspended
-              presence_client_one.get(wait_for_sync: true) do |members|
-                expect(channel_client_one).to be_suspended
+              presence_client_one.get(wait_for_sync: true).errback do |error|
+                expect(error.code).to eql(91005)
+                expect(error.message).to match(/presence state is out of sync/i)
                 stop_reactor
               end
             end
