@@ -23,8 +23,6 @@ module Ably
     #   Channel::STATE.Detached
     #   Channel::STATE.Failed
     #
-    # Channels emit errors - use +on(:error)+ to subscribe to errors
-    #
     # @!attribute [r] state
     #   @return {Ably::Realtime::Connection::STATE} channel state
     #
@@ -36,14 +34,24 @@ module Ably
       include Ably::Modules::MessageEmitter
       extend Ably::Modules::Enum
 
+      # ChannelState
+      # The permited states for this channel
       STATE = ruby_enum('STATE',
         :initialized,
         :attaching,
         :attached,
         :detaching,
         :detached,
+        :suspended,
         :failed
       )
+
+      # ChannelEvent
+      # The permitted channel events that are emitted for this channel
+      EVENT = ruby_enum('EVENT',
+        STATE.to_sym_arr + [:update]
+      )
+
       include Ably::Modules::StateEmitter
       include Ably::Modules::UsesStateMachine
       ensure_state_machine_emits 'Ably::Models::ChannelStateChange'
@@ -138,11 +146,14 @@ module Ably
       #   end
       #
       def publish(name, data = nil, attributes = {}, &success_block)
-        raise Ably::Exceptions::ChannelInactive.new('Cannot publish messages on a detached channel') if detached? || detaching?
-        raise Ably::Exceptions::ChannelInactive.new('Cannot publish messages on a failed channel') if failed?
+        if detached? || detaching? || failed?
+          error = Ably::Exceptions::ChannelInactive.new("Cannot publish messages on a channel in state #{state}")
+          return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
+        end
 
         if !connection.can_publish_messages?
-          raise Ably::Exceptions::MessageQueueingDisabled.new("Message cannot be published. Client is configured to disallow queueing of messages and connection is currently #{connection.state}")
+          error = Ably::Exceptions::MessageQueueingDisabled.new("Message cannot be published. Client is configured to disallow queueing of messages and connection is currently #{connection.state}")
+          return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
         end
 
         messages = if name.kind_of?(Enumerable)
@@ -192,10 +203,19 @@ module Ably
       #
       def attach(&success_block)
         if connection.closing? || connection.closed? || connection.suspended? || connection.failed?
-          raise Ably::Exceptions::InvalidStateChange.new("Cannot ATTACH channel when the connection is in a closed, suspended or failed state. Connection state: #{connection.state}")
+          error = Ably::Exceptions::InvalidStateChange.new("Cannot ATTACH channel when the connection is in a closed, suspended or failed state. Connection state: #{connection.state}")
+          return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
         end
 
-        transition_state_machine :attaching if can_transition_to?(:attaching)
+        if !attached?
+          if detaching?
+            # Let the pending operation complete (#RTL4h)
+            once_state_changed { transition_state_machine :attaching if can_transition_to?(:attaching) }
+          else
+            transition_state_machine :attaching if can_transition_to?(:attaching)
+          end
+        end
+
         deferrable_for_state_change_to(STATE.Attached, &success_block)
       end
 
@@ -207,14 +227,24 @@ module Ably
       def detach(&success_block)
         if initialized?
           success_block.call if block_given?
-          return Ably::Util::SafeDeferrable.new(logger).tap do |deferrable|
-            EventMachine.next_tick { deferrable.succeed }
+          return Ably::Util::SafeDeferrable.new_and_succeed_immediately(logger)
+        end
+
+        if failed? || connection.closing? || connection.failed?
+          return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, exception_for_state_change_to(:detaching))
+        end
+
+        if !detached?
+          if attaching?
+            # Let the pending operation complete (#RTL5i)
+            once_state_changed { transition_state_machine :detaching if can_transition_to?(:detaching) }
+          elsif can_transition_to?(:detaching)
+            transition_state_machine :detaching
+          else
+            transition_state_machine! :detached
           end
         end
 
-        raise exception_for_state_change_to(:detaching) if failed?
-
-        transition_state_machine :detaching if can_transition_to?(:detaching)
         deferrable_for_state_change_to(STATE.Detached, &success_block)
       end
 
@@ -244,7 +274,10 @@ module Ably
       #
       def history(options = {}, &callback)
         if options.delete(:until_attach)
-          raise ArgumentError, 'option :until_attach is invalid as the channel is not attached' unless attached?
+          unless attached?
+            error = Ably::Exceptions::InvalidRequest.new('option :until_attach is invalid as the channel is not attached' )
+            return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
+          end
           options[:from_serial] = attached_serial
         end
 
@@ -263,7 +296,7 @@ module Ably
       end
 
       # @api private
-      def set_failed_channel_error_reason(error)
+      def set_channel_error_reason(error)
         @error_reason = error
       end
 
@@ -288,22 +321,26 @@ module Ably
         client.logger
       end
 
+      # Internal queue used for messages published that cannot yet be enqueued on the connection
+      # @api private
+      def __queue__
+        @queue
+      end
+
       # As we are using a state machine, do not allow change_state to be used
       # #transition_state_machine must be used instead
       private :change_state
 
       private
-      def queue
-        @queue
-      end
-
       def setup_event_handlers
         __incoming_msgbus__.subscribe(:message) do |message|
-          message.decode self
+          message.decode(client.encoders, options) do |encode_error, error_message|
+            client.logger.error error_message
+          end
           emit_message message.name, message
         end
 
-        on(STATE.Attached) do
+        unsafe_on(STATE.Attached) do
           process_queue
         end
       end
@@ -316,15 +353,18 @@ module Ably
           create_message(raw_msg).tap do |message|
             next if message.client_id.nil?
             if message.client_id == '*'
-              raise Ably::Exceptions::IncompatibleClientId.new('Wildcard client_id is reserved and cannot be used when publishing messages', 400, 40012)
+              raise Ably::Exceptions::IncompatibleClientId.new('Wildcard client_id is reserved and cannot be used when publishing messages')
+            end
+            if message.client_id && !message.client_id.kind_of?(String)
+              raise Ably::Exceptions::IncompatibleClientId.new('client_id must be a String when publishing messages')
             end
             unless client.auth.can_assume_client_id?(message.client_id)
-              raise Ably::Exceptions::IncompatibleClientId.new("Cannot publish with client_id '#{message.client_id}' as it is incompatible with the current configured client_id '#{client.client_id}'", 400, 40012)
+              raise Ably::Exceptions::IncompatibleClientId.new("Cannot publish with client_id '#{message.client_id}' as it is incompatible with the current configured client_id '#{client.client_id}'")
             end
           end
         end
 
-        queue.push(*messages)
+        __queue__.push(*messages)
 
         if attached?
           process_queue
@@ -366,14 +406,14 @@ module Ably
       end
 
       def messages_in_queue?
-        !queue.empty?
+        !__queue__.empty?
       end
 
       # Move messages from Channel Queue into Outgoing Connection Queue
       def process_queue
         condition = -> { attached? && messages_in_queue? }
         non_blocking_loop_while(condition) do
-          send_messages_within_protocol_message queue.shift(MAX_PROTOCOL_MESSAGE_BATCH_SIZE)
+          send_messages_within_protocol_message __queue__.shift(MAX_PROTOCOL_MESSAGE_BATCH_SIZE)
         end
       end
 
@@ -387,7 +427,9 @@ module Ably
 
       def create_message(message)
         Ably::Models::Message(message.dup).tap do |msg|
-          msg.encode self
+          msg.encode(client.encoders, options) do |encode_error, error_message|
+            client.logger.error error_message
+          end
         end
       end
 

@@ -47,8 +47,7 @@ module Ably::Realtime
       after_transition(to: [:connected]) do |connection, current_transition|
         error = current_transition.metadata.reason
         if is_error_type?(error)
-          connection.logger.warn "ConnectionManager: Connected with error - #{error.message}"
-          connection.emit :error, error
+          connection.logger.warn { "ConnectionManager: Connected with error - #{error.message}" }
         end
       end
 
@@ -62,6 +61,11 @@ module Ably::Realtime
         connection.manager.respond_to_transport_disconnected_whilst_connected err
       end
 
+      after_transition(to: [:suspended]) do |connection, current_transition|
+        err = error_from_state_change(current_transition)
+        connection.manager.suspend_active_channels err
+      end
+
       after_transition(to: [:disconnected, :suspended]) do |connection|
         connection.manager.destroy_transport # never reuse a transport if the connection has failed
       end
@@ -69,6 +73,18 @@ module Ably::Realtime
       before_transition(to: [:failed]) do |connection, current_transition|
         err = error_from_state_change(current_transition)
         connection.manager.fail err
+      end
+
+      after_transition(to: [:failed]) do |connection, current_transition|
+        err = error_from_state_change(current_transition)
+        connection.manager.fail_active_channels err
+      end
+
+      # RTN7C - If a connection enters the SUSPENDED, CLOSED or FAILED state...
+      #   the client should consider the delivery of those messages as failed
+      after_transition(to: [:suspended, :closed, :failed]) do |connection, current_transition|
+        err = error_from_state_change(current_transition)
+        connection.manager.nack_messages_on_all_channels err
       end
 
       after_transition(to: [:closing], from: [:initialized, :disconnected, :suspended]) do |connection|
@@ -83,6 +99,10 @@ module Ably::Realtime
         connection.manager.destroy_transport
       end
 
+      after_transition(to: [:closed]) do |connection|
+        connection.manager.detach_active_channels
+      end
+
       # Transitions responsible for updating connection#error_reason
       before_transition(to: [:disconnected, :suspended, :failed]) do |connection, current_transition|
         err = error_from_state_change(current_transition)
@@ -91,7 +111,6 @@ module Ably::Realtime
 
       before_transition(to: [:connected, :closed]) do |connection, current_transition|
         err = error_from_state_change(current_transition)
-
         if err
           connection.set_failed_connection_error_reason err
         else

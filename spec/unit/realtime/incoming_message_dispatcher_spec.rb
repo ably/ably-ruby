@@ -5,7 +5,7 @@ describe Ably::Realtime::Client::IncomingMessageDispatcher, :api_private do
     Ably::Util::PubSub.new
   end
   let(:connection) do
-    instance_double('Ably::Realtime::Connection', __incoming_protocol_msgbus__: msgbus, configure_new: true, id: nil)
+    instance_double('Ably::Realtime::Connection', __incoming_protocol_msgbus__: msgbus, configure_new: true, id: nil, set_connection_confirmed_alive: nil)
   end
   let(:client) do
     instance_double('Ably::Realtime::Client', channels: {})

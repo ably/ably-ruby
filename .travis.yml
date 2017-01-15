@@ -1,10 +1,12 @@
 sudo: false
-env: RSPEC_RETRY=false
+env:
+  - RSPEC_RETRY=true PROTOCOL=json
+  - RSPEC_RETRY=true PROTOCOL=msgpack
 language: ruby
 rvm:
-- 1.9.3
-- 2.0.0
-- 2.2.0
+  - 1.9.3
+  - 2.0.0
+  - 2.2.0
 script: bundle exec rspec
 notifications:
   slack:

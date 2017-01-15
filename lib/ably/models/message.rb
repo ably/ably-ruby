@@ -1,3 +1,5 @@
+require 'ably/models/message_encoders/base'
+
 module Ably::Models
   # Convert messsage argument to a {Message} object and associate with a protocol message if provided
   #
@@ -42,6 +44,9 @@ module Ably::Models
     include Ably::Modules::Encodeable
     include Ably::Modules::ModelCommon
     include Ably::Modules::SafeDeferrable if defined?(Ably::Realtime)
+
+    # Statically register a default set of encoders for this class
+    Ably::Models::MessageEncoders.register_default_encoders self
 
     # {Message} initializer
     #
@@ -117,6 +122,17 @@ module Ably::Models
     def protocol_message
       raise RuntimeError, 'Message is not yet published with a ProtocolMessage. ProtocolMessage is nil' if @protocol_message.nil?
       @protocol_message
+    end
+
+    # Contains any arbitrary key value pairs which may also contain other primitive JSON types, JSON-encodable objects or JSON-encodable arrays.
+    # The extras field is provided to contain message metadata and/or ancillary payloads in support of specific functionality, e.g. push
+    # @api private
+    def extras
+      attributes[:extras].tap do |val|
+        unless val.kind_of?(IdiomaticRubyWrapper) || val.kind_of?(Array) || val.kind_of?(Hash) || val.nil?
+          raise ArgumentError, "extras contains an unsupported type #{val.class}"
+        end
+      end
     end
 
     private

@@ -73,7 +73,17 @@ module Ably::Models
     # @!attribute [r] capability
     # @return [Hash] Capabilities assigned to this token
     def capability
-      JSON.parse(attributes.fetch(:capability)) if attributes.has_key?(:capability)
+      if attributes.has_key?(:capability)
+        capability_val = attributes.fetch(:capability)
+        case capability_val
+        when Hash
+          capability_val
+        when Ably::Models::IdiomaticRubyWrapper
+          capability_val.as_json
+        else
+          JSON.parse(attributes.fetch(:capability))
+        end
+      end
     end
 
     # @!attribute [r] client_id

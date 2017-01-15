@@ -61,6 +61,35 @@ describe Ably::Rest::Channel, 'messages' do
       end
     end
 
+    context 'with supported extra payload content type (#RSL1h, #RSL6a2)' do
+      context 'JSON Object (Hash)' do
+        let(:data) { { 'push' => { 'title' => 'Testing' } } }
+
+        it 'is encoded and decoded to the same hash' do
+          skip 'Extras field not supported in realtime, see https://github.com/ably/realtime/issues/656'
+          channel.publish 'event', {}, extras: data
+          expect(channel.history.items.first.extras).to eql(data)
+        end
+      end
+
+      context 'JSON Array' do
+        let(:data) { { 'push' => [ nil, true, false, 55, 'string', { 'Hash' => true }, ['array'] ] } }
+
+        it 'is encoded and decoded to the same Array' do
+          skip 'Extras field not supported in realtime, see https://github.com/ably/realtime/issues/656'
+          channel.publish 'event', {}, extras: data
+          expect(channel.history.items.first.extras).to eql(data)
+        end
+      end
+
+      context 'nil' do
+        it 'is encoded and decoded to the same Array' do
+          channel.publish 'event', {}, extras: nil
+          expect(channel.history.items.first.extras).to be_nil
+        end
+      end
+    end
+
     context 'with unsupported data payload content type' do
       context 'Integer' do
         let(:data) { 1 }
@@ -134,7 +163,7 @@ describe Ably::Rest::Channel, 'messages' do
             end
           end
 
-          it 'encrypts message automatically when published' do
+          it 'encrypts message automatically when published (#RTL7d)' do
             expect(client).to receive(:post) do |path, message|
               if protocol == :json
                 expect(message['encoding']).to eql(encrypted_encoding)
@@ -149,7 +178,7 @@ describe Ably::Rest::Channel, 'messages' do
             encrypted_channel.publish 'example', encoded_data_decoded
           end
 
-          it 'sends and retrieves messages that are encrypted & decrypted by the Ably library' do
+          it 'sends and retrieves messages that are encrypted & decrypted by the Ably library (#RTL7d)' do
             encrypted_channel.publish 'example', encoded_data_decoded
 
             message = encrypted_channel.history.items.first
@@ -168,12 +197,12 @@ describe Ably::Rest::Channel, 'messages' do
           end
         end
 
-        context 'with AES-128-CBC using crypto-data-128.json fixtures' do
+        context 'with AES-128-CBC using crypto-data-128.json fixtures (#RTL7d)' do
           data = JSON.parse(File.read(File.join(resources_root, 'crypto-data-128.json')))
           add_tests_for_data data
         end
 
-        context 'with AES-256-CBC using crypto-data-256.json fixtures' do
+        context 'with AES-256-CBC using crypto-data-256.json fixtures (#RTL7d)' do
           data = JSON.parse(File.read(File.join(resources_root, 'crypto-data-256.json')))
           add_tests_for_data data
         end
@@ -246,21 +275,21 @@ describe Ably::Rest::Channel, 'messages' do
             encrypted_channel.publish 'example', payload
           end
 
-          it 'retrieves the message that remains encrypted with an encrypted encoding attribute' do
+          it 'retrieves the message that remains encrypted with an encrypted encoding attribute (#RTL7e)' do
             message = other_client_unencrypted_channel.history.items.first
             expect(message.data).to_not eql(payload)
             expect(message.encoding).to match(/^cipher\+aes-256-cbc/)
           end
 
-          it 'logs a Cipher exception' do
-            expect(other_client.logger).to receive(:error) do |message|
-              expect(message).to match(/Message cannot be decrypted/)
+          it 'logs a Cipher exception (#RTL7e)' do
+            expect(other_client.logger).to receive(:error) do |*args, &block|
+              expect(args.concat([block ? block.call : nil]).join(',')).to match(/Message cannot be decrypted/)
             end
             other_client_unencrypted_channel.history
           end
         end
 
-        context 'publishing on an encrypted channel and retrieving #history with a different algorithm on another client' do
+        context 'publishing on an encrypted channel and retrieving #history with a different algorithm on another client (#RTL7e)' do
           let(:client_options)            { default_client_options.merge(log_level: :fatal) }
           let(:cipher_options_client1)    { { key: Ably::Util::Crypto.generate_random_key(256), algorithm: 'aes', mode: 'cbc', key_length: 256 } }
           let(:encrypted_channel_client1) { client.channel(channel_name, cipher: cipher_options_client1) }
@@ -273,15 +302,15 @@ describe Ably::Rest::Channel, 'messages' do
             encrypted_channel_client1.publish 'example', payload
           end
 
-          it 'retrieves the message that remains encrypted with an encrypted encoding attribute' do
+          it 'retrieves the message that remains encrypted with an encrypted encoding attribute (#RTL7e)' do
             message = encrypted_channel_client2.history.items.first
             expect(message.data).to_not eql(payload)
             expect(message.encoding).to match(/^cipher\+aes-256-cbc/)
           end
 
-          it 'logs a Cipher exception' do
-            expect(other_client.logger).to receive(:error) do |message|
-              expect(message).to match(/Cipher algorithm [\w-]+ does not match/)
+          it 'logs a Cipher exception (#RTL7e)' do
+            expect(other_client.logger).to receive(:error) do |*args, &block|
+              expect(args.concat([block ? block.call : nil]).join(',')).to match(/Cipher algorithm [\w-]+ does not match/)
             end
             encrypted_channel_client2.history
           end
@@ -307,8 +336,8 @@ describe Ably::Rest::Channel, 'messages' do
           end
 
           it 'logs a Cipher exception' do
-            expect(other_client.logger).to receive(:error) do |message|
-              expect(message).to match(/CipherError decrypting data/)
+            expect(other_client.logger).to receive(:error) do |*args, &block|
+              expect(args.concat([block ? block.call : nil]).join(',')).to match(/CipherError decrypting data/)
             end
             encrypted_channel_client2.history
           end

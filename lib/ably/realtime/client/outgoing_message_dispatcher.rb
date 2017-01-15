@@ -74,7 +74,12 @@ module Ably::Realtime
 
       def setup_event_handlers
         connection.unsafe_on(:connected) do
-          deliver_queued_protocol_messages
+          # Give connection manager enough time to prevent message delivery if necessary
+          # For example, if reconnecting and connection and channel state is lost,
+          # then the queued messages must be NACK'd
+          EventMachine.next_tick do
+            deliver_queued_protocol_messages
+          end
         end
       end
     end

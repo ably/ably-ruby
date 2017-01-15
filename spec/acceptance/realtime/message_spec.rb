@@ -75,6 +75,42 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       end
     end
 
+    context 'with supported extra payload content type (#RTL6h, #RSL6a2)' do
+      def publish_and_check_extras(extras)
+        channel.attach
+        channel.publish 'event', {}, extras: extras
+        channel.subscribe do |message|
+          expect(message.extras).to eql(extras)
+          stop_reactor
+        end
+      end
+
+      context 'JSON Object (Hash)' do
+        let(:data) { { 'push' => { 'title' => 'Testing' } } }
+
+        it 'is encoded and decoded to the same hash' do
+          skip 'Extras field not supported in realtime, see https://github.com/ably/realtime/issues/656'
+          publish_and_check_extras data
+        end
+      end
+
+      context 'JSON Array' do
+        let(:data) { { 'push' => [ nil, true, false, 55, 'string', { 'Hash' => true }, ['array'] ] } }
+
+        it 'is encoded and decoded to the same Array' do
+          skip 'Extras field not supported in realtime, see https://github.com/ably/realtime/issues/656'
+          publish_and_check_extras data
+        end
+      end
+
+      context 'nil' do
+        it 'is encoded and decoded to the same Array' do
+          channel.publish 'event', {}, extras: nil
+          publish_and_check_extras nil
+        end
+      end
+    end
+
     context 'with unsupported data payload content type' do
       context 'Integer' do
         let(:data) { 1 }
@@ -327,8 +363,9 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
         end
         2.times { |i| EventMachine.add_timer(i.to_f / 5) { channel.publish('event', 'data') } }
 
-        channel.on(:error) do |error|
-          expect(error.message).to match(/duplicate/)
+        expect(client.logger).to receive(:error) do |*args, &block|
+          expect(args.concat([block ? block.call : nil]).join(',')).to match(/duplicate/)
+
           EventMachine.add_timer(0.5) do
             expect(messages_received.count).to eql(2)
             stop_reactor
@@ -374,7 +411,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
 
           let(:encrypted_channel) { client.channel(channel_name, cipher: cipher_options) }
 
-          it 'encrypts message automatically before they are pushed to the server' do
+          it 'encrypts message automatically before they are pushed to the server (#RTL7d)' do
             encrypted_channel.__incoming_msgbus__.unsubscribe # remove all subscribe callbacks that could decrypt the message
 
             encrypted_channel.__incoming_msgbus__.subscribe(:message) do |message|
@@ -392,7 +429,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
             encrypted_channel.publish 'example', encoded_data_decoded
           end
 
-          it 'sends and receives messages that are encrypted & decrypted by the Ably library' do
+          it 'sends and receives messages that are encrypted & decrypted by the Ably library (#RTL7d)' do
             encrypted_channel.publish 'example', encoded_data_decoded
             encrypted_channel.subscribe do |message|
               expect(message.data).to eql(encoded_data_decoded)
@@ -413,12 +450,12 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
         end
       end
 
-      context 'with AES-128-CBC using crypto-data-128.json fixtures' do
+      context 'with AES-128-CBC using crypto-data-128.json fixtures (#RTL7d)' do
         data = JSON.parse(File.read(File.join(resources_root, 'crypto-data-128.json')))
         add_tests_for_data data
       end
 
-      context 'with AES-256-CBC using crypto-data-256.json fixtures' do
+      context 'with AES-256-CBC using crypto-data-256.json fixtures (#RTL7d)' do
         data = JSON.parse(File.read(File.join(resources_root, 'crypto-data-256.json')))
         add_tests_for_data data
       end
@@ -521,7 +558,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
 
         let(:payload) { MessagePack.pack({ 'key' => random_str }) }
 
-        it 'delivers the message but still encrypted with a value in the #encoding attribute' do
+        it 'delivers the message but still encrypted with a value in the #encoding attribute (#RTL7e)' do
           unencrypted_channel_client2.attach do
             encrypted_channel_client1.publish 'example', payload
             unencrypted_channel_client2.subscribe do |message|
@@ -532,15 +569,13 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
           end
         end
 
-        it 'emits a Cipher error on the channel' do
+        it 'logs a Cipher error (#RTL7e)' do
           unencrypted_channel_client2.attach do
-            encrypted_channel_client1.publish 'example', payload
-            unencrypted_channel_client2.on(:error) do |error|
-              expect(error).to be_a(Ably::Exceptions::CipherError)
-              expect(error.code).to eql(92001)
-              expect(error.message).to match(/Message cannot be decrypted/)
+            expect(other_client.logger).to receive(:error) do |*args, &block|
+              expect(args.concat([block ? block.call : nil]).join(',')).to match(/Message cannot be decrypted/)
               stop_reactor
             end
+            encrypted_channel_client1.publish 'example', payload
           end
         end
       end
@@ -554,7 +589,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
 
         let(:payload) { MessagePack.pack({ 'key' => random_str }) }
 
-        it 'delivers the message but still encrypted with the cipher detials in the #encoding attribute' do
+        it 'delivers the message but still encrypted with the cipher detials in the #encoding attribute (#RTL7e)' do
           encrypted_channel_client1.publish 'example', payload
           encrypted_channel_client2.subscribe do |message|
             expect(message.data).to_not eql(payload)
@@ -563,13 +598,11 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
           end
         end
 
-        it 'emits a Cipher error on the channel' do
+        it 'emits a Cipher error on the channel (#RTL7e)' do
           encrypted_channel_client2.attach do
             encrypted_channel_client1.publish 'example', payload
-            encrypted_channel_client2.on(:error) do |error|
-              expect(error).to be_a(Ably::Exceptions::CipherError)
-              expect(error.code).to eql(92002)
-              expect(error.message).to match(/Cipher algorithm [\w-]+ does not match/)
+            expect(other_client.logger).to receive(:error) do |*args, &block|
+              expect(args.concat([block ? block.call : nil]).join(',')).to match(/Cipher algorithm [\w-]+ does not match/)
               stop_reactor
             end
           end
@@ -599,10 +632,8 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
         it 'emits a Cipher error on the channel' do
           encrypted_channel_client2.attach do
             encrypted_channel_client1.publish 'example', payload
-            encrypted_channel_client2.on(:error) do |error|
-              expect(error).to be_a(Ably::Exceptions::CipherError)
-              expect(error.code).to eql(92003)
-              expect(error.message).to match(/CipherError decrypting data/)
+            expect(other_client.logger).to receive(:error) do |*args, &block|
+              expect(args.concat([block ? block.call : nil]).join(',')).to match(/CipherError decrypting data/)
               stop_reactor
             end
           end

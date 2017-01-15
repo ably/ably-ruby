@@ -38,7 +38,7 @@ module Ably::Modules
     # @yield [Object] operation block that is run in a thread
     # @return [Ably::Util::SafeDeferrable]
     #
-    def async_wrap(success_callback = nil)
+    def async_wrap(success_callback = nil, custom_error_handling = nil)
       raise ArgumentError, 'Block required' unless block_given?
 
       Ably::Util::SafeDeferrable.new(logger).tap do |deferrable|
@@ -48,8 +48,12 @@ module Ably::Modules
           begin
             yield
           rescue StandardError => err
-            logger.error "An exception in an AsyncWrapper block was caught. #{err.class}: #{err.message}\n#{err.backtrace.join("\n")}"
-            deferrable.fail err
+            if custom_error_handling
+              custom_error_handling.call err, deferrable
+            else
+              logger.error { "An exception in an AsyncWrapper block was caught. #{err.class}: #{err.message}\n#{err.backtrace.join("\n")}" }
+              deferrable.fail err
+            end
           end
         end
 

@@ -41,7 +41,7 @@ RSpec.configure do |config|
   end
 
   if defined?(EventMachine)
-    config.before(:example) do
+    config.before(:example, :event_machine) do
       # Ensure EventMachine shutdown hooks are deregistered for every test
       EventMachine.instance_variable_set '@tails', []
     end
@@ -52,6 +52,7 @@ RSpec.configure do |config|
   if ENV['RSPEC_RETRY']
     puts 'Running tests using RSpec retry'
     config.verbose_retry = true # show retry status in spec process
+    config.display_try_failure_messages = true # show exception that triggered the try
     config.default_retry_count = 3
     config.default_sleep_interval = 2
   end

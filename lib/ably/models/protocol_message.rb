@@ -8,6 +8,8 @@ module Ably::Models
   #
   # @!attribute [r] action
   #   @return [ACTION] Protocol Message action {Ably::Modules::Enum} from list of {ACTION}. Returns nil if action is unsupported by protocol
+  # @!attribute [r] auth
+  #   @return [Ably::Models::AuthDetails] Authentication details used to perform authentication upgrades over an existing transport
   # @!attribute [r] count
   #   @return [Integer] The count field is used for ACK and NACK actions. See {http://docs.ably.io/client-lib-development-guide/protocol/#message-acknowledgement message acknowledgement protocol}
   # @!attribute [r] error
@@ -15,7 +17,7 @@ module Ably::Models
   # @!attribute [r] channel
   #   @return [String] Channel name for messages
   # @!attribute [r] channel_serial
-  #   @return [String] Contains a serial number for a message on the current channelƒ
+  #   @return [String] Contains a serial number for a message on the current channel
   # @!attribute [r] connection_id
   #   @return [String] Contains a string public identifier for the connection
   # @!attribute [r] connection_key
@@ -62,13 +64,14 @@ module Ably::Models
       detached:     13,
       presence:     14,
       message:      15,
-      sync:         16
+      sync:         16,
+      auth:         17
     )
 
     # Indicates this protocol message action will generate an ACK response such as :message or :presence
     # @api private
     def self.ack_required?(for_action)
-      [ACTION.Presence, ACTION.Message].include?(ACTION(for_action))
+      ACTION(for_action).match_any?(ACTION.Presence, ACTION.Message)
     end
 
     # {ProtocolMessage} initializer
@@ -193,8 +196,22 @@ module Ably::Models
       flags & 1 == 1
     end
 
+    # @api private
+    def has_backlog_flag?
+      flags & 2 == 2
+    end
+
+    # @api private
+    def has_channel_resumed_flag?
+      flags & 4 == 4
+    end
+
     def connection_details
       @connection_details ||= Ably::Models::ConnectionDetails(attributes[:connection_details])
+    end
+
+    def auth
+      @auth ||= Ably::Models::AuthDetails(attributes[:auth])
     end
 
     # Indicates this protocol message will generate an ACK response when sent

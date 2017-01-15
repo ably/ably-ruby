@@ -14,7 +14,7 @@ describe Ably::Realtime::Client do
 
     it 'passes on the options to the initializer' do
       rest_client = instance_double('Ably::Rest::Client', auth: instance_double('Ably::Auth'), options: client_options)
-      expect(Ably::Rest::Client).to receive(:new).with(client_options).and_return(rest_client)
+      expect(Ably::Rest::Client).to receive(:new).with(hash_including(client_options)).and_return(rest_client)
       subject
     end
 

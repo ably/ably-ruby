@@ -94,9 +94,11 @@ describe Ably::Realtime::Presence, 'history', :event_machine do
         end
       end
 
-      it 'raises an exception unless state is attached' do
-        expect { presence_client_one.history(until_attach: true) }.to raise_error(ArgumentError, /not attached/)
-        stop_reactor
+      it 'fails with an exception unless state is attached' do
+        presence_client_one.history(until_attach: true).errback do |error|
+          expect(error.message).to match(/not attached/)
+          stop_reactor
+        end
       end
     end
   end

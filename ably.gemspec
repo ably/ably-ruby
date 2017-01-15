@@ -22,6 +22,7 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'em-http-request', '~> 1.1'
   spec.add_runtime_dependency 'statesman', '~> 1.0.0'
   spec.add_runtime_dependency 'faraday', '~> 0.9'
+
   if RUBY_VERSION.match(/^1/)
     spec.add_runtime_dependency 'json', '< 2.0'
   else
@@ -32,16 +33,18 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'addressable', '>= 2.0.0'
 
   spec.add_development_dependency 'bundler', '~> 1.3'
-  spec.add_development_dependency 'rake'
-  spec.add_development_dependency 'redcarpet'
+  spec.add_development_dependency 'rake', '~> 11.3'
+  spec.add_development_dependency 'redcarpet', '~> 3.3'
   spec.add_development_dependency 'rspec', '~> 3.2.0' # version lock, see config.around(:example, :event_machine) in event_machine_helper.rb
-  spec.add_development_dependency 'rspec-retry'
-  spec.add_development_dependency 'yard'
-  spec.add_development_dependency 'webmock'
+  spec.add_development_dependency 'rspec-retry', '~> 0.4'
+  spec.add_development_dependency 'yard', '~> 0.9'
 
-  spec.add_development_dependency 'coveralls'
-
-  unless RUBY_VERSION.match(/^1/)
+  if RUBY_VERSION.match(/^1/)
+    spec.add_development_dependency 'public_suffix', '~> 1.4.6' # Later versions do not support Ruby 1.9
+    spec.add_development_dependency 'webmock', '2.2'
+  else
+    spec.add_development_dependency 'webmock', '~> 2.2'
+    spec.add_development_dependency 'coveralls'
     spec.add_development_dependency 'pry'
     spec.add_development_dependency 'pry-byebug'
   end
