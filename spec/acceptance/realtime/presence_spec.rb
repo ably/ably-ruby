@@ -2699,7 +2699,7 @@ describe Ably::Realtime::Presence, :event_machine do
                     presence_client_one.leave
 
                     # Whilst SUSPENDED and DISCONNECTED, a get of the PresenceMap should still reveal two members
-                    presence_anonymous_client.get do |members|
+                    presence_anonymous_client.get(wait_for_sync: false) do |members|
                       expect(members.count).to eq(2)
 
                       channel_anonymous_client.once(:attached) do
