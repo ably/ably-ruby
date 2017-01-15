@@ -365,7 +365,7 @@ module Ably::Realtime
 
     def ensure_presence_publishable_on_connection_deferrable
       if !connection.can_publish_messages?
-        error = Ably::Exceptions::MessageQueueingDisabled.new("Message cannot be published. Client is configured to disallow queueing of messages and connection is currently #{connection.state}")
+        error = Ably::Exceptions::MessageQueueingDisabled.new("Presence event cannot be published as they cannot be queued when the connection is #{connection.state}")
         Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
       end
     end
