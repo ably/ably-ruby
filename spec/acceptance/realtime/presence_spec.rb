@@ -52,7 +52,7 @@ describe Ably::Realtime::Presence, :event_machine do
             expect(presence_message.action).to eq(:enter)
             presence_client_one.unsubscribe
             received = true
-            yield
+            yield if acked & received
           end
         else
           yield
