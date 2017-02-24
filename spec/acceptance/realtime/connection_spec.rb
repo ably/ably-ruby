@@ -636,16 +636,23 @@ describe Ably::Realtime::Connection, :event_machine do
         end
       end
 
-      it 'is set to 0 when a message sent ACK is received' do
-        channel.publish('event', 'data') do
+      it 'is set to 0 when a message is received back' do
+        channel.publish('event', 'data')
+        channel.subscribe do
           expect(connection.serial).to eql(0)
           stop_reactor
         end
       end
 
-      it 'is set to 1 when the second message sent ACK is received' do
+      it 'is set to 1 when the second message is received' do
         channel.publish('event', 'data') do
-          channel.publish('event', 'data') do
+          channel.publish('event', 'data')
+        end
+
+        messages = []
+        channel.subscribe do |message|
+          messages << message
+          if messages.length == 2
             expect(connection.serial).to eql(1)
             stop_reactor
           end
@@ -983,7 +990,6 @@ describe Ably::Realtime::Connection, :event_machine do
           connection.once(:connected) do
             connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
               if protocol_message.action == :heartbeat
-                puts protocol_message.attributes
                 expect(protocol_message.attributes[:source]).to eql('websocket')
                 expect(connection.time_since_connection_confirmed_alive?).to be_within(1).of(0)
                 stop_reactor
@@ -1103,11 +1109,16 @@ describe Ably::Realtime::Connection, :event_machine do
             expect(connection.serial).to eql(expected_serial)
 
             channel.attach do
-              channel.publish('event', 'data') do
+              channel.publish('event', 'data')
+              channel.subscribe do
+                channel.unsubscribe
+
                 expected_serial += 1 # attach message received
                 expect(connection.serial).to eql(expected_serial)
 
-                channel.publish('event', 'data') do
+                channel.publish('event', 'data')
+                channel.subscribe do
+                  channel.unsubscribe
                   expected_serial += 1 # attach message received
                   expect(connection.serial).to eql(expected_serial)
 

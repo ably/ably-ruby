@@ -535,7 +535,14 @@ describe Ably::Realtime::Presence, :event_machine do
 
       context 'once server sync is complete' do
         it 'behaves like an Enumerable allowing direct access to current members' do
-          when_all(presence_client_one.enter, presence_client_two.enter) do
+          presence_client_one.enter
+          presence_client_two.enter
+
+          entered = 0
+          presence_client_one.subscribe(:enter) do
+            entered += 1
+            next unless entered == 2
+
             presence_anonymous_client.members.once(:in_sync) do
               expect(presence_anonymous_client.members.count).to eql(2)
               member_ids = presence_anonymous_client.members.map(&:member_key)
@@ -729,7 +736,10 @@ describe Ably::Realtime::Presence, :event_machine do
             end
           end
 
-          presence_client_one.enter do
+          presence_client_one.enter
+          presence_client_one.subscribe(:enter) do
+            presence_client_one.unsubscribe :enter
+
             channel_anonymous_client.attach do
               expect(channel_anonymous_client.presence).to_not be_sync_complete
               channel_anonymous_client.presence.get do
@@ -967,16 +977,18 @@ describe Ably::Realtime::Presence, :event_machine do
               it 'waits until sync is complete (#RTP11c1)', em_timeout: 30 do # allow for slow connections and lots of messages
                 enter_expected_count.times do |indx|
                   EventMachine.add_timer(indx / 10) do
-                    presence_client_one.enter_client("client:#{indx}") do |message|
-                      entered << message
-                      next unless entered.count == enter_expected_count
+                    presence_client_one.enter_client "client:#{indx}"
+                  end
+                end
 
-                      presence_anonymous_client.get do |members|
-                        expect(members.map(&:client_id).uniq.count).to eql(enter_expected_count)
-                        expect(members.count).to eql(enter_expected_count)
-                        stop_reactor
-                      end
-                    end
+                presence_client_one.subscribe(:enter) do |message|
+                  entered << message
+                  next unless entered.count == enter_expected_count
+
+                  presence_anonymous_client.get do |members|
+                    expect(members.map(&:client_id).uniq.count).to eql(enter_expected_count)
+                    expect(members.count).to eql(enter_expected_count)
+                    stop_reactor
                   end
                 end
               end
@@ -986,7 +998,8 @@ describe Ably::Realtime::Presence, :event_machine do
               it 'it does not wait for sync', em_timeout: 30 do # allow for slow connections and lots of messages
                 enter_expected_count.times do |indx|
                   EventMachine.add_timer(indx / 10) do
-                    presence_client_one.enter_client("client:#{indx}") do |message|
+                    presence_client_one.enter_client "client:#{indx}"
+                    presence_client_one.subscribe(:enter) do |message|
                       entered << message
                       next unless entered.count == enter_expected_count
 
@@ -1183,15 +1196,25 @@ describe Ably::Realtime::Presence, :event_machine do
 
         context 'and sync is complete' do
           it 'does not cache members that have left' do
-            presence_client_one.enter enter_data do
+            enter_ack = false
+
+            presence_client_one.subscribe(:enter) do
+              presence_client_one.unsubscribe :enter
+
               expect(presence_client_one.members).to be_in_sync
               expect(presence_client_one.members.send(:members).count).to eql(1)
               presence_client_one.leave data
             end
 
+            presence_client_one.enter(enter_data) do
+              enter_ack = true
+            end
+
             presence_client_one.subscribe(:leave) do |presence_message|
+              presence_client_one.unsubscribe :leave
               expect(presence_message.data).to eql(data)
               expect(presence_client_one.members.send(:members).count).to eql(0)
+              expect(enter_ack).to eql(true)
               stop_reactor
             end
           end
@@ -1622,7 +1645,9 @@ describe Ably::Realtime::Presence, :event_machine do
       end
 
       it 'returns the current members on the channel (#RTP11a)' do
-        presence_client_one.enter do
+        presence_client_one.enter
+        presence_client_one.subscribe(:enter) do
+          presence_client_one.unsubscribe :enter
           presence_client_one.get do |members|
             expect(members.count).to eq(1)
 
@@ -1683,7 +1708,10 @@ describe Ably::Realtime::Presence, :event_machine do
       end
 
       it 'does not wait for SYNC to complete if :wait_for_sync option is false (#RTP11c1)' do
-        presence_client_one.enter do
+        presence_client_one.enter
+        presence_client_one.subscribe(:enter) do
+          presence_client_one.unsubscribe :enter
+
           presence_client_two.get(wait_for_sync: false) do |members|
             expect(members.count).to eql(0)
             stop_reactor
@@ -1692,7 +1720,10 @@ describe Ably::Realtime::Presence, :event_machine do
       end
 
       it 'returns the list of members and waits for SYNC to complete by default (#RTP11a)' do
-        presence_client_one.enter do
+        presence_client_one.enter
+        presence_client_one.subscribe(:enter) do
+          presence_client_one.unsubscribe :enter
+
           presence_client_two.get do |members|
             expect(members.count).to eql(1)
             stop_reactor
@@ -1703,11 +1734,13 @@ describe Ably::Realtime::Presence, :event_machine do
       context 'when a member enters and then leaves' do
         it 'has no members' do
           presence_client_one.enter do
-            presence_client_one.leave do
-              presence_client_one.get do |members|
-                expect(members.count).to eq(0)
-                stop_reactor
-              end
+            presence_client_one.leave
+          end
+
+          presence_client_one.subscribe(:leave) do
+            presence_client_one.get do |members|
+              expect(members.count).to eq(0)
+              stop_reactor
             end
           end
         end
@@ -1715,7 +1748,10 @@ describe Ably::Realtime::Presence, :event_machine do
 
       context 'when a member enters and the presence map is updated' do
         it 'adds the member as being :present (#RTP2d)' do
-          presence_client_one.enter do
+          presence_client_one.enter
+          presence_client_one.subscribe(:enter) do
+            presence_client_one.unsubscribe :enter
+
             presence_client_one.get do |members|
               expect(members.count).to eq(1)
               expect(members.first.action).to eq(:present)
@@ -1879,7 +1915,10 @@ describe Ably::Realtime::Presence, :event_machine do
 
     context 'REST #get' do
       it 'returns current members' do
-        presence_client_one.enter(data_payload) do
+        presence_client_one.enter data_payload
+        presence_client_one.subscribe(:enter) do
+          presence_client_one.unsubscribe :enter
+
           members_page = channel_rest_client_one.presence.get
           this_member = members_page.items.first
 
@@ -1893,7 +1932,10 @@ describe Ably::Realtime::Presence, :event_machine do
 
       it 'returns no members once left' do
         presence_client_one.enter(data_payload) do
-          presence_client_one.leave do
+          presence_client_one.leave
+          presence_client_one.subscribe(:leave) do
+            presence_client_one.unsubscribe :leave
+
             members_page = channel_rest_client_one.presence.get
             expect(members_page.items.count).to eql(0)
             stop_reactor
@@ -2009,7 +2051,8 @@ describe Ably::Realtime::Presence, :event_machine do
 
       context '#get' do
         it 'returns a list of members with decrypted data' do
-          encrypted_channel.presence.enter(data) do
+          encrypted_channel.presence.enter(data)
+          encrypted_channel.presence.subscribe(:enter) do
             encrypted_channel.presence.get do |members|
               member = members.first
               expect(member.encoding).to be_nil
@@ -2022,7 +2065,8 @@ describe Ably::Realtime::Presence, :event_machine do
 
       context 'REST #get' do
         it 'returns a list of members with decrypted data' do
-          encrypted_channel.presence.enter(data) do
+          encrypted_channel.presence.enter(data)
+          encrypted_channel.presence.subscribe(:enter) do
             member = channel_rest_client_one.presence.get.items.first
             expect(member.encoding).to be_nil
             expect(member.data).to eql(data)
@@ -2092,7 +2136,7 @@ describe Ably::Realtime::Presence, :event_machine do
     context 'connection failure mid-way through a large member sync' do
       let(:members_count) { 201 }
       let(:sync_pages_received) { [] }
-      let(:client_options)  { default_options.merge(log_level: :error) }
+      let(:client_options)  { default_options.merge(log_level: :fatal) }
 
       it 'resumes the SYNC operation (#RTP3)', em_timeout: 15 do
         when_all(*members_count.times.map do |indx|
@@ -2303,20 +2347,33 @@ describe Ably::Realtime::Presence, :event_machine do
         end
 
         presence_client_one.enter_client 'bob' do
-          presence_client_one.enter_client 'sarah' do
-            presence_client_one.get do |members|
-              EventMachine.add_timer(1) do
-                expect(members.map(&:client_id)).to contain_exactly('bob', 'sarah')
-                expect(enter_client_ids).to contain_exactly('bob', 'sarah')
+          presence_client_one.enter_client 'sarah'
+        end
 
-                presence_client_one.leave_client 'bob' do
-                  presence_client_one.leave_client 'sarah' do
-                    presence_client_one.get do |members|
-                      expect(members.length).to eql(0)
-                      expect(leave_client_ids).to contain_exactly('bob', 'sarah')
-                      stop_reactor
-                    end
-                  end
+        entered_count = 0
+        presence_client_one.subscribe(:enter) do
+          entered_count += 1
+          next unless entered_count == 2
+
+          presence_client_one.unsubscribe :enter
+          presence_client_one.get do |members|
+            EventMachine.add_timer(1) do
+              expect(members.map(&:client_id)).to contain_exactly('bob', 'sarah')
+              expect(enter_client_ids).to contain_exactly('bob', 'sarah')
+
+              presence_client_one.leave_client 'bob' do
+                presence_client_one.leave_client 'sarah'
+              end
+
+              leave_count = 0
+              presence_client_one.subscribe(:leave) do
+                leave_count += 1
+                next unless leave_count == 2
+
+                presence_client_one.get do |members|
+                  expect(members.length).to eql(0)
+                  expect(leave_client_ids).to contain_exactly('bob', 'sarah')
+                  stop_reactor
                 end
               end
             end
@@ -2328,17 +2385,23 @@ describe Ably::Realtime::Presence, :event_machine do
     context "local PresenceMap for presence members entered by this client" do
       it "maintains a copy of the member map for any member that shares this connection's connection ID (#RTP17)" do
         presence_client_one.enter do
-          presence_client_two.enter do
-            channel_anonymous_client.attach do
-              channel_anonymous_client.presence.get do |members|
-                expect(channel_anonymous_client.presence.members.local_members).to be_empty
-                expect(presence_client_one.members.local_members.length).to eql(1)
-                expect(presence_client_one.members.local_members.values.first.connection_id).to eql(client_one.connection.id)
-                expect(presence_client_two.members.local_members.values.first.connection_id).to eql(client_two.connection.id)
-                presence_client_two.leave do
-                  expect(presence_client_two.members.local_members).to be_empty
-                  stop_reactor
-                end
+          presence_client_two.enter
+        end
+
+        entered_count = 0
+        presence_client_one.subscribe(:enter) do
+          entered_count += 1
+          next unless entered_count == 2
+          channel_anonymous_client.attach do
+            channel_anonymous_client.presence.get do |members|
+              expect(channel_anonymous_client.presence.members.local_members).to be_empty
+              expect(presence_client_one.members.local_members.length).to eql(1)
+              expect(presence_client_one.members.local_members.values.first.connection_id).to eql(client_one.connection.id)
+              expect(presence_client_two.members.local_members.values.first.connection_id).to eql(client_two.connection.id)
+              presence_client_two.leave
+              presence_client_two.subscribe(:leave) do
+                expect(presence_client_two.members.local_members).to be_empty
+                stop_reactor
               end
             end
           end
@@ -2367,7 +2430,10 @@ describe Ably::Realtime::Presence, :event_machine do
         context 'and the resume flag is true' do
           context 'and the presence flag is false' do
             it 'does not send any presence events as the PresenceMap is in sync (#RTP5c1)' do
-              presence_client_one.enter do
+              presence_client_one.enter
+              presence_client_one.subscribe(:enter) do
+                presence_client_one.unsubscribe :enter
+
                 client_one.connection.transport.__outgoing_protocol_msgbus__.subscribe do |message|
                   raise "No presence state updates to Ably are expected. Message sent: #{message.to_json}" if client_one.connection.connected?
                 end
@@ -2394,7 +2460,10 @@ describe Ably::Realtime::Presence, :event_machine do
           context 'and the presence flag is true' do
             context 'and following the SYNC all local MemberMap members are present in the PresenceMap' do
               it 'does nothing as MemberMap is in sync (#RTP5c2)' do
-                presence_client_one.enter do
+                presence_client_one.enter
+                presence_client_one.subscribe(:enter) do
+                  presence_client_one.unsubscribe :enter
+
                   expect(presence_client_one.members.length).to eql(1)
                   expect(presence_client_one.members.local_members.length).to eql(1)
 
@@ -2432,7 +2501,10 @@ describe Ably::Realtime::Presence, :event_machine do
               it 're-enters the missing members automatically (#RTP5c2)' do
                 sync_check_completed = false
 
-                presence_client_one.enter do
+                presence_client_one.enter
+                presence_client_one.subscribe(:enter) do
+                  presence_client_one.unsubscribe :enter
+
                   expect(presence_client_one.members.length).to eql(1)
                   expect(presence_client_one.members.local_members.length).to eql(1)
 
@@ -2513,7 +2585,10 @@ describe Ably::Realtime::Presence, :event_machine do
               in_sync_confirmed_no_local_members = false
               local_member_leave_event_fired = false
 
-              presence_client_one.enter(member_data) do
+              presence_client_one.enter(member_data)
+              presence_client_one.subscribe(:enter) do
+                presence_client_one.unsubscribe :enter
+
                 presence_client_one.subscribe(:leave) do |message|
                   # The local member will leave the PresenceMap due to the ATTACHED without Presence
                   local_member_leave_event_fired = true
@@ -2615,7 +2690,10 @@ describe Ably::Realtime::Presence, :event_machine do
         let(:client_one)       { auto_close Ably::Realtime::Client.new(client_options.merge(client_id: client_one_id, log_level: :fatal)) }
 
         it 'clears the PresenceMap and local member map copy and does not emit any presence events (#RTP5a)' do
-          presence_client_one.enter do
+          presence_client_one.enter
+          presence_client_one.subscribe(:enter) do
+            presence_client_one.unsubscribe :enter
+
             channel_anonymous_client.attach do
               presence_anonymous_client.get do |members|
                 expect(members.count).to eq(1)
@@ -2639,7 +2717,10 @@ describe Ably::Realtime::Presence, :event_machine do
 
       context 'channel transitions to the DETACHED state' do
         it 'clears the PresenceMap and local member map copy and does not emit any presence events (#RTP5a)' do
-          presence_client_one.enter do
+          presence_client_one.enter
+          presence_client_one.subscribe(:enter) do
+            presence_client_one.unsubscribe :enter
+
             channel_anonymous_client.attach do
               presence_anonymous_client.get do |members|
                 expect(members.count).to eq(1)
@@ -2673,43 +2754,50 @@ describe Ably::Realtime::Presence, :event_machine do
 
         it 'maintains the PresenceMap and only publishes presence event changes since the last attached state (#RTP5f)' do
           presence_client_one.enter do
-            presence_client_two.enter do
-              channel_anonymous_client.attach do
-                presence_anonymous_client.get do |members|
-                  expect(members.count).to eq(2)
+            presence_client_two.enter
+          end
 
-                  received_events = []
-                  presence_anonymous_client.subscribe do |presence_message|
-                    expect(presence_message.action).to eq(:leave)
-                    expect(presence_message.client_id).to eql(client_one_id)
-                    received_events << [:leave, presence_message.client_id]
-                  end
+          entered_count = 0
+          presence_client_one.subscribe(:enter) do
+            entered_count += 1
+            next unless entered_count == 2
 
-                  # Kill the connection triggering an automatic reconnect and reattach of the channel that is about to put into the suspended state
-                  anonymous_client.connection.transport.close_connection_after_writing
+            presence_client_one.unsubscribe :enter
+            channel_anonymous_client.attach do
+              presence_anonymous_client.get do |members|
+                expect(members.count).to eq(2)
 
-                  # Prevent the same connection resuming, we want a new connection and the channel SYNC to be sent
-                  anonymous_client.connection.reset_resume_info
+                received_events = []
+                presence_anonymous_client.subscribe do |presence_message|
+                  expect(presence_message.action).to eq(:leave)
+                  expect(presence_message.client_id).to eql(client_one_id)
+                  received_events << [:leave, presence_message.client_id]
+                end
 
-                  anonymous_client.connection.once(:disconnected) do
-                    # Move to the SUSPENDED state and check presence map intact
-                    channel_anonymous_client.transition_state_machine! :suspended
+                # Kill the connection triggering an automatic reconnect and reattach of the channel that is about to put into the suspended state
+                anonymous_client.connection.transport.close_connection_after_writing
 
-                    # Change the presence map state on that channel by getting one member to leave whilst the connection for anonymous client is diconnected
-                    presence_client_one.leave
+                # Prevent the same connection resuming, we want a new connection and the channel SYNC to be sent
+                anonymous_client.connection.reset_resume_info
 
-                    # Whilst SUSPENDED and DISCONNECTED, a get of the PresenceMap should still reveal two members
-                    presence_anonymous_client.get(wait_for_sync: false) do |members|
-                      expect(members.count).to eq(2)
+                anonymous_client.connection.once(:disconnected) do
+                  # Move to the SUSPENDED state and check presence map intact
+                  channel_anonymous_client.transition_state_machine! :suspended
 
-                      channel_anonymous_client.once(:attached) do
-                        presence_anonymous_client.get do |members|
-                          expect(members.count).to eq(1)
-                          EventMachine.add_timer(0.5) do
-                            expect(received_events).to contain_exactly([:leave, client_one_id])
-                            presence_anonymous_client.unsubscribe
-                            stop_reactor
-                          end
+                  # Change the presence map state on that channel by getting one member to leave whilst the connection for anonymous client is diconnected
+                  presence_client_one.leave
+
+                  # Whilst SUSPENDED and DISCONNECTED, a get of the PresenceMap should still reveal two members
+                  presence_anonymous_client.get(wait_for_sync: false) do |members|
+                    expect(members.count).to eq(2)
+
+                    channel_anonymous_client.once(:attached) do
+                      presence_anonymous_client.get do |members|
+                        expect(members.count).to eq(1)
+                        EventMachine.add_timer(0.5) do
+                          expect(received_events).to contain_exactly([:leave, client_one_id])
+                          presence_anonymous_client.unsubscribe
+                          stop_reactor
                         end
                       end
                     end
