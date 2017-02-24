@@ -669,7 +669,7 @@ describe Ably::Auth do
           old_token = auth.current_token_details
           auth.authorize({ client_id: 'bob' })
           expect(old_token).to_not eql(auth.current_token_details)
-          expect(auth.token_params[:ttl]).to_not eql(23)
+          expect(auth.token_params[:ttl]).to_not eq(23)
           expect(auth.token_params[:client_id]).to eql('bob')
         end
 
@@ -881,21 +881,22 @@ describe Ably::Auth do
         expect(subject['keyName']).to eql(key_name)
       end
 
-      it 'uses the default TTL' do
-        expect(subject['ttl']).to eql(Ably::Auth::TOKEN_DEFAULTS.fetch(:ttl) * 1000)
+      it 'specifies no TTL (#RSA5)' do
+        expect(subject['ttl']).to be_nil
       end
 
       context 'with a :ttl option below the Token expiry buffer that ensures tokens are renewed 15s before they expire as they are considered expired' do
-        let(:ttl)        { 1 }
+        let(:ttl) { 1 }
+        let(:token_params) { { ttl: ttl } }
 
         it 'uses the Token expiry buffer default + 10s to allow for a token request in flight' do
-          expect(subject.ttl).to be > 1
-          expect(subject.ttl).to be > Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER
+          expect(subject['ttl']).to be > 1
+          expect(subject['ttl']).to be > Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER
         end
       end
 
-      it 'uses the default capability' do
-        expect(subject['capability']).to eql(Ably::Auth::TOKEN_DEFAULTS.fetch(:capability).to_json)
+      it 'specifies no capability (#RSA6)' do
+        expect(subject['capability']).to be_nil
       end
 
       context 'the nonce' do
@@ -1167,14 +1168,14 @@ describe Ably::Auth do
             expect(client.channel('foo').publish('event', 'data')).to be_truthy
           end
 
-          it 'with capability and TTL defaults' do
+          it 'with capability and TTL defaults (#TK2a, #TK2b)' do
             client.channel('foo').publish('event', 'data')
 
             expect(token).to be_a(Ably::Models::TokenDetails)
-            capability_with_str_key = Ably::Auth::TOKEN_DEFAULTS.fetch(:capability)
+            capability_with_str_key = { "*" => ["*"] } # Ably default is all capabilities
             capability = Hash[capability_with_str_key.keys.map(&:to_s).zip(capability_with_str_key.values)]
             expect(token.capability).to eq(capability)
-            expect(token.expires.to_i).to be_within(2).of(Time.now.to_i + Ably::Auth::TOKEN_DEFAULTS.fetch(:ttl))
+            expect(token.expires.to_i).to be_within(2).of(Time.now.to_i + 60 * 60) # Ably default is 1hr
             expect(token.client_id).to eq(client_id)
           end
 

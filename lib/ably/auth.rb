@@ -30,8 +30,6 @@ module Ably
 
     # Default capability Hash object and TTL in seconds for issued tokens
     TOKEN_DEFAULTS = {
-      capability:         { '*' => ['*'] },
-      ttl:                60 * 60, # 1 hour in seconds
       renew_token_buffer: 10 # buffer to allow a token to be reissued before the token is considered expired (Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER)
     }.freeze
 
@@ -300,20 +298,26 @@ module Ably
       timestamp = token_params.delete(:timestamp) || current_time
       timestamp = Time.at(timestamp) if timestamp.kind_of?(Integer)
 
-      ttl = [
-        (token_params[:ttl] || TOKEN_DEFAULTS.fetch(:ttl)),
-        Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER + TOKEN_DEFAULTS.fetch(:renew_token_buffer) # never issue a token that will be immediately considered expired due to the buffer
-      ].max
+
 
       token_request = {
         keyName:    request_key_name,
-        clientId:   token_params[:client_id] || auth_options[:client_id] || client_id,
-        ttl:        (ttl * 1000).to_i,
         timestamp:  (timestamp.to_f * 1000).round,
-        capability: token_params[:capability] || TOKEN_DEFAULTS.fetch(:capability),
         nonce:      token_params[:nonce] || SecureRandom.hex.force_encoding('UTF-8')
       }
 
+      token_client_id = token_params[:client_id] || auth_options[:client_id] || client_id
+      token_request[:clientId] = token_client_id if token_client_id
+
+      if token_params[:ttl]
+        token_ttl = [
+          token_params[:ttl],
+          Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER + TOKEN_DEFAULTS.fetch(:renew_token_buffer) # never issue a token that will be immediately considered expired due to the buffer
+        ].max
+        token_request[:ttl] = (token_ttl * 1000).to_i
+      end
+
+      token_request[:capability] = token_params[:capability] if token_params[:capability]
       if token_request[:capability].is_a?(Hash)
         lexicographic_ordered_capabilities = Hash[
           token_request[:capability].sort_by { |key, value| key }.map do |key, value|
