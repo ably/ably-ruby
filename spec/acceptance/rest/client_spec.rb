@@ -818,16 +818,16 @@ describe Ably::Rest::Client do
           expect(client.http_defaults[:open_timeout]).to eql(4)
         end
 
-        specify '#http_request_timeout is 15s' do
-          expect(client.http_defaults[:request_timeout]).to eql(15)
+        specify '#http_request_timeout is 10s' do
+          expect(client.http_defaults[:request_timeout]).to eql(10)
         end
 
         specify '#http_max_retry_count is 3' do
           expect(client.http_defaults[:max_retry_count]).to eql(3)
         end
 
-        specify '#http_max_retry_duration is 10s' do
-          expect(client.http_defaults[:max_retry_duration]).to eql(10)
+        specify '#http_max_retry_duration is 15s' do
+          expect(client.http_defaults[:max_retry_duration]).to eql(15)
         end
       end
 

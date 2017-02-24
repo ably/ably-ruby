@@ -25,8 +25,8 @@ module Ably
       # Configuration for HTTP timeouts and HTTP request reattempts to fallback hosts
       HTTP_DEFAULTS = {
         open_timeout:       4,
-        request_timeout:    15,
-        max_retry_duration: 10,
+        request_timeout:    10,
+        max_retry_duration: 15,
         max_retry_count:    3
       }.freeze
 
@@ -107,9 +107,9 @@ module Ably
       # @option options [Hash]                    :default_token_params   convenience to pass in +token_params+ that will be used as a default for all token requests. See {Auth#create_token_request}
       #
       # @option options [Integer]                 :http_open_timeout       (4 seconds) timeout in seconds for opening an HTTP connection for all HTTP requests
-      # @option options [Integer]                 :http_request_timeout    (15 seconds) timeout in seconds for any single complete HTTP request and response
+      # @option options [Integer]                 :http_request_timeout    (10 seconds) timeout in seconds for any single complete HTTP request and response
       # @option options [Integer]                 :http_max_retry_count    (3) maximum number of fallback host retries for HTTP requests that fail due to network issues or server problems
-      # @option options [Integer]                 :http_max_retry_duration (10 seconds) maximum elapsed time in which fallback host retries for HTTP requests will be attempted i.e. if the first default host attempt takes 5s, and then the subsequent fallback retry attempt takes 7s, no further fallback host attempts will be made as the total elapsed time of 12s exceeds the default 10s limit
+      # @option options [Integer]                 :http_max_retry_duration (15 seconds) maximum elapsed time in which fallback host retries for HTTP requests will be attempted i.e. if the first default host attempt takes 5s, and then the subsequent fallback retry attempt takes 7s, no further fallback host attempts will be made as the total elapsed time of 12s exceeds the default 10s limit
       #
       # @option options [Boolean]                 :fallback_hosts_use_default  (false) When true, forces the user of fallback hosts even if a non-default production endpoint is being used
       # @option options [Array<String>]           :fallback_hosts              When an array of fallback hosts are provided, these fallback hosts are always used if a request fails to the primary endpoint. If an empty array is provided, the fallback host functionality is disabled
