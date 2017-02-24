@@ -89,7 +89,6 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
         let(:data) { { 'push' => { 'title' => 'Testing' } } }
 
         it 'is encoded and decoded to the same hash' do
-          skip 'Extras field not supported in realtime, see https://github.com/ably/realtime/issues/656'
           publish_and_check_extras data
         end
       end
@@ -98,7 +97,6 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
         let(:data) { { 'push' => [ nil, true, false, 55, 'string', { 'Hash' => true }, ['array'] ] } }
 
         it 'is encoded and decoded to the same Array' do
-          skip 'Extras field not supported in realtime, see https://github.com/ably/realtime/issues/656'
           publish_and_check_extras data
         end
       end

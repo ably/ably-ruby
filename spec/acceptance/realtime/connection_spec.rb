@@ -271,7 +271,6 @@ describe Ably::Realtime::Connection, :event_machine do
                   end
 
                   it 'retains messages published when disconnected three times during authentication', em_timeout: 30 do
-                    skip "Blocked by realtime issue https://github.com/ably/realtime/issues/800"
                     publishing_channel.attach do
                       channel.attach do
                         connection.once(:disconnected) do
@@ -1724,7 +1723,7 @@ describe Ably::Realtime::Connection, :event_machine do
       it 'sends the protocol version param v (#G4, #RTN2f)' do
         expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
           uri = URI.parse(url)
-          expect(CGI::parse(uri.query)['v'][0]).to eql('0.9')
+          expect(CGI::parse(uri.query)['v'][0]).to eql('1.0')
           stop_reactor
         end
         client
@@ -1733,7 +1732,7 @@ describe Ably::Realtime::Connection, :event_machine do
       it 'sends the lib version param lib (#RTN2g)' do
         expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
           uri = URI.parse(url)
-          expect(CGI::parse(uri.query)['lib'][0]).to match(/^ruby-0\.9\.\d+(-[\w\.]+)?+$/)
+          expect(CGI::parse(uri.query)['lib'][0]).to match(/^ruby-1\.0\.\d+(-[\w\.]+)?+$/)
           stop_reactor
         end
         client
@@ -1753,7 +1752,7 @@ describe Ably::Realtime::Connection, :event_machine do
         it 'sends the lib version param lib with the variant (#RTN2g + #RSC7b)' do
           expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
             uri = URI.parse(url)
-            expect(CGI::parse(uri.query)['lib'][0]).to match(/^ruby-#{variant}-0\.9\.\d+(-[\w\.]+)?$/)
+            expect(CGI::parse(uri.query)['lib'][0]).to match(/^ruby-#{variant}-1\.0\.\d+(-[\w\.]+)?$/)
             stop_reactor
           end
           client

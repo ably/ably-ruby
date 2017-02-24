@@ -145,7 +145,7 @@ module Ably::Models
     end
 
     def set_attributes_object(new_attributes)
-      @attributes = IdiomaticRubyWrapper(new_attributes.clone.freeze, stop_at: [:data])
+      @attributes = IdiomaticRubyWrapper(new_attributes.clone.freeze, stop_at: [:data, :extras])
     end
 
     def logger

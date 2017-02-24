@@ -1896,8 +1896,6 @@ describe Ably::Realtime::Channel, :event_machine do
           end
 
           it 'is true when a connection is recovered and the channel is attached' do
-            skip 'Awaiting implementation in the realtime system for 0.9 spec'
-
             channel.attach
             channel.once(:attached) do |channel_state_change|
               connection_id = client.connection.id
