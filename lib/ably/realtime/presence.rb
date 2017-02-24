@@ -122,7 +122,6 @@ module Ably::Realtime
       deferrable = create_deferrable
 
       ensure_supported_payload data
-      raise Ably::Exceptions::Standard.new('Unable to leave presence channel that is not entered', 400, 91002) unless able_to_leave?
 
       @data = data
 
@@ -327,10 +326,6 @@ module Ably::Realtime
     end
 
     private
-    def able_to_leave?
-      entering? || entered?
-    end
-
     # @return [Ably::Models::PresenceMessage] presence message is returned allowing callbacks to be added
     def send_presence_protocol_message(presence_action, client_id, data)
       presence_message = create_presence_message(presence_action, client_id, data)

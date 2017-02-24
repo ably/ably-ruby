@@ -1221,9 +1221,16 @@ describe Ably::Realtime::Presence, :event_machine do
         end
       end
 
-      it 'raises an exception if not entered' do
-        expect { channel_client_one.presence.leave }.to raise_error(Ably::Exceptions::Standard, /Unable to leave presence channel that is not entered/)
-        stop_reactor
+      it 'succeeds and does not emit an event (#RTP10d)' do
+        channel_client_one.presence.leave do
+          # allow enough time for leave event to (not) fire
+          EventMachine.add_timer(2) do
+            stop_reactor
+          end
+        end
+        channel_client_one.subscribe(:leave) do
+          raise "No leave event should fire"
+        end
       end
 
       it_should_behave_like 'a public presence method', :leave, :left, {}, enter_first: true
