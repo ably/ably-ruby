@@ -432,7 +432,7 @@ module Ably
                 url_params.merge! resume: key, connection_serial: serial
                 logger.debug { "Resuming connection key #{key} with serial #{serial}" }
               elsif connection_recoverable?
-                url_params.merge! recover: connection_recover_parts[:recover], connection_serial: connection_recover_parts[:connection_serial]
+                url_params.merge! recover: connection_recover_parts[:recover], connectionSerial: connection_recover_parts[:connection_serial]
                 logger.debug { "Recovering connection with key #{client.recover}" }
                 unsafe_once(:connected, :closed, :failed) do
                   client.disable_automatic_connection_recovery
