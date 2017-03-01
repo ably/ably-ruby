@@ -76,10 +76,10 @@ module Ably::Realtime
 
       def nack_messages(protocol_message, error)
         (protocol_message.messages + protocol_message.presence).each do |message|
-          logger.debug "Calling NACK failure callbacks for #{message.class.name} - #{message.to_json}, protocol message: #{protocol_message}"
+          logger.debug "Calling NACK failure callbacks for #{message.class.name} - #{message.to_safe_json}, protocol message: #{protocol_message}"
           message.fail error
         end
-        logger.debug "Calling NACK failure callbacks for #{protocol_message.class.name} - #{protocol_message.to_json}"
+        logger.debug "Calling NACK failure callbacks for #{protocol_message.class.name} - #{protocol_message.to_safe_json}"
         protocol_message.fail error
       end
 

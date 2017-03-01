@@ -32,6 +32,14 @@ module Ably::Modules
       as_json.to_json(*args)
     end
 
+    # Like to_json but encodes all binary fields to hex
+    def to_safe_json(*args)
+      as_json.
+        each_with_object({}) do |(key, val), obj|
+          obj[key] = to_safe_jsonable_val(val)
+        end.to_json(*args)
+    end
+
     # @!attribute [r] hash
     # @return [Integer] Compute a hash-code for this hash. Two hashes with the same content will have the same hash code
     def hash
@@ -39,6 +47,23 @@ module Ably::Modules
     end
 
     private
+    def to_safe_jsonable_val(val)
+      case val
+      when Array
+        val.map { |array_val| to_safe_jsonable_val(array_val) }
+      when Hash
+        val.each_with_object({}) { |(key, hash_val), obj| obj[key] = to_safe_jsonable_val(hash_val) }
+      when String
+        if val.encoding == Encoding::ASCII_8BIT
+          val.unpack("H*").first
+        else
+          val
+        end
+      else
+        val
+      end
+    end
+
     def ensure_utf8_string_for(attribute, value)
       if value
         raise ArgumentError, "#{attribute} must be a String" unless value.kind_of?(String)
