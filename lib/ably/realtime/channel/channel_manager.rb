@@ -58,7 +58,7 @@ module Ably::Realtime
       # all messages awaiting an ACK response should fail immediately
       def fail_messages_awaiting_ack(error)
         # Allow a short time for other queued operations to complete before failing all messages
-        EventMachine.add_timer(0.1) do
+        EventMachine.next_tick do
           error = Ably::Exceptions::MessageDeliveryFailed.new("Channel cannot publish messages whilst state is '#{channel.state}'") unless error
           fail_messages_in_queue connection.__pending_message_ack_queue__, error
           fail_messages_in_queue connection.__outgoing_message_queue__, error

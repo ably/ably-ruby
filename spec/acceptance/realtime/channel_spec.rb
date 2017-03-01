@@ -92,12 +92,14 @@ describe Ably::Realtime::Channel, :event_machine do
 
         it 'reattaches' do
           channel.attach do
-            channel.transition_state_machine :failed, reason: RuntimeError.new
-            expect(channel).to be_failed
-            channel.attach do
-              expect(channel).to be_attached
-              stop_reactor
+            channel.once(:failed) do
+              expect(channel).to be_failed
+              channel.attach do
+                expect(channel).to be_attached
+                stop_reactor
+              end
             end
+            channel.transition_state_machine :failed, reason: RuntimeError.new
           end
         end
       end
