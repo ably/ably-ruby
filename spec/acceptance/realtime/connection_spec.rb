@@ -193,8 +193,12 @@ describe Ably::Realtime::Connection, :event_machine do
                       expect(client.rest_client).to_not receive(:fallback_connection)
                       expect(client).to_not receive(:fallback_endpoint)
 
+                      # Connection will go into :disconnected, then back to
+                      # :connecting, then :disconnected again
                       connection.once(:disconnected) do
-                        stop_reactor
+                        connection.once(:disconnected) do
+                          stop_reactor
+                        end
                       end
                     end
                   end
