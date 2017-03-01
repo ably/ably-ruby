@@ -373,7 +373,7 @@ describe Ably::Realtime::Channel, :event_machine do
             expect(message_id.uniq.count).to eql(1)
 
             # Check that messages use index 0,1,2 in the ID
-            message_indexes = messages.map { |msg| msg.id.split(':')[1] }
+            message_indexes = messages.map { |msg| msg.id.split(':').last }
             expect(message_indexes).to include("0", "1", "2")
             stop_reactor
           end
