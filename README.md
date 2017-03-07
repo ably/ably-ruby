@@ -24,7 +24,7 @@ And then install this Bundler dependency:
 Or install it yourself as:
 
     $ gem install ably
-    
+
 ### Using with Rails or Sinatra
 
 This `ably` gem provides both a [Realtime](http://www.ably.io/documentation/realtime/usage) and [REST](http://www.ably.io/documentation/rest/usage) version of the Ably library. Realtime depends on EventMachine to provide an asynchronous evented framework to run the library in, whereas the REST library depends only on synchronous libraries such as Faraday.
@@ -280,6 +280,10 @@ client.time #=> 2013-12-12 14:23:34 +0000
 ## Dependencies
 
 If you only need to use the REST features of this library and do not want EventMachine as a dependency, then you should consider using the [Ably Ruby REST gem](https://rubygems.org/gems/ably-rest).
+
+## Upgrading from an older version
+
+- [Release and upgrade notes for v0.8 -> v1.0](https://github.com/ably/docs/issues/235)
 
 ## Support, feedback and troubleshooting
 
