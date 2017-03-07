@@ -10,6 +10,7 @@ describe Ably::Models::ProtocolMessage do
     subject.new({ action: 1 }.merge(options))
   end
 
+  # TR4n, TR4b, TR4c, TR4d, TR4e
   it_behaves_like 'a model',
     with_simple_attributes: %w(id channel channel_serial connection_id connection_key),
     base_model_options: { action: 1 } do
@@ -134,7 +135,7 @@ describe Ably::Models::ProtocolMessage do
       end
     end
 
-    context '#flags' do
+    context '#flags (#TR4i)' do
       context 'when nil' do
         let(:protocol_message) { new_protocol_message({}) }
 
@@ -151,8 +152,36 @@ describe Ably::Models::ProtocolMessage do
         end
       end
 
-      context 'when has_presence' do
+      context 'when presence flag present' do
         let(:protocol_message) { new_protocol_message(flags: 1) }
+
+        it '#has_presence_flag? is true' do
+          expect(protocol_message.has_presence_flag?).to be_truthy
+        end
+
+        it '#has_channel_resumed_flag? is false' do
+          expect(protocol_message.has_channel_resumed_flag?).to be_falsey
+        end
+      end
+
+      context 'when channel resumed flag present' do
+        let(:protocol_message) { new_protocol_message(flags: 4) }
+
+        it '#has_channel_resumed_flag? is true' do
+          expect(protocol_message.has_channel_resumed_flag?).to be_truthy
+        end
+
+        it '#has_presence_flag? is false' do
+          expect(protocol_message.has_presence_flag?).to be_falsey
+        end
+      end
+
+      context 'when channel resumed and presence flags present' do
+        let(:protocol_message) { new_protocol_message(flags: 5) }
+
+        it '#has_channel_resumed_flag? is true' do
+          expect(protocol_message.has_channel_resumed_flag?).to be_truthy
+        end
 
         it '#has_presence_flag? is true' do
           expect(protocol_message.has_presence_flag?).to be_truthy
@@ -164,6 +193,10 @@ describe Ably::Models::ProtocolMessage do
 
         it '#has_presence_flag? is false' do
           expect(protocol_message.has_presence_flag?).to be_falsey
+        end
+
+        it '#has_backlog_flag? is true' do
+          expect(protocol_message.has_backlog_flag?).to be_truthy
         end
       end
     end
@@ -265,7 +298,7 @@ describe Ably::Models::ProtocolMessage do
       end
     end
 
-    context '#messages' do
+    context '#messages (#TR4k)' do
       let(:protocol_message) { new_protocol_message(messages: [{ name: 'test' }]) }
 
       it 'contains Message objects' do
@@ -275,7 +308,7 @@ describe Ably::Models::ProtocolMessage do
       end
     end
 
-    context '#presence' do
+    context '#presence (#TR4l)' do
       let(:protocol_message) { new_protocol_message(presence: [{ action: 1, data: 'test' }]) }
 
       it 'contains PresenceMessage objects' do
@@ -285,7 +318,7 @@ describe Ably::Models::ProtocolMessage do
       end
     end
 
-    context '#connection_details' do
+    context '#connection_details (#TR4o)' do
       let(:connection_details) { protocol_message.connection_details }
 
       context 'with a JSON value' do
@@ -312,7 +345,32 @@ describe Ably::Models::ProtocolMessage do
       end
     end
 
-    context '#connection_key' do
+    context '#auth (#TR4p)' do
+      let(:auth) { protocol_message.auth }
+
+      context 'with a JSON value' do
+        let(:protocol_message) { new_protocol_message(auth: { accesstoken: 'foo' }) }
+
+        it 'contains a AuthDetails object' do
+          expect(auth).to be_a(Ably::Models::AuthDetails)
+        end
+
+        it 'contains the attributes from the JSON auth details' do
+          expect(auth.access_token).to eql('foo')
+        end
+      end
+
+      context 'without a JSON value' do
+        let(:protocol_message) { new_protocol_message({}) }
+
+        it 'contains an empty AuthDetails object' do
+          expect(auth).to be_a(Ably::Models::AuthDetails)
+          expect(auth.access_token).to eql(nil)
+        end
+      end
+    end
+
+    context '#connection_key (#TR4e)' do
       context 'existing only in #connection_details.connection_key' do
         let(:protocol_message) { new_protocol_message(connectionDetails: { connectionKey: 'key' }) }
 

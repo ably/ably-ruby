@@ -6,7 +6,7 @@ describe Ably::Models::ChannelStateChange do
 
   subject { Ably::Models::ChannelStateChange }
 
-  context '#current' do
+  context '#current (#TH1)' do
     it 'is required' do
       expect { subject.new(previous: true) }.to raise_error ArgumentError
     end
@@ -16,7 +16,7 @@ describe Ably::Models::ChannelStateChange do
     end
   end
 
-  context '#previous' do
+  context '#previous (#TH2)' do
     it 'is required' do
       expect { subject.new(current: true) }.to raise_error ArgumentError
     end
@@ -26,13 +26,33 @@ describe Ably::Models::ChannelStateChange do
     end
   end
 
-  context '#reason' do
+  context '#event (#TH5)' do
+    it 'is not required' do
+      expect { subject.new(previous: true, current: true) }.to_not raise_error
+    end
+
+    it 'is an attribute' do
+      expect(subject.new(event: unique, previous: unique, current: true).event).to eql(unique)
+    end
+  end
+
+  context '#reason (#TH3)' do
     it 'is not required' do
       expect { subject.new(previous: true, current: true) }.to_not raise_error
     end
 
     it 'is an attribute' do
       expect(subject.new(reason: unique, previous: unique, current: true).reason).to eql(unique)
+    end
+  end
+
+  context '#resumed (#TH4)' do
+    it 'is false when ommitted' do
+      expect(subject.new(previous: true, current: true).resumed).to be_falsey
+    end
+
+    it 'is true when provided' do
+      expect(subject.new(previous: true, current: true, resumed: true).resumed).to be_truthy
     end
   end
 

@@ -28,6 +28,25 @@ module Ably::Realtime
         presence.members.change_state :sync_starting
       end
 
+      # Process presence messages from SYNC messages. Sync can be server-initiated or triggered following ATTACH
+      #
+      # @return [void]
+      #
+      # @api private
+      def sync_process_messages(serial, presence_messages)
+        unless presence.members.sync_starting?
+          presence.members.change_state :sync_starting
+        end
+
+        presence.members.update_sync_serial serial
+
+        presence_messages.each do |presence_message|
+          presence.__incoming_msgbus__.publish :sync, presence_message
+        end
+
+        presence.members.change_state :finalizing_sync if presence.members.sync_serial_cursor_at_end?
+      end
+
       # There server has indicated that there are no SYNC ProtocolMessages to come because
       # there are no members on this channel
       #
@@ -35,7 +54,8 @@ module Ably::Realtime
       #
       # @api private
       def sync_not_expected
-        presence.members.change_state :in_sync
+        logger.debug { "#{self.class.name}: Emitting leave events for all members as a SYNC is not expected and thus there are no members on the channel" }
+        presence.members.change_state :sync_none
       end
 
       private
@@ -43,16 +63,20 @@ module Ably::Realtime
 
       def setup_channel_event_handlers
         channel.unsafe_on(:detached) do
-          presence.transition_state_machine :left if presence.can_transition_to?(:left)
+          if !presence.initialized?
+            presence.transition_state_machine :left if presence.can_transition_to?(:left)
+          end
         end
 
         channel.unsafe_on(:failed) do |metadata|
-          presence.transition_state_machine :failed, metadata if presence.can_transition_to?(:failed)
+          if !presence.initialized?
+            presence.transition_state_machine :left, metadata if presence.can_transition_to?(:left)
+          end
         end
+      end
 
-        presence.unsafe_on(:entered) do |message|
-          presence.set_connection_id message.connection_id
-        end
+      def logger
+        presence.channel.client.logger
       end
     end
   end

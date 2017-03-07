@@ -206,9 +206,11 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
         end
       end
 
-      it 'raises an exception unless state is attached' do
-        expect { channel.history(until_attach: true) }.to raise_error(ArgumentError, /not attached/)
-        stop_reactor
+      it 'fails the deferrable unless the state is attached' do
+        channel.history(until_attach: true).errback do |error|
+          expect(error.message).to match(/not attached/)
+          stop_reactor
+        end
       end
     end
   end

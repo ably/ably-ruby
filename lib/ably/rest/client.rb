@@ -1,6 +1,7 @@
 require 'faraday'
 require 'json'
 require 'logger'
+require 'uri'
 
 require 'ably/rest/middleware/exceptions'
 
@@ -24,8 +25,8 @@ module Ably
       # Configuration for HTTP timeouts and HTTP request reattempts to fallback hosts
       HTTP_DEFAULTS = {
         open_timeout:       4,
-        request_timeout:    15,
-        max_retry_duration: 10,
+        request_timeout:    10,
+        max_retry_duration: 15,
         max_retry_count:    3
       }.freeze
 
@@ -103,12 +104,12 @@ module Ably
       # @option options [Proc]                    :auth_callback       when provided, the Proc will be called with the token params hash as the first argument, whenever a new token is required.
       #                                                                The Proc should return a token string, {Ably::Models::TokenDetails} or JSON equivalent, {Ably::Models::TokenRequest} or JSON equivalent
       # @option options [Boolean]                 :query_time          when true will query the {https://www.ably.io Ably} system for the current time instead of using the local time
-      # @option options [Hash]                    :token_params        convenience to pass in +token_params+ that will be used as a default for all token requests. See {Auth#create_token_request}
+      # @option options [Hash]                    :default_token_params   convenience to pass in +token_params+ that will be used as a default for all token requests. See {Auth#create_token_request}
       #
       # @option options [Integer]                 :http_open_timeout       (4 seconds) timeout in seconds for opening an HTTP connection for all HTTP requests
-      # @option options [Integer]                 :http_request_timeout    (15 seconds) timeout in seconds for any single complete HTTP request and response
+      # @option options [Integer]                 :http_request_timeout    (10 seconds) timeout in seconds for any single complete HTTP request and response
       # @option options [Integer]                 :http_max_retry_count    (3) maximum number of fallback host retries for HTTP requests that fail due to network issues or server problems
-      # @option options [Integer]                 :http_max_retry_duration (10 seconds) maximum elapsed time in which fallback host retries for HTTP requests will be attempted i.e. if the first default host attempt takes 5s, and then the subsequent fallback retry attempt takes 7s, no further fallback host attempts will be made as the total elapsed time of 12s exceeds the default 10s limit
+      # @option options [Integer]                 :http_max_retry_duration (15 seconds) maximum elapsed time in which fallback host retries for HTTP requests will be attempted i.e. if the first default host attempt takes 5s, and then the subsequent fallback retry attempt takes 7s, no further fallback host attempts will be made as the total elapsed time of 12s exceeds the default 10s limit
       #
       # @option options [Boolean]                 :fallback_hosts_use_default  (false) When true, forces the user of fallback hosts even if a non-default production endpoint is being used
       # @option options [Array<String>]           :fallback_hosts              When an array of fallback hosts are provided, these fallback hosts are always used if a request fails to the primary endpoint. If an empty array is provided, the fallback host functionality is disabled
@@ -127,13 +128,14 @@ module Ably
 
         options = options.clone
         if options.kind_of?(String)
-          options = if options.match(/^[\w-]{2,}\.[\w-]{2,}:[\w-]{2,}$/)
+          options = if options.match(Auth::API_KEY_REGEX)
             { key: options }
           else
             { token: options }
           end
         end
 
+        @realtime_client  = options.delete(:realtime_client)
         @tls              = options.delete(:tls) == false ? false : true
         @environment      = options.delete(:environment) # nil is production
         @environment      = nil if [:production, 'production'].include?(@environment)
@@ -182,7 +184,7 @@ module Ably
         end
         raise ArgumentError, 'Protocol is invalid.  Must be either :msgpack or :json' unless [:msgpack, :json].include?(@protocol)
 
-        token_params = options.delete(:token_params) || {}
+        token_params = options.delete(:default_token_params) || {}
         @options  = options
         @auth     = Auth.new(self, token_params, options)
         @channels = Ably::Rest::Channels.new(self)
@@ -285,14 +287,14 @@ module Ably
 
         response = case method.to_sym
         when :get
-          reauthorise_on_authorisation_failure do
+          reauthorize_on_authorisation_failure do
             send_request(method, path, params, headers: headers)
           end
         when :post
           path_with_params = Addressable::URI.new
           path_with_params.query_values = params || {}
           query = path_with_params.query
-          reauthorise_on_authorisation_failure do
+          reauthorize_on_authorisation_failure do
             send_request(method, "#{path}#{"?#{query}" unless query.nil? || query.empty?}", body, headers: headers)
           end
         end
@@ -346,18 +348,8 @@ module Ably
       # @return [void]
       #
       # @api private
-      def register_encoder(encoder)
-        encoder_klass = if encoder.kind_of?(String)
-          encoder.split('::').inject(Kernel) do |base, klass_name|
-            base.public_send(:const_get, klass_name)
-          end
-        else
-          encoder
-        end
-
-        raise "Encoder must inherit from `Ably::Models::MessageEncoders::Base`" unless encoder_klass.ancestors.include?(Ably::Models::MessageEncoders::Base)
-
-        encoders << encoder_klass.new(self)
+      def register_encoder(encoder, options = {})
+        encoders << Ably::Models::MessageEncoders.encoder_from(encoder, options)
       end
 
       # @!attribute [r] protocol_binary?
@@ -411,13 +403,25 @@ module Ably
         ].compact.join('-')
       end
 
+      # Allowable duration for an external auth request
+      # For REST client this defaults to request_timeout
+      # For Realtime clients this defaults to realtime_request_timeout
+      # @api private
+      def auth_request_timeout
+        if @realtime_client
+          @realtime_client.connection.defaults.fetch(:realtime_request_timeout)
+        else
+          http_defaults.fetch(:request_timeout)
+        end
+      end
+
       private
       def raw_request(method, path, params = {}, options = {})
         options = options.clone
-        if options.delete(:disable_automatic_reauthorise) == true
+        if options.delete(:disable_automatic_reauthorize) == true
           send_request(method, path, params, options)
         else
-          reauthorise_on_authorisation_failure do
+          reauthorize_on_authorisation_failure do
             send_request(method, path, params, options)
           end
         end
@@ -449,7 +453,7 @@ module Ably
           time_passed = Time.now - requested_at
           if can_fallback_to_alternate_ably_host? && retry_count < max_retry_count && time_passed <= max_retry_duration
             retry_count += 1
-            logger.warn "Ably::Rest::Client - Retry #{retry_count} for #{method} #{path} #{params} as initial attempt failed: #{error}"
+            logger.warn { "Ably::Rest::Client - Retry #{retry_count} for #{method} #{path} #{params} as initial attempt failed: #{error}" }
             retry
           end
 
@@ -464,11 +468,11 @@ module Ably
         end
       end
 
-      def reauthorise_on_authorisation_failure
+      def reauthorize_on_authorisation_failure
         yield
       rescue Ably::Exceptions::TokenExpired => e
         if auth.token_renewable?
-          auth.authorise(nil, force: true)
+          auth.authorize
           yield
         else
           raise e
@@ -535,7 +539,7 @@ module Ably
       end
 
       def initialize_default_encoders
-        Ably::Models::MessageEncoders.register_default_encoders self
+        Ably::Models::MessageEncoders.register_default_encoders self, binary_protocol: protocol == :msgpack
       end
     end
   end

@@ -5,7 +5,10 @@ describe Ably::Realtime::Connection do
   let(:client) { instance_double('Ably::Realtime::Client', logger: double('logger').as_null_object) }
 
   subject do
-    Ably::Realtime::Connection.new(client, {})
+    Ably::Realtime::Connection.new(client, {}).tap do |connection|
+      connection.__incoming_protocol_msgbus__.unsubscribe
+      connection.__outgoing_protocol_msgbus__.unsubscribe
+    end
   end
 
   before do
@@ -34,10 +37,10 @@ describe Ably::Realtime::Connection do
   describe 'connection resume callbacks', api_private: true do
     let(:callbacks) { [] }
 
-    describe '#resumed' do
+    describe '#trigger_resumed' do
       it 'executes the callbacks' do
         subject.on_resume { callbacks << true }
-        subject.resumed
+        subject.trigger_resumed
         expect(callbacks.count).to eql(1)
       end
     end
@@ -45,7 +48,7 @@ describe Ably::Realtime::Connection do
     describe '#on_resume' do
       it 'registers a callback' do
         subject.on_resume { callbacks << true }
-        subject.resumed
+        subject.trigger_resumed
         expect(callbacks.count).to eql(1)
       end
     end
@@ -55,7 +58,7 @@ describe Ably::Realtime::Connection do
         subject.on_resume { callbacks << true }
         additional_proc = proc { raise 'This should not be called' }
         subject.off_resume(&additional_proc)
-        subject.resumed
+        subject.trigger_resumed
         expect(callbacks.count).to eql(1)
       end
     end

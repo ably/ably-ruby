@@ -107,4 +107,78 @@ describe Ably::Models::TokenRequest do
       end
     end
   end
+
+  context 'from_json (#TE6)' do
+    let(:timestamp) { Time.now }
+    let(:capabilities) { { '*' => ['publish'] } }
+    let(:ttl_seconds) { 60 * 1000 }
+
+    context 'with Ruby idiomatic Hash object' do
+      subject { Ably::Models::TokenRequest.from_json(token_request_object) }
+
+      let(:token_request_object) do
+        {
+          nonce: 'val1',
+          key_name: 'val2',
+          ttl: ttl_seconds * 1000,
+          timestamp: timestamp.to_i * 1000,
+          capability: capabilities,
+          client_id: 'val3'
+        }
+      end
+
+      it 'returns a valid TokenRequest object' do
+        expect(subject.nonce).to eql('val1')
+        expect(subject.key_name).to eql('val2')
+        expect(subject.timestamp.to_f).to be_within(1).of(timestamp.to_f)
+        expect(subject.ttl).to eql(ttl_seconds)
+        expect(subject.capability).to eql(capabilities)
+        expect(subject.client_id).to eql('val3')
+      end
+    end
+
+    context 'with JSON-like object' do
+      subject { Ably::Models::TokenRequest.from_json(token_request_object) }
+
+      let(:token_request_object) do
+        {
+          'keyName' => 'val2',
+          'ttl' => ttl_seconds * 1000,
+          'timestamp' => timestamp.to_i * 1000,
+          'clientId' => 'val3'
+        }
+      end
+
+      it 'returns a valid TokenRequest object' do
+        expect { subject.nonce }.to raise_error(Ably::Exceptions::InvalidTokenRequest)
+        expect(subject.key_name).to eql('val2')
+        expect(subject.timestamp.to_f).to be_within(1).of(timestamp.to_f)
+        expect(subject.ttl).to eql(ttl_seconds)
+        expect { subject.capability }.to raise_error(Ably::Exceptions::InvalidTokenRequest)
+        expect(subject.client_id).to eql('val3')
+      end
+    end
+
+    context 'with JSON string' do
+      subject { Ably::Models::TokenRequest.from_json(JSON.dump(token_request_object)) }
+
+      let(:token_request_object) do
+        {
+          'nonce' => 'val1',
+          'ttl' => ttl_seconds * 1000,
+          'capability' => JSON.dump(capabilities),
+          'clientId' => 'val3'
+        }
+      end
+
+      it 'returns a valid TokenRequest object' do
+        expect(subject.nonce).to eql('val1')
+        expect { subject.key_name }.to raise_error(Ably::Exceptions::InvalidTokenRequest)
+        expect { subject.timestamp }.to raise_error(Ably::Exceptions::InvalidTokenRequest)
+        expect(subject.ttl).to eql(ttl_seconds)
+        expect(subject.capability).to eql(capabilities)
+        expect(subject.client_id).to eql('val3')
+      end
+    end
+  end
 end

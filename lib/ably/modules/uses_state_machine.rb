@@ -67,15 +67,19 @@ module Ably::Modules
 
     def log_state_machine_state_change
       if state_machine.previous_state
-        logger.debug "#{self.class.name}: Transitioned from #{state_machine.previous_state} => #{state_machine.current_state}"
+        logger.debug { "#{self.class.name}: Transitioned from #{state_machine.previous_state} => #{state_machine.current_state}" }
       else
-        logger.debug "#{self.class.name}: Transitioned to #{state_machine.current_state}"
+        logger.debug { "#{self.class.name}: Transitioned to #{state_machine.current_state}" }
       end
     end
 
     def emit_object(new_state, emit_params)
       if self.class.emits_klass
-        self.class.emits_klass.new((emit_params || {}).merge(current: STATE(new_state), previous: STATE(state_machine.current_state)))
+        self.class.emits_klass.new((emit_params || {}).merge(
+          current: STATE(new_state),
+          previous: STATE(state_machine.current_state),
+          event: EVENT(new_state)
+        ))
       else
         emit_params
       end

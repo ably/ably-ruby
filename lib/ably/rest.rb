@@ -3,11 +3,11 @@ require 'ably/rest/channels'
 require 'ably/rest/client'
 require 'ably/rest/presence'
 
+require 'ably/models/message_encoders/base'
+
 Dir.glob(File.expand_path("models/*.rb", File.dirname(__FILE__))).each do |file|
   require file
 end
-
-require 'ably/models/message_encoders/base'
 
 module Ably
   # Rest provides the top-level class to be instanced for the Ably Rest library

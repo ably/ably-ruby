@@ -59,7 +59,8 @@ describe Ably::Modules::AsyncWrapper, :api_private do
           subject.operation do |result|
             raise 'Intentional exception'
           end
-          expect(subject.logger).to receive(:error).with(/Intentional exception/) do
+          expect(subject.logger).to receive(:error) do |*args, &block|
+            expect(args.concat([block ? block.call : nil]).join(',')).to match(/Intentional exception/)
             stop_reactor
           end
         end

@@ -383,4 +383,196 @@ describe Ably::Models::PresenceMessage do
       end
     end
   end
+
+
+  context '#from_encoded (#TP4)' do
+    context 'with no encoding' do
+      let(:message_data) do
+        { action: 2, data: 'data-string' }
+      end
+      let(:from_encoded) { subject.from_encoded(message_data) }
+
+      it 'returns a presence message object' do
+        expect(from_encoded).to be_a(Ably::Models::PresenceMessage)
+        expect(from_encoded.action).to eq(:enter)
+        expect(from_encoded.data).to eql('data-string')
+        expect(from_encoded.encoding).to be_nil
+      end
+
+      context 'with a block' do
+        it 'does not call the block' do
+          block_called = false
+          subject.from_encoded(message_data) do |exception, message|
+            block_called = true
+          end
+          expect(block_called).to be_falsey
+        end
+      end
+    end
+
+    context 'with an encoding' do
+      let(:hash_data)           { { 'key' => 'value', 'key2' => 123 } }
+      let(:message_data) do
+        { action: 'leave', data: JSON.dump(hash_data), encoding: 'json' }
+      end
+      let(:from_encoded) { subject.from_encoded(message_data) }
+
+      it 'returns a presence message object' do
+        expect(from_encoded).to be_a(Ably::Models::PresenceMessage)
+        expect(from_encoded.action).to eq(:leave)
+        expect(from_encoded.data).to eql(hash_data)
+        expect(from_encoded.encoding).to be_nil
+      end
+    end
+
+    context 'with a custom encoding' do
+      let(:hash_data)           { { 'key' => 'value', 'key2' => 123 } }
+      let(:message_data) do
+        { action: 1, data: JSON.dump(hash_data), encoding: 'foo/json' }
+      end
+      let(:from_encoded) { subject.from_encoded(message_data) }
+
+      it 'returns a presence message object with the residual incompatible transforms left in the encoding property' do
+        expect(from_encoded).to be_a(Ably::Models::PresenceMessage)
+        expect(from_encoded.action).to eq(1)
+        expect(from_encoded.data).to eql(hash_data)
+        expect(from_encoded.encoding).to eql('foo')
+      end
+    end
+
+    context 'with a Cipher encoding' do
+      let(:hash_data)           { { 'key' => 'value', 'key2' => 123 } }
+      let(:cipher_params)       { { key: Ably::Util::Crypto.generate_random_key(128), algorithm: 'aes', mode: 'cbc', key_length: 128 } }
+      let(:crypto)              { Ably::Util::Crypto.new(cipher_params) }
+      let(:payload)             { random_str }
+      let(:message_data) do
+        { action: 1, data: crypto.encrypt(payload), encoding: 'utf-8/cipher+aes-128-cbc' }
+      end
+      let(:channel_options)     { { cipher: cipher_params } }
+      let(:from_encoded)        { subject.from_encoded(message_data, channel_options) }
+
+      it 'returns a presence message object with the residual incompatible transforms left in the encoding property' do
+        expect(from_encoded).to be_a(Ably::Models::PresenceMessage)
+        expect(from_encoded.data).to eql(payload)
+        expect(from_encoded.encoding).to be_nil
+      end
+    end
+
+    context 'with invalid Cipher encoding' do
+      let(:hash_data)           { { 'key' => 'value', 'key2' => 123 } }
+      let(:cipher_params)       { { key: Ably::Util::Crypto.generate_random_key(128), algorithm: 'aes', mode: 'cbc', key_length: 128 } }
+      let(:unencryped_payload)  { random_str }
+      let(:message_data) do
+        { action: 1, data: unencryped_payload, encoding: 'utf-8/cipher+aes-128-cbc' }
+      end
+      let(:channel_options)     { { cipher: cipher_params } }
+
+      context 'without a block' do
+        it 'raises an exception' do
+          expect { subject.from_encoded(message_data, channel_options) }.to raise_exception(Ably::Exceptions::CipherError)
+        end
+      end
+
+      context 'with a block' do
+        it 'calls the block with the exception' do
+          block_called = false
+          subject.from_encoded(message_data, channel_options) do |exception, message|
+            expect(exception).to be_a(Ably::Exceptions::CipherError)
+            block_called = true
+          end
+          expect(block_called).to be_truthy
+        end
+      end
+    end
+  end
+
+  context '#from_encoded_array (#TP4)' do
+    context 'with no encoding' do
+      let(:message_data) do
+        [{ action: 1, data: 'data-string' }, { action: 2, data: 'data-string' }]
+      end
+      let(:from_encoded) { subject.from_encoded_array(message_data) }
+
+      it 'returns an Array of presence message objects' do
+        first = from_encoded.first
+        expect(first).to be_a(Ably::Models::PresenceMessage)
+        expect(first.action).to eq(1)
+        expect(first.data).to eql('data-string')
+        expect(first.encoding).to be_nil
+        last = from_encoded.last
+        expect(last.action).to eq(:enter)
+      end
+    end
+  end
+
+  context '#shallow_clone' do
+    context 'with inherited attributes from ProtocolMessage' do
+      let(:protocol_message) {
+        Ably::Models::ProtocolMessage.new('id' => 'fooId', 'connectionId' => protocol_connection_id, 'action' =>  1, 'timestamp' => protocol_message_timestamp)
+      }
+      let(:protocol_connection_id) { random_str }
+      let(:model) { subject.new({ 'action' => 2 }, protocol_message: protocol_message) }
+
+      it 'creates a duplicate of the message without any ProtocolMessage dependency' do
+        clone = model.shallow_clone
+        expect(clone.id).to match(/fooId/)
+        expect(clone.connection_id).to eql(protocol_connection_id)
+        expect(as_since_epoch(clone.timestamp)).to eq(protocol_message_timestamp)
+        expect(clone.action).to eq(2)
+      end
+    end
+
+    context 'with embedded attributes for all fields' do
+      let(:message_timestamp) { as_since_epoch(Time.now) + 100 }
+      let(:connection_id) { random_str }
+      let(:model) { subject.new({ 'action' => 3, 'id' => 'fooId', 'connectionId' => connection_id, 'timestamp' => message_timestamp }) }
+
+      it 'creates a duplicate of the message without any ProtocolMessage dependency' do
+        clone = model.shallow_clone
+        expect(clone.id).to eql('fooId')
+        expect(clone.connection_id).to eql(connection_id)
+        expect(as_since_epoch(clone.timestamp)).to eq(message_timestamp)
+        expect(clone.action).to eq(3)
+      end
+    end
+
+    context 'with new attributes passed in to the method' do
+      let(:protocol_message) {
+        Ably::Models::ProtocolMessage.new('id' => 'fooId', 'connectionId' => protocol_connection_id, 'action' =>  1, 'timestamp' => protocol_message_timestamp)
+      }
+      let(:protocol_connection_id) { random_str }
+      let(:model) { subject.new({ 'action' => 2 }, protocol_message: protocol_message) }
+
+      it 'creates a duplicate of the message without any ProtocolMessage dependency' do
+        clone = model.shallow_clone(id: 'newId', action: 1, timestamp: protocol_message_timestamp + 1000)
+        expect(clone.id).to match(/newId/)
+        expect(clone.connection_id).to eql(protocol_connection_id)
+        expect(as_since_epoch(clone.timestamp)).to eq(protocol_message_timestamp + 1000)
+        expect(clone.action).to eq(1)
+      end
+
+      context 'with an invalid ProtocolMessage (missing an ID)' do
+        let(:protocol_message) {
+          Ably::Models::ProtocolMessage.new('connectionId' => protocol_connection_id, 'action' =>  1, 'timestamp' => protocol_message_timestamp)
+        }
+        it 'allows an ID to be passed in to the shallow clone that takes precedence' do
+          clone = model.shallow_clone(id: 'newId', action: 1, timestamp: protocol_message_timestamp + 1000)
+          expect(clone.id).to match(/newId/)
+        end
+      end
+
+      context 'with mixing of cases' do
+        it 'resolves case issues and can use camelCase or snake_case' do
+          clone = model.shallow_clone(connectionId: 'camelCaseSym')
+          expect(clone.connection_id).to match(/camelCaseSym/)
+
+          clone = model.shallow_clone('connectionId' => 'camelCaseStr')
+          expect(clone.connection_id).to match(/camelCaseStr/)
+
+          clone = model.shallow_clone(connection_id: 'snake_case_sym')
+          expect(clone.connection_id).to match(/snake_case_sym/)
+        end
+      end
+    end
+  end
 end

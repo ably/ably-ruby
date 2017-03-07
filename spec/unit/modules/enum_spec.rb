@@ -41,6 +41,41 @@ describe Ably::Modules::Enum, :api_private do
     end
   end
 
+  context 'using include? to compare Enum values' do
+    subject { enum }
+
+    it 'allows same type comparison' do
+      expect([subject.ValueZero].include?(subject.ValueZero)).to eql(true)
+    end
+
+    it 'allows different type comparison 1' do
+      expect([subject.ValueZero].include?(:value_zero)).to eql(true)
+    end
+
+    it 'allows different type comparison 2' do
+      skip 'Unless we monkeypath Symbols, the == operator is never invoked'
+      expect([:value_zero].include?(subject.ValueZero)).to eql(true)
+    end
+
+    context '#match_any? replacement for include?' do
+      it 'matches any value in the arguments provided' do
+        expect(subject.ValueZero.match_any?(:value_foo, :value_zero)).to eql(true)
+      end
+
+      it 'returns false if there are no matches in any value in the arguments provided' do
+        expect(subject.ValueZero.match_any?(:value_x, :value_y)).to eql(false)
+      end
+    end
+  end
+
+  context 'class method #to_sym_arr' do
+    subject { enum }
+
+    it 'returns all keys as symbols' do
+      expect(enum.to_sym_arr).to contain_exactly(:value_zero, :value_1, :value_snake_case_2, :sentence_case)
+    end
+  end
+
   context 'defined Enum from Array class' do
     subject { enum }
 
@@ -209,6 +244,40 @@ describe Ably::Modules::Enum, :api_private do
     it 'provides a MixedCase const for each provided value' do
       expect(subject.One).to be_a(subject)
       expect(subject.SecondEnum).to be_a(subject)
+    end
+  end
+
+  context 'two similar Enums with shared symbol values' do
+    class ExampleEnumOne
+      extend Ably::Modules::Enum
+      ENUMEXAMPLE = ruby_enum('ENUMEXAMPLE', :pear, :orange, :litchi, :apple)
+    end
+
+    class ExampleEnumTwo
+      extend Ably::Modules::Enum
+      ENUMEXAMPLE = ruby_enum('ENUMEXAMPLE', :pear, :grape, :apple)
+    end
+
+    let(:enum_one) { ExampleEnumOne::ENUMEXAMPLE }
+    let(:enum_two) { ExampleEnumTwo::ENUMEXAMPLE }
+
+    it 'provides compatability for the equivalent symbol values' do
+      expect(enum_one.Pear).to eq(enum_two.Pear)
+      expect(enum_two.Pear).to eq(enum_one.Pear)
+      expect(enum_one.Apple).to eq(enum_two.Apple)
+      expect(enum_two.Apple).to eq(enum_one.Apple)
+    end
+
+    it 'does not consider different symbol values the same' do
+      expect(enum_one.Orange).to_not eq(enum_two.Grape)
+    end
+
+    it 'matches symbols when used with a converter method' do
+      expect(ExampleEnumOne::ENUMEXAMPLE(enum_two.Pear)).to eq(:pear)
+    end
+
+    it 'fails to match when using an incompatible method with a converter method' do
+      expect { ExampleEnumOne::ENUMEXAMPLE(enum_two.Grape) }.to raise_error KeyError
     end
   end
 

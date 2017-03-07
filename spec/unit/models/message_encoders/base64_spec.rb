@@ -57,8 +57,9 @@ describe Ably::Models::MessageEncoders::Base64 do
 
   context '#encode' do
     context 'over binary transport' do
+      subject { Ably::Models::MessageEncoders::Base64.new(client, binary_protocol: true) }
+
       before do
-        allow(client).to receive(:protocol_binary?).and_return(true)
         subject.encode message, {}
       end
 

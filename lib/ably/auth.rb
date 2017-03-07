@@ -30,10 +30,10 @@ module Ably
 
     # Default capability Hash object and TTL in seconds for issued tokens
     TOKEN_DEFAULTS = {
-      capability:         { '*' => ['*'] },
-      ttl:                60 * 60, # 1 hour in seconds
       renew_token_buffer: 10 # buffer to allow a token to be reissued before the token is considered expired (Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER)
     }.freeze
+
+    API_KEY_REGEX = /^[\w-]{2,}\.[\w-]{2,}:[\w-]{2,}$/
 
     attr_reader :options, :token_params, :current_token_details
     alias_method :auth_options, :options
@@ -65,8 +65,6 @@ module Ably
       @token_params        = token_params.dup
       @token_option        = options[:token] || options[:token_details]
 
-      @options.delete :force # Forcing token auth for every request is not a valid default
-
       if options[:key] && (options[:key_secret] || options[:key_name])
         raise ArgumentError, 'key and key_name or key_secret are mutually exclusive. Provider either a key or key_name & key_secret'
       end
@@ -79,7 +77,7 @@ module Ably
       end
 
       if options[:client_id] == '*'
-        raise ArgumentError, 'A client cannot be configured with a wildcard client_id'
+        raise ArgumentError, 'A client cannot be configured with a wildcard client_id, only a token can have a wildcard client_id privilege'
       end
 
       if has_client_id? && !token_creatable_externally? && !token_option
@@ -88,12 +86,16 @@ module Ably
       end
 
       # If a token details object or token string is provided in the initializer
-      # then the client can be authorised immediately using this token
+      # then the client can be authorized immediately using this token
       if token_option
         token_details = convert_to_token_details(token_option)
         if token_details
-          token_details = authorise_with_token(token_details)
-          logger.debug "Auth: new token passed in to the initializer: #{token_details}"
+          begin
+            token_details = authorize_with_token(token_details)
+            logger.debug { "Auth: new token passed in to the initializer: #{token_details}" }
+          rescue StandardError => e
+            logger.error { "Auth: Implicit authorization using the provided token failed: #{e}" }
+          end
         end
       end
 
@@ -107,7 +109,6 @@ module Ably
     #
     # @param [Hash, nil] token_params the token params used for future token requests. When nil, previously configured token params are used
     # @param [Hash, nil] auth_options the authentication options used for future token requests. When nil, previously configure authentication options are used
-    # @option auth_options [Boolean]   :force   obtains a new token even if the current token is valid. If the provided +auth_options+ Hash contains only this +:force+ attribute, the existing configured authentication options are not overwriten
     # @option (see #request_token)
     #
     # @return (see #create_token_request)
@@ -115,23 +116,29 @@ module Ably
     # @example
     #    # will issue a simple token request using basic auth
     #    client = Ably::Rest::Client.new(key: 'key.id:secret')
-    #    token_details = client.auth.authorise
+    #    token_details = client.auth.authorize
     #
-    #    # will use token request from block to authorise if not already authorised
-    #    token_details = client.auth.authorise {}, auth_callback: Proc.new do
+    #    # will use token request from block to authorize if not already authorized
+    #    token_details = client.auth.authorize {}, auth_callback: Proc.new do
     #      # create token_request object
     #      token_request
     #    end
     #
-    def authorise(token_params = nil, auth_options = nil)
-      if auth_options == { force: true }
-        auth_options = options.merge(force: true)
-      elsif auth_options.nil?
-        auth_options = options
+    def authorize(token_params = nil, auth_options = nil)
+      if auth_options.nil?
+        auth_options = options # Use default options
+
+        if options.has_key?(:query_time)
+          @options = options.dup
+          # Query the server time only happens once
+          # the options remain in auth_options though so they are passed to request_token
+          @options.delete(:query_time)
+          @options.freeze
+        end
       else
         ensure_valid_auth_attributes auth_options
 
-        auth_options = auth_options.clone
+        auth_options = auth_options.dup
 
         if auth_options[:token_params]
           token_params = auth_options.delete(:token_params).merge(token_params || {})
@@ -144,34 +151,37 @@ module Ably
           store_and_delete_basic_auth_key_from_options! auth_options
         end
 
-        @options = auth_options.clone
+        @options = auth_options.dup
 
-        # Force reauth and query the server time only happens once
-        # the otpions remain in auth_options though so they are passed to request_token
+        # Query the server time only happens once
+        # the options remain in auth_options though so they are passed to request_token
         @options.delete(:query_time)
-        @options.delete(:force)
 
         @options.freeze
       end
 
+      # Unless provided, defaults are used
       unless token_params.nil?
-        @token_params = token_params
+        @token_params = token_params.dup
+        # Timestamp is only valid for this request
+        @token_params.delete(:timestamp)
         @token_params.freeze
       end
 
-      if current_token_details && !auth_options[:force]
-        return current_token_details unless current_token_details.expired?
-      end
+      authorize_with_token(request_token(token_params || @token_params, auth_options)).tap do |new_token_details|
+        logger.debug { "Auth: new token following authorisation: #{new_token_details}" }
 
-      authorise_with_token(request_token(@token_params, auth_options)).tap do |new_token_details|
-        logger.debug "Auth: new token following authorisation: #{new_token_details}"
-
-        # If authorise was forced allow a block to be called so that the realtime library
-        # can force upgrade the authorisation
-        if auth_options[:force] && block_given?
+        # If authorize the realtime library required auth, then yield the token in a block
+        if block_given?
           yield new_token_details
         end
       end
+    end
+
+    # @deprecated Use {#authorize} instead
+    def authorise(*args, &block)
+      logger.warn { "Auth#authorise is deprecated and will be removed in 1.0. Please use Auth#authorize instead" }
+      authorize(*args, &block)
     end
 
     # Request a {Ably::Models::TokenDetails} which can be used to make authenticated token based requests
@@ -216,9 +226,21 @@ module Ably
       auth_options = self.options.merge(auth_options)
 
       token_request = if auth_callback = auth_options.delete(:auth_callback)
-        auth_callback.call(token_params)
+        begin
+          Timeout::timeout(client.auth_request_timeout) do
+            auth_callback.call(token_params)
+          end
+        rescue StandardError => err
+          raise Ably::Exceptions::AuthenticationFailed.new("auth_callback failed: #{err.message}", nil, nil, err, fallback_status: 500, fallback_code: 80019)
+        end
       elsif auth_url = auth_options.delete(:auth_url)
-        token_request_from_auth_url(auth_url, auth_options, token_params)
+        begin
+          Timeout::timeout(client.auth_request_timeout) do
+            token_request_from_auth_url(auth_url, auth_options, token_params)
+          end
+        rescue StandardError => err
+          raise Ably::Exceptions::AuthenticationFailed.new("auth_url failed: #{err.message}", nil, nil, err, fallback_status: 500, fallback_code: 80019)
+        end
       else
         create_token_request(token_params, auth_options)
       end
@@ -263,7 +285,7 @@ module Ably
     def create_token_request(token_params = {}, auth_options = {})
       ensure_valid_auth_attributes auth_options
 
-      auth_options = auth_options.clone
+      auth_options = auth_options.dup
       token_params = (auth_options[:token_params] || {}).merge(token_params)
 
       split_api_key_into_key_and_secret! auth_options if auth_options[:key]
@@ -276,20 +298,26 @@ module Ably
       timestamp = token_params.delete(:timestamp) || current_time
       timestamp = Time.at(timestamp) if timestamp.kind_of?(Integer)
 
-      ttl = [
-        (token_params[:ttl] || TOKEN_DEFAULTS.fetch(:ttl)),
-        Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER + TOKEN_DEFAULTS.fetch(:renew_token_buffer) # never issue a token that will be immediately considered expired due to the buffer
-      ].max
+
 
       token_request = {
         keyName:    request_key_name,
-        clientId:   token_params[:client_id] || auth_options[:client_id] || client_id,
-        ttl:        (ttl * 1000).to_i,
         timestamp:  (timestamp.to_f * 1000).round,
-        capability: token_params[:capability] || TOKEN_DEFAULTS.fetch(:capability),
         nonce:      token_params[:nonce] || SecureRandom.hex.force_encoding('UTF-8')
       }
 
+      token_client_id = token_params[:client_id] || auth_options[:client_id] || client_id
+      token_request[:clientId] = token_client_id if token_client_id
+
+      if token_params[:ttl]
+        token_ttl = [
+          token_params[:ttl],
+          Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER + TOKEN_DEFAULTS.fetch(:renew_token_buffer) # never issue a token that will be immediately considered expired due to the buffer
+        ].max
+        token_request[:ttl] = (token_ttl * 1000).to_i
+      end
+
+      token_request[:capability] = token_params[:capability] if token_params[:capability]
       if token_request[:capability].is_a?(Hash)
         lexicographic_ordered_capabilities = Hash[
           token_request[:capability].sort_by { |key, value| key }.map do |key, value|
@@ -347,7 +375,7 @@ module Ably
     end
 
     # Auth header string used in HTTP requests to Ably
-    # Will reauthorise implicitly if required and capable
+    # Will reauthorize implicitly if required and capable
     #
     # @return [String] HTTP authentication value used in HTTP_AUTHORIZATION header
     def auth_header
@@ -359,7 +387,7 @@ module Ably
     end
 
     # Auth params used in URI endpoint for Realtime connections
-    # Will reauthorise implicitly if required and capable
+    # Will reauthorize implicitly if required and capable
     #
     # @return [Hash] Auth params for a new Realtime connection
     def auth_params
@@ -427,7 +455,7 @@ module Ably
 
       # If client_id is defined and not a wildcard, prevent it changing, this is not supported
       if client_id && client_id != '*' &&  new_client_id != client_id
-        raise Ably::Exceptions::IncompatibleClientId.new("Client ID is immutable once configured for a client. Client ID cannot be changed to '#{new_client_id}'", 400, 40012)
+        raise Ably::Exceptions::IncompatibleClientId.new("Client ID is immutable once configured for a client. Client ID cannot be changed to '#{new_client_id}'")
       end
       @client_id_validated = true
       @client_id = new_client_id
@@ -447,6 +475,14 @@ module Ably
 
     def token_option
       @token_option
+    end
+
+    def authorize_when_necessary
+      if current_token_details && !current_token_details.expired?
+        return current_token_details
+      else
+        authorize
+      end
     end
 
     # Returns the current device clock time unless the
@@ -530,16 +566,17 @@ module Ably
       @key_secret = options.delete(:key_secret)
     end
 
-    # Returns the current token if it exists or authorises and retrieves a token
+    # Returns the current token if it exists or authorizes and retrieves a token
     def token_auth_string
       if !current_token_details && token_option
+        logger.debug { "Auth: Token auth string missing, authorizing implicitly now" }
         # A TokenRequest was configured in the ClientOptions +:token field+ and no current token exists
         # Note: If a Token or TokenDetails is provided in the initializer, the token is stored in +current_token_details+
-        authorise_with_token send_token_request(token_option)
+        authorize_with_token send_token_request(token_option)
         current_token_details.token
       else
-        # Authorise will use the current token if one exists and is not expired, otherwise a new token will be issued
-        authorise.token
+        # Authorize will use the current token if one exists and is not expired, otherwise a new token will be issued
+        authorize_when_necessary.token
       end
     end
 
@@ -587,7 +624,7 @@ module Ably
       )
     end
 
-    # Retrieve a token request from a specified URL, expects a JSON response
+    # Retrieve a token request from a specified URL, expects a JSON or text response
     #
     # @return [Hash]
     def token_request_from_auth_url(auth_url, auth_options, token_params)
@@ -615,10 +652,10 @@ module Ably
     end
 
     # Use the provided token to authenticate immediately and store the token details in +current_token_details+
-    def authorise_with_token(new_token_details)
+    def authorize_with_token(new_token_details)
       if new_token_details && !new_token_details.from_token_string?
         if !token_client_id_allowed?(new_token_details.client_id)
-          raise Ably::Exceptions::IncompatibleClientId.new("Client ID '#{new_token_details.client_id}' in the token is incompatible with the current client ID '#{client_id}'", 400, 40012)
+          raise Ably::Exceptions::IncompatibleClientId.new("Client ID '#{new_token_details.client_id}' in the token is incompatible with the current client ID '#{client_id}'")
         end
         configure_client_id new_token_details.client_id
       end
@@ -645,7 +682,7 @@ module Ably
 
       response = client.post("/keys/#{token_request.key_name}/requestToken",
                              token_request.attributes, send_auth_header: false,
-                             disable_automatic_reauthorise: true)
+                             disable_automatic_reauthorize: true)
 
       Ably::Models::TokenDetails.new(response.body)
     end

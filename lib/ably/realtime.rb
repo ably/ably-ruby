@@ -11,6 +11,8 @@ require 'ably/realtime/client'
 require 'ably/realtime/connection'
 require 'ably/realtime/presence'
 
+require 'ably/models/message_encoders/base'
+
 Dir.glob(File.expand_path("models/*.rb", File.dirname(__FILE__))).each do |file|
   require file
 end

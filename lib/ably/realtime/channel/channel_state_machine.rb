@@ -20,11 +20,12 @@ module Ably::Realtime
         state state_enum.to_sym, initial: index == 0
       end
 
-      transition :from => :initialized,  :to => [:attaching]
-      transition :from => :attaching,    :to => [:attached, :detaching, :failed]
-      transition :from => :attached,     :to => [:detaching, :detached, :failed]
-      transition :from => :detaching,    :to => [:detached, :attaching, :failed]
+      transition :from => :initialized,  :to => [:attaching, :failed]
+      transition :from => :attaching,    :to => [:attached, :detaching, :failed, :suspended]
+      transition :from => :attached,     :to => [:attaching, :detaching, :detached, :failed, :suspended]
+      transition :from => :detaching,    :to => [:detached, :attaching, :attached, :failed, :suspended]
       transition :from => :detached,     :to => [:attaching, :attached, :failed]
+      transition :from => :suspended,    :to => [:attaching, :detached, :failed]
       transition :from => :failed,       :to => [:attaching]
 
       after_transition do |channel, transition|
@@ -41,31 +42,29 @@ module Ably::Realtime
 
       after_transition(to: [:detaching]) do |channel, current_transition|
         err = error_from_state_change(current_transition)
-        channel.manager.detach err
+        channel.manager.detach err, current_transition.metadata.previous
       end
 
-      after_transition(to: [:detached]) do |channel, current_transition|
+      after_transition(to: [:detached, :failed, :suspended]) do |channel, current_transition|
         err = error_from_state_change(current_transition)
-        channel.manager.fail_messages_awaiting_ack err
-        channel.manager.emit_error err if err
+        channel.manager.fail_queued_messages err
+        channel.manager.log_channel_error err if err
       end
 
-      after_transition(to: [:failed]) do |channel, current_transition|
-        err = error_from_state_change(current_transition)
-        channel.manager.fail_messages_awaiting_ack err
-        channel.manager.emit_error err if err
+      after_transition(to: [:suspended]) do |channel, current_transition|
+        channel.manager.start_attach_from_suspended_timer
       end
 
       # Transitions responsible for updating channel#error_reason
-      before_transition(to: [:failed]) do |channel, current_transition|
+      before_transition(to: [:failed, :suspended]) do |channel, current_transition|
         err = error_from_state_change(current_transition)
-        channel.set_failed_channel_error_reason err if err
+        channel.set_channel_error_reason err if err
       end
 
       before_transition(to: [:attached, :detached]) do |channel, current_transition|
         err = error_from_state_change(current_transition)
         if err
-          channel.set_failed_channel_error_reason err
+          channel.set_channel_error_reason err
         else
           # Attached & Detached are "healthy" final states so reset the error reason
           channel.clear_error_reason
