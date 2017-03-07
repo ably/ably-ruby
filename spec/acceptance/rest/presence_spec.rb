@@ -69,14 +69,12 @@ describe Ably::Rest::Presence do
             }
           end
           let(:endpoint) do
-            client.endpoint.tap do |client_end_point|
-              client_end_point.user = key_name
-              client_end_point.password = key_secret
-            end
+            client.endpoint
           end
           let!(:get_stub) {
             query_params = query_options.map { |k, v| "#{k}=#{v}" }.join('&')
             stub_request(:get, "#{endpoint}/channels/#{Addressable::URI.encode(channel_name)}/presence?#{query_params}").
+              with(basic_auth: [key_name, key_secret]).
               to_return(:body => '{}', :headers => { 'Content-Type' => 'application/json' })
           }
           let(:channel_name) { random_str }
@@ -182,10 +180,7 @@ describe Ably::Rest::Presence do
         let(:user) { 'appid.keyuid' }
         let(:secret) { random_str(8) }
         let(:endpoint) do
-          client.endpoint.tap do |client_end_point|
-            client_end_point.user = user
-            client_end_point.password = secret
-          end
+          client.endpoint
         end
         let(:client) do
           Ably::Rest::Client.new(key: "#{user}:#{secret}")
@@ -201,6 +196,7 @@ describe Ably::Rest::Presence do
           let!(:history_stub) {
             query_params = history_options.map { |k, v| "#{k}=#{v}" }.join('&')
             stub_request(:get, "#{endpoint}/channels/#{Addressable::URI.encode(channel_name)}/presence/history?#{query_params}").
+              with(basic_auth: [user, secret]).
               to_return(:body => '{}', :headers => { 'Content-Type' => 'application/json' })
           }
 
@@ -241,6 +237,7 @@ describe Ably::Rest::Presence do
               let!(:history_stub) {
                 query_params = history_options.map { |k, v| "#{k}=#{v}" }.join('&')
                 stub_request(:get, "#{endpoint}/channels/#{Addressable::URI.encode(channel_name)}/presence/history?#{query_params}").
+                  with(basic_auth: [user, secret]).
                   to_return(:body => '{}', :headers => { 'Content-Type' => 'application/json' })
               }
 
@@ -310,10 +307,7 @@ describe Ably::Rest::Presence do
       let(:user) { 'appid.keyuid' }
       let(:secret) { random_str(8) }
       let(:endpoint) do
-        client.endpoint.tap do |client_end_point|
-          client_end_point.user = user
-          client_end_point.password = secret
-        end
+        client.endpoint
       end
       let(:client) do
         Ably::Rest::Client.new(client_options.merge(key: "#{user}:#{secret}"))
@@ -348,6 +342,7 @@ describe Ably::Rest::Presence do
         context '#get' do
           let!(:get_stub)   {
             stub_request(:get, "#{endpoint}/channels/#{Addressable::URI.encode(channel_name)}/presence?limit=100").
+              with(basic_auth: [user, secret]).
               to_return(:body => serialized_encoded_message, :headers => { 'Content-Type' => content_type })
           }
 
@@ -365,6 +360,7 @@ describe Ably::Rest::Presence do
         context '#history' do
           let!(:history_stub)   {
             stub_request(:get, "#{endpoint}/channels/#{Addressable::URI.encode(channel_name)}/presence/history?direction=backwards&limit=100").
+              with(basic_auth: [user, secret]).
               to_return(:body => serialized_encoded_message, :headers => { 'Content-Type' => content_type })
           }
 
@@ -395,6 +391,7 @@ describe Ably::Rest::Presence do
           let(:client_options) { default_options.merge(log_level: :fatal) }
           let!(:get_stub)   {
             stub_request(:get, "#{endpoint}/channels/#{Addressable::URI.encode(channel_name)}/presence?limit=100").
+              with(basic_auth: [user, secret]).
               to_return(:body => serialized_encoded_message_with_invalid_encoding, :headers => { 'Content-Type' => content_type })
           }
           let(:presence_message) { presence.get.items.first }
@@ -419,6 +416,7 @@ describe Ably::Rest::Presence do
           let(:client_options) { default_options.merge(log_level: :fatal) }
           let!(:history_stub)   {
             stub_request(:get, "#{endpoint}/channels/#{Addressable::URI.encode(channel_name)}/presence/history?direction=backwards&limit=100").
+              with(basic_auth: [user, secret]).
               to_return(:body => serialized_encoded_message_with_invalid_encoding, :headers => { 'Content-Type' => content_type })
           }
           let(:presence_message) { presence.history.items.first }

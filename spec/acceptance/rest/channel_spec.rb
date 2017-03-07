@@ -360,10 +360,7 @@ describe Ably::Rest::Channel do
       let(:channel_name) { "persisted:#{random_str(4)}" }
       let(:channel) { client.channel(channel_name) }
       let(:endpoint) do
-        client.endpoint.tap do |client_end_point|
-          client_end_point.user = key_name
-          client_end_point.password = key_secret
-        end
+        client.endpoint
       end
       let(:default_history_options) do
           {
@@ -378,6 +375,7 @@ describe Ably::Rest::Channel do
             query_params = default_history_options
             .merge(option => milliseconds).map { |k, v| "#{k}=#{v}" }.join('&')
             stub_request(:get, "#{endpoint}/channels/#{Addressable::URI.encode(channel_name)}/messages?#{query_params}").
+              with(basic_auth: [key_name, key_secret]).
               to_return(:body => '{}', :headers => { 'Content-Type' => 'application/json' })
           }
 

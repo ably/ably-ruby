@@ -111,7 +111,8 @@ describe Ably::Rest::Client do
           let(:client_options)      { default_options.merge(key: api_key) }
 
           let!(:get_message_history_stub) do
-            stub_request(:get, "https://#{api_key}@#{environment}-#{Ably::Rest::Client::DOMAIN}/channels/#{channel_name}/messages?#{history_querystring}").
+            stub_request(:get, "https://#{environment}-#{Ably::Rest::Client::DOMAIN}/channels/#{channel_name}/messages?#{history_querystring}").
+              with(basic_auth: [key_name, key_secret]).
               to_return(body: [], headers: { 'Content-Type' => 'application/json' })
           end
 
@@ -284,7 +285,9 @@ describe Ably::Rest::Client do
       context 'when environment is NOT production' do
         let(:client_options) { default_options.merge(environment: 'sandbox', key: api_key) }
         let!(:default_host_request_stub) do
-          stub_request(:post, "https://#{api_key}@#{environment}-#{Ably::Rest::Client::DOMAIN}#{path}").to_return do
+          stub_request(:post, "https://#{environment}-#{Ably::Rest::Client::DOMAIN}#{path}").
+            with(basic_auth: [key_name, key_secret]).
+            to_return do
             raise Faraday::TimeoutError.new('timeout error message')
           end
         end
@@ -313,16 +316,16 @@ describe Ably::Rest::Client do
         end
 
         let!(:first_fallback_request_stub) do
-          stub_request(:post, "https://#{api_key}@#{custom_hosts[0]}#{path}").to_return(&fallback_block)
+          stub_request(:post, "https://#{custom_hosts[0]}#{path}").with(basic_auth: [key_name, key_secret]).to_return(&fallback_block)
         end
 
         let!(:second_fallback_request_stub) do
-          stub_request(:post, "https://#{api_key}@#{custom_hosts[1]}#{path}").to_return(&fallback_block)
+          stub_request(:post, "https://#{custom_hosts[1]}#{path}").with(basic_auth: [key_name, key_secret]).to_return(&fallback_block)
         end
 
         context 'and connection times out' do
           let!(:default_host_request_stub) do
-            stub_request(:post, "https://#{api_key}@#{Ably::Rest::Client::DOMAIN}#{path}").to_return do
+            stub_request(:post, "https://#{Ably::Rest::Client::DOMAIN}#{path}").with(basic_auth: [key_name, key_secret]).to_return do
               raise Faraday::TimeoutError.new('timeout error message')
             end
           end
@@ -336,7 +339,7 @@ describe Ably::Rest::Client do
 
           context "and the total request time exeeds #{http_defaults.fetch(:max_retry_duration)} seconds" do
             let!(:default_host_request_stub) do
-              stub_request(:post, "https://#{api_key}@#{Ably::Rest::Client::DOMAIN}#{path}").to_return do
+              stub_request(:post, "https://#{Ably::Rest::Client::DOMAIN}#{path}").with(basic_auth: [key_name, key_secret]).to_return do
                 sleep max_retry_duration * 1.5
                 raise Faraday::TimeoutError.new('timeout error message')
               end
@@ -353,7 +356,7 @@ describe Ably::Rest::Client do
 
         context 'and connection fails' do
           let!(:default_host_request_stub) do
-            stub_request(:post, "https://#{api_key}@#{Ably::Rest::Client::DOMAIN}#{path}").to_return do
+            stub_request(:post, "https://#{Ably::Rest::Client::DOMAIN}#{path}").with(basic_auth: [key_name, key_secret]).to_return do
               raise Faraday::ConnectionFailed.new('connection failure error message')
             end
           end
@@ -369,7 +372,7 @@ describe Ably::Rest::Client do
         context 'and basic authentication fails' do
           let(:status) { 401 }
           let!(:default_host_request_stub) do
-            stub_request(:post, "https://#{api_key}@#{Ably::Rest::Client::DOMAIN}#{path}").to_return(
+            stub_request(:post, "https://#{Ably::Rest::Client::DOMAIN}#{path}").with(basic_auth: [key_name, key_secret]).to_return(
               headers: { 'Content-Type' => 'application/json' },
               status: status,
               body: {
@@ -401,7 +404,7 @@ describe Ably::Rest::Client do
             end
           end
           let!(:default_host_request_stub) do
-            stub_request(:post, "https://#{api_key}@#{Ably::Rest::Client::DOMAIN}#{path}").to_return(&fallback_block)
+            stub_request(:post, "https://#{Ably::Rest::Client::DOMAIN}#{path}").with(basic_auth: [key_name, key_secret]).to_return(&fallback_block)
           end
 
           it 'attempts the fallback hosts as this is an authentication failure' do
@@ -437,20 +440,20 @@ describe Ably::Rest::Client do
           end
         end
         let!(:default_host_request_stub) do
-          stub_request(:post, "https://#{api_key}@#{Ably::Rest::Client::DOMAIN}#{path}").to_return(&fallback_block)
+          stub_request(:post, "https://#{Ably::Rest::Client::DOMAIN}#{path}").with(basic_auth: [key_name, key_secret]).to_return(&fallback_block)
         end
 
         context 'with custom fallback hosts provided' do
           let!(:first_fallback_request_stub) do
-            stub_request(:post, "https://#{api_key}@#{custom_hosts[0]}#{path}").to_return(&fallback_block)
+            stub_request(:post, "https://#{custom_hosts[0]}#{path}").with(basic_auth: [key_name, key_secret]).to_return(&fallback_block)
           end
 
           let!(:second_fallback_request_stub) do
-            stub_request(:post, "https://#{api_key}@#{custom_hosts[1]}#{path}").to_return(&fallback_block)
+            stub_request(:post, "https://#{custom_hosts[1]}#{path}").with(basic_auth: [key_name, key_secret]).to_return(&fallback_block)
           end
 
           let(:client_options) {
-            production_options.merge(fallback_hosts: custom_hosts)
+            production_options.merge(fallback_hosts: custom_hosts, log_level: :error)
           }
 
           it 'attempts the fallback hosts as this is an authentication failure (#RSC15b, #TO3k6)' do
@@ -516,7 +519,8 @@ describe Ably::Rest::Client do
                   port: port,
                   tls: false,
                   http_request_timeout: request_timeout,
-                  max_retry_duration: request_timeout * 3
+                  max_retry_duration: request_timeout * 3,
+                  log_level: :error
                 )
               end
               let(:fail_fallback_request_count) { 1 }
@@ -619,16 +623,16 @@ describe Ably::Rest::Client do
           end
         end
         let!(:default_host_request_stub) do
-          stub_request(:post, "https://#{api_key}@#{env}-#{Ably::Rest::Client::DOMAIN}#{path}").to_return(&fallback_block)
+          stub_request(:post, "https://#{env}-#{Ably::Rest::Client::DOMAIN}#{path}").with(basic_auth: [key_name, key_secret]).to_return(&fallback_block)
         end
 
         context 'with custom fallback hosts provided (#RSC15b, #TO3k6)' do
           let!(:first_fallback_request_stub) do
-            stub_request(:post, "https://#{api_key}@#{custom_hosts[0]}#{path}").to_return(&fallback_block)
+            stub_request(:post, "https://#{custom_hosts[0]}#{path}").with(basic_auth: [key_name, key_secret]).to_return(&fallback_block)
           end
 
           let!(:second_fallback_request_stub) do
-            stub_request(:post, "https://#{api_key}@#{custom_hosts[1]}#{path}").to_return(&fallback_block)
+            stub_request(:post, "https://#{custom_hosts[1]}#{path}").with(basic_auth: [key_name, key_secret]).to_return(&fallback_block)
           end
 
           let(:client_options) {
@@ -666,11 +670,11 @@ describe Ably::Rest::Client do
           }
 
           let!(:first_fallback_request_stub) do
-            stub_request(:post, "https://#{api_key}@#{Ably::FALLBACK_HOSTS[0]}#{path}").to_return(&fallback_block)
+            stub_request(:post, "https://#{Ably::FALLBACK_HOSTS[0]}#{path}").with(basic_auth: [key_name, key_secret]).to_return(&fallback_block)
           end
 
           let!(:second_fallback_request_stub) do
-            stub_request(:post, "https://#{api_key}@#{Ably::FALLBACK_HOSTS[1]}#{path}").to_return(&fallback_block)
+            stub_request(:post, "https://#{Ably::FALLBACK_HOSTS[1]}#{path}").with(basic_auth: [key_name, key_secret]).to_return(&fallback_block)
           end
 
           let(:client_options) {
@@ -701,7 +705,7 @@ describe Ably::Rest::Client do
           let(:path) { '/channels/test/publish' }
 
           let!(:custom_host_request_stub) do
-            stub_request(:post, "https://#{api_key}@#{custom_host}#{path}").to_return do
+            stub_request(:post, "https://#{custom_host}#{path}").with(basic_auth: [key_name, key_secret]).to_return do
               raise Faraday::ConnectionFailed.new('connection failure error message')
             end
           end
@@ -840,11 +844,12 @@ describe Ably::Rest::Client do
             lib << Ably::VERSION
 
 
-            stub_request(:post, "#{client.endpoint.to_s.gsub('://', "://#{api_key}@")}/channels/foo/publish").
+            stub_request(:post, "#{client.endpoint.to_s.gsub('://', "://")}/channels/foo/publish").
               with(headers: {
                 'X-Ably-Version' => Ably::PROTOCOL_VERSION,
                 'X-Ably-Lib' => lib.join('-')
               }).
+              with(basic_auth: [key_name, key_secret]).
               to_return(status: 201, body: '{}', headers: { 'Content-Type' => 'application/json' })
           end
 

@@ -615,16 +615,23 @@ describe Ably::Realtime::Connection, :event_machine do
         end
       end
 
-      it 'is set to 0 when a message sent ACK is received' do
-        channel.publish('event', 'data') do
+      it 'is set to 0 when a message is received back' do
+        channel.publish('event', 'data')
+        channel.subscribe do
           expect(connection.serial).to eql(0)
           stop_reactor
         end
       end
 
-      it 'is set to 1 when the second message sent ACK is received' do
+      it 'is set to 1 when the second message is received' do
         channel.publish('event', 'data') do
-          channel.publish('event', 'data') do
+          channel.publish('event', 'data')
+        end
+
+        messages = []
+        channel.subscribe do |message|
+          messages << message
+          if messages.length == 2
             expect(connection.serial).to eql(1)
             stop_reactor
           end
@@ -884,11 +891,16 @@ describe Ably::Realtime::Connection, :event_machine do
             expect(connection.serial).to eql(expected_serial)
 
             channel.attach do
-              channel.publish('event', 'data') do
+              channel.publish('event', 'data')
+              channel.subscribe do
+                channel.unsubscribe
+
                 expected_serial += 1 # attach message received
                 expect(connection.serial).to eql(expected_serial)
 
-                channel.publish('event', 'data') do
+                channel.publish('event', 'data')
+                channel.subscribe do
+                  channel.unsubscribe
                   expected_serial += 1 # attach message received
                   expect(connection.serial).to eql(expected_serial)
 
@@ -1302,6 +1314,14 @@ describe Ably::Realtime::Connection, :event_machine do
       end
 
       context 'ConnectionStateChange object' do
+        def unbind
+          if connection.transport
+            connection.transport.unbind
+          else
+            EventMachine.add_timer(0.005) { unbind }
+          end
+        end
+
         it 'has current state' do
           connection.on(:connected) do |connection_state_change|
             expect(connection_state_change.current).to eq(:connected)
@@ -1365,7 +1385,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 expect(connection_state_change.retry_in).to eql(0)
                 stop_reactor
               end
-              EventMachine.add_timer(0.005) { connection.transport.unbind }
+              unbind
             end
           end
 
@@ -1386,7 +1406,7 @@ describe Ably::Realtime::Connection, :event_machine do
                   expect(connection_state_change.retry_in).to be > 0
                   stop_reactor
                 end
-                EventMachine.add_timer(0.005) { connection.transport.unbind }
+                unbind
               end
               connection.transport.unbind
             end

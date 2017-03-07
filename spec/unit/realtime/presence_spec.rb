@@ -49,13 +49,13 @@ describe Ably::Realtime::Presence do
     let(:message_history) { Hash.new { |hash, key| hash[key] = 0 } }
     let(:enter_action) { Ably::Models::PresenceMessage::ACTION.Enter }
     let(:enter_message) do
-      instance_double('Ably::Models::PresenceMessage', action: enter_action, connection_id: random_str, decode: true, member_key: random_str)
+      instance_double('Ably::Models::PresenceMessage', action: enter_action, connection_id: random_str, decode: true, member_key: random_str, to_safe_json: true)
     end
     let(:leave_message) do
-      instance_double('Ably::Models::PresenceMessage', action: Ably::Models::PresenceMessage::ACTION.Leave, connection_id: random_str, decode: true, member_key: random_str)
+      instance_double('Ably::Models::PresenceMessage', action: Ably::Models::PresenceMessage::ACTION.Leave, connection_id: random_str, decode: true, member_key: random_str, to_safe_json: true)
     end
     let(:update_message) do
-      instance_double('Ably::Models::PresenceMessage', action: Ably::Models::PresenceMessage::ACTION.Update, connection_id: random_str, decode: true, member_key: random_str)
+      instance_double('Ably::Models::PresenceMessage', action: Ably::Models::PresenceMessage::ACTION.Update, connection_id: random_str, decode: true, member_key: random_str, to_safe_json: true)
     end
 
     context '#subscribe' do

@@ -58,7 +58,7 @@ module Ably::Realtime
       # all messages awaiting an ACK response should fail immediately
       def fail_messages_awaiting_ack(error)
         # Allow a short time for other queued operations to complete before failing all messages
-        EventMachine.add_timer(0.1) do
+        EventMachine.next_tick do
           error = Ably::Exceptions::MessageDeliveryFailed.new("Channel cannot publish messages whilst state is '#{channel.state}'") unless error
           fail_messages_in_queue connection.__pending_message_ack_queue__, error
           fail_messages_in_queue connection.__outgoing_message_queue__, error
@@ -76,10 +76,10 @@ module Ably::Realtime
 
       def nack_messages(protocol_message, error)
         (protocol_message.messages + protocol_message.presence).each do |message|
-          logger.debug "Calling NACK failure callbacks for #{message.class.name} - #{message.to_json}, protocol message: #{protocol_message}"
+          logger.debug "Calling NACK failure callbacks for #{message.class.name} - #{message.to_safe_json}, protocol message: #{protocol_message}"
           message.fail error
         end
-        logger.debug "Calling NACK failure callbacks for #{protocol_message.class.name} - #{protocol_message.to_json}"
+        logger.debug "Calling NACK failure callbacks for #{protocol_message.class.name} - #{protocol_message.to_safe_json}"
         protocol_message.fail error
       end
 
