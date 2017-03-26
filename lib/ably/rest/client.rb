@@ -316,6 +316,14 @@ module Ably
         Models::HttpPaginatedResponse.new(response, path, self)
       end
 
+      # The local device detilas
+      # @return [Ably::Models::LocalDevice]
+      #
+      # @note This is unsupported in the Ruby library
+      def device
+        raise Ably::Exceptions::PushNotificationsNotSupported, 'This device does not support receiving or subscribing to push notifications. The local device object is not unavailable'
+      end
+
       # @!attribute [r] endpoint
       # @return [URI::Generic] Default Ably REST endpoint used for all requests
       def endpoint
