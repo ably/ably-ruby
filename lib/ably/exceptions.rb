@@ -151,5 +151,7 @@ module Ably
 
     # Token request has missing or invalid attributes
     class InvalidTokenRequest < BaseAblyException; end
+
+    class PushNotificationsNotSupported < BaseAblyException; end
   end
 end

@@ -23,4 +23,14 @@ describe Ably::Rest::Channel::PushChannel do
     expect(channel.push).to be_a(Ably::Rest::Channel::PushChannel)
     expect(channel.push.channel).to eql(channel)
   end
+
+  context 'methods not implemented as push notifications' do
+    subject { Ably::Rest::Channel::PushChannel.new(channel) }
+
+    %w(subscribe_device subscribe_client_id unsubscribe_device unsubscribe_client_id get_subscriptions).each do |method_name|
+      specify "##{method_name} raises an unsupported exception" do
+        expect { subject.public_send(method_name, 'foo') }.to raise_error(Ably::Exceptions::PushNotificationsNotSupported)
+      end
+    end
+  end
 end
