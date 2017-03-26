@@ -214,6 +214,14 @@ module Ably
         @fallback_endpoints[fallback_endpoint_index % @fallback_endpoints.count]
       end
 
+      # The local device detilas
+      # @return [Ably::Models::LocalDevice]
+      #
+      # @note This is unsupported in the Ruby library
+      def device
+        raise Ably::Exceptions::PushNotificationsNotSupported, 'This device does not support receiving or subscribing to push notifications. The local device object is not unavailable'
+      end
+
       private
       def endpoint_for_host(host)
         port = if use_tls?

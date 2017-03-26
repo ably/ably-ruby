@@ -57,4 +57,12 @@ describe Ably::Rest::Client do
       expect(subject.add_request_ids).to eql(true)
     end
   end
+
+  context 'push' do
+    let(:client_options) { { key: 'appid.keyuid:keysecret' } }
+
+    specify '#device is not supported and raises an exception' do
+      expect { subject.device }.to raise_error Ably::Exceptions::PushNotificationsNotSupported
+    end
+  end
 end
