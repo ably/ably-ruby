@@ -7,12 +7,14 @@ module Ably
     #   @return {Ably::Realtime::Client} Ably client associated with this channel
     # @!attribute [r] name
     #   @return {String} channel name
+    # @!attribute [r] push
+    #   @return {Ably::Rest::Channel::PushChannel} Push channel used for push notification
     # @!attribute [r] options
     #   @return {Hash} channel options configured for this channel, see {#initialize} for channel_options
     class Channel
       include Ably::Modules::Conversions
 
-      attr_reader :client, :name, :options
+      attr_reader :client, :name, :push, :options
 
       # Initialize a new Channel object
       #
@@ -27,6 +29,7 @@ module Ably
         update_options channel_options
         @client  = client
         @name    = name
+        @push    = PushChannel.new(self)
       end
 
       # Publish one or more messages to the channel.
@@ -141,3 +144,5 @@ module Ably
     end
   end
 end
+
+require 'ably/rest/channel/push_channel'
