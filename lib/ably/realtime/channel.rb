@@ -67,6 +67,10 @@ module Ably
       # @return [String]
       attr_reader :name
 
+      # Push channel used for push notification
+      # @return [Ably::Realtime::Channel::PushChannel]
+      attr_reader :push
+
       # Channel options configured for this channel, see {#initialize} for channel_options
       # @return [Hash]
       attr_reader :options
@@ -103,6 +107,7 @@ module Ably
         @state_machine = ChannelStateMachine.new(self)
         @state         = STATE(state_machine.current_state)
         @manager       = ChannelManager.new(self, client.connection)
+        @push          = PushChannel.new(self)
 
         setup_event_handlers
         setup_presence
@@ -450,3 +455,4 @@ end
 
 require 'ably/realtime/channel/channel_manager'
 require 'ably/realtime/channel/channel_state_machine'
+require 'ably/realtime/channel/push_channel'
