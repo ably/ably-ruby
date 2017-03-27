@@ -34,6 +34,10 @@ describe Ably::Realtime::Client do
     specify '#device is not supported and raises an exception' do
       expect { subject.device }.to raise_error Ably::Exceptions::PushNotificationsNotSupported
     end
+
+    specify '#push returns a Push object' do
+      expect(subject.push).to be_a(Ably::Realtime::Push)
+    end
   end
 
   after(:all) do

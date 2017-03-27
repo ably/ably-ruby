@@ -9,6 +9,7 @@ require 'ably/realtime/channel'
 require 'ably/realtime/channels'
 require 'ably/realtime/client'
 require 'ably/realtime/connection'
+require 'ably/realtime/push'
 require 'ably/realtime/presence'
 
 require 'ably/models/message_encoders/base'

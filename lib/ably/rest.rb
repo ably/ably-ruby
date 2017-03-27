@@ -1,6 +1,7 @@
 require 'ably/rest/channel'
 require 'ably/rest/channels'
 require 'ably/rest/client'
+require 'ably/rest/push'
 require 'ably/rest/presence'
 
 require 'ably/models/message_encoders/base'

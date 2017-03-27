@@ -162,6 +162,12 @@ module Ably
         connection.connect(&block)
       end
 
+      # Push notification object for publishing and managing push notifications
+      # @return [Ably::Realtime::Push]
+      def push
+        @push ||= Push.new(self)
+      end
+
       # (see Ably::Rest::Client#request)
       # @yield [Ably::Models::HttpPaginatedResponse<>] An Array of Stats
       #
