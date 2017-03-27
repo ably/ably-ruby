@@ -144,11 +144,11 @@ module Ably::Models
       @attributes
     end
 
-    # Takes the underlying Hash object and returns it in as a JSON ready Hash object using snakeCase for compability with the Ably service.
+    # Takes the underlying Hash object and returns it in as a JSON ready Hash object using camelCase for compability with the Ably service.
     # Note name clashes are ignored and will result in loss of one or more values
     # @example
     #   wrapper = IdiomaticRubyWrapper({ 'mixedCase': true, mixed_case: false, 'snake_case': 1 })
-    #   wrapper.as_json({ 'mixedCase': true, 'snakeCase': 1 })
+    #   wrapper.as_json => { 'mixedCase': true, 'snakeCase': 1 }
     def as_json(*args)
       attributes.each_with_object({}) do |key_val, new_hash|
         key                      = key_val[0]
@@ -161,7 +161,7 @@ module Ably::Models
     end
 
     # Converts the current wrapped mixedCase object to JSON
-    # using mixedCase syntax as expected by the Realtime API
+    # using snakedCase syntax as expected by the Realtime API
     def to_json(*args)
       as_json(args).to_json
     end
@@ -170,7 +170,7 @@ module Ably::Models
     # Note name clashes are ignored and will result in loss of one or more values
     # @example
     #   wrapper = IdiomaticRubyWrapper({ 'mixedCase': true, mixed_case: false, 'snake_case': 1 })
-    #   wrapper.to_hash({ mixed_case: true, snake_case: 1 })
+    #   wrapper.to_hash => { mixed_case: true, snake_case: 1 }
     def to_hash(*args)
       each_with_object({}) do |key_val, object|
         key, val    = key_val

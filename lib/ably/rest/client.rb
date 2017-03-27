@@ -324,6 +324,12 @@ module Ably
         raise Ably::Exceptions::PushNotificationsNotSupported, 'This device does not support receiving or subscribing to push notifications. The local device object is not unavailable'
       end
 
+      # Push notification object for publishing and managing push notifications
+      # @return [Ably::Rest::Push]
+      def push
+        @push ||= Push.new(self)
+      end
+
       # @!attribute [r] endpoint
       # @return [URI::Generic] Default Ably REST endpoint used for all requests
       def endpoint
