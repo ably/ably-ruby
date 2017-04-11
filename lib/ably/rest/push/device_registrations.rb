@@ -12,27 +12,40 @@ module Ably::Rest
         @client = admin.client
       end
 
-      # Get registered devices with optional filters
+      # Get registered device by device ID
       #
-      # @param [Hash] options   the filter options for the get registered device request
-      # @option options [String]   :client_id  filter by devices registered to a client identifier
-      # @option options [String]   :device_id  filter by unique device ID
-      # @option options [Integer]  :limit      maximum number of devices to retrieve up to 1,000, defaults to 100
+      # @param [String, Ably::Models::DeviceDetails] device_id   the device to retrieve
+      #
+      # @return [Ably::Models::DeviceDetails]  Returns {Ably::Models::DeviceDetails} if a match is found else a {Ably::Exceptions::ResourceMissing} is raised
+      #
+      def get(device_id)
+        device_id = device_id.id if device_id.kind_of?(Ably::Models::DeviceDetails)
+        raise ArgumentError, "device_id must be a string or DeviceDetails object" unless device_id.kind_of?(String)
+
+        DeviceDetails(client.get("/push/deviceRegistrations/#{device_id}").body)
+      end
+
+      # List registered devices filtered by optional params
+      #
+      # @param [Hash] params   the filter options for the get registered device request
+      # @option params [String]   :client_id  filter by devices registered to a client identifier
+      # @option params [String]   :device_id  filter by unique device ID
+      # @option params [Integer]  :limit      maximum number of devices to retrieve up to 1,000, defaults to 100
       #
       # @return [Ably::Models::PaginatedResult<Ably::Models::DeviceDetails>]  Paginated list of matching {Ably::Models::DeviceDetails}
       #
-      def get(options = {})
-        raise ArgumentError, "options must be a Hash" unless options.kind_of?(Hash)
-        raise ArgumentError, "device_id filter cannot be specified alongside a client_id filter. Use one or the other" if options[:client_id] && options[:device_id]
+      def list(params = {})
+        params = {} if params.nil?
+        raise ArgumentError, "params must be a Hash" unless params.kind_of?(Hash)
+        raise ArgumentError, "device_id filter cannot be specified alongside a client_id filter. Use one or the other" if params[:client_id] && params[:device_id]
 
-        options = options.clone
+        params = params.clone
 
-        url = ["/push/deviceRegistrations", options[:device_id]].compact.join('/')
-        response = client.get(url, IdiomaticRubyWrapper(options).as_json)
+        response = client.get('/push/deviceRegistrations', IdiomaticRubyWrapper(params).as_json)
 
         paginated_options = {
           coerce_into: 'Ably::Models::DeviceDetails',
-          async_blocking_operations: options.delete(:async_blocking_operations),
+          async_blocking_operations: params.delete(:async_blocking_operations),
         }
 
         Ably::Models::PaginatedResult.new(response, '', client, paginated_options)
@@ -51,21 +64,34 @@ module Ably::Rest
         client.put("/push/deviceRegistrations/#{device_details.id}", device_details.as_json)
       end
 
-      # Remove device matching options
+      # Remove device
       #
-      # @param [Hash] options   the filter options for the remove request
-      # @option options [String]   :client_id  remove devices registered to a client identifier
-      # @option options [String]   :device_id  remove device with this unique device ID
+      # @param [String, Ably::Models::DeviceDetails]  device_id  the device to remove
       #
       # @return [void]
       #
-      def remove(options)
-        filter = if options.kind_of?(Ably::Models::DeviceDetails)
-          { 'deviceId' => options.id }
+      def remove(device_id)
+        device_id = device_id.id if device_id.kind_of?(Ably::Models::DeviceDetails)
+        raise ArgumentError, "device_id must be a string or DeviceDetails object" unless device_id.kind_of?(String)
+
+        client.delete("/push/deviceRegistrations/#{device_id}", {})
+      end
+
+      # Remove device matching where params
+      #
+      # @param [Hash] params   the filter params for the remove request
+      # @option params [String]   :client_id  remove devices registered to a client identifier
+      # @option params [String]   :device_id  remove device with this unique device ID
+      #
+      # @return [void]
+      #
+      def remove_where(params = {})
+        filter = if params.kind_of?(Ably::Models::DeviceDetails)
+          { 'deviceId' => params.id }
         else
-          raise ArgumentError, "options must be a Hash" unless options.kind_of?(Hash)
-          raise ArgumentError, "device_id filter cannot be specified alongside a client_id filter. Use one or the other" if options[:client_id] && options[:device_id]
-          IdiomaticRubyWrapper(options).as_json
+          raise ArgumentError, "params must be a Hash" unless params.kind_of?(Hash)
+          raise ArgumentError, "device_id filter cannot be specified alongside a client_id filter. Use one or the other" if params[:client_id] && params[:device_id]
+          IdiomaticRubyWrapper(params).as_json
         end
         client.delete("/push/deviceRegistrations", filter)
       end

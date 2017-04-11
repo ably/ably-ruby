@@ -67,15 +67,15 @@ describe Ably::Models::DeviceDetails do
   end
 
   describe "#push and #push=" do
-    let(:transport_id) { random_str }
-    let(:new_val) { { transport_id: transport_id  } }
-    let(:json_val) { { transportId: transport_id }.to_json }
+    let(:transport_type) { random_str }
+    let(:new_val) { { transport_type: transport_type  } }
+    let(:json_val) { { transportType: transport_type }.to_json }
 
     specify 'setter accepts a DevicePushDetails object and getter returns a DevicePushDetails object' do
       expect(empty_device_details.push.to_json).to eql({}.to_json)
       empty_device_details.push = DevicePushDetails(new_val)
       expect(empty_device_details.push).to be_a(Ably::Models::DevicePushDetails)
-      expect(empty_device_details.push.transport_id).to eql(transport_id)
+      expect(empty_device_details.push.transport_type).to eql(transport_type)
       expect(empty_device_details.push.to_json).to eql(json_val)
     end
 
@@ -83,7 +83,7 @@ describe Ably::Models::DeviceDetails do
       expect(empty_device_details.push.to_json).to eql({}.to_json)
       empty_device_details.push = new_val
       expect(empty_device_details.push).to be_a(Ably::Models::DevicePushDetails)
-      expect(empty_device_details.push.transport_id).to eql(transport_id)
+      expect(empty_device_details.push.transport_type).to eql(transport_type)
       expect(empty_device_details.push.to_json).to eql(json_val)
     end
 

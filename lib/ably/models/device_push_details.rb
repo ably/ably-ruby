@@ -20,12 +20,8 @@ end
 module Ably::Models
   # An object with the push notification details for {DeviceDetails} object
   #
-  # @!attribute [r] transport_id
-  #   @return [String] Unique target ID for delivery of push notifications
   # @!attribute [r] transport_type
   #   @return [String] Transport type for push notifications such as gcm, apns, web
-  # @!attribute [r] transport_token
-  #   @return [String] For push transports that require a token
   # @!attribute [r] state
   #   @return [String] The current state of this push target such as Active, Failing or Failed
   # @!attribute [r] error_reason
@@ -43,7 +39,7 @@ module Ably::Models
       @hash_object     = IdiomaticRubyWrapper(@raw_hash_object)
     end
 
-    %w(transport_id transport_type transport_token state).each do |attribute|
+    %w(transport_type state).each do |attribute|
       define_method attribute do
         attributes[attribute.to_sym]
       end
