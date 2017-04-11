@@ -48,7 +48,7 @@ module Ably::Models
     end
 
     def to_s
-      "ChannelStateChange: current state #{current}, previous state #{previous}"
+      "<ChannelStateChange: current state #{current}, previous state #{previous}>"
     end
   end
 end
