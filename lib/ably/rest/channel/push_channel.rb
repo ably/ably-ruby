@@ -15,7 +15,7 @@ module Ably::Rest
       end
 
       def to_s
-        "PushChannel: #{channel.name}"
+        "<PushChannel: name=#{channel.name}>"
       end
 
       # Subscribe local device for push notifications on this channel
