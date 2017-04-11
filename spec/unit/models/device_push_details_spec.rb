@@ -7,7 +7,7 @@ describe Ably::Models::DevicePushDetails do
 
   subject { Ably::Models::DevicePushDetails }
 
-  %w(transport_id transport_type transport_token state).each do |string_attribute|
+  %w(transport_type state).each do |string_attribute|
     let(:empty_push_details) { subject.new }
 
     describe "##{string_attribute} and ##{string_attribute}=" do
@@ -33,15 +33,15 @@ describe Ably::Models::DevicePushDetails do
   end
 
   context 'camelCase constructor attributes' do
-    let(:transport_id) { random_str }
-    let(:push_details) { subject.new("transportId" => transport_id ) }
+    let(:transport_type) { random_str }
+    let(:push_details) { subject.new("transportType" => transport_type ) }
 
     specify 'are rubyfied and exposed as underscore case' do
-      expect(push_details.transport_id).to eql(transport_id)
+      expect(push_details.transport_type).to eql(transport_type)
     end
 
     specify 'are generated when the object is serialised to JSON' do
-      expect(JSON.parse(push_details.to_json)["transportId"]).to eql(transport_id)
+      expect(JSON.parse(push_details.to_json)["transportType"]).to eql(transport_type)
     end
   end
 
