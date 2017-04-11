@@ -274,6 +274,24 @@ module Ably
         raw_request(:post, path, params, options)
       end
 
+      # Perform an HTTP PUT request to the API using configured authentication
+      #
+      # @return [Faraday::Response]
+      #
+      # @api private
+      def put(path, params, options = {})
+        raw_request(:put, path, params, options)
+      end
+
+      # Perform an HTTP DELETE request to the API using configured authentication
+      #
+      # @return [Faraday::Response]
+      #
+      # @api private
+      def delete(path, params, options = {})
+        raw_request(:delete, path, params, options)
+      end
+
       # Perform an HTTP request to the Ably API
       # This is a convenience for customers who wish to use bleeding edge REST API functionality
       # that is either not documented or is not included in the API for our client libraries.
