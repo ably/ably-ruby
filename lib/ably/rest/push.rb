@@ -1,3 +1,5 @@
+require 'ably/rest/push/admin'
+
 module Ably
   module Rest
     # Class providing push notification functionality
@@ -27,6 +29,12 @@ module Ably
         # Co-erce to camelCase for notitication fields which are always camelCase
         publish_data[:notification] = IdiomaticRubyWrapper(data[:notification]) if publish_data[:notification].kind_of?(Hash)
         client.request(:post, '/push/publish', {}, publish_data)
+      end
+
+      # Admin features for push notifications like managing devices and channel subscriptions
+      # @return [Ably::Rest::Push::Admin]
+      def admin
+        @admin ||= Admin.new(self)
       end
 
       # Activate this device for push notifications by registering with the push transport such as GCM/APNS

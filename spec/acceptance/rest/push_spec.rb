@@ -27,6 +27,19 @@ describe Ably::Rest::Push do
     end
 
     describe '#publish' do
+      context 'without publish permissions' do
+        let(:capability) { { :foo => ['subscribe'] } }
+
+        before do
+          client.auth.authorize(capability: capability)
+        end
+
+        it 'raises a permissions issue exception' do
+          skip 'push permissions are not yet enabled'
+          expect { subject.publish(basic_recipient, basic_notification_payload) }.to raise_error TbcPublishError
+        end
+      end
+
       context 'invalid arguments' do
         it 'raises an exception with a nil recipient' do
           expect { subject.publish(nil, {}) }.to raise_error ArgumentError, /Expecting a Hash/

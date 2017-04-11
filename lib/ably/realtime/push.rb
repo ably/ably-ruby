@@ -1,3 +1,5 @@
+require 'ably/realtime/push/admin'
+
 module Ably
   module Realtime
     # Class providing push notification functionality
@@ -28,6 +30,12 @@ module Ably
         async_wrap(callback) do
           rest_push.publish(recipient, data)
         end
+      end
+
+      # Admin features for push notifications like managing devices and channel subscriptions
+      # @return [Ably::Realtime::Push::Admin]
+      def admin
+        @admin ||= Admin.new(self)
       end
 
       # Activate this device for push notifications by registering with the push transport such as GCM/APNS
