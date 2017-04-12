@@ -22,8 +22,6 @@ describe Ably::Rest::Push::Admin do
         end
 
         it 'raises a permissions not authorized exception' do
-          skip 'remove is not responding with unauthorized so seemingly a permissions issue'
-
           expect { subject.get('does-not-exist') }.to raise_error Ably::Exceptions::UnauthorizedRequest
           expect { subject.list }.to raise_error Ably::Exceptions::UnauthorizedRequest
           expect { subject.remove('does-not-exist') }.to raise_error Ably::Exceptions::UnauthorizedRequest
@@ -78,8 +76,6 @@ describe Ably::Rest::Push::Admin do
         end
 
         it 'provides filtering' do
-          skip 'device_id param filter does not work'
-
           page = subject.list(client_id: client_id)
           expect(page.items.length).to eql(fixture_count)
 
@@ -128,7 +124,6 @@ describe Ably::Rest::Push::Admin do
         end
 
         it 'raises a ResourceMissing exception if device ID does not exist' do
-          skip '404 is not raised when device does not exist'
           expect { subject.get("device-dopes-not-exist") }.to raise_error(Ably::Exceptions::ResourceMissing)
         end
       end
@@ -150,10 +145,8 @@ describe Ably::Rest::Push::Admin do
                 val: true
               }
             },
-            update_token: 'ignore',
             push: {
               transport_type: 'apns',
-              state: 1, # ignored
               error_reason: {
                 message: "this will be ignored"
               },
@@ -185,8 +178,6 @@ describe Ably::Rest::Push::Admin do
         end
 
         it 'saves the associated DevicePushDetails' do
-          skip 'This fails with a 404 from the PUT request to /push/deviceRegistrations/:id with "Could not find path:..."'
-
           subject.save(device_details)
 
           device_retrieved = subject.list(device_id: device_details.fetch(:id)).items.first
@@ -244,12 +235,8 @@ describe Ably::Rest::Push::Admin do
 
           device_retrieved = subject.get(device_details.fetch(:id))
 
-          # this was set to 1 i.e. FAILED
-          # TODO: Fix this
-          # expect(device_retrieved.push.state).to eql('ACTIVE')
+          expect(device_retrieved.push.state).to eql('ACTIVE')
 
-          # value was set to "ignore"
-          expect(device_retrieved.update_token).to_not eql('ignored')
           expect(device_retrieved.update_token).to_not be_nil
 
           # Errors are exclusively configure by Ably
@@ -266,8 +253,6 @@ describe Ably::Rest::Push::Admin do
         end
 
         it 'allows arbitrary number of subsequent saves' do
-          skip 'Subsequent updates fail because of id being disallowed'
-
           10.times do
             subject.save(DeviceDetails(device_details))
           end
@@ -316,22 +301,16 @@ describe Ably::Rest::Push::Admin do
         end
 
         it 'removes all matching device registrations by client_id' do
-          skip 'Delete by client_id not working'
-
           subject.remove_where(client_id: client_id)
           expect(subject.list.items.count).to eql(0)
         end
 
         it 'removes device by device_id' do
-          skip 'this does not work because remove_where clean up after each test is leaving old registered devices'
-
           subject.remove_where(device_id: "device-#{client_id}-1")
           expect(subject.list.items.count).to eql(1)
         end
 
         it 'succeeds even if there is no match' do
-          skip 'this does not work because remove_where clean up after each test is leaving old registered devices'
-
           subject.remove_where(device_id: 'does-not-exist')
           expect(subject.list.items.count).to eql(2)
         end
@@ -368,22 +347,16 @@ describe Ably::Rest::Push::Admin do
         end
 
         it 'removes the provided device id string' do
-          skip 'this does not work because remove_where clean up after each test is leaving old registered devices. Also not sure single delete endpoint works'
-
           subject.remove("device-#{client_id}-0")
           expect(subject.list.items.count).to eql(1)
         end
 
         it 'removes the provided DeviceDetails' do
-          skip 'DELETE /push/deviceRegistrations/:id fails with 404'
-
           subject.remove(DeviceDetails(id: "device-#{client_id}-1"))
           expect(subject.list.items.count).to eql(1)
         end
 
         it 'succeeds if the item does not exist' do
-          skip 'fails because 404 is returned'
-
           subject.remove('does-not-exist')
           expect(subject.list.items.count).to eql(2)
         end
