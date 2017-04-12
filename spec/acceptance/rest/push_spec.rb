@@ -35,8 +35,7 @@ describe Ably::Rest::Push do
         end
 
         it 'raises a permissions issue exception' do
-          skip 'push permissions are not yet enabled'
-          expect { subject.publish(basic_recipient, basic_notification_payload) }.to raise_error TbcPublishError
+          expect { subject.publish(basic_recipient, basic_notification_payload) }.to raise_error Ably::Exceptions::UnauthorizedRequest
         end
       end
 
@@ -60,15 +59,13 @@ describe Ably::Rest::Push do
 
       context 'invalid recipient' do
         it 'raises an error after receiving a 40x realtime response' do
-          skip 'validation on raw push is not enabled in realtime'
-          expect { subject.publish({ invalid_recipient_details: 'foo.bar' }, basic_notification_payload) }.to raise_error /Invalid recipient/
+          expect { subject.publish({ invalid_recipient_details: 'foo.bar' }, basic_notification_payload) }.to raise_error Ably::Exceptions::InvalidRequest
         end
       end
 
       context 'invalid push data' do
         it 'raises an error after receiving a 40x realtime response' do
-          skip 'validation on raw push is not enabled in realtime'
-          expect { subject.publish(basic_recipient, { invalid_property_only: true }) }.to raise_error /Invalid push notification data/
+          expect { subject.publish(basic_recipient, { invalid_property_only: true }) }.to raise_error Ably::Exceptions::InvalidRequest
         end
       end
 

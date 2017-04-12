@@ -28,7 +28,7 @@ module Ably
         publish_data = data.merge(recipient: IdiomaticRubyWrapper(recipient))
         # Co-erce to camelCase for notitication fields which are always camelCase
         publish_data[:notification] = IdiomaticRubyWrapper(data[:notification]) if publish_data[:notification].kind_of?(Hash)
-        client.request(:post, '/push/publish', {}, publish_data)
+        client.post('/push/publish', publish_data)
       end
 
       # Admin features for push notifications like managing devices and channel subscriptions
