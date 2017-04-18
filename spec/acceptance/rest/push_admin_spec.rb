@@ -383,5 +383,289 @@ describe Ably::Rest::Push::Admin do
         end
       end
     end
+
+    describe '#channel_subscriptions' do
+      let(:client_id) { random_str }
+      let(:device_id) { random_str }
+      let(:device_id_2) { random_str }
+      let(:default_device_attr) {
+        {
+          platform: 'ios',
+          form_factor: 'phone',
+          client_id: client_id,
+          push: {
+            recipient: {
+              transport_type: 'gcm',
+              registration_token: 'secret_token',
+            }
+          }
+        }
+      }
+
+      let(:device_registrations) {
+        client.push.admin.device_registrations
+      }
+
+      subject {
+        client.push.admin.channel_subscriptions
+      }
+
+      # Set up 2 devices with the same client_id
+      #  and two device with the unique device_id and no client_id
+      before do
+        device_registrations.save(default_device_attr.merge(id: device_id))
+        device_registrations.save(default_device_attr.merge(id: device_id_2))
+        device_registrations.save(default_device_attr.merge(client_id: client_id, id: random_str))
+        device_registrations.save(default_device_attr.merge(client_id: client_id, id: random_str))
+      end
+
+      after do
+        device_registrations.remove_where client_id: client_id
+        device_registrations.remove_where device_id: device_id
+      end
+
+      describe '#list' do
+        let(:fixture_count) { 10 }
+
+        before do
+          fixture_count.times do |index|
+            subject.save(channel: "pushenabled:#{random_str}", client_id: client_id)
+            subject.save(channel: "pushenabled:#{random_str}", device_id: device_id)
+          end
+        end
+
+        it 'returns a PaginatedResult object containing DeviceDetails objects' do
+          page = subject.list(client_id: client_id)
+          expect(page).to be_a(Ably::Models::PaginatedResult)
+          expect(page.items.first).to be_a(Ably::Models::PushChannelSubscription)
+        end
+
+        it 'returns an empty PaginatedResult if params do not match' do
+          page = subject.list(client_id: 'does-not-exist')
+          expect(page).to be_a(Ably::Models::PaginatedResult)
+          expect(page.items).to be_empty
+        end
+
+        it 'supports paging' do
+          page = subject.list(limit: 5, device_id: device_id)
+          expect(page).to be_a(Ably::Models::PaginatedResult)
+
+          expect(page.items.count).to eql(5)
+          page = page.next
+          expect(page.items.count).to eql(5)
+          page = page.next
+          expect(page.items.count).to eql(0)
+          expect(page).to be_last
+        end
+
+        it 'provides filtering' do
+          page = subject.list(device_id: device_id)
+          expect(page.items.length).to eql(fixture_count)
+
+          # TODO: Reinstate once contact clientId filtering works
+          # Concat client_id and device_id filters
+          # page = subject.list(device_id: device_id, client_id: client_id)
+          # expect(page.items.length).to eql(fixture_count * 2)
+
+          # TODO: Reinstate once clientId filtering works again
+          # page = subject.list(client_id: client_id)
+          # expect(page.items.length).to eql(fixture_count)
+
+          random_channel = "pushenabled:#{random_str}"
+          subject.save(channel: random_channel, client_id: client_id)
+          page = subject.list(channel: random_channel)
+          expect(page.items.length).to eql(1)
+
+          # TODO: Reinstate once PRIMARY KEY error has gone
+          # page = subject.list(channel: random_channel, client_id: client_id)
+          # expect(page.items.length).to eql(1)
+
+          # page = subject.list(channel: random_channel, device_id: random_str)
+          # expect(page.items.length).to eql(0)
+
+          page = subject.list(device_id: random_str)
+          expect(page.items.length).to eql(0)
+
+          page = subject.list(client_id: random_str)
+          expect(page.items.length).to eql(0)
+
+          page = subject.list(channel: random_str)
+          expect(page.items.length).to eql(0)
+
+          skip 'clientId filtering is broken'
+        end
+
+        it 'raises an exception if none of the required filters are provided' do
+          expect { subject.list({ limit: 100 }) }.to raise_error(ArgumentError)
+        end
+      end
+
+      describe '#save' do
+        let(:channel) { "pushenabled:#{random_str}" }
+        let(:client_id) { random_str }
+        let(:device_id) { random_str }
+
+        it 'saves the new client_id PushChannelSubscription Hash object' do
+          subject.save(channel: channel, client_id: client_id)
+
+          channel_sub = subject.list(client_id: client_id).items.first
+          expect(channel_sub).to be_a(Ably::Models::PushChannelSubscription)
+
+          expect(channel_sub.channel).to eql(channel)
+          expect(channel_sub.client_id).to eql(client_id)
+          expect(channel_sub.device_id).to be_nil
+        end
+
+        it 'saves the new device_id PushChannelSubscription Hash object' do
+          subject.save(channel: channel, device_id: device_id)
+
+          channel_sub = subject.list(device_id: device_id).items.first
+          expect(channel_sub).to be_a(Ably::Models::PushChannelSubscription)
+
+          expect(channel_sub.channel).to eql(channel)
+          expect(channel_sub.device_id).to eql(device_id)
+          expect(channel_sub.client_id).to be_nil
+        end
+
+        it 'saves the client_id PushChannelSubscription object' do
+          subject.save(PushChannelSubscription(channel: channel, client_id: client_id))
+
+          channel_sub = subject.list(client_id: client_id).items.first
+          expect(channel_sub).to be_a(Ably::Models::PushChannelSubscription)
+
+          expect(channel_sub.channel).to eql(channel)
+          expect(channel_sub.client_id).to eql(client_id)
+          expect(channel_sub.device_id).to be_nil
+        end
+
+        it 'saves the device_id PushChannelSubscription object' do
+          subject.save(PushChannelSubscription(channel: channel, device_id: device_id))
+
+          channel_sub = subject.list(device_id: device_id).items.first
+          expect(channel_sub).to be_a(Ably::Models::PushChannelSubscription)
+
+          expect(channel_sub.channel).to eql(channel)
+          expect(channel_sub.device_id).to eql(device_id)
+          expect(channel_sub.client_id).to be_nil
+        end
+
+        it 'allows arbitrary number of subsequent saves' do
+          10.times do
+            subject.save(PushChannelSubscription(channel: channel, device_id: device_id))
+          end
+
+          channel_subs = subject.list(device_id: device_id).items
+          expect(channel_subs.length).to eql(1)
+          expect(channel_subs.first).to be_a(Ably::Models::PushChannelSubscription)
+          expect(channel_subs.first.channel).to eql(channel)
+          expect(channel_subs.first.device_id).to eql(device_id)
+          expect(channel_subs.first.client_id).to be_nil
+        end
+
+        it 'fails if data is invalid' do
+          expect { subject.save(channel: '', client_id: '') }.to raise_error ArgumentError
+          expect { subject.save({}) }.to raise_error ArgumentError
+          expect { subject.save(channel: 'not-enabled-channel', device_id: 'foo') }.to raise_error Ably::Exceptions::UnauthorizedRequest
+          expect { subject.save(channel: 'pushenabled:foo', device_id: 'not-registered-so-will-fail') }.to raise_error Ably::Exceptions::InvalidRequest
+        end
+      end
+
+      describe '#remove_where' do
+        let(:client_id) { random_str }
+        let(:device_id) { random_str }
+        let(:fixed_channel) { "pushenabled:#{random_str}" }
+
+        let(:fixture_count) { 30 }
+
+        before do
+          fixture_count.times do |index|
+            subject.save(channel: "pushenabled:#{random_str}", client_id: client_id)
+            subject.save(channel: "pushenabled:#{random_str}", device_id: device_id)
+            subject.save(channel: fixed_channel, device_id: device_id_2)
+          end
+        end
+
+        it 'removes matching channels' do
+          skip 'Delete by channel is not yet supported'
+          subject.remove_where(channel: fixed_channel)
+          expect(subject.list(channel: fixed_channel).items.count).to eql(0)
+          expect(subject.list(client_id: client_id).items.count).to eql(0)
+          expect(subject.list(device_id: device_id).items.count).to eql(0)
+        end
+
+        it 'removes matching client_ids' do
+          skip 'Reinstate once client_id filtering works again'
+          subject.remove_where(client_id: client_id)
+          expect(subject.list(client_id: client_id).items.count).to eql(0)
+          expect(subject.list(device_id: device_id).items.count).to eql(fixture_count)
+        end
+
+        it 'removes matching device_ids' do
+          subject.remove_where(device_id: device_id)
+          sleep 2
+          expect(subject.list(device_id: device_id).items.count).to eql(0)
+          skip 'Client id filtering is broken'
+          expect(subject.list(client_id: client_id).items.count).to eql(fixture_count)
+        end
+
+        it 'removes concatenated device_id and client_id matches' do
+          skip 'Concatenation for deletes at this time is not supported'
+          subject.remove_where(device_id: device_id, client_id: client_id)
+          expect(subject.list(device_id: device_id).items.count).to eql(0)
+          expect(subject.list(client_id: client_id).items.count).to eql(0)
+        end
+
+        it 'succeeds on no match' do
+          subject.remove_where(device_id: random_str)
+          expect(subject.list(device_id: device_id).items.count).to eql(fixture_count)
+          skip 'Client id filtering is broken'
+          expect(subject.list(client_id: client_id).items.count).to eql(fixture_count)
+        end
+      end
+
+      describe '#remove' do
+        let(:channel) { "pushenabled:#{random_str}" }
+        let(:channel2) { "pushenabled:#{random_str}" }
+        let(:client_id) { random_str }
+        let(:device_id) { random_str }
+
+        before do
+          subject.save(channel: channel, client_id: client_id)
+          subject.save(channel: channel, device_id: device_id)
+          subject.save(channel: channel2, client_id: client_id)
+        end
+
+        it 'removes match for Hash object by channel and client_id' do
+          skip 'reinstante when clientId filters work again'
+          subject.remove(channel: channel, client_id: client_id)
+          expect(subject.list(client_id: client_id).items.count).to eql(1)
+        end
+
+        it 'removes match for PushChannelSubscription object by channel and client_id' do
+          skip 'reinstate when clientId and channel filters dont trigger 500 errors'
+          push_sub = subject.list(channel: channel, client_id: client_id).items.first
+          expect(push_sub).to be_a(Ably::Models::PushChannelSubscription)
+          subject.remove(push_sub)
+          expect(subject.list(client_id: client_Id).items.count).to eql(1)
+        end
+
+        it 'removes match for Hash object by channel and device_id' do
+          subject.remove(channel: channel, device_id: device_id)
+          expect(subject.list(device_id: device_id).items.count).to eql(0)
+        end
+
+        it 'removes match for PushChannelSubscription object by channel and client_id' do
+          push_sub = subject.list(channel: channel, device_id: device_id).items.first
+          expect(push_sub).to be_a(Ably::Models::PushChannelSubscription)
+          subject.remove(push_sub)
+          expect(subject.list(device_id: device_id).items.count).to eql(0)
+        end
+
+        it 'succeeds even if there is no match' do
+          subject.remove(device_id: 'does-not-exist', channel: random_str)
+          expect(subject.list(device_id: 'does-not-exist').items.count).to eql(0)
+        end
+      end
+    end
   end
 end
