@@ -39,7 +39,7 @@ module Ably::Models
       @hash_object     = IdiomaticRubyWrapper(@raw_hash_object)
     end
 
-    %w(transport_type state).each do |attribute|
+    %w(state).each do |attribute|
       define_method attribute do
         attributes[attribute.to_sym]
       end
@@ -52,15 +52,15 @@ module Ably::Models
       end
     end
 
-    def metadata
-      attributes[:metadata] || {}
+    def recipient
+      attributes[:recipient] || {}
     end
 
-    def metadata=(val)
+    def recipient=(val)
       unless val.nil? || val.kind_of?(Hash)
-        raise ArgumentError, "metadata must be nil or a Hash value"
+        raise ArgumentError, "recipient must be nil or a Hash value"
       end
-      attributes[:metadata] = val
+      attributes[:recipient] = val
     end
 
     def error_reason
