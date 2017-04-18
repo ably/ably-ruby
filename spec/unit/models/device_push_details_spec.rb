@@ -7,7 +7,7 @@ describe Ably::Models::DevicePushDetails do
 
   subject { Ably::Models::DevicePushDetails }
 
-  %w(transport_type state).each do |string_attribute|
+  %w(state).each do |string_attribute|
     let(:empty_push_details) { subject.new }
 
     describe "##{string_attribute} and ##{string_attribute}=" do
@@ -34,35 +34,36 @@ describe Ably::Models::DevicePushDetails do
 
   context 'camelCase constructor attributes' do
     let(:transport_type) { random_str }
-    let(:push_details) { subject.new("transportType" => transport_type ) }
+    let(:push_details) { subject.new('errorReason' => { 'message' => 'foo' }, 'recipient' => { 'transportType' => transport_type }) }
 
     specify 'are rubyfied and exposed as underscore case' do
-      expect(push_details.transport_type).to eql(transport_type)
+      expect(push_details.recipient[:transport_type]).to eql(transport_type)
+      expect(push_details.error_reason.message).to eql('foo')
     end
 
     specify 'are generated when the object is serialised to JSON' do
-      expect(JSON.parse(push_details.to_json)["transportType"]).to eql(transport_type)
+      expect(JSON.parse(push_details.to_json)['recipient']['transportType']).to eql(transport_type)
     end
   end
 
-  describe "#metadata and #metadata=" do
+  describe "#recipient and #recipient=" do
     let(:new_val) { { foo: random_str } }
 
     specify 'setter accepts a Hash value and getter returns the new value' do
-      expect(empty_push_details.metadata).to eql({})
-      empty_push_details.metadata = new_val
-      expect(empty_push_details.metadata.to_json).to eql(new_val.to_json)
+      expect(empty_push_details.recipient).to eql({})
+      empty_push_details.recipient = new_val
+      expect(empty_push_details.recipient.to_json).to eql(new_val.to_json)
     end
 
     specify 'setter accepts nil but always returns an empty hash' do
-      empty_push_details.metadata = new_val
-      expect(empty_push_details.metadata.to_json).to eql(new_val.to_json)
-      empty_push_details.metadata = nil
-      expect(empty_push_details.metadata).to eql({})
+      empty_push_details.recipient = new_val
+      expect(empty_push_details.recipient.to_json).to eql(new_val.to_json)
+      empty_push_details.recipient = nil
+      expect(empty_push_details.recipient).to eql({})
     end
 
     specify 'rejects non Hash or nil values' do
-      expect { empty_push_details.metadata = "foo" }.to raise_error(ArgumentError)
+      expect { empty_push_details.recipient = "foo" }.to raise_error(ArgumentError)
     end
   end
 
@@ -94,7 +95,7 @@ describe Ably::Models::DevicePushDetails do
     end
 
     specify 'rejects non Hash, ErrorInfo or nil values' do
-      expect { empty_push_details.metadata = "foo" }.to raise_error(ArgumentError)
+      expect { empty_push_details.error_reason = "foo" }.to raise_error(ArgumentError)
     end
   end
 end

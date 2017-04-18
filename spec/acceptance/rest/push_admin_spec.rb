@@ -41,7 +41,10 @@ describe Ably::Rest::Push::Admin do
               form_factor: 'phone',
               client_id: client_id,
               push: {
-                transport_type: 'gcm'
+                recipient: {
+                  transport_type: 'gcm',
+                  registration_token: 'secret_token',
+                }
               }
             })
           end
@@ -99,7 +102,10 @@ describe Ably::Rest::Push::Admin do
               form_factor: 'phone',
               client_id: client_id,
               push: {
-                transport_type: 'gcm'
+                recipient: {
+                  transport_type: 'gcm',
+                  registration_token: 'secret_token',
+                }
               }
             })
           end
@@ -114,6 +120,7 @@ describe Ably::Rest::Push::Admin do
           expect(device).to be_a(Ably::Models::DeviceDetails)
           expect(device.platform).to eql('ios')
           expect(device.client_id).to eql(client_id)
+          expect(device.push.recipient.fetch(:transport_type)).to eql('gcm')
         end
 
         it 'returns a DeviceDetails object if a DeviceDetails object is provided' do
@@ -121,10 +128,11 @@ describe Ably::Rest::Push::Admin do
           expect(device).to be_a(Ably::Models::DeviceDetails)
           expect(device.platform).to eql('ios')
           expect(device.client_id).to eql(client_id)
+          expect(device.push.recipient.fetch(:transport_type)).to eql('gcm')
         end
 
         it 'raises a ResourceMissing exception if device ID does not exist' do
-          expect { subject.get("device-dopes-not-exist") }.to raise_error(Ably::Exceptions::ResourceMissing)
+          expect { subject.get("device-does-not-exist") }.to raise_error(Ably::Exceptions::ResourceMissing)
         end
       end
 
@@ -146,14 +154,14 @@ describe Ably::Rest::Push::Admin do
               }
             },
             push: {
-              transport_type: 'apns',
+              recipient: {
+                transport_type: 'apns',
+                device_token: transport_token,
+                foo_bar: 'string',
+              },
               error_reason: {
                 message: "this will be ignored"
               },
-              metadata: {
-                foo_bar: 'string',
-                transportToken: transport_token,
-              }
             }
           }
         end
@@ -183,8 +191,9 @@ describe Ably::Rest::Push::Admin do
           device_retrieved = subject.list(device_id: device_details.fetch(:id)).items.first
 
           expect(device_retrieved.push).to be_a(Ably::Models::DevicePushDetails)
-          expect(device_retrieved.push.transport_type).to eql('apns')
-          expect(device_retrieved.push.metadata['transportToken']).to eql(transport_token)
+          expect(device_retrieved.push.recipient.fetch(:transport_type)).to eql('apns')
+          expect(device_retrieved.push.recipient['deviceToken']).to eql(transport_token)
+          expect(device_retrieved.push.recipient['foo_bar']).to eql('string')
         end
 
         context 'with GCM target' do
@@ -193,17 +202,17 @@ describe Ably::Rest::Push::Admin do
           it 'saves the associated DevicePushDetails' do
             subject.save(device_details.merge(
               push: {
-                transport_type: 'gcm',
-                metadata: {
-                  deviceToken: device_token
+                recipient: {
+                  transport_type: 'gcm',
+                  registrationToken: device_token
                 }
               }
             ))
 
             device_retrieved = subject.get(device_details.fetch(:id))
 
-            expect(device_retrieved.push.transport_type).to eql('gcm')
-            expect(device_retrieved.push.metadata['deviceToken']).to eql(device_token)
+            expect(device_retrieved.push.recipient.fetch('transportType')).to eql('gcm')
+            expect(device_retrieved.push.recipient[:registration_token]).to eql(device_token)
           end
         end
 
@@ -214,8 +223,8 @@ describe Ably::Rest::Push::Admin do
           it 'saves the associated DevicePushDetails' do
             subject.save(device_details.merge(
               push: {
-                transport_type: 'web',
-                metadata: {
+                recipient: {
+                  transport_type: 'web',
                   targetUrl: target_url,
                   encryptionKey: encryption_key
                 }
@@ -224,9 +233,9 @@ describe Ably::Rest::Push::Admin do
 
             device_retrieved = subject.get(device_details.fetch(:id))
 
-            expect(device_retrieved.push.transport_type).to eql('web')
-            expect(device_retrieved.push.metadata['targetUrl']).to eql(target_url)
-            expect(device_retrieved.push.metadata['encryptionKey']).to eql(encryption_key)
+            expect(device_retrieved.push.recipient[:transport_type]).to eql('web')
+            expect(device_retrieved.push.recipient['targetUrl']).to eql(target_url)
+            expect(device_retrieved.push.recipient['encryptionKey']).to eql(encryption_key)
           end
         end
 
@@ -249,7 +258,7 @@ describe Ably::Rest::Push::Admin do
           device_retrieved = subject.get(device_details.fetch(:id))
           expect(device_retrieved.id).to eql(device_id)
           expect(device_retrieved.metadata[:foo]).to eql('bar')
-          expect(device_retrieved.push.transport_type).to eql('apns')
+          expect(device_retrieved.push.recipient[:transport_type]).to eql('apns')
         end
 
         it 'allows arbitrary number of subsequent saves' do
@@ -281,7 +290,10 @@ describe Ably::Rest::Push::Admin do
             form_factor: 'phone',
             client_id: client_id,
             push: {
-              transport_type: 'gcm'
+              recipient: {
+                transport_type: 'gcm',
+                registrationToken: 'secret_token',
+              }
             }
           })
 
@@ -291,7 +303,10 @@ describe Ably::Rest::Push::Admin do
             form_factor: 'phone',
             client_id: client_id,
             push: {
-              transport_type: 'gcm'
+              recipient: {
+                transport_type: 'gcm',
+                registration_token: 'secret_token',
+              }
             }
           })
         end
@@ -327,7 +342,10 @@ describe Ably::Rest::Push::Admin do
             form_factor: 'phone',
             client_id: client_id,
             push: {
-              transport_type: 'gcm'
+              recipient: {
+                transport_type: 'gcm',
+                registration_token: 'secret_token',
+              }
             }
           })
 
@@ -337,7 +355,10 @@ describe Ably::Rest::Push::Admin do
             form_factor: 'phone',
             client_id: client_id,
             push: {
-              transport_type: 'gcm'
+              recipient: {
+                transport_type: 'gcm',
+                registration_token: 'secret_token',
+              }
             }
           })
         end
