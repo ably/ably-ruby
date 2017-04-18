@@ -1,11 +1,11 @@
 module Ably::Modules
   module Conversions
     private
-    # Convert device_push_details argument to a {DevicePushDetails} object
+    # Convert device_push_details argument to a {Ably::Models::DevicePushDetails} object
     #
-    # @param device_push_details [DevicePushDetails,Hash,nil] A device push notification details object
+    # @param device_push_details [Ably::Models::DevicePushDetails,Hash,nil] A device push notification details object
     #
-    # @return [DevicePushDetails]
+    # @return [Ably::Models::DevicePushDetails]
     def DevicePushDetails(device_push_details)
       case device_push_details
       when Ably::Models::DevicePushDetails
