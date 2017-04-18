@@ -1,11 +1,11 @@
 module Ably::Modules
   module Conversions
     private
-    # Convert device_details argument to a {DeviceDetails} object
+    # Convert device_details argument to a {Ably::Models::DeviceDetails} object
     #
-    # @param device_details [DeviceDetails,Hash,nil] A device details object
+    # @param device_details [Ably::Models::DeviceDetails,Hash,nil] A device details object
     #
-    # @return [DeviceDetails]
+    # @return [Ably::Models::DeviceDetails]
     def DeviceDetails(device_details)
       case device_details
       when Ably::Models::DeviceDetails
