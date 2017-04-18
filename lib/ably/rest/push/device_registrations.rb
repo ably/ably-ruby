@@ -27,7 +27,7 @@ module Ably::Rest
 
       # List registered devices filtered by optional params
       #
-      # @param [Hash] params   the filter options for the get registered device request
+      # @param [Hash] params   the filter options for the list registered device request
       # @option params [String]   :client_id  filter by devices registered to a client identifier
       # @option params [String]   :device_id  filter by unique device ID
       # @option params [Integer]  :limit      maximum number of devices to retrieve up to 1,000, defaults to 100
@@ -41,19 +41,19 @@ module Ably::Rest
 
         params = params.clone
 
-        response = client.get('/push/deviceRegistrations', IdiomaticRubyWrapper(params).as_json)
-
         paginated_options = {
           coerce_into: 'Ably::Models::DeviceDetails',
           async_blocking_operations: params.delete(:async_blocking_operations),
         }
+
+        response = client.get('/push/deviceRegistrations', IdiomaticRubyWrapper(params).as_json)
 
         Ably::Models::PaginatedResult.new(response, '', client, paginated_options)
       end
 
       # Save and register device
       #
-      # @param [Ably::Models::DeviceDetails]  device   the device details to save
+      # @param [Ably::Models::DeviceDetails, Hash]  device   the device details to save
       #
       # @return [void]
       #
