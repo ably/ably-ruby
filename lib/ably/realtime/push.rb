@@ -12,13 +12,9 @@ module Ably
         @client = client
       end
 
-      # Publish a push message directly to a single recipient
-      #
-      # @param recipient [Hash] A recipient device, client_id or raw APNS/GCM target. Refer to push documentation
-      # @param data      [Hash] The notification payload data and fields. Refer to push documentation
+      # (see Ably::Rest::Push#publish)
       #
       # @yield  Block is invoked upon successful publish of the message
-      #
       # @return [Ably::Util::SafeDeferrable]
       #
       def publish(recipient, data, &callback)
