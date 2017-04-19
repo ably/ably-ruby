@@ -500,6 +500,63 @@ describe Ably::Rest::Push::Admin do
         end
       end
 
+      describe '#list_channels' do
+        let(:fixture_count) { 10 }
+
+        before(:context) do
+          reload_test_app # TODO: Review if necessary late, currently other tests may affect list_channels
+        end
+
+        before do
+          fixture_count.times do |index|
+            subject.save(channel: "pushenabled:#{index}:#{random_str}", client_id: client_id)
+          end
+        end
+
+        after do
+          subject.remove_where client_id: client_id # processed async server-side
+          sleep 0.5
+        end
+
+        it 'returns a PaginatedResult object containing String objects' do
+          page = subject.list_channels
+          expect(page).to be_a(Ably::Models::PaginatedResult)
+          expect(page.items.first).to be_a(String)
+          expect(page.items.length).to eql(fixture_count)
+        end
+
+        it 'supports paging' do
+          # TODO: Remove this once list channels with limits is reliable immediately after fixtures created
+          subject.list_channels
+          page = subject.list_channels(limit: 5)
+          expect(page).to be_a(Ably::Models::PaginatedResult)
+
+          expect(page.items.count).to eql(5)
+          page = page.next
+          expect(page.items.count).to eql(5)
+          page = page.next
+          expect(page.items.count).to eql(0)
+          expect(page).to be_last
+        end
+
+        # This test is not necessary for client libraries, but was useful when building the Ruby
+        # lib to ensure the realtime implementation did not suffer from timing issues
+        it 'returns an accurate number of channels after devices are deleted' do
+          expect(subject.list_channels.items.length).to eql(fixture_count)
+          subject.save(channel: "pushenabled:#{random_str}", device_id: device_id)
+          subject.save(channel: "pushenabled:#{random_str}", device_id: device_id)
+          expect(subject.list_channels.items.length).to eql(fixture_count + 2)
+          expect(device_registrations.list(device_id: device_id).items.count).to eql(1)
+          device_registrations.remove_where device_id: device_id
+          sleep 1
+          expect(device_registrations.list(device_id: device_id).items.count).to eql(0)
+          expect(subject.list_channels.items.length).to eql(fixture_count)
+          subject.remove_where client_id: client_id
+          sleep 1
+          expect(subject.list_channels.items.length).to eql(0)
+        end
+      end
+
       describe '#save' do
         let(:channel) { "pushenabled:#{random_str}" }
         let(:client_id) { random_str }
