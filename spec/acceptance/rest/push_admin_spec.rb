@@ -462,26 +462,19 @@ describe Ably::Rest::Push::Admin do
           page = subject.list(device_id: device_id)
           expect(page.items.length).to eql(fixture_count)
 
-          # TODO: Reinstate once contact clientId filtering works
-          # Concat client_id and device_id filters
-          # page = subject.list(device_id: device_id, client_id: client_id)
-          # expect(page.items.length).to eql(fixture_count * 2)
-
-          # TODO: Reinstate once clientId filtering works again
-          # page = subject.list(client_id: client_id)
-          # expect(page.items.length).to eql(fixture_count)
+          page = subject.list(client_id: client_id)
+          expect(page.items.length).to eql(fixture_count)
 
           random_channel = "pushenabled:#{random_str}"
           subject.save(channel: random_channel, client_id: client_id)
           page = subject.list(channel: random_channel)
           expect(page.items.length).to eql(1)
 
-          # TODO: Reinstate once PRIMARY KEY error has gone
-          # page = subject.list(channel: random_channel, client_id: client_id)
-          # expect(page.items.length).to eql(1)
+          page = subject.list(channel: random_channel, client_id: client_id)
+          expect(page.items.length).to eql(1)
 
-          # page = subject.list(channel: random_channel, device_id: random_str)
-          # expect(page.items.length).to eql(0)
+          page = subject.list(channel: random_channel, device_id: random_str)
+          expect(page.items.length).to eql(0)
 
           page = subject.list(device_id: random_str)
           expect(page.items.length).to eql(0)
@@ -491,8 +484,6 @@ describe Ably::Rest::Push::Admin do
 
           page = subject.list(channel: random_str)
           expect(page.items.length).to eql(0)
-
-          skip 'clientId filtering is broken'
         end
 
         it 'raises an exception if none of the required filters are provided' do
@@ -514,8 +505,7 @@ describe Ably::Rest::Push::Admin do
         end
 
         after do
-          subject.remove_where client_id: client_id # processed async server-side
-          sleep 0.5
+          subject.remove_where client_id: client_id, full_wait: true # undocumented arg to do deletes synchronously
         end
 
         it 'returns a PaginatedResult object containing String objects' do
@@ -526,6 +516,7 @@ describe Ably::Rest::Push::Admin do
         end
 
         it 'supports paging' do
+          skip 'Channel lists with limits is not reliable immediately after fixture creation'
           # TODO: Remove this once list channels with limits is reliable immediately after fixtures created
           subject.list_channels
           page = subject.list_channels(limit: 5)
@@ -547,12 +538,10 @@ describe Ably::Rest::Push::Admin do
           subject.save(channel: "pushenabled:#{random_str}", device_id: device_id)
           expect(subject.list_channels.items.length).to eql(fixture_count + 2)
           expect(device_registrations.list(device_id: device_id).items.count).to eql(1)
-          device_registrations.remove_where device_id: device_id
-          sleep 1
+          device_registrations.remove_where device_id: device_id, full_wait: true # undocumented arg to do deletes synchronously
           expect(device_registrations.list(device_id: device_id).items.count).to eql(0)
           expect(subject.list_channels.items.length).to eql(fixture_count)
-          subject.remove_where client_id: client_id
-          sleep 1
+          subject.remove_where client_id: client_id, full_wait: true # undocumented arg to do deletes synchronously
           expect(subject.list_channels.items.length).to eql(0)
         end
       end
@@ -644,38 +633,32 @@ describe Ably::Rest::Push::Admin do
 
         it 'removes matching channels' do
           skip 'Delete by channel is not yet supported'
-          subject.remove_where(channel: fixed_channel)
+          subject.remove_where channel: fixed_channel, full_wait: true
           expect(subject.list(channel: fixed_channel).items.count).to eql(0)
           expect(subject.list(client_id: client_id).items.count).to eql(0)
           expect(subject.list(device_id: device_id).items.count).to eql(0)
         end
 
         it 'removes matching client_ids' do
-          skip 'Reinstate once client_id filtering works again'
-          subject.remove_where(client_id: client_id)
+          subject.remove_where client_id: client_id, full_wait: true
           expect(subject.list(client_id: client_id).items.count).to eql(0)
           expect(subject.list(device_id: device_id).items.count).to eql(fixture_count)
         end
 
         it 'removes matching device_ids' do
-          subject.remove_where(device_id: device_id)
-          sleep 2
+          subject.remove_where device_id: device_id, full_wait: true
           expect(subject.list(device_id: device_id).items.count).to eql(0)
-          skip 'Client id filtering is broken'
           expect(subject.list(client_id: client_id).items.count).to eql(fixture_count)
         end
 
-        it 'removes concatenated device_id and client_id matches' do
-          skip 'Concatenation for deletes at this time is not supported'
-          subject.remove_where(device_id: device_id, client_id: client_id)
-          expect(subject.list(device_id: device_id).items.count).to eql(0)
-          expect(subject.list(client_id: client_id).items.count).to eql(0)
+        it 'device_id and client_id filters in the same request are not suppoorted' do
+          expect { subject.remove_where(device_id: device_id, client_id: client_id) }.to raise_error(Ably::Exceptions::InvalidRequest)
         end
 
         it 'succeeds on no match' do
-          subject.remove_where(device_id: random_str)
+          subject.remove_where device_id: random_str, full_wait: true
           expect(subject.list(device_id: device_id).items.count).to eql(fixture_count)
-          skip 'Client id filtering is broken'
+          subject.remove_where client_id: random_str
           expect(subject.list(client_id: client_id).items.count).to eql(fixture_count)
         end
       end
@@ -693,17 +676,15 @@ describe Ably::Rest::Push::Admin do
         end
 
         it 'removes match for Hash object by channel and client_id' do
-          skip 'reinstante when clientId filters work again'
           subject.remove(channel: channel, client_id: client_id)
           expect(subject.list(client_id: client_id).items.count).to eql(1)
         end
 
         it 'removes match for PushChannelSubscription object by channel and client_id' do
-          skip 'reinstate when clientId and channel filters dont trigger 500 errors'
           push_sub = subject.list(channel: channel, client_id: client_id).items.first
           expect(push_sub).to be_a(Ably::Models::PushChannelSubscription)
           subject.remove(push_sub)
-          expect(subject.list(client_id: client_Id).items.count).to eql(1)
+          expect(subject.list(client_id: client_id).items.count).to eql(1)
         end
 
         it 'removes match for Hash object by channel and device_id' do
