@@ -57,8 +57,8 @@ module Ably::Modules
 
     module ClassMethods
       # Return a new instance of this object using the provided JSON-like object or JSON string
-      # @param [Hash, String] JSON-like object or JSON string
-      # @return a new instance o this object
+      # @param json_like_object  [Hash, String]  JSON-like object or JSON string
+      # @return a new instance to this object
       def from_json(json_like_object)
         if json_like_object.kind_of?(String)
           new(JSON.parse(json_like_object))
