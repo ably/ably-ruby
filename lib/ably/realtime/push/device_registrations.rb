@@ -5,7 +5,10 @@ module Ably::Realtime
       include Ably::Modules::Conversions
       include Ably::Modules::AsyncWrapper
 
+      # @api private
       attr_reader :client
+
+      # @api private
       attr_reader :admin
 
       def initialize(admin)

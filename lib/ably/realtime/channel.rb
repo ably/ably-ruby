@@ -59,8 +59,9 @@ module Ably
       # Max number of messages to bundle in a single ProtocolMessage
       MAX_PROTOCOL_MESSAGE_BATCH_SIZE = 50
 
-      # {Ably::Realtime::Client} associated with this channel
+      # Ably client associated with this channel
       # @return [Ably::Realtime::Client]
+      # @api private
       attr_reader :client
 
       # Channel name
