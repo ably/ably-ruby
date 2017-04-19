@@ -28,8 +28,8 @@ module Ably::Rest
       # List registered devices filtered by optional params
       #
       # @param [Hash] params   the filter options for the list registered device request
-      # @option params [String]   :client_id  filter by devices registered to a client identifier
-      # @option params [String]   :device_id  filter by unique device ID
+      # @option params [String]   :client_id  filter by devices registered to a client identifier. Cannot be used with +device_id+ param
+      # @option params [String]   :device_id  filter by unique device ID. Cannot be used with +client_id+ param
       # @option params [Integer]  :limit      maximum number of devices to retrieve up to 1,000, defaults to 100
       #
       # @return [Ably::Models::PaginatedResult<Ably::Models::DeviceDetails>]  Paginated list of matching {Ably::Models::DeviceDetails}
@@ -80,8 +80,8 @@ module Ably::Rest
       # Remove device matching where params
       #
       # @param [Hash] params   the filter params for the remove request
-      # @option params [String]   :client_id  remove devices registered to a client identifier
-      # @option params [String]   :device_id  remove device with this unique device ID
+      # @option params [String]   :client_id  remove devices registered to a client identifier. Cannot be used with +device_id+ param
+      # @option params [String]   :device_id  remove device with this unique device ID. Cannot be used with +client_id+ param
       #
       # @return [void]
       #
