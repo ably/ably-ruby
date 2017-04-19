@@ -48,7 +48,7 @@ module Ably::Modules
           nil
         else
           val_str = val.to_s
-          val_str = "#{val_str.first(80)}..." if val.length > 80
+          val_str = "#{val_str[0...80]}..." if val_str.length > 80
           "#{key}=#{val_str}"
         end
       end
