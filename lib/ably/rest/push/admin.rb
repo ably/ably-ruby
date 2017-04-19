@@ -8,7 +8,10 @@ module Ably::Rest
     class Admin
       include Ably::Modules::Conversions
 
+      # @api private
       attr_reader :client
+
+      # @api private
       attr_reader :push
 
       def initialize(push)

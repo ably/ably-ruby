@@ -6,6 +6,7 @@ module Ably
     class Push
       include Ably::Modules::Conversions
 
+      # @private
       attr_reader :client
 
       def initialize(client)

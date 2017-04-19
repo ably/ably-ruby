@@ -3,8 +3,6 @@ module Ably
     # The Ably Realtime service organises the traffic within any application into named channels.
     # Channels are the "unit" of message distribution; clients attach to channels to subscribe to messages, and every message broadcast by the service is associated with a unique channel.
     #
-    # @!attribute [r] client
-    #   @return {Ably::Realtime::Client} Ably client associated with this channel
     # @!attribute [r] name
     #   @return {String} channel name
     # @!attribute [r] push
@@ -14,7 +12,12 @@ module Ably
     class Channel
       include Ably::Modules::Conversions
 
-      attr_reader :client, :name, :push, :options
+      # Ably client associated with this channel
+      # @return [Ably::Realtime::Client]
+      # @api private
+      attr_reader :client
+
+      attr_reader :name, :push, :options
 
       # Initialize a new Channel object
       #

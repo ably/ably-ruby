@@ -4,7 +4,10 @@ module Ably::Rest
     class ChannelSubscriptions
       include Ably::Modules::Conversions
 
+      # @api private
       attr_reader :client
+
+      # @api private
       attr_reader :admin
 
       def initialize(admin)

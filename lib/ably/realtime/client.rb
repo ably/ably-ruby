@@ -38,6 +38,7 @@ module Ably
 
       # The {Ably::Rest::Client REST client} instantiated with the same credentials and configuration that is used for all REST operations such as authentication
       # @return [Ably::Rest::Client]
+      # @private
       attr_reader :rest_client
 
       # When false the client suppresses messages originating from this connection being echoed back on the same connection. Defaults to true
