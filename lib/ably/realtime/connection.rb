@@ -424,7 +424,8 @@ module Ably
               )
 
               # Use native websocket heartbeats if possible
-              url_params['heartbeats'] = 'false' unless defaults.fetch(:websocket_heartbeats_disabled)
+              # TODO: Fix once https://github.com/ably/ably-ruby/issues/116 is resolved
+              url_params['heartbeats'] = 'true' # unless defaults.fetch(:websocket_heartbeats_disabled)
 
               url_params['clientId'] = client.auth.client_id if client.auth.has_client_id?
 
