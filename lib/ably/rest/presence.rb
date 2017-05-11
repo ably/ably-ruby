@@ -84,7 +84,7 @@ module Ably
 
       private
       def base_path
-        "/channels/#{Addressable::URI.encode(channel.name)}/presence"
+        "/channels/#{URI.encode_www_form_component(channel.name)}/presence"
       end
 
       def decode_message(presence_message)
