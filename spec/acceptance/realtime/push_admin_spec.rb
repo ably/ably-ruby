@@ -399,7 +399,7 @@ describe Ably::Realtime::Push::Admin, :event_machine do
         end
 
         it 'removes all matching device registrations by client_id' do
-          subject.remove_where(client_id: client_id) do
+          subject.remove_where(client_id: client_id, full_wait: true) do
             subject.list do |page|
               expect(page.items.count).to eql(0)
               stop_reactor
