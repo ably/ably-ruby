@@ -256,6 +256,25 @@ describe Ably::Rest::Channel do
           end
         end
       end
+
+      context 'with a non ASCII channel name' do
+        let(:channel_name) { 'foo:¡€≤`☃' }
+        let(:channel_name_encoded) { 'foo%3A%C2%A1%E2%82%AC%E2%89%A4%60%E2%98%83' }
+        let(:endpoint) { client.endpoint }
+        let(:channel) { client.channels.get(channel_name) }
+
+        context 'stubbed', :webmock do
+          let!(:get_stub) {
+            stub_request(:post, "#{endpoint}/channels/#{channel_name_encoded}/publish").
+              to_return(:body => '{}', :headers => { 'Content-Type' => 'application/json' })
+          }
+
+          it 'correctly encodes the channel name' do
+            channel.publish('foo')
+            expect(get_stub).to have_been_requested
+          end
+        end
+      end
     end
 
     describe '#history' do
