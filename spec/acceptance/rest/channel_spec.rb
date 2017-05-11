@@ -374,7 +374,7 @@ describe Ably::Rest::Channel do
           let!(:history_stub) {
             query_params = default_history_options
             .merge(option => milliseconds).map { |k, v| "#{k}=#{v}" }.join('&')
-            stub_request(:get, "#{endpoint}/channels/#{Addressable::URI.encode(channel_name)}/messages?#{query_params}").
+            stub_request(:get, "#{endpoint}/channels/#{URI.encode_www_form_component(channel_name)}/messages?#{query_params}").
               to_return(:body => '{}', :headers => { 'Content-Type' => 'application/json' })
           }
 
