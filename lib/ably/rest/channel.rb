@@ -130,7 +130,7 @@ module Ably
 
       private
       def base_path
-        "/channels/#{Addressable::URI.encode(name)}"
+        "/channels/#{URI.encode_www_form_component(name)}"
       end
 
       def decode_message(message)
