@@ -1,11 +1,26 @@
 # Change Log
 
+## [v1.0.2](https://github.com/ably/ably-ruby/tree/v1.0.2)
+
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.0.1...v1.0.2)
+
+**Fixed bugs:**
+
+- Reconnect following disconnection is hitting a 403 error [\#117](https://github.com/ably/ably-ruby/issues/117)
+- [Fallback hosts were used upon any disconnection as opposed to only when the primary host is unavailable](https://github.com/ably/ably-ruby/pull/120)
+
+**Merged pull requests:**
+
+- Fallback fixes [\#120](https://github.com/ably/ably-ruby/pull/120) ([mattheworiordan](https://github.com/mattheworiordan))
+
+## [v1.0.1](https://github.com/ably/ably-ruby/tree/v1.0.1) (2017-05-11)
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.0.0...v1.0.1)
+
 ## [v1.0.0](https://github.com/ably/ably-ruby/tree/v1.0.0) (2017-03-07)
-[Full Changelog](https://github.com/ably/ably-ruby/compare/v0.8.14...v1.0.0)
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v0.8.15...v1.0.0)
 
-### v1.0 release and upgrade notes from v0.8
-
-- See https://github.com/ably/docs/issues/235
+## [v0.8.15](https://github.com/ably/ably-ruby/tree/v0.8.15) (2017-03-07)
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v0.8.14...v0.8.15)
 
 **Implemented enhancements:**
 

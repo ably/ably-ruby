@@ -1,5 +1,5 @@
 module Ably
-  VERSION = '1.0.1'
+  VERSION = '1.0.2'
   PROTOCOL_VERSION = '1.0'
 
   # Allow a variant to be configured for all instances of this client library
