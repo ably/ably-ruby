@@ -1178,6 +1178,27 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               stop_reactor
             end
           end
+
+          it 'does not use a fallback host if the connection connects on the default host and then later becomes disconnected', em_timeout: 25 do
+            request = 0
+
+            allow(connection).to receive(:create_transport).and_wrap_original do |wrapped_proc, host, *args, &block|
+              expect(host).to eql(expected_host)
+              request += 1
+              wrapped_proc.call(host, *args, &block)
+            end
+
+            connection.on(:connected) do
+              if request <= 2
+                EventMachine.add_timer(3) do
+                  # Force a disconnect
+                  connection.transport.unbind
+                end
+              else
+                stop_reactor
+              end
+            end
+          end
         end
 
         context ':fallback_hosts array is provided' do

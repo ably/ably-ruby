@@ -351,7 +351,7 @@ module Ably
       def determine_host
         raise ArgumentError, 'Block required' unless block_given?
 
-        if can_use_fallback_hosts?
+        if should_use_fallback_hosts?
           internet_up? do |internet_is_up_result|
             @current_host = if internet_is_up_result
               client.fallback_endpoint.host
@@ -647,12 +647,20 @@ module Ably
         !!client.custom_realtime_host
       end
 
-      def can_use_fallback_hosts?
+      def should_use_fallback_hosts?
         if client.fallback_hosts && !client.fallback_hosts.empty?
-          if connecting? && previous_state
+          if connecting? && previous_state && !disconnected_from_connected_state?
             use_fallback_if_disconnected? || use_fallback_if_suspended?
           end
         end
+      end
+
+      def disconnected_from_connected_state?
+        most_recent_state_changes = state_history.last(3).first(2) # Ignore current state
+
+        # A valid connection was disconnected
+        most_recent_state_changes.last.fetch(:state) == Connection::STATE.Disconnected &&
+          most_recent_state_changes.first.fetch(:state) == Connection::STATE.Connected
       end
 
       def use_fallback_if_disconnected?
