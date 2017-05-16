@@ -1178,6 +1178,27 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               stop_reactor
             end
           end
+
+          it 'does not use a fallback host if the connection connects on the default host and then later becomes disconnected', em_timeout: 25 do
+            request = 0
+
+            allow(connection).to receive(:create_transport).and_wrap_original do |wrapped_proc, host, *args, &block|
+              expect(host).to eql(expected_host)
+              request += 1
+              wrapped_proc.call(host, *args, &block)
+            end
+
+            connection.on(:connected) do
+              if request <= 2
+                EventMachine.add_timer(3) do
+                  # Force a disconnect
+                  connection.transport.unbind
+                end
+              else
+                stop_reactor
+              end
+            end
+          end
         end
 
         context ':fallback_hosts array is provided' do
@@ -1271,6 +1292,29 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                   expect(host).to eql(expected_host)
                 else
                   expect(custom_hosts + [expected_host]).to include(host)
+                  fallback_hosts_used << host if @suspended > 0
+                end
+                request += 1
+                raise EventMachine::ConnectionError
+              end
+
+              connection.on(:suspended) do
+                @suspended += 1
+
+                if @suspended > 4
+                  expect(fallback_hosts_used.uniq).to match_array(custom_hosts + [expected_host])
+                  stop_reactor
+                end
+              end
+            end
+
+            it 'uses the correct host name for the WebSocket requests to the fallback hosts' do
+              request = 0
+              expect(connection).to receive(:create_transport).at_least(:once) do |host, port, uri|
+                if request == 0 || request == expected_retry_attempts + 1
+                  expect(uri.hostname).to eql(expected_host)
+                else
+                  expect(custom_hosts + [expected_host]).to include(uri.hostname)
                   fallback_hosts_used << host if @suspended > 0
                 end
                 request += 1
