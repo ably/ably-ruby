@@ -445,6 +445,10 @@ module Ably
               end
 
               determine_host do |host|
+                # Ensure the hostname matches the fallback host name
+                url.hostname = host
+                url.port = port
+
                 begin
                   logger.debug { "Connection: Opening socket connection to #{host}:#{port}/#{url.path}?#{url.query}" }
                   @transport = create_transport(host, port, url) do |websocket_transport|
@@ -510,6 +514,7 @@ module Ably
 
       # @api private
       def create_transport(host, port, url, &block)
+        logger.debug { "Connection: EventMachine connecting to #{host}:#{port} with URL: #{url}" }
         EventMachine.connect(host, port, WebsocketTransport, self, url.to_s, &block)
       end
 
