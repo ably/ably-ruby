@@ -76,6 +76,8 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
     end
 
     context 'with supported extra payload content type (#RTL6h, #RSL6a2)' do
+      let(:channel) { client.channel("pushenabled:#{random_str}") }
+
       def publish_and_check_extras(extras)
         channel.attach
         channel.publish 'event', {}, extras: extras
@@ -86,7 +88,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       end
 
       context 'JSON Object (Hash)' do
-        let(:data) { { 'push' => { 'title' => 'Testing' } } }
+        let(:data) { { 'push' => { 'notification' => { 'title' => 'Testing' } } } }
 
         it 'is encoded and decoded to the same hash' do
           publish_and_check_extras data
@@ -94,7 +96,8 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       end
 
       context 'JSON Array' do
-        let(:data) { { 'push' => [ nil, true, false, 55, 'string', { 'Hash' => true }, ['array'] ] } }
+        # TODO: Add nil type back in
+        let(:data) { { 'push' => { 'data' => { 'key' => [ true, false, 55, 'string', { 'Hash' => true }, ['array'] ] } } } }
 
         it 'is encoded and decoded to the same Array' do
           publish_and_check_extras data

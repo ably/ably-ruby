@@ -62,8 +62,10 @@ describe Ably::Rest::Channel, 'messages' do
     end
 
     context 'with supported extra payload content type (#RSL1h, #RSL6a2)' do
+      let(:channel) { client.channel("pushenabled:#{random_str}") }
+
       context 'JSON Object (Hash)' do
-        let(:data) { { 'push' => { 'title' => 'Testing' } } }
+        let(:data) { { 'push' => { 'notification' => { 'title' => 'Testing' } } } }
 
         it 'is encoded and decoded to the same hash' do
           channel.publish 'event', {}, extras: data
@@ -72,9 +74,10 @@ describe Ably::Rest::Channel, 'messages' do
       end
 
       context 'JSON Array' do
-        let(:data) { { 'push' => [ nil, true, false, 55, 'string', { 'Hash' => true }, ['array'] ] } }
+        # TODO: Add nil type back in
+        let(:data) { { 'push' => { 'data' => { 'key' => [ true, false, 55, 'string', { 'Hash' => true }, ['array'] ] } } } }
 
-        it 'is encoded and decoded to the same Array' do
+        it 'is encoded and decoded to the same deep multi-type object' do
           channel.publish 'event', {}, extras: data
           expect(channel.history.items.first.extras).to eql(data)
         end
