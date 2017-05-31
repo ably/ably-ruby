@@ -26,7 +26,7 @@ module Ably::Modules
 
     # Return a JSON ready object from the underlying #attributes using Ably naming conventions for keys
     # @return [Hash]
-    def as_json
+    def as_json(*args)
       attributes.as_json.reject { |key, val| val.nil? }
     end
 
