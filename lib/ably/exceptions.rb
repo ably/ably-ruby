@@ -39,7 +39,7 @@ module Ably
         message.join(' ')
       end
 
-      def as_json
+      def as_json(*)
         {
           message: "#{self.class}: #{message}",
           status: @status,
