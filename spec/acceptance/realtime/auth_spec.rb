@@ -749,11 +749,8 @@ describe Ably::Realtime::Auth, :event_machine do
       end
 
       context 'when received' do
-        # Ably in all environments other than locla will send AUTH 30 seconds before expiry
-        # We set the TTL to 33s and wait (3s window)
-        # In local env, that window is 5 seconds instead of 30 seconds
-        let(:local_offset) { ENV['ABLY_ENV'] == 'local' ? 25 : 0 }
-        let(:client_options) { default_options.merge(use_token_auth: :true, default_token_params: { ttl: 33 - local_offset }) }
+        # Ably will send AUTH 30 seconds before expiry
+        let(:client_options) { default_options.merge(use_token_auth: :true, default_token_params: { ttl: 33 }) }
 
         it 'should immediately start a new authentication process (#RTN22)' do
           client.connection.once(:connected) do
