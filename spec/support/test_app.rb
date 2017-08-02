@@ -57,7 +57,7 @@ class TestApp
   def delete
     return unless TestApp.instance_variable_get('@singleton__instance__')
 
-    url = "#{sandbox_client.endpoint}/apps/#{app_id}"
+    url = "#{app_url}/apps/#{app_id}"
 
     basic_auth = Base64.encode64(api_key).chomp
     headers    = { "Authorization" => "Basic #{basic_auth}" }
@@ -69,8 +69,12 @@ class TestApp
     ENV['ABLY_ENV'] || 'sandbox'
   end
 
+  def local?
+    environment == 'local'
+  end
+
   def create_test_app
-    url = "#{sandbox_client.endpoint}/apps"
+    url = "#{app_url}/apps"
 
     headers = {
       'Accept'       => 'application/json',
@@ -89,6 +93,14 @@ class TestApp
     sandbox_client.endpoint.host
   end
 
+  def app_url
+    if local?
+      "#{sandbox_client.endpoint}:8081"
+    else
+      sandbox_client.endpoint
+    end
+  end
+
   def realtime_host
     host.gsub(/rest/, 'realtime')
   end
@@ -101,6 +113,6 @@ class TestApp
 
   private
   def sandbox_client
-    @sandbox_client ||= Ably::Rest::Client.new(key: 'app.key:secret', tls: true, environment: environment)
+    @sandbox_client ||= Ably::Rest::Client.new(key: 'app.key:secret', tls: true, environment: environment, custom_port: local? ? 8080 : 80, custom_tls_port: local? ? 8081 : 443)
   end
 end
