@@ -2299,7 +2299,7 @@ describe Ably::Realtime::Presence, :event_machine do
                   presence_events << [presence_message.client_id, presence_message.action.to_sym]
                   if presence_message.action == :leave
                     expect(presence_message.id).to be_nil
-                    expect(presence_message.timestamp.to_f * 1000).to be_within(20).of(Time.now.to_f * 1000)
+                    expect(presence_message.timestamp.to_f * 1000).to be_within(200).of(Time.now.to_f * 1000)
                   end
                 end
 
