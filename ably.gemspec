@@ -11,7 +11,7 @@ Gem::Specification.new do |spec|
   spec.description   = %q{A Ruby client library for ably.io realtime messaging}
   spec.summary       = %q{A Ruby client library for ably.io realtime messaging implemented using EventMachine}
   spec.homepage      = 'http://github.com/ably/ably-ruby'
-  spec.license       = 'Apache 2'
+  spec.license       = 'Apache-2.0'
 
   spec.files         = `git ls-files`.split($/)
   spec.executables   = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }
