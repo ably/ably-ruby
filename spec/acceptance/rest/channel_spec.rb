@@ -439,5 +439,17 @@ describe Ably::Rest::Channel do
         expect(channel.presence).to be_a(Ably::Rest::Presence)
       end
     end
+
+    context 'consecutive publishes' do
+      let(:channel_name) { random_str }
+      let(:channel)      { client.channel(channel_name) }
+
+      # Test to prevent regression seen in Faraday
+      it 'does not result in unexpected timeouts' do
+        30.times do
+          expect(channel.publish('foo', 'bar')).to eql(true)
+        end
+      end
+    end
   end
 end
