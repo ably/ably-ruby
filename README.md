@@ -5,6 +5,14 @@
 
 A Ruby client library for [ably.io](https://www.ably.io), the realtime messaging service.
 
+## Supported platforms
+
+This SDK supports Ruby 1.9.3+.
+
+We regression-test the SDK against a selection of Ruby versions (which we update over time, but usually consists of mainstream and widely used versions). Please refer to [.travis.yml](./.travis.yml) for the set of versions that currently undergo CI testing.
+
+If you find any compatibility issues, please [do raise an issue](https://github.com/ably/ably-ruby/issues/new) in this repository or [contact Ably customer support](https://support.ably.io/) for advice.
+
 ## Documentation
 
 Visit https://www.ably.io/documentation for a complete API reference and more examples.
