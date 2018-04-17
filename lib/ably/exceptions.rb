@@ -13,9 +13,9 @@ module Ably
     # @!attribute [r] code
     #   @return [String] Ably specific error code
     class BaseAblyException < StandardError
-      attr_reader :status, :code
+      attr_reader :status, :code, :request_id
 
-      def initialize(message, status = nil, code = nil, base_exception = nil, options = {})
+      def initialize(message, status = nil, code = nil, base_exception = nil, options = {}, request_id = nil)
         super message
 
         @base_exception = base_exception
@@ -25,6 +25,7 @@ module Ably
         @code = code
         @code ||= base_exception.code if base_exception && base_exception.respond_to?(:code)
         @code ||= options[:fallback_code]
+        @request_id = request_id
       end
 
       def to_s
@@ -71,8 +72,8 @@ module Ably
 
     # Connection error from Realtime or REST service
     class ConnectionError < BaseAblyException
-      def initialize(message, status = nil, code = nil, base_exception = nil, options = {})
-        super message, status, code, base_exception, options
+      def initialize(message, status = nil, code = nil, base_exception = nil, options = {}, request_id = nil)
+        super message, status, code, base_exception, options, request_id
       end
 
       def to_s

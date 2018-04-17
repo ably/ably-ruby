@@ -471,12 +471,12 @@ module Ably
             logger.warn { "Ably::Rest::Client - Retry #{retry_count} for #{method} #{path} #{params} as initial attempt failed: #{error}" }
             retry
           end
-
+          request_id = params[:request_id] if @add_request_ids
           case error
             when Faraday::TimeoutError
               raise Ably::Exceptions::ConnectionTimeout.new(error.message, nil, 80014, error)
             when Faraday::ClientError
-              raise Ably::Exceptions::ConnectionError.new(error.message, nil, 80000, error)
+              raise Ably::Exceptions::ConnectionError.new(error.message, nil, 80000, error, {}, request_id)
             else
               raise error
           end
