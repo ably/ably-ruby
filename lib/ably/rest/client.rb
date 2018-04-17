@@ -441,7 +441,8 @@ module Ably
         retry_count        = 0
         if @add_request_ids
           params = {} if params.nil?
-          params[:request_id] = SecureRandom.hex(20)
+          random_request_id = SecureRandom.urlsafe_base64(10)
+          params[:request_id] = random_request_id
         end
 
         begin
@@ -465,12 +466,11 @@ module Ably
             logger.warn { "Ably::Rest::Client - Retry #{retry_count} for #{method} #{path} #{params} as initial attempt failed: #{error}" }
             retry
           end
-          request_id = params[:request_id] if @add_request_ids
           case error
             when Faraday::TimeoutError
-              raise Ably::Exceptions::ConnectionTimeout.new(error.message, nil, 80014, error, {}, request_id)
+              raise Ably::Exceptions::ConnectionTimeout.new(error.message, nil, 80014, error, {}, random_request_id)
             when Faraday::ClientError
-              raise Ably::Exceptions::ConnectionError.new(error.message, nil, 80000, error, {}, request_id)
+              raise Ably::Exceptions::ConnectionError.new(error.message, nil, 80000, error, {}, random_request_id)
             else
               raise error
           end
