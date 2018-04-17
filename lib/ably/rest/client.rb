@@ -439,7 +439,7 @@ module Ably
         max_retry_duration = http_defaults.fetch(:max_retry_duration)
         requested_at       = Time.now
         retry_count        = 0
-        if @add_request_ids
+        if add_request_ids
           params = {} if params.nil?
           random_request_id = SecureRandom.urlsafe_base64(10)
           params[:request_id] = random_request_id
