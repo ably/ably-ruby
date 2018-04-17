@@ -150,7 +150,7 @@ module Ably
         @custom_host      = options.delete(:rest_host)
         @custom_port      = options.delete(:port)
         @custom_tls_port  = options.delete(:tls_port)
-        @add_request_ids  = options.delete(:add_request_ids) == false ? false : true
+        @add_request_ids  = options.delete(:add_request_ids)
 
         if options[:fallback_hosts_use_default] && options[:fallback_jhosts]
           raise ArgumentError, "fallback_hosts_use_default cannot be set to trye when fallback_jhosts is also provided"
