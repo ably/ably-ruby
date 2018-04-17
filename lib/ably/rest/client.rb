@@ -83,6 +83,10 @@ module Ably
       # if empty or nil then fallback host functionality is disabled
       attr_reader :fallback_hosts
 
+      # Whethere the {Client} has to add a random identifier to the path of a request
+      # @return [Boolean]
+      attr_reader :add_request_ids
+
       # Creates a {Ably::Rest::Client Rest Client} and configures the {Ably::Auth} object for the connection.
       #
       # @param [Hash,String] options an options Hash used to configure the client and the authentication, or String with an API key or Token ID
@@ -146,6 +150,7 @@ module Ably
         @custom_host      = options.delete(:rest_host)
         @custom_port      = options.delete(:port)
         @custom_tls_port  = options.delete(:tls_port)
+        @add_request_ids  = options.delete(:add_request_ids) == false ? false : true
 
         if options[:fallback_hosts_use_default] && options[:fallback_jhosts]
           raise ArgumentError, "fallback_hosts_use_default cannot be set to trye when fallback_jhosts is also provided"
@@ -434,6 +439,16 @@ module Ably
         max_retry_duration = http_defaults.fetch(:max_retry_duration)
         requested_at       = Time.now
         retry_count        = 0
+        if @add_request_ids
+          if method == :get
+            path_with_params = Addressable::URI.new
+          else
+            path_with_params = Addressable::URI.parse(path)
+          end
+          path_with_params.query_values = {request_id: SecureRandom.hex(20)}
+          query = path_with_params.query
+          path = "#{path}?#{query}"
+        end
 
         begin
           use_fallback = can_fallback_to_alternate_ably_host? && retry_count > 0
