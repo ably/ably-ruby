@@ -440,14 +440,8 @@ module Ably
         requested_at       = Time.now
         retry_count        = 0
         if @add_request_ids
-          if method == :get
-            path_with_params = Addressable::URI.new
-          else
-            path_with_params = Addressable::URI.parse(path)
-          end
-          path_with_params.query_values = {request_id: SecureRandom.hex(20)}
-          query = path_with_params.query
-          path = "#{path}?#{query}"
+          params = {} if params.nil?
+          params[:request_id] = SecureRandom.hex(20)
         end
 
         begin
@@ -474,7 +468,7 @@ module Ably
           request_id = params[:request_id] if @add_request_ids
           case error
             when Faraday::TimeoutError
-              raise Ably::Exceptions::ConnectionTimeout.new(error.message, nil, 80014, error)
+              raise Ably::Exceptions::ConnectionTimeout.new(error.message, nil, 80014, error, {}, request_id)
             when Faraday::ClientError
               raise Ably::Exceptions::ConnectionError.new(error.message, nil, 80000, error, {}, request_id)
             else
