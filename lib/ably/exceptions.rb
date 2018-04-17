@@ -35,6 +35,7 @@ module Ably
           additional_info << "code: #{code}" if code
           additional_info << "http status: #{status}" if status
           additional_info << "base exception: #{@base_exception.class}" if @base_exception
+          additional_info << "request_id: #{request_id}" if request_id
           message << "(#{additional_info.join(', ')})"
         end
         message.join(' ')
