@@ -971,6 +971,20 @@ describe Ably::Rest::Client do
         end
       end
     end
+
+      context 'Nonce error' do
+        let(:token_params) { { nonce: "samenonce_#{protocol}", timestamp:  Time.now.to_i} }
+        it 'includes request_id in UnauthorizedRequest error due to replayed nonce' do
+          client1 = Ably::Rest::Client.new(default_options.merge(key: api_key))
+          client2 = Ably::Rest::Client.new(default_options.merge(key: api_key, add_request_ids: true))
+          expect { client1.auth.request_token(token_params) }.not_to raise_error
+          begin
+            client2.auth.request_token(token_params)
+          rescue Ably::Exceptions::UnauthorizedRequest => err
+            expect(err.request_id).to_not eql(nil)
+          end
+        end
+      end
   end
 end
 end
