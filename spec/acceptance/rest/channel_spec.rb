@@ -343,7 +343,11 @@ describe Ably::Rest::Channel do
 
         # Page 3
         expect(page_3.items.size).to eql(1)
-        expect(page_3).to be_last
+        if page_3.next
+          expect(page_3.next.items.length).to eql(0)
+        else
+          expect(page_3).to be_last
+        end
       end
 
       context 'direction' do
