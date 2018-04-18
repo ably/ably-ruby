@@ -439,6 +439,7 @@ module Ably
         max_retry_duration = http_defaults.fetch(:max_retry_duration)
         requested_at       = Time.now
         retry_count        = 0
+        request_id         = nil
         if add_request_ids
           params = {} if params.nil?
           params = params.dup
