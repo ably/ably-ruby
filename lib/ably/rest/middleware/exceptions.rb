@@ -27,7 +27,7 @@ module Ably
             end
 
             message = 'Unknown server error' if message.to_s.strip == ''
-            request_id = env.request.context[:request_id]
+            request_id = env.request.context[:request_id] if env.request.context
             exception_args = [message, error_status_code, error_code, nil, {request_id: request_id}]
 
             if env.status >= 500
