@@ -449,6 +449,7 @@ module Ably
           use_fallback = can_fallback_to_alternate_ably_host? && retry_count > 0
 
           connection(use_fallback: use_fallback).send(method, path, params) do |request|
+            request.options.context = {request_id: random_request_id} if add_request_ids
             unless options[:send_auth_header] == false
               request.headers[:authorization] = auth.auth_header
               if options[:headers]
