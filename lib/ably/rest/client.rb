@@ -470,9 +470,9 @@ module Ably
           end
           case error
             when Faraday::TimeoutError
-              raise Ably::Exceptions::ConnectionTimeout.new(error.message, nil, 80014, error, {}, random_request_id)
+              raise Ably::Exceptions::ConnectionTimeout.new(error.message, nil, 80014, error, {request_id: random_request_id})
             when Faraday::ClientError
-              raise Ably::Exceptions::ConnectionError.new(error.message, nil, 80000, error, {}, random_request_id)
+              raise Ably::Exceptions::ConnectionError.new(error.message, nil, 80000, error, {request_id: random_request_id})
             else
               raise error
           end
