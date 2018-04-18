@@ -1083,7 +1083,7 @@ describe Ably::Auth do
           expect { auth.request_token(timestamp: Time.now - 180) }.to raise_error do |error|
             expect(error).to be_a(Ably::Exceptions::UnauthorizedRequest)
             expect(error.status).to eql(401)
-            expect(error.code).to eql(40101)
+            expect(error.code).to eql(40104)
           end
         end
 
