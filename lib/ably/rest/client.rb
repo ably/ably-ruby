@@ -442,8 +442,8 @@ module Ably
         if add_request_ids
           params = {} if params.nil?
           params = params.dup
-          random_request_id = SecureRandom.urlsafe_base64(10)
-          params[:request_id] = random_request_id
+          request_id = SecureRandom.urlsafe_base64(10)
+          params[:request_id] = request_id
         end
 
         begin
@@ -452,7 +452,7 @@ module Ably
           connection(use_fallback: use_fallback).send(method, path, params) do |request|
             if add_request_ids
               request.options.context = {} if request.options.context.nil?
-              request.options.context[:request_id] = random_request_id
+              request.options.context[:request_id] = request_id
             end
             unless options[:send_auth_header] == false
               request.headers[:authorization] = auth.auth_header
@@ -473,9 +473,9 @@ module Ably
           end
           case error
             when Faraday::TimeoutError
-              raise Ably::Exceptions::ConnectionTimeout.new(error.message, nil, 80014, error, {request_id: random_request_id})
+              raise Ably::Exceptions::ConnectionTimeout.new(error.message, nil, 80014, error, { request_id: request_id })
             when Faraday::ClientError
-              raise Ably::Exceptions::ConnectionError.new(error.message, nil, 80000, error, {request_id: random_request_id})
+              raise Ably::Exceptions::ConnectionError.new(error.message, nil, 80000, error, { request_id: request_id })
             else
               raise error
           end
