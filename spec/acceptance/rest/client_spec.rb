@@ -961,6 +961,7 @@ describe Ably::Rest::Client do
     end
 
     context 'request_id generation' do
+      context 'Timeout error' do
       let(:client_options) { default_options.merge(key: api_key, http_request_timeout: 0, add_request_ids: true) }
       it 'includes request_id in ConnectionTimeout error' do
         begin
@@ -971,4 +972,5 @@ describe Ably::Rest::Client do
       end
     end
   end
+end
 end
