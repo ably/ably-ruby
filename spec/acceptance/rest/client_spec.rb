@@ -970,10 +970,10 @@ describe Ably::Rest::Client do
             rescue Ably::Exceptions::ConnectionTimeout => err
               expect(err.request_id).to_not eql(nil)
             end
+          end
         end
-      end
 
-      context 'without request_id' do
+        context 'without request_id' do
           let(:client_options) { default_options.merge(key: api_key, http_request_timeout: 0) }
           it 'does not include request_id in ConnectionTimeout error' do
             begin
