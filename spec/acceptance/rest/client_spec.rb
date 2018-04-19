@@ -547,28 +547,36 @@ describe Ably::Rest::Client do
           context 'and timing out the primary host' do
             before do
               @web_server = WEBrick::HTTPServer.new(:Port => port, :SSLEnable => false, :AccessLog => [], Logger: WEBrick::Log.new("/dev/null"))
-              @web_server.mount_proc "/channels/#{channel_name}/publish" do |req, res|
-                if req.header["host"].first.include?(primary_host)
-                  @primary_host_requested = true
-                  sleep request_timeout + 0.5
-                else
-                  @fallback_request_count ||= 0
-                  @fallback_request_count += 1
-                  if @fallback_request_count <= fail_fallback_request_count
+              request_handler = -> (result_body) do
+                proc do |req, res|
+                  host = req.header["host"].first
+                  if host.include?(primary_host)
+                    @primary_host_request_count ||= 0
+                    @primary_host_request_count += 1
                     sleep request_timeout + 0.5
                   else
-                    res.status = 200
-                    res['Content-Type'] = 'application/json'
-                    res.body = '{}'
+                    @fallback_request_count ||= 0
+                    @fallback_request_count += 1
+                    @fallback_hosts_tried ||= []
+                    @fallback_hosts_tried.push(host)
+                    if @fallback_request_count <= fail_fallback_request_count
+                      sleep request_timeout + 0.5
+                    else
+                      res.status = 200
+                      res['Content-Type'] = 'application/json'
+                      res.body = result_body
+                    end
                   end
                 end
               end
+              @web_server.mount_proc "/time", &request_handler.('[1000000000000]')
+              @web_server.mount_proc "/channels/#{channel_name}/publish", &request_handler.('{}')
               Thread.new do
                 @web_server.start
               end
             end
 
-            context 'with request timeout less than max_retry_duration' do
+            context 'POST with request timeout less than max_retry_duration' do
               let(:client_options) do
                 default_options.merge(
                   rest_host: primary_host,
@@ -577,20 +585,21 @@ describe Ably::Rest::Client do
                   port: port,
                   tls: false,
                   http_request_timeout: request_timeout,
-                  max_retry_duration: request_timeout * 3,
+                  http_max_retry_duration: request_timeout * 2.5,
                   log_level: :error
                 )
               end
               let(:fail_fallback_request_count) { 1 }
 
-              it 'tries one of the fallback hosts (#RSC15d)' do
+              it 'tries the primary host, then both fallback hosts (#RSC15d)' do
                 client.channel(channel_name).publish('event', 'data')
-                expect(@primary_host_requested).to be_truthy
+                expect(@primary_host_request_count).to eql(1)
                 expect(@fallback_request_count).to eql(2)
+                expect(@fallback_hosts_tried.uniq.length).to eql(2)
               end
             end
 
-            context 'with request timeout less than max_retry_duration' do
+            context 'GET with request timeout less than max_retry_duration' do
               let(:client_options) do
                 default_options.merge(
                   rest_host: primary_host,
@@ -599,18 +608,64 @@ describe Ably::Rest::Client do
                   port: port,
                   tls: false,
                   http_request_timeout: request_timeout,
-                  max_retry_duration: request_timeout / 2,
+                  http_max_retry_duration: request_timeout * 2.5,
+                  log_level: :error
+                )
+              end
+              let(:fail_fallback_request_count) { 1 }
+
+              it 'tries the primary host, then both fallback hosts (#RSC15d)' do
+                client.time
+                expect(@primary_host_request_count).to eql(1)
+                expect(@fallback_request_count).to eql(2)
+                expect(@fallback_hosts_tried.uniq.length).to eql(2)
+              end
+            end
+
+            context 'POST with request timeout more than max_retry_duration' do
+              let(:client_options) do
+                default_options.merge(
+                  rest_host: primary_host,
+                  fallback_hosts: fallbacks,
+                  token: 'fake.token',
+                  port: port,
+                  tls: false,
+                  http_request_timeout: request_timeout,
+                  http_max_retry_duration: request_timeout / 2,
                   log_level: :error
                 )
               end
               let(:fail_fallback_request_count) { 0 }
 
-              it 'tries one of the fallback hosts (#RSC15d)' do
-                client.channel(channel_name).publish('event', 'data')
-                expect(@primary_host_requested).to be_truthy
-                expect(@fallback_request_count).to eql(1)
+              it 'does not try any fallback hosts (#RSC15d)' do
+                expect { client.channel(channel_name).publish('event', 'data') }.to raise_error Ably::Exceptions::ConnectionTimeout
+                expect(@primary_host_request_count).to eql(1)
+                expect(@fallback_request_count).to be_nil
               end
             end
+
+            context 'GET with request timeout more than max_retry_duration' do
+              let(:client_options) do
+                default_options.merge(
+                  rest_host: primary_host,
+                  fallback_hosts: fallbacks,
+                  token: 'fake.token',
+                  port: port,
+                  tls: false,
+                  http_request_timeout: request_timeout,
+                  http_max_retry_duration: request_timeout / 2,
+                  log_level: :error
+                )
+              end
+              let(:fail_fallback_request_count) { 0 }
+
+              it 'does not try any fallback hosts (#RSC15d)' do
+                expect { client.time }.to raise_error Ably::Exceptions::ConnectionTimeout
+                expect(@primary_host_request_count).to eql(1)
+                expect(@fallback_request_count).to be_nil
+              end
+            end
+
           end
 
           context 'and failing the primary host' do
