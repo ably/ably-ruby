@@ -962,14 +962,47 @@ describe Ably::Rest::Client do
 
     context 'request_id generation' do
       context 'Timeout error' do
-        context 'with request_id' do
-          let(:client_options) { default_options.merge(key: api_key, http_request_timeout: 0, add_request_ids: true) }
-          it 'includes request_id in ConnectionTimeout error' do
-            begin
-              client.stats
-            rescue Ably::Exceptions::ConnectionTimeout => err
-              expect(err.request_id).to_not eql(nil)
+        context 'with request_id', :webmock do
+          let(:custom_logger) do
+            Class.new do
+              def initialize
+                @messages = []
+              end
+
+              [:fatal, :error, :warn, :info, :debug].each do |severity|
+                define_method severity do |message, &block|
+                  message_val = [message]
+                  message_val << block.call if block
+
+                  @messages << [severity, message_val.compact.join(' ')]
+                end
+              end
+
+              def logs
+                @messages
+              end
+
+              def level
+                1
+              end
+
+              def level=(new_level)
+              end
             end
+          end
+          let(:custom_logger_object) { custom_logger.new }
+          let(:client_options) { default_options.merge(key: api_key, logger: custom_logger_object, add_request_ids: true) }
+          before do
+            @request_id = nil
+            stub_request(:get, Addressable::Template.new("#{client.endpoint}/time{?request_id}")).with do |request|
+              @request_id = request.uri.query_values['request_id']
+            end.to_return do
+              raise Faraday::TimeoutError.new('timeout error message')
+            end
+          end
+          it 'has an error with the same request_id of the request' do
+            expect{ client.time }.to raise_error(Ably::Exceptions::ConnectionTimeout, /#{@request_id}/)
+            expect(custom_logger_object.logs.find { |severity, message| message.match(/#{@request_id}/i)} ).to_not be_nil
           end
         end
 
