@@ -343,7 +343,13 @@ describe Ably::Rest::Channel do
 
         # Page 3
         expect(page_3.items.size).to eql(1)
-        expect(page_3).to be_last
+        # This test should be deterministic but it's not.
+        # Sometimes the backend, to avoid too much work, returns a `next` link that contains empty reults.
+        if page_3.next
+          expect(page_3.next.items.length).to eql(0)
+        else
+          expect(page_3).to be_last
+        end
       end
 
       context 'direction' do
