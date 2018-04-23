@@ -40,7 +40,7 @@
 - Channel name encoding error for REST requests [\#119](https://github.com/ably/ably-ruby/pull/119) ([mattheworiordan](https://github.com/mattheworiordan))
 
 ## [v1.0.1](https://github.com/ably/ably-ruby/tree/v1.0.1) (2017-05-11)
-[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.1.0-beta.push.1...v1.0.1)
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.0.0...v1.0.1)
 
 ## [v1.1.0-beta.push.1](https://github.com/ably/ably-ruby/tree/v1.1.0-beta.push.1) (2017-04-25)
 [Full Changelog](https://github.com/ably/ably-ruby/compare/v1.0.0...v1.1.0-beta.push.1)
