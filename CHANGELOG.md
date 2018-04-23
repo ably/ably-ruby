@@ -1,20 +1,50 @@
 # Change Log
 
-## [v1.0.2](https://github.com/ably/ably-ruby/tree/v1.0.2)
+## [v1.0.5](https://github.com/ably/ably-ruby/tree/v1.0.5)
 
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.0.4...v1.0.5)
+
+**Implemented enhancements:**
+
+- Add Ruby 2.1 and 2.3 to Travis tests [\#129](https://github.com/ably/ably-ruby/issues/129)
+- Add supported platforms to README file [\#128](https://github.com/ably/ably-ruby/issues/128)
+- Add Ruby 2.1 and 2.3 to Travis tests [\#130](https://github.com/ably/ably-ruby/pull/130) ([funkyboy](https://github.com/funkyboy))
+
+**Closed issues:**
+
+- Cannot get realtime to work [\#127](https://github.com/ably/ably-ruby/issues/127)
+
+**Merged pull requests:**
+
+- Improve pagination history test [\#138](https://github.com/ably/ably-ruby/pull/138) ([funkyboy](https://github.com/funkyboy))
+- Fix failing auth test [\#135](https://github.com/ably/ably-ruby/pull/135) ([funkyboy](https://github.com/funkyboy))
+- Add submodule instructions to Contributing section [\#134](https://github.com/ably/ably-ruby/pull/134) ([funkyboy](https://github.com/funkyboy))
+- Add request\_id option to client [\#133](https://github.com/ably/ably-ruby/pull/133) ([funkyboy](https://github.com/funkyboy))
+- Update README with supported platforms [\#131](https://github.com/ably/ably-ruby/pull/131) ([funkyboy](https://github.com/funkyboy))
+
+## [v1.0.4](https://github.com/ably/ably-ruby/tree/v1.0.4) (2017-05-31)
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.0.3...v1.0.4)
+
+## [v1.0.3](https://github.com/ably/ably-ruby/tree/v1.0.3) (2017-05-31)
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.0.2...v1.0.3)
+
+## [v1.0.2](https://github.com/ably/ably-ruby/tree/v1.0.2) (2017-05-16)
 [Full Changelog](https://github.com/ably/ably-ruby/compare/v1.0.1...v1.0.2)
 
 **Fixed bugs:**
 
 - Reconnect following disconnection is hitting a 403 error [\#117](https://github.com/ably/ably-ruby/issues/117)
-- [Fallback hosts were used upon any disconnection as opposed to only when the primary host is unavailable](https://github.com/ably/ably-ruby/pull/120)
 
 **Merged pull requests:**
 
 - Fallback fixes [\#120](https://github.com/ably/ably-ruby/pull/120) ([mattheworiordan](https://github.com/mattheworiordan))
+- Channel name encoding error for REST requests [\#119](https://github.com/ably/ably-ruby/pull/119) ([mattheworiordan](https://github.com/mattheworiordan))
 
 ## [v1.0.1](https://github.com/ably/ably-ruby/tree/v1.0.1) (2017-05-11)
-[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.0.0...v1.0.1)
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.1.0-beta.push.1...v1.0.1)
+
+## [v1.1.0-beta.push.1](https://github.com/ably/ably-ruby/tree/v1.1.0-beta.push.1) (2017-04-25)
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.0.0...v1.1.0-beta.push.1)
 
 ## [v1.0.0](https://github.com/ably/ably-ruby/tree/v1.0.0) (2017-03-07)
 [Full Changelog](https://github.com/ably/ably-ruby/compare/v0.8.15...v1.0.0)
