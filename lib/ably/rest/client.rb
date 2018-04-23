@@ -441,8 +441,11 @@ module Ably
         retry_count        = 0
         request_id         = nil
         if add_request_ids
-          params = {} if params.nil?
-          params = params.dup
+          params = if params.nil?
+            {}
+          else
+            params.dup
+          end
           request_id = SecureRandom.urlsafe_base64(10)
           params[:request_id] = request_id
         end
