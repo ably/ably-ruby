@@ -6,7 +6,6 @@
 
 **Implemented enhancements:**
 
-- Add Ruby 2.1 and 2.3 to Travis tests [\#129](https://github.com/ably/ably-ruby/issues/129)
 - Add supported platforms to README file [\#128](https://github.com/ably/ably-ruby/issues/128)
 - Add Ruby 2.1 and 2.3 to Travis tests [\#130](https://github.com/ably/ably-ruby/pull/130) ([funkyboy](https://github.com/funkyboy))
 
