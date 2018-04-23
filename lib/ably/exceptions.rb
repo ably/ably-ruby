@@ -13,7 +13,7 @@ module Ably
     # @!attribute [r] code
     #   @return [String] Ably specific error code
     class BaseAblyException < StandardError
-      attr_reader :status, :code
+      attr_reader :status, :code, :request_id
 
       def initialize(message, status = nil, code = nil, base_exception = nil, options = {})
         super message
@@ -25,6 +25,7 @@ module Ably
         @code = code
         @code ||= base_exception.code if base_exception && base_exception.respond_to?(:code)
         @code ||= options[:fallback_code]
+        @request_id ||= options[:request_id]
       end
 
       def to_s
@@ -34,6 +35,7 @@ module Ably
           additional_info << "code: #{code}" if code
           additional_info << "http status: #{status}" if status
           additional_info << "base exception: #{@base_exception.class}" if @base_exception
+          additional_info << "request_id: #{request_id}" if request_id
           message << "(#{additional_info.join(', ')})"
         end
         message.join(' ')

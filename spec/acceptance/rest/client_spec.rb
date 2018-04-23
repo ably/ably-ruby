@@ -959,5 +959,100 @@ describe Ably::Rest::Client do
         end
       end
     end
+
+    context 'request_id generation' do
+      context 'Timeout error' do
+        context 'with request_id', :webmock do
+          let(:custom_logger) do
+            Class.new do
+              def initialize
+                @messages = []
+              end
+
+              [:fatal, :error, :warn, :info, :debug].each do |severity|
+                define_method severity do |message, &block|
+                  message_val = [message]
+                  message_val << block.call if block
+
+                  @messages << [severity, message_val.compact.join(' ')]
+                end
+              end
+
+              def logs
+                @messages
+              end
+
+              def level
+                1
+              end
+
+              def level=(new_level)
+              end
+            end
+          end
+          let(:custom_logger_object) { custom_logger.new }
+          let(:client_options) { default_options.merge(key: api_key, logger: custom_logger_object, add_request_ids: true) }
+          before do
+            @request_id = nil
+            stub_request(:get, Addressable::Template.new("#{client.endpoint}/time{?request_id}")).with do |request|
+              @request_id = request.uri.query_values['request_id']
+            end.to_return do
+              raise Faraday::TimeoutError.new('timeout error message')
+            end
+          end
+          it 'has an error with the same request_id of the request' do
+            expect{ client.time }.to raise_error(Ably::Exceptions::ConnectionTimeout, /#{@request_id}/)
+            expect(custom_logger_object.logs.find { |severity, message| message.match(/#{@request_id}/i)} ).to_not be_nil
+          end
+        end
+
+        context 'when specifying fallback hosts', :webmock do
+          let(:client_options) { { key: api_key, fallback_hosts_use_default: true, add_request_ids: true } }
+          let(:requests)       { [] }
+          before do
+            @request_id = nil
+            hosts = Ably::FALLBACK_HOSTS + ['rest.ably.io']
+            hosts.each do |host|
+              stub_request(:get, Addressable::Template.new("https://#{host.downcase}/time{?request_id}")).with do |request|
+                @request_id = request.uri.query_values['request_id']
+                requests << @request_id
+              end.to_return do
+                raise Faraday::TimeoutError.new('timeout error message')
+              end
+            end
+          end
+          it 'request_id is the same across retries' do
+            expect{ client.time }.to raise_error(Ably::Exceptions::ConnectionTimeout, /#{@request_id}/)
+            expect(requests.uniq.count).to eql(1)
+            expect(requests.uniq.first).to eql(@request_id)
+          end
+        end
+
+        context 'without request_id' do
+          let(:client_options) { default_options.merge(key: api_key, http_request_timeout: 0) }
+          it 'does not include request_id in ConnectionTimeout error' do
+            begin
+              client.stats
+            rescue Ably::Exceptions::ConnectionTimeout => err
+              expect(err.request_id).to eql(nil)
+            end
+          end
+        end
+      end 
+
+      context 'UnauthorizedRequest nonce error' do
+        let(:token_params) { { nonce: "samenonce_#{protocol}", timestamp:  Time.now.to_i } }
+        it 'includes request_id in UnauthorizedRequest error due to replayed nonce' do
+          client1 = Ably::Rest::Client.new(default_options.merge(key: api_key))
+          client2 = Ably::Rest::Client.new(default_options.merge(key: api_key, add_request_ids: true))
+          expect { client1.auth.request_token(token_params) }.not_to raise_error
+          begin
+            client2.auth.request_token(token_params)
+          rescue Ably::Exceptions::UnauthorizedRequest => err
+            expect(err.request_id).to_not eql(nil)
+          end
+        end
+      end
+    end
   end
 end

@@ -50,4 +50,11 @@ describe Ably::Rest::Client do
       end
     end
   end
+
+  context 'request_id generation' do
+    let(:client_options) { { key: 'appid.keyuid:keysecret', add_request_ids: true } }
+    it 'includes request_id in URL' do
+      expect(subject.add_request_ids).to eql(true)
+    end
+  end
 end
