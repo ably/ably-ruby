@@ -1006,6 +1006,28 @@ describe Ably::Rest::Client do
           end
         end
 
+        context 'when specifying fallback hosts', :webmock do
+          let(:client_options) { { key: api_key, fallback_hosts_use_default: true, add_request_ids: true } }
+          let(:requests)       { [] }
+          before do
+            @request_id = nil
+            hosts = Ably::FALLBACK_HOSTS + ['rest.ably.io']
+            hosts.each do |host|
+              stub_request(:get, Addressable::Template.new("https://#{host.downcase}/time{?request_id}")).with do |request|
+                @request_id = request.uri.query_values['request_id']
+                requests << @request_id
+              end.to_return do
+                raise Faraday::TimeoutError.new('timeout error message')
+              end
+            end
+          end
+          it 'request_id is the same across retries' do
+            expect{ client.time }.to raise_error(Ably::Exceptions::ConnectionTimeout, /#{@request_id}/)
+            expect(requests.uniq.count).to eql(1)
+            expect(requests.uniq.first).to eql(@request_id)
+          end
+        end
+
         context 'without request_id' do
           let(:client_options) { default_options.merge(key: api_key, http_request_timeout: 0) }
           it 'does not include request_id in ConnectionTimeout error' do
@@ -1016,7 +1038,7 @@ describe Ably::Rest::Client do
             end
           end
         end
-      end
+      end 
 
       context 'UnauthorizedRequest nonce error' do
         let(:token_params) { { nonce: "samenonce_#{protocol}", timestamp:  Time.now.to_i } }
