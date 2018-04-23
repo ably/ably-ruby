@@ -479,6 +479,7 @@ module Ably
             when Faraday::TimeoutError
               raise Ably::Exceptions::ConnectionTimeout.new(error.message, nil, 80014, error, { request_id: request_id })
             when Faraday::ClientError
+              # request_id is also available in the request context
               raise Ably::Exceptions::ConnectionError.new(error.message, nil, 80000, error, { request_id: request_id })
             else
               raise error
