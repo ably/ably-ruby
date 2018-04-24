@@ -69,9 +69,9 @@ module Ably::Models
 
       set_attributes_object attributes
 
-      client_id     = ensure_utf_8 :client_id,     client_id,     allow_nil: true
-      connection_id = ensure_utf_8 :connection_id, connection_id, allow_nil: true
-      encoding      = ensure_utf_8 :encoding,      encoding,      allow_nil: true
+      client_id     = ensure_utf_8(:client_id,     client_id,     allow_nil: true)
+      connection_id = ensure_utf_8(:connection_id, connection_id, allow_nil: true)
+      encoding      = ensure_utf_8(:encoding,      encoding,      allow_nil: true)
     end
 
     %w( client_id data encoding ).each do |attribute|

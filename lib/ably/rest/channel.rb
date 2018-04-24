@@ -22,7 +22,7 @@ module Ably
       # @option channel_options [Hash,Ably::Models::CipherParams]   :cipher   A hash of options or a {Ably::Models::CipherParams} to configure the encryption. *:key* is required, all other options are optional.  See {Ably::Util::Crypto#initialize} for a list of +:cipher+ options
       #
       def initialize(client, name, channel_options = {})
-        name = ensure_utf_8 :name, name
+        name = ensure_utf_8(:name, name)
 
         update_options channel_options
         @client  = client
@@ -58,7 +58,7 @@ module Ably
         messages = if name.kind_of?(Enumerable)
           name
         else
-          name = ensure_utf_8 :name, name, allow_nil: true
+          name = ensure_utf_8(:name, name, allow_nil: true)
           ensure_supported_payload data
           [{ name: name, data: data }.merge(attributes)]
         end
