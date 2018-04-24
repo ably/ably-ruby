@@ -77,7 +77,13 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
             limit.times do |index|
               expect(next_page.items[index].data).to eql("history#{index + limit}")
             end
-            expect(next_page).to be_last
+            if next_page.has_next?
+              next_page.next do |last|
+                expect(last.items.length).to eql(0)
+              end
+            else
+              expect(next_page).to be_last
+            end
 
             stop_reactor
           end
