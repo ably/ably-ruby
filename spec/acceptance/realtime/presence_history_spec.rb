@@ -85,7 +85,11 @@ describe Ably::Realtime::Presence, 'history', :event_machine do
                 presence_page.next do |presence_next_page|
                   expect(presence_next_page.items.count).to eql(5)
                   expect(presence_next_page.items.map(&:data).uniq.first).to eql(presence_data_before_attach)
-                  if !presence_next_page.has_next?
+                  if presence_next_page.has_next?
+                    presence_next_page.next do |last|
+                      expect(last.items.count).to eql(0)
+                    end
+                  else
                     expect(presence_next_page).to be_last
                   end
                   stop_reactor
