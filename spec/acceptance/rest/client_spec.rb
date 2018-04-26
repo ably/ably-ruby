@@ -970,8 +970,8 @@ describe Ably::Rest::Client do
               end
 
               [:fatal, :error, :warn, :info, :debug].each do |severity|
-                define_method severity do |message, &block|
-                  message_val = [message]
+                define_method severity do |*args, &block|
+                  message_val = [args]
                   message_val << block.call if block
 
                   @messages << [severity, message_val.compact.join(' ')]
