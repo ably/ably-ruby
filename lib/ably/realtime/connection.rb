@@ -615,6 +615,8 @@ module Ably
       def connection_state_available?
         return true if connected?
 
+        return false if time_since_connection_confirmed_alive? > connection_state_ttl
+
         connected_last = state_history.reverse.find { |connected| connected.fetch(:state) == :connected }
         if connected_last.nil? || (connected_last.fetch(:transitioned_at) < Time.now - connection_state_ttl)
           false

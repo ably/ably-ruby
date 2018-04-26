@@ -514,6 +514,173 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
 
+        context 'connection state freshness is monitored' do
+          it 'resumes connections when disconnected within the connection_state_ttl period (#RTN15g)' do
+            connection.once(:connected) do
+              connection_id = connection.id
+              reconnected_with_resume = false
+
+              # Make sure the next connect has the resume param
+              allow(EventMachine).to receive(:connect).and_wrap_original do |original, *args, &block|
+                url = args[4]
+                uri = URI.parse(url)
+                expect(CGI::parse(uri.query)['resume'][0]).to_not be_empty
+                reconnected_with_resume = true
+                original.call(*args, &block)
+              end
+
+              connection.once(:disconnected) do
+                disconnected_at = Time.now
+
+                connection.once(:connecting) do
+                  expect(Time.now.to_f - disconnected_at.to_f).to be < connection.connection_state_ttl
+                  connection.once(:connected) do |state_change|
+                    expect(connection.id).to eql(connection_id)
+                    expect(reconnected_with_resume).to be_truthy
+                    stop_reactor
+                  end
+                end
+              end
+
+              connection.transport.unbind
+            end
+          end
+
+          context 'when connection_state_ttl period has passed since being disconnected' do
+            let(:client_options) do
+              default_options.merge(
+                disconnected_retry_timeout: 4,
+                suspended_retry_timeout:    8,
+                max_connection_state_ttl:   2,
+              )
+            end
+
+            it 'clears the local connection state and uses a new connection when the connection_state_ttl period has passed (#RTN15g)' do
+              connection.once(:connected) do
+                connection_id = connection.id
+                resumed_with_clean_connection = false
+
+                connection.once(:disconnected) do
+                  disconnected_at = Time.now
+
+                  connection.once(:connecting) do
+                    connection.once(:disconnected) do
+                      # Make sure the next connect does not have the resume param
+                      allow(EventMachine).to receive(:connect).and_wrap_original do |original, *args, &block|
+                        url = args[4]
+                        uri = URI.parse(url)
+                        expect(CGI::parse(uri.query)['resume']).to be_empty
+                        resumed_with_clean_connection = true
+                        original.call(*args, &block)
+                      end
+
+                      connection.once(:connecting) do
+                        expect(Time.now.to_f - disconnected_at.to_f).to be > connection.connection_state_ttl
+                        connection.once(:connected) do |state_change|
+                          expect(connection.id).to_not eql(connection_id)
+                          expect(resumed_with_clean_connection).to be_truthy
+                          stop_reactor
+                        end
+                      end
+                    end
+
+                    # Fail the connection immediately again so that it waits until the next retry
+                    EventMachine.next_tick { connection.transport.unbind }
+                  end
+                end
+
+                connection.transport.unbind
+              end
+            end
+          end
+
+          context 'when connection_state_ttl period has passed since last activity on the connection' do
+            let(:client_options) do
+              default_options.merge(
+                max_connection_state_ttl: 2,
+              )
+            end
+
+            it 'clears the local connection state and uses a new connection when the connection_state_ttl period has passed since last activity (#RTN15g1, #RTN15g2)' do
+              expect(connection.connection_state_ttl).to eql(client_options.fetch(:max_connection_state_ttl))
+
+              connection.once(:connected) do
+                connection_id = connection.id
+                resumed_with_clean_connection = false
+
+                connection.once(:disconnected) do
+                  disconnected_at = Time.now
+
+                  allow(connection).to receive(:time_since_connection_confirmed_alive?).and_return(connection.connection_state_ttl + 1)
+
+                  # Make sure the next connect does not have the resume param
+                  allow(EventMachine).to receive(:connect).and_wrap_original do |original, *args, &block|
+                    url = args[4]
+                    uri = URI.parse(url)
+                    expect(CGI::parse(uri.query)['resume']).to be_empty
+                    resumed_with_clean_connection = true
+                    original.call(*args, &block)
+                  end
+
+                  connection.once(:connecting) do
+                    connection.once(:connected) do |state_change|
+                      expect(connection.id).to_not eql(connection_id)
+                      expect(resumed_with_clean_connection).to be_truthy
+                      stop_reactor
+                    end
+                  end
+                end
+
+                connection.transport.unbind
+              end
+            end
+
+            it 'still reattaches the channels automatically following a new connection being established (#RTN15g2)' do
+              connection.once(:connected) do
+                connection_id = connection.id
+                resumed_with_clean_connection = false
+                channel_emitted_an_attached = false
+
+                channel.attach do
+                  channel.once(:attached) do |channel_state_change|
+                    expect(channel_state_change.resumed).to be_falsey
+                    channel_emitted_an_attached = true
+                  end
+
+                  connection.once(:disconnected) do
+                    disconnected_at = Time.now
+
+                    allow(connection).to receive(:time_since_connection_confirmed_alive?).and_return(connection.connection_state_ttl + 1)
+
+                    # Make sure the next connect does not have the resume param
+                    allow(EventMachine).to receive(:connect).and_wrap_original do |original, *args, &block|
+                      url = args[4]
+                      uri = URI.parse(url)
+                      expect(CGI::parse(uri.query)['resume']).to be_empty
+                      resumed_with_clean_connection = true
+                      original.call(*args, &block)
+                    end
+
+                    connection.once(:connecting) do
+                      connection.once(:connected) do |state_change|
+                        expect(connection.id).to_not eql(connection_id)
+                        expect(resumed_with_clean_connection).to be_truthy
+
+                        wait_until(proc { channel.attached? }) do
+                          expect(channel_emitted_an_attached).to be_truthy
+                          stop_reactor
+                        end
+                      end
+                    end
+                  end
+
+                  connection.transport.unbind
+                end
+              end
+            end
+          end
+        end
+
         context 'and subsequently fails to reconnect' do
           let(:retry_every) { 1.5 }
 
