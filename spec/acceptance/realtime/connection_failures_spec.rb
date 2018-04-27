@@ -601,7 +601,41 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               )
             end
 
-            it 'clears the local connection state and uses a new connection when the connection_state_ttl period has passed since last activity (#RTN15g1, #RTN15g2)' do
+            it 'does not clear the local connection state when the connection_state_ttl period has passed since last activity, but the idle timeout has not passed (#RTN15g1, #RTN15g2)' do
+              expect(connection.connection_state_ttl).to eql(client_options.fetch(:max_connection_state_ttl))
+
+              connection.once(:connected) do
+                connection_id = connection.id
+                resumed_connection = false
+
+                connection.once(:disconnected) do
+                  disconnected_at = Time.now
+
+                  allow(connection).to receive(:time_since_connection_confirmed_alive?).and_return(connection.connection_state_ttl + 1)
+
+                  # Make sure the next connect does not have the resume param
+                  allow(EventMachine).to receive(:connect).and_wrap_original do |original, *args, &block|
+                    url = args[4]
+                    uri = URI.parse(url)
+                    expect(CGI::parse(uri.query)['resume']).to_not be_empty
+                    resumed_connection = true
+                    original.call(*args, &block)
+                  end
+
+                  connection.once(:connecting) do
+                    connection.once(:connected) do |state_change|
+                      expect(connection.id).to eql(connection_id)
+                      expect(resumed_connection).to be_truthy
+                      stop_reactor
+                    end
+                  end
+                end
+
+                connection.transport.unbind
+              end
+            end
+
+            it 'clears the local connection state and uses a new connection when the connection_state_ttl + max_idle_interval period has passed since last activity (#RTN15g1, #RTN15g2)' do
               expect(connection.connection_state_ttl).to eql(client_options.fetch(:max_connection_state_ttl))
 
               connection.once(:connected) do
@@ -611,7 +645,8 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                 connection.once(:disconnected) do
                   disconnected_at = Time.now
 
-                  allow(connection).to receive(:time_since_connection_confirmed_alive?).and_return(connection.connection_state_ttl + 1)
+                  pseudo_time_passed = connection.connection_state_ttl + connection.details.max_idle_interval + 1
+                  allow(connection).to receive(:time_since_connection_confirmed_alive?).and_return(pseudo_time_passed)
 
                   # Make sure the next connect does not have the resume param
                   allow(EventMachine).to receive(:connect).and_wrap_original do |original, *args, &block|
@@ -650,7 +685,8 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                   connection.once(:disconnected) do
                     disconnected_at = Time.now
 
-                    allow(connection).to receive(:time_since_connection_confirmed_alive?).and_return(connection.connection_state_ttl + 1)
+                    pseudo_time_passed = connection.connection_state_ttl + connection.details.max_idle_interval + 1
+                    allow(connection).to receive(:time_since_connection_confirmed_alive?).and_return(pseudo_time_passed)
 
                     # Make sure the next connect does not have the resume param
                     allow(EventMachine).to receive(:connect).and_wrap_original do |original, *args, &block|
