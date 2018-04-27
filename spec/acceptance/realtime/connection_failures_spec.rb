@@ -574,6 +574,8 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                         original.call(*args, &block)
                       end
 
+                      allow(connection.details).to receive(:max_idle_interval).and_return(0)
+
                       connection.__incoming_protocol_msgbus__.plugin_listeners
 
                       connection.once(:connecting) do
