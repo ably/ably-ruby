@@ -575,7 +575,6 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                       end
 
                       allow(connection.details).to receive(:max_idle_interval).and_return(0)
-
                       connection.__incoming_protocol_msgbus__.plugin_listeners
 
                       connection.once(:connecting) do
@@ -588,11 +587,13 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                       end
                     end
 
-                    # Fail the connection immediately again so that it waits until the next retry
-                    wait_until(proc { connection.transport }, aggressive: true) do
+                    # Disconnect the transport and trigger a new disconnected state
+                    wait_until(proc { connection.transport }) do
                       connection.transport.unbind
                     end
                   end
+
+                  connection.__incoming_protocol_msgbus__.unplug_listeners
                 end
 
                 connection.transport.unbind

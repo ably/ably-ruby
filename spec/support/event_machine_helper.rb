@@ -88,20 +88,14 @@ module RSpec
       end
     end
 
-    def wait_until(condition_block, options = {}, &block)
+    def wait_until(condition_block, &block)
       raise ArgumentError, 'Block required' unless block_given?
 
       if condition_block.call
         yield
       else
-        if options[:aggressive]
-          ::EventMachine.next_tick do
-            wait_until condition_block, &block
-          end
-        else
-          ::EventMachine.add_timer(0.1) do
-            wait_until condition_block, &block
-          end
+        ::EventMachine.add_timer(0.1) do
+          wait_until condition_block, &block
         end
       end
     end
