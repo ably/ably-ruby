@@ -585,7 +585,9 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                     end
 
                     # Fail the connection immediately again so that it waits until the next retry
-                    EventMachine.next_tick { connection.transport.unbind }
+                    wait_until(proc { connection.transport }, aggressive: true) do
+                      connection.transport.unbind
+                    end
                   end
                 end
 
