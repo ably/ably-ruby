@@ -22,6 +22,19 @@ describe Ably::Rest::Channel do
       end
     end
 
+    context 'as frozen UTF_8 string' do
+      let(:channel_name) { 'unique'.freeze }
+      let(:encoding) { Encoding::UTF_8 }
+
+      it 'is permitted' do
+        expect(subject.name).to eql(channel_name)
+      end
+
+      it 'remains as UTF-8' do
+        expect(subject.name.encoding).to eql(encoding)
+      end
+    end
+
     context 'as SHIFT_JIS string' do
       let(:encoding) { Encoding::SHIFT_JIS }
 
@@ -67,6 +80,15 @@ describe Ably::Rest::Channel do
     let(:encoded_value) { random_str.encode(encoding) }
 
     context 'as UTF_8 string' do
+      let(:encoding) { Encoding::UTF_8 }
+
+      it 'is permitted' do
+        expect(subject.publish(encoded_value, 'data')).to eql(true)
+      end
+    end
+
+    context 'as frozen UTF_8 string' do
+      let(:encoded_value) { 'unique'.freeze }
       let(:encoding) { Encoding::UTF_8 }
 
       it 'is permitted' do

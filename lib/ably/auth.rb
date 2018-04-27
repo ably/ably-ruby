@@ -82,7 +82,7 @@ module Ably
 
       if has_client_id? && !token_creatable_externally? && !token_option
         raise ArgumentError, 'client_id cannot be provided without a complete API key or means to authenticate. An API key is needed to automatically authenticate with Ably and obtain a token' unless api_key_present?
-        ensure_utf_8 :client_id, client_id
+        @client_id = ensure_utf_8(:client_id, client_id) if client_id
       end
 
       # If a token details object or token string is provided in the initializer

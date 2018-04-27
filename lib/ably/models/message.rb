@@ -62,9 +62,11 @@ module Ably::Models
 
       set_attributes_object attributes
 
-      ensure_utf_8 :name,      name,      allow_nil: true
-      ensure_utf_8 :client_id, client_id, allow_nil: true
-      ensure_utf_8 :encoding,  encoding,  allow_nil: true
+      self.attributes[:name] = ensure_utf_8(:name, name, allow_nil: true) if name
+      self.attributes[:client_id] = ensure_utf_8(:client_id, client_id, allow_nil: true) if client_id
+      self.attributes[:encoding] = ensure_utf_8(:encoding,  encoding,  allow_nil: true) if encoding
+
+      self.attributes.freeze
     end
 
     %w( name client_id encoding ).each do |attribute|
@@ -145,7 +147,7 @@ module Ably::Models
     end
 
     def set_attributes_object(new_attributes)
-      @attributes = IdiomaticRubyWrapper(new_attributes.clone.freeze, stop_at: [:data, :extras])
+      @attributes = IdiomaticRubyWrapper(new_attributes.clone, stop_at: [:data, :extras])
     end
 
     def logger
