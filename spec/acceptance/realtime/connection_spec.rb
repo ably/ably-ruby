@@ -1176,24 +1176,18 @@ describe Ably::Realtime::Connection, :event_machine do
       end
 
       context "opening a new connection using a recently disconnected connection's #recovery_key" do
-        context 'connection#id and connection#key after recovery' do
-          it 'remains the same for id and party for key' do
-            connection_key_consistent_part_regex = /.*?!([\w-]{5,})-\w+/
+        context 'connection#id after recovery' do
+          it 'remains the same' do
             previous_connection_id  = nil
-            previous_connection_key = nil
 
             connection.once(:connected) do
               previous_connection_id  = connection.id
-              previous_connection_key = connection.key
               connection.transition_state_machine! :failed
             end
 
             connection.once(:failed) do
               recover_client = auto_close Ably::Realtime::Client.new(default_options.merge(recover: client.connection.recovery_key))
               recover_client.connection.on(:connected) do
-                expect(recover_client.connection.key[connection_key_consistent_part_regex, 1]).to_not be_nil
-                expect(recover_client.connection.key[connection_key_consistent_part_regex, 1]).to eql(
-                  previous_connection_key[connection_key_consistent_part_regex, 1])
                 expect(recover_client.connection.id).to eql(previous_connection_id)
                 stop_reactor
               end
