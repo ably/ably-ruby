@@ -574,6 +574,8 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                         original.call(*args, &block)
                       end
 
+                      connection.__incoming_protocol_msgbus__.plugin_listeners
+
                       connection.once(:connecting) do
                         expect(Time.now.to_f - disconnected_at.to_f).to be > connection.connection_state_ttl
                         connection.once(:connected) do |state_change|
@@ -584,11 +586,13 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                       end
                     end
 
-                    # Fail the connection immediately again so that it waits until the next retry
-                    wait_until(proc { connection.transport }, aggressive: true) do
+                    # Disconnect the transport and trigger a new disconnected state
+                    wait_until(proc { connection.transport }) do
                       connection.transport.unbind
                     end
                   end
+
+                  connection.__incoming_protocol_msgbus__.unplug_listeners
                 end
 
                 connection.transport.unbind
