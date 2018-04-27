@@ -56,6 +56,7 @@ module Ably::Realtime
         end
 
         update_connection_recovery_info protocol_message
+        connection.set_connection_confirmed_alive
 
         case protocol_message.action
           when ACTION.Heartbeat
@@ -75,8 +76,10 @@ module Ably::Realtime
             elsif connection.connected?
               logger.debug { "Updated CONNECTED ProtocolMessage received (whilst connected)" }
               process_connected_update_message protocol_message
+              connection.set_connection_confirmed_alive # Connection protocol messages can change liveness settings such as max_idle_interval
             else
               process_connected_message protocol_message
+              connection.set_connection_confirmed_alive # Connection protocol messages can change liveness settings such as max_idle_interval
             end
 
           when ACTION.Disconnect, ACTION.Disconnected
@@ -132,8 +135,6 @@ module Ably::Realtime
             error = Ably::Exceptions::ProtocolError.new("Protocol Message Action #{protocol_message.action} is unsupported by this MessageDispatcher", 400, 80013)
             logger.fatal error.message
         end
-
-        connection.set_connection_confirmed_alive
       end
 
       def dispatch_channel_error(protocol_message)
