@@ -1146,16 +1146,20 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               previous_connection_id  = connection.id
               previous_connection_key = connection.key
 
-              five_minutes_time = Time.now + 5 * 60
-              allow(Time).to receive(:now) { five_minutes_time }
-
               connection.once(:connected) do
                 expect(connection.key).to_not eql(previous_connection_key)
                 expect(connection.id).to_not eql(previous_connection_id)
                 stop_reactor
               end
 
-              kill_connection_transport_and_prevent_valid_resume
+              # Wait until next tick before stubbing otherwise liveness test may
+              # record the stubbed last contact time as the future time
+              EventMachine.next_tick do
+                five_minutes_time = Time.now + 5 * 60
+                allow(Time).to receive(:now) { five_minutes_time }
+
+                kill_connection_transport_and_prevent_valid_resume
+              end
             end
           end
         end
