@@ -569,8 +569,8 @@ describe Ably::Rest::Client do
                   end
                 end
               end
-              @web_server.mount_proc "/time", &request_handler.('[1000000000000]')
-              @web_server.mount_proc "/channels/#{channel_name}/publish", &request_handler.('{}')
+              @web_server.mount_proc "/time", &request_handler.call('[1000000000000]')
+              @web_server.mount_proc "/channels/#{channel_name}/publish", &request_handler.call('{}')
               Thread.new do
                 @web_server.start
               end
