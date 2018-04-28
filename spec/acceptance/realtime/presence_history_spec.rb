@@ -75,7 +75,10 @@ describe Ably::Realtime::Presence, 'history', :event_machine do
         let(:client_one)     { auto_close Ably::Realtime::Client.new(default_options.merge(auth_callback: wildcard_token)) }
         let(:client_two)     { auto_close Ably::Realtime::Client.new(default_options.merge(auth_callback: wildcard_token)) }
 
-        it 'retrieves two pages of messages before channel was attached' do
+        # TODO: Remove retry logic when presence history regression fixed
+        #       https://github.com/ably/realtime/issues/1707
+        #
+        it 'retrieves two pages of messages before channel was attached', retry: 10, :retry_wait => 5 do
           when_all(*10.times.map { |i| presence_client_two.enter_client("client:#{i}", presence_data_before_attach) }) do
             when_all(*10.times.map { |i| presence_client_one.enter_client("client:#{i}", presence_data_after_attach) }) do
               presence_client_one.history(until_attach: true, limit: 5) do |presence_page|
