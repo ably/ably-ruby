@@ -547,8 +547,8 @@ describe Ably::Rest::Client do
           context 'and timing out the primary host' do
             before do
               @web_server = WEBrick::HTTPServer.new(:Port => port, :SSLEnable => false, :AccessLog => [], Logger: WEBrick::Log.new("/dev/null"))
-              request_handler = -> (result_body) do
-                proc do |req, res|
+            request_handler = lambda do |result_body|
+                lambda do |req, res|
                   host = req.header["host"].first
                   if host.include?(primary_host)
                     @primary_host_request_count ||= 0
