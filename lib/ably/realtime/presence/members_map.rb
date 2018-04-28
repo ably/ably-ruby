@@ -110,13 +110,13 @@ module Ably::Realtime
           # Must be defined before subsequent procs reference this callback
           reset_callbacks = nil
 
-            reset_callbacks
           in_sync_callback = lambda do
+            reset_callbacks.call if reset_callbacks
             result_block.call
           end
 
-            reset_callbacks
           failed_callback = lambda do |error|
+            reset_callbacks.call if reset_callbacks
             deferrable.fail error
           end
 
