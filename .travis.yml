@@ -13,7 +13,7 @@ rvm:
   - 2.6.1
   - 2.6.2
   - 2.6.3
-script: spec/run_parallel_tests
+script: spec/run.sh
 notifications:
   slack:
     secure: Xe8MwDcV2C8XLGk6O6Co31LpQiRSxsmS7Toy5vM7rHds5fnVRBNn5iX6Q5mXMdLOlnsMhjKLt7zl4fsBOZv+siQ+Us0omZSIYpXCYSCIj8nofReF0Lj8M4oa6lFSL5OuygO7PH+wLKTRxQURGZ6Pi1nHU+RE5izRmsewQHkhtY0=
