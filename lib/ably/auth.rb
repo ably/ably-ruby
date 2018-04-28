@@ -119,7 +119,7 @@ module Ably
     #    token_details = client.auth.authorize
     #
     #    # will use token request from block to authorize if not already authorized
-    #    token_details = client.auth.authorize {}, auth_callback: Proc.new do
+    #    token_details = client.auth.authorize {}, auth_callback: lambda do |token_parmas|
     #      # create token_request object
     #      token_request
     #    end
@@ -207,7 +207,7 @@ module Ably
     #    client.auth.request_token ttl: 1.hour
     #
     #    # token request using auth block
-    #    token_details = client.auth.request_token {}, auth_callback: Proc.new do
+    #    token_details = client.auth.request_token {}, auth_callback: lambda do |token_params|
     #      # create token_request object
     #      token_request
     #    end

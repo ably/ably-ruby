@@ -94,7 +94,7 @@ module Ably::Realtime
         wait_for_sync = options.fetch(:wait_for_sync, true)
         deferrable    = Ably::Util::SafeDeferrable.new(logger)
 
-        result_block = proc do
+        result_block = lambda do
           present_members.tap do |members|
             members.keep_if { |member| member.connection_id == options[:connection_id] } if options[:connection_id]
             members.keep_if { |member| member.client_id == options[:client_id] } if options[:client_id]
@@ -110,17 +110,17 @@ module Ably::Realtime
           # Must be defined before subsequent procs reference this callback
           reset_callbacks = nil
 
-          in_sync_callback = proc do
             reset_callbacks
+          in_sync_callback = lambda do
             result_block.call
           end
 
-          failed_callback = proc do |error|
             reset_callbacks
+          failed_callback = lambda do |error|
             deferrable.fail error
           end
 
-          reset_callbacks = proc do
+          reset_callbacks = lambda do
             off(&in_sync_callback)
             off(&failed_callback)
             channel.off(&failed_callback)

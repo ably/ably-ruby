@@ -71,7 +71,7 @@ describe Ably::Realtime::Presence, 'history', :event_machine do
       end
 
       context 'and two pages of messages' do
-        let(:wildcard_token) { Proc.new { Ably::Rest::Client.new(default_options).auth.request_token(client_id: '*') } }
+        let(:wildcard_token) { lambda { |token_params| Ably::Rest::Client.new(default_options).auth.request_token(client_id: '*') } }
         let(:client_one)     { auto_close Ably::Realtime::Client.new(default_options.merge(auth_callback: wildcard_token)) }
         let(:client_two)     { auto_close Ably::Realtime::Client.new(default_options.merge(auth_callback: wildcard_token)) }
 

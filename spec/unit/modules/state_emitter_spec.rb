@@ -85,7 +85,7 @@ describe Ably::Modules::StateEmitter do
     context 'without :else option block' do
       let(:block_calls) { [] }
       let(:block) do
-        proc do
+        lambda do
           block_calls << Time.now
         end
       end
@@ -116,7 +116,7 @@ describe Ably::Modules::StateEmitter do
     context 'with an array of targets' do
       let(:block_calls) { [] }
       let(:block) do
-        proc do
+        lambda do
           block_calls << Time.now
         end
       end
@@ -158,14 +158,14 @@ describe Ably::Modules::StateEmitter do
     context 'with :else option block', :api_private do
       let(:success_calls) { [] }
       let(:success_block) do
-        proc do
+        lambda do
           success_calls << Time.now
         end
       end
 
       let(:failure_calls) { [] }
       let(:failure_block) do
-        proc do |*args|
+        lambda do |*args|
           failure_calls << args
         end
       end
@@ -244,7 +244,7 @@ describe Ably::Modules::StateEmitter do
       end
 
       specify 'are passed to else blocks' do
-        else_block = proc { |arguments| expect(arguments).to eql(arguments) }
+        else_block = lambda { |arguments| expect(arguments).to eql(arguments) }
         subject.once_or_if(:connected, else: else_block) do
           raise 'Success should not be called'
         end
@@ -254,11 +254,11 @@ describe Ably::Modules::StateEmitter do
 
     context 'with blocks that raise exceptions' do
       let(:success_block) do
-        proc { raise 'Success exception' }
+        lambda { raise 'Success exception' }
       end
 
       let(:failure_block) do
-        proc { raise 'Failure exception' }
+        lambda { raise 'Failure exception' }
       end
 
       let(:target_state) { :connected }
@@ -291,11 +291,11 @@ describe Ably::Modules::StateEmitter do
     let(:target_state) { :connected }
 
     let(:success_block) do
-      proc { raise 'Success exception' }
+      lambda { raise 'Success exception' }
     end
 
     let(:failure_block) do
-      proc { raise 'Failure exception' }
+      lambda { raise 'Failure exception' }
     end
 
     before do
@@ -318,7 +318,7 @@ describe Ably::Modules::StateEmitter do
   context '#once_state_changed', :api_private do
     let(:block_calls) { [] }
     let(:block) do
-      proc do |*args|
+      lambda do |*args|
         block_calls << args
       end
     end

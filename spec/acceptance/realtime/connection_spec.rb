@@ -131,7 +131,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 let(:ttl) { 0.001 }
                 let(:auth_requests) { [] }
                 let(:token_callback) do
-                  Proc.new do
+                  lambda do |token_params|
                     auth_requests << Time.now
                     Ably::Rest::Client.new(default_options).auth.request_token(ttl: ttl).token
                   end
@@ -246,7 +246,7 @@ describe Ably::Realtime::Connection, :event_machine do
                   let(:ttl)           { 4 }
                   let(:auth_requests) { [] }
                   let(:token_callback) do
-                    Proc.new do
+                    lambda do |token_params|
                       sleep 2
                       auth_requests << Time.now
                       Ably::Rest::Client.new(default_options).auth.request_token(ttl: ttl).token
@@ -298,7 +298,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 context 'and subsequent token is invalid' do
                   let(:ttl) { 2 }
                   let(:token_callback) do
-                    Proc.new do
+                    lambda do |token_params|
                       if @token_issued
                         "#{app_id}.invalid-token-invalid-token-invalid-token"
                       else
@@ -417,7 +417,7 @@ describe Ably::Realtime::Connection, :event_machine do
       let(:phases) { [:connecting, :connected] }
       let(:events_emitted) { [] }
       let(:test_expectation) do
-        Proc.new do
+        lambda do
           expect(events_emitted).to eq(phases)
           stop_reactor
         end
@@ -466,7 +466,7 @@ describe Ably::Realtime::Connection, :event_machine do
           been_disconnected = true
         end
         connection.once(:connecting) do
-          close_if_transport_available = proc do
+          close_if_transport_available = lambda do
             EventMachine.add_timer(0.001) do
               if connection.transport
                 connection.transport.close_connection_after_writing
@@ -796,7 +796,7 @@ describe Ably::Realtime::Connection, :event_machine do
             end
           end
 
-          ping_block = Proc.new do
+          ping_block = lambda do |time|
             pings_complete << true
             if pings_complete.length == 3
               expect(heartbeat_ids.uniq.length).to eql(3)
@@ -1479,7 +1479,7 @@ describe Ably::Realtime::Connection, :event_machine do
               end
             end
 
-            close_connection_proc = Proc.new do
+            close_connection_proc = lambda do
               EventMachine.add_timer(0.001) do
                 if connection.transport.nil?
                   close_connection_proc.call
@@ -1517,7 +1517,7 @@ describe Ably::Realtime::Connection, :event_machine do
       # See https://github.com/ably/ably-ruby/issues/103
       it 'emits event to all and single subscribers' do
         connected_emitted = []
-        block = Proc.new do |state_change|
+        block = lambda do |state_change|
           if state_change.current == :connected
             connected_emitted << state_change
             EventMachine.add_timer(0.5) do

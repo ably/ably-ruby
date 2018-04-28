@@ -235,7 +235,7 @@ module Ably
           ping_id = SecureRandom.hex(16)
           heartbeat_action = Ably::Models::ProtocolMessage::ACTION.Heartbeat
 
-          wait_for_ping = Proc.new do |protocol_message|
+          wait_for_ping = lambda do |protocol_message|
             next if finished
             if protocol_message.action == heartbeat_action && protocol_message.id == ping_id
               finished = true
@@ -579,7 +579,7 @@ module Ably
 
       def create_pub_sub_message_bus
         Ably::Util::PubSub.new(
-          coerce_into: Proc.new do |event|
+          coerce_into: lambda do |event|
             raise KeyError, "Expected :protocol_message, :#{event} is disallowed" unless event == :protocol_message
             :protocol_message
           end

@@ -1342,7 +1342,7 @@ describe Ably::Realtime::Channel, :event_machine do
 
       context 'many times with different event names' do
         it 'filters events accordingly to each callback' do
-          click_callback = proc { |message| messages << message }
+          click_callback = lambda { |message| messages << message }
 
           channel.subscribe('click', &click_callback)
           channel.subscribe('move', &click_callback)
@@ -1958,7 +1958,7 @@ describe Ably::Realtime::Channel, :event_machine do
             specify 'all queued messages fail with NACK (#RTL11)' do
               channel.attach do
                 # Move to disconnected
-                disconnect_transport_proc = Proc.new do
+                disconnect_transport_proc = lambda do
                   if connection.transport
                     connection.transport.close_connection_after_writing
                   else
@@ -2090,7 +2090,7 @@ describe Ably::Realtime::Channel, :event_machine do
         it 'will move to the SUSPENDED state and then attempt to ATTACH with the ATTACHING state (#RTL13b)' do
           connection.once(:connected) do
             # Prevent any incoming or outgoing ATTACH/ATTACHED message from Ably
-            prevent_protocol_messages_proc = Proc.new do
+            prevent_protocol_messages_proc = lambda do
               if client.connection.transport
                 client.connection.transport.__incoming_protocol_msgbus__.unsubscribe
                 client.connection.transport.__outgoing_protocol_msgbus__.unsubscribe

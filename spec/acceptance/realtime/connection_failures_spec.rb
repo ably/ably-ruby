@@ -143,7 +143,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
       context 'with auth_callback' do
         context 'opening a new connection' do
           context 'when callback fails due to an exception' do
-            let(:client_options) { default_options.reject { |k, v| k == :key }.merge(auth_callback: Proc.new { raise "Cannot issue token" }, log_level: :fatal) }
+            let(:client_options) { default_options.reject { |k, v| k == :key }.merge(auth_callback: lambda { |token_params| raise "Cannot issue token" }, log_level: :fatal) }
 
             it 'the connection moves to the disconnected state and tries again, returning again to the disconnected state (#RSA4c, #RSA4c1, #RSA4c2)' do
               states = Hash.new { |hash, key| hash[key] = [] }
@@ -174,7 +174,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                 use_token_auth: true,
                 log_level: :fatal)
               }
-              let(:auth_options) { { auth_callback: Proc.new { sleep 10 }, } }
+              let(:auth_options) { { auth_callback: lambda { |token_params| sleep 10 }, } }
 
               it 'the authorization request fails as configured in the realtime_request_timeout (#RSA4c, #RSA4c1, #RSA4c3)' do
                 connection.once(:connected) do
@@ -588,7 +588,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                     end
 
                     # Disconnect the transport and trigger a new disconnected state
-                    wait_until(proc { connection.transport }) do
+                    wait_until(lambda { connection.transport }) do
                       connection.transport.unbind
                     end
                   end
@@ -709,7 +709,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                         expect(connection.id).to_not eql(connection_id)
                         expect(resumed_with_clean_connection).to be_truthy
 
-                        wait_until(proc { channel.attached? }) do
+                        wait_until(lambda { channel.attached? }) do
                           expect(channel_emitted_an_attached).to be_truthy
                           stop_reactor
                         end
@@ -1231,7 +1231,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           }
 
           let(:client_options) do
-            default_options.merge(auth_callback: Proc.new do
+            default_options.merge(auth_callback: lambda do |token_params|
               @auth_requests ||= 0
               @auth_requests += 1
 

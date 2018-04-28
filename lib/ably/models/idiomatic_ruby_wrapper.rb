@@ -210,14 +210,14 @@ module Ably::Models
     # key is not found in mixedCase.
     def source_key_for(symbolized_key)
       format_preferences = [
-        proc { |key_sym| convert_to_mixed_case(key_sym) },
-        proc { |key_sym| key_sym.to_sym },
-        proc { |key_sym| key_sym.to_s },
-        proc { |key_sym| convert_to_mixed_case(key_sym).to_sym },
-        proc { |key_sym| convert_to_lower_case(key_sym) },
-        proc { |key_sym| convert_to_lower_case(key_sym).to_sym },
-        proc { |key_sym| convert_to_mixed_case(key_sym, force_camel: true) },
-        proc { |key_sym| convert_to_mixed_case(key_sym, force_camel: true).to_sym }
+        lambda { |key_sym| convert_to_mixed_case(key_sym) },
+        lambda { |key_sym| key_sym.to_sym },
+        lambda { |key_sym| key_sym.to_s },
+        lambda { |key_sym| convert_to_mixed_case(key_sym).to_sym },
+        lambda { |key_sym| convert_to_lower_case(key_sym) },
+        lambda { |key_sym| convert_to_lower_case(key_sym).to_sym },
+        lambda { |key_sym| convert_to_mixed_case(key_sym, force_camel: true) },
+        lambda { |key_sym| convert_to_mixed_case(key_sym, force_camel: true).to_sym }
       ]
 
       preferred_format = format_preferences.detect do |format|

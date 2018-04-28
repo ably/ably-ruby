@@ -284,7 +284,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       end
 
       it 'sends and receives the messages on both opened connections and calls the success callbacks for each message published', em_timeout: 10 do
-        check_message_and_callback_counts = Proc.new do
+        check_message_and_callback_counts = lambda do
           if echos[:client] == expected_echos && echos[:other] == expected_echos
             # Wait for message backlog to clear
             EventMachine.add_timer(0.5) do
@@ -650,7 +650,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       let(:msgs_received)  { [] }
 
       it 'publishes the message again, later receives the ACK and only one message is ever received from Ably' do
-        on_reconnected = Proc.new do
+        on_reconnected = lambda do |*args|
           expect(message_state).to be_empty
           EventMachine.add_timer(2) do
             expect(message_state).to contain_exactly(:delivered)

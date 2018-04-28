@@ -98,7 +98,7 @@ describe Ably::Realtime::Presence do
 
     context '#unsubscribe' do
       let(:callback) do
-        Proc.new { |message| message_history[:received] += 1 }
+        lambda { |message| message_history[:received] += 1 }
       end
       before do
         subject.subscribe(enter_action, &callback)

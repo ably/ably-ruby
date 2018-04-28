@@ -31,7 +31,7 @@ module Ably
         # @option options [Proc] :coerce_into A lambda/Proc that is used to coerce the event names for all events. This is useful to ensure the event names conform to a naming or type convention.
         #
         # @example
-        #   configure_event_emitter coerce_into: Proc.new { |event| event.to_sym }
+        #   configure_event_emitter coerce_into: lambda { |event| event.to_sym }
         #
         def configure_event_emitter(options = {})
           @event_emitter_coerce_proc = options[:coerce_into]
@@ -158,7 +158,7 @@ module Ably
       # #emit automatically deletes any blocks that return true thus allowing a block to be run once
       def proc_for_block(block, options = {})
         {
-          emit_proc: Proc.new do |*args|
+          emit_proc: lambda do |*args|
             block.call(*args)
             true if options[:delete_once_run]
           end,

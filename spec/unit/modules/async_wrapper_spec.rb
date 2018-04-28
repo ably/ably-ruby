@@ -31,7 +31,7 @@ describe Ably::Modules::AsyncWrapper, :api_private do
   context '#async_wrap blocking block' do
     context 'returns result' do
       let(:block) do
-        proc do
+        lambda do
           sleep sleep_time
           result
         end
@@ -104,7 +104,7 @@ describe Ably::Modules::AsyncWrapper, :api_private do
 
     context 'raises an Exception' do
       let(:block) do
-        proc do
+        lambda do
           sleep sleep_time
           raise RuntimeError, 'Intentional'
         end
