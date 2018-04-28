@@ -29,7 +29,7 @@ Gem::Specification.new do |spec|
   else
     spec.add_runtime_dependency 'json'
   end
-  spec.add_runtime_dependency 'websocket-driver', '~> 0.6'
+  spec.add_runtime_dependency 'websocket-driver', '~> 0.7'
   spec.add_runtime_dependency 'msgpack', '>= 0.6.2'
   spec.add_runtime_dependency 'addressable', '>= 2.0.0'
 
