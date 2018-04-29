@@ -1018,6 +1018,7 @@ describe Ably::Realtime::Connection, :event_machine do
           connection.once(:connected) do
             connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
               if protocol_message.action == :heartbeat
+                next if protocol_message.attributes[:source] == :websocket # ignore the native heartbeats
                 expect(protocol_message.attributes[:source]).to_not eql(:websocket)
                 expect(connection.time_since_connection_confirmed_alive?).to be_within(1).of(0)
                 stop_reactor
