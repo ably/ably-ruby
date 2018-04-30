@@ -1017,7 +1017,7 @@ describe Ably::Rest::Client do
 
     context 'request_id generation' do
       context 'Timeout error' do
-        context 'with request_id', :webmock do
+        context 'with option add_request_ids: true', :webmock do
           let(:custom_logger) do
             Class.new do
               def initialize
@@ -1047,6 +1047,7 @@ describe Ably::Rest::Client do
           end
           let(:custom_logger_object) { custom_logger.new }
           let(:client_options) { default_options.merge(key: api_key, logger: custom_logger_object, add_request_ids: true) }
+
           before do
             @request_id = nil
             stub_request(:get, Addressable::Template.new("#{client.endpoint}/time{?request_id}")).with do |request|
@@ -1055,6 +1056,7 @@ describe Ably::Rest::Client do
               raise Faraday::TimeoutError.new('timeout error message')
             end
           end
+
           it 'has an error with the same request_id of the request' do
             expect { client.time }.to raise_error(Ably::Exceptions::ConnectionTimeout, /#{@request_id}/)
             expect(@request_id).to be_a(String)
@@ -1063,7 +1065,6 @@ describe Ably::Rest::Client do
           end
         end
 
-        context 'when specifying fallback hosts', :webmock do
         context 'with option add_request_ids: true and REST operations with a message body' do
           let(:client_options) { default_options.merge({ key: api_key, add_request_ids: true }) }
           let(:channel_name) { random_str }
@@ -1110,8 +1111,9 @@ describe Ably::Rest::Client do
         end
 
         context 'option add_request_ids: true and specified fallback hosts', :webmock do
-          let(:client_options) { { key: api_key, fallback_hosts_use_default: true, add_request_ids: true } }
+          let(:client_options) { { key: api_key, fallback_hosts_use_default: true, add_request_ids: true, log_level: :error } }
           let(:requests)       { [] }
+
           before do
             @request_id = nil
             hosts = Ably::FALLBACK_HOSTS + ['rest.ably.io']
@@ -1124,7 +1126,8 @@ describe Ably::Rest::Client do
               end
             end
           end
-          it 'request_id is the same across retries' do
+
+          specify 'request_id is the same across retries' do
             expect{ client.time }.to raise_error(Ably::Exceptions::ConnectionTimeout, /#{@request_id}/)
             expect(@request_id).to be_a(String)
             expect(@request_id).to_not be_empty
@@ -1135,6 +1138,7 @@ describe Ably::Rest::Client do
 
         context 'without request_id' do
           let(:client_options) { default_options.merge(key: api_key, http_request_timeout: 0) }
+
           it 'does not include request_id in ConnectionTimeout error' do
             begin
               client.stats
@@ -1147,6 +1151,7 @@ describe Ably::Rest::Client do
 
       context 'UnauthorizedRequest nonce error' do
         let(:token_params) { { nonce: "samenonce_#{protocol}", timestamp:  Time.now.to_i } }
+
         it 'includes request_id in UnauthorizedRequest error due to replayed nonce' do
           client1 = Ably::Rest::Client.new(default_options.merge(key: api_key))
           client2 = Ably::Rest::Client.new(default_options.merge(key: api_key, add_request_ids: true))
