@@ -1056,7 +1056,9 @@ describe Ably::Rest::Client do
             end
           end
           it 'has an error with the same request_id of the request' do
-            expect{ client.time }.to raise_error(Ably::Exceptions::ConnectionTimeout, /#{@request_id}/)
+            expect { client.time }.to raise_error(Ably::Exceptions::ConnectionTimeout, /#{@request_id}/)
+            expect(@request_id).to be_a(String)
+            expect(@request_id).to_not be_empty
             expect(custom_logger_object.logs.find { |severity, message| message.match(/#{@request_id}/i)} ).to_not be_nil
           end
         end
@@ -1124,6 +1126,8 @@ describe Ably::Rest::Client do
           end
           it 'request_id is the same across retries' do
             expect{ client.time }.to raise_error(Ably::Exceptions::ConnectionTimeout, /#{@request_id}/)
+            expect(@request_id).to be_a(String)
+            expect(@request_id).to_not be_empty
             expect(requests.uniq.count).to eql(1)
             expect(requests.uniq.first).to eql(@request_id)
           end
