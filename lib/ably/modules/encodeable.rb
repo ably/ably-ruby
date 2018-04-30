@@ -95,7 +95,7 @@ module Ably::Modules
 
         previous_encoding = message_attributes[:encoding]
         encoders.each do |encoder|
-          encoder.send method, message_attributes, channel_options
+          encoder.public_send method, message_attributes, channel_options
         end
       end until previous_encoding == message_attributes[:encoding]
 
