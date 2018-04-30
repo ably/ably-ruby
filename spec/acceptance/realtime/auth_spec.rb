@@ -1014,7 +1014,7 @@ describe Ably::Realtime::Auth, :event_machine do
       end
     end
 
-    context 'deprecated #authorise' do
+    context 'deprecated #authorise', :prevent_log_stubbing do
       let(:client_options)  { default_options.merge(key: api_key, logger: custom_logger_object, use_token_auth: true) }
       let(:custom_logger_object) { TestLogger.new }
 

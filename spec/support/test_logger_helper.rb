@@ -1,14 +1,21 @@
 # Class with standard Ruby Logger interface
 #   but it keeps a record of the lof entries for later inspection
+#
+# Recommendation: Use :prevent_log_stubbing attibute on tests that use this logger
+#
 class TestLogger
   def initialize
     @messages = []
   end
 
   SEVERITIES = [:fatal, :error, :warn, :info, :debug]
-  SEVERITIES.each do |severity|
-    define_method severity do |message|
-      @messages << [severity, message]
+  SEVERITIES.each do |severity_sym|
+    define_method(severity_sym) do |*args, &block|
+      if block
+        @messages << [severity_sym, block.call]
+      else
+        @messages << [severity_sym, args.join(', ')]
+      end
     end
   end
 

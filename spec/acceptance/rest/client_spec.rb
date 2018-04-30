@@ -1017,7 +1017,7 @@ describe Ably::Rest::Client do
 
     context 'request_id generation' do
       context 'Timeout error' do
-        context 'with option add_request_ids: true', :webmock do
+        context 'with option add_request_ids: true', :webmock, :prevent_log_stubbing do
           let(:custom_logger_object) { TestLogger.new }
           let(:client_options) { default_options.merge(key: api_key, logger: custom_logger_object, add_request_ids: true) }
 
@@ -1138,7 +1138,7 @@ describe Ably::Rest::Client do
       end
     end
 
-    context 'failed request logging' do
+    context 'failed request logging', :prevent_log_stubbing do
       let(:custom_logger) { TestLogger.new }
       let(:client_options) { default_options.merge(key: api_key, logger: custom_logger) }
 
