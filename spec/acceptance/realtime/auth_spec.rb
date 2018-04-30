@@ -1016,31 +1016,7 @@ describe Ably::Realtime::Auth, :event_machine do
 
     context 'deprecated #authorise' do
       let(:client_options)  { default_options.merge(key: api_key, logger: custom_logger_object, use_token_auth: true) }
-      let(:custom_logger) do
-        Class.new do
-          def initialize
-            @messages = []
-          end
-
-          [:fatal, :error, :warn, :info, :debug].each do |severity|
-            define_method severity do |message|
-              @messages << [severity, message]
-            end
-          end
-
-          def logs
-            @messages
-          end
-
-          def level
-            1
-          end
-
-          def level=(new_level)
-          end
-        end
-      end
-      let(:custom_logger_object) { custom_logger.new }
+      let(:custom_logger_object) { TestLogger.new }
 
       it 'logs a deprecation warning (#RSA10l)' do
         client.auth.authorise

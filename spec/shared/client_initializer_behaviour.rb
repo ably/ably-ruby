@@ -261,15 +261,7 @@ shared_examples 'a client initializer' do
       end
 
       context 'with custom logger and log_level' do
-        let(:custom_logger) do
-          Class.new do
-            extend Forwardable
-            def initialize
-              @logger = Logger.new(STDOUT)
-            end
-            def_delegators :@logger, :fatal, :error, :warn, :info, :debug, :level, :level=
-          end
-        end
+        let(:custom_logger) { TestLogger }
         let(:client_options) { default_options.merge(logger: custom_logger.new, log_level: Logger::DEBUG, auto_connect: false) }
 
         it 'uses the custom logger' do

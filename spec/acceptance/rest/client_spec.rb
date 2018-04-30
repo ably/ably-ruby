@@ -1018,34 +1018,7 @@ describe Ably::Rest::Client do
     context 'request_id generation' do
       context 'Timeout error' do
         context 'with option add_request_ids: true', :webmock do
-          let(:custom_logger) do
-            Class.new do
-              def initialize
-                @messages = []
-              end
-
-              [:fatal, :error, :warn, :info, :debug].each do |severity|
-                define_method severity do |message, &block|
-                  message_val = [message]
-                  message_val << block.call if block
-
-                  @messages << [severity, message_val.compact.join(' ')]
-                end
-              end
-
-              def logs
-                @messages
-              end
-
-              def level
-                1
-              end
-
-              def level=(new_level)
-              end
-            end
-          end
-          let(:custom_logger_object) { custom_logger.new }
+          let(:custom_logger_object) { TestLogger.new }
           let(:client_options) { default_options.merge(key: api_key, logger: custom_logger_object, add_request_ids: true) }
 
           before do
@@ -1163,6 +1136,10 @@ describe Ably::Rest::Client do
           end
         end
       end
+    end
+
+    context 'failed request logging' do
+      it 'does not log success'
     end
   end
 end
