@@ -12,7 +12,8 @@ class TestLogger
     end
   end
 
-  def logs(min_severity: nil)
+  def logs(options = {})
+    min_severity = options[:min_severity]
     if min_severity
       severity_level = SEVERITIES.index(min_severity)
       raise "Unknown severity: #{min_severity}" if severity_level.nil?
