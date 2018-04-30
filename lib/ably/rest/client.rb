@@ -439,22 +439,14 @@ module Ably
         max_retry_duration = http_defaults.fetch(:max_retry_duration)
         requested_at       = Time.now
         retry_count        = 0
-        request_id         = nil
-        if add_request_ids
-          params = if params.nil?
-            {}
-          else
-            params.dup
-          end
-          request_id = SecureRandom.urlsafe_base64(10)
-          params[:request_id] = request_id
-        end
+        request_id         = SecureRandom.urlsafe_base64(10) if add_request_ids
 
         begin
           use_fallback = can_fallback_to_alternate_ably_host? && retry_count > 0
 
           connection(use_fallback: use_fallback).send(method, path, params) do |request|
             if add_request_ids
+              request.params[:request_id] = request_id
               request.options.context = {} if request.options.context.nil?
               request.options.context[:request_id] = request_id
             end

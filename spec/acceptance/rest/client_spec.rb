@@ -1062,6 +1062,52 @@ describe Ably::Rest::Client do
         end
 
         context 'when specifying fallback hosts', :webmock do
+        context 'with option add_request_ids: true and REST operations with a message body' do
+          let(:client_options) { default_options.merge({ key: api_key, add_request_ids: true }) }
+          let(:channel_name) { random_str }
+          let(:channel) { client.channels.get(channel_name) }
+
+          context 'with mocks to inspect the params', :webmock do
+            before do
+              stub_request(:post, Addressable::Template.new("#{client.endpoint}/channels/#{channel_name}/publish{?request_id}")).
+                with do |request|
+                  @request_id = request.uri.query_values['request_id']
+                end.to_return(:status => 200, :body => [], :headers => { 'Content-Type' => 'application/json' })
+            end
+
+            context 'with a single publish' do
+              it 'succeeds and sends the request_id as a param' do
+                channel.publish('name', { body: random_str })
+                expect(@request_id.to_s).to_not be_empty
+              end
+            end
+
+            context 'with an array publish' do
+              it 'succeeds and sends the request_id as a param' do
+                channel.publish([{ body: random_str }, { body: random_str }])
+                expect(@request_id.to_s).to_not be_empty
+              end
+            end
+          end
+
+          context 'without mocks to ensure the requests are accepted' do
+            context 'with a single publish' do
+              it 'succeeds and sends the request_id as a param' do
+                channel.publish('name', { body: random_str })
+                expect(channel.history.items.length).to eql(1)
+              end
+            end
+
+            context 'with an array publish' do
+              it 'succeeds and sends the request_id as a param' do
+                channel.publish([{ body: random_str }, { body: random_str }])
+                expect(channel.history.items.length).to eql(2)
+              end
+            end
+          end
+        end
+
+        context 'option add_request_ids: true and specified fallback hosts', :webmock do
           let(:client_options) { { key: api_key, fallback_hosts_use_default: true, add_request_ids: true } }
           let(:requests)       { [] }
           before do
