@@ -980,7 +980,6 @@ describe Ably::Realtime::Connection, :event_machine do
 
       context 'transport-level heartbeats are supported in the websocket transport' do
         it 'provides the heartbeats argument in the websocket connection params (#RTN23b)' do
-          skip 'Native heartbeats not yet supported in the WS driver https://github.com/ably/ably-ruby/issues/116'
           expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
             uri = URI.parse(url)
             expect(CGI::parse(uri.query)['heartbeats'][0]).to eql('false')
@@ -990,12 +989,10 @@ describe Ably::Realtime::Connection, :event_machine do
         end
 
         it 'receives websocket heartbeat messages (#RTN23b) [slow test as need to wait for heartbeat]', em_timeout: 45 do
-          skip "Heartbeats param is missing from realtime implementation, see https://github.com/ably/realtime/issues/656"
-
           connection.once(:connected) do
             connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
               if protocol_message.action == :heartbeat
-                expect(protocol_message.attributes[:source]).to eql('websocket')
+                expect(protocol_message.attributes[:source]).to eql(:websocket)
                 expect(connection.time_since_connection_confirmed_alive?).to be_within(1).of(0)
                 stop_reactor
               end
@@ -1021,7 +1018,8 @@ describe Ably::Realtime::Connection, :event_machine do
           connection.once(:connected) do
             connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
               if protocol_message.action == :heartbeat
-                expect(protocol_message.attributes[:source]).to_not eql('websocket')
+                next if protocol_message.attributes[:source] == :websocket # ignore the native heartbeats
+                expect(protocol_message.attributes[:source]).to_not eql(:websocket)
                 expect(connection.time_since_connection_confirmed_alive?).to be_within(1).of(0)
                 stop_reactor
               end
