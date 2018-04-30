@@ -549,7 +549,7 @@ module Ably
           setup_incoming_middleware builder, logger, fail_if_unsupported_mime_type: true
 
           # Set Faraday's HTTP adapter
-          builder.adapter Faraday.default_adapter
+          builder.adapter :excon
         end
       end
 

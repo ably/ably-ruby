@@ -233,7 +233,7 @@ module Ably
       # @yield [Hash] Auth params for a new Realtime connection
       #
       def auth_params(&success_callback)
-        fail_callback = Proc.new do |error, deferrable|
+        fail_callback = lambda do |error, deferrable|
           logger.error { "Failed to authenticate: #{error}" }
           if error.kind_of?(Ably::Exceptions::BaseAblyException)
             # Use base exception if it exists carrying forward the status codes

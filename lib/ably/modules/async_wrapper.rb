@@ -44,7 +44,7 @@ module Ably::Modules
       Ably::Util::SafeDeferrable.new(logger).tap do |deferrable|
         deferrable.callback(&success_callback) if success_callback
 
-        operation_with_exception_handling = proc do
+        operation_with_exception_handling = lambda do
           begin
             yield
           rescue StandardError => err
@@ -57,7 +57,7 @@ module Ably::Modules
           end
         end
 
-        complete_callback = proc do |result|
+        complete_callback = lambda do |result|
           deferrable.succeed result
         end
 

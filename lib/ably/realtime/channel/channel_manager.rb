@@ -98,7 +98,7 @@ module Ably::Realtime
       def fail_messages_awaiting_ack(error, options = {})
         immediately = options[:immediately] || false
 
-        fail_proc = Proc.new do
+        fail_proc = lambda do
           error = Ably::Exceptions::MessageDeliveryFailed.new("Continuity of connection was lost so published messages awaiting ACK have failed") unless error
           fail_messages_in_queue connection.__pending_message_ack_queue__, error
         end
@@ -224,7 +224,7 @@ module Ably::Realtime
           @pending_state_change_timer = nil
         end
 
-        resend_if_disconnected_and_connected = Proc.new do
+        resend_if_disconnected_and_connected = lambda do
           connection.unsafe_once(:disconnected) do
             next unless pending_state_change_timer
             connection.unsafe_once(:connected) do

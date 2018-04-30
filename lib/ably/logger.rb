@@ -82,7 +82,7 @@ module Ably
 
     def default_logger
       ::Logger.new(STDOUT).tap do |logger|
-        logger.formatter = proc do |severity, datetime, progname, msg|
+        logger.formatter = lambda do |severity, datetime, progname, msg|
           severity = ::Logger::SEV_LABEL.index(severity) if severity.kind_of?(String)
 
           formatted_date = if severity == ::Logger::DEBUG

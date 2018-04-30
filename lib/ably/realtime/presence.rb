@@ -71,7 +71,7 @@ module Ably::Realtime
 
       ensure_channel_attached(deferrable) do
         if entering?
-          once_or_if(STATE.Entered, else: proc { |args| deferrable_fail deferrable, *args }) do
+          once_or_if(STATE.Entered, else: lambda { |args| deferrable_fail deferrable, *args }) do
             deferrable_succeed deferrable, &success_block
           end
         else
@@ -132,7 +132,7 @@ module Ably::Realtime
 
       ensure_channel_attached(deferrable) do
         if leaving?
-          once_or_if(STATE.Left, else: proc { |error|deferrable_fail deferrable, *args }) do
+          once_or_if(STATE.Left, else: lambda { |error|deferrable_fail deferrable, *args }) do
             deferrable_succeed deferrable, &success_block
           end
         else
@@ -310,7 +310,7 @@ module Ably::Realtime
     # @api private
     def __incoming_msgbus__
       @__incoming_msgbus__ ||= Ably::Util::PubSub.new(
-        coerce_into: Proc.new { |event| Ably::Models::ProtocolMessage::ACTION(event) }
+        coerce_into: lambda { |event| Ably::Models::ProtocolMessage::ACTION(event) }
       )
     end
 

@@ -65,10 +65,10 @@ describe Ably::Rest::Client do
         end
       end
 
-      context 'with an :auth_callback Proc' do
-        let(:client) { Ably::Rest::Client.new(client_options.merge(auth_callback: Proc.new { token_request })) }
+      context 'with an :auth_callback lambda' do
+        let(:client) { Ably::Rest::Client.new(client_options.merge(auth_callback: lambda { |token_params| token_request })) }
 
-        it 'calls the auth Proc to get a new token' do
+        it 'calls the auth lambda to get a new token' do
           expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token_details }
           expect(client.auth.current_token_details.client_id).to eql(client_id)
         end
@@ -93,8 +93,8 @@ describe Ably::Rest::Client do
         end
       end
 
-      context 'with an :auth_callback Proc (clientId provided in library options instead of as a token_request param)' do
-        let(:client) { Ably::Rest::Client.new(client_options.merge(client_id: client_id, auth_callback: Proc.new { token_request })) }
+      context 'with an :auth_callback lambda (clientId provided in library options instead of as a token_request param)' do
+        let(:client) { Ably::Rest::Client.new(client_options.merge(client_id: client_id, auth_callback: lambda { |token_params| token_request })) }
         let(:token_request) { client.auth.create_token_request({}, key_name: key_name, key_secret: key_secret) }
 
         it 'correctly sets the clientId on the token' do
@@ -178,7 +178,7 @@ describe Ably::Rest::Client do
 
     context 'using tokens' do
       let(:client) do
-        Ably::Rest::Client.new(client_options.merge(auth_callback: Proc.new do
+        Ably::Rest::Client.new(client_options.merge(auth_callback: lambda do |token_params|
           @request_index ||= 0
           @request_index += 1
           send("token_request_#{@request_index > 2 ? 'next' : @request_index}")
@@ -290,7 +290,7 @@ describe Ably::Rest::Client do
 
     context 'fallback hosts', :webmock do
       let(:path)           { '/channels/test/publish' }
-      let(:publish_block)  { proc { client.channel('test').publish('event', 'data') } }
+      let(:publish_block)  { lambda { client.channel('test').publish('event', 'data') } }
 
       context 'configured' do
         let(:client_options) { default_options.merge(key: api_key, environment: 'production') }
@@ -321,7 +321,7 @@ describe Ably::Rest::Client do
         let(:custom_hosts)       { %w(A.ably-realtime.com B.ably-realtime.com) }
         let(:max_retry_count)    { 2 }
         let(:max_retry_duration) { 0.5 }
-        let(:fallback_block)     { Proc.new { raise Faraday::SSLError.new('ssl error message') } }
+        let(:fallback_block)     { proc { raise Faraday::SSLError.new('ssl error message') } }
         let(:client_options) do
           default_options.merge(
             environment: nil,
@@ -454,7 +454,7 @@ describe Ably::Rest::Client do
         context 'and server returns a 50x error' do
           let(:status) { 502 }
           let(:fallback_block) do
-            Proc.new do
+            proc do
               {
                 headers: { 'Content-Type' => 'text/html' },
                 status: status
@@ -478,7 +478,7 @@ describe Ably::Rest::Client do
         let(:custom_hosts)       { %w(A.foo.com B.foo.com) }
         let(:max_retry_count)    { 2 }
         let(:max_retry_duration) { 0.5 }
-        let(:fallback_block)     { Proc.new { raise Faraday::SSLError.new('ssl error message') } }
+        let(:fallback_block)     { proc { raise Faraday::SSLError.new('ssl error message') } }
         let(:production_options) do
           default_options.merge(
             environment: nil,
@@ -490,7 +490,7 @@ describe Ably::Rest::Client do
 
         let(:status) { 502 }
         let(:fallback_block) do
-          Proc.new do
+          proc do
             {
               headers: { 'Content-Type' => 'text/html' },
               status: status
@@ -547,28 +547,36 @@ describe Ably::Rest::Client do
           context 'and timing out the primary host' do
             before do
               @web_server = WEBrick::HTTPServer.new(:Port => port, :SSLEnable => false, :AccessLog => [], Logger: WEBrick::Log.new("/dev/null"))
-              @web_server.mount_proc "/channels/#{channel_name}/publish" do |req, res|
-                if req.header["host"].first.include?(primary_host)
-                  @primary_host_requested = true
-                  sleep request_timeout + 0.5
-                else
-                  @fallback_request_count ||= 0
-                  @fallback_request_count += 1
-                  if @fallback_request_count <= fail_fallback_request_count
+            request_handler = lambda do |result_body|
+                lambda do |req, res|
+                  host = req.header["host"].first
+                  if host.include?(primary_host)
+                    @primary_host_request_count ||= 0
+                    @primary_host_request_count += 1
                     sleep request_timeout + 0.5
                   else
-                    res.status = 200
-                    res['Content-Type'] = 'application/json'
-                    res.body = '{}'
+                    @fallback_request_count ||= 0
+                    @fallback_request_count += 1
+                    @fallback_hosts_tried ||= []
+                    @fallback_hosts_tried.push(host)
+                    if @fallback_request_count <= fail_fallback_request_count
+                      sleep request_timeout + 0.5
+                    else
+                      res.status = 200
+                      res['Content-Type'] = 'application/json'
+                      res.body = result_body
+                    end
                   end
                 end
               end
+              @web_server.mount_proc "/time", &request_handler.call('[1000000000000]')
+              @web_server.mount_proc "/channels/#{channel_name}/publish", &request_handler.call('{}')
               Thread.new do
                 @web_server.start
               end
             end
 
-            context 'with request timeout less than max_retry_duration' do
+            context 'POST with request timeout less than max_retry_duration' do
               let(:client_options) do
                 default_options.merge(
                   rest_host: primary_host,
@@ -577,20 +585,21 @@ describe Ably::Rest::Client do
                   port: port,
                   tls: false,
                   http_request_timeout: request_timeout,
-                  max_retry_duration: request_timeout * 3,
+                  http_max_retry_duration: request_timeout * 2.5,
                   log_level: :error
                 )
               end
               let(:fail_fallback_request_count) { 1 }
 
-              it 'tries one of the fallback hosts (#RSC15d)' do
+              it 'tries the primary host, then both fallback hosts (#RSC15d)' do
                 client.channel(channel_name).publish('event', 'data')
-                expect(@primary_host_requested).to be_truthy
+                expect(@primary_host_request_count).to eql(1)
                 expect(@fallback_request_count).to eql(2)
+                expect(@fallback_hosts_tried.uniq.length).to eql(2)
               end
             end
 
-            context 'with request timeout less than max_retry_duration' do
+            context 'GET with request timeout less than max_retry_duration' do
               let(:client_options) do
                 default_options.merge(
                   rest_host: primary_host,
@@ -599,18 +608,64 @@ describe Ably::Rest::Client do
                   port: port,
                   tls: false,
                   http_request_timeout: request_timeout,
-                  max_retry_duration: request_timeout / 2,
+                  http_max_retry_duration: request_timeout * 2.5,
+                  log_level: :error
+                )
+              end
+              let(:fail_fallback_request_count) { 1 }
+
+              it 'tries the primary host, then both fallback hosts (#RSC15d)' do
+                client.time
+                expect(@primary_host_request_count).to eql(1)
+                expect(@fallback_request_count).to eql(2)
+                expect(@fallback_hosts_tried.uniq.length).to eql(2)
+              end
+            end
+
+            context 'POST with request timeout more than max_retry_duration' do
+              let(:client_options) do
+                default_options.merge(
+                  rest_host: primary_host,
+                  fallback_hosts: fallbacks,
+                  token: 'fake.token',
+                  port: port,
+                  tls: false,
+                  http_request_timeout: request_timeout,
+                  http_max_retry_duration: request_timeout / 2,
                   log_level: :error
                 )
               end
               let(:fail_fallback_request_count) { 0 }
 
-              it 'tries one of the fallback hosts (#RSC15d)' do
-                client.channel(channel_name).publish('event', 'data')
-                expect(@primary_host_requested).to be_truthy
-                expect(@fallback_request_count).to eql(1)
+              it 'does not try any fallback hosts (#RSC15d)' do
+                expect { client.channel(channel_name).publish('event', 'data') }.to raise_error Ably::Exceptions::ConnectionTimeout
+                expect(@primary_host_request_count).to eql(1)
+                expect(@fallback_request_count).to be_nil
               end
             end
+
+            context 'GET with request timeout more than max_retry_duration' do
+              let(:client_options) do
+                default_options.merge(
+                  rest_host: primary_host,
+                  fallback_hosts: fallbacks,
+                  token: 'fake.token',
+                  port: port,
+                  tls: false,
+                  http_request_timeout: request_timeout,
+                  http_max_retry_duration: request_timeout / 2,
+                  log_level: :error
+                )
+              end
+              let(:fail_fallback_request_count) { 0 }
+
+              it 'does not try any fallback hosts (#RSC15d)' do
+                expect { client.time }.to raise_error Ably::Exceptions::ConnectionTimeout
+                expect(@primary_host_request_count).to eql(1)
+                expect(@fallback_request_count).to be_nil
+              end
+            end
+
           end
 
           context 'and failing the primary host' do
@@ -662,7 +717,7 @@ describe Ably::Rest::Client do
         let(:custom_hosts)       { %w(A.foo.com B.foo.com) }
         let(:max_retry_count)    { 2 }
         let(:max_retry_duration) { 0.5 }
-        let(:fallback_block)     { Proc.new { raise Faraday::SSLError.new('ssl error message') } }
+        let(:fallback_block)     { proc { raise Faraday::SSLError.new('ssl error message') } }
         let(:env)                { 'custom-env' }
         let(:production_options) do
           default_options.merge(
@@ -675,7 +730,7 @@ describe Ably::Rest::Client do
 
         let(:status) { 502 }
         let(:fallback_block) do
-          Proc.new do
+          proc do
             {
               headers: { 'Content-Type' => 'text/html' },
               status: status
@@ -1038,7 +1093,7 @@ describe Ably::Rest::Client do
             end
           end
         end
-      end 
+      end
 
       context 'UnauthorizedRequest nonce error' do
         let(:token_params) { { nonce: "samenonce_#{protocol}", timestamp:  Time.now.to_i } }

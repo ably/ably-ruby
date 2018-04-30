@@ -81,13 +81,13 @@ module Ably::Modules
         failure_block   = options.fetch(:else, nil)
         failure_wrapper = nil
 
-        success_wrapper = Proc.new do
+        success_wrapper = lambda do |*args|
           yield
           off(&success_wrapper)
           off(&failure_wrapper) if failure_wrapper
         end
 
-        failure_wrapper = proc do |*args|
+        failure_wrapper = lambda do |*args|
           failure_block.call(*args)
           off(&success_wrapper)
           off(&failure_wrapper)
@@ -119,7 +119,7 @@ module Ably::Modules
     def once_state_changed(options = {}, &block)
       raise ArgumentError, 'Block required' unless block_given?
 
-      once_block = proc do |*args|
+      once_block = lambda do |*args|
         off(*self.class::STATE.map, &once_block)
         yield(*args)
       end
@@ -142,7 +142,7 @@ module Ably::Modules
     #
     def deferrable_for_state_change_to(target_state)
       Ably::Util::SafeDeferrable.new(logger).tap do |deferrable|
-        fail_proc = Proc.new do |state_change|
+        fail_proc = lambda do |state_change|
           deferrable.fail state_change.reason
         end
         once_or_if(target_state, else: fail_proc) do
@@ -153,7 +153,7 @@ module Ably::Modules
     end
 
     def self.included(klass)
-      klass.configure_event_emitter coerce_into: Proc.new { |event|
+      klass.configure_event_emitter coerce_into: lambda { |event|
         # Special case allows EVENT instead of STATE to be emitted
         # Relies on the assumption that EVENT is a superset of STATE
         if klass.const_defined?(:EVENT)

@@ -291,7 +291,7 @@ module Ably
       # @api private
       def __incoming_msgbus__
         @__incoming_msgbus__ ||= Ably::Util::PubSub.new(
-          coerce_into: Proc.new { |event| Ably::Models::ProtocolMessage::ACTION(event) }
+          coerce_into: lambda { |event| Ably::Models::ProtocolMessage::ACTION(event) }
         )
       end
 

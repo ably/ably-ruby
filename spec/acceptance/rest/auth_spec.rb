@@ -472,7 +472,7 @@ describe Ably::Auth do
           end
 
           let(:auth_callback) do
-            Proc.new do |token_params_arg|
+            lambda do |token_params_arg|
               @block_called = true
               @block_params = token_params_arg
               {
@@ -486,7 +486,7 @@ describe Ably::Auth do
             end
           end
 
-          it 'calls the Proc when authenticating to obtain the request token' do
+          it 'calls the lambda when authenticating to obtain the request token' do
             expect(@block_called).to eql(true)
             expect(@block_params).to include(token_params)
           end
@@ -517,7 +517,7 @@ describe Ably::Auth do
           let(:client_id)   { random_str }
 
           let!(:token_details) do
-            auth.request_token({}, auth_callback: Proc.new do |block_options|
+            auth.request_token({}, auth_callback: lambda do |token_params|
               auth.create_token_request(client_id: client_id)
             end)
           end
@@ -533,7 +533,7 @@ describe Ably::Auth do
           let(:token) { second_client.auth.request_token.token }
 
           let!(:token_details) do
-            auth.request_token({}, auth_callback: Proc.new do |block_options|
+            auth.request_token({}, auth_callback: lambda do |token_params|
               token
             end)
           end
@@ -689,7 +689,7 @@ describe Ably::Auth do
 
       context 'AuthOptions argument' do
         let(:token_ttl) { 2 }
-        let(:auth_callback) { Proc.new do
+        let(:auth_callback) { lambda do |token_params|
           auth.create_token_request(ttl: token_ttl)
         end }
         let(:default_auth_options) { { auth_callback: auth_callback } }
@@ -717,7 +717,7 @@ describe Ably::Auth do
         end
 
         it 'updates Auth#options attribute with an immutable hash' do
-          auth.authorize(nil, auth_callback: Proc.new { '1231232.12321:12321312' })
+          auth.authorize(nil, auth_callback: lambda { |token_params| '1231232.12321:12321312' })
           expect { auth.options['key_name'] = 'new_name' }.to raise_error RuntimeError, /can't modify frozen.*Hash/
         end
 
@@ -763,17 +763,17 @@ describe Ably::Auth do
         expect(auth.options[:authUrl]).to eql('http://foo.com')
       end
 
-      context 'with a Proc for the :auth_callback option' do
+      context 'with a lambda for the :auth_callback option' do
         let(:client_id) { random_str }
         let!(:token) do
-          auth.authorize({}, auth_callback: Proc.new do
+          auth.authorize({}, auth_callback: lambda do |token_params|
             @block_called ||= 0
             @block_called += 1
             auth.create_token_request(client_id: client_id)
           end)
         end
 
-        it 'calls the Proc' do
+        it 'calls the lambda' do
           expect(@block_called).to eql(1)
         end
 
@@ -782,7 +782,7 @@ describe Ably::Auth do
         end
 
         context 'for every subsequent #request_token' do
-          context 'without a :auth_callback Proc' do
+          context 'without a :auth_callback lambda' do
             it 'calls the originally provided block' do
               auth.request_token
               expect(@block_called).to eql(2)
@@ -790,8 +790,8 @@ describe Ably::Auth do
           end
 
           context 'with a provided block' do
-            it 'does not call the originally provided Proc and calls the new #request_token :auth_callback Proc' do
-              auth.request_token({}, auth_callback: Proc.new { @request_block_called = true; auth.create_token_request })
+            it 'does not call the originally provided lambda and calls the new #request_token :auth_callback lambda' do
+              auth.request_token({}, auth_callback: lambda { |token_params| @request_block_called = true; auth.create_token_request })
               expect(@block_called).to eql(1)
               expect(@request_block_called).to eql(true)
             end
@@ -800,7 +800,7 @@ describe Ably::Auth do
       end
 
       context 'with an explicit token string that expires' do
-        context 'and a Proc for the :auth_callback option to provide a means to renew the token' do
+        context 'and a lambda for the :auth_callback option to provide a means to renew the token' do
           before do
             # Ensure a soon to expire token is not treated as expired
             stub_const 'Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER', 0
@@ -811,13 +811,13 @@ describe Ably::Auth do
 
           let(:token_client)   { Ably::Rest::Client.new(default_options.merge(key: api_key, default_token_params: { ttl: 3 })) }
           let(:client_options) {
-            default_options.merge(token: token_client.auth.request_token.token, auth_callback: Proc.new do
+            default_options.merge(token: token_client.auth.request_token.token, auth_callback: lambda do |token_params|
               @block_called += 1
               token_client.auth.create_token_request
             end)
           }
 
-          it 'calls the Proc once the token has expired and the new token is used' do
+          it 'calls the lambda once the token has expired and the new token is used' do
             client.stats
             expect(@block_called).to eql(0)
             sleep 3.5
@@ -829,7 +829,7 @@ describe Ably::Auth do
 
       context 'with an explicit ClientOptions client_id' do
         let(:client_id)       { random_str }
-        let(:client_options)  { default_options.merge(auth_callback: Proc.new { auth_token_object }, client_id: client_id) }
+        let(:client_options)  { default_options.merge(auth_callback: lambda { |token_params| auth_token_object }, client_id: client_id) }
         let(:auth_client)     { Ably::Rest::Client.new(default_options.merge(key: api_key, client_id: 'invalid')) }
 
         context 'and an incompatible client_id in a TokenDetails object passed to the auth callback' do
@@ -871,7 +871,7 @@ describe Ably::Auth do
       end
 
       it 'returns a TokenRequest that can be passed to a client that can use it for authentication without an API key' do
-        auth_callback = Proc.new { subject }
+        auth_callback = proc { |token_params| subject }
         client_without_api_key = Ably::Rest::Client.new(default_options.merge(auth_callback: auth_callback))
         expect(client_without_api_key.auth).to be_using_token_auth
         expect { client_without_api_key.auth.authorize }.to_not raise_error
@@ -932,7 +932,7 @@ describe Ably::Auth do
         end
 
         it 'uses these capabilities when Ably issues an actual token' do
-          auth_callback = Proc.new { subject }
+          auth_callback = lambda { |token_params| subject }
           client_without_api_key = Ably::Rest::Client.new(default_options.merge(auth_callback: auth_callback))
           client_without_api_key.auth.authorize
           expect(client_without_api_key.auth.current_token_details.capability).to eql(capability)
@@ -1041,7 +1041,7 @@ describe Ably::Auth do
           end
 
           it 'is valid when used for authentication' do
-            auth_callback = Proc.new do
+            auth_callback = lambda do |callback|
               auth.create_token_request(token_attributes)
             end
             client = Ably::Rest::Client.new(auth_callback: auth_callback, environment: environment, protocol: protocol)

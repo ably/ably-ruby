@@ -71,7 +71,7 @@ module Ably::Modules
 
     def fallback_logger
       @fallback_logger ||= ::Logger.new(STDOUT).tap do |logger|
-        logger.formatter = proc do |severity, datetime, progname, msg|
+        logger.formatter = lambda do |severity, datetime, progname, msg|
           [
             "#{datetime.strftime("%Y-%m-%d %H:%M:%S.%L")} #{::Logger::SEV_LABEL[severity]} #{msg}",
             "Warning: SafeDeferrable expects the method #logger to be defined in the class it is included in, the method was not found in #{self.class}"

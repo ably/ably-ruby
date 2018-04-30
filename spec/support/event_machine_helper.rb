@@ -124,7 +124,7 @@ RSpec.configure do |config|
     example_block          = example.example.instance_variable_get('@example_block')
     example_group_instance = example.example.instance_variable_get('@example_group_instance')
 
-    event_machine_block = Proc.new do
+    event_machine_block = lambda do |*args|
       RSpec::EventMachine.run_reactor(timeout) do
         example_group_instance.instance_exec(example, &example_block)
       end

@@ -206,7 +206,7 @@ describe Ably::Realtime::Auth, :event_machine do
 
           context 'with a slow auth callback response' do
             let(:auth_callback) do
-              Proc.new do
+              lambda do |token_params|
                 sleep pause
                 rest_auth_client.auth.request_token
               end
@@ -214,7 +214,7 @@ describe Ably::Realtime::Auth, :event_machine do
 
             it 'asynchronously authenticates' do
               timers_called = 0
-              block = Proc.new do
+              block = lambda do
                 timers_called += 1
                 EventMachine.add_timer(0.5, &block)
               end
@@ -230,7 +230,7 @@ describe Ably::Realtime::Auth, :event_machine do
 
         context 'when implicitly called, with an explicit ClientOptions client_id' do
           let(:client_id)        { random_str }
-          let(:client_options)   { default_options.merge(auth_callback: Proc.new { auth_token_object }, client_id: client_id, log_level: :none) }
+          let(:client_options)   { default_options.merge(auth_callback: lambda { |token_params| auth_token_object }, client_id: client_id, log_level: :none) }
           let(:rest_auth_client) { Ably::Rest::Client.new(default_options.merge(key: api_key, client_id: 'invalid')) }
 
           context 'and an incompatible client_id in a TokenDetails object passed to the auth callback' do
@@ -268,7 +268,7 @@ describe Ably::Realtime::Auth, :event_machine do
 
         context 'when explicitly called, with an explicit ClientOptions client_id' do
           let(:auth_proc) do
-            Proc.new do
+            lambda do |token_params|
               if !@requested
                 @requested = true
                 valid_auth_token
@@ -304,18 +304,18 @@ describe Ably::Realtime::Auth, :event_machine do
           let(:rest_client)      { Ably::Rest::Client.new(default_options) }
           let(:client_publisher) { auto_close Ably::Realtime::Client.new(default_options) }
           let(:basic_capability) { JSON.dump("foo" => ["subscribe"]) }
-          let(:basic_token_cb)   { Proc.new do
+          let(:basic_token_cb)   { lambda do |token_params|
             rest_client.auth.create_token_request({ capability: basic_capability })
           end }
           let(:upgraded_capability) { JSON.dump({ "foo" => ["subscribe", "publish"] }) }
-          let(:upgraded_token_cb)   { Proc.new do
+          let(:upgraded_token_cb)   { lambda do |token_params|
             rest_client.auth.create_token_request({ capability: upgraded_capability })
           end }
-          let(:identified_token_cb) { Proc.new do
+          let(:identified_token_cb) { lambda do |token_params|
             rest_client.auth.create_token_request({ client_id: 'bob' })
           end }
           let(:downgraded_capability) { JSON.dump({ "bar" => ["subscribe"] }) }
-          let(:downgraded_token_cb)   { Proc.new do
+          let(:downgraded_token_cb)   { lambda do |token_params|
             rest_client.auth.create_token_request({ capability: downgraded_capability })
           end }
 
@@ -589,7 +589,7 @@ describe Ably::Realtime::Auth, :event_machine do
           context 'when client is identified' do
             let(:client_options) { default_options.merge(auth_callback: basic_token_cb, log_level: :none) }
 
-            let(:basic_token_cb)   { Proc.new do
+            let(:basic_token_cb)   { lambda do |token_params|
               rest_client.auth.create_token_request({ client_id: 'mike', capability: basic_capability })
             end }
 
@@ -612,7 +612,7 @@ describe Ably::Realtime::Auth, :event_machine do
               connection_failed = false
 
               client.connection.once(:connected) do
-                client.auth.authorize(nil, auth_callback: Proc.new { 'invalid.token:will.cause.failure' }).tap do |deferrable|
+                client.auth.authorize(nil, auth_callback: lambda { |token_params| 'invalid.token:will.cause.failure' }).tap do |deferrable|
                   deferrable.errback do |error|
                     EventMachine.add_timer(0.2) do
                       expect(connection_failed).to eql(true)
@@ -638,7 +638,7 @@ describe Ably::Realtime::Auth, :event_machine do
 
             it 'calls the error callback of authorize and leaves the connection intact (#RSA4c3)' do
               client.connection.once(:connected) do
-                client.auth.authorize(nil, auth_callback: Proc.new { raise 'Exception raised' }).errback do |error|
+                client.auth.authorize(nil, auth_callback: lambda { |token_params| raise 'Exception raised' }).errback do |error|
                   EventMachine.add_timer(0.2) do
                     expect(connection).to be_connected
                     expect(error.message).to match(/Exception raised/i)
