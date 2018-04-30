@@ -1139,7 +1139,45 @@ describe Ably::Rest::Client do
     end
 
     context 'failed request logging' do
-      it 'does not log success'
+      let(:custom_logger) { TestLogger.new }
+      let(:client_options) { default_options.merge(key: api_key, logger: custom_logger) }
+
+      it 'is absent when requests do not fail' do
+        client.time
+        expect(custom_logger.logs(min_severity: :warn)).to be_empty
+      end
+
+      context 'with the first request failing' do
+        let(:client_options) do
+          default_options.merge(
+            rest_host: 'non.existent.domain.local',
+            fallback_hosts: [[environment, Ably::Rest::Client::DOMAIN].join('-')],
+            key: api_key,
+            logger: custom_logger)
+        end
+
+        it 'is present with success message when requests do not actually fail' do
+          client.time
+          expect(custom_logger.logs(min_severity: :warn).select { |severity, msg| msg.match(/Retry/) }.length).to eql(1)
+          expect(custom_logger.logs(min_severity: :warn).select { |severity, msg| msg.match(/SUCCEEDED/) }.length).to eql(1)
+        end
+      end
+
+      context 'with all requests failing' do
+        let(:client_options) do
+          default_options.merge(
+            rest_host: 'non.existent.domain.local',
+            fallback_hosts: ['non2.existent.domain.local'],
+            key: api_key,
+            logger: custom_logger)
+        end
+
+        it 'is present when all requests fail' do
+          expect { client.time }.to raise_error(Ably::Exceptions::ConnectionError)
+          expect(custom_logger.logs(min_severity: :warn).select { |severity, msg| msg.match(/Retry/) }.length).to eql(2)
+          expect(custom_logger.logs(min_severity: :error).select { |severity, msg| msg.match(/FAILED/) }.length).to eql(1)
+        end
+      end
     end
   end
 end

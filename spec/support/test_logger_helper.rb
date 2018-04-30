@@ -5,14 +5,24 @@ class TestLogger
     @messages = []
   end
 
-  [:fatal, :error, :warn, :info, :debug].each do |severity|
+  SEVERITIES = [:fatal, :error, :warn, :info, :debug]
+  SEVERITIES.each do |severity|
     define_method severity do |message|
       @messages << [severity, message]
     end
   end
 
-  def logs
-    @messages
+  def logs(min_severity: nil)
+    if min_severity
+      severity_level = SEVERITIES.index(min_severity)
+      raise "Unknown severity: #{min_severity}" if severity_level.nil?
+
+      @messages.select do |severity, message|
+        SEVERITIES.index(severity) <= severity_level
+      end
+    else
+      @messages
+    end
   end
 
   def level

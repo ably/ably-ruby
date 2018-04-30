@@ -439,6 +439,7 @@ module Ably
         max_retry_duration = http_defaults.fetch(:max_retry_duration)
         requested_at       = Time.now
         retry_count        = 0
+        retry_sequence_id  = nil
         request_id         = SecureRandom.urlsafe_base64(10) if add_request_ids
 
         begin
@@ -458,15 +459,30 @@ module Ably
                 end
               end
             end
+          end.tap do
+            if retry_count > 0
+              logger.warn do
+                "Ably::Rest::Client - Request SUCCEEDED after #{retry_count} #{retry_count > 1 ? 'retries' : 'retry' } for" \
+                " #{method} #{path} #{params} (seq ##{retry_sequence_id}, time elapsed #{(Time.now.to_f - requested_at.to_f).round(2)}s)"
+              end
+            end
           end
 
         rescue Faraday::TimeoutError, Faraday::ClientError, Ably::Exceptions::ServerError => error
+          retry_sequence_id ||= SecureRandom.urlsafe_base64(4)
           time_passed = Time.now - requested_at
+
           if can_fallback_to_alternate_ably_host? && retry_count < max_retry_count && time_passed <= max_retry_duration
             retry_count += 1
-            logger.warn { "Ably::Rest::Client - Retry #{retry_count} for #{method} #{path} #{params} as initial attempt failed: #{error}" }
+            logger.warn { "Ably::Rest::Client - Retry #{retry_count} for #{method} #{path} #{params} as initial attempt failed (seq ##{retry_sequence_id}): #{error}" }
             retry
           end
+
+          logger.error do
+            "Ably::Rest::Client - Request FAILED after #{retry_count} #{retry_count > 1 ? 'retries' : 'retry' } for" \
+            " #{method} #{path} #{params} (seq ##{retry_sequence_id}, time elapsed #{(Time.now.to_f - requested_at.to_f).round(2)}s)"
+          end
+
           case error
             when Faraday::TimeoutError
               raise Ably::Exceptions::ConnectionTimeout.new(error.message, nil, 80014, error, { request_id: request_id })
