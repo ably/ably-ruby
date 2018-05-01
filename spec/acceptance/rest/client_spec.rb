@@ -1017,36 +1017,10 @@ describe Ably::Rest::Client do
 
     context 'request_id generation' do
       context 'Timeout error' do
-        context 'with request_id', :webmock do
-          let(:custom_logger) do
-            Class.new do
-              def initialize
-                @messages = []
-              end
-
-              [:fatal, :error, :warn, :info, :debug].each do |severity|
-                define_method severity do |message, &block|
-                  message_val = [message]
-                  message_val << block.call if block
-
-                  @messages << [severity, message_val.compact.join(' ')]
-                end
-              end
-
-              def logs
-                @messages
-              end
-
-              def level
-                1
-              end
-
-              def level=(new_level)
-              end
-            end
-          end
-          let(:custom_logger_object) { custom_logger.new }
+        context 'with option add_request_ids: true', :webmock, :prevent_log_stubbing do
+          let(:custom_logger_object) { TestLogger.new }
           let(:client_options) { default_options.merge(key: api_key, logger: custom_logger_object, add_request_ids: true) }
+
           before do
             @request_id = nil
             stub_request(:get, Addressable::Template.new("#{client.endpoint}/time{?request_id}")).with do |request|
@@ -1055,15 +1029,64 @@ describe Ably::Rest::Client do
               raise Faraday::TimeoutError.new('timeout error message')
             end
           end
+
           it 'has an error with the same request_id of the request' do
-            expect{ client.time }.to raise_error(Ably::Exceptions::ConnectionTimeout, /#{@request_id}/)
+            expect { client.time }.to raise_error(Ably::Exceptions::ConnectionTimeout, /#{@request_id}/)
+            expect(@request_id).to be_a(String)
+            expect(@request_id).to_not be_empty
             expect(custom_logger_object.logs.find { |severity, message| message.match(/#{@request_id}/i)} ).to_not be_nil
           end
         end
 
-        context 'when specifying fallback hosts', :webmock do
-          let(:client_options) { { key: api_key, fallback_hosts_use_default: true, add_request_ids: true } }
+        context 'with option add_request_ids: true and REST operations with a message body' do
+          let(:client_options) { default_options.merge({ key: api_key, add_request_ids: true }) }
+          let(:channel_name) { random_str }
+          let(:channel) { client.channels.get(channel_name) }
+
+          context 'with mocks to inspect the params', :webmock do
+            before do
+              stub_request(:post, Addressable::Template.new("#{client.endpoint}/channels/#{channel_name}/publish{?request_id}")).
+                with do |request|
+                  @request_id = request.uri.query_values['request_id']
+                end.to_return(:status => 200, :body => [], :headers => { 'Content-Type' => 'application/json' })
+            end
+
+            context 'with a single publish' do
+              it 'succeeds and sends the request_id as a param' do
+                channel.publish('name', { body: random_str })
+                expect(@request_id.to_s).to_not be_empty
+              end
+            end
+
+            context 'with an array publish' do
+              it 'succeeds and sends the request_id as a param' do
+                channel.publish([{ body: random_str }, { body: random_str }])
+                expect(@request_id.to_s).to_not be_empty
+              end
+            end
+          end
+
+          context 'without mocks to ensure the requests are accepted' do
+            context 'with a single publish' do
+              it 'succeeds and sends the request_id as a param' do
+                channel.publish('name', { body: random_str })
+                expect(channel.history.items.length).to eql(1)
+              end
+            end
+
+            context 'with an array publish' do
+              it 'succeeds and sends the request_id as a param' do
+                channel.publish([{ body: random_str }, { body: random_str }])
+                expect(channel.history.items.length).to eql(2)
+              end
+            end
+          end
+        end
+
+        context 'option add_request_ids: true and specified fallback hosts', :webmock do
+          let(:client_options) { { key: api_key, fallback_hosts_use_default: true, add_request_ids: true, log_level: :error } }
           let(:requests)       { [] }
+
           before do
             @request_id = nil
             hosts = Ably::FALLBACK_HOSTS + ['rest.ably.io']
@@ -1076,8 +1099,11 @@ describe Ably::Rest::Client do
               end
             end
           end
-          it 'request_id is the same across retries' do
+
+          specify 'request_id is the same across retries' do
             expect{ client.time }.to raise_error(Ably::Exceptions::ConnectionTimeout, /#{@request_id}/)
+            expect(@request_id).to be_a(String)
+            expect(@request_id).to_not be_empty
             expect(requests.uniq.count).to eql(1)
             expect(requests.uniq.first).to eql(@request_id)
           end
@@ -1085,6 +1111,7 @@ describe Ably::Rest::Client do
 
         context 'without request_id' do
           let(:client_options) { default_options.merge(key: api_key, http_request_timeout: 0) }
+
           it 'does not include request_id in ConnectionTimeout error' do
             begin
               client.stats
@@ -1097,6 +1124,7 @@ describe Ably::Rest::Client do
 
       context 'UnauthorizedRequest nonce error' do
         let(:token_params) { { nonce: "samenonce_#{protocol}", timestamp:  Time.now.to_i } }
+
         it 'includes request_id in UnauthorizedRequest error due to replayed nonce' do
           client1 = Ably::Rest::Client.new(default_options.merge(key: api_key))
           client2 = Ably::Rest::Client.new(default_options.merge(key: api_key, add_request_ids: true))
@@ -1106,6 +1134,48 @@ describe Ably::Rest::Client do
           rescue Ably::Exceptions::UnauthorizedRequest => err
             expect(err.request_id).to_not eql(nil)
           end
+        end
+      end
+    end
+
+    context 'failed request logging', :prevent_log_stubbing do
+      let(:custom_logger) { TestLogger.new }
+      let(:client_options) { default_options.merge(key: api_key, logger: custom_logger) }
+
+      it 'is absent when requests do not fail' do
+        client.time
+        expect(custom_logger.logs(min_severity: :warn)).to be_empty
+      end
+
+      context 'with the first request failing' do
+        let(:client_options) do
+          default_options.merge(
+            rest_host: 'non.existent.domain.local',
+            fallback_hosts: [[environment, Ably::Rest::Client::DOMAIN].join('-')],
+            key: api_key,
+            logger: custom_logger)
+        end
+
+        it 'is present with success message when requests do not actually fail' do
+          client.time
+          expect(custom_logger.logs(min_severity: :warn).select { |severity, msg| msg.match(/Retry/) }.length).to eql(1)
+          expect(custom_logger.logs(min_severity: :warn).select { |severity, msg| msg.match(/SUCCEEDED/) }.length).to eql(1)
+        end
+      end
+
+      context 'with all requests failing' do
+        let(:client_options) do
+          default_options.merge(
+            rest_host: 'non.existent.domain.local',
+            fallback_hosts: ['non2.existent.domain.local'],
+            key: api_key,
+            logger: custom_logger)
+        end
+
+        it 'is present when all requests fail' do
+          expect { client.time }.to raise_error(Ably::Exceptions::ConnectionError)
+          expect(custom_logger.logs(min_severity: :warn).select { |severity, msg| msg.match(/Retry/) }.length).to be >= 2
+          expect(custom_logger.logs(min_severity: :error).select { |severity, msg| msg.match(/FAILED/) }.length).to eql(1)
         end
       end
     end

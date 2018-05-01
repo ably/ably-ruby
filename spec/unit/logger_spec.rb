@@ -121,15 +121,7 @@ describe Ably::Logger do
     end
 
     context 'with a valid interface' do
-      let(:custom_logger) do
-        Class.new do
-          extend Forwardable
-          def initialize
-            @logger = Logger.new(STDOUT)
-          end
-          def_delegators :@logger, :fatal, :error, :warn, :info, :debug, :level, :level=
-        end
-      end
+      let(:custom_logger) { TestLogger }
       let(:custom_logger_object) { custom_logger.new }
 
       subject { Ably::Logger.new(rest_client, Logger::INFO, custom_logger_object) }

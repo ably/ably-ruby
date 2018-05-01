@@ -633,7 +633,7 @@ module Ably
       method = auth_options[:auth_method] || options[:auth_method] || :get
       params = (auth_options[:auth_params] || options[:auth_method] || {}).merge(token_params)
 
-      response = connection.send(method) do |request|
+      response = connection.public_send(method) do |request|
         request.url uri.path
         request.headers = auth_options[:auth_headers] || {}
         if method.to_s.downcase == 'post'
