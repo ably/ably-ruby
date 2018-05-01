@@ -320,6 +320,7 @@ This library uses [semantic versioning](http://semver.org/). For each release, t
 * Add a tag and push to origin such as `git tag v1.0.0 && git push origin v1.0.0`
 * Visit [https://github.com/ably/ably-ruby/tags](https://github.com/ably/ably-ruby/tags) and `Add release notes` for the release including links to the changelog entry.
 * Run `rake release` to publish the gem to [Rubygems](http://www.rubydoc.info/gems/ably)
+* Release the [REST-only library `ably-ruby-rest`](https://github.com/ably/ably-ruby-rest#release-process)
 
 ## License
 
