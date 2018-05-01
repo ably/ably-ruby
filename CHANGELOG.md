@@ -1,11 +1,36 @@
 # Change Log
 
-## [v1.0.5](https://github.com/ably/ably-ruby/tree/v1.0.5)
+## [v1.0.6](https://github.com/ably/ably-ruby/tree/v1.0.6)
 
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.0.5...v1.0.6)
+
+**Fixed bugs:**
+
+- WebSocket driver does not emit events for heartbeats [\#116](https://github.com/ably/ably-ruby/issues/116)
+
+**Closed issues:**
+
+- Passing a frozen channel name or name gives an error on the REST client \[Reopen\] [\#145](https://github.com/ably/ably-ruby/issues/145)
+- Passing a frozen channel name or name gives an error on the REST client [\#132](https://github.com/ably/ably-ruby/issues/132)
+
+**Merged pull requests:**
+
+- Add request id fix for bulk publishes [\#154](https://github.com/ably/ably-ruby/pull/154) ([mattheworiordan](https://github.com/mattheworiordan))
+- Fix race condition in EventMachine [\#153](https://github.com/ably/ably-ruby/pull/153) ([mattheworiordan](https://github.com/mattheworiordan))
+- Add support for WebSocket native heartbeats [\#151](https://github.com/ably/ably-ruby/pull/151) ([mattheworiordan](https://github.com/mattheworiordan))
+- RSC15d test fixes; add \(failing\) tests for GET as well as POST [\#148](https://github.com/ably/ably-ruby/pull/148) ([SimonWoolf](https://github.com/SimonWoolf))
+- Do not encode strings in-place [\#147](https://github.com/ably/ably-ruby/pull/147) ([mattheworiordan](https://github.com/mattheworiordan))
+- Only resume if connection is fresh \(RTN15g\*\) [\#146](https://github.com/ably/ably-ruby/pull/146) ([mattheworiordan](https://github.com/mattheworiordan))
+- Fix channel history pagination test [\#143](https://github.com/ably/ably-ruby/pull/143) ([funkyboy](https://github.com/funkyboy))
+- Fix presence history test [\#141](https://github.com/ably/ably-ruby/pull/141) ([funkyboy](https://github.com/funkyboy))
+- Do not encode strings in-place [\#140](https://github.com/ably/ably-ruby/pull/140) ([aschuster3](https://github.com/aschuster3))
+
+## [v1.0.5](https://github.com/ably/ably-ruby/tree/v1.0.5) (2018-04-23)
 [Full Changelog](https://github.com/ably/ably-ruby/compare/v1.0.4...v1.0.5)
 
 **Implemented enhancements:**
 
+- Add Ruby 2.1 and 2.3 to Travis tests [\#129](https://github.com/ably/ably-ruby/issues/129)
 - Add supported platforms to README file [\#128](https://github.com/ably/ably-ruby/issues/128)
 - Add Ruby 2.1 and 2.3 to Travis tests [\#130](https://github.com/ably/ably-ruby/pull/130) ([funkyboy](https://github.com/funkyboy))
 
