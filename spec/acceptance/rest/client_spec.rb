@@ -1174,7 +1174,7 @@ describe Ably::Rest::Client do
 
         it 'is present when all requests fail' do
           expect { client.time }.to raise_error(Ably::Exceptions::ConnectionError)
-          expect(custom_logger.logs(min_severity: :warn).select { |severity, msg| msg.match(/Retry/) }.length).to eql(2)
+          expect(custom_logger.logs(min_severity: :warn).select { |severity, msg| msg.match(/Retry/) }.length).to be >= 2
           expect(custom_logger.logs(min_severity: :error).select { |severity, msg| msg.match(/FAILED/) }.length).to eql(1)
         end
       end
