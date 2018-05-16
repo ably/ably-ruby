@@ -678,6 +678,12 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
 
             it 'still reattaches the channels automatically following a new connection being established (#RTN15g2)' do
+              client.connection.on do |state_change|
+                puts "connection #{state_change.current}"
+              end
+              channel.on do |state_change|
+                puts "channel #{state_change.current}"
+              end
               connection.once(:connected) do
                 connection_id = connection.id
                 resumed_with_clean_connection = false
