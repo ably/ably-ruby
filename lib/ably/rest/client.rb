@@ -117,6 +117,7 @@ module Ably
       #
       # @option options [Boolean]                 :fallback_hosts_use_default  (false) When true, forces the user of fallback hosts even if a non-default production endpoint is being used
       # @option options [Array<String>]           :fallback_hosts              When an array of fallback hosts are provided, these fallback hosts are always used if a request fails to the primary endpoint. If an empty array is provided, the fallback host functionality is disabled
+      # @option options [Boolean]                 :add_request_ids             (false) When true, adds a unique request_id to each request sent to Ably servers.
       #
       # @return [Ably::Rest::Client]
       #
