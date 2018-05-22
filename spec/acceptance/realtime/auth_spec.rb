@@ -1076,6 +1076,38 @@ describe Ably::Realtime::Auth, :event_machine do
         end
       end
 
+      context 'when using auth_callback' do
+        let(:token_callback) do
+          lambda do |token_params|
+            Ably::Rest::Client.new(default_options).auth.request_token({}, { auth_url: auth_url, auth_params: auth_params, auth_method: :post}).token
+          end
+        end
+        let(:client_options) { default_options.merge(auth_callback: token_callback) }
+
+        context 'when credentials are valid' do
+          let(:auth_params) { { keyName: key_name, keySecret: key_secret } }
+
+          it 'authentication succeeds and stats are pulled correctly' do
+            client.stats do |stats|
+              expect(stats).to_not be nil
+              stop_reactor
+            end
+          end
+        end
+
+        context 'when credentials are invalid' do
+          let(:auth_params) { { keyName: key_name, keySecret: 'invalid' } }
+
+          it 'authentication fails and stats throw an invalid signature error message' do
+            client.stats.errback do |error, stats|
+              expect(error).to be_a(Ably::Exceptions::TokenExpired)
+              expect(error.message.match(/invalid signature/i)).to_not be_nil
+              stop_reactor
+            end
+          end
+        end
+      end
+
       context 'when the client is initialized with ClientOptions and the token is a JWT token' do
         let(:client_options) { { token: token.body, environment: environment, protocol: protocol } }
 
