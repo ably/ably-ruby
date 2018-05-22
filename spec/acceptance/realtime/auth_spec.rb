@@ -1034,41 +1034,44 @@ describe Ably::Realtime::Auth, :event_machine do
 
     context 'when using JWT' do
       let(:auth_url) { 'https://shrouded-plains-50367.herokuapp.com/createJWT' } # TODO: change this
-      let(:client_options) { default_options.merge(auto_connect: false, auth_url: auth_url, auth_params: auth_params) }
 
-      context 'when credentials are valid' do
-        let(:auth_params) { { keyName: key_name, keySecret: key_secret } }
+      context 'when using auth_url' do
+        let(:client_options) { default_options.merge(auto_connect: false, auth_url: auth_url, auth_params: auth_params) }
 
-        it 'authenticates and pulls stats successfully' do
-          client.stats do |stats|
-            expect(stats).to_not be nil
-            stop_reactor
+        context 'when credentials are valid' do
+          let(:auth_params) { { keyName: key_name, keySecret: key_secret } }
+
+          it 'authenticates and pulls stats successfully' do
+            client.stats do |stats|
+              expect(stats).to_not be nil
+              stop_reactor
+            end
           end
         end
-      end
 
-      context 'when credentials are wrong' do
-        let(:auth_params) { { keyName: key_name, keySecret: 'invalid' } }
+        context 'when credentials are wrong' do
+          let(:auth_params) { { keyName: key_name, keySecret: 'invalid' } }
 
-        it 'fails authentication and an invalid signature error is returned' do
-          client.stats.errback do |error, stats|
-            expect(error).to be_a(Ably::Exceptions::TokenExpired)
-            expect(error.message.match(/invalid signature/i)).to_not be_nil
-            stop_reactor
+          it 'fails authentication and an invalid signature error is returned' do
+            client.stats.errback do |error, stats|
+              expect(error).to be_a(Ably::Exceptions::TokenExpired)
+              expect(error.message.match(/invalid signature/i)).to_not be_nil
+              stop_reactor
+            end
           end
         end
-      end
 
-      context 'when token is expired' do
-        let(:token_duration) { 1 }
-        let(:auth_params) { { keyName: key_name, keySecret: key_secret, expiresIn: token_duration } }
+        context 'when token is expired' do
+          let(:token_duration) { 1 }
+          let(:auth_params) { { keyName: key_name, keySecret: key_secret, expiresIn: token_duration } }
 
-        it 'fails authentication and an expiration error is returned' do
-          sleep token_duration*2
-          client.stats.errback do |error, stats|
-            expect(error).to be_a(Ably::Exceptions::TokenExpired)
-            expect(error.message.match(/jwt expired/i)).to_not be_nil
-            stop_reactor
+          it 'fails authentication and an expiration error is returned' do
+            sleep token_duration*2
+            client.stats.errback do |error, stats|
+              expect(error).to be_a(Ably::Exceptions::TokenExpired)
+              expect(error.message.match(/jwt expired/i)).to_not be_nil
+              stop_reactor
+            end
           end
         end
       end
