@@ -1072,6 +1072,33 @@ describe Ably::Realtime::Auth, :event_machine do
           end
         end
       end
+
+      context 'when the client is initialized with ClientOptions and the token is a JWT token' do
+        let(:client_options) { { token: token.body, environment: environment, protocol: protocol } }
+
+        context 'when credentials are valid' do
+          let(:token) { Faraday.get "#{auth_url}?keyName=#{key_name}&keySecret=#{key_secret}" }
+
+          it 'pulls stats successfully' do
+            client.stats do |stats|
+              expect(stats).to_not be nil
+              stop_reactor
+            end
+          end
+        end
+
+        context 'when credentials are invalid' do
+          let(:token) { Faraday.get "#{auth_url}?keyName=#{key_name}&keySecret=invalid" }
+
+          it 'fails with an invalid signature error' do
+            client.stats.errback do |error, stats|
+              expect(error).to be_a(Ably::Exceptions::TokenExpired)
+              expect(error.message.match(/invalid signature/i)).to_not be_nil
+              stop_reactor
+            end
+          end
+        end
+      end
     end
   end
 end
