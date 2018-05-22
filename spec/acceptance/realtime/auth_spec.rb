@@ -1038,6 +1038,7 @@ describe Ably::Realtime::Auth, :event_machine do
 
       context 'when credentials are valid' do
         let(:auth_params) { { keyName: key_name, keySecret: key_secret } }
+
         it 'authenticates and pulls stats successfully' do
           client.stats do |stats|
             expect(stats).to_not be nil
@@ -1048,10 +1049,25 @@ describe Ably::Realtime::Auth, :event_machine do
 
       context 'when credentials are wrong' do
         let(:auth_params) { { keyName: key_name, keySecret: 'invalid' } }
+
         it 'fails authentication and an invalid signature error is returned' do
           client.stats.errback do |error, stats|
             expect(error).to be_a(Ably::Exceptions::TokenExpired)
             expect(error.message.match(/invalid signature/i)).to_not be_nil
+            stop_reactor
+          end
+        end
+      end
+
+      context 'when token is expired' do
+        let(:token_duration) { 1 }
+        let(:auth_params) { { keyName: key_name, keySecret: key_secret, expiresIn: token_duration } }
+
+        it 'fails authentication and an expiration error is returned' do
+          sleep token_duration*2
+          client.stats.errback do |error, stats|
+            expect(error).to be_a(Ably::Exceptions::TokenExpired)
+            expect(error.message.match(/jwt expired/i)).to_not be_nil
             stop_reactor
           end
         end
