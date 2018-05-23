@@ -631,7 +631,7 @@ module Ably
       uri = URI.parse(auth_url)
       connection = Faraday.new("#{uri.scheme}://#{uri.host}", connection_options)
       method = auth_options[:auth_method] || options[:auth_method] || :get
-      params = (auth_options[:auth_params] || options[:auth_method] || {}).merge(token_params)
+      params = (auth_options[:auth_params] || options[:auth_params] || {}).merge(token_params)
 
       response = connection.public_send(method) do |request|
         request.url uri.path
