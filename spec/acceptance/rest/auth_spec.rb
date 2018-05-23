@@ -1354,6 +1354,14 @@ describe Ably::Auth do
         it 'authenticates correctly using the embedded token' do
           expect(client.stats).to_not be_nil()
         end
+
+        context 'and the requested token is encrypted' do
+          let(:token) { Faraday.post auth_url, { keyName: key_name, keySecret: key_secret, jwtType: :embedded, encrypted: 1 } }
+
+          it 'authenticates correctly using the embedded token' do
+            expect(client.stats).to_not be_nil()
+          end
+        end
       end
     end
   end
