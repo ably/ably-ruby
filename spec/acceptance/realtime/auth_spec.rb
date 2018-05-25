@@ -1137,6 +1137,39 @@ describe Ably::Realtime::Auth, :event_machine do
           end
         end
       end
+
+      context 'when JWT token expires' do
+        before do
+          stub_const 'Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER', 0 # allow token to be used even if about to expire
+          stub_const 'Ably::Auth::TOKEN_DEFAULTS', Ably::Auth::TOKEN_DEFAULTS.merge(renew_token_buffer: 0) # Ensure tokens issued expire immediately after issue
+        end
+        let(:token_callback) do
+          lambda do |token_params|
+            # Ably in all environments other than production will send AUTH 5 seconds before expiry, so
+            # we generate a JWT that expires in 5s so that the window for Realtime to send has passed
+            tokenResponse = Faraday.get "#{auth_url}?keyName=#{key_name}&keySecret=#{key_secret}&expiresIn=5"
+            tokenResponse.body
+          end
+        end
+        let(:client_options) { default_options.merge(use_token_auth: true, auth_callback: token_callback) }
+
+        it 'a new token is requested via auth_callback and the client gets reconnected' do
+          client.connection.once(:connected) do
+            original_token = auth.current_token_details
+            original_conn_id = client.connection.id
+
+            client.connection.once(:disconnected) do |state_change|
+              expect(state_change.reason.code).to eql(40142)
+
+              client.connection.once(:connected) do
+                expect(original_token).to_not eql(auth.current_token_details)
+                expect(original_conn_id).to eql(client.connection.id)
+                stop_reactor
+              end
+            end
+          end
+        end
+      end
     end
   end
 end
