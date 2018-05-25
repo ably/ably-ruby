@@ -1062,16 +1062,19 @@ describe Ably::Realtime::Auth, :event_machine do
         end
 
         context 'when token is expired' do
-          let(:token_duration) { 1 }
+          let(:token_duration) { 5 }
           let(:auth_params) { { keyName: key_name, keySecret: key_secret, expiresIn: token_duration } }
-
-          it 'fails authentication and an expiration error is returned' do
-            sleep token_duration*2
-            client.stats.errback do |error, stats|
-              expect(error).to be_a(Ably::Exceptions::TokenExpired)
-              expect(error.message.match(/jwt expired/i)).to_not be_nil
-              stop_reactor
+          it 'receives a 40142 error from the server' do
+            client.connection.once(:connected) do
+              sleep token_duration + 1
+              client.connection.once(:disconnected) do |state_change|
+                expect(state_change.reason).to be_a(Ably::Models::ErrorInfo)
+                expect(state_change.reason.message).to match(/(expire)/i)
+                expect(state_change.reason.code).to eql(40142)
+                stop_reactor
+              end
             end
+            client.connect
           end
         end
       end
