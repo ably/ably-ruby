@@ -1103,12 +1103,13 @@ describe Ably::Realtime::Auth, :event_machine do
         context 'when credentials are invalid' do
           let(:auth_params) { { keyName: key_name, keySecret: 'invalid' } }
 
-          it 'authentication fails and stats throw an invalid signature error message' do
-            client.stats.errback do |error, stats|
-              expect(error).to be_a(Ably::Exceptions::TokenExpired)
-              expect(error.message.match(/invalid signature/i)).to_not be_nil
+          it 'authentication fails and reason for disconnection is invalid signature' do
+            client.connection.once(:disconnected) do |state_change|
+              expect(state_change.reason.message.match(/invalid signature/i)).to_not be_nil
+              expect(state_change.reason.code).to eql(40144)
               stop_reactor
             end
+            client.connect
           end
         end
       end
@@ -1131,11 +1132,12 @@ describe Ably::Realtime::Auth, :event_machine do
           let(:token) { Faraday.get "#{auth_url}?keyName=#{key_name}&keySecret=invalid" }
 
           it 'fails with an invalid signature error' do
-            client.stats.errback do |error, stats|
-              expect(error).to be_a(Ably::Exceptions::TokenExpired)
-              expect(error.message.match(/invalid signature/i)).to_not be_nil
+            client.connection.once(:disconnected) do |state_change|
+              expect(state_change.reason.message.match(/invalid signature/i)).to_not be_nil
+              expect(state_change.reason.code).to eql(40144)
               stop_reactor
             end
+            client.connect
           end
         end
       end
