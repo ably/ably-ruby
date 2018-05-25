@@ -1034,6 +1034,8 @@ describe Ably::Realtime::Auth, :event_machine do
 
     context 'when using JWT' do
       let(:auth_url) { 'https://shrouded-plains-50367.herokuapp.com/createJWT' } # TODO: change this
+      let(:channel_name) { 'test_JWT' }
+      let(:message_name) { 'message_JWT' }
 
       context 'when using auth_url' do
         let(:client_options) { default_options.merge(auto_connect: false, auth_url: auth_url, auth_params: auth_params) }
@@ -1041,23 +1043,23 @@ describe Ably::Realtime::Auth, :event_machine do
         context 'when credentials are valid' do
           let(:auth_params) { { keyName: key_name, keySecret: key_secret } }
 
-          it 'authenticates and pulls stats successfully' do
-            client.stats do |stats|
-              expect(stats).to_not be nil
-              stop_reactor
-            end
+          it 'client successfully fetches a channel and publishes a message' do
+            message = client.channels.get(channel_name).publish message_name
+            expect(message.name).to eql(message_name)
+            stop_reactor
           end
         end
 
         context 'when credentials are wrong' do
           let(:auth_params) { { keyName: key_name, keySecret: 'invalid' } }
 
-          it 'fails authentication and an invalid signature error is returned' do
-            client.stats.errback do |error, stats|
-              expect(error).to be_a(Ably::Exceptions::TokenExpired)
-              expect(error.message.match(/invalid signature/i)).to_not be_nil
+          it 'disconnected includes and invalid signature message' do
+            client.connection.once(:disconnected) do |state_change|
+              expect(state_change.reason.message.match(/invalid signature/i)).to_not be_nil
+              expect(state_change.reason.code).to eql(40144)
               stop_reactor
             end
+            client.connect
           end
         end
 
