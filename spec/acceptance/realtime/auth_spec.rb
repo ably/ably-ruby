@@ -1193,6 +1193,27 @@ describe Ably::Realtime::Auth, :event_machine do
           client.connect
         end
       end
+
+      context 'when the JWT token request includes a subscribe-only capability' do
+        let(:auth_params) { { keyName: key_name, keySecret: key_secret } }
+        let(:client_id) { random_str }
+        let(:basic_capability) { JSON.dump(channel_name => ['subscribe']) }
+        let(:auth_callback) do
+          lambda do |token_params|
+            Ably::Rest::Client.new(default_options).auth.request_token({ capability: basic_capability }, { auth_url: auth_url, auth_params: auth_params }).token
+          end
+        end
+        let(:client_options) { default_options.merge(auth_callback: auth_callback) }
+
+        it 'client fails to publish to a channel with subscribe-only capability' do
+          channel = client.channels.get(channel_name)
+          channel.publish('not-allowed').errback do |error|
+            expect(error.code).to eql(40160)
+            expect(error.message).to match(/permission denied/)
+            stop_reactor
+          end
+        end
+      end
     end
   end
 end
