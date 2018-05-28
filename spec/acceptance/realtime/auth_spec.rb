@@ -1174,6 +1174,25 @@ describe Ably::Realtime::Auth, :event_machine do
           end
         end
       end
+
+      context 'when the JWT token request includes a client_id' do
+        let(:auth_params) { { keyName: key_name, keySecret: key_secret } }
+        let(:client_id) { random_str }
+        let(:auth_callback) do
+          lambda do |token_params|
+            Ably::Rest::Client.new(default_options).auth.request_token({ client_id: client_id }, { auth_url: auth_url, auth_params: auth_params }).token
+          end
+        end
+        let(:client_options) { default_options.merge(auto_connect: false, auth_callback: auth_callback) }
+
+        it 'the client_id is the same that was specified in the auth_callback that generated the JWT token' do
+          client.connection.once(:connected) do
+            expect(client.auth.client_id).to eql(client_id)
+            stop_reactor
+          end
+          client.connect
+        end
+      end
     end
   end
 end
