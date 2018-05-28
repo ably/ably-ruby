@@ -1034,6 +1034,7 @@ describe Ably::Realtime::Auth, :event_machine do
 
     context 'when using JWT' do
       let(:auth_url) { 'https://shrouded-plains-50367.herokuapp.com/createJWT' } # TODO: change this
+      let(:auth_params) { { keyName: key_name, keySecret: key_secret } }
       let(:channel_name) { 'test_JWT' }
       let(:message_name) { 'message_JWT' }
 
@@ -1041,8 +1042,6 @@ describe Ably::Realtime::Auth, :event_machine do
         let(:client_options) { default_options.merge(auto_connect: false, auth_url: auth_url, auth_params: auth_params) }
 
         context 'when credentials are valid' do
-          let(:auth_params) { { keyName: key_name, keySecret: key_secret } }
-
           it 'client successfully fetches a channel and publishes a message' do
             message = client.channels.get(channel_name).publish message_name
             expect(message.name).to eql(message_name)
@@ -1090,8 +1089,6 @@ describe Ably::Realtime::Auth, :event_machine do
         let(:client_options) { default_options.merge(auth_callback: token_callback) }
 
         context 'when credentials are valid' do
-          let(:auth_params) { { keyName: key_name, keySecret: key_secret } }
-
           it 'authentication succeeds and stats are pulled correctly' do
             client.stats do |stats|
               expect(stats).to_not be nil
@@ -1176,7 +1173,6 @@ describe Ably::Realtime::Auth, :event_machine do
       end
 
       context 'when the JWT token request includes a client_id' do
-        let(:auth_params) { { keyName: key_name, keySecret: key_secret } }
         let(:client_id) { random_str }
         let(:auth_callback) do
           lambda do |token_params|
@@ -1195,7 +1191,6 @@ describe Ably::Realtime::Auth, :event_machine do
       end
 
       context 'when the JWT token request includes a subscribe-only capability' do
-        let(:auth_params) { { keyName: key_name, keySecret: key_secret } }
         let(:client_id) { random_str }
         let(:basic_capability) { JSON.dump(channel_name => ['subscribe']) }
         let(:auth_callback) do
