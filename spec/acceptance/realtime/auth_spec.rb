@@ -1216,10 +1216,11 @@ describe Ably::Realtime::Auth, :event_machine do
             forbidden_channel.publish('not-allowed').errback do |error|
               expect(error.code).to eql(40160)
               expect(error.message).to match(/permission denied/)
-            end
-            allowed_channel.publish(message_name) do |message|
-              expect(message.name).to eql(message_name)
-              stop_reactor
+
+              allowed_channel.publish(message_name) do |message|
+                expect(message.name).to eql(message_name)
+                stop_reactor
+              end
             end
           end
         end
