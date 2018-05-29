@@ -1135,7 +1135,8 @@ describe Ably::Realtime::Auth, :event_machine do
         end
 
         context 'when credentials are invalid' do
-          let(:token) { Faraday.get "#{auth_url}?keyName=#{key_name}&keySecret=invalid" }
+          let(:key_secret) { 'invalid' }
+          let(:token) { Faraday.get "#{auth_url}?keyName=#{key_name}&keySecret=#{key_secret}" }
 
           it 'fails with an invalid signature error' do
             client.connection.once(:disconnected) do |state_change|
