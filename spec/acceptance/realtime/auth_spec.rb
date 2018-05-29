@@ -1200,7 +1200,8 @@ describe Ably::Realtime::Auth, :event_machine do
       end
 
       context 'when the JWT token request includes a subscribe-only capability' do
-        let(:basic_capability) { JSON.dump(channel_name => ['subscribe']) }
+        let(:channel_with_publish_permissions) { "test_JWT_with_publish_#{random_str}" }
+        let(:basic_capability) { JSON.dump(channel_name => ['subscribe'], channel_with_publish_permissions => ['publish']) }
         let(:auth_callback) do
           lambda do |token_params|
             Faraday.get("#{auth_url}?keyName=#{key_name}&keySecret=#{key_secret}&capability=#{basic_capability}").body
@@ -1208,12 +1209,18 @@ describe Ably::Realtime::Auth, :event_machine do
         end
         let(:client_options) { default_options.merge(auth_callback: auth_callback) }
 
-        it 'client fails to publish to a channel with subscribe-only capability' do
-          channel = client.channels.get(channel_name)
-          channel.publish('not-allowed').errback do |error|
-            expect(error.code).to eql(40160)
-            expect(error.message).to match(/permission denied/)
-            stop_reactor
+        it 'client fails to publish to a channel with subscribe-only capability and publishes successfully on a channel with permissions' do
+          client.connection.once(:connected) do
+            forbidden_channel = client.channels.get(channel_name)
+            allowed_channel = client.channels.get(channel_with_publish_permissions)
+            forbidden_channel.publish('not-allowed').errback do |error|
+              expect(error.code).to eql(40160)
+              expect(error.message).to match(/permission denied/)
+            end
+            allowed_channel.publish(message_name) do |message|
+              expect(message.name).to eql(message_name)
+              stop_reactor
+            end
           end
         end
       end
