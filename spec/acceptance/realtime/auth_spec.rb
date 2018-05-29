@@ -1204,7 +1204,7 @@ describe Ably::Realtime::Auth, :event_machine do
         let(:basic_capability) { JSON.dump(channel_name => ['subscribe']) }
         let(:auth_callback) do
           lambda do |token_params|
-            Ably::Rest::Client.new(default_options).auth.request_token({ capability: basic_capability }, { auth_url: auth_url, auth_params: auth_params }).token
+            Faraday.get("#{auth_url}?keyName=#{key_name}&keySecret=#{key_secret}&capability=#{basic_capability}").body
           end
         end
         let(:client_options) { default_options.merge(auth_callback: auth_callback) }
