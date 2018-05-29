@@ -1189,14 +1189,13 @@ describe Ably::Realtime::Auth, :event_machine do
             Faraday.get("#{auth_url}?keyName=#{key_name}&keySecret=#{key_secret}&client_id=#{client_id}").body
           end
         end
-        let(:client_options) { default_options.merge(auto_connect: false, auth_callback: auth_callback) }
+        let(:client_options) { default_options.merge(auth_callback: auth_callback) }
 
         it 'the client_id is the same that was specified in the auth_callback that generated the JWT token' do
           client.connection.once(:connected) do
             expect(client.auth.client_id).to eql(client_id)
             stop_reactor
           end
-          client.connect
         end
       end
 
