@@ -1070,7 +1070,6 @@ describe Ably::Realtime::Auth, :event_machine do
           let(:auth_params) { { keyName: key_name, keySecret: key_secret, expiresIn: token_duration } }
           it 'receives a 40142 error from the server' do
             client.connection.once(:connected) do
-              sleep token_duration + 1
               client.connection.once(:disconnected) do |state_change|
                 expect(state_change.reason).to be_a(Ably::Models::ErrorInfo)
                 expect(state_change.reason.message).to match(/(expire)/i)
@@ -1078,7 +1077,6 @@ describe Ably::Realtime::Auth, :event_machine do
                 stop_reactor
               end
             end
-            client.connect
           end
         end
       end
