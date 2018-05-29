@@ -1039,13 +1039,16 @@ describe Ably::Realtime::Auth, :event_machine do
       let(:message_name) { 'message_JWT' }
 
       context 'when using auth_url' do
-        let(:client_options) { default_options.merge(auto_connect: false, auth_url: auth_url, auth_params: auth_params) }
+        let(:client_options) { default_options.merge(auth_url: auth_url, auth_params: auth_params) }
 
         context 'when credentials are valid' do
           it 'client successfully fetches a channel and publishes a message' do
-            message = client.channels.get(channel_name).publish message_name
-            expect(message.name).to eql(message_name)
-            stop_reactor
+            channel = client.channels.get(channel_name)
+            channel.subscribe do |message|
+              expect(message.name).to eql(message_name)
+              stop_reactor
+            end
+            channel.publish message_name
           end
         end
 
