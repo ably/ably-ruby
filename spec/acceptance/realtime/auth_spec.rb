@@ -1084,16 +1084,22 @@ describe Ably::Realtime::Auth, :event_machine do
       context 'when using auth_callback' do
         let(:token_callback) do
           lambda do |token_params|
-            Ably::Rest::Client.new(default_options).auth.request_token({}, { auth_url: auth_url, auth_params: auth_params, auth_method: :post}).token
+            Ably::Rest::Client.new(default_options).auth.request_token({}, { auth_url: auth_url, auth_params: auth_params }).token
           end
         end
         let(:client_options) { default_options.merge(auth_callback: token_callback) }
-
+        WebMock.allow_net_connect!
+        WebMock.disable!
         context 'when credentials are valid' do
-          it 'authentication succeeds and stats are pulled correctly' do
-            client.stats do |stats|
-              expect(stats).to_not be nil
+
+          it 'authentication succeeds and client can post a message' do
+            channel = client.channels.get(channel_name)
+            channel.subscribe do |message|
+              expect(message.name).to eql(message_name)
               stop_reactor
+            end
+            channel.publish(message_name) do
+              # assert_requested :get, Addressable::Template.new("#{auth_url}{?keyName,keySecret}")
             end
           end
         end
