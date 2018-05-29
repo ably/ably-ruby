@@ -1186,7 +1186,7 @@ describe Ably::Realtime::Auth, :event_machine do
         let(:client_id) { random_str }
         let(:auth_callback) do
           lambda do |token_params|
-            Ably::Rest::Client.new(default_options).auth.request_token({ client_id: client_id }, { auth_url: auth_url, auth_params: auth_params }).token
+            Faraday.get("#{auth_url}?keyName=#{key_name}&keySecret=#{key_secret}&client_id=#{client_id}").body
           end
         end
         let(:client_options) { default_options.merge(auto_connect: false, auth_callback: auth_callback) }
