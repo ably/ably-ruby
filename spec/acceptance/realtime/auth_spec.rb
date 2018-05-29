@@ -1124,11 +1124,13 @@ describe Ably::Realtime::Auth, :event_machine do
         context 'when credentials are valid' do
           let(:token) { Faraday.get "#{auth_url}?keyName=#{key_name}&keySecret=#{key_secret}" }
 
-          it 'pulls stats successfully' do
-            client.stats do |stats|
-              expect(stats).to_not be nil
+          it 'posts successfully to a channel' do
+            channel = client.channels.get(channel_name)
+            channel.subscribe do |message|
+              expect(message.name).to eql(message_name)
               stop_reactor
             end
+            channel.publish(message_name)
           end
         end
 
