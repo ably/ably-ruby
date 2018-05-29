@@ -1200,7 +1200,6 @@ describe Ably::Realtime::Auth, :event_machine do
       end
 
       context 'when the JWT token request includes a subscribe-only capability' do
-        let(:client_id) { random_str }
         let(:basic_capability) { JSON.dump(channel_name => ['subscribe']) }
         let(:auth_callback) do
           lambda do |token_params|
