@@ -1119,10 +1119,10 @@ describe Ably::Realtime::Auth, :event_machine do
       end
 
       context 'when the client is initialized with ClientOptions and the token is a JWT token' do
-        let(:client_options) { { token: token.body, environment: environment, protocol: protocol } }
+        let(:client_options) { { token: token, environment: environment, protocol: protocol } }
 
         context 'when credentials are valid' do
-          let(:token) { Faraday.get "#{auth_url}?keyName=#{key_name}&keySecret=#{key_secret}" }
+          let(:token) { Faraday.get("#{auth_url}?keyName=#{key_name}&keySecret=#{key_secret}").body }
 
           it 'posts successfully to a channel' do
             channel = client.channels.get(channel_name)
@@ -1136,7 +1136,7 @@ describe Ably::Realtime::Auth, :event_machine do
 
         context 'when credentials are invalid' do
           let(:key_secret) { 'invalid' }
-          let(:token) { Faraday.get "#{auth_url}?keyName=#{key_name}&keySecret=#{key_secret}" }
+          let(:token) { Faraday.get("#{auth_url}?keyName=#{key_name}&keySecret=#{key_secret}").body }
 
           it 'fails with an invalid signature error' do
             client.connection.once(:disconnected) do |state_change|
