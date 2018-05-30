@@ -1164,7 +1164,7 @@ describe Ably::Realtime::Auth, :event_machine do
         end
         let(:client_options) { default_options.merge(use_token_auth: true, auth_callback: token_callback) }
 
-        it 'a new token is requested via auth_callback and the client gets reconnected' do
+        it 'client disconnects, a new token is requested via auth_callback and the client gets reconnected' do
           client.connection.once(:connected) do
             original_token = auth.current_token_details
             original_conn_id = client.connection.id
@@ -1175,6 +1175,34 @@ describe Ably::Realtime::Auth, :event_machine do
               client.connection.once(:connected) do
                 expect(original_token).to_not eql(auth.current_token_details)
                 expect(original_conn_id).to eql(client.connection.id)
+                stop_reactor
+              end
+            end
+          end
+        end
+
+        context 'and an AUTH procol message is received' do
+          let(:token_callback) do
+            lambda do |token_params|
+              # Ably in all environments other than local will send AUTH 30 seconds before expiry
+              # We set the TTL to 35s so there's room to receive an AUTH protocol message
+              tokenResponse = Faraday.get "#{auth_url}?keyName=#{key_name}&keySecret=#{key_secret}&expiresIn=35"
+              tokenResponse.body
+            end
+          end
+
+          it 'client reauths correctly without going through a disconnection' do
+            client.connection.once(:connected) do
+              original_token = client.auth.current_token_details
+              received_auth = false
+
+              client.connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                received_auth = true if protocol_message.action == :auth
+              end
+
+              client.connection.once(:update) do
+                expect(received_auth).to be_truthy
+                expect(original_token).to_not eql(client.auth.current_token_details)
                 stop_reactor
               end
             end
