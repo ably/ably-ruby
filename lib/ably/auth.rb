@@ -643,7 +643,7 @@ module Ably
         end
       end
 
-      if !response.body.kind_of?(Hash) && !response.headers['Content-Type'].to_s.match(%r{text/plain}i)
+      if !response.body.kind_of?(Hash) && !response.headers['Content-Type'].to_s.match(%r{text/plain|application/jwt}i)
         raise Ably::Exceptions::InvalidResponseBody,
               "Content Type #{response.headers['Content-Type']} is not supported by this client library"
       end
