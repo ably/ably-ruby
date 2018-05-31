@@ -1363,6 +1363,15 @@ describe Ably::Auth do
           end
         end
       end
+
+      context 'when the token requested is returned with application/jwt content type' do
+        let(:auth_rest_client) { Ably::Rest::Client.new(default_options.merge(key: api_key)) }
+        let(:auth_params) { { keyName: key_name, keySecret: key_secret, returnType: 'jwt' } }
+        let(:token) { auth_rest_client.auth.request_token({ }, { auth_url: auth_url, auth_params: auth_params }).token }
+        it 'authenticates correctly and pulls stats' do
+          expect(client.stats).to_not be_nil()
+        end
+      end
     end
   end
 end
