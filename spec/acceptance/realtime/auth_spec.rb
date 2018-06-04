@@ -1038,6 +1038,7 @@ describe Ably::Realtime::Auth, :event_machine do
       let(:channel_name) { "test_JWT_#{random_str}" }
       let(:message_name) { 'message_JWT' }
 
+      # RSA8g
       context 'when using auth_url' do
         let(:client_options) { default_options.merge(auth_url: auth_url, auth_params: auth_params) }
 
@@ -1081,6 +1082,7 @@ describe Ably::Realtime::Auth, :event_machine do
         end
       end
 
+      # RSA8g
       context 'when using auth_callback' do
         let(:token_callback) do
           lambda do |token_params|
@@ -1164,6 +1166,7 @@ describe Ably::Realtime::Auth, :event_machine do
         end
         let(:client_options) { default_options.merge(use_token_auth: true, auth_callback: token_callback) }
 
+        # RTC8a
         it 'client disconnects, a new token is requested via auth_callback and the client gets reconnected' do
           client.connection.once(:connected) do
             original_token = auth.current_token_details
@@ -1191,6 +1194,7 @@ describe Ably::Realtime::Auth, :event_machine do
             end
           end
 
+          # RTC8a, RTC8a4
           it 'client reauths correctly without going through a disconnection' do
             client.connection.once(:connected) do
               original_token = client.auth.current_token_details

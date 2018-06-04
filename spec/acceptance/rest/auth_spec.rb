@@ -1339,6 +1339,7 @@ describe Ably::Auth do
       end
     end
 
+    # RSC1, RSC1a, RSA3c, RSA3d
     context 'when using JWT' do
       let(:auth_url) { 'https://shrouded-plains-50367.herokuapp.com/createJWT' } # TODO: change this
       let(:token) { Faraday.get("#{auth_url}?keyName=#{key_name}&keySecret=#{key_secret}").body }
@@ -1364,6 +1365,7 @@ describe Ably::Auth do
         end
       end
 
+      # RSA4f, RSA8c
       context 'when the token requested is returned with application/jwt content type' do
         let(:auth_rest_client) { Ably::Rest::Client.new(default_options.merge(key: api_key)) }
         let(:auth_params) { { keyName: key_name, keySecret: key_secret, returnType: 'jwt' } }
