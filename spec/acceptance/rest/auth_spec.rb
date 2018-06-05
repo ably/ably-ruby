@@ -1341,7 +1341,7 @@ describe Ably::Auth do
 
     # RSC1, RSC1a, RSA3c, RSA3d
     context 'when using JWT' do
-      let(:auth_url) { 'https://shrouded-plains-50367.herokuapp.com/createJWT' } # TODO: change this
+      let(:auth_url) { 'https://ably-echoserver-staging.herokuapp.com/createJWT' } # TODO: change this
       let(:token) { Faraday.get("#{auth_url}?keyName=#{key_name}&keySecret=#{key_secret}").body }
       let(:client) { Ably::Rest::Client.new(token: token, environment: environment, protocol: protocol) }
 

@@ -97,7 +97,7 @@ describe Ably::Realtime::Auth, :event_machine do
 
       context '#options (auth_options)' do
         let(:token_str) { auth.request_token_sync.token }
-        let(:auth_url) { "https://echo.ably.io/?type=text" }
+        let(:auth_url) { "https://ably-echoserver-staging.herokuapp.com/?type=text" }
         let(:auth_params) { { :body => token_str } }
         let(:client_options) { default_options.merge(auto_connect: false) }
 
@@ -1033,7 +1033,7 @@ describe Ably::Realtime::Auth, :event_machine do
     end
 
     context 'when using JWT' do
-      let(:auth_url) { 'https://shrouded-plains-50367.herokuapp.com/createJWT' } # TODO: change this
+      let(:auth_url) { 'https://ably-echoserver-staging.herokuapp.com/createJWT' } # TODO: change this
       let(:auth_params) { { keyName: key_name, keySecret: key_secret } }
       let(:channel_name) { "test_JWT_#{random_str}" }
       let(:message_name) { 'message_JWT' }
