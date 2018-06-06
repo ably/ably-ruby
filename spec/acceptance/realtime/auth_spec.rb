@@ -1033,7 +1033,7 @@ describe Ably::Realtime::Auth, :event_machine do
     end
 
     context 'when using JWT' do
-      let(:auth_url) { 'https://shrouded-plains-50367.herokuapp.com/createJWT' } # TODO: change this
+      let(:auth_url) { 'https://echo.ably.io/createJWT' }
       let(:auth_params) { { keyName: key_name, keySecret: key_secret } }
       let(:channel_name) { "test_JWT_#{random_str}" }
       let(:message_name) { 'message_JWT' }
