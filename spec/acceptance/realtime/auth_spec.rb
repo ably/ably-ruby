@@ -1031,5 +1031,232 @@ describe Ably::Realtime::Auth, :event_machine do
         end
       end
     end
+
+    context 'when using JWT' do
+      let(:auth_url) { 'https://echo.ably.io/createJWT' }
+      let(:auth_params) { { keyName: key_name, keySecret: key_secret } }
+      let(:channel_name) { "test_JWT_#{random_str}" }
+      let(:message_name) { 'message_JWT' }
+
+      # RSA8g
+      context 'when using auth_url' do
+        let(:client_options) { default_options.merge(auth_url: auth_url, auth_params: auth_params) }
+
+        context 'when credentials are valid' do
+          it 'client successfully fetches a channel and publishes a message' do
+            channel = client.channels.get(channel_name)
+            channel.subscribe do |message|
+              expect(message.name).to eql(message_name)
+              stop_reactor
+            end
+            channel.publish message_name
+          end
+        end
+
+        context 'when credentials are wrong' do
+          let(:auth_params) { { keyName: key_name, keySecret: 'invalid' } }
+
+          it 'disconnected includes and invalid signature message' do
+            client.connection.once(:disconnected) do |state_change|
+              expect(state_change.reason.message.match(/invalid signature/i)).to_not be_nil
+              expect(state_change.reason.code).to eql(40144)
+              stop_reactor
+            end
+            client.connect
+          end
+        end
+
+        context 'when token is expired' do
+          let(:token_duration) { 5 }
+          let(:auth_params) { { keyName: key_name, keySecret: key_secret, expiresIn: token_duration } }
+          it 'receives a 40142 error from the server' do
+            client.connection.once(:connected) do
+              client.connection.once(:disconnected) do |state_change|
+                expect(state_change.reason).to be_a(Ably::Models::ErrorInfo)
+                expect(state_change.reason.message).to match(/(expire)/i)
+                expect(state_change.reason.code).to eql(40142)
+                stop_reactor
+              end
+            end
+          end
+        end
+      end
+
+      # RSA8g
+      context 'when using auth_callback' do
+        let(:token_callback) do
+          lambda do |token_params|
+            Ably::Rest::Client.new(default_options).auth.request_token({}, { auth_url: auth_url, auth_params: auth_params }).token
+          end
+        end
+        let(:client_options) { default_options.merge(auth_callback: token_callback) }
+        WebMock.allow_net_connect!
+        WebMock.disable!
+        context 'when credentials are valid' do
+
+          it 'authentication succeeds and client can post a message' do
+            channel = client.channels.get(channel_name)
+            channel.subscribe do |message|
+              expect(message.name).to eql(message_name)
+              stop_reactor
+            end
+            channel.publish(message_name) do
+              # assert_requested :get, Addressable::Template.new("#{auth_url}{?keyName,keySecret}")
+            end
+          end
+        end
+
+        context 'when credentials are invalid' do
+          let(:auth_params) { { keyName: key_name, keySecret: 'invalid' } }
+
+          it 'authentication fails and reason for disconnection is invalid signature' do
+            client.connection.once(:disconnected) do |state_change|
+              expect(state_change.reason.message.match(/invalid signature/i)).to_not be_nil
+              expect(state_change.reason.code).to eql(40144)
+              stop_reactor
+            end
+            client.connect
+          end
+        end
+      end
+
+      context 'when the client is initialized with ClientOptions and the token is a JWT token' do
+        let(:client_options) { { token: token, environment: environment, protocol: protocol } }
+
+        context 'when credentials are valid' do
+          let(:token) { Faraday.get("#{auth_url}?keyName=#{key_name}&keySecret=#{key_secret}").body }
+
+          it 'posts successfully to a channel' do
+            channel = client.channels.get(channel_name)
+            channel.subscribe do |message|
+              expect(message.name).to eql(message_name)
+              stop_reactor
+            end
+            channel.publish(message_name)
+          end
+        end
+
+        context 'when credentials are invalid' do
+          let(:key_secret) { 'invalid' }
+          let(:token) { Faraday.get("#{auth_url}?keyName=#{key_name}&keySecret=#{key_secret}").body }
+
+          it 'fails with an invalid signature error' do
+            client.connection.once(:disconnected) do |state_change|
+              expect(state_change.reason.message.match(/invalid signature/i)).to_not be_nil
+              expect(state_change.reason.code).to eql(40144)
+              stop_reactor
+            end
+            client.connect
+          end
+        end
+      end
+
+      context 'when JWT token expires' do
+        before do
+          stub_const 'Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER', 0 # allow token to be used even if about to expire
+          stub_const 'Ably::Auth::TOKEN_DEFAULTS', Ably::Auth::TOKEN_DEFAULTS.merge(renew_token_buffer: 0) # Ensure tokens issued expire immediately after issue
+        end
+        let(:token_callback) do
+          lambda do |token_params|
+            # Ably in all environments other than production will send AUTH 5 seconds before expiry, so
+            # we generate a JWT that expires in 5s so that the window for Realtime to send has passed
+            tokenResponse = Faraday.get "#{auth_url}?keyName=#{key_name}&keySecret=#{key_secret}&expiresIn=5"
+            tokenResponse.body
+          end
+        end
+        let(:client_options) { default_options.merge(use_token_auth: true, auth_callback: token_callback) }
+
+        # RTC8a
+        it 'client disconnects, a new token is requested via auth_callback and the client gets reconnected' do
+          client.connection.once(:connected) do
+            original_token = auth.current_token_details
+            original_conn_id = client.connection.id
+
+            client.connection.once(:disconnected) do |state_change|
+              expect(state_change.reason.code).to eql(40142)
+
+              client.connection.once(:connected) do
+                expect(original_token).to_not eql(auth.current_token_details)
+                expect(original_conn_id).to eql(client.connection.id)
+                stop_reactor
+              end
+            end
+          end
+        end
+
+        context 'and an AUTH procol message is received' do
+          let(:token_callback) do
+            lambda do |token_params|
+              # Ably in all environments other than local will send AUTH 30 seconds before expiry
+              # We set the TTL to 35s so there's room to receive an AUTH protocol message
+              tokenResponse = Faraday.get "#{auth_url}?keyName=#{key_name}&keySecret=#{key_secret}&expiresIn=35"
+              tokenResponse.body
+            end
+          end
+
+          # RTC8a, RTC8a4
+          it 'client reauths correctly without going through a disconnection' do
+            client.connection.once(:connected) do
+              original_token = client.auth.current_token_details
+              received_auth = false
+
+              client.connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                received_auth = true if protocol_message.action == :auth
+              end
+
+              client.connection.once(:update) do
+                expect(received_auth).to be_truthy
+                expect(original_token).to_not eql(client.auth.current_token_details)
+                stop_reactor
+              end
+            end
+          end
+        end
+      end
+
+      context 'when the JWT token request includes a client_id' do
+        let(:client_id) { random_str }
+        let(:auth_callback) do
+          lambda do |token_params|
+            Faraday.get("#{auth_url}?keyName=#{key_name}&keySecret=#{key_secret}&client_id=#{client_id}").body
+          end
+        end
+        let(:client_options) { default_options.merge(auth_callback: auth_callback) }
+
+        it 'the client_id is the same that was specified in the auth_callback that generated the JWT token' do
+          client.connection.once(:connected) do
+            expect(client.auth.client_id).to eql(client_id)
+            stop_reactor
+          end
+        end
+      end
+
+      context 'when the JWT token request includes a subscribe-only capability' do
+        let(:channel_with_publish_permissions) { "test_JWT_with_publish_#{random_str}" }
+        let(:basic_capability) { JSON.dump(channel_name => ['subscribe'], channel_with_publish_permissions => ['publish']) }
+        let(:auth_callback) do
+          lambda do |token_params|
+            Faraday.get("#{auth_url}?keyName=#{key_name}&keySecret=#{key_secret}&capability=#{URI.escape(basic_capability)}").body
+          end
+        end
+        let(:client_options) { default_options.merge(auth_callback: auth_callback) }
+
+        it 'client fails to publish to a channel with subscribe-only capability and publishes successfully on a channel with permissions' do
+          client.connection.once(:connected) do
+            forbidden_channel = client.channels.get(channel_name)
+            allowed_channel = client.channels.get(channel_with_publish_permissions)
+            forbidden_channel.publish('not-allowed').errback do |error|
+              expect(error.code).to eql(40160)
+              expect(error.message).to match(/permission denied/)
+
+              allowed_channel.publish(message_name) do |message|
+                expect(message.name).to eql(message_name)
+                stop_reactor
+              end
+            end
+          end
+        end
+      end
+    end
   end
 end
