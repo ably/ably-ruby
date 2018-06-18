@@ -1,7 +1,24 @@
 # Change Log
 
-## [v1.0.6](https://github.com/ably/ably-ruby/tree/v1.0.6)
+## [v1.0.7](https://github.com/ably/ably-ruby/tree/1.0.7)
 
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.0.6...1.0.7)
+
+**Implemented enhancements:**
+
+- Add JWT test [\#136](https://github.com/ably/ably-ruby/issues/136)
+
+**Fixed bugs:**
+
+- Documentation for add\_request\_ids [\#152](https://github.com/ably/ably-ruby/issues/152)
+
+**Merged pull requests:**
+
+- Fix auth\_method-\>auth\_params [\#157](https://github.com/ably/ably-ruby/pull/157) ([SimonWoolf](https://github.com/SimonWoolf))
+- Add request\_id attribute documentation [\#156](https://github.com/ably/ably-ruby/pull/156) ([funkyboy](https://github.com/funkyboy))
+- Add JWT tests [\#137](https://github.com/ably/ably-ruby/pull/137) ([funkyboy](https://github.com/funkyboy))
+
+## [v1.0.6](https://github.com/ably/ably-ruby/tree/v1.0.6) (2018-05-01)
 [Full Changelog](https://github.com/ably/ably-ruby/compare/v1.0.5...v1.0.6)
 
 **Fixed bugs:**
@@ -22,6 +39,7 @@
 - Do not encode strings in-place [\#147](https://github.com/ably/ably-ruby/pull/147) ([mattheworiordan](https://github.com/mattheworiordan))
 - Only resume if connection is fresh \(RTN15g\*\) [\#146](https://github.com/ably/ably-ruby/pull/146) ([mattheworiordan](https://github.com/mattheworiordan))
 - Fix channel history pagination test [\#143](https://github.com/ably/ably-ruby/pull/143) ([funkyboy](https://github.com/funkyboy))
+- New release v1.0.5 [\#142](https://github.com/ably/ably-ruby/pull/142) ([funkyboy](https://github.com/funkyboy))
 - Fix presence history test [\#141](https://github.com/ably/ably-ruby/pull/141) ([funkyboy](https://github.com/funkyboy))
 - Do not encode strings in-place [\#140](https://github.com/ably/ably-ruby/pull/140) ([aschuster3](https://github.com/aschuster3))
 
