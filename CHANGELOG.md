@@ -39,7 +39,6 @@
 - Do not encode strings in-place [\#147](https://github.com/ably/ably-ruby/pull/147) ([mattheworiordan](https://github.com/mattheworiordan))
 - Only resume if connection is fresh \(RTN15g\*\) [\#146](https://github.com/ably/ably-ruby/pull/146) ([mattheworiordan](https://github.com/mattheworiordan))
 - Fix channel history pagination test [\#143](https://github.com/ably/ably-ruby/pull/143) ([funkyboy](https://github.com/funkyboy))
-- New release v1.0.5 [\#142](https://github.com/ably/ably-ruby/pull/142) ([funkyboy](https://github.com/funkyboy))
 - Fix presence history test [\#141](https://github.com/ably/ably-ruby/pull/141) ([funkyboy](https://github.com/funkyboy))
 - Do not encode strings in-place [\#140](https://github.com/ably/ably-ruby/pull/140) ([aschuster3](https://github.com/aschuster3))
 
