@@ -16,6 +16,20 @@ describe Ably::Models::Message do
     let(:model_args) { [protocol_message: protocol_message] }
   end
 
+  # TODO: Assign spec item for serialization of ID
+  context '#id' do
+    let(:id) { random_str }
+    let(:model) { subject.new(id: id) }
+
+    it 'exposes the #id attribute' do
+      expect(model.id).to eql(id)
+    end
+
+    specify '#as_json exposes the #id attribute' do
+      expect(model.as_json['id']).to eql(id)
+    end
+  end
+
   context '#timestamp' do
     let(:model) { subject.new({}, protocol_message: protocol_message) }
 
