@@ -414,6 +414,21 @@ describe Ably::Realtime::Client, :event_machine do
           end
         end
       end
+
+      context 'with more than allowed messages in a single publish' do
+        let(:channel_name) { random_str }
+
+        it 'rejects the publish' do
+          messages = (Ably::Realtime::Connection::MAX_PROTOCOL_MESSAGE_BATCH_SIZE + 1).times.map do
+            { name: 'foo' }
+          end
+
+          subject.publish(channel_name, messages).errback do |error|
+            expect(error).to be_kind_of(Ably::Exceptions::InvalidRequest)
+            stop_reactor
+          end
+        end
+      end
     end
   end
 end
