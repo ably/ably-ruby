@@ -152,7 +152,7 @@ module Ably
       #   end
       #
       def publish(name, data = nil, attributes = {}, &success_block)
-        if detached? || detaching? || failed?
+        if suspended? || failed?
           error = Ably::Exceptions::ChannelInactive.new("Cannot publish messages on a channel in state #{state}")
           return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
         end
@@ -372,11 +372,7 @@ module Ably
 
         __queue__.push(*messages)
 
-        if attached?
-          process_queue
-        else
-          attach
-        end
+        process_queue
 
         if messages.count == 1
           # A message is a Deferrable so, if publishing only one message, simply return that Deferrable
@@ -417,7 +413,7 @@ module Ably
 
       # Move messages from Channel Queue into Outgoing Connection Queue
       def process_queue
-        condition = -> { attached? && messages_in_queue? }
+        condition = -> { messages_in_queue? }
         non_blocking_loop_while(condition) do
           send_messages_within_protocol_message __queue__.shift(MAX_PROTOCOL_MESSAGE_BATCH_SIZE)
         end
