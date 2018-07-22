@@ -91,6 +91,54 @@ describe Ably::Rest::Channel, 'messages' do
       end
     end
 
+    context 'idempotency' do
+      let(:id) { random_str }
+      let(:name) { 'event' }
+      let(:data) { random_str }
+
+      context 'when ID is not included' do
+        context 'with Message object' do
+          let(:message) { Ably::Models::Message.new(data: data) }
+
+          it 'publishes the same message three times' do
+            3.times { channel.publish [message] }
+            expect(channel.history.items.length).to eql(3)
+          end
+        end
+
+        context 'with #publish arguments only' do
+          it 'publishes the same message three times' do
+            3.times { channel.publish 'event', data }
+            expect(channel.history.items.length).to eql(3)
+          end
+        end
+      end
+
+      context 'when ID is included' do
+        context 'with Message object' do
+          let(:message) { Ably::Models::Message.new(id: id, data: data) }
+
+          it 'three REST publishes result in only one message being published' do
+            3.times { channel.publish [message] }
+            expect(channel.history.items.length).to eql(1)
+            expect(channel.history.items[0].id).to eql(id)
+          end
+        end
+
+        context 'with #publish arguments only' do
+          it 'three REST publishes result in only one message being published' do
+            3.times { channel.publish 'event', data, id: id }
+            expect(channel.history.items.length).to eql(1)
+          end
+        end
+
+        specify 'the ID provided is used for the published messages' do
+          channel.publish 'event', data, id: id
+          expect(channel.history.items[0].id).to eql(id)
+        end
+      end
+    end
+
     context 'with unsupported data payload content type' do
       context 'Integer' do
         let(:data) { 1 }
