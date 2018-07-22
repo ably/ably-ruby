@@ -137,6 +137,62 @@ describe Ably::Rest::Channel, 'messages' do
           expect(channel.history.items[0].id).to eql(id)
         end
       end
+
+      context 'when idempotent publishing is enabled in the client library ClientOptions' do
+        let(:client_options) { default_client_options.merge(idempotent_rest_publishing: true, log_level: :error) }
+
+        def mock_for_two_publish_failures
+          @failed_http_posts = 0
+          allow(client).to receive(:can_fallback_to_alternate_ably_host?).and_return(true)
+          allow_any_instance_of(Faraday::Connection).to receive(:post) do |*args|
+            @failed_http_posts += 1
+            if @failed_http_posts == 2
+              # Ensure the 3rd requests operates as normal
+              allow_any_instance_of(Faraday::Connection).to receive(:post).and_call_original
+            end
+            raise Faraday::ClientError.new('Fake client error')
+          end
+        end
+
+        context 'with Message object' do
+          let(:message) { Ably::Models::Message.new(data: data) }
+          before { mock_for_two_publish_failures }
+
+          it 'three REST publishes result in only one message being published' do
+            channel.publish [message]
+            expect(channel.history.items.length).to eql(1)
+            expect(@failed_http_posts).to eql(2)
+          end
+        end
+
+        context 'with #publish arguments only' do
+          before { mock_for_two_publish_failures }
+
+          it 'three REST publishes result in only one message being published' do
+            channel.publish 'event', data
+            expect(channel.history.items.length).to eql(1)
+            expect(@failed_http_posts).to eql(2)
+          end
+        end
+
+        context 'with explicitily provided message ID' do
+          let(:id) { random_str }
+
+          before { mock_for_two_publish_failures }
+
+          it 'three REST publishes result in only one message being published with the explicitly provided ID' do
+            channel.publish 'event', data, id: id
+            expect(channel.history.items.length).to eql(1)
+            expect(channel.history.items[0].id).to eql(id)
+            expect(@failed_http_posts).to eql(2)
+          end
+        end
+
+        specify 'the ID is populated with the random ID from this lib' do
+          channel.publish 'event'
+          expect(channel.history.items[0].id).to match(/^[a-f0-9]{32}$/)
+        end
+      end
     end
 
     context 'with unsupported data payload content type' do

@@ -87,7 +87,12 @@ module Ably
             unless client.auth.can_assume_client_id?(msg.client_id)
               raise Ably::Exceptions::IncompatibleClientId.new("Cannot publish with client_id '#{msg.client_id}' as it is incompatible with the current configured client_id '#{client.client_id}'")
             end
-          end.as_json
+          end.as_json.tap do |msg|
+            # Mutate the JSON to support idempotent publishing where a Message.id does not exist
+            unless msg['id']
+              msg['id'] = SecureRandom.hex(16).force_encoding('UTF-8')
+            end
+          end
         end
 
         response = client.post("#{base_path}/publish", payload.length == 1 ? payload.first : payload)
