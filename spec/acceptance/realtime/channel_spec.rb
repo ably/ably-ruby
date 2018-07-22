@@ -2070,8 +2070,12 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       context 'moves to' do
-        %w(suspended detached failed).each do |channel_state|
+        %w(suspended failed).each do |channel_state|
           context(channel_state) do
+            let(:client) do
+              auto_close Ably::Realtime::Client.new(default_options.merge(log_level: :error))
+            end
+
             specify 'all queued messages fail with NACK (#RTL11)' do
               channel.attach do
                 # Move to disconnected
@@ -2098,7 +2102,8 @@ describe Ably::Realtime::Channel, :event_machine do
             specify 'all published messages awaiting an ACK do nothing (#RTL11a)' do
               connection_been_disconnected = false
 
-              channel.attach do
+              channel.attach
+              channel.once(:attached) do
                 deferrable = channel.publish("foo")
                 deferrable.errback do |error|
                   fail "Message publish should not fail"
