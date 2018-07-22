@@ -766,53 +766,76 @@ describe Ably::Realtime::Channel, :event_machine do
           end
         end
 
-        context 'with :queue_messages client option set to false' do
-          let(:client_options)  { default_options.merge(queue_messages: false) }
+      context 'with :queue_messages client option set to false (#RTL6c4)' do
+        let(:client_options)  { default_options.merge(queue_messages: false) }
 
-          context 'and connection state initialized' do
-            it 'fails the deferrable' do
-              expect(client.connection).to be_initialized
+        context 'and connection state connected (#RTL6c4)' do
+          it 'publishes the message' do
+            client.connection.once(:connected) do
+              channel.publish('event')
+              stop_reactor
+            end
+          end
+        end
+
+        context 'and connection state initialized (#RTL6c4)' do
+          it 'fails the deferrable' do
+            expect(client.connection).to be_initialized
+            channel.publish('event').errback do |error|
+              expect(error).to be_a(Ably::Exceptions::MessageQueueingDisabled)
+              stop_reactor
+            end
+          end
+        end
+
+        context 'and connection state connecting (#RTL6c4)' do
+          it 'fails the deferrable' do
+            client.connect
+            EventMachine.next_tick do
+              expect(client.connection).to be_connecting
               channel.publish('event').errback do |error|
                 expect(error).to be_a(Ably::Exceptions::MessageQueueingDisabled)
                 stop_reactor
               end
             end
           end
+        end
 
-          context 'and connection state connecting' do
-            it 'fails the deferrable' do
-              client.connect
-              EventMachine.next_tick do
-                expect(client.connection).to be_connecting
-                channel.publish('event').errback do |error|
-                  expect(error).to be_a(Ably::Exceptions::MessageQueueingDisabled)
-                  stop_reactor
-                end
-              end
-            end
-          end
-
-          context 'and connection state disconnected' do
+        [:disconnected, :suspended, :closing, :closed].each do |invalid_connection_state|
+          context "and connection state #{invalid_connection_state} (#RTL6c4)" do
             let(:client_options)  { default_options.merge(queue_messages: false) }
             it 'fails the deferrable' do
               client.connection.once(:connected) do
-                client.connection.once(:disconnected) do
-                  expect(client.connection).to be_disconnected
+                client.connection.once(invalid_connection_state) do
+                  expect(client.connection.state).to eq(invalid_connection_state)
                   channel.publish('event').errback do |error|
                     expect(error).to be_a(Ably::Exceptions::MessageQueueingDisabled)
                     stop_reactor
                   end
                 end
-                client.connection.transition_state_machine :disconnected
+                if invalid_connection_state == :closed
+                  connection.close
+                else
+                  client.connection.transition_state_machine invalid_connection_state
+                end
               end
             end
           end
+        end
 
-          context 'and connection state connected' do
-            it 'publishes the message' do
-              client.connection.once(:connected) do
-                channel.publish('event')
-                stop_reactor
+        context 'and the channel state is failed (#RTL6c4)' do
+          let(:client_options)  { default_options.merge(queue_messages: false) }
+          it 'fails the deferrable' do
+            client.connection.once(:connected) do
+              channel.attach
+              channel.once(:attached) do
+                channel.once(:failed) do
+                  channel.publish('event').errback do |error|
+                    expect(error).to be_a(Ably::Exceptions::ChannelInactive)
+                    stop_reactor
+                  end
+                end
+                channel.transition_state_machine(:failed)
               end
             end
           end
