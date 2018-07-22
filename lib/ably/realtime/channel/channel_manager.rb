@@ -111,16 +111,12 @@ module Ably::Realtime
         end
       end
 
-      # When a channel becomes detached, suspended or failed,
+      # When a channel becomes suspended or failed,
       # all queued messages should be failed immediately as we don't queue in
       # any of those states
       def fail_queued_messages(error)
         error = Ably::Exceptions::MessageDeliveryFailed.new("Queued messages on channel '#{channel.name}' in state '#{channel.state}' will never be delivered") unless error
         fail_messages_in_queue connection.__outgoing_message_queue__, error
-        channel.__queue__.each do |message|
-          nack_message message, error
-        end
-        channel.__queue__.clear
       end
 
       def fail_messages_in_queue(queue, error)
