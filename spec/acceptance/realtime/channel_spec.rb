@@ -838,28 +838,6 @@ describe Ably::Realtime::Channel, :event_machine do
         end
       end
 
-      context 'when the connection is not yet connected' do
-        it 'publishes queued messages within a single protocol message once connected' do
-          expect(connection.state).to eq(:initialized)
-          3.times { channel.publish('event', random_str) }
-          channel.subscribe do |message|
-            messages << message if message.name == 'event'
-            next unless messages.length == 3
-
-            # All 3 messages should be batched into a single Protocol Message by the client library
-            # message.id = "{protocol_message.id}:{protocol_message_index}"
-            # Check that all messages share the same protocol_message.id
-            message_id = messages.map { |msg| msg.id.split(':')[0...-1].join(':') }
-            expect(message_id.uniq.count).to eql(1)
-
-            # Check that messages use index 0,1,2 in the ID
-            message_indexes = messages.map { |msg| msg.id.split(':').last }
-            expect(message_indexes).to include("0", "1", "2")
-            stop_reactor
-          end
-        end
-      end
-
       context 'with :queue_messages client option set to false (#RTL6c4)' do
         let(:client_options)  { default_options.merge(queue_messages: false) }
 

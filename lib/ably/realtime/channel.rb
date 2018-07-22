@@ -1,3 +1,5 @@
+require 'ably/realtime/channel/publisher'
+
 module Ably
   module Realtime
     # The Channel class represents a Channel belonging to this application.
@@ -32,6 +34,7 @@ module Ably
       include Ably::Modules::EventMachineHelpers
       include Ably::Modules::AsyncWrapper
       include Ably::Modules::MessageEmitter
+      include Ably::Realtime::Channel::Publisher
       extend Ably::Modules::Enum
 
       # ChannelState
@@ -59,7 +62,7 @@ module Ably
       # Max number of messages to bundle in a single ProtocolMessage
       MAX_PROTOCOL_MESSAGE_BATCH_SIZE = 50
 
-      # Ably client associated with this channel
+      # {Ably::Realtime::Client} associated with this channel
       # @return [Ably::Realtime::Client]
       # @api private
       attr_reader :client
@@ -122,7 +125,7 @@ module Ably
       # @param data [String, ByteArray, nil]   The message payload unless an Array of [Ably::Model::Message] objects passed in the first argument
       # @param attributes [Hash, nil]   Optional additional message attributes such as :client_id or :connection_id, applied when name attribute is nil or a string
       #
-      # @yield [Ably::Models::Message,Array<Ably::Models::Message>] On success, will call the block with the {Ably::Models::Message} if a single message is publishde, or an Array of {Ably::Models::Message} when multiple messages are published
+      # @yield [Ably::Models::Message,Array<Ably::Models::Message>] On success, will call the block with the {Ably::Models::Message} if a single message is published, or an Array of {Ably::Models::Message} when multiple messages are published
       # @return [Ably::Util::SafeDeferrable] Deferrable that supports both success (callback) and failure (errback) callbacks
       #
       # @example
@@ -158,7 +161,7 @@ module Ably
         end
 
         if !connection.can_publish_messages?
-          error = Ably::Exceptions::MessageQueueingDisabled.new("Message cannot be published. Client is configured to disallow queueing of messages and connection is currently #{connection.state}")
+          error = Ably::Exceptions::MessageQueueingDisabled.new("Message cannot be published. Client is not allowed to queue of messages when connection is in state #{connection.state}")
           return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
         end
 
@@ -170,7 +173,12 @@ module Ably
           [{ name: name, data: data }.merge(attributes)]
         end
 
-        queue_messages(messages).tap do |deferrable|
+        if messages.length > Realtime::Connection::MAX_PROTOCOL_MESSAGE_BATCH_SIZE
+          error = Ably::Exceptions::InvalidRequest.new("It is not possible to publish more than #{Realtime::Connection::MAX_PROTOCOL_MESSAGE_BATCH_SIZE} messages with a single publish request.")
+          return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
+        end
+
+        enqueue_messages_on_connection(client, messages, channel_name, options).tap do |deferrable|
           deferrable.callback(&success_block) if block_given?
         end
       end
@@ -327,12 +335,6 @@ module Ably
         client.logger
       end
 
-      # Internal queue used for messages published that cannot yet be enqueued on the connection
-      # @api private
-      def __queue__
-        @queue
-      end
-
       # As we are using a state machine, do not allow change_state to be used
       # #transition_state_machine must be used instead
       private :change_state
@@ -344,94 +346,6 @@ module Ably
             client.logger.error error_message
           end
           emit_message message.name, message
-        end
-
-        unsafe_on(STATE.Attached) do
-          process_queue
-        end
-      end
-
-      # Queue messages and process queue if channel is attached.
-      # If channel is not yet attached, attempt to attach it before the message queue is processed.
-      # @return [Ably::Util::SafeDeferrable]
-      def queue_messages(raw_messages)
-        messages = Array(raw_messages).map do |raw_msg|
-          create_message(raw_msg).tap do |message|
-            next if message.client_id.nil?
-            if message.client_id == '*'
-              raise Ably::Exceptions::IncompatibleClientId.new('Wildcard client_id is reserved and cannot be used when publishing messages')
-            end
-            if message.client_id && !message.client_id.kind_of?(String)
-              raise Ably::Exceptions::IncompatibleClientId.new('client_id must be a String when publishing messages')
-            end
-            unless client.auth.can_assume_client_id?(message.client_id)
-              raise Ably::Exceptions::IncompatibleClientId.new("Cannot publish with client_id '#{message.client_id}' as it is incompatible with the current configured client_id '#{client.client_id}'")
-            end
-          end
-        end
-
-        __queue__.push(*messages)
-
-        process_queue
-
-        if messages.count == 1
-          # A message is a Deferrable so, if publishing only one message, simply return that Deferrable
-          messages.first
-        else
-          deferrable_for_multiple_messages(messages)
-        end
-      end
-
-      # A deferrable object that calls the success callback once all messages are delivered
-      # If any message fails, the errback is called immediately
-      # Only one callback or errback is ever called i.e. if a group of messages all fail, only once
-      # errback will be invoked
-      def deferrable_for_multiple_messages(messages)
-        expected_deliveries = messages.count
-        actual_deliveries = 0
-        failed = false
-
-        Ably::Util::SafeDeferrable.new(logger).tap do |deferrable|
-          messages.each do |message|
-            message.callback do
-              next if failed
-              actual_deliveries += 1
-              deferrable.succeed messages if actual_deliveries == expected_deliveries
-            end
-            message.errback do |error|
-              next if failed
-              failed = true
-              deferrable.fail error, message
-            end
-          end
-        end
-      end
-
-      def messages_in_queue?
-        !__queue__.empty?
-      end
-
-      # Move messages from Channel Queue into Outgoing Connection Queue
-      def process_queue
-        condition = -> { messages_in_queue? }
-        non_blocking_loop_while(condition) do
-          send_messages_within_protocol_message __queue__.shift(MAX_PROTOCOL_MESSAGE_BATCH_SIZE)
-        end
-      end
-
-      def send_messages_within_protocol_message(messages)
-        connection.send_protocol_message(
-          action:   Ably::Models::ProtocolMessage::ACTION.Message.to_i,
-          channel:  name,
-          messages: messages
-        )
-      end
-
-      def create_message(message)
-        Ably::Models::Message(message.dup).tap do |msg|
-          msg.encode(client.encoders, options) do |encode_error, error_message|
-            client.logger.error error_message
-          end
         end
       end
 
@@ -445,6 +359,11 @@ module Ably
 
       def setup_presence
         @presence ||= Presence.new(self)
+      end
+
+      # Alias useful for methods with a name argument
+      def channel_name
+        name
       end
     end
   end
