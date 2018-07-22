@@ -1169,6 +1169,21 @@ describe Ably::Realtime::Channel, :event_machine do
         end
       end
 
+      context 'with more than allowed messages in a single publish' do
+        let(:channel_name) { random_str }
+
+        it 'rejects the publish' do
+          messages = (Ably::Realtime::Connection::MAX_PROTOCOL_MESSAGE_BATCH_SIZE + 1).times.map do
+            { name: 'foo' }
+          end
+
+          channel.publish(messages).errback do |error|
+            expect(error).to be_kind_of(Ably::Exceptions::InvalidRequest)
+            stop_reactor
+          end
+        end
+      end
+
       context 'identified clients' do
         context 'when authenticated with a wildcard client_id' do
           let(:token)            { Ably::Rest::Client.new(default_options).auth.request_token(client_id: '*') }
