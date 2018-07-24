@@ -76,7 +76,7 @@ module Ably
           [{ name: name, data: data }.merge(attributes)]
         end
 
-        payload = messages.map do |message|
+        payload = messages.each_with_index.map do |message, index|
           Ably::Models::Message(message.dup).tap do |msg|
             msg.encode client.encoders, options
 
@@ -87,10 +87,16 @@ module Ably
             unless client.auth.can_assume_client_id?(msg.client_id)
               raise Ably::Exceptions::IncompatibleClientId.new("Cannot publish with client_id '#{msg.client_id}' as it is incompatible with the current configured client_id '#{client.client_id}'")
             end
-          end.as_json.tap do |msg|
-            # Mutate the JSON to support idempotent publishing where a Message.id does not exist
-            unless msg['id']
-              msg['id'] = SecureRandom.hex(16).force_encoding('UTF-8')
+          end.as_json
+        end.tap do |payload|
+          if client.idempotent_rest_publishing
+            # We cannot mutate for idempotent publishing if one or more messages already has an ID
+            if payload.all? { |msg| !msg['id'] }
+              # Mutate the JSON to support idempotent publishing where a Message.id does not exist
+              idempotent_publish_id = SecureRandom.base64(16)
+              payload.each_with_index do |msg, idx|
+                msg['id'] = "#{idempotent_publish_id}:#{idx}"
+              end
             end
           end
         end
