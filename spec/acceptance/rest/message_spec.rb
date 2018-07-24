@@ -136,6 +136,13 @@ describe Ably::Rest::Channel, 'messages' do
           channel.publish 'event', data, id: id
           expect(channel.history.items[0].id).to eql(id)
         end
+
+        specify 'for multiple messages in one publish operation' do
+          message_arr = 3.times.map { Ably::Models::Message.new(id: id, data: data) }
+          expect { channel.publish message_arr }.to raise_error do |error|
+            expect(error.code).to eql(40007)
+          end
+        end
       end
 
       context 'when idempotent publishing is enabled in the client library ClientOptions' do
@@ -186,6 +193,12 @@ describe Ably::Rest::Channel, 'messages' do
             expect(channel.history.items[0].id).to eql(id)
             expect(@failed_http_posts).to eql(2)
           end
+        end
+
+        specify 'for multiple messages in one publish operation' do
+          message_arr = 3.times.map { Ably::Models::Message.new(data: data) }
+          3.times { channel.publish message_arr }
+          expect(channel.history.items.length).to eql(1)
         end
 
         specify 'the ID is populated with the random ID from this lib' do
