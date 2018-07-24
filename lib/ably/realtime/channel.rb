@@ -161,7 +161,7 @@ module Ably
         end
 
         if !connection.can_publish_messages?
-          error = Ably::Exceptions::MessageQueueingDisabled.new("Message cannot be published. Client is not allowed to queue of messages when connection is in state #{connection.state}")
+          error = Ably::Exceptions::MessageQueueingDisabled.new("Message cannot be published. Client is not allowed to queue messages when connection is in state #{connection.state}")
           return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
         end
 
