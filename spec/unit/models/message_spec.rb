@@ -12,12 +12,13 @@ describe Ably::Models::Message do
   let(:protocol_message_timestamp) { as_since_epoch(Time.now) }
   let(:protocol_message) { Ably::Models::ProtocolMessage.new(action: 1, timestamp: protocol_message_timestamp) }
 
-  it_behaves_like 'a model', with_simple_attributes: %w(id name client_id data encoding) do
-    let(:model_args) { [protocol_message: protocol_message] }
+  context 'serialization of the Message object (#RSL1j)' do
+    it_behaves_like 'a model', with_simple_attributes: %w(id name client_id data encoding) do
+      let(:model_args) { [protocol_message: protocol_message] }
+    end
   end
 
-  # TODO: Assign spec item for serialization of ID
-  context '#id' do
+  context '#id (#RSL1j)' do
     let(:id) { random_str }
     let(:model) { subject.new(id: id) }
 

@@ -22,6 +22,8 @@ module Ably
       # @api private
       attr_reader :push
 
+      IDEMPOTENT_LIBRARY_GENERATED_ID_LENGTH = 9 # See spec RSL1k1
+
       # Initialize a new Channel object
       #
       # @param client [Ably::Rest::Client]
@@ -93,7 +95,7 @@ module Ably
             # We cannot mutate for idempotent publishing if one or more messages already has an ID
             if payload.all? { |msg| !msg['id'] }
               # Mutate the JSON to support idempotent publishing where a Message.id does not exist
-              idempotent_publish_id = SecureRandom.base64(16)
+              idempotent_publish_id = SecureRandom.base64(IDEMPOTENT_LIBRARY_GENERATED_ID_LENGTH)
               payload.each_with_index do |msg, idx|
                 msg['id'] = "#{idempotent_publish_id}:#{idx}"
               end
