@@ -155,7 +155,7 @@ describe Ably::Rest::Push::Admin do
       end
     end
 
-    describe '#device_registrations' do
+    describe '#device_registrations (#RSH1b)' do
       subject { client.push.admin.device_registrations }
 
       context 'without permissions' do
@@ -173,7 +173,7 @@ describe Ably::Rest::Push::Admin do
         end
       end
 
-      describe '#list' do
+      describe '#list (#RSH1b2)' do
         let(:client_id) { random_str }
         let(:fixture_count) { 10 }
 
@@ -234,7 +234,7 @@ describe Ably::Rest::Push::Admin do
         end
       end
 
-      describe '#get' do
+      describe '#get (#RSH1b1)' do
         let(:fixture_count) { 2 }
         let(:client_id) { random_str }
 
@@ -280,7 +280,7 @@ describe Ably::Rest::Push::Admin do
         end
       end
 
-      describe '#save' do
+      describe '#save (#RSH1b3)' do
         let(:device_id) { random_str }
         let(:client_id) { random_str }
         let(:transport_token) { random_str }
@@ -423,7 +423,7 @@ describe Ably::Rest::Push::Admin do
         end
       end
 
-      describe '#remove_where' do
+      describe '#remove_where (#RSH1b5)' do
         let(:device_id) { random_str }
         let(:client_id) { random_str }
 
@@ -475,7 +475,7 @@ describe Ably::Rest::Push::Admin do
         end
       end
 
-      describe '#remove' do
+      describe '#remove (#RSH1b4)' do
         let(:device_id) { random_str }
         let(:client_id) { random_str }
 
