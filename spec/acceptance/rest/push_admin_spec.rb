@@ -528,7 +528,7 @@ describe Ably::Rest::Push::Admin do
       end
     end
 
-    describe '#channel_subscriptions' do
+    describe '#channel_subscriptions (#RSH1c)' do
       let(:client_id) { random_str }
       let(:device_id) { random_str }
       let(:device_id_2) { random_str }
@@ -568,7 +568,7 @@ describe Ably::Rest::Push::Admin do
         device_registrations.remove_where device_id: device_id
       end
 
-      describe '#list' do
+      describe '#list (#RSH1c1)' do
         let(:fixture_count) { 10 }
 
         before do
@@ -635,7 +635,7 @@ describe Ably::Rest::Push::Admin do
         end
       end
 
-      describe '#list_channels' do
+      describe '#list_channels (#RSH1c2)' do
         let(:fixture_count) { 10 }
 
         before(:context) do
@@ -662,6 +662,7 @@ describe Ably::Rest::Push::Admin do
         it 'supports paging' do
           skip 'Channel lists with limits is not reliable immediately after fixture creation'
           # TODO: Remove this once list channels with limits is reliable immediately after fixtures created
+          #       See https://github.com/ably/realtime/issues/1882
           subject.list_channels
           page = subject.list_channels(limit: 5)
           expect(page).to be_a(Ably::Models::PaginatedResult)
@@ -690,7 +691,7 @@ describe Ably::Rest::Push::Admin do
         end
       end
 
-      describe '#save' do
+      describe '#save (#RSH1c3)' do
         let(:channel) { "pushenabled:#{random_str}" }
         let(:client_id) { random_str }
         let(:device_id) { random_str }
@@ -760,7 +761,7 @@ describe Ably::Rest::Push::Admin do
         end
       end
 
-      describe '#remove_where' do
+      describe '#remove_where (#RSH1c5)' do
         let(:client_id) { random_str }
         let(:device_id) { random_str }
         let(:fixed_channel) { "pushenabled:#{random_str}" }
@@ -807,7 +808,7 @@ describe Ably::Rest::Push::Admin do
         end
       end
 
-      describe '#remove' do
+      describe '#remove (#RSH1c4)' do
         let(:channel) { "pushenabled:#{random_str}" }
         let(:channel2) { "pushenabled:#{random_str}" }
         let(:client_id) { random_str }
