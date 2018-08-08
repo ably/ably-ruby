@@ -30,8 +30,8 @@ module Ably::Models
   #   @return [String] The authenticated client identifier for this device. See {https://www.ably.io/documentation/general/authentication#identified-clients auth documentation}.
   # @!attribute [r] metadata
   #   @return [Hash] Arbitrary metadata that can be associated with a device
-  # @!attribute [r] update_token
-  #   @return [String] This token is used internally by Ably client libraries to authenticate with Ably when push registration updates are required such as when the GCM token expires and needs renewing
+  # @!attribute [r] device_secret
+  #   @return [String] This secret is used internally by Ably client libraries to authenticate with Ably when push registration updates are required such as when the GCM token expires and needs renewing
   # @!attribute [r] push
   #   @return [DevicePushDetails] The push notification specific properties for this device allowing push notifications to be delivered to the device
   #
@@ -45,7 +45,7 @@ module Ably::Models
       @hash_object     = IdiomaticRubyWrapper(hash_object)
     end
 
-    %w(id platform form_factor client_id update_token).each do |attribute|
+    %w(id platform form_factor client_id device_secret).each do |attribute|
       define_method attribute do
         attributes[attribute.to_sym]
       end

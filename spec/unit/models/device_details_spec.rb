@@ -7,7 +7,7 @@ describe Ably::Models::DeviceDetails do
 
   subject { Ably::Models::DeviceDetails }
 
-  %w(id platform form_factor client_id update_token).each do |string_attribute|
+  %w(id platform form_factor client_id device_secret).each do |string_attribute|
     let(:empty_device_details) { subject.new }
 
     describe "##{string_attribute} and ##{string_attribute}=" do

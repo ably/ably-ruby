@@ -390,10 +390,19 @@ describe Ably::Rest::Push::Admin do
 
           expect(device_retrieved.push.state).to eql('ACTIVE')
 
-          expect(device_retrieved.update_token).to_not be_nil
+          expect(device_retrieved.device_secret).to be_nil
 
           # Errors are exclusively configure by Ably
           expect(device_retrieved.push.error_reason).to be_nil
+        end
+
+        it 'allows device_secret to be configured' do
+          device_secret = random_str
+          subject.save(device_details.merge(device_secret: device_secret))
+
+          device_retrieved = subject.get(device_details.fetch(:id))
+
+          expect(device_retrieved.device_secret).to eql(device_secret)
         end
 
         it 'saves the new DeviceDetails object' do
