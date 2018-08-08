@@ -5,8 +5,6 @@ module Ably
     #
     # @!attribute [r] name
     #   @return {String} channel name
-    # @!attribute [r] push
-    #   @return {Ably::Rest::Channel::PushChannel} Push channel used for push notification
     # @!attribute [r] options
     #   @return {Hash} channel options configured for this channel, see {#initialize} for channel_options
     class Channel
@@ -17,7 +15,12 @@ module Ably
       # @api private
       attr_reader :client
 
-      attr_reader :name, :push, :options
+      attr_reader :name, :options
+
+      # Push channel used for push notification (client-side)
+      # @return [Ably::Rest::Channel::PushChannel]
+      # @api private
+      attr_reader :push
 
       # Initialize a new Channel object
       #
