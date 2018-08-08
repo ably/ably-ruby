@@ -42,7 +42,7 @@ describe Ably::Rest::Push::Admin do
         end
       end
 
-      context 'invalid arguments' do
+      context 'invalid arguments (#RHS1a)' do
         it 'raises an exception with a nil recipient' do
           expect { subject.publish(nil, {}) }.to raise_error ArgumentError, /Expecting a Hash/
         end
@@ -60,13 +60,13 @@ describe Ably::Rest::Push::Admin do
         end
       end
 
-      context 'invalid recipient' do
+      context 'invalid recipient (#RSH1a)' do
         it 'raises an error after receiving a 40x realtime response' do
           expect { subject.publish({ invalid_recipient_details: 'foo.bar' }, basic_notification_payload) }.to raise_error Ably::Exceptions::InvalidRequest
         end
       end
 
-      context 'invalid push data' do
+      context 'invalid push data (#RSH1a)' do
         it 'raises an error after receiving a 40x realtime response' do
           expect { subject.publish(basic_recipient, { invalid_property_only: true }) }.to raise_error Ably::Exceptions::InvalidRequest
         end
@@ -124,11 +124,11 @@ describe Ably::Rest::Push::Admin do
         end
       end
 
-      it 'accepts valid push data and recipient' do
+      it 'accepts valid push data and recipient (#RSH1a)' do
         subject.publish(basic_recipient, basic_notification_payload)
       end
 
-      context 'using test environment channel recipient' do
+      context 'using test environment channel recipient (#RSH1a)' do
         let(:channel) { random_str }
         let(:recipient) do
           {
