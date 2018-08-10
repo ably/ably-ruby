@@ -142,7 +142,7 @@ describe Ably::Realtime::Push::Admin, :event_machine do
         end
       end
 
-      context 'using test environment channel recipient' do
+      context 'using test environment channel recipient (#RSH1a)' do
         let(:channel) { random_str }
         let(:recipient) do
           {
