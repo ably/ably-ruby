@@ -146,7 +146,10 @@ describe Ably::Realtime::Push::Admin, :event_machine do
         let(:channel) { random_str }
         let(:recipient) do
           {
-            ablyChannel: channel
+            'transportType': 'ablyChannel',
+            'channel': channel,
+            'ablyKey': api_key,
+            'ablyUrl': client.rest_client.endpoint.to_s
           }
         end
         let(:notification_payload) do
@@ -167,7 +170,7 @@ describe Ably::Realtime::Push::Admin, :event_machine do
           push_channel.attach do
             push_channel.subscribe do |message|
               expect(message.name).to eql('__ably_push__')
-              expect(message.data).to eql(JSON.parse(notification_payload.to_json))
+              expect(JSON.parse(message.data)['data']).to eql(JSON.parse(notification_payload[:data].to_json))
               stop_reactor
             end
             subject.publish recipient, notification_payload

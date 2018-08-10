@@ -132,7 +132,10 @@ describe Ably::Rest::Push::Admin do
         let(:channel) { random_str }
         let(:recipient) do
           {
-            ablyChannel: channel
+            'transportType': 'ablyChannel',
+            'channel': channel,
+            'ablyKey': api_key,
+            'ablyUrl': client.endpoint.to_s
           }
         end
         let(:notification_payload) do
@@ -148,9 +151,10 @@ describe Ably::Rest::Push::Admin do
 
         it 'triggers a push notification' do
           subject.publish(recipient, notification_payload)
+          sleep 5
           notification_published_on_channel = client.channels.get(channel).history.items.first
           expect(notification_published_on_channel.name).to eql('__ably_push__')
-          expect(notification_published_on_channel.data).to eql(JSON.parse(notification_payload.to_json))
+          expect(JSON.parse(notification_published_on_channel.data)['data']).to eql(JSON.parse(notification_payload[:data].to_json))
         end
       end
     end
