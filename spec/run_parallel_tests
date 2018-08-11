@@ -1,0 +1,23 @@
+#!/bin/bash
+#
+# Run the unit tests first without RSpec parallel, then run acceptance tests in parallel
+#
+# When splitting all tests across all parallel processes, it's quite plausible
+# that some processes only run a majority of unit tests, whilst others only run a
+# a majority of acceptance tests. This ensures acceptance tests are split out.
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+
+bundle exec rspec "${DIR}/unit"
+unit_status=$?
+
+bundle exec parallel_rspec "${DIR}/acceptance"
+acceptance_status=$?
+
+if [ $unit_status -ne 0 ]; then
+  echo -e "\e[31m⚠ Note: Unit tests have also failed, but are not listed in the test failures above. Scroll up to the unit tests ⚠\e[0m"
+fi
+
+[ $unit_status -ne 0 ] || [ $acceptance_status -ne 0 ] && exit 1
+
+

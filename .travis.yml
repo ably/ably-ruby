@@ -10,7 +10,7 @@ rvm:
   - 2.2.0
   - 2.3.6
   - 2.4.4
-script: bundle exec parallel_rspec spec
+script: spec/run_parallel_tests
 notifications:
   slack:
     secure: Xe8MwDcV2C8XLGk6O6Co31LpQiRSxsmS7Toy5vM7rHds5fnVRBNn5iX6Q5mXMdLOlnsMhjKLt7zl4fsBOZv+siQ+Us0omZSIYpXCYSCIj8nofReF0Lj8M4oa6lFSL5OuygO7PH+wLKTRxQURGZ6Pi1nHU+RE5izRmsewQHkhtY0=
