@@ -11,7 +11,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 bundle exec rspec "${DIR}/unit"
 unit_status=$?
 
-bundle exec parallel_rspec "${DIR}/acceptance"
+bundle exec parallel_rspec "${DIR}/acceptance" --prefix-output-with-test-env-number
 acceptance_status=$?
 
 if [ $unit_status -ne 0 ]; then
