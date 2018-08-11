@@ -24,6 +24,10 @@ if [ $unit_status -ne 0 ]; then
   echo -e "\e[31m⚠ Note: Unit tests have also failed, but are not listed in the test failures above. Scroll up to the unit tests ⚠\e[0m"
 fi
 
-[ $unit_status -ne 0 ] || [ $acceptance_status -ne 0 ] && exit 1
+if [ $unit_status -ne 0 ] || [ $acceptance_status -ne 0 ]; then
+  echo "Unit tests exit code: ${unit_status}"
+  echo "Acceptance tests exit code: ${acceptance_status}"
+  exit 1
+fi
 
 
