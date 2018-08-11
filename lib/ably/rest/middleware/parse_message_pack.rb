@@ -18,8 +18,18 @@ module Ably
           else
             body
           end
+        rescue MessagePack::UnknownExtTypeError => e
+          base64_body = Base64.encode(body) rescue '[Error! Could not base64 encode body]'
+          raise Ably::Exceptions::InvalidResponseBody, "MessagePack::UnknownExtTypeError body could not be decoded: #{e.message}. Got:\n#{base64_body}"
         rescue MessagePack::MalformedFormatError => e
-          raise Ably::Exceptions::InvalidResponseBody, "Expected MessagePack response: #{e.message}"
+          base64_body = Base64.encode(body) rescue '[Error! Could not base64 encode body]'
+          raise Ably::Exceptions::InvalidResponseBody, "MessagePack::MalformedFormatError body could not be decoded: #{e.message}. Got:\n#{base64_body}"
+        end
+
+        def base64_body(body)
+          Base64.encode64(body)
+        rescue => err
+          "[#{err.message}! Could not base64 encode body: '#{body}']"
         end
       end
     end
