@@ -199,7 +199,7 @@ describe Ably::Rest::Push::Admin do
         end
 
         after do
-          subject.remove_where client_id: client_id
+          subject.remove_where client_id: client_id, full_wait: true
         end
 
         it 'returns a PaginatedResult object containing DeviceDetails objects' do
@@ -260,7 +260,7 @@ describe Ably::Rest::Push::Admin do
         end
 
         after do
-          subject.remove_where client_id: client_id
+          subject.remove_where client_id: client_id, full_wait: true
         end
 
         it 'returns a DeviceDetails object if a device ID string is provided' do
@@ -315,7 +315,7 @@ describe Ably::Rest::Push::Admin do
         end
 
         after do
-          subject.remove_where client_id: client_id
+          subject.remove_where client_id: client_id, full_wait: true
         end
 
         it 'saves the new DeviceDetails Hash object' do
@@ -469,21 +469,21 @@ describe Ably::Rest::Push::Admin do
         end
 
         after do
-          subject.remove_where client_id: client_id
+          subject.remove_where client_id: client_id, full_wait: true
         end
 
         it 'removes all matching device registrations by client_id' do
-          subject.remove_where(client_id: client_id)
+          subject.remove_where(client_id: client_id, full_wait: true) # undocumented full_wait to compelte synchronously
           expect(subject.list.items.count).to eql(0)
         end
 
         it 'removes device by device_id' do
-          subject.remove_where(device_id: "device-#{client_id}-1")
+          subject.remove_where(device_id: "device-#{client_id}-1", full_wait: true) # undocumented full_wait to compelte synchronously
           expect(subject.list.items.count).to eql(1)
         end
 
         it 'succeeds even if there is no match' do
-          subject.remove_where(device_id: 'does-not-exist')
+          subject.remove_where(device_id: 'does-not-exist', full_wait: true) # undocumented full_wait to compelte synchronously
           expect(subject.list.items.count).to eql(2)
         end
       end
@@ -521,7 +521,7 @@ describe Ably::Rest::Push::Admin do
         end
 
         after do
-          subject.remove_where client_id: client_id
+          subject.remove_where client_id: client_id, full_wait: true
         end
 
         it 'removes the provided device id string' do
