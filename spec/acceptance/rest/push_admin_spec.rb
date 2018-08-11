@@ -132,10 +132,10 @@ describe Ably::Rest::Push::Admin do
         let(:channel) { random_str }
         let(:recipient) do
           {
-            'transportType': 'ablyChannel',
-            'channel': channel,
-            'ablyKey': api_key,
-            'ablyUrl': client.endpoint.to_s
+            'transportType' => 'ablyChannel',
+            'channel' => channel,
+            'ablyKey' => api_key,
+            'ablyUrl' => client.endpoint.to_s
           }
         end
         let(:notification_payload) do
