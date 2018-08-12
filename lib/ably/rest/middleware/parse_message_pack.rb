@@ -10,6 +10,14 @@ module Ably
             env.body = parse(env.body) unless env.response_headers['Ably-Middleware-Parsed'] == true
             env.response_headers['Ably-Middleware-Parsed'] = true
           end
+        rescue Ably::Exceptions::InvalidResponseBody => e
+          debug_info = {
+            method: env.method,
+            url: env.url,
+            base64_body: base64_body(env.body),
+            response_headers: env.response_headers
+          }
+          raise Ably::Exceptions::InvalidResponseBody, "#{e.message}\nRequest env: #{debug_info}"
         end
 
         def parse(body)
