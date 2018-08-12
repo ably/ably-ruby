@@ -167,6 +167,8 @@ module Ably
           Ably::FALLBACK_HOSTS
         end
 
+        # Take option keys prefixed with `http_`, remove the http_ and
+        # check if the option exists in HTTP_DEFAULTS.  If so, update http_defaults
         @http_defaults = HTTP_DEFAULTS.dup
         options.each do |key, val|
           if http_key = key[/^http_(.+)/, 1]
