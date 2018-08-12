@@ -179,23 +179,25 @@ describe Ably::Rest::Push::Admin do
 
       describe '#list (#RSH1b2)' do
         let(:client_id) { random_str }
-        let(:fixture_count) { 10 }
+        let(:fixture_count) { 6 }
 
         before do
-          fixture_count.times do |index|
-            subject.save({
-              id: "device-#{client_id}-#{index}",
-              platform: 'ios',
-              form_factor: 'phone',
-              client_id: client_id,
-              push: {
-                recipient: {
-                  transport_type: 'gcm',
-                  registration_token: 'secret_token',
+          fixture_count.times.map do |index|
+            Thread.new do
+              subject.save({
+                id: "device-#{client_id}-#{index}",
+                platform: 'ios',
+                form_factor: 'phone',
+                client_id: client_id,
+                push: {
+                  recipient: {
+                    transport_type: 'gcm',
+                    registration_token: 'secret_token',
+                  }
                 }
-              }
-            })
-          end
+              })
+            end
+          end.each(&:join) # Wait for all threads to complete
         end
 
         after do
@@ -215,12 +217,12 @@ describe Ably::Rest::Push::Admin do
         end
 
         it 'supports paging' do
-          page = subject.list(limit: 5, client_id: client_id)
+          page = subject.list(limit: 3, client_id: client_id)
           expect(page).to be_a(Ably::Models::PaginatedResult)
 
-          expect(page.items.count).to eql(5)
+          expect(page.items.count).to eql(3)
           page = page.next
-          expect(page.items.count).to eql(5)
+          expect(page.items.count).to eql(3)
           page = page.next
           expect(page.items.count).to eql(0)
           expect(page).to be_last
@@ -243,20 +245,22 @@ describe Ably::Rest::Push::Admin do
         let(:client_id) { random_str }
 
         before do
-          fixture_count.times do |index|
-            subject.save({
-              id: "device-#{client_id}-#{index}",
-              platform: 'ios',
-              form_factor: 'phone',
-              client_id: client_id,
-              push: {
-                recipient: {
-                  transport_type: 'gcm',
-                  registration_token: 'secret_token',
+          fixture_count.times.map do |index|
+            Thread.new do
+              subject.save({
+                id: "device-#{client_id}-#{index}",
+                platform: 'ios',
+                form_factor: 'phone',
+                client_id: client_id,
+                push: {
+                  recipient: {
+                    transport_type: 'gcm',
+                    registration_token: 'secret_token',
+                  }
                 }
-              }
-            })
-          end
+              })
+            end
+          end.each(&:join) # Wait for all threads to complete
         end
 
         after do
@@ -419,7 +423,7 @@ describe Ably::Rest::Push::Admin do
         end
 
         it 'allows arbitrary number of subsequent saves' do
-          10.times do
+          3.times do
             subject.save(DeviceDetails(device_details))
           end
 
@@ -441,31 +445,36 @@ describe Ably::Rest::Push::Admin do
         let(:client_id) { random_str }
 
         before do
-          subject.save({
-            id: "device-#{client_id}-0",
-            platform: 'ios',
-            form_factor: 'phone',
-            client_id: client_id,
-            push: {
-              recipient: {
-                transport_type: 'gcm',
-                registrationToken: 'secret_token',
-              }
-            }
-          })
-
-          subject.save({
-            id: "device-#{client_id}-1",
-            platform: 'ios',
-            form_factor: 'phone',
-            client_id: client_id,
-            push: {
-              recipient: {
-                transport_type: 'gcm',
-                registration_token: 'secret_token',
-              }
-            }
-          })
+          [
+            Thread.new do
+              subject.save({
+                id: "device-#{client_id}-0",
+                platform: 'ios',
+                form_factor: 'phone',
+                client_id: client_id,
+                push: {
+                  recipient: {
+                    transport_type: 'gcm',
+                    registrationToken: 'secret_token',
+                  }
+                }
+              })
+            end,
+            Thread.new do
+              subject.save({
+                id: "device-#{client_id}-1",
+                platform: 'ios',
+                form_factor: 'phone',
+                client_id: client_id,
+                push: {
+                  recipient: {
+                    transport_type: 'gcm',
+                    registration_token: 'secret_token',
+                  }
+                }
+              })
+            end
+          ].each(&:join) # Wait for all threads to complete
         end
 
         after do
@@ -493,31 +502,36 @@ describe Ably::Rest::Push::Admin do
         let(:client_id) { random_str }
 
         before do
-          subject.save({
-            id: "device-#{client_id}-0",
-            platform: 'ios',
-            form_factor: 'phone',
-            client_id: client_id,
-            push: {
-              recipient: {
-                transport_type: 'gcm',
-                registration_token: 'secret_token',
-              }
-            }
-          })
-
-          subject.save({
-            id: "device-#{client_id}-1",
-            platform: 'ios',
-            form_factor: 'phone',
-            client_id: client_id,
-            push: {
-              recipient: {
-                transport_type: 'gcm',
-                registration_token: 'secret_token',
-              }
-            }
-          })
+          [
+            Thread.new do
+              subject.save({
+                id: "device-#{client_id}-0",
+                platform: 'ios',
+                form_factor: 'phone',
+                client_id: client_id,
+                push: {
+                  recipient: {
+                    transport_type: 'gcm',
+                    registration_token: 'secret_token',
+                  }
+                }
+              })
+            end,
+            Thread.new do
+              subject.save({
+                id: "device-#{client_id}-1",
+                platform: 'ios',
+                form_factor: 'phone',
+                client_id: client_id,
+                push: {
+                  recipient: {
+                    transport_type: 'gcm',
+                    registration_token: 'secret_token',
+                  }
+                }
+              })
+            end
+          ].each(&:join) # Wait for all threads to complete
         end
 
         after do
@@ -570,10 +584,14 @@ describe Ably::Rest::Push::Admin do
       # Set up 2 devices with the same client_id
       #  and two device with the unique device_id and no client_id
       before do
-        device_registrations.save(default_device_attr.merge(id: device_id))
-        device_registrations.save(default_device_attr.merge(id: device_id_2))
-        device_registrations.save(default_device_attr.merge(client_id: client_id, id: random_str))
-        device_registrations.save(default_device_attr.merge(client_id: client_id, id: random_str))
+        [
+          lambda { device_registrations.save(default_device_attr.merge(id: device_id)) },
+          lambda { device_registrations.save(default_device_attr.merge(id: device_id_2)) },
+          lambda { device_registrations.save(default_device_attr.merge(client_id: client_id, id: random_str)) },
+          lambda { device_registrations.save(default_device_attr.merge(client_id: client_id, id: random_str)) }
+        ].map do |proc|
+          Thread.new { proc.call }
+        end.each(&:join) # Wait for all threads to complete
       end
 
       after do
@@ -582,13 +600,14 @@ describe Ably::Rest::Push::Admin do
       end
 
       describe '#list (#RSH1c1)' do
-        let(:fixture_count) { 10 }
+        let(:fixture_count) { 6 }
 
         before do
-          fixture_count.times do |index|
-            subject.save(channel: "pushenabled:#{random_str}", client_id: client_id)
-            subject.save(channel: "pushenabled:#{random_str}", device_id: device_id)
-          end
+          fixture_count.times.map do |index|
+            Thread.new { subject.save(channel: "pushenabled:#{random_str}", client_id: client_id) }
+          end + fixture_count.times.map do |index|
+            Thread.new { subject.save(channel: "pushenabled:#{random_str}", device_id: device_id) }
+          end.each(&:join) # Wait for all threads to complete
         end
 
         it 'returns a PaginatedResult object containing DeviceDetails objects' do
@@ -604,12 +623,12 @@ describe Ably::Rest::Push::Admin do
         end
 
         it 'supports paging' do
-          page = subject.list(limit: 5, device_id: device_id)
+          page = subject.list(limit: 3, device_id: device_id)
           expect(page).to be_a(Ably::Models::PaginatedResult)
 
-          expect(page.items.count).to eql(5)
+          expect(page.items.count).to eql(3)
           page = page.next
-          expect(page.items.count).to eql(5)
+          expect(page.items.count).to eql(3)
           page = page.next
           expect(page.items.count).to eql(0)
           expect(page).to be_last
@@ -649,16 +668,18 @@ describe Ably::Rest::Push::Admin do
       end
 
       describe '#list_channels (#RSH1c2)' do
-        let(:fixture_count) { 10 }
+        let(:fixture_count) { 6 }
 
         before(:context) do
           reload_test_app # TODO: Review if necessary late, currently other tests may affect list_channels
         end
 
         before do
-          fixture_count.times do |index|
-            subject.save(channel: "pushenabled:#{index}:#{random_str}", client_id: client_id)
-          end
+          fixture_count.times.map do |index|
+            Thread.new do
+              subject.save(channel: "pushenabled:#{index}:#{random_str}", client_id: client_id)
+            end
+          end.each(&:join) # Wait for all threads to complete
         end
 
         after do
@@ -677,12 +698,12 @@ describe Ably::Rest::Push::Admin do
           # TODO: Remove this once list channels with limits is reliable immediately after fixtures created
           #       See https://github.com/ably/realtime/issues/1882
           subject.list_channels
-          page = subject.list_channels(limit: 5)
+          page = subject.list_channels(limit: 3)
           expect(page).to be_a(Ably::Models::PaginatedResult)
 
-          expect(page.items.count).to eql(5)
+          expect(page.items.count).to eql(3)
           page = page.next
-          expect(page.items.count).to eql(5)
+          expect(page.items.count).to eql(3)
           page = page.next
           expect(page.items.count).to eql(0)
           expect(page).to be_last
@@ -779,14 +800,18 @@ describe Ably::Rest::Push::Admin do
         let(:device_id) { random_str }
         let(:fixed_channel) { "pushenabled:#{random_str}" }
 
-        let(:fixture_count) { 30 }
+        let(:fixture_count) { 6 }
 
         before do
-          fixture_count.times do |index|
-            subject.save(channel: "pushenabled:#{random_str}", client_id: client_id)
-            subject.save(channel: "pushenabled:#{random_str}", device_id: device_id)
-            subject.save(channel: fixed_channel, device_id: device_id_2)
-          end
+          fixture_count.times.map do |index|
+            [
+              lambda { subject.save(channel: "pushenabled:#{random_str}", client_id: client_id) },
+              lambda { subject.save(channel: "pushenabled:#{random_str}", device_id: device_id) },
+              lambda { subject.save(channel: fixed_channel, device_id: device_id_2) }
+            ]
+          end.flatten.map do |proc|
+            Thread.new { proc.call }
+          end.each(&:join) # Wait for all threads to complete
         end
 
         it 'removes matching channels' do
@@ -828,9 +853,13 @@ describe Ably::Rest::Push::Admin do
         let(:device_id) { random_str }
 
         before do
-          subject.save(channel: channel, client_id: client_id)
-          subject.save(channel: channel, device_id: device_id)
-          subject.save(channel: channel2, client_id: client_id)
+          [
+            lambda { subject.save(channel: channel, client_id: client_id) },
+            lambda { subject.save(channel: channel, device_id: device_id) },
+            lambda { subject.save(channel: channel2, client_id: client_id) }
+          ].map do |proc|
+            Thread.new { proc.call }
+          end.each(&:join) # Wait for all threads to complete
         end
 
         it 'removes match for Hash object by channel and client_id' do
