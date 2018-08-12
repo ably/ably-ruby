@@ -7,7 +7,7 @@ describe Ably::Rest do
 
     let(:client_options) { {} }
     let(:client) do
-      Ably::Rest::Client.new(client_options.merge(key: 'appid.keyuid:keysecret'))
+      Ably::Rest::Client.new(client_options.merge(key: 'appid.keyuid:keysecret', log_retries_as_info: true))
     end
 
     let(:now) { Time.now - 1000 }
@@ -67,7 +67,7 @@ describe Ably::Rest do
 
   vary_by_protocol do
     let(:client) do
-      Ably::Rest::Client.new(key: api_key, environment: environment, protocol: protocol)
+      Ably::Rest::Client.new(key: api_key, environment: environment, protocol: protocol, log_retries_as_info: true)
     end
 
     describe 'failed requests' do

@@ -4,7 +4,7 @@ require 'webrick'
 
 describe Ably::Rest::Client do
   vary_by_protocol do
-    let(:default_options) { { environment: environment, protocol: protocol } }
+    let(:default_options) { { environment: environment, protocol: protocol, log_retries_as_info: true } }
     let(:client_options)  { default_options }
 
     let(:client) { Ably::Rest::Client.new(client_options) }
@@ -1084,7 +1084,7 @@ describe Ably::Rest::Client do
         end
 
         context 'option add_request_ids: true and specified fallback hosts', :webmock do
-          let(:client_options) { { key: api_key, fallback_hosts_use_default: true, add_request_ids: true, log_level: :error } }
+          let(:client_options) { { key: api_key, fallback_hosts_use_default: true, add_request_ids: true, log_level: :error, log_retries_as_info: true } }
           let(:requests)       { [] }
 
           before do
@@ -1140,7 +1140,7 @@ describe Ably::Rest::Client do
 
     context 'failed request logging', :prevent_log_stubbing do
       let(:custom_logger) { TestLogger.new }
-      let(:client_options) { default_options.merge(key: api_key, logger: custom_logger) }
+      let(:client_options) { default_options.merge(key: api_key, logger: custom_logger, log_retries_as_info: false) }
 
       it 'is absent when requests do not fail' do
         client.time
@@ -1153,7 +1153,8 @@ describe Ably::Rest::Client do
             rest_host: 'non.existent.domain.local',
             fallback_hosts: [[environment, Ably::Rest::Client::DOMAIN].join('-')],
             key: api_key,
-            logger: custom_logger)
+            logger: custom_logger,
+            log_retries_as_info: false)
         end
 
         it 'is present with success message when requests do not actually fail' do
@@ -1169,7 +1170,8 @@ describe Ably::Rest::Client do
             rest_host: 'non.existent.domain.local',
             fallback_hosts: ['non2.existent.domain.local'],
             key: api_key,
-            logger: custom_logger)
+            logger: custom_logger,
+            log_retries_as_info: false)
         end
 
         it 'is present when all requests fail' do
