@@ -547,7 +547,7 @@ describe Ably::Models::PresenceMessage do
         clone = model.shallow_clone(id: 'newId', action: 1, timestamp: protocol_message_timestamp + 1000)
         expect(clone.id).to match(/newId/)
         expect(clone.connection_id).to eql(protocol_connection_id)
-        expect(as_since_epoch(clone.timestamp)).to eq(protocol_message_timestamp + 1000)
+        expect(as_since_epoch(clone.timestamp)).to be_within(5).of(protocol_message_timestamp + 1000)
         expect(clone.action).to eq(1)
       end
 
