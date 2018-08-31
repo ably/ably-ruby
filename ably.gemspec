@@ -48,8 +48,10 @@ Gem::Specification.new do |spec|
   else
     spec.add_development_dependency 'webmock', '~> 2.2'
     spec.add_development_dependency 'coveralls'
-    spec.add_development_dependency 'pry'
-    spec.add_development_dependency 'pry-byebug'
     spec.add_development_dependency 'parallel_tests', '~> 2.22'
+    if !RUBY_VERSION.match(/^2\.[0123]/)
+      spec.add_development_dependency 'pry'
+      spec.add_development_dependency 'pry-byebug'
+    end
   end
 end
