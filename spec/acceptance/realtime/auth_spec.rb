@@ -613,7 +613,7 @@ describe Ably::Realtime::Auth, :event_machine do
               connection_failed = false
 
               client.connection.once(:connected) do
-                client.auth.authorize(nil, auth_callback: lambda { |token_params| "#{token_string}invalid" }).tap do |deferrable|
+                client.auth.authorize(nil, auth_callback: lambda { |token_params| "#{app_id}.invalid.token.will.cause.failure" }).tap do |deferrable|
                   deferrable.errback do |error|
                     EventMachine.add_timer(0.2) do
                       expect(connection_failed).to eql(true)
