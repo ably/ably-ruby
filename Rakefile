@@ -57,6 +57,9 @@ module Ably
 end
 EOF
     File.open(module_path, 'w') { |file| file.write module_content }
+
+    puts "Error code constants have been generated into #{module_path}"
+    puts "Warning: Search for any constants referenced in this library if their name has changed as a result of this constant generation!"
   end
 rescue LoadError
   # RSpec not available
