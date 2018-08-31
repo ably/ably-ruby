@@ -43,7 +43,7 @@ module Ably::Realtime
         end
 
         unless client.auth.authentication_security_requirements_met?
-          connection.transition_state_machine :failed, reason: Ably::Exceptions::InsecureRequest.new('Cannot use Basic Auth over non-TLS connections', 401, 40103)
+          connection.transition_state_machine :failed, reason: Ably::Exceptions::InsecureRequest.new('Cannot use Basic Auth over non-TLS connections', 401, Ably::Exceptions::Codes::INVALID_USE_OF_BASIC_AUTH_OVER_NONTLS_TRANSPORT)
           return
         end
 
@@ -61,7 +61,7 @@ module Ably::Realtime
 
         logger.debug { "ConnectionManager: Setting up automatic connection timeout timer for #{realtime_request_timeout}s" }
         create_timeout_timer_whilst_in_state(:connecting, realtime_request_timeout) do
-          connection_opening_failed Ably::Exceptions::ConnectionTimeout.new("Connection to Ably timed out after #{realtime_request_timeout}s", nil, 80014)
+          connection_opening_failed Ably::Exceptions::ConnectionTimeout.new("Connection to Ably timed out after #{realtime_request_timeout}s", nil, Ably::Exceptions::Codes::CONNECTION_TIMED_OUT)
         end
       end
 
@@ -72,7 +72,7 @@ module Ably::Realtime
         if error.kind_of?(Ably::Exceptions::BaseAblyException)
           # Authentication errors that indicate the authentication failure is terminal should move to the failed state
           if ([401, 403].include?(error.status) && !RESOLVABLE_ERROR_CODES.fetch(:token_expired).include?(error.code)) ||
-             (error.code == Ably::Exceptions::INVALID_CLIENT_ID)
+             (error.code == Ably::Exceptions::Codes::INVALID_CLIENT_ID)
             connection.transition_state_machine :failed, reason: error
             return
           end
@@ -80,7 +80,7 @@ module Ably::Realtime
 
         logger.warn { "ConnectionManager: Connection to #{connection.current_host}:#{connection.port} failed; #{error.message}" }
         next_state = get_next_retry_state_info
-        connection.transition_state_machine next_state.fetch(:state), retry_in: next_state.fetch(:pause), reason: Ably::Exceptions::ConnectionError.new("Connection failed: #{error.message}", nil, 80000, error)
+        connection.transition_state_machine next_state.fetch(:state), retry_in: next_state.fetch(:pause), reason: Ably::Exceptions::ConnectionError.new("Connection failed: #{error.message}", nil, Ably::Exceptions::Codes::CONNECTION_FAILED, error)
       end
 
       # Called whenever a new connection is made
@@ -319,7 +319,7 @@ module Ably::Realtime
         @liveness_timer = EventMachine::Timer.new(connection.heartbeat_interval + 0.1) do
           if connection.connected? && (connection.time_since_connection_confirmed_alive? >= connection.heartbeat_interval)
             msg = "No activity seen from realtime in #{connection.heartbeat_interval}; assuming connection has dropped";
-            error = Ably::Exceptions::ConnectionTimeout.new(msg, 80003, 408)
+            error = Ably::Exceptions::ConnectionTimeout.new(msg, Ably::Exceptions::Codes::DISCONNECTED, 408)
             connection.transition_state_machine! :disconnected, reason: error
           end
         end
@@ -492,9 +492,9 @@ module Ably::Realtime
             connection.transition_state_machine :closed
           elsif !connection.closed? && !connection.disconnected? && !connection.failed? && !connection.suspended?
             exception = if reason
-              Ably::Exceptions::TransportClosed.new(reason, nil, 80003)
+              Ably::Exceptions::TransportClosed.new(reason, nil, Ably::Exceptions::Codes::DISCONNECTED)
             else
-              Ably::Exceptions::TransportClosed.new('Transport disconnected unexpectedly', nil, 80003)
+              Ably::Exceptions::TransportClosed.new('Transport disconnected unexpectedly', nil, Ably::Exceptions::Codes::DISCONNECTED)
             end
             next_state = get_next_retry_state_info
             connection.transition_state_machine next_state.fetch(:state), retry_in: next_state.fetch(:pause), reason: exception

@@ -225,7 +225,7 @@ module Ably
       #
       def ping(&block)
         if initialized? || suspended? || closing? || closed? || failed?
-          error = Ably::Models::ErrorInfo.new(message: "Cannot send a ping when the connection is #{state}", code: 80003)
+          error = Ably::Models::ErrorInfo.new(message: "Cannot send a ping when the connection is #{state}", code: Ably::Exceptions::Codes::DISCONNECTED)
           return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
         end
 
@@ -256,7 +256,7 @@ module Ably
           once_or_if([:suspended, :closing, :closed, :failed]) do
             next if finished
             finished = true
-            deferrable.fail Ably::Models::ErrorInfo.new(message: "Ping failed as connection has changed state to #{state}", code: 80003)
+            deferrable.fail Ably::Models::ErrorInfo.new(message: "Ping failed as connection has changed state to #{state}", code: Ably::Exceptions::Codes::DISCONNECTED)
           end
 
           EventMachine.add_timer(defaults.fetch(:realtime_request_timeout)) do
@@ -265,7 +265,7 @@ module Ably
             __incoming_protocol_msgbus__.unsubscribe(:protocol_message, &wait_for_ping)
             error_msg = "Ping timed out after #{defaults.fetch(:realtime_request_timeout)}s"
             logger.warn { error_msg }
-            deferrable.fail Ably::Models::ErrorInfo.new(message: error_msg, code: 50003)
+            deferrable.fail Ably::Models::ErrorInfo.new(message: error_msg, code: Ably::Exceptions::Codes::TIMEOUT_ERROR)
             safe_yield block, nil if block_given?
           end
         end
@@ -280,7 +280,7 @@ module Ably
           EventMachine::HttpRequest.new(url).get.tap do |http|
             http.errback do
               yield false if block_given?
-              deferrable.fail Ably::Exceptions::ConnectionFailed.new("Unable to connect to #{url}", nil, 80000)
+              deferrable.fail Ably::Exceptions::ConnectionFailed.new("Unable to connect to #{url}", nil, Ably::Exceptions::Codes::CONNECTION_FAILED)
             end
             http.callback do
               EventMachine.next_tick do
@@ -289,7 +289,7 @@ module Ably
                 if result
                   deferrable.succeed
                 else
-                  deferrable.fail Ably::Exceptions::ConnectionFailed.new("Unexpected response from #{url} (#{http.response_header.status})", 400, 40000)
+                  deferrable.fail Ably::Exceptions::ConnectionFailed.new("Unexpected response from #{url} (#{http.response_header.status})", 400, Ably::Exceptions::Codes::BAD_REQUEST)
                 end
               end
             end

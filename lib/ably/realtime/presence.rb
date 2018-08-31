@@ -233,7 +233,7 @@ module Ably::Realtime
           deferrable.fail Ably::Exceptions::InvalidState.new(
             'Presence state is out of sync as channel is SUSPENDED. Presence#get on a SUSPENDED channel is only supported with option wait_for_sync: false',
             nil,
-            91005
+            Ably::Exceptions::Codes::PRESENCE_STATE_IS_OUT_OF_SYNC
           )
         end
         return deferrable
@@ -330,7 +330,7 @@ module Ably::Realtime
     def send_presence_protocol_message(presence_action, client_id, data)
       presence_message = create_presence_message(presence_action, client_id, data)
       unless presence_message.client_id
-        raise Ably::Exceptions::Standard.new('Unable to enter create presence message without a client_id', 400, 91000)
+        raise Ably::Exceptions::Standard.new('Unable to enter create presence message without a client_id', 400, Ably::Exceptions::Codes::UNABLE_TO_ENTER_PRESENCE_CHANNEL_NO_CLIENTID)
       end
 
       protocol_message = {
@@ -437,13 +437,13 @@ module Ably::Realtime
 
     def attach_channel_then(deferrable)
       if channel.detached? || channel.failed?
-        deferrable.fail Ably::Exceptions::InvalidState.new("Operation is not allowed when channel is in #{channel.state}", 400, 91001)
+        deferrable.fail Ably::Exceptions::InvalidState.new("Operation is not allowed when channel is in #{channel.state}", 400, Ably::Exceptions::Codes::UNABLE_TO_ENTER_PRESENCE_CHANNEL_INVALID_CHANNEL_STATE)
       else
         channel.unsafe_once(:attached, :detached, :failed) do |channel_state_change|
           if channel_state_change.current == :attached
             yield
           else
-            deferrable.fail Ably::Exceptions::InvalidState.new("Operation failed as channel transitioned to #{channel_state_change.current}", 400, 91001)
+            deferrable.fail Ably::Exceptions::InvalidState.new("Operation failed as channel transitioned to #{channel_state_change.current}", 400, Ably::Exceptions::Codes::UNABLE_TO_ENTER_PRESENCE_CHANNEL_INVALID_CHANNEL_STATE)
           end
         end
         channel.attach

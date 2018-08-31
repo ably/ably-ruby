@@ -275,7 +275,7 @@ module Ably::Realtime
             presence_message_client_id = presence_message.client_id || client.auth.client_id
             re_enter_error = Ably::Models::ErrorInfo.new(
               message: "unable to automatically re-enter presence channel for client_id '#{presence_message_client_id}'. Source error code #{error.code} and message '#{error.message}'",
-              code: 91004
+              code: Ably::Exceptions::Codes::UNABLE_TO_AUTOMATICALLY_REENTER_PRESENCE_CHANNEL
             )
             channel.emit :update, Ably::Models::ChannelStateChange.new(
               current: channel.state,
@@ -312,14 +312,14 @@ module Ably::Realtime
         when Ably::Models::PresenceMessage::ACTION.Leave
           remove_presence_member presence_message
         else
-          Ably::Exceptions::ProtocolError.new("Protocol error, unknown presence action #{presence_message.action}", 400, 80013)
+          Ably::Exceptions::ProtocolError.new("Protocol error, unknown presence action #{presence_message.action}", 400, Ably::Exceptions::Codes::PROTOCOL_ERROR)
         end
       end
 
       def ensure_presence_message_is_valid(presence_message)
         return true if presence_message.connection_id
 
-        error = Ably::Exceptions::ProtocolError.new("Protocol error, presence message is missing connectionId", 400, 80013)
+        error = Ably::Exceptions::ProtocolError.new("Protocol error, presence message is missing connectionId", 400, Ably::Exceptions::Codes::PROTOCOL_ERROR)
         logger.error { "PresenceMap: On channel '#{channel.name}' error: #{error}" }
       end
 
