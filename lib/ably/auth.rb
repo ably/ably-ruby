@@ -231,7 +231,7 @@ module Ably
             auth_callback.call(token_params)
           end
         rescue StandardError => err
-          raise Ably::Exceptions::AuthenticationFailed.new("auth_callback failed: #{err.message}", nil, nil, err, fallback_status: 500, fallback_code: 80019)
+          raise Ably::Exceptions::AuthenticationFailed.new("auth_callback failed: #{err.message}", nil, nil, err, fallback_status: 500, fallback_code: Ably::Exceptions::Codes::CONNECTION_NOT_ESTABLISHED_NO_TRANSPORT_HANDLE)
         end
       elsif auth_url = auth_options.delete(:auth_url)
         begin
@@ -239,7 +239,7 @@ module Ably
             token_request_from_auth_url(auth_url, auth_options, token_params)
           end
         rescue StandardError => err
-          raise Ably::Exceptions::AuthenticationFailed.new("auth_url failed: #{err.message}", nil, nil, err, fallback_status: 500, fallback_code: 80019)
+          raise Ably::Exceptions::AuthenticationFailed.new("auth_url failed: #{err.message}", nil, nil, err, fallback_status: 500, fallback_code: Ably::Exceptions::Codes::CONNECTION_NOT_ESTABLISHED_NO_TRANSPORT_HANDLE)
         end
       else
         create_token_request(token_params, auth_options)

@@ -157,7 +157,7 @@ module Ably::Realtime
           logger.debug { "WebsocketTransport: Prot msg recv <=: #{action_name} - #{event_data}" }
 
           if protocol_message.invalid?
-            error = Ably::Exceptions::ProtocolError.new("Invalid Protocol Message received: #{event_data}\nConnection moving to the failed state as the protocol is invalid and unsupported", 400, 80013)
+            error = Ably::Exceptions::ProtocolError.new("Invalid Protocol Message received: #{event_data}\nConnection moving to the failed state as the protocol is invalid and unsupported", 400, Ably::Exceptions::Codes::PROTOCOL_ERROR)
             logger.fatal { "WebsocketTransport: #{error.message}" }
             failed_protocol_message = Ably::Models::ProtocolMessage.new(
               action: Ably::Models::ProtocolMessage::ACTION.Error,

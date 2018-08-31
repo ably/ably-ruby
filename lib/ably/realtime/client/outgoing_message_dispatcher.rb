@@ -52,7 +52,7 @@ module Ably::Realtime
           protocol_message = outgoing_queue.shift
 
           if (!connection.transport)
-            protocol_message.fail Ably::Exceptions::TransportClosed.new('Transport disconnected unexpectedly', nil, 80003)
+            protocol_message.fail Ably::Exceptions::TransportClosed.new('Transport disconnected unexpectedly', nil, Ably::Exceptions::Codes::DISCONNECTED)
             next
           end
 

@@ -239,7 +239,7 @@ module Ably
             # Use base exception if it exists carrying forward the status codes
             deferrable.fail Ably::Exceptions::AuthenticationFailed.new(error.message, nil, nil, error)
           else
-            deferrable.fail Ably::Exceptions::AuthenticationFailed.new(error.message, 500, 80019)
+            deferrable.fail Ably::Exceptions::AuthenticationFailed.new(error.message, 500, Ably::Exceptions::Codes::CLIENT_CONFIGURED_AUTHENTICATION_PROVIDER_REQUEST_FAILED)
           end
         end
         async_wrap(success_callback, fail_callback) do

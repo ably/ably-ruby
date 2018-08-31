@@ -95,7 +95,7 @@ describe Ably::Rest::Channel, 'messages' do
       context 'Integer' do
         let(:data) { 1 }
 
-        it 'is raises an UnsupportedDataType 40011 exception' do
+        it 'is raises an UnsupportedDataType 40013 exception' do
           expect { channel.publish 'event', data }.to raise_error(Ably::Exceptions::UnsupportedDataType)
         end
       end
@@ -103,7 +103,7 @@ describe Ably::Rest::Channel, 'messages' do
       context 'Float' do
         let(:data) { 1.1 }
 
-        it 'is raises an UnsupportedDataType 40011 exception' do
+        it 'is raises an UnsupportedDataType 40013 exception' do
           expect { channel.publish 'event', data }.to raise_error(Ably::Exceptions::UnsupportedDataType)
         end
       end
@@ -111,7 +111,7 @@ describe Ably::Rest::Channel, 'messages' do
       context 'Boolean' do
         let(:data) { true }
 
-        it 'is raises an UnsupportedDataType 40011 exception' do
+        it 'is raises an UnsupportedDataType 40013 exception' do
           expect { channel.publish 'event', data }.to raise_error(Ably::Exceptions::UnsupportedDataType)
         end
       end
@@ -119,7 +119,7 @@ describe Ably::Rest::Channel, 'messages' do
       context 'False' do
         let(:data) { false }
 
-        it 'is raises an UnsupportedDataType 40011 exception' do
+        it 'is raises an UnsupportedDataType 40013 exception' do
           expect { channel.publish 'event', data }.to raise_error(Ably::Exceptions::UnsupportedDataType)
         end
       end

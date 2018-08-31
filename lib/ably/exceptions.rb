@@ -3,7 +3,6 @@ require 'ably/modules/exception_codes'
 module Ably
   module Exceptions
     TOKEN_EXPIRED_CODE = 40140..40149
-    INVALID_CLIENT_ID = 40012
 
     # Base Ably exception class that contains status and code values used by Ably
     # Refer to https://github.com/ably/ably-common/blob/master/protocol/errors.json
@@ -148,7 +147,7 @@ module Ably
     class ChannelInactive < BaseAblyException; end
 
     class IncompatibleClientId < BaseAblyException
-      def initialize(messages, status = 400, code = INVALID_CLIENT_ID, *args)
+      def initialize(messages, status = 400, code = Ably::Exceptions::Codes::INVALID_CLIENT_ID, *args)
         super(message, status, code, *args)
       end
     end
