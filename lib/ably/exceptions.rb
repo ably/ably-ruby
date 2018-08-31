@@ -1,3 +1,5 @@
+require 'ably/modules/exception_codes'
+
 module Ably
   module Exceptions
     TOKEN_EXPIRED_CODE = 40140..40149
