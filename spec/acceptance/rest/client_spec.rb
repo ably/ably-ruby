@@ -27,6 +27,19 @@ describe Ably::Rest::Client do
         end
       end
 
+      context 'with an invalid API key' do
+        let(:client) { Ably::Rest::Client.new(client_options.merge(key: 'app.key:secret', log_level: :fatal)) }
+
+        it 'logs an entry with a help href url matching the code #TI5' do
+          begin
+            client.channels.get('foo').publish('test')
+            raise 'Expected Ably::Exceptions::ResourceMissing'
+          rescue Ably::Exceptions::ResourceMissing => err
+            expect err.to_s.match(%r{https://help.ably.io/error/40400})
+          end
+        end
+      end
+
       context 'with an explicit string :token' do
         let(:client) { Ably::Rest::Client.new(client_options.merge(token: random_str)) }
 

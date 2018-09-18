@@ -38,6 +38,7 @@ module Ably
           additional_info << "base exception: #{@base_exception.class}" if @base_exception
           additional_info << "request_id: #{request_id}" if request_id
           message << "(#{additional_info.join(', ')})"
+          message << "-> see https://help.ably.io/error/#{code} for help" if code
         end
         message.join(' ')
       end
@@ -53,6 +54,8 @@ module Ably
 
     # An invalid request was received by Ably
     class InvalidRequest < BaseAblyException; end
+
+    class InvalidCredentials < BaseAblyException; end
 
     # Similar to 403 Forbidden, but specifically for use when authentication is required and has failed or has not yet been provided
     class UnauthorizedRequest < BaseAblyException; end
