@@ -59,13 +59,18 @@ module Ably
       # Max number of messages to bundle in a single ProtocolMessage
       MAX_PROTOCOL_MESSAGE_BATCH_SIZE = 50
 
-      # {Ably::Realtime::Client} associated with this channel
+      # Ably client associated with this channel
       # @return [Ably::Realtime::Client]
+      # @api private
       attr_reader :client
 
       # Channel name
       # @return [String]
       attr_reader :name
+
+      # Push channel used for push notification
+      # @return [Ably::Realtime::Channel::PushChannel]
+      attr_reader :push
 
       # Channel options configured for this channel, see {#initialize} for channel_options
       # @return [Hash]
@@ -103,6 +108,7 @@ module Ably
         @state_machine = ChannelStateMachine.new(self)
         @state         = STATE(state_machine.current_state)
         @manager       = ChannelManager.new(self, client.connection)
+        @push          = PushChannel.new(self)
 
         setup_event_handlers
         setup_presence
@@ -450,3 +456,4 @@ end
 
 require 'ably/realtime/channel/channel_manager'
 require 'ably/realtime/channel/channel_state_machine'
+require 'ably/realtime/channel/push_channel'

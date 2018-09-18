@@ -38,7 +38,7 @@ module Ably::Models
     end
 
     def to_s
-      "ConnectionStateChange: current state #{current}, previous state #{previous}"
+      "<ConnectionStateChange: current state #{current}, previous state #{previous}>"
     end
   end
 end

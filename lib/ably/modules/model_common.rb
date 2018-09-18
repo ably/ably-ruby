@@ -42,10 +42,23 @@ module Ably::Modules
       attributes.hash
     end
 
+    def to_s
+      representation = attributes.map do |key, val|
+        if val.nil?
+          nil
+        else
+          val_str = val.to_s
+          val_str = "#{val_str[0...80]}..." if val_str.length > 80
+          "#{key}=#{val_str}"
+        end
+      end
+      "<#{self.class.name}: #{representation.compact.join(', ')}>"
+    end
+
     module ClassMethods
       # Return a new instance of this object using the provided JSON-like object or JSON string
-      # @param [Hash, String] JSON-like object or JSON string
-      # @return a new instance o this object
+      # @param json_like_object  [Hash, String]  JSON-like object or JSON string
+      # @return a new instance to this object
       def from_json(json_like_object)
         if json_like_object.kind_of?(String)
           new(JSON.parse(json_like_object))

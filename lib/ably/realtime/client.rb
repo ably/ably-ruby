@@ -38,6 +38,7 @@ module Ably
 
       # The {Ably::Rest::Client REST client} instantiated with the same credentials and configuration that is used for all REST operations such as authentication
       # @return [Ably::Rest::Client]
+      # @private
       attr_reader :rest_client
 
       # When false the client suppresses messages originating from this connection being echoed back on the same connection. Defaults to true
@@ -162,6 +163,12 @@ module Ably
         connection.connect(&block)
       end
 
+      # Push notification object for publishing and managing push notifications
+      # @return [Ably::Realtime::Push]
+      def push
+        @push ||= Push.new(self)
+      end
+
       # (see Ably::Rest::Client#request)
       # @yield [Ably::Models::HttpPaginatedResponse<>] An Array of Stats
       #
@@ -212,6 +219,14 @@ module Ably
         fallback_endpoint_index = connection.manager.retry_count_for_state(:disconnected) + connection.manager.retry_count_for_state(:suspended) - 1
 
         @fallback_endpoints[fallback_endpoint_index % @fallback_endpoints.count]
+      end
+
+      # The local device detilas
+      # @return [Ably::Models::LocalDevice]
+      #
+      # @note This is unsupported in the Ruby library
+      def device
+        raise Ably::Exceptions::PushNotificationsNotSupported, 'This device does not support receiving or subscribing to push notifications. The local device object is not unavailable'
       end
 
       private

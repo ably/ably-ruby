@@ -274,6 +274,24 @@ module Ably
         raw_request(:post, path, params, options)
       end
 
+      # Perform an HTTP PUT request to the API using configured authentication
+      #
+      # @return [Faraday::Response]
+      #
+      # @api private
+      def put(path, params, options = {})
+        raw_request(:put, path, params, options)
+      end
+
+      # Perform an HTTP DELETE request to the API using configured authentication
+      #
+      # @return [Faraday::Response]
+      #
+      # @api private
+      def delete(path, params, options = {})
+        raw_request(:delete, path, params, options)
+      end
+
       # Perform an HTTP request to the Ably API
       # This is a convenience for customers who wish to use bleeding edge REST API functionality
       # that is either not documented or is not included in the API for our client libraries.
@@ -320,6 +338,20 @@ module Ably
       rescue Exceptions::InvalidRequest, Exceptions::ServerError => e
         response = Models::HttpPaginatedResponse::ErrorResponse.new(e.status, e.code, e.message)
         Models::HttpPaginatedResponse.new(response, path, self)
+      end
+
+      # The local device detilas
+      # @return [Ably::Models::LocalDevice]
+      #
+      # @note This is unsupported in the Ruby library
+      def device
+        raise Ably::Exceptions::PushNotificationsNotSupported, 'This device does not support receiving or subscribing to push notifications. The local device object is not unavailable'
+      end
+
+      # Push notification object for publishing and managing push notifications
+      # @return [Ably::Rest::Push]
+      def push
+        @push ||= Push.new(self)
       end
 
       # @!attribute [r] endpoint

@@ -1,3 +1,22 @@
+module Ably::Modules
+  module Conversions
+    private
+    # Convert error_details argument to a {ErrorInfo} object
+    #
+    # @param error_details [ErrorInfo,Hash] Error info attributes
+    #
+    # @return [ErrorInfo]
+    def ErrorInfo(error_details)
+      case error_details
+      when Ably::Models::ErrorInfo
+        error_details
+      else
+        Ably::Models::ErrorInfo.new(error_details)
+      end
+    end
+  end
+end
+
 module Ably::Models
   # An exception type encapsulating error information containing
   # an Ably-specific error code and generic status code.
@@ -31,7 +50,7 @@ module Ably::Models
     end
 
     def to_s
-      "Error: #{message} (code: #{code}, http status: #{status})"
+      "<Error: #{message} (code: #{code}, http status: #{status})>"
     end
   end
 end

@@ -5,6 +5,7 @@ module Ably
 
       # {Ably::Rest::Client} for this Presence object
       # @return {Ably::Rest::Client}
+      # @private
       attr_reader :client
 
       # {Ably::Rest::Channel} this Presence object is associated with
