@@ -50,7 +50,8 @@ module Ably::Models
     end
 
     def to_s
-      see_msg = " -> see https://help.ably.io/error/#{code} for help" if code
+      error_href = href || (code ? "https://help.ably.io/error/#{code}" : '')
+      see_msg = " -> see #{error_href} for help" unless message.to_s.include?(error_href.to_s)
       "<Error: #{message} (code: #{code}, http status: #{status})>#{see_msg}"
     end
   end

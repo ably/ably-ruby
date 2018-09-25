@@ -19,10 +19,48 @@ describe Ably::Models::ErrorInfo do
   end
 
   context 'log entries container help link #TI5' do
-    subject { Ably::Models::ErrorInfo.new('code' => 44444) }
+    context 'without an error code' do
+      subject { Ably::Models::ErrorInfo.new('statusCode' => 401) }
 
-    it 'includes https://help.ably.io/error/[CODE] in the stringified object' do
-      expect(subject.to_s).to include('https://help.ably.io/error/44444')
+      it 'does not include the help URL' do
+        expect(subject.to_s.scan(/help\.ably\.io/)).to be_empty
+      end
+    end
+
+    context 'with a specified error code' do
+      subject { Ably::Models::ErrorInfo.new('code' => 44444) }
+
+      it 'includes https://help.ably.io/error/[CODE] in the stringified object' do
+        expect(subject.to_s).to include('https://help.ably.io/error/44444')
+      end
+    end
+
+    context 'with an error code and an href attribute' do
+      subject { Ably::Models::ErrorInfo.new('code' => 44444, 'href' => 'http://foo.bar.com/') }
+
+      it 'includes the specified href in the stringified object' do
+        expect(subject.to_s).to include('http://foo.bar.com/')
+        expect(subject.to_s).to_not include('https://help.ably.io/error/44444')
+      end
+    end
+
+    context 'with an error code and a message with the same error URL' do
+      subject { Ably::Models::ErrorInfo.new('message' => 'error https://help.ably.io/error/44444', 'code' => 44444) }
+
+      it 'includes the specified error URL only once in the stringified object' do
+        expect(subject.to_s.scan(/help.ably.io/).length).to eql(1)
+      end
+    end
+
+    context 'with an error code and a message with a different error URL' do
+      subject { Ably::Models::ErrorInfo.new('message' => 'error https://help.ably.io/error/123123', 'code' => 44444) }
+
+      it 'includes the specified error URL from the message and the error code URL in the stringified object' do
+        puts subject.to_s
+        expect(subject.to_s.scan(/help.ably.io/).length).to eql(2)
+        expect(subject.to_s.scan(%r{error/123123}).length).to eql(1)
+        expect(subject.to_s.scan(%r{error/44444}).length).to eql(1)
+      end
     end
   end
 end
