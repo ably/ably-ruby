@@ -206,7 +206,10 @@ module Ably
 
         token_params = options.delete(:default_token_params) || {}
         @options  = options
-        @auth     = Auth.new(self, token_params, options)
+        init_auth_options = options.select do |key, _|
+          Auth::AUTH_OPTIONS_KEYS.include?(key.to_s)
+        end
+        @auth     = Auth.new(self, token_params, init_auth_options)
         @channels = Ably::Rest::Channels.new(self)
         @encoders = []
 
