@@ -723,6 +723,109 @@ describe Ably::Rest::Client do
               expect(@fallback_request_count).to eql(2)
             end
           end
+
+          context 'to fail the primary host, allow a fallback to succeed, then later trigger a fallback to the primary host (#RSC15f)' do
+            before do
+              @request_count = 0
+              @primary_host_request_count = 0
+              @web_server = WEBrick::HTTPServer.new(:Port => port, :SSLEnable => false, :AccessLog => [], Logger: WEBrick::Log.new("/dev/null"))
+              @web_server.mount_proc "/channels/#{channel_name}/publish" do |req, res|
+                @request_count += 1
+                if req.header["host"].first.include?(primary_host)
+                  @primary_host_request_count += 1
+                  # Fail all requests to the primary host so that a fallback is used
+                  # Except request 6 which should suceed and clear the fallback host preference
+                  if @request_count == 6
+                    res.status = 200
+                    res['Content-Type'] = 'application/json'
+                    res.body = '{}'
+                  else
+                    res.status = 500
+                  end
+                else
+                  # Fail the second request (first failed fallback of first request)
+                  # Fail the third request on the previously succeeded fallback host to trigger an attempt on the primary host
+                  if [2, 5].include?(@request_count)
+                    res.status = 500
+                  else
+                    res.status = 200
+                    res['Content-Type'] = 'application/json'
+                    res.body = '{}'
+                  end
+                end
+              end
+
+              Thread.new do
+                @web_server.start
+              end
+            end
+
+            let(:client_options) do
+              default_options.merge(
+                rest_host: primary_host,
+                fallback_hosts: fallbacks,
+                token: 'fake.token',
+                port: port,
+                tls: false,
+                log_level: :error
+              ).merge(additional_client_options)
+            end
+
+            let (:additional_client_options) { {} }
+
+            it 'succeeds and remembers fallback host preferences across requests' do
+              # Send a request, expect primary endpoint to fail, one fallback to fail, second fallback to succeed
+              client.channel(channel_name).publish('event', 'data')
+              expect(@request_count).to eql(3)
+              expect(fallbacks).to include(client.using_preferred_fallback_host?)
+              successfull_fallback = client.using_preferred_fallback_host?
+              expect(@primary_host_request_count).to eql(1)
+
+              # Send another request, which should go straight to the fallback as it succeeded previously
+              client.channel(channel_name).publish('event', 'data')
+              expect(@request_count).to eql(4)
+              expect(successfull_fallback).to eql(client.using_preferred_fallback_host?)
+              expect(@primary_host_request_count).to eql(1)
+
+              # A subsequent request should fail to the fallback, go the primary host and succeed
+              client.channel(channel_name).publish('event', 'data')
+              expect(@request_count).to eql(6)
+              expect(client.using_preferred_fallback_host?).to be_falsey
+              expect(@primary_host_request_count).to eql(2)
+
+              # A subsequent request will fail on the primary endpoint, and we expect the fallback to be used again
+              client.channel(channel_name).publish('event', 'data')
+              expect(@request_count).to eql(8)
+              expect(fallbacks).to include(client.using_preferred_fallback_host?)
+              successfull_fallback = client.using_preferred_fallback_host?
+              expect(@primary_host_request_count).to eql(3)
+
+              # Send another request, which should go straight to the fallback as it succeeded previously
+              client.channel(channel_name).publish('event', 'data')
+              expect(@request_count).to eql(9)
+              expect(successfull_fallback).to eql(client.using_preferred_fallback_host?)
+              expect(@primary_host_request_count).to eql(3)
+            end
+
+            context 'with custom :fallback_retry_timeout' do
+              let (:additional_client_options) { { fallback_retry_timeout: 5 } }
+
+              it 'stops using the preferred fallback after this time' do
+                # Send a request, expect primary endpoint to fail, one fallback to fail, second fallback to succeed
+                client.channel(channel_name).publish('event', 'data')
+                expect(@request_count).to eql(3)
+                expect(fallbacks).to include(client.using_preferred_fallback_host?)
+                expect(@primary_host_request_count).to eql(1)
+
+                # Wait for the preferred fallback cache to expire
+                sleep 5
+
+                # Send another request, which should go straight to the primary host again as fallback host is expired
+                client.channel(channel_name).publish('event', 'data')
+                expect(@primary_host_request_count).to eql(2)
+              end
+            end
+          end
         end
       end
 

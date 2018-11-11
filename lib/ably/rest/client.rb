@@ -30,6 +30,8 @@ module Ably
         max_retry_count:    3
       }.freeze
 
+      FALLBACK_RETRY_TIMEOUT = 10 * 60
+
       def_delegators :auth, :client_id, :auth_options
 
       # Custom environment to use such as 'sandbox' when testing the client library against an alternate Ably environment
@@ -122,6 +124,8 @@ module Ably
       #
       # @option options [Boolean]                 :fallback_hosts_use_default  (false) When true, forces the user of fallback hosts even if a non-default production endpoint is being used
       # @option options [Array<String>]           :fallback_hosts              When an array of fallback hosts are provided, these fallback hosts are always used if a request fails to the primary endpoint. If an empty array is provided, the fallback host functionality is disabled
+      # @option options [Integer]                 :fallback_retry_timeout     (10 minutes) amount of time a REST client will continue to use a working fallback host when the primary fallback host has previously failed
+      #
       # @option options [Boolean]                 :add_request_ids             (false) When true, adds a unique request_id to each request sent to Ably servers. This is handy when reporting issues, because you can refer to a specific request.
       #
       # @return [Ably::Rest::Client]
@@ -172,6 +176,8 @@ module Ably
         else
           Ably::FALLBACK_HOSTS
         end
+
+        options[:fallback_retry_timeout] ||= FALLBACK_RETRY_TIMEOUT
 
         # Take option keys prefixed with `http_`, remove the http_ and
         # check if the option exists in HTTP_DEFAULTS.  If so, update http_defaults
@@ -430,7 +436,6 @@ module Ably
       def fallback_connection
         unless defined?(@fallback_connections) && @fallback_connections
           @fallback_connections = fallback_hosts.shuffle.map { |host| Faraday.new(endpoint_for_host(host).to_s, connection_options) }
-          @fallback_connections << Faraday.new(endpoint.to_s, connection_options) # Try the original host last if all fallbacks have been used
         end
         @fallback_index ||= 0
 
@@ -461,7 +466,40 @@ module Ably
         end
       end
 
+      # If the primary host endpoint fails, and a subsequent fallback host succeeds, the fallback
+      #   host that succeeded is used for +ClientOption+ +fallback_retry_timeout+ seconds to avoid
+      #   retries to known failing hosts for a short period of time.
+      # See https://github.com/ably/docs/pull/554, spec id #RSC15f
+      #
+      # @return [nil, String]  Returns nil (falsey) if the primary host is being used, or the currently used host if a fallback host is currently preferred
+      def using_preferred_fallback_host?
+        if preferred_fallback_connection && (preferred_fallback_connection.fetch(:expires_at) > Time.now)
+          preferred_fallback_connection.fetch(:connection_object).host
+        end
+      end
+
       private
+
+      attr_reader :preferred_fallback_connection
+
+      # See #using_preferred_fallback_host? for context
+      def set_preferred_fallback_connection(connection)
+        @preferred_fallback_connection = if connection == @connection
+          # If the succeeded connection is in fact the primary connection (tried after a failed fallback)
+          #   then clear the preferred fallback connection
+          nil
+        else
+          {
+            expires_at: Time.now + options.fetch(:fallback_retry_timeout),
+            connection_object: connection,
+          }
+        end
+      end
+
+      def get_preferred_fallback_connection_object
+        preferred_fallback_connection.fetch(:connection_object) if using_preferred_fallback_host?
+      end
+
       def raw_request(method, path, params = {}, options = {})
         options = options.clone
         if options.delete(:disable_automatic_reauthorize) == true
@@ -483,10 +521,22 @@ module Ably
         retry_sequence_id  = nil
         request_id         = SecureRandom.urlsafe_base64(10) if add_request_ids
 
-        begin
-          use_fallback = can_fallback_to_alternate_ably_host? && retry_count > 0
+        preferred_fallback_connection_for_first_request = get_preferred_fallback_connection_object
 
-          connection(use_fallback: use_fallback).send(method, path, params) do |request|
+        begin
+          use_fallback = can_fallback_to_alternate_ably_host? && (retry_count > 0)
+
+          conn = if preferred_fallback_connection_for_first_request
+            case retry_count
+            when 0
+              preferred_fallback_connection_for_first_request
+            when 1
+              # Ensure the root host is used first if the preferred fallback fails, see #RSC15f
+              connection(use_fallback: false)
+            end
+          end || connection(use_fallback: use_fallback) # default to normal connection selection process if not preferred connection set
+
+          conn.send(method, path, params) do |request|
             if add_request_ids
               request.params[:request_id] = request_id
               request.options.context = {} if request.options.context.nil?
@@ -507,6 +557,7 @@ module Ably
                 "Ably::Rest::Client - Request SUCCEEDED after #{retry_count} #{retry_count > 1 ? 'retries' : 'retry' } for" \
                 " #{method} #{path} #{params} (seq ##{retry_sequence_id}, time elapsed #{(Time.now.to_f - requested_at.to_f).round(2)}s)"
               end
+              set_preferred_fallback_connection conn
             end
           end
 
@@ -514,7 +565,7 @@ module Ably
           retry_sequence_id ||= SecureRandom.urlsafe_base64(4)
           time_passed = Time.now - requested_at
 
-          if can_fallback_to_alternate_ably_host? && retry_count < max_retry_count && time_passed <= max_retry_duration
+          if can_fallback_to_alternate_ably_host? && (retry_count < max_retry_count) && (time_passed <= max_retry_duration)
             retry_count += 1
             retry_log_severity = log_retries_as_info ? :info : :warn
             logger.public_send(retry_log_severity) { "Ably::Rest::Client - Retry #{retry_count} for #{method} #{path} #{params} as initial attempt failed (seq ##{retry_sequence_id}): #{error}" }
