@@ -840,7 +840,8 @@ describe Ably::Rest::Client do
             environment: env,
             key: api_key,
             http_max_retry_duration: max_retry_duration,
-            http_max_retry_count: max_retry_count
+            http_max_retry_count: max_retry_count,
+            log_level: :fatal,
           )
         end
 
@@ -867,7 +868,7 @@ describe Ably::Rest::Client do
           end
 
           let(:client_options) {
-            production_options.merge(fallback_hosts: custom_hosts, log_level: :error)
+            production_options.merge(fallback_hosts: custom_hosts, log_level: :fatal)
           }
 
           it 'attempts the fallback hosts as this is not an authentication failure' do
@@ -880,7 +881,7 @@ describe Ably::Rest::Client do
 
         context 'with an empty array of fallback hosts provided (#RSC15b, #TO3k6)' do
           let(:client_options) {
-            production_options.merge(fallback_hosts: [])
+            production_options.merge(fallback_hosts: [], log_level: :fatal)
           }
 
           it 'does not attempt the fallback hosts as this is an authentication failure' do
@@ -905,7 +906,7 @@ describe Ably::Rest::Client do
           end
 
           let(:client_options) {
-            production_options.merge(fallback_hosts: custom_hosts, log_level: :error)
+            production_options.merge(fallback_hosts: custom_hosts, log_level: :fatal)
           }
 
           it 'attempts the default fallback hosts as this is an authentication failure' do
