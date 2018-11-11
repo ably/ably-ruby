@@ -41,7 +41,7 @@ module Ably::Modules
     # @return [Ably::Exceptions::InvalidStateChange]
     def exception_for_state_change_to(state)
       error_message = "#{self.class}: Unable to transition from #{current_state} => #{state}"
-      Ably::Exceptions::InvalidStateChange.new(error_message, nil, 90001)
+      Ably::Exceptions::InvalidStateChange.new(error_message, nil, Ably::Exceptions::Codes::CHANNEL_OPERATION_FAILED_INVALID_CHANNEL_STATE)
     end
 
     module ClassMethods

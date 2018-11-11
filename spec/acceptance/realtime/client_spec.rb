@@ -24,6 +24,22 @@ describe Ably::Realtime::Client, :event_machine do
           end
         end
 
+        context 'with an invalid API key' do
+          let(:custom_logger_object) { TestLogger.new }
+          let(:client) { Ably::Realtime::Client.new(client_options.merge(key: 'app.key:secret', logger: custom_logger_object)) }
+
+          it 'logs an entry with a help href url matching the code #TI5' do
+            client.connect
+            client.connection.once(:failed) do
+              expect(custom_logger_object.logs.find do |severity, message|
+                next unless %w(fatal error).include?(severity.to_s)
+                message.match(%r{https://help.ably.io/error/40400})
+              end).to_not be_nil
+              stop_reactor
+            end
+          end
+        end
+
         context ':tls option' do
           context 'set to false to force a plain-text connection' do
             let(:client_options) { default_options.merge(tls: false, log_level: :none) }

@@ -87,6 +87,11 @@ module Ably
       # @return [Boolean]
       attr_reader :add_request_ids
 
+      # Retries are logged by default to warn and error. When true, retries are logged at info level
+      # @return [Boolean]
+      # @api private
+      attr_reader :log_retries_as_info
+
       # Creates a {Ably::Rest::Client Rest Client} and configures the {Ably::Auth} object for the connection.
       #
       # @param [Hash,String] options an options Hash used to configure the client and the authentication, or String with an API key or Token ID
@@ -140,18 +145,19 @@ module Ably
           end
         end
 
-        @realtime_client  = options.delete(:realtime_client)
-        @tls              = options.delete(:tls) == false ? false : true
-        @environment      = options.delete(:environment) # nil is production
-        @environment      = nil if [:production, 'production'].include?(@environment)
-        @protocol         = options.delete(:protocol) || :msgpack
-        @debug_http       = options.delete(:debug_http)
-        @log_level        = options.delete(:log_level) || ::Logger::WARN
-        @custom_logger    = options.delete(:logger)
-        @custom_host      = options.delete(:rest_host)
-        @custom_port      = options.delete(:port)
-        @custom_tls_port  = options.delete(:tls_port)
-        @add_request_ids  = options.delete(:add_request_ids)
+        @realtime_client     = options.delete(:realtime_client)
+        @tls                 = options.delete(:tls) == false ? false : true
+        @environment         = options.delete(:environment) # nil is production
+        @environment         = nil if [:production, 'production'].include?(@environment)
+        @protocol            = options.delete(:protocol) || :msgpack
+        @debug_http          = options.delete(:debug_http)
+        @log_level           = options.delete(:log_level) || ::Logger::WARN
+        @custom_logger       = options.delete(:logger)
+        @custom_host         = options.delete(:rest_host)
+        @custom_port         = options.delete(:port)
+        @custom_tls_port     = options.delete(:tls_port)
+        @add_request_ids     = options.delete(:add_request_ids)
+        @log_retries_as_info = options.delete(:log_retries_as_info)
 
         if options[:fallback_hosts_use_default] && options[:fallback_jhosts]
           raise ArgumentError, "fallback_hosts_use_default cannot be set to trye when fallback_jhosts is also provided"
@@ -167,6 +173,8 @@ module Ably
           Ably::FALLBACK_HOSTS
         end
 
+        # Take option keys prefixed with `http_`, remove the http_ and
+        # check if the option exists in HTTP_DEFAULTS.  If so, update http_defaults
         @http_defaults = HTTP_DEFAULTS.dup
         options.each do |key, val|
           if http_key = key[/^http_(.+)/, 1]
@@ -494,7 +502,8 @@ module Ably
             end
           end.tap do
             if retry_count > 0
-              logger.warn do
+              retry_log_severity = log_retries_as_info ? :info : :warn
+              logger.public_send(retry_log_severity) do
                 "Ably::Rest::Client - Request SUCCEEDED after #{retry_count} #{retry_count > 1 ? 'retries' : 'retry' } for" \
                 " #{method} #{path} #{params} (seq ##{retry_sequence_id}, time elapsed #{(Time.now.to_f - requested_at.to_f).round(2)}s)"
               end
@@ -507,21 +516,23 @@ module Ably
 
           if can_fallback_to_alternate_ably_host? && retry_count < max_retry_count && time_passed <= max_retry_duration
             retry_count += 1
-            logger.warn { "Ably::Rest::Client - Retry #{retry_count} for #{method} #{path} #{params} as initial attempt failed (seq ##{retry_sequence_id}): #{error}" }
+            retry_log_severity = log_retries_as_info ? :info : :warn
+            logger.public_send(retry_log_severity) { "Ably::Rest::Client - Retry #{retry_count} for #{method} #{path} #{params} as initial attempt failed (seq ##{retry_sequence_id}): #{error}" }
             retry
           end
 
-          logger.error do
+          retry_log_severity = log_retries_as_info ? :info : :error
+          logger.public_send(retry_log_severity) do
             "Ably::Rest::Client - Request FAILED after #{retry_count} #{retry_count > 1 ? 'retries' : 'retry' } for" \
             " #{method} #{path} #{params} (seq ##{retry_sequence_id}, time elapsed #{(Time.now.to_f - requested_at.to_f).round(2)}s)"
           end
 
           case error
             when Faraday::TimeoutError
-              raise Ably::Exceptions::ConnectionTimeout.new(error.message, nil, 80014, error, { request_id: request_id })
+              raise Ably::Exceptions::ConnectionTimeout.new(error.message, nil, Ably::Exceptions::Codes::CONNECTION_TIMED_OUT, error, { request_id: request_id })
             when Faraday::ClientError
               # request_id is also available in the request context
-              raise Ably::Exceptions::ConnectionError.new(error.message, nil, 80000, error, { request_id: request_id })
+              raise Ably::Exceptions::ConnectionError.new(error.message, nil, Ably::Exceptions::Codes::CONNECTION_FAILED, error, { request_id: request_id })
             else
               raise error
           end

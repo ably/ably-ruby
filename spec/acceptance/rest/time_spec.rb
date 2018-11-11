@@ -13,7 +13,7 @@ describe Ably::Rest::Client, '#time' do
 
       context 'with reconfigured HTTP timeout' do
         let(:client) do
-          Ably::Rest::Client.new(http_request_timeout: 0.0001, key: api_key, environment: environment, protocol: protocol)
+          Ably::Rest::Client.new(http_request_timeout: 0.0001, key: api_key, environment: environment, protocol: protocol, log_retries_as_info: true)
         end
 
         it 'should raise a timeout exception' do

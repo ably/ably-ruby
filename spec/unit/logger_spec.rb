@@ -17,11 +17,15 @@ describe Ably::Logger do
   end
 
   context 'internals', :api_private do
-    it 'delegates to the logger object' do
-      expect(subject.logger).to receive(:warn) do |*args, &block|
+    it 'delegates to the default Logger object' do
+      received = false
+      expect(subject.logger).to be_a(::Logger)
+      allow_any_instance_of(::Logger).to receive(:warn) do |*args, &block|
         expect(args.concat([block ? block.call : nil]).join(',')).to match(/message/)
+        received = true
       end
       subject.warn 'message'
+      expect(received).to be_truthy
     end
 
     context 'formatter' do
@@ -132,10 +136,13 @@ describe Ably::Logger do
       end
 
       it 'delegates log messages to logger', :api_private do
-        expect(custom_logger_object).to receive(:fatal) do |*args, &block|
+        received = false
+        allow(custom_logger_object).to receive(:fatal) do |*args, &block|
           expect(args.concat([block ? block.call : nil]).join(',')).to match(/message/)
+          received = true
         end
         subject.fatal 'message'
+        expect(received).to be_truthy
       end
     end
   end

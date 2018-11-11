@@ -1,7 +1,8 @@
+require 'ably/modules/exception_codes'
+
 module Ably
   module Exceptions
     TOKEN_EXPIRED_CODE = 40140..40149
-    INVALID_CLIENT_ID = 40012
 
     # Base Ably exception class that contains status and code values used by Ably
     # Refer to https://github.com/ably/ably-common/blob/master/protocol/errors.json
@@ -37,6 +38,7 @@ module Ably
           additional_info << "base exception: #{@base_exception.class}" if @base_exception
           additional_info << "request_id: #{request_id}" if request_id
           message << "(#{additional_info.join(', ')})"
+          message << "-> see https://help.ably.io/error/#{code} for help" if code
         end
         message.join(' ')
       end
@@ -52,6 +54,8 @@ module Ably
 
     # An invalid request was received by Ably
     class InvalidRequest < BaseAblyException; end
+
+    class InvalidCredentials < BaseAblyException; end
 
     # Similar to 403 Forbidden, but specifically for use when authentication is required and has failed or has not yet been provided
     class UnauthorizedRequest < BaseAblyException; end
@@ -146,7 +150,7 @@ module Ably
     class ChannelInactive < BaseAblyException; end
 
     class IncompatibleClientId < BaseAblyException
-      def initialize(messages, status = 400, code = INVALID_CLIENT_ID, *args)
+      def initialize(messages, status = 400, code = Ably::Exceptions::Codes::INVALID_CLIENT_ID, *args)
         super(message, status, code, *args)
       end
     end

@@ -38,7 +38,7 @@ module Ably::Models
       @hash_object     = IdiomaticRubyWrapper(hash_object.clone.freeze)
     end
 
-    %w(message code status_code).each do |attribute|
+    %w(message code href status_code).each do |attribute|
       define_method attribute do
         attributes[attribute.to_sym]
       end
@@ -50,7 +50,9 @@ module Ably::Models
     end
 
     def to_s
-      "<Error: #{message} (code: #{code}, http status: #{status})>"
+      error_href = href || (code ? "https://help.ably.io/error/#{code}" : '')
+      see_msg = " -> see #{error_href} for help" unless message.to_s.include?(error_href.to_s)
+      "<Error: #{message} (code: #{code}, http status: #{status})>#{see_msg}"
     end
   end
 end

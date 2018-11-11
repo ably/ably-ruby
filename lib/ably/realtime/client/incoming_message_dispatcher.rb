@@ -132,7 +132,7 @@ module Ably::Realtime
             client.auth.authorize
 
           else
-            error = Ably::Exceptions::ProtocolError.new("Protocol Message Action #{protocol_message.action} is unsupported by this MessageDispatcher", 400, 80013)
+            error = Ably::Exceptions::ProtocolError.new("Protocol Message Action #{protocol_message.action} is unsupported by this MessageDispatcher", 400, Ably::Exceptions::Codes::PROTOCOL_ERROR)
             logger.fatal error.message
         end
       end

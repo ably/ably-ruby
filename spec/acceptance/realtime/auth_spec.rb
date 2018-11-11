@@ -613,12 +613,12 @@ describe Ably::Realtime::Auth, :event_machine do
               connection_failed = false
 
               client.connection.once(:connected) do
-                client.auth.authorize(nil, auth_callback: lambda { |token_params| "#{token_string}invalid" }).tap do |deferrable|
+                client.auth.authorize(nil, auth_callback: lambda { |token_params| "#{app_id}.invalid.token.will.cause.failure" }).tap do |deferrable|
                   deferrable.errback do |error|
                     EventMachine.add_timer(0.2) do
                       expect(connection_failed).to eql(true)
-                      expect(error.message).to match(/Invalid token/i)
-                      expect(error.code).to eql(40101)
+                      expect(error.message).to match(/invalid.*accessToken/i)
+                      expect(error.code).to eql(40005)
                       stop_reactor
                     end
                   end
@@ -627,8 +627,8 @@ describe Ably::Realtime::Auth, :event_machine do
               end
 
               client.connection.once(:failed) do
-                expect(client.connection.error_reason.message).to match(/Invalid token/i)
-                expect(client.connection.error_reason.code).to eql(40101)
+                expect(client.connection.error_reason.message).to match(/invalid.*accessToken/i)
+                expect(client.connection.error_reason.code).to eql(40005)
                 connection_failed = true
               end
             end
