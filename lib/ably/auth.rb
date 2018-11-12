@@ -36,16 +36,25 @@ module Ably
     API_KEY_REGEX = /^[\w-]{2,}\.[\w-]{2,}:[\w-]{2,}$/
 
     # Supported AuthOption keys, see https://www.ably.io/documentation/realtime/types#auth-options
+    # TODO: Review client_id usage embedded incorrectly within AuthOptions.
+    #       This is legacy code to configure a client with a client_id from the ClientOptions
+    # TODO: Review inclusion of use_token_auth, ttl, token_params in auth options
     AUTH_OPTIONS_KEYS = %w(
       auth_callback
       auth_url
       auth_method
       auth_headers
       auth_params
+      client_id
       key
+      key_name
+      key_secret
       query_time
       token
       token_details
+      token_params
+      ttl
+      use_token_auth
     )
 
     attr_reader :options, :token_params, :current_token_details

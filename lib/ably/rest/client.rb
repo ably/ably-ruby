@@ -205,10 +205,11 @@ module Ably
         raise ArgumentError, 'Protocol is invalid.  Must be either :msgpack or :json' unless [:msgpack, :json].include?(@protocol)
 
         token_params = options.delete(:default_token_params) || {}
-        @options  = options
+        @options = options
         init_auth_options = options.select do |key, _|
           Auth::AUTH_OPTIONS_KEYS.include?(key.to_s)
         end
+
         @auth     = Auth.new(self, token_params, init_auth_options)
         @channels = Ably::Rest::Channels.new(self)
         @encoders = []
