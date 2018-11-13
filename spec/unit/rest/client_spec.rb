@@ -20,6 +20,24 @@ describe Ably::Rest::Client do
       end
     end
 
+    context 'fallback_retry_timeout (#RSC15f)' do
+      context 'default' do
+        let(:client_options) { { key: 'appid.keyuid:keysecret' } }
+
+        it 'is set to 10 minutes' do
+          expect(subject.options.fetch(:fallback_retry_timeout)).to eql(10 * 60)
+        end
+      end
+
+      context 'when provided' do
+        let(:client_options) { { key: 'appid.keyuid:keysecret', fallback_retry_timeout: 30 } }
+
+        it 'configures a new timeout' do
+          expect(subject.options.fetch(:fallback_retry_timeout)).to eql(30)
+        end
+      end
+    end
+
     context ':use_token_auth' do
       context 'set to false' do
         context 'with a key and :tls => false' do

@@ -35,6 +35,28 @@ module Ably
 
     API_KEY_REGEX = /^[\w-]{2,}\.[\w-]{2,}:[\w-]{2,}$/
 
+    # Supported AuthOption keys, see https://www.ably.io/documentation/realtime/types#auth-options
+    # TODO: Review client_id usage embedded incorrectly within AuthOptions.
+    #       This is legacy code to configure a client with a client_id from the ClientOptions
+    # TODO: Review inclusion of use_token_auth, ttl, token_params in auth options
+    AUTH_OPTIONS_KEYS = %w(
+      auth_callback
+      auth_url
+      auth_method
+      auth_headers
+      auth_params
+      client_id
+      key
+      key_name
+      key_secret
+      query_time
+      token
+      token_details
+      token_params
+      ttl
+      use_token_auth
+    )
+
     attr_reader :options, :token_params, :current_token_details
     alias_method :auth_options, :options
 
@@ -504,6 +526,10 @@ module Ably
     end
 
     def ensure_valid_auth_attributes(attributes)
+      (attributes.keys.map(&:to_s) - AUTH_OPTIONS_KEYS).tap do |unsupported_keys|
+        raise ArgumentError, "The key(s) #{unsupported_keys.map { |k| ":#{k}" }.join(', ')} are not valid AuthOptions" unless unsupported_keys.empty?
+      end
+
       if attributes[:timestamp]
         unless attributes[:timestamp].kind_of?(Time) || attributes[:timestamp].kind_of?(Numeric)
           raise ArgumentError, ':timestamp must be a Time or positive Integer value of seconds since epoch'

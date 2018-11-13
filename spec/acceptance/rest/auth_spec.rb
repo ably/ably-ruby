@@ -758,9 +758,10 @@ describe Ably::Auth do
       end
 
       it 'updates the persisted auth options that are then used for subsequent authorize requests' do
-        expect(auth.options[:authUrl]).to be_nil
-        auth.authorize({}, authUrl: 'http://foo.com')
-        expect(auth.options[:authUrl]).to eql('http://foo.com')
+        auth_url = "https://echo.ably.io/?type=text&body=#{auth.request_token.token}"
+        expect(auth.options[:auth_url]).to be_nil
+        auth.authorize({}, auth_url: auth_url)
+        expect(auth.options[:auth_url]).to eql(auth_url)
       end
 
       context 'with a lambda for the :auth_callback option' do
