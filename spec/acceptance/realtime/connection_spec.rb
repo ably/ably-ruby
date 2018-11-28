@@ -1472,7 +1472,7 @@ describe Ably::Realtime::Connection, :event_machine do
           channel.attach do
             channel.once(:suspended) do
               channel.publish('test').errback do |error|
-                expect(error).to be_a(Ably::Exceptions::MessageQueueingDisabled)
+                expect(error).to be_a(Ably::Exceptions::ChannelInactive)
                 stop_reactor
               end
             end

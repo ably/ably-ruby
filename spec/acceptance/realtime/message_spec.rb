@@ -413,30 +413,32 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
           let(:encrypted_channel) { client.channel(channel_name, cipher: cipher_options) }
 
           it 'encrypts message automatically before they are pushed to the server (#RTL7d)' do
-            encrypted_channel.__incoming_msgbus__.unsubscribe # remove all subscribe callbacks that could decrypt the message
+            encrypted_channel.attach do
+              encrypted_channel.__incoming_msgbus__.unsubscribe # remove all subscribe callbacks that could decrypt the message
 
-            encrypted_channel.__incoming_msgbus__.subscribe(:message) do |message|
-              if protocol == :json
-                expect(message['encoding']).to eql(encrypted_encoding)
-                expect(message['data']).to eql(encrypted_data)
-              else
-                # Messages received over binary protocol will not have Base64 encoded data
-                expect(message['encoding']).to eql(encrypted_encoding.gsub(%r{/base64$}, ''))
-                expect(message['data']).to eql(encrypted_data_decoded)
+              encrypted_channel.__incoming_msgbus__.subscribe(:message) do |message|
+                if protocol == :json
+                  expect(message['encoding']).to eql(encrypted_encoding)
+                  expect(message['data']).to eql(encrypted_data)
+                else
+                  # Messages received over binary protocol will not have Base64 encoded data
+                  expect(message['encoding']).to eql(encrypted_encoding.gsub(%r{/base64$}, ''))
+                  expect(message['data']).to eql(encrypted_data_decoded)
+                end
+                stop_reactor
               end
-              stop_reactor
-            end
 
-            encrypted_channel.publish 'example', encoded_data_decoded
+              encrypted_channel.publish 'example', encoded_data_decoded
+            end
           end
 
           it 'sends and receives messages that are encrypted & decrypted by the Ably library (#RTL7d)' do
-            encrypted_channel.publish 'example', encoded_data_decoded
             encrypted_channel.subscribe do |message|
               expect(message.data).to eql(encoded_data_decoded)
               expect(message.encoding).to be_nil
               stop_reactor
             end
+            encrypted_channel.publish 'example', encoded_data_decoded
           end
         end
       end

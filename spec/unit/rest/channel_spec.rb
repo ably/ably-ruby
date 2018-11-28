@@ -2,7 +2,14 @@
 require 'spec_helper'
 
 describe Ably::Rest::Channel do
-  let(:client)       { instance_double('Ably::Rest::Client', encoders: [], post: instance_double('Faraday::Response', status: 201)) }
+  let(:client) do
+    instance_double(
+      'Ably::Rest::Client',
+      encoders: [],
+      post: instance_double('Faraday::Response', status: 201),
+      idempotent_rest_publishing: false,
+    )
+  end
   let(:channel_name) { 'unique' }
 
   subject { Ably::Rest::Channel.new(client, channel_name) }
