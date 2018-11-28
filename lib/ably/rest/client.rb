@@ -135,7 +135,7 @@ module Ably
       # @option options [Integer]                 :fallback_retry_timeout     (600 seconds) amount of time in seconds a REST client will continue to use a working fallback host when the primary fallback host has previously failed
       #
       # @option options [Boolean]                 :add_request_ids             (false) When true, adds a unique request_id to each request sent to Ably servers. This is handy when reporting issues, because you can refer to a specific request.
-      # @option options [Boolean]                 :idempotent_rest_publishing  (false) When true, idempotent publishing is enabled for all messages published via REST
+      # @option options [Boolean]                 :idempotent_rest_publishing  (false if ver < 1.2) When true, idempotent publishing is enabled for all messages published via REST
       #
       # @return [Ably::Rest::Client]
       #
@@ -171,7 +171,8 @@ module Ably
         @custom_tls_port     = options.delete(:tls_port)
         @add_request_ids     = options.delete(:add_request_ids)
         @log_retries_as_info = options.delete(:log_retries_as_info)
-        @idempotent_rest_publishing = options.delete(:idempotent_rest_publishing)
+        @idempotent_rest_publishing = options.delete(:idempotent_rest_publishing) || Ably.major_minor_version_numeric > 1.1
+
 
         if options[:fallback_hosts_use_default] && options[:fallback_jhosts]
           raise ArgumentError, "fallback_hosts_use_default cannot be set to trye when fallback_jhosts is also provided"

@@ -13,4 +13,9 @@ module Ably
   def self.lib_variant
     @lib_variant
   end
+
+  # @api private
+  def self.major_minor_version_numeric
+    VERSION.gsub(/\.\d+$/, '').to_f
+  end
 end
