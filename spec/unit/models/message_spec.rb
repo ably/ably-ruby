@@ -12,8 +12,23 @@ describe Ably::Models::Message do
   let(:protocol_message_timestamp) { as_since_epoch(Time.now) }
   let(:protocol_message) { Ably::Models::ProtocolMessage.new(action: 1, timestamp: protocol_message_timestamp) }
 
-  it_behaves_like 'a model', with_simple_attributes: %w(id name client_id data encoding) do
-    let(:model_args) { [protocol_message: protocol_message] }
+  context 'serialization of the Message object (#RSL1j)' do
+    it_behaves_like 'a model', with_simple_attributes: %w(id name client_id data encoding) do
+      let(:model_args) { [protocol_message: protocol_message] }
+    end
+  end
+
+  context '#id (#RSL1j)' do
+    let(:id) { random_str }
+    let(:model) { subject.new(id: id) }
+
+    it 'exposes the #id attribute' do
+      expect(model.id).to eql(id)
+    end
+
+    specify '#as_json exposes the #id attribute' do
+      expect(model.as_json['id']).to eql(id)
+    end
   end
 
   context '#timestamp' do

@@ -22,6 +22,8 @@ module Ably
       # @api private
       attr_reader :push
 
+      IDEMPOTENT_LIBRARY_GENERATED_ID_LENGTH = 9 # See spec RSL1k1
+
       # Initialize a new Channel object
       #
       # @param client [Ably::Rest::Client]
@@ -42,7 +44,7 @@ module Ably
       #
       # @param name [String, Array<Ably::Models::Message|Hash>, nil]   The event name of the message to publish, or an Array of [Ably::Model::Message] objects or [Hash] objects with +:name+ and +:data+ pairs
       # @param data [String, ByteArray, nil]   The message payload unless an Array of [Ably::Model::Message] objects passed in the first argument
-      # @param attributes [Hash, nil]   Optional additional message attributes such as :client_id or :connection_id, applied when name attribute is nil or a string
+      # @param attributes [Hash, nil]   Optional additional message attributes such as :extras, :id, :client_id or :connection_id, applied when name attribute is nil or a string
       # @return [Boolean]  true if the message was published, otherwise false
       #
       # @example
@@ -67,12 +69,16 @@ module Ably
         messages = if name.kind_of?(Enumerable)
           name
         else
+          if name.kind_of?(Ably::Models::Message)
+            raise ArgumentError, "name argument does not support single Message objects, only arrays of Message objects"
+          end
+
           name = ensure_utf_8(:name, name, allow_nil: true)
           ensure_supported_payload data
           [{ name: name, data: data }.merge(attributes)]
         end
 
-        payload = messages.map do |message|
+        payload = messages.each_with_index.map do |message, index|
           Ably::Models::Message(message.dup).tap do |msg|
             msg.encode client.encoders, options
 
@@ -84,6 +90,17 @@ module Ably
               raise Ably::Exceptions::IncompatibleClientId.new("Cannot publish with client_id '#{msg.client_id}' as it is incompatible with the current configured client_id '#{client.client_id}'")
             end
           end.as_json
+        end.tap do |payload|
+          if client.idempotent_rest_publishing
+            # We cannot mutate for idempotent publishing if one or more messages already has an ID
+            if payload.all? { |msg| !msg['id'] }
+              # Mutate the JSON to support idempotent publishing where a Message.id does not exist
+              idempotent_publish_id = SecureRandom.base64(IDEMPOTENT_LIBRARY_GENERATED_ID_LENGTH)
+              payload.each_with_index do |msg, idx|
+                msg['id'] = "#{idempotent_publish_id}:#{idx}"
+              end
+            end
+          end
         end
 
         response = client.post("#{base_path}/publish", payload.length == 1 ? payload.first : payload)
