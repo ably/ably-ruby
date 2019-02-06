@@ -79,6 +79,9 @@ module Ably
         websocket_heartbeats_disabled: false,
       }.freeze
 
+      # Max number of messages to bundle in a single ProtocolMessage
+      MAX_PROTOCOL_MESSAGE_BATCH_SIZE = 50
+
       # A unique public identifier for this connection, used to identify this member in presence events and messages
       # @return [String]
       attr_reader :id

@@ -1,6 +1,6 @@
 module Ably
-  VERSION = '1.0.7'
-  PROTOCOL_VERSION = '1.0'
+  VERSION = '1.1.0'
+  PROTOCOL_VERSION = '1.1'
 
   # Allow a variant to be configured for all instances of this client library
   # such as ruby-rest-[VERSION]
@@ -12,5 +12,10 @@ module Ably
 
   def self.lib_variant
     @lib_variant
+  end
+
+  # @api private
+  def self.major_minor_version_numeric
+    VERSION.gsub(/\.\d+$/, '').to_f
   end
 end

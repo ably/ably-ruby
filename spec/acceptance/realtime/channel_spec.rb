@@ -13,6 +13,9 @@ describe Ably::Realtime::Channel, :event_machine do
     let(:channel)      { client.channel(channel_name) }
     let(:messages)     { [] }
 
+    let(:sub_client)   { auto_close Ably::Realtime::Client.new(client_options) }
+    let(:sub_channel)  { sub_client.channel(channel_name) }
+
     def disconnect_transport
       connection.transport.unbind
     end
@@ -726,7 +729,7 @@ describe Ably::Realtime::Channel, :event_machine do
       let(:name)    { random_str }
       let(:data)    { random_str }
 
-      context 'when attached' do
+      context 'when channel is attached (#RTL6c1)' do
         it 'publishes messages' do
           channel.attach do
             3.times { channel.publish('event', payload) }
@@ -738,81 +741,173 @@ describe Ably::Realtime::Channel, :event_machine do
         end
       end
 
-      context 'when not yet attached' do
-        it 'publishes queued messages once attached' do
-          3.times { channel.publish('event', random_str) }
-          channel.subscribe do |message|
-            messages << message if message.name == 'event'
-            stop_reactor if messages.count == 3
+      context 'when channel is not attached in state Initializing (#RTL6c1)' do
+        it 'publishes messages immediately and does not implicitly attach (#RTL6c1)' do
+          sub_channel.attach do
+            sub_channel.subscribe do |message|
+              messages << message if message.name == 'event'
+              if messages.count == 3
+                EventMachine.add_timer(1) do
+                  expect(channel.state).to eq(:initialized)
+                  stop_reactor
+                end
+              end
+            end
+            3.times { channel.publish('event', random_str) }
+          end
+        end
+      end
+
+      context 'when channel is Attaching (#RTL6c1)' do
+        it 'publishes messages immediately (#RTL6c1)' do
+          sub_channel.attach do
+            channel.once(:attaching) do
+              outgoing_message_count = 0
+              client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                if protocol_message.action == :message
+                  raise "Expected channel state to be attaching when publishing messages, not #{channel.state}" unless channel.attaching?
+                  outgoing_message_count += protocol_message.messages.count
+                end
+              end
+              sub_channel.subscribe do |message|
+                messages << message if message.name == 'event'
+                if messages.count == 3
+                  expect(outgoing_message_count).to eql(3)
+                  stop_reactor
+                end
+              end
+              3.times { channel.publish('event', random_str) }
+            end
+            channel.attach
+          end
+        end
+      end
+
+      context 'when channel is Detaching (#RTL6c1)' do
+        it 'publishes messages immediately (#RTL6c1)' do
+          sub_channel.attach do
+            channel.attach do
+              channel.once(:detaching) do
+                outgoing_message_count = 0
+                client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                  if protocol_message.action == :message
+                    raise "Expected channel state to be attaching when publishing messages, not #{channel.state}" unless channel.detaching?
+                    outgoing_message_count += protocol_message.messages.count
+                  end
+                end
+                sub_channel.subscribe do |message|
+                  messages << message if message.name == 'event'
+                  if messages.count == 3
+                    expect(outgoing_message_count).to eql(3)
+                    stop_reactor
+                  end
+                end
+                3.times { channel.publish('event', random_str) }
+              end
+              channel.detach
+            end
+          end
+        end
+      end
+
+      context 'when channel is Detached (#RTL6c1)' do
+        it 'publishes messages immediately (#RTL6c1)' do
+          sub_channel.attach do
+            channel.attach
+            channel.once(:attached) do
+              channel.once(:detached) do
+                outgoing_message_count = 0
+                client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                  if protocol_message.action == :message
+                    raise "Expected channel state to be attaching when publishing messages, not #{channel.state}" unless channel.detached?
+                    outgoing_message_count += protocol_message.messages.count
+                  end
+                end
+                sub_channel.subscribe do |message|
+                  messages << message if message.name == 'event'
+                  if messages.count == 3
+                    expect(outgoing_message_count).to eql(3)
+                    stop_reactor
+                  end
+                end
+                3.times { channel.publish('event', random_str) }
+              end
+              channel.detach
+            end
+          end
+        end
+      end
+
+      context 'with :queue_messages client option set to false (#RTL6c4)' do
+        let(:client_options)  { default_options.merge(queue_messages: false) }
+
+        context 'and connection state connected (#RTL6c4)' do
+          it 'publishes the message' do
+            client.connection.once(:connected) do
+              channel.publish('event')
+              stop_reactor
+            end
           end
         end
 
-        it 'publishes queued messages within a single protocol message' do
-          3.times { channel.publish('event', random_str) }
-          channel.subscribe do |message|
-            messages << message if message.name == 'event'
-            next unless messages.length == 3
-
-            # All 3 messages should be batched into a single Protocol Message by the client library
-            # message.id = "{protocol_message.id}:{protocol_message_index}"
-            # Check that all messages share the same protocol_message.id
-            message_id = messages.map { |msg| msg.id.split(':')[0...-1].join(':') }
-            expect(message_id.uniq.count).to eql(1)
-
-            # Check that messages use index 0,1,2 in the ID
-            message_indexes = messages.map { |msg| msg.id.split(':').last }
-            expect(message_indexes).to include("0", "1", "2")
-            stop_reactor
+        context 'and connection state initialized (#RTL6c4)' do
+          it 'fails the deferrable' do
+            expect(client.connection).to be_initialized
+            channel.publish('event').errback do |error|
+              expect(error).to be_a(Ably::Exceptions::MessageQueueingDisabled)
+              stop_reactor
+            end
           end
         end
 
-        context 'with :queue_messages client option set to false' do
-          let(:client_options)  { default_options.merge(queue_messages: false) }
-
-          context 'and connection state initialized' do
-            it 'fails the deferrable' do
-              expect(client.connection).to be_initialized
+        context 'and connection state connecting (#RTL6c4)' do
+          it 'fails the deferrable' do
+            client.connect
+            EventMachine.next_tick do
+              expect(client.connection).to be_connecting
               channel.publish('event').errback do |error|
                 expect(error).to be_a(Ably::Exceptions::MessageQueueingDisabled)
                 stop_reactor
               end
             end
           end
+        end
 
-          context 'and connection state connecting' do
-            it 'fails the deferrable' do
-              client.connect
-              EventMachine.next_tick do
-                expect(client.connection).to be_connecting
-                channel.publish('event').errback do |error|
-                  expect(error).to be_a(Ably::Exceptions::MessageQueueingDisabled)
-                  stop_reactor
-                end
-              end
-            end
-          end
-
-          context 'and connection state disconnected' do
+        [:disconnected, :suspended, :closing, :closed].each do |invalid_connection_state|
+          context "and connection state #{invalid_connection_state} (#RTL6c4)" do
             let(:client_options)  { default_options.merge(queue_messages: false) }
             it 'fails the deferrable' do
               client.connection.once(:connected) do
-                client.connection.once(:disconnected) do
-                  expect(client.connection).to be_disconnected
+                client.connection.once(invalid_connection_state) do
+                  expect(client.connection.state).to eq(invalid_connection_state)
                   channel.publish('event').errback do |error|
                     expect(error).to be_a(Ably::Exceptions::MessageQueueingDisabled)
                     stop_reactor
                   end
                 end
-                client.connection.transition_state_machine :disconnected
+                if invalid_connection_state == :closed
+                  connection.close
+                else
+                  client.connection.transition_state_machine invalid_connection_state
+                end
               end
             end
           end
+        end
 
-          context 'and connection state connected' do
-            it 'publishes the message' do
-              client.connection.once(:connected) do
-                channel.publish('event')
-                stop_reactor
+        context 'and the channel state is failed (#RTL6c4)' do
+          let(:client_options)  { default_options.merge(queue_messages: false) }
+          it 'fails the deferrable' do
+            client.connection.once(:connected) do
+              channel.attach
+              channel.once(:attached) do
+                channel.once(:failed) do
+                  channel.publish('event').errback do |error|
+                    expect(error).to be_a(Ably::Exceptions::ChannelInactive)
+                    stop_reactor
+                  end
+                end
+                channel.transition_state_machine(:failed)
               end
             end
           end
@@ -1070,6 +1165,21 @@ describe Ably::Realtime::Channel, :event_machine do
                 end
               end
             end
+          end
+        end
+      end
+
+      context 'with more than allowed messages in a single publish' do
+        let(:channel_name) { random_str }
+
+        it 'rejects the publish' do
+          messages = (Ably::Realtime::Connection::MAX_PROTOCOL_MESSAGE_BATCH_SIZE + 1).times.map do
+            { name: 'foo' }
+          end
+
+          channel.publish(messages).errback do |error|
+            expect(error).to be_kind_of(Ably::Exceptions::InvalidRequest)
+            stop_reactor
           end
         end
       end
@@ -1953,8 +2063,12 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       context 'moves to' do
-        %w(suspended detached failed).each do |channel_state|
+        %w(suspended failed).each do |channel_state|
           context(channel_state) do
+            let(:client) do
+              auto_close Ably::Realtime::Client.new(default_options.merge(log_level: :error))
+            end
+
             specify 'all queued messages fail with NACK (#RTL11)' do
               channel.attach do
                 # Move to disconnected
@@ -1981,7 +2095,8 @@ describe Ably::Realtime::Channel, :event_machine do
             specify 'all published messages awaiting an ACK do nothing (#RTL11a)' do
               connection_been_disconnected = false
 
-              channel.attach do
+              channel.attach
+              channel.once(:attached) do
                 deferrable = channel.publish("foo")
                 deferrable.errback do |error|
                   fail "Message publish should not fail"

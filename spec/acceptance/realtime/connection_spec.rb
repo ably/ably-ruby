@@ -1472,7 +1472,7 @@ describe Ably::Realtime::Connection, :event_machine do
           channel.attach do
             channel.once(:suspended) do
               channel.publish('test').errback do |error|
-                expect(error).to be_a(Ably::Exceptions::MessageQueueingDisabled)
+                expect(error).to be_a(Ably::Exceptions::ChannelInactive)
                 stop_reactor
               end
             end
@@ -1732,7 +1732,7 @@ describe Ably::Realtime::Connection, :event_machine do
       it 'sends the protocol version param v (#G4, #RTN2f)' do
         expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
           uri = URI.parse(url)
-          expect(CGI::parse(uri.query)['v'][0]).to eql('1.0')
+          expect(CGI::parse(uri.query)['v'][0]).to eql('1.1')
           stop_reactor
         end
         client
@@ -1741,7 +1741,7 @@ describe Ably::Realtime::Connection, :event_machine do
       it 'sends the lib version param lib (#RTN2g)' do
         expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
           uri = URI.parse(url)
-          expect(CGI::parse(uri.query)['lib'][0]).to match(/^ruby-1\.0\.\d+(-[\w\.]+)?+$/)
+          expect(CGI::parse(uri.query)['lib'][0]).to match(/^ruby-1\.1\.\d+(-[\w\.]+)?+$/)
           stop_reactor
         end
         client
@@ -1761,7 +1761,7 @@ describe Ably::Realtime::Connection, :event_machine do
         it 'sends the lib version param lib with the variant (#RTN2g + #RSC7b)' do
           expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
             uri = URI.parse(url)
-            expect(CGI::parse(uri.query)['lib'][0]).to match(/^ruby-#{variant}-1\.0\.\d+(-[\w\.]+)?$/)
+            expect(CGI::parse(uri.query)['lib'][0]).to match(/^ruby-#{variant}-1\.1\.\d+(-[\w\.]+)?$/)
             stop_reactor
           end
           client

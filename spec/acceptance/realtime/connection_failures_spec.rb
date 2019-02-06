@@ -925,7 +925,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           last_message = nil
           channel = client.channels.get("foo")
 
-          connection.once(:connected) do
+          channel.attach do
             connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
               if protocol_message.action == :message
                 last_message = protocol_message

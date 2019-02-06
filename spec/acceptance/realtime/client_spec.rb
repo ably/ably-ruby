@@ -12,6 +12,7 @@ describe Ably::Realtime::Client, :event_machine do
     let(:auth_params)    { subject.auth.auth_params_sync }
 
     subject              { auto_close Ably::Realtime::Client.new(client_options) }
+    let(:sub_client)     { auto_close Ably::Realtime::Client.new(client_options) }
 
     context 'initialization' do
       context 'basic auth' do
@@ -293,6 +294,138 @@ describe Ably::Realtime::Client, :event_machine do
                 end
               end
             end
+          end
+        end
+      end
+    end
+
+    context '#publish (#TBC)' do
+      let(:channel_name) { random_str }
+      let(:channel)      { subject.channel(channel_name) }
+      let(:sub_channel)  { sub_client.channel(channel_name) }
+      let(:event_name)   { random_str }
+      let(:data)         { random_str }
+      let(:extras)       { { 'push' => { 'notification' => { 'title' => 'Testing' } } } }
+      let(:message)      { Ably::Models::Message.new(name: event_name, data: data) }
+
+      specify 'publishing a message implicity connects and publishes the message successfully on the provided channel' do
+        sub_channel.attach do
+          sub_channel.subscribe do |msg|
+            expect(msg.name).to eql(event_name)
+            expect(msg.data).to eql(data)
+            stop_reactor
+          end
+        end
+        subject.publish channel_name, event_name, data
+      end
+
+      specify 'publishing does not result in a channel being created' do
+        subject.publish channel_name, event_name, data
+        subject.channels.fetch(channel_name) do
+          # Block called if channel does not exist
+          EventMachine.add_timer(1) do
+            subject.channels.fetch(channel_name) do
+              # Block called if channel does not exist
+              stop_reactor
+            end
+          end
+        end
+      end
+
+      context 'with extras' do
+        let(:channel_name) { "pushenabled:#{random_str}" }
+
+        specify 'publishing supports extras' do
+          sub_channel.attach do
+            sub_channel.subscribe do |msg|
+              expect(msg.extras).to eql(extras)
+              stop_reactor
+            end
+          end
+          subject.publish channel_name, event_name, {}, extras: extras
+        end
+      end
+
+      specify 'publishing supports an array of Message objects' do
+        sub_channel.attach do
+          sub_channel.subscribe do |msg|
+            expect(msg.name).to eql(event_name)
+            expect(msg.data).to eql(data)
+            stop_reactor
+          end
+        end
+        subject.publish channel_name, [message]
+      end
+
+      specify 'publishing supports an array of Hash objects' do
+        sub_channel.attach do
+          sub_channel.subscribe do |msg|
+            expect(msg.name).to eql(event_name)
+            expect(msg.data).to eql(data)
+            stop_reactor
+          end
+        end
+        subject.publish channel_name, [name: event_name, data: data]
+      end
+
+      specify 'publishing on a closed connection fails' do
+        subject.connection.once(:connected) do
+          subject.connection.once(:closed) do
+            subject.publish(channel_name, name: event_name).errback do |error|
+              expect(error).to be_kind_of(Ably::Exceptions::MessageQueueingDisabled)
+              stop_reactor
+            end
+          end
+          connection.close
+        end
+      end
+
+      context 'queue_messages ClientOption' do
+        context 'when true' do
+          subject { auto_close Ably::Realtime::Client.new(client_options.merge(auto_connect: false)) }
+
+          it 'will queue messages whilst connecting and publish once connected' do
+            sub_channel.attach do
+              sub_channel.subscribe do |msg|
+                expect(msg.name).to eql(event_name)
+                stop_reactor
+              end
+              subject.connection.once(:connecting) do
+                subject.publish channel_name, event_name
+              end
+              subject.connection.connect
+            end
+          end
+        end
+
+        context 'when false' do
+          subject { auto_close Ably::Realtime::Client.new(client_options.merge(auto_connect: false, queue_messages: false)) }
+
+          it 'will reject messages on an initializing connection' do
+            sub_channel.attach do
+              subject.connection.once(:connecting) do
+                subject.publish(channel_name, event_name).errback do |error|
+                  expect(error).to be_kind_of(Ably::Exceptions::MessageQueueingDisabled)
+                  stop_reactor
+                end
+              end
+              subject.connection.connect
+            end
+          end
+        end
+      end
+
+      context 'with more than allowed messages in a single publish' do
+        let(:channel_name) { random_str }
+
+        it 'rejects the publish' do
+          messages = (Ably::Realtime::Connection::MAX_PROTOCOL_MESSAGE_BATCH_SIZE + 1).times.map do
+            { name: 'foo' }
+          end
+
+          subject.publish(channel_name, messages).errback do |error|
+            expect(error).to be_kind_of(Ably::Exceptions::InvalidRequest)
+            stop_reactor
           end
         end
       end

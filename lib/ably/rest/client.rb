@@ -85,7 +85,7 @@ module Ably
       # if empty or nil then fallback host functionality is disabled
       attr_reader :fallback_hosts
 
-      # Whethere the {Client} has to add a random identifier to the path of a request
+      # Whether the {Client} has to add a random identifier to the path of a request
       # @return [Boolean]
       attr_reader :add_request_ids
 
@@ -93,6 +93,14 @@ module Ably
       # @return [Boolean]
       # @api private
       attr_reader :log_retries_as_info
+
+      # True when idempotent publishing is enabled for all messages published via REST.
+      # When this feature is enabled, the client library will add a unique ID to every published message (without an ID)
+      # ensuring any failed published attempts (due to failures such as HTTP requests failing mid-flight) that are
+      # automatically retried will not result in duplicate messages being published to the Ably platform.
+      # Note: This is a beta unsupported feature!
+      # @return [Boolean]
+      attr_reader :idempotent_rest_publishing
 
       # Creates a {Ably::Rest::Client Rest Client} and configures the {Ably::Auth} object for the connection.
       #
@@ -127,6 +135,7 @@ module Ably
       # @option options [Integer]                 :fallback_retry_timeout     (600 seconds) amount of time in seconds a REST client will continue to use a working fallback host when the primary fallback host has previously failed
       #
       # @option options [Boolean]                 :add_request_ids             (false) When true, adds a unique request_id to each request sent to Ably servers. This is handy when reporting issues, because you can refer to a specific request.
+      # @option options [Boolean]                 :idempotent_rest_publishing  (false if ver < 1.2) When true, idempotent publishing is enabled for all messages published via REST
       #
       # @return [Ably::Rest::Client]
       #
@@ -162,6 +171,8 @@ module Ably
         @custom_tls_port     = options.delete(:tls_port)
         @add_request_ids     = options.delete(:add_request_ids)
         @log_retries_as_info = options.delete(:log_retries_as_info)
+        @idempotent_rest_publishing = options.delete(:idempotent_rest_publishing) || Ably.major_minor_version_numeric > 1.1
+
 
         if options[:fallback_hosts_use_default] && options[:fallback_jhosts]
           raise ArgumentError, "fallback_hosts_use_default cannot be set to trye when fallback_jhosts is also provided"

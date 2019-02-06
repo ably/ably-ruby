@@ -102,7 +102,11 @@ module Ably::Realtime
               if channel.attached?
                 channel.manager.duplicate_attached_received protocol_message
               else
-                channel.transition_state_machine :attached, reason: protocol_message.error, resumed: protocol_message.has_channel_resumed_flag?, protocol_message: protocol_message
+                if channel.failed?
+                  logger.warn "Ably::Realtime::Client::IncomingMessageDispatcher - Received an ATTACHED protocol message for FAILED channel #{channel.name}. Ignoring ATTACHED message"
+                else
+                  channel.transition_state_machine :attached, reason: protocol_message.error, resumed: protocol_message.has_channel_resumed_flag?, protocol_message: protocol_message
+                end
               end
             end
 

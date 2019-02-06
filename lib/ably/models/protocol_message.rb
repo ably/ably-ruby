@@ -198,12 +198,42 @@ module Ably::Models
 
     # @api private
     def has_backlog_flag?
-      flags & 2 == 2
+      flags & 2 == 2 # 2^1
     end
 
     # @api private
     def has_channel_resumed_flag?
-      flags & 4 == 4
+      flags & 4 == 4 # 2^2
+    end
+
+    # @api private
+    def has_local_presence_flag?
+      flags & 8 == 8 # 2^3
+    end
+
+    # @api private
+    def has_transient_flag?
+      flags & 16 == 16 # 2^4
+    end
+
+    # @api private
+    def has_attach_presence_flag?
+      flags & 65536 == 65536 # 2^16
+    end
+
+    # @api private
+    def has_attach_publish_flag?
+      flags & 131072 == 131072 # 2^17
+    end
+
+    # @api private
+    def has_attach_subscribe_flag?
+      flags & 262144 == 262144 # 2^18
+    end
+
+    # @api private
+    def has_attach_presence_subscribe_flag?
+      flags & 524288 == 524288 # 2^19
     end
 
     def connection_details

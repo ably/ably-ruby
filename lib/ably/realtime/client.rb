@@ -1,4 +1,5 @@
 require 'uri'
+require 'ably/realtime/channel/publisher'
 
 module Ably
   module Realtime
@@ -21,6 +22,9 @@ module Ably
     #
     class Client
       include Ably::Modules::AsyncWrapper
+      include Ably::Realtime::Channel::Publisher
+      include Ably::Modules::Conversions
+
       extend Forwardable
 
       DOMAIN = 'realtime.ably.io'
@@ -176,6 +180,74 @@ module Ably
       def request(method, path, params = {}, body = nil, headers = {}, &callback)
         async_wrap(callback) do
           rest_client.request(method, path, params, body, headers, async_blocking_operations: true)
+        end
+      end
+
+      # Publish one or more messages to the specified channel.
+      #
+      # This method allows messages to be efficiently published to Ably without instancing a {Ably::Realtime::Channel} object.
+      # If you want to publish a high rate of messages to Ably without instancing channels or using the REST API, then this method
+      # is recommended. However, channel options such as encryption are not supported with this method.  If you need to specify channel options
+      # we recommend you use the {Ably::Realtime::Channel} +publish+ method without attaching to each channel, unless you also want to subscribe
+      # to published messages on that channel.
+      #
+      # Note: This feature is still in beta. As such, we cannot guarantee the API will not change in future.
+      #
+      # @param channel [String]   The channel name you want to publish the message(s) to
+      # @param name [String, Array<Ably::Models::Message|Hash>, nil]   The event name of the message to publish, or an Array of [Ably::Model::Message] objects or [Hash] objects with +:name+ and +:data+ pairs
+      # @param data [String, ByteArray, nil]   The message payload unless an Array of [Ably::Model::Message] objects passed in the first argument
+      # @param attributes [Hash, nil]   Optional additional message attributes such as :client_id or :connection_id, applied when name attribute is nil or a string
+      #
+      # @yield [Ably::Models::Message,Array<Ably::Models::Message>] On success, will call the block with the {Ably::Models::Message} if a single message is published, or an Array of {Ably::Models::Message} when multiple messages are published
+      # @return [Ably::Util::SafeDeferrable] Deferrable that supports both success (callback) and failure (errback) callbacks
+      #
+      # @example
+      #   # Publish a single message
+      #   client.publish 'activityChannel', click', { x: 1, y: 2 }
+      #
+      #   # Publish an array of message Hashes
+      #   messages = [
+      #     { name: 'click', { x: 1, y: 2 } },
+      #     { name: 'click', { x: 2, y: 3 } }
+      #   ]
+      #   client.publish 'activityChannel', messages
+      #
+      #   # Publish an array of Ably::Models::Message objects
+      #   messages = [
+      #     Ably::Models::Message(name: 'click', { x: 1, y: 2 })
+      #     Ably::Models::Message(name: 'click', { x: 2, y: 3 })
+      #   ]
+      #   client.publish 'activityChannel', messages
+      #
+      #   client.publish('activityChannel', 'click', 'body') do |message|
+      #     puts "#{message.name} event received with #{message.data}"
+      #   end
+      #
+      #   client.publish('activityChannel', 'click', 'body').errback do |error, message|
+      #     puts "#{message.name} was not received, error #{error.message}"
+      #   end
+      #
+      def publish(channel_name, name, data = nil, attributes = {}, &success_block)
+        if !connection.can_publish_messages?
+          error = Ably::Exceptions::MessageQueueingDisabled.new("Message cannot be published. Client is not allowed to queue messages when connection is in state #{connection.state}")
+          return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
+        end
+
+        messages = if name.kind_of?(Enumerable)
+          name
+        else
+          name = ensure_utf_8(:name, name, allow_nil: true)
+          ensure_supported_payload data
+          [{ name: name, data: data }.merge(attributes)]
+        end
+
+        if messages.length > Realtime::Connection::MAX_PROTOCOL_MESSAGE_BATCH_SIZE
+          error = Ably::Exceptions::InvalidRequest.new("It is not possible to publish more than #{Realtime::Connection::MAX_PROTOCOL_MESSAGE_BATCH_SIZE} messages with a single publish request.")
+          return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
+        end
+
+        enqueue_messages_on_connection(self, messages, channel_name).tap do |deferrable|
+          deferrable.callback(&success_block) if block_given?
         end
       end
 
