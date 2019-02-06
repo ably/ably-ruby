@@ -1,8 +1,29 @@
 # Change Log
 
-## [v1.0.7](https://github.com/ably/ably-ruby/tree/1.0.7)
+## [v1.1.0](https://github.com/ably/ably-ruby/tree/v1.1.0)
 
-[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.0.6...1.0.7)
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.0.7...v1.1.0)
+
+**Fixed bugs:**
+
+- MessagePack::UnknownExtTypeError: unexpected extension type [\#167](https://github.com/ably/ably-ruby/issues/167)
+- Ably::Modules::StateMachine produces confusing error code [\#158](https://github.com/ably/ably-ruby/issues/158)
+- Transition state failure [\#125](https://github.com/ably/ably-ruby/issues/125)
+
+**Merged pull requests:**
+
+- V1.1 release [\#173](https://github.com/ably/ably-ruby/pull/173) ([mattheworiordan](https://github.com/mattheworiordan))
+- Rsc15f remember fallback [\#172](https://github.com/ably/ably-ruby/pull/172) ([mattheworiordan](https://github.com/mattheworiordan))
+- Generate error codes [\#171](https://github.com/ably/ably-ruby/pull/171) ([mattheworiordan](https://github.com/mattheworiordan))
+- Parallel tests [\#169](https://github.com/ably/ably-ruby/pull/169) ([mattheworiordan](https://github.com/mattheworiordan))
+- Transient publishing for \#164 [\#166](https://github.com/ably/ably-ruby/pull/166) ([mattheworiordan](https://github.com/mattheworiordan))
+- Idempotent publishing [\#165](https://github.com/ably/ably-ruby/pull/165) ([mattheworiordan](https://github.com/mattheworiordan))
+- Release 1.0.7 [\#162](https://github.com/ably/ably-ruby/pull/162) ([funkyboy](https://github.com/funkyboy))
+- Minor test fixes [\#123](https://github.com/ably/ably-ruby/pull/123) ([SimonWoolf](https://github.com/SimonWoolf))
+- Push notifications [\#115](https://github.com/ably/ably-ruby/pull/115) ([mattheworiordan](https://github.com/mattheworiordan))
+
+## [v1.0.7](https://github.com/ably/ably-ruby/tree/v1.0.7) (2018-06-18)
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.0.6...v1.0.7)
 
 **Implemented enhancements:**
 
@@ -10,6 +31,7 @@
 
 **Fixed bugs:**
 
+- Is this sequence correct? [\#155](https://github.com/ably/ably-ruby/issues/155)
 - Documentation for add\_request\_ids [\#152](https://github.com/ably/ably-ruby/issues/152)
 
 **Merged pull requests:**
@@ -35,10 +57,12 @@
 - Add request id fix for bulk publishes [\#154](https://github.com/ably/ably-ruby/pull/154) ([mattheworiordan](https://github.com/mattheworiordan))
 - Fix race condition in EventMachine [\#153](https://github.com/ably/ably-ruby/pull/153) ([mattheworiordan](https://github.com/mattheworiordan))
 - Add support for WebSocket native heartbeats [\#151](https://github.com/ably/ably-ruby/pull/151) ([mattheworiordan](https://github.com/mattheworiordan))
+- Add .editorconfig for basic IDE configuration settings [\#150](https://github.com/ably/ably-ruby/pull/150) ([mattheworiordan](https://github.com/mattheworiordan))
 - RSC15d test fixes; add \(failing\) tests for GET as well as POST [\#148](https://github.com/ably/ably-ruby/pull/148) ([SimonWoolf](https://github.com/SimonWoolf))
 - Do not encode strings in-place [\#147](https://github.com/ably/ably-ruby/pull/147) ([mattheworiordan](https://github.com/mattheworiordan))
 - Only resume if connection is fresh \(RTN15g\*\) [\#146](https://github.com/ably/ably-ruby/pull/146) ([mattheworiordan](https://github.com/mattheworiordan))
 - Fix channel history pagination test [\#143](https://github.com/ably/ably-ruby/pull/143) ([funkyboy](https://github.com/funkyboy))
+- New release v1.0.5 [\#142](https://github.com/ably/ably-ruby/pull/142) ([funkyboy](https://github.com/funkyboy))
 - Fix presence history test [\#141](https://github.com/ably/ably-ruby/pull/141) ([funkyboy](https://github.com/funkyboy))
 - Do not encode strings in-place [\#140](https://github.com/ably/ably-ruby/pull/140) ([aschuster3](https://github.com/aschuster3))
 
@@ -82,7 +106,7 @@
 - Channel name encoding error for REST requests [\#119](https://github.com/ably/ably-ruby/pull/119) ([mattheworiordan](https://github.com/mattheworiordan))
 
 ## [v1.0.1](https://github.com/ably/ably-ruby/tree/v1.0.1) (2017-05-11)
-[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.0.0...v1.0.1)
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.1.0-beta.push.1...v1.0.1)
 
 ## [v1.1.0-beta.push.1](https://github.com/ably/ably-ruby/tree/v1.1.0-beta.push.1) (2017-04-25)
 [Full Changelog](https://github.com/ably/ably-ruby/compare/v1.0.0...v1.1.0-beta.push.1)
