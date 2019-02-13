@@ -19,7 +19,7 @@ This client library is currently *not compatible* with some of the Ably features
 
 | Feature | Spec reference |
 | :--- | :--- |
-| Custom transportParams | [RTC1f](https://docs.ably.io/client-lib-development-guide/features/#RTC1f) |
+| Custom transportParams | [RTC1f](https://ably.io/documentation/client-lib-development-guide/features/#RTC1f) |
 
 ## Documentation
 
