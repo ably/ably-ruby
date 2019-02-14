@@ -3,7 +3,7 @@
 [![Gem Version](https://badge.fury.io/rb/ably.svg)](http://badge.fury.io/rb/ably)
 [![Coverage Status](https://coveralls.io/repos/ably/ably-ruby/badge.svg)](https://coveralls.io/r/ably/ably-ruby)
 
-A Ruby client library for [ably.io](https://www.ably.io), the realtime messaging service. This library currently targets the [Ably 1.1 client library specification](https://www.ably.io/documentation/client-lib-development-guide/features/). You can jump to the '[Known Limitations](#known-limitations)' section to see the features this client library does not yet support or visit the [Feature Support Matrix](https://www.ably.io/feature-support-matrix) to see the list of all the available features.
+A Ruby client library for [ably.io](https://www.ably.io), the realtime messaging service. This library currently targets the [Ably 1.1 client library specification](https://www.ably.io/documentation/client-lib-development-guide/features/). You can jump to the '[Known Limitations](#known-limitations)' section to see the features this client library does not yet support or visit the [Client SDKs feature support matrix](https://www.ably.io/download/sdk-feature-support-matrix) to see the list of all the available features.
 
 ## Supported platforms
 
@@ -17,9 +17,9 @@ If you find any compatibility issues, please [do raise an issue](https://github.
 
 This client library is currently *not compatible* with some of the Ably features:
 
-| Feature | Spec reference |
-| :--- | :--- |
-| Custom transportParams | [RTC1f](https://ably.io/documentation/client-lib-development-guide/features/#RTC1f) |
+| Feature |
+| :--- |
+| [Custom transportParams](https://www.ably.io/documentation/realtime/connection#client-options) |
 
 ## Documentation
 
