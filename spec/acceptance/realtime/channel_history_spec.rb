@@ -145,12 +145,14 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
             end
           end
 
-          channel.subscribe('event') do |message|
-            messages << message
-            if messages.count == batches * messages_per_batch
-              channel.history do |page|
-                expect(page.items.map(&:id).sort).to eql(messages.map(&:id).sort)
-                stop_reactor
+          channel.attach do
+            channel.subscribe('event') do |message|
+              messages << message
+              if messages.count == batches * messages_per_batch
+                channel.history do |page|
+                  expect(page.items.map(&:id).sort).to eql(messages.map(&:id).sort)
+                  stop_reactor
+                end
               end
             end
           end

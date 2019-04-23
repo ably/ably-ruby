@@ -661,17 +661,19 @@ describe Ably::Realtime::Auth, :event_machine do
                 client.connection.once(:disconnected) { raise 'Upgrade does not require a disconnect' }
 
                 channel = client.channels.get('foo')
-                channel.publish('not-allowed').errback do |error|
-                  expect(error.code).to eql(40160)
-                  expect(error.message).to match(/permission denied/)
+                channel.attach do
+                  channel.publish('not-allowed').errback do |error|
+                    expect(error.code).to eql(40160)
+                    expect(error.message).to match(/permission denied/)
 
-                  client.auth.authorize(nil, auth_callback: upgraded_token_cb)
-                  client.connection.once(:update) do
-                    expect(client.connection.error_reason).to be_nil
-                    channel.subscribe('now-allowed') do |message|
-                      stop_reactor
+                    client.auth.authorize(nil, auth_callback: upgraded_token_cb)
+                    client.connection.once(:update) do
+                      expect(client.connection.error_reason).to be_nil
+                      channel.subscribe('now-allowed') do |message|
+                        stop_reactor
+                      end
+                      channel.publish 'now-allowed'
                     end
-                    channel.publish 'now-allowed'
                   end
                 end
               end
