@@ -275,6 +275,38 @@ describe Ably::Rest::Channel do
           end
         end
       end
+
+      context 'with a frozen message event name' do
+        let(:event_name) { random_str.freeze }
+
+        it 'succeeds and publishes with an implicit client_id' do
+          channel.publish([name: event_name])
+          channel.publish(event_name)
+          channel.publish(+'foo-bar') # new style freeze, see https://github.com/ably/ably-ruby/issues/132
+
+          channel.history do |messages|
+            expect(messages.length).to eql(3)
+            expect(messages.first.name).to eql(event_name)
+            expect(messages[1].name).to eql(event_name)
+            expect(messages.last.name).to eql('foo-bar')
+          end
+        end
+      end
+
+      context 'with a frozen payload' do
+        let(:payload) { { foo: random_str.freeze }.freeze }
+
+        it 'succeeds and publishes with an implicit client_id' do
+          channel.publish([data: payload])
+          channel.publish(nil, payload)
+
+          channel.history do |messages|
+            expect(messages.length).to eql(2)
+            expect(messages.first.data).to eql(payload)
+            expect(messages.last.data).to eql(payload)
+          end
+        end
+      end
     end
 
     describe '#history' do

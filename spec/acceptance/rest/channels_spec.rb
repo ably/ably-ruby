@@ -60,5 +60,11 @@ describe Ably::Rest::Channels do
       let(:channel_with_options) { client.channels[channel_name, options] }
       it_behaves_like 'a channel'
     end
+
+    describe 'using a frozen channel name' do
+      let(:channel) { client.channels[channel_name.freeze] }
+      let(:channel_with_options) { client.channels[channel_name.freeze, options] }
+      it_behaves_like 'a channel'
+    end
   end
 end
