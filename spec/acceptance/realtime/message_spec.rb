@@ -353,23 +353,25 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
           first_message_protocol_message ||= protocol_message unless protocol_message.messages.empty?
         end
 
-        channel.subscribe do |message|
-          messages_received << message
-          if messages_received.count == 2
-            # simulate a duplicate protocol message being received
-            EventMachine.next_tick do
-              connection.__incoming_protocol_msgbus__.publish :protocol_message, first_message_protocol_message
+        channel.attach do
+          channel.subscribe do |message|
+            messages_received << message
+            if messages_received.count == 2
+              # simulate a duplicate protocol message being received
+              EventMachine.next_tick do
+                connection.__incoming_protocol_msgbus__.publish :protocol_message, first_message_protocol_message
+              end
             end
           end
-        end
-        2.times { |i| EventMachine.add_timer(i.to_f / 5) { channel.publish('event', 'data') } }
+          2.times { |i| EventMachine.add_timer(i.to_f / 5) { channel.publish('event', 'data') } }
 
-        expect(client.logger).to receive(:error) do |*args, &block|
-          expect(args.concat([block ? block.call : nil]).join(',')).to match(/duplicate/)
+          expect(client.logger).to receive(:error) do |*args, &block|
+            expect(args.concat([block ? block.call : nil]).join(',')).to match(/duplicate/)
 
-          EventMachine.add_timer(0.5) do
-            expect(messages_received.count).to eql(2)
-            stop_reactor
+            EventMachine.add_timer(0.5) do
+              expect(messages_received.count).to eql(2)
+              stop_reactor
+            end
           end
         end
       end
