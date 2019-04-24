@@ -649,16 +649,18 @@ describe Ably::Realtime::Connection, :event_machine do
       end
 
       it 'is set to 1 when the second message is received' do
-        channel.publish('event', 'data') do
-          channel.publish('event', 'data')
-        end
+        channel.attach do
+          messages = []
+          channel.subscribe do |message|
+            messages << message
+            if messages.length == 2
+              expect(connection.serial).to eql(1)
+              stop_reactor
+            end
+          end
 
-        messages = []
-        channel.subscribe do |message|
-          messages << message
-          if messages.length == 2
-            expect(connection.serial).to eql(1)
-            stop_reactor
+          channel.publish('event', 'data') do
+            channel.publish('event', 'data')
           end
         end
       end
