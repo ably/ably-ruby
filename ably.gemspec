@@ -39,14 +39,13 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rspec-retry', '~> 0.6'
   spec.add_development_dependency 'yard', '~> 0.9'
   spec.add_development_dependency 'rspec-instafail', '~> 1.0'
+  spec.add_development_dependency 'bundler', '>= 1.3.0'
 
   if RUBY_VERSION.match(/^1/)
     spec.add_development_dependency 'public_suffix', '~> 1.4.6' # Later versions do not support Ruby 1.9
     spec.add_development_dependency 'webmock', '2.2'
     spec.add_development_dependency 'parallel_tests', '~> 2.9.0'
-    spec.add_development_dependency 'bundler', '~> 1.3'
   else
-    spec.add_development_dependency 'bundler', '~> 2.0.1'
     spec.add_development_dependency 'webmock', '~> 2.2'
     spec.add_development_dependency 'coveralls'
     spec.add_development_dependency 'parallel_tests', '~> 2.22'
