@@ -1073,12 +1073,12 @@ describe Ably::Realtime::Presence, :event_machine do
       context 'message #connection_id' do
         it 'matches the current client connection_id' do
           channel_client_two.attach do
-            presence_client_one.enter
-          end
+            presence_client_two.subscribe do |presence|
+              expect(presence.connection_id).to eq(client_one.connection.id)
+              stop_reactor
+            end
 
-          presence_client_two.subscribe do |presence|
-            expect(presence.connection_id).to eq(client_one.connection.id)
-            stop_reactor
+            presence_client_one.enter
           end
         end
       end
@@ -1128,22 +1128,26 @@ describe Ably::Realtime::Presence, :event_machine do
       end
 
       it 'updates the data if :data argument provided' do
-        presence_client_one.enter('prior') do
-          presence_client_one.update(data_payload)
-        end
-        presence_client_one.subscribe(:update) do |message|
-          expect(message.data).to eql(data_payload)
-          stop_reactor
+        channel_client_one.attach do
+          presence_client_one.enter('prior') do
+            presence_client_one.update(data_payload)
+          end
+          presence_client_one.subscribe(:update) do |message|
+            expect(message.data).to eql(data_payload)
+            stop_reactor
+          end
         end
       end
 
       it 'updates the data to nil if :data argument is not provided (assumes nil value)' do
-        presence_client_one.enter('prior') do
-          presence_client_one.update
-        end
-        presence_client_one.subscribe(:update) do |message|
-          expect(message.data).to be_nil
-          stop_reactor
+        channel_client_one.attach do
+          presence_client_one.enter('prior') do
+            presence_client_one.update
+          end
+          presence_client_one.subscribe(:update) do |message|
+            expect(message.data).to be_nil
+            stop_reactor
+          end
         end
       end
 
@@ -1157,39 +1161,45 @@ describe Ably::Realtime::Presence, :event_machine do
 
         context 'when set to a string' do
           it 'emits the new data for the leave event' do
-            presence_client_one.enter enter_data do
-              presence_client_one.leave data
-            end
+            channel_client_one.attach do
+              presence_client_one.enter enter_data do
+                presence_client_one.leave data
+              end
 
-            presence_client_one.subscribe(:leave) do |presence_message|
-              expect(presence_message.data).to eql(data)
-              stop_reactor
+              presence_client_one.subscribe(:leave) do |presence_message|
+                expect(presence_message.data).to eql(data)
+                stop_reactor
+              end
             end
           end
         end
 
         context 'when set to nil' do
           it 'emits the last value for the data attribute when leaving' do
-            presence_client_one.enter enter_data do
-              presence_client_one.leave nil
-            end
+            channel_client_one.attach do
+              presence_client_one.enter enter_data do
+                presence_client_one.leave nil
+              end
 
-            presence_client_one.subscribe(:leave) do |presence_message|
-              expect(presence_message.data).to eql(enter_data)
-              stop_reactor
+              presence_client_one.subscribe(:leave) do |presence_message|
+                expect(presence_message.data).to eql(enter_data)
+                stop_reactor
+              end
             end
           end
         end
 
         context 'when not passed as an argument (i.e. nil)' do
           it 'emits the previous value for the data attribute when leaving' do
-            presence_client_one.enter enter_data do
-              presence_client_one.leave
-            end
+            channel_client_one.attach do
+              presence_client_one.enter enter_data do
+                presence_client_one.leave
+              end
 
-            presence_client_one.subscribe(:leave) do |presence_message|
-              expect(presence_message.data).to eql(enter_data)
-              stop_reactor
+              presence_client_one.subscribe(:leave) do |presence_message|
+                expect(presence_message.data).to eql(enter_data)
+                stop_reactor
+              end
             end
           end
         end
@@ -1198,38 +1208,42 @@ describe Ably::Realtime::Presence, :event_machine do
           it 'does not cache members that have left' do
             enter_ack = false
 
-            presence_client_one.subscribe(:enter) do
-              presence_client_one.unsubscribe :enter
+            channel_client_one.attach do
+              presence_client_one.subscribe(:enter) do
+                presence_client_one.unsubscribe :enter
 
-              expect(presence_client_one.members).to be_in_sync
-              expect(presence_client_one.members.send(:members).count).to eql(1)
-              presence_client_one.leave data
-            end
+                expect(presence_client_one.members).to be_in_sync
+                expect(presence_client_one.members.send(:members).count).to eql(1)
+                presence_client_one.leave data
+              end
 
-            presence_client_one.enter(enter_data) do
-              enter_ack = true
-            end
+              presence_client_one.enter(enter_data) do
+                enter_ack = true
+              end
 
-            presence_client_one.subscribe(:leave) do |presence_message|
-              presence_client_one.unsubscribe :leave
-              expect(presence_message.data).to eql(data)
-              expect(presence_client_one.members.send(:members).count).to eql(0)
-              expect(enter_ack).to eql(true)
-              stop_reactor
+              presence_client_one.subscribe(:leave) do |presence_message|
+                presence_client_one.unsubscribe :leave
+                expect(presence_message.data).to eql(data)
+                expect(presence_client_one.members.send(:members).count).to eql(0)
+                expect(enter_ack).to eql(true)
+                stop_reactor
+              end
             end
           end
         end
       end
 
       it 'succeeds and does not emit an event (#RTP10d)' do
-        channel_client_one.presence.leave do
-          # allow enough time for leave event to (not) fire
-          EventMachine.add_timer(2) do
-            stop_reactor
+        channel_client_one.attach do
+          channel_client_one.presence.leave do
+            # allow enough time for leave event to (not) fire
+            EventMachine.add_timer(2) do
+              stop_reactor
+            end
           end
-        end
-        channel_client_one.subscribe(:leave) do
-          raise "No leave event should fire"
+          channel_client_one.subscribe(:leave) do
+            raise "No leave event should fire"
+          end
         end
       end
 
@@ -1238,26 +1252,30 @@ describe Ably::Realtime::Presence, :event_machine do
 
     context ':left event' do
       it 'emits the data defined in enter' do
-        channel_client_one.presence.enter('data') do
-          channel_client_one.presence.leave
-        end
+        channel_client_two.attach do
+          channel_client_one.presence.enter('data') do
+            channel_client_one.presence.leave
+          end
 
-        channel_client_two.presence.subscribe(:leave) do |message|
-          expect(message.data).to eql('data')
-          stop_reactor
+          channel_client_two.presence.subscribe(:leave) do |message|
+            expect(message.data).to eql('data')
+            stop_reactor
+          end
         end
       end
 
       it 'emits the data defined in update' do
-        channel_client_one.presence.enter('something else') do
-          channel_client_one.presence.update('data') do
-            channel_client_one.presence.leave
+        channel_client_two.attach do
+          channel_client_one.presence.enter('something else') do
+            channel_client_one.presence.update('data') do
+              channel_client_one.presence.leave
+            end
           end
-        end
 
-        channel_client_two.presence.subscribe(:leave) do |message|
-          expect(message.data).to eql('data')
-          stop_reactor
+          channel_client_two.presence.subscribe(:leave) do |message|
+            expect(message.data).to eql('data')
+            stop_reactor
+          end
         end
       end
     end
@@ -1286,17 +1304,19 @@ describe Ably::Realtime::Presence, :event_machine do
           end
 
           it 'enters a channel and sets the data based on the provided :data option' do
-            client_count.times do |client_id|
-              presence_client_one.enter_client("client:#{client_id}", data)
-            end
+            channel_anonymous_client.attach do
+              client_count.times do |client_id|
+                presence_client_one.enter_client("client:#{client_id}", data)
+              end
 
-            presence_anonymous_client.subscribe(:enter) do |presence|
-              expect(presence.data).to eql(data)
-              clients << presence
-              next unless clients.count == 5
+              presence_anonymous_client.subscribe(:enter) do |presence|
+                expect(presence.data).to eql(data)
+                clients << presence
+                next unless clients.count == 5
 
-              expect(clients.map(&:client_id).uniq.count).to eql(5)
-              stop_reactor
+                expect(clients.map(&:client_id).uniq.count).to eql(5)
+                stop_reactor
+              end
             end
           end
         end
@@ -1307,12 +1327,12 @@ describe Ably::Realtime::Presence, :event_machine do
           it 'matches the current client connection_id' do
             channel_client_two.attach do
               presence_client_one.enter_client(client_id)
-            end
 
-            presence_client_two.subscribe do |presence|
-              expect(presence.client_id).to eq(client_id)
-              expect(presence.connection_id).to eq(client_one.connection.id)
-              stop_reactor
+              presence_client_two.subscribe do |presence|
+                expect(presence.client_id).to eq(client_id)
+                expect(presence.connection_id).to eq(client_one.connection.id)
+                stop_reactor
+              end
             end
           end
         end
@@ -1341,57 +1361,63 @@ describe Ably::Realtime::Presence, :event_machine do
           it 'updates the data attribute for the member when :data option provided' do
             updated_callback_count = 0
 
-            client_count.times do |client_id|
-              presence_client_one.enter_client("client:#{client_id}") do
-                presence_client_one.update_client("client:#{client_id}", data) do
-                  updated_callback_count += 1
+            channel_anonymous_client.attach do
+              client_count.times do |client_id|
+                presence_client_one.enter_client("client:#{client_id}") do
+                  presence_client_one.update_client("client:#{client_id}", data) do
+                    updated_callback_count += 1
+                  end
                 end
               end
-            end
 
-            presence_anonymous_client.subscribe(:update) do |presence|
-              expect(presence.data).to eql(data)
-              clients << presence
-              next unless clients.count == 5
+              presence_anonymous_client.subscribe(:update) do |presence|
+                expect(presence.data).to eql(data)
+                clients << presence
+                next unless clients.count == 5
 
-              wait_until(lambda { updated_callback_count == 5 }) do
-                expect(clients.map(&:client_id).uniq.count).to eql(5)
-                expect(updated_callback_count).to eql(5)
-                stop_reactor
+                wait_until(lambda { updated_callback_count == 5 }) do
+                  expect(clients.map(&:client_id).uniq.count).to eql(5)
+                  expect(updated_callback_count).to eql(5)
+                  stop_reactor
+                end
               end
             end
           end
 
           it 'updates the data attribute to null for the member when :data option is not provided (assumed null)' do
-            presence_client_one.enter_client('client_1') do
-              presence_client_one.update_client('client_1')
-            end
+            channel_anonymous_client.attach do
+              presence_client_one.enter_client('client_1') do
+                presence_client_one.update_client('client_1')
+              end
 
-            presence_anonymous_client.subscribe(:update) do |presence|
-              expect(presence.client_id).to eql('client_1')
-              expect(presence.data).to be_nil
-              stop_reactor
+              presence_anonymous_client.subscribe(:update) do |presence|
+                expect(presence.client_id).to eql('client_1')
+                expect(presence.data).to be_nil
+                stop_reactor
+              end
             end
           end
 
           it 'enters if not already entered' do
             updated_callback_count = 0
 
-            client_count.times do |client_id|
-              presence_client_one.update_client("client:#{client_id}", data) do
-                updated_callback_count += 1
+            channel_anonymous_client.attach do
+              client_count.times do |client_id|
+                presence_client_one.update_client("client:#{client_id}", data) do
+                  updated_callback_count += 1
+                end
               end
-            end
 
-            presence_anonymous_client.subscribe(:enter) do |presence|
-              expect(presence.data).to eql(data)
-              clients << presence
-              next unless clients.count == 5
+              presence_anonymous_client.subscribe(:enter) do |presence|
+                expect(presence.data).to eql(data)
+                clients << presence
+                next unless clients.count == 5
 
-              wait_until(lambda { updated_callback_count == 5 }) do
-                expect(clients.map(&:client_id).uniq.count).to eql(5)
-                expect(updated_callback_count).to eql(5)
-                stop_reactor
+                wait_until(lambda { updated_callback_count == 5 }) do
+                  expect(clients.map(&:client_id).uniq.count).to eql(5)
+                  expect(updated_callback_count).to eql(5)
+                  stop_reactor
+                end
               end
             end
           end
@@ -1407,23 +1433,25 @@ describe Ably::Realtime::Presence, :event_machine do
             it 'emits the :leave event for each client_id' do
               left_callback_count = 0
 
-              client_count.times do |client_id|
-                presence_client_one.enter_client("client:#{client_id}", random_str) do
-                  presence_client_one.leave_client("client:#{client_id}", data) do
-                    left_callback_count += 1
+              channel_anonymous_client.attach do
+                client_count.times do |client_id|
+                  presence_client_one.enter_client("client:#{client_id}", random_str) do
+                    presence_client_one.leave_client("client:#{client_id}", data) do
+                      left_callback_count += 1
+                    end
                   end
                 end
-              end
 
-              presence_anonymous_client.subscribe(:leave) do |presence|
-                expect(presence.data).to eql(data)
-                clients << presence
-                next unless clients.count == 5
+                presence_anonymous_client.subscribe(:leave) do |presence|
+                  expect(presence.data).to eql(data)
+                  clients << presence
+                  next unless clients.count == 5
 
-                wait_until(lambda { left_callback_count == 5 }) do
-                  expect(clients.map(&:client_id).uniq.count).to eql(5)
-                  expect(left_callback_count).to eql(5)
-                  stop_reactor
+                  wait_until(lambda { left_callback_count == 5 }) do
+                    expect(clients.map(&:client_id).uniq.count).to eql(5)
+                    expect(left_callback_count).to eql(5)
+                    stop_reactor
+                  end
                 end
               end
             end
@@ -1431,21 +1459,23 @@ describe Ably::Realtime::Presence, :event_machine do
             it 'succeeds if that client_id has not previously entered the channel' do
               left_callback_count = 0
 
-              client_count.times do |client_id|
-                presence_client_one.leave_client("client:#{client_id}") do
-                  left_callback_count += 1
+              channel_anonymous_client.attach do
+                client_count.times do |client_id|
+                  presence_client_one.leave_client("client:#{client_id}") do
+                    left_callback_count += 1
+                  end
                 end
-              end
 
-              presence_anonymous_client.subscribe(:leave) do |presence|
-                expect(presence.data).to be_nil
-                clients << presence
-                next unless clients.count == 5
+                presence_anonymous_client.subscribe(:leave) do |presence|
+                  expect(presence.data).to be_nil
+                  clients << presence
+                  next unless clients.count == 5
 
-                wait_until(lambda { left_callback_count == 5 }) do
-                  expect(clients.map(&:client_id).uniq.count).to eql(5)
-                  expect(left_callback_count).to eql(5)
-                  stop_reactor
+                  wait_until(lambda { left_callback_count == 5 }) do
+                    expect(clients.map(&:client_id).uniq.count).to eql(5)
+                    expect(left_callback_count).to eql(5)
+                    stop_reactor
+                  end
                 end
               end
             end
@@ -1453,39 +1483,45 @@ describe Ably::Realtime::Presence, :event_machine do
 
           context 'with a new value in :data option' do
             it 'emits the leave event with the new data value' do
-              presence_client_one.enter_client("client:unique", random_str) do
-                presence_client_one.leave_client("client:unique", data)
-              end
+              channel_client_one.attach do
+                presence_client_one.enter_client("client:unique", random_str) do
+                  presence_client_one.leave_client("client:unique", data)
+                end
 
-              presence_client_one.subscribe(:leave) do |presence_message|
-                expect(presence_message.data).to eql(data)
-                stop_reactor
+                presence_client_one.subscribe(:leave) do |presence_message|
+                  expect(presence_message.data).to eql(data)
+                  stop_reactor
+                end
               end
             end
           end
 
           context 'with a nil value in :data option' do
             it 'emits the leave event with the previous value as a convenience' do
-              presence_client_one.enter_client("client:unique", data) do
-                presence_client_one.leave_client("client:unique", nil)
-              end
+              channel_client_one.attach do
+                presence_client_one.enter_client("client:unique", data) do
+                  presence_client_one.leave_client("client:unique", nil)
+                end
 
-              presence_client_one.subscribe(:leave) do |presence_message|
-                expect(presence_message.data).to eql(data)
-                stop_reactor
+                presence_client_one.subscribe(:leave) do |presence_message|
+                  expect(presence_message.data).to eql(data)
+                  stop_reactor
+                end
               end
             end
           end
 
           context 'with no :data option' do
             it 'emits the leave event with the previous value as a convenience' do
-              presence_client_one.enter_client("client:unique", data) do
-                presence_client_one.leave_client("client:unique")
-              end
+              channel_client_one.attach do
+                presence_client_one.enter_client("client:unique", data) do
+                  presence_client_one.leave_client("client:unique")
+                end
 
-              presence_client_one.subscribe(:leave) do |presence_message|
-                expect(presence_message.data).to eql(data)
-                stop_reactor
+                presence_client_one.subscribe(:leave) do |presence_message|
+                  expect(presence_message.data).to eql(data)
+                  stop_reactor
+                end
               end
             end
           end
