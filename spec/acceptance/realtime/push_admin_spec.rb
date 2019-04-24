@@ -63,20 +63,22 @@ describe Ably::Realtime::Push::Admin, :event_machine do
       end
 
       context 'invalid recipient' do
+        let(:default_options) { { key: api_key, environment: environment, protocol: protocol, log_level: :fatal } }
+
         it 'raises an error after receiving a 40x realtime response' do
-          skip 'validation on raw push is not enabled in realtime'
           subject.publish({ invalid_recipient_details: 'foo.bar' }, basic_notification_payload).errback do |error|
-            expect(error.message).to match(/Invalid recipient/)
+            expect(error.message).to match(/recipient must contain/)
             stop_reactor
           end
         end
       end
 
       context 'invalid push data' do
+        let(:default_options) { { key: api_key, environment: environment, protocol: protocol, log_level: :fatal } }
+
         it 'raises an error after receiving a 40x realtime response' do
-          skip 'validation on raw push is not enabled in realtime'
           subject.publish(basic_recipient, { invalid_property_only: true }).errback do |error|
-            expect(error.message).to match(/Invalid push notification data/)
+            expect(error.message).to match(/Unexpected field/)
             stop_reactor
           end
         end
