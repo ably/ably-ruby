@@ -1007,10 +1007,9 @@ describe Ably::Realtime::Connection, :event_machine do
         let(:client_options) { default_options.merge(websocket_heartbeats_disabled: true) }
 
         it 'does not provide the heartbeats argument in the websocket connection params (#RTN23b)' do
-          skip 'Native heartbeats not yet supported in the WS driver https://github.com/ably/ably-ruby/issues/116'
           expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
             uri = URI.parse(url)
-            expect(CGI::parse(uri.query)['heartbeats'][0]).to be_nil
+            expect(CGI::parse(uri.query)['heartbeats'][0]).to eql('true')
             stop_reactor
           end
           client
