@@ -120,8 +120,6 @@ describe Ably::Rest::Channel, 'messages' do
           let(:message) { Ably::Models::Message.new(id: id, data: data) }
 
           specify 'three REST publishes result in only one message being published' do
-            pending 'idempotency rolled out to global cluster'
-
             3.times { channel.publish [message] }
             expect(channel.history.items.length).to eql(1)
             expect(channel.history.items[0].id).to eql(id)
@@ -130,8 +128,6 @@ describe Ably::Rest::Channel, 'messages' do
 
         context 'with #publish arguments only' do
           it 'three REST publishes result in only one message being published' do
-            pending 'idempotency rolled out to global cluster'
-
             3.times { channel.publish 'event', data, id: id }
             expect(channel.history.items.length).to eql(1)
           end
@@ -143,8 +139,6 @@ describe Ably::Rest::Channel, 'messages' do
         end
 
         specify 'for multiple messages in one publish operation (#RSL1k3)' do
-          pending 'idempotency rolled out to global cluster'
-
           message_arr = 3.times.map { Ably::Models::Message.new(id: id, data: data) }
           expect { channel.publish message_arr }.to raise_error do |error|
             expect(error.code).to eql(40031) # Invalid publish request (invalid client-specified id), see https://github.com/ably/ably-common/pull/30
@@ -152,12 +146,10 @@ describe Ably::Rest::Channel, 'messages' do
         end
 
         specify 'for multiple messages in one publish operation with IDs following the required format described in RSL1k1 (#RSL1k3)' do
-          pending 'idempotency rolled out to global cluster'
-
           message_arr = 3.times.map { |index| Ably::Models::Message.new(id: "#{id}:#{index}", data: data) }
           channel.publish message_arr
-          expect(channel.history.items[0].id).to eql("{id}:0")
-          expect(channel.history.items[2].id).to eql("{id}:2")
+          expect(channel.history.items[2].id).to eql("#{id}:0")
+          expect(channel.history.items[0].id).to eql("#{id}:2")
           expect(channel.history.items.length).to eql(3)
         end
       end
@@ -174,7 +166,7 @@ describe Ably::Rest::Channel, 'messages' do
       end
 
       context 'when idempotent publishing is enabled in the client library ClientOptions (#TO3n)' do
-        let(:client_options) { default_client_options.merge(idempotent_rest_publishing: true, log_level: :error) }
+        let(:client_options) { default_client_options.merge(idempotent_rest_publishing: true, log_level: :error, fallback_hosts: ["#{environment}-realtime.ably.io"]) }
 
         context 'when there is a network failure triggering an automatic retry (#RSL1k4)' do
           def mock_for_two_publish_failures
@@ -195,8 +187,6 @@ describe Ably::Rest::Channel, 'messages' do
             before { mock_for_two_publish_failures }
 
             specify 'two REST publish retries result in only one message being published' do
-              pending 'idempotency rolled out to global cluster'
-
               channel.publish [message]
               expect(channel.history.items.length).to eql(1)
               expect(@failed_http_posts).to eql(2)
@@ -207,8 +197,6 @@ describe Ably::Rest::Channel, 'messages' do
             before { mock_for_two_publish_failures }
 
             specify 'two REST publish retries result in only one message being published' do
-              pending 'idempotency rolled out to global cluster'
-
               channel.publish 'event', data
               expect(channel.history.items.length).to eql(1)
               expect(@failed_http_posts).to eql(2)
@@ -221,8 +209,6 @@ describe Ably::Rest::Channel, 'messages' do
             before { mock_for_two_publish_failures }
 
             specify 'two REST publish retries result in only one message being published' do
-              pending 'idempotency rolled out to global cluster'
-
               channel.publish 'event', data, id: id
               expect(channel.history.items.length).to eql(1)
               expect(channel.history.items[0].id).to eql(id)
@@ -231,11 +217,9 @@ describe Ably::Rest::Channel, 'messages' do
           end
 
           specify 'for multiple messages in one publish operation' do
-            pending 'idempotency rolled out to global cluster'
-
             message_arr = 3.times.map { Ably::Models::Message.new(data: data) }
             3.times { channel.publish message_arr }
-            expect(channel.history.items.length).to eql(message_arr.length)
+            expect(channel.history.items.length).to eql(message_arr.length * 3)
           end
         end
 
@@ -248,13 +232,11 @@ describe Ably::Rest::Channel, 'messages' do
 
         context 'when publishing a batch of messages' do
           specify 'the ID is populated with a single random ID and sequence of serials from this lib (#RSL1k1)' do
-            pending 'idempotency rolled out to global cluster'
-
             message = { name: 'event' }
             channel.publish [message, message, message]
-            expect(channel.history.items[0].length).to eql(3)
-            expect(channel.history.items[0].id).to match(/^[A-Za-z0-9\+\/]+:0$/)
-            expect(channel.history.items[2].id).to match(/^[A-Za-z0-9\+\/]+:2$/)
+            expect(channel.history.items.length).to eql(3)
+            expect(channel.history.items[0].id).to match(/^[A-Za-z0-9\+\/]+:2$/)
+            expect(channel.history.items[2].id).to match(/^[A-Za-z0-9\+\/]+:0$/)
             base_64_id = channel.history.items[0].id.split(':')[0]
             expect(Base64.decode64(base_64_id).length).to eql(9)
           end
