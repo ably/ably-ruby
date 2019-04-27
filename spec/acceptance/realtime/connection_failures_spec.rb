@@ -921,7 +921,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
 
-        it 'retains the client_serial (#RTN15c2, #RTN15c3)' do
+        it 'retains the client_msg_serial (#RTN15c2, #RTN15c3)' do
           last_message = nil
           channel = client.channels.get("foo")
 
@@ -1103,7 +1103,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          it 'resets the client_serial (#RTN15c3)' do
+          it 'resets the client_msg_serial (#RTN15c3)' do
             last_message = nil
             channel = client.channels.get("foo")
 
