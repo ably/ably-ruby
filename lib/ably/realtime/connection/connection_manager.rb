@@ -106,7 +106,6 @@ module Ably::Realtime
           end
         else
           logger.debug { "ConnectionManager: New connection created with ID #{protocol_message.connection_id} and key #{protocol_message.connection_key}" }
-          connection.reset_client_serial
         end
 
         reattach_suspended_channels protocol_message.error
