@@ -112,22 +112,26 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
 
       context 'in multiple ProtocolMessages', em_timeout: (30 / 10) + 5 do
         it 'retrieves limited history forwards with pagination' do
-          messages_sent.times do |index|
-            EventMachine.add_timer(index.to_f / rate_per_second) do
-              channel.publish('event', "history#{index}") do
-                next unless index == messages_sent - 1
-                ensure_message_history_direction_and_paging_is_correct :forwards
+          channel.attach do
+            messages_sent.times do |index|
+              EventMachine.add_timer(index.to_f / rate_per_second) do
+                channel.publish('event', "history#{index}") do
+                  next unless index == messages_sent - 1
+                  ensure_message_history_direction_and_paging_is_correct :forwards
+                end
               end
             end
           end
         end
 
         it 'retrieves limited history backwards with pagination' do
-          messages_sent.times.to_a.reverse.each do |index|
-            EventMachine.add_timer((messages_sent - index).to_f / rate_per_second) do
-              channel.publish('event', "history#{index}") do
-                next unless index == 0
-                ensure_message_history_direction_and_paging_is_correct :backwards if index == 0
+          channel.attach do
+            messages_sent.times.to_a.reverse.each do |index|
+              EventMachine.add_timer((messages_sent - index).to_f / rate_per_second) do
+                channel.publish('event', "history#{index}") do
+                  next unless index == 0
+                  ensure_message_history_direction_and_paging_is_correct :backwards if index == 0
+                end
               end
             end
           end
@@ -139,13 +143,13 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
         let(:messages_per_batch) { 10 }
 
         it 'return the same results with unique matching message IDs' do
-          batches.times do |batch|
-            EventMachine.add_timer(batch.to_f / batches.to_f) do
-              messages_per_batch.times { channel.publish('event', 'data') }
-            end
-          end
-
           channel.attach do
+            batches.times do |batch|
+              EventMachine.add_timer(batch.to_f / batches.to_f) do
+                messages_per_batch.times { |index| channel.publish('event') }
+              end
+            end
+
             channel.subscribe('event') do |message|
               messages << message
               if messages.count == batches * messages_per_batch
