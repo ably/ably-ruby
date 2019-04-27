@@ -314,7 +314,6 @@ module Ably
       def configure_new(connection_id, connection_key, connection_serial)
         @id            = connection_id
         @key           = connection_key
-        @client_serial = connection_serial
 
         update_connection_serial connection_serial
       end

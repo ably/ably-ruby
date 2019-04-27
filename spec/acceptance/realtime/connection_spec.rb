@@ -666,6 +666,35 @@ describe Ably::Realtime::Connection, :event_machine do
       end
     end
 
+    describe '#msgSerial' do
+      context 'when messages are queued for publish before a connection is established' do
+        let(:batches) { 6 }
+        let(:messages_per_batch) { 10 }
+
+        let(:publishing_client)  { auto_close Ably::Realtime::Client.new(default_options) }
+        let(:channel_name)       { random_str }
+        let(:publishing_channel) { publishing_client.channels.get(channel_name) }
+        let(:receiving_channel)  { client.channels.get(channel_name) }
+
+        it 'the msgSerial is always incrementing (and not reset when the new connection is established) ensuring messages are never de-duped by the realtime service' do
+          messages = []
+
+          receiving_channel.attach do
+            receiving_channel.subscribe('event') do |message|
+              messages << message
+              stop_reactor if messages.count == batches * messages_per_batch
+            end
+
+            batches.times do |batch|
+              EventMachine.add_timer(batch.to_f / batches.to_f) do
+                messages_per_batch.times { |index| publishing_channel.publish('event') }
+              end
+            end
+          end
+        end
+      end
+    end
+
     context '#close' do
       it 'returns a SafeDeferrable that catches exceptions in callbacks and logs them' do
         connection.connect do
