@@ -4,7 +4,7 @@ def console(message)
   puts "\033[31m[#{Time.now.strftime('%H:%M:%S.%L')}]\033[0m \033[33m#{message}\033[0m"
 end
 
-unless RUBY_VERSION.match(/^1/)
+unless RUBY_VERSION.match(/^1\./)
   require 'coveralls'
   Coveralls.wear!
 end

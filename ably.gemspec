@@ -24,7 +24,7 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'faraday', '~> 0.12'
   spec.add_runtime_dependency 'excon', '~> 0.55'
 
-  if RUBY_VERSION.match(/^1/)
+  if RUBY_VERSION.match(/^1\./)
     spec.add_runtime_dependency 'json', '< 2.0'
   else
     spec.add_runtime_dependency 'json'
@@ -41,7 +41,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rspec-instafail', '~> 1.0'
   spec.add_development_dependency 'bundler', '>= 1.3.0'
 
-  if RUBY_VERSION.match(/^1/)
+  if RUBY_VERSION.match(/^1\./)
     spec.add_development_dependency 'public_suffix', '~> 1.4.6' # Later versions do not support Ruby 1.9
     spec.add_development_dependency 'webmock', '2.2'
     spec.add_development_dependency 'parallel_tests', '~> 2.9.0'

@@ -282,7 +282,12 @@ describe Ably::Rest::Channel do
         it 'succeeds and publishes with an implicit client_id' do
           channel.publish([name: event_name])
           channel.publish(event_name)
-          channel.publish(+'foo-bar') # new style freeze, see https://github.com/ably/ably-ruby/issues/132
+
+          if !(RUBY_VERSION.match(/^1\./) || RUBY_VERSION.match(/^2\.[012]/))
+            channel.publish(+'foo-bar') # new style freeze, see https://github.com/ably/ably-ruby/issues/132
+          else
+            channel.publish('foo-bar'.freeze) # new + style not supported until Ruby 2.3
+          end
 
           channel.history do |messages|
             expect(messages.length).to eql(3)
