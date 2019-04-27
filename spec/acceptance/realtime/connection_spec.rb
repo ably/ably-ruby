@@ -1156,7 +1156,7 @@ describe Ably::Realtime::Connection, :event_machine do
                   expected_serial += 1 # attach message received
                   expect(connection.serial).to eql(expected_serial)
 
-                  expect(connection.recovery_key).to eql("#{connection.key}:#{connection.serial}")
+                  expect(connection.recovery_key).to eql("#{connection.key}:#{connection.serial}:#{connection.send(:client_msg_serial)}")
                   stop_reactor
                 end
               end
@@ -1267,6 +1267,36 @@ describe Ably::Realtime::Connection, :event_machine do
             end
           end
         end
+
+        context 'when messages have been published' do
+          describe 'the new connection' do
+            it 'uses the correct msgSerial from the old connection' do
+              msg_serial, recovery_key, connection_id = nil, nil, nil
+
+              channel.attach do
+                expect(connection.send(:client_msg_serial)).to eql(-1) # no messages published yet
+                connection_id = client.connection.id
+                connection.transport.__incoming_protocol_msgbus__
+                channel.publish('event', 'message') do
+                  msg_serial = connection.send(:client_msg_serial)
+                  expect(msg_serial).to eql(0)
+                  recovery_key = client.connection.recovery_key
+                  connection.transition_state_machine! :failed
+                end
+              end
+
+              connection.on(:failed) do
+                recover_client = auto_close Ably::Realtime::Client.new(default_options.merge(recover: recovery_key))
+                recover_client_channel = recover_client.channel(channel_name)
+                recover_client_channel.attach do
+                  expect(recover_client.connection.id).to eql(connection_id)
+                  expect(recover_client.connection.send(:client_msg_serial)).to eql(msg_serial)
+                  stop_reactor
+                end
+              end
+            end
+          end
+        end
       end
 
       context 'with :recover option' do
@@ -1280,7 +1310,7 @@ describe Ably::Realtime::Connection, :event_machine do
         end
 
         context 'with invalid formatted value sent to server' do
-          let(:client_options) { default_options.merge(recover: 'not-a-valid-connection-key:1', log_level: :none) }
+          let(:client_options) { default_options.merge(recover: 'not-a-valid-connection-key:1:0', log_level: :none) }
 
           it 'sets the #error_reason and moves the connection to FAILED' do
             connection.once(:failed) do |state_change|
@@ -1295,7 +1325,7 @@ describe Ably::Realtime::Connection, :event_machine do
         end
 
         context 'with expired (missing) value sent to server' do
-          let(:client_options) { default_options.merge(recover: 'wVIsgTHAB1UvXh7z-1991d8586:0', log_level: :fatal) }
+          let(:client_options) { default_options.merge(recover: 'wVIsgTHAB1UvXh7z-1991d8586:0:0', log_level: :fatal) }
 
           it 'connects but sets the error reason and includes the reason in the state change' do
             connection.once(:connected) do |state_change|
