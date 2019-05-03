@@ -264,7 +264,7 @@ describe Ably::Realtime::Connection, :event_machine do
                     channel.subscribe('event') do |message|
                       messages_received << message.data.to_i
                       if messages_received.count == total_expected
-                        expect(messages_received).to match(total_expected.times)
+                        expect(messages_received).to match(total_expected.times.to_a)
                         expect(auth_requests.count).to eql(iteration + 1)
                         EventMachine.add_timer(1) do
                           channel.unsubscribe 'event'
@@ -1292,6 +1292,48 @@ describe Ably::Realtime::Connection, :event_machine do
                   expect(recover_client.connection.id).to eql(connection_id)
                   expect(recover_client.connection.send(:client_msg_serial)).to eql(msg_serial)
                   stop_reactor
+                end
+              end
+            end
+          end
+        end
+
+        context 'when messages are published before the new connection is recovered' do
+          describe 'the new connection' do
+            it 'uses the correct msgSerial from the old connection for the queued messages' do
+              msg_serial, recovery_key, connection_id = nil, nil, nil
+
+              channel.attach do
+                expect(connection.send(:client_msg_serial)).to eql(-1) # no messages published yet
+                connection_id = client.connection.id
+                connection.transport.__incoming_protocol_msgbus__
+                channel.publish('event', 'message-1') do
+                  msg_serial = connection.send(:client_msg_serial)
+                  expect(msg_serial).to eql(0)
+                  recovery_key = client.connection.recovery_key
+                  connection.transition_state_machine! :failed
+                end
+              end
+
+              connection.on(:failed) do
+                recover_client = auto_close Ably::Realtime::Client.new(default_options.merge(recover: recovery_key))
+                recover_client_channel = recover_client.channel(channel_name)
+                expect(recover_client.connection.send(:client_msg_serial)).to eql(msg_serial)
+
+                recover_client.connection.once(:connecting) do
+                  recover_client_channel.publish('event', 'message-2')
+                  expect(recover_client.connection.send(:client_msg_serial)).to eql(msg_serial + 1)
+                end
+
+                recover_client_channel.attach do
+                  expect(recover_client.connection.id).to eql(connection_id)
+
+                  recover_client_channel.subscribe do |message|
+                    raise "Unexpected message #{message}" if message.data != 'message-2'
+                    EventMachine.add_timer(2) do
+                      stop_reactor
+                    end
+                  end
                 end
               end
             end

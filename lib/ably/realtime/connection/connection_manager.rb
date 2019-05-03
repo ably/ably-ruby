@@ -100,7 +100,6 @@ module Ably::Realtime
             resend_pending_message_ack_queue
           else
             logger.debug { "ConnectionManager: Connection was not resumed, old connection ID #{connection.id} has been updated with new connection ID #{protocol_message.connection_id} and key #{protocol_message.connection_key}" }
-            connection.reset_client_msg_serial
             nack_messages_on_all_channels protocol_message.error
             force_reattach_on_channels protocol_message.error
           end

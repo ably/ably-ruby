@@ -137,13 +137,23 @@ module Ably
         @client                        = client
         @__outgoing_message_queue__    = []
         @__pending_message_ack_queue__ = []
-        reset_client_msg_serial
 
         @defaults = DEFAULTS.dup
         options.each do |key, val|
           @defaults[key] = val if DEFAULTS.has_key?(key)
         end if options.kind_of?(Hash)
         @defaults.freeze
+
+        # If a recover client options is provided, then we need to ensure that the msgSerial matches the
+        # recover serial immediately at client library instantiation. This is done immediately so that any queued
+        # publishes use the correct serial number for these queued messages as well.
+        # There is no harm if the msgSerial is higher than expected if the recover fails.
+        recovery_msg_serial = connection_recover_parts && connection_recover_parts[:msg_serial].to_i
+        if recovery_msg_serial
+          @client_msg_serial = recovery_msg_serial
+        else
+          reset_client_msg_serial
+        end
 
         Client::IncomingMessageDispatcher.new client, self
         Client::OutgoingMessageDispatcher.new client, self
@@ -439,11 +449,9 @@ module Ably
                 logger.debug { "Resuming connection key #{key} with serial #{serial}" }
               elsif connection_recoverable?
                 url_params.merge! recover: connection_recover_parts[:recover], connectionSerial: connection_recover_parts[:connection_serial]
-                recovered_msg_serial = connection_recover_parts[:msg_serial].to_i
                 logger.debug { "Recovering connection with key #{client.recover}" }
                 unsafe_once(:connected, :closed, :failed) do
                   client.disable_automatic_connection_recovery
-                  @client_msg_serial = recovered_msg_serial
                 end
               end
 
