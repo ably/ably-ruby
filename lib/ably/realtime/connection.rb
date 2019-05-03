@@ -66,7 +66,7 @@ module Ably
       ensure_state_machine_emits 'Ably::Models::ConnectionStateChange'
 
       # Expected format for a connection recover key
-      RECOVER_REGEX = /^(?<recover>[\w!-]+):(?<connection_serial>\-?\w+):(?<msg_serial>\-?\d+)$/
+      RECOVER_REGEX = /^(?<recover>[^:]+):(?<connection_serial>[^:]+):(?<msg_serial>\-?\d+)$/
 
       # Defaults for automatic connection recovery and timeouts
       DEFAULTS = {
