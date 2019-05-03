@@ -1103,7 +1103,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          it 'resets the client_msg_serial (#RTN15c3)' do
+          it 'continues to use the client_msg_serial (#RTN15c3)' do
             last_message = nil
             channel = client.channels.get("foo")
 
@@ -1121,7 +1121,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                   connection.once(:connected) do
                     channel.publish("first on new connection") do
                       # Message serial reset after failed resume
-                      expect(last_message.message_serial).to eql(0)
+                      expect(last_message.message_serial).to eql(2)
                       stop_reactor
                     end
                   end
