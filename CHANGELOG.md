@@ -1,7 +1,24 @@
 # Change Log
 
-## [v1.1.0](https://github.com/ably/ably-ruby/tree/v1.1.0)
+## [v1.1.1](https://github.com/ably/ably-ruby/tree/v1.1.1)
 
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.1.0...v1.1.1)
+
+**Implemented enhancements:**
+
+- Support transient publishes as part of 1.1 spec [\#164](https://github.com/ably/ably-ruby/issues/164)
+
+**Fixed bugs:**
+
+- RTN16b recovery not fully implemented [\#180](https://github.com/ably/ably-ruby/issues/180)
+- Publishing a high number of messages before connected results in lost messages [\#179](https://github.com/ably/ably-ruby/issues/179)
+
+**Merged pull requests:**
+
+- msgSerial fixes including connection recovery fix [\#181](https://github.com/ably/ably-ruby/pull/181) ([mattheworiordan](https://github.com/mattheworiordan))
+- Known limitations section in README [\#177](https://github.com/ably/ably-ruby/pull/177) ([Srushtika](https://github.com/Srushtika))
+
+## [v1.1.0](https://github.com/ably/ably-ruby/tree/v1.1.0) (2019-02-06)
 [Full Changelog](https://github.com/ably/ably-ruby/compare/v1.0.7...v1.1.0)
 
 **Fixed bugs:**
