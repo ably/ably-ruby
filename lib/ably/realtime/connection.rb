@@ -66,16 +66,16 @@ module Ably
       ensure_state_machine_emits 'Ably::Models::ConnectionStateChange'
 
       # Expected format for a connection recover key
-      RECOVER_REGEX = /^(?<recover>[^:]+):(?<connection_serial>[^:]+):(?<msg_serial>\-?\d+)$/
+      RECOVER_REGEX = /^(?<recover>[^:]+):(?<connection_serial>[^:]+):(?<msg_serial>\-?\d+)$/.freeze
 
       # Defaults for automatic connection recovery and timeouts
       DEFAULTS = {
-        channel_retry_timeout:      15, # when a channel becomes SUSPENDED, after this delay in seconds, the channel will automatically attempt to reattach if the connection is CONNECTED
+        channel_retry_timeout: 15, # when a channel becomes SUSPENDED, after this delay in seconds, the channel will automatically attempt to reattach if the connection is CONNECTED
         disconnected_retry_timeout: 15, # when the connection enters the DISCONNECTED state, after this delay in milliseconds, if the state is still DISCONNECTED, the client library will attempt to reconnect automatically
-        suspended_retry_timeout:    30, # when the connection enters the SUSPENDED state, after this delay in milliseconds, if the state is still SUSPENDED, the client library will attempt to reconnect automatically
-        connection_state_ttl:       120, # the duration that Ably will persist the connection state when a Realtime client is abruptly disconnected
-        max_connection_state_ttl:   nil, # allow a max TTL to be passed in, usually for CI test purposes thus overiding any connection_state_ttl sent from Ably
-        realtime_request_timeout:   10,  # default timeout when establishing a connection, or sending a HEARTBEAT, CONNECT, ATTACH, DETACH or CLOSE ProtocolMessage
+        suspended_retry_timeout: 30, # when the connection enters the SUSPENDED state, after this delay in milliseconds, if the state is still SUSPENDED, the client library will attempt to reconnect automatically
+        connection_state_ttl: 120, # the duration that Ably will persist the connection state when a Realtime client is abruptly disconnected
+        max_connection_state_ttl: nil, # allow a max TTL to be passed in, usually for CI test purposes thus overiding any connection_state_ttl sent from Ably
+        realtime_request_timeout: 10,  # default timeout when establishing a connection, or sending a HEARTBEAT, CONNECT, ATTACH, DETACH or CLOSE ProtocolMessage
         websocket_heartbeats_disabled: false,
       }.freeze
 
@@ -176,6 +176,7 @@ module Ably
           unless can_transition_to?(:closing)
             return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, exception_for_state_change_to(:closing))
           end
+
           transition_state_machine :closing
         end
         deferrable_for_state_change_to(STATE.Closed, &success_block)
@@ -198,6 +199,7 @@ module Ably
           unless can_transition_to?(:connecting)
             return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, exception_for_state_change_to(:connecting))
           end
+
           # If connect called in a suspended block, we want to ensure the other callbacks have finished their work first
           EventMachine.next_tick { transition_state_machine :connecting if can_transition_to?(:connecting) }
         end
@@ -250,6 +252,7 @@ module Ably
 
           wait_for_ping = lambda do |protocol_message|
             next if finished
+
             if protocol_message.action == heartbeat_action && protocol_message.id == ping_id
               finished = true
               __incoming_protocol_msgbus__.unsubscribe(:protocol_message, &wait_for_ping)
@@ -261,6 +264,7 @@ module Ably
 
           once_or_if(STATE.Connected) do
             next if finished
+
             started = Time.now
             send_protocol_message action: heartbeat_action.to_i, id: ping_id
             __incoming_protocol_msgbus__.subscribe :protocol_message, &wait_for_ping
@@ -268,12 +272,14 @@ module Ably
 
           once_or_if([:suspended, :closing, :closed, :failed]) do
             next if finished
+
             finished = true
             deferrable.fail Ably::Models::ErrorInfo.new(message: "Ping failed as connection has changed state to #{state}", code: Ably::Exceptions::Codes::DISCONNECTED)
           end
 
           EventMachine.add_timer(defaults.fetch(:realtime_request_timeout)) do
             next if finished
+
             finished = true
             __incoming_protocol_msgbus__.unsubscribe(:protocol_message, &wait_for_ping)
             error_msg = "Ping timed out after #{defaults.fetch(:realtime_request_timeout)}s"
@@ -429,10 +435,10 @@ module Ably
           client.auth.auth_params.tap do |auth_deferrable|
             auth_deferrable.callback do |auth_params|
               url_params = auth_params.merge(
-                format:     client.protocol,
-                echo:       client.echo_messages,
-                v:          Ably::PROTOCOL_VERSION,
-                lib:        client.rest_client.lib_version_id,
+                format: client.protocol,
+                echo: client.echo_messages,
+                v: Ably::PROTOCOL_VERSION,
+                lib: client.rest_client.lib_version_id,
               )
 
               # Use native websocket heartbeats if possible, but allow Ably protocol heartbeats
@@ -596,6 +602,7 @@ module Ably
         Ably::Util::PubSub.new(
           coerce_into: lambda do |event|
             raise KeyError, "Expected :protocol_message, :#{event} is disallowed" unless event == :protocol_message
+
             :protocol_message
           end
         )

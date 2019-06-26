@@ -39,7 +39,7 @@ module Ably::Models
     include Ably::Modules::ModelCommon
 
     # @param hash_object   [Hash,nil]  Device detail attributes
-    #a
+    # a
     def initialize(hash_object = {})
       @raw_hash_object = hash_object || {}
       @hash_object     = IdiomaticRubyWrapper(hash_object)
@@ -54,6 +54,7 @@ module Ably::Models
         unless val.nil? || val.kind_of?(String)
           raise ArgumentError, "#{attribute} must be nil or a string value"
         end
+
         attributes[attribute.to_sym] = val
       end
     end
@@ -66,6 +67,7 @@ module Ably::Models
       unless val.nil? || val.kind_of?(Hash)
         raise ArgumentError, "metadata must be nil or a Hash value"
       end
+
       attributes[:metadata] = val
     end
 
@@ -77,6 +79,7 @@ module Ably::Models
       unless val.nil? || val.kind_of?(Hash) || val.kind_of?(Ably::Models::DevicePushDetails)
         raise ArgumentError, "push must be nil, a Hash value or a DevicePushDetails object"
       end
+
       attributes[:push] = DevicePushDetails(val)
     end
 

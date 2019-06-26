@@ -1,7 +1,7 @@
 module RSpec
   module ProtocolHelper
     SUPPORTED_PROTOCOLS = {
-      json:    'JSON',
+      json: 'JSON',
       msgpack: 'MsgPack'
     }
 

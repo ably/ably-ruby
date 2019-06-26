@@ -66,6 +66,7 @@ module Ably::Modules
     # Method to allow {ChannelsCollection} to be {http://ruby-doc.org/core-2.1.3/Enumerable.html Enumerable}
     def each(&block)
       return to_enum(:each) unless block_given?
+
       channels.values.each(&block)
     end
 

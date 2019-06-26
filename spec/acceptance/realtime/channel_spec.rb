@@ -90,10 +90,12 @@ describe Ably::Realtime::Channel, :event_machine do
             test_complete = false
             client.connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
               next if test_complete
+
               attached_count += 1 if protocol_message.action == :attached
             end
             client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
               next if test_complete
+
               attach_count += 1 if protocol_message.action == :attach
             end
             channel.attach do
@@ -766,6 +768,7 @@ describe Ably::Realtime::Channel, :event_machine do
               client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
                 if protocol_message.action == :message
                   raise "Expected channel state to be attaching when publishing messages, not #{channel.state}" unless channel.attaching?
+
                   outgoing_message_count += protocol_message.messages.count
                 end
               end
@@ -792,6 +795,7 @@ describe Ably::Realtime::Channel, :event_machine do
                 client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
                   if protocol_message.action == :message
                     raise "Expected channel state to be attaching when publishing messages, not #{channel.state}" unless channel.detaching?
+
                     outgoing_message_count += protocol_message.messages.count
                   end
                 end
@@ -820,6 +824,7 @@ describe Ably::Realtime::Channel, :event_machine do
                 client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
                   if protocol_message.action == :message
                     raise "Expected channel state to be attaching when publishing messages, not #{channel.state}" unless channel.detached?
+
                     outgoing_message_count += protocol_message.messages.count
                   end
                 end

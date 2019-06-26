@@ -24,7 +24,7 @@ module Ably::Realtime
       def list(params, &callback)
         raise ArgumentError, "params must be a Hash" unless params.kind_of?(Hash)
 
-        if (IdiomaticRubyWrapper(params).keys & [:channel, :client_id, :device_id]).length == 0
+        if (IdiomaticRubyWrapper(params).keys & [:channel, :client_id, :device_id]).empty?
           raise ArgumentError, "at least one channel, client_id or device_id filter param must be provided"
         end
 
@@ -86,7 +86,7 @@ module Ably::Realtime
       def remove_where(params, &callback)
         raise ArgumentError, "params must be a Hash" unless params.kind_of?(Hash)
 
-        if (IdiomaticRubyWrapper(params).keys & [:channel, :client_id, :device_id]).length == 0
+        if (IdiomaticRubyWrapper(params).keys & [:channel, :client_id, :device_id]).empty?
           raise ArgumentError, "at least one channel, client_id or device_id filter param must be provided"
         end
 

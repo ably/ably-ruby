@@ -50,7 +50,7 @@ Gem::Specification.new do |spec|
     spec.add_development_dependency 'coveralls', '~> 0.8.21'
     spec.add_development_dependency 'parallel_tests', '~> 2.22'
     spec.add_development_dependency 'rubocop', '~> 0.55.0'
-    if !RUBY_VERSION.match(/^2\.[0123]/)
+    unless RUBY_VERSION.match(/^2\.[0123]/)
       spec.add_development_dependency 'pry'
       spec.add_development_dependency 'pry-byebug'
     end

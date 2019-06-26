@@ -14,6 +14,7 @@ module Ably::Models
     def first(&success_callback)
       async_wrap_if_realtime(success_callback) do
         return nil unless supports_pagination?
+
         HttpPaginatedResponse.new(client.get(pagination_url('first')), base_url, client, pagination_options, &each_block)
       end
     end
@@ -26,6 +27,7 @@ module Ably::Models
     def next(&success_callback)
       async_wrap_if_realtime(success_callback) do
         return nil unless has_next?
+
         HttpPaginatedResponse.new(client.get(pagination_url('next')), base_url, client, pagination_options, &each_block)
       end
     end

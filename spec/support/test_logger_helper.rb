@@ -8,14 +8,14 @@ class TestLogger
     @messages = []
   end
 
-  SEVERITIES = [:fatal, :error, :warn, :info, :debug]
+  SEVERITIES = [:fatal, :error, :warn, :info, :debug].freeze
   SEVERITIES.each do |severity_sym|
     define_method(severity_sym) do |*args, &block|
-      if block
-        @messages << [severity_sym, block.call]
-      else
-        @messages << [severity_sym, args.join(', ')]
-      end
+      @messages << if block
+        [severity_sym, block.call]
+                   else
+        [severity_sym, args.join(', ')]
+                   end
     end
   end
 
@@ -37,6 +37,5 @@ class TestLogger
     1
   end
 
-  def level=(new_level)
-  end
+  def level=(new_level); end
 end

@@ -48,24 +48,24 @@ module Ably::Models
     # The values correspond to the ints which the API
     # understands.
     ACTION = ruby_enum('ACTION',
-      heartbeat:    0,
-      ack:          1,
-      nack:         2,
-      connect:      3,
-      connected:    4,
-      disconnect:   5,
+      heartbeat: 0,
+      ack: 1,
+      nack: 2,
+      connect: 3,
+      connected: 4,
+      disconnect: 5,
       disconnected: 6,
-      close:        7,
-      closed:       8,
-      error:        9,
-      attach:       10,
-      attached:     11,
-      detach:       12,
-      detached:     13,
-      presence:     14,
-      message:      15,
-      sync:         16,
-      auth:         17
+      close: 7,
+      closed: 8,
+      error: 9,
+      attach: 10,
+      attached: 11,
+      detach: 12,
+      detached: 13,
+      presence: 14,
+      message: 15,
+      sync: 16,
+      auth: 17
     )
 
     # Indicates this protocol message action will generate an ACK response such as :message or :presence
@@ -87,6 +87,7 @@ module Ably::Models
       @hash_object     = IdiomaticRubyWrapper(@raw_hash_object.clone)
 
       raise ArgumentError, 'Invalid ProtocolMessage, action cannot be nil' if @hash_object[:action].nil?
+
       @hash_object[:action] = ACTION(@hash_object[:action]).to_i unless @hash_object[:action].kind_of?(Integer)
 
       @hash_object.freeze
@@ -106,6 +107,7 @@ module Ably::Models
 
     def id!
       raise RuntimeError, 'ProtocolMessage #id is nil' unless id
+
       id
     end
 
@@ -223,17 +225,17 @@ module Ably::Models
 
     # @api private
     def has_attach_publish_flag?
-      flags & 131072 == 131072 # 2^17
+      flags & 131_072 == 131_072 # 2^17
     end
 
     # @api private
     def has_attach_subscribe_flag?
-      flags & 262144 == 262144 # 2^18
+      flags & 262_144 == 262_144 # 2^18
     end
 
     # @api private
     def has_attach_presence_subscribe_flag?
-      flags & 524288 == 524288 # 2^19
+      flags & 524_288 == 524_288 # 2^19
     end
 
     def connection_details

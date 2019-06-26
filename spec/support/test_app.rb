@@ -73,7 +73,7 @@ class TestApp
     url = "#{sandbox_client.endpoint}/apps"
 
     headers = {
-      'Accept'       => 'application/json',
+      'Accept' => 'application/json',
       'Content-Type' => 'application/json'
     }
 

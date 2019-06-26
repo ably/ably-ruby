@@ -81,6 +81,7 @@ module Ably::Modules
           # Method ensuring this {Enum} is {http://ruby-doc.org/core-2.1.3/Enumerable.html Enumerable}
           def each(&block)
             return to_enum(:each) unless block_given?
+
             by_symbol.values.each(&block)
           end
 

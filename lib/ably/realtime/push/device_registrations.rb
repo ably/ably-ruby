@@ -79,13 +79,15 @@ module Ably::Realtime
       # @return [Ably::Util::SafeDeferrable]
       #
       def remove_where(params = {}, &callback)
-        filter = if params.kind_of?(Ably::Models::DeviceDetails)
-          { 'deviceId' => params.id }
-        else
-          raise ArgumentError, "params must be a Hash" unless params.kind_of?(Hash)
-          raise ArgumentError, "device_id filter cannot be specified alongside a client_id filter. Use one or the other" if params[:client_id] && params[:device_id]
-          IdiomaticRubyWrapper(params).as_json
-        end
+        filter =
+          if params.kind_of?(Ably::Models::DeviceDetails)
+            { 'deviceId' => params.id }
+          else
+            raise ArgumentError, "params must be a Hash" unless params.kind_of?(Hash)
+            raise ArgumentError, "device_id filter cannot be specified alongside a client_id filter. Use one or the other" if params[:client_id] && params[:device_id]
+
+            IdiomaticRubyWrapper(params).as_json
+          end
 
         async_wrap(callback) do
           rest_device_registrations.remove_where(filter)

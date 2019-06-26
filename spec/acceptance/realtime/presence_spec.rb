@@ -614,6 +614,7 @@ describe Ably::Realtime::Presence, :event_machine do
               presence.enter_client("client:#{indx}") do |message|
                 entered << message
                 next unless entered.count == enter_expected_count
+
                 yield
               end
             end
@@ -771,6 +772,7 @@ describe Ably::Realtime::Presence, :event_machine do
               presence.enter_client("client:#{indx}") do |message|
                 entered << message
                 next unless entered.count == enter_expected_count
+
                 yield
               end
             end
@@ -935,6 +937,7 @@ describe Ably::Realtime::Presence, :event_machine do
                   if present_message.client_id == left_client_id
                     raise "Member #{present_message.client_id} should not have been emitted as present"
                   end
+
                   present << present_message.client_id
                 end
 
@@ -942,6 +945,7 @@ describe Ably::Realtime::Presence, :event_machine do
                   if present.include?(leave_message.client_id)
                     raise "Member #{leave_message.client_id} should not have been emitted as present previously"
                   end
+
                   expect(leave_message.client_id).to eql(left_client_id)
                   member_left_emitted = true
                 end
@@ -2433,6 +2437,7 @@ describe Ably::Realtime::Presence, :event_machine do
         presence_client_one.subscribe(:enter) do
           entered_count += 1
           next unless entered_count == 2
+
           channel_anonymous_client.attach do
             channel_anonymous_client.presence.get do |members|
               expect(channel_anonymous_client.presence.members.local_members).to be_empty

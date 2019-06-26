@@ -210,6 +210,7 @@ module Ably::Realtime
         Ably::Util::PubSub.new(
           coerce_into: lambda do |event|
             raise KeyError, "Expected :protocol_message, :#{event} is disallowed" unless event == :protocol_message
+
             :protocol_message
           end
         )

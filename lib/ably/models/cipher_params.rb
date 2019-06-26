@@ -33,11 +33,13 @@ module Ably::Models
 
       raise Ably::Exceptions::CipherError, ':key param is required' unless attributes[:key]
       raise Ably::Exceptions::CipherError, ':key param must be a base64-encoded string or byte array (ASCII_8BIT enocdede string)' unless key.kind_of?(String)
+
       attributes[:key] = decode_key(key) if key.kind_of?(String) && key.encoding != Encoding::ASCII_8BIT
 
       if attributes[:combined]
         match = /(?<algorithm>\w+)-(?<key_length>\d+)-(?<mode>\w+)/.match(attributes[:combined])
         raise Ably::Exceptions::CipherError, "Invalid :combined param, expecting format such as AES-256-CBC" unless match
+
         attributes[:algorithm] = match[:algorithm]
         attributes[:key_length] = match[:key_length].to_i
         attributes[:mode] = match[:mode]

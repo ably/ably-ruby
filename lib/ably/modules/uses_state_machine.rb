@@ -49,8 +49,8 @@ module Ably::Modules
     def state_history
       state_machine.history.map do |transition|
         {
-          state:           STATE(transition.to_state),
-          metadata:        transition.metadata,
+          state: STATE(transition.to_state),
+          metadata: transition.metadata,
           transitioned_at: transition.created_at
         }
       end

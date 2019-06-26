@@ -7,7 +7,7 @@ describe Ably::Realtime::Push::Admin, :event_machine do
   include Ably::Modules::Conversions
 
   vary_by_protocol do
-    let(:default_options) { { key: api_key, environment: environment, protocol: protocol} }
+    let(:default_options) { { key: api_key, environment: environment, protocol: protocol } }
     let(:client_options)  { default_options }
     let(:client) do
       Ably::Realtime::Client.new(client_options)
@@ -118,8 +118,8 @@ describe Ably::Realtime::Push::Admin, :event_machine do
         end
 
         let!(:publish_stub) do
-          stub_request(:post, "#{client.rest_client.endpoint}/push/publish").
-            with do |request|
+          stub_request(:post, "#{client.rest_client.endpoint}/push/publish")
+            .with do |request|
               expect(request_body(request, protocol)['recipient']['camelCase']['secondLevelCamelCase']).to eql('val')
               expect(request_body(request, protocol)['recipient']).to_not have_key('camel_case')
               true
@@ -157,7 +157,7 @@ describe Ably::Realtime::Push::Admin, :event_machine do
         let(:notification_payload) do
           {
             notification: {
-              title: random_str,
+              title: random_str
             },
             data: {
               foo: random_str
@@ -183,16 +183,16 @@ describe Ably::Realtime::Push::Admin, :event_machine do
 
     describe '#device_registrations' do
       subject { client.push.admin.device_registrations }
-      let(:rest_device_registrations) {
+      let(:rest_device_registrations) do
         client.rest_client.push.admin.device_registrations
-      }
+      end
 
       context 'without permissions' do
         let(:client_options) do
           default_options.merge(
             use_token_auth: true,
             default_token_params: { capability: { :foo => ['subscribe'] } },
-            log_level: :fatal,
+            log_level: :fatal
           )
         end
 
@@ -228,10 +228,10 @@ describe Ably::Realtime::Push::Admin, :event_machine do
                                                push: {
                                                  recipient: {
                                                    transport_type: 'gcm',
-                                                   registration_token: 'secret_token',
+                                                   registration_token: 'secret_token'
                                                  }
                                                }
-              })
+                                             })
             end
           end.each(&:join) # Wait for all threads to complete
         end
@@ -285,10 +285,10 @@ describe Ably::Realtime::Push::Admin, :event_machine do
                                                push: {
                                                  recipient: {
                                                    transport_type: 'gcm',
-                                                   registration_token: 'secret_token',
+                                                   registration_token: 'secret_token'
                                                  }
                                                }
-              })
+                                             })
             end
           end.each(&:join) # Wait for all threads to complete
         end
@@ -310,7 +310,7 @@ describe Ably::Realtime::Push::Admin, :event_machine do
         context 'with a failed request' do
           let(:client_options) do
             default_options.merge(
-              log_level: :fatal,
+              log_level: :fatal
             )
           end
 
@@ -344,11 +344,11 @@ describe Ably::Realtime::Push::Admin, :event_machine do
               recipient: {
                 transport_type: 'apns',
                 device_token: transport_token,
-                foo_bar: 'string',
+                foo_bar: 'string'
               },
               error_reason: {
                 message: "this will be ignored"
-              },
+              }
             }
           }
         end
@@ -371,7 +371,7 @@ describe Ably::Realtime::Push::Admin, :event_machine do
         context 'with a failed request' do
           let(:client_options) do
             default_options.merge(
-              log_level: :fatal,
+              log_level: :fatal
             )
           end
 
@@ -397,10 +397,10 @@ describe Ably::Realtime::Push::Admin, :event_machine do
                                            push: {
                                              recipient: {
                                                transport_type: 'gcm',
-                                               registrationToken: 'secret_token',
+                                               registrationToken: 'secret_token'
                                              }
                                            }
-          })
+                                         })
         end
 
         after do
@@ -430,10 +430,10 @@ describe Ably::Realtime::Push::Admin, :event_machine do
                                            push: {
                                              recipient: {
                                                transport_type: 'gcm',
-                                               registration_token: 'secret_token',
+                                               registration_token: 'secret_token'
                                              }
                                            }
-          })
+                                         })
         end
 
         after do
@@ -455,7 +455,7 @@ describe Ably::Realtime::Push::Admin, :event_machine do
       let(:client_id) { random_str }
       let(:device_id) { random_str }
       let(:device_id_2) { random_str }
-      let(:default_device_attr) {
+      let(:default_device_attr) do
         {
           platform: 'ios',
           form_factor: 'phone',
@@ -463,23 +463,23 @@ describe Ably::Realtime::Push::Admin, :event_machine do
           push: {
             recipient: {
               transport_type: 'gcm',
-              registration_token: 'secret_token',
+              registration_token: 'secret_token'
             }
           }
         }
-      }
+      end
 
-      let(:rest_device_registrations) {
+      let(:rest_device_registrations) do
         client.rest_client.push.admin.device_registrations
-      }
+      end
 
-      let(:rest_channel_subscriptions) {
+      let(:rest_channel_subscriptions) do
         client.rest_client.push.admin.channel_subscriptions
-      }
+      end
 
-      subject {
+      subject do
         client.push.admin.channel_subscriptions
-      }
+      end
 
       # Set up 2 devices with the same client_id
       #  and two device with the unique device_id and no client_id
@@ -594,7 +594,7 @@ describe Ably::Realtime::Push::Admin, :event_machine do
         context 'failed requests' do
           let(:client_options) do
             default_options.merge(
-              log_level: :fatal,
+              log_level: :fatal
             )
           end
 
@@ -640,7 +640,7 @@ describe Ably::Realtime::Push::Admin, :event_machine do
         context 'failed requests' do
           let(:client_options) do
             default_options.merge(
-              log_level: :fatal,
+              log_level: :fatal
             )
           end
 

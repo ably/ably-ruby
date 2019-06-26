@@ -47,7 +47,7 @@ module Ably::Realtime
 
       after_transition(to: [:detached, :failed, :suspended]) do |channel, current_transition|
         err = error_from_state_change(current_transition)
-        channel.manager.fail_queued_messages(err) if channel.failed? or channel.suspended? #RTL11
+        channel.manager.fail_queued_messages(err) if channel.failed? || channel.suspended? # RTL11
         channel.manager.log_channel_error err if err
       end
 

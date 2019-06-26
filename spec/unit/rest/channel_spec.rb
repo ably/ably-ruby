@@ -7,7 +7,7 @@ describe Ably::Rest::Channel do
       'Ably::Rest::Client',
       encoders: [],
       post: instance_double('Faraday::Response', status: 201),
-      idempotent_rest_publishing: false,
+      idempotent_rest_publishing: false
     )
   end
   let(:channel_name) { 'unique' }

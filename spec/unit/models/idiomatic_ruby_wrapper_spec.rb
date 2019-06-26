@@ -94,16 +94,16 @@ describe Ably::Models::IdiomaticRubyWrapper, :api_private do
   context 'non standard mixedCaseData' do
     let(:data) do
       {
-        :symbol             => 'aSymbolValue',
-        :snake_case_symbol  => 'snake_case_symbolValue',
-        :mixedCaseSymbol    => 'mixedCaseSymbolValue',
+        :symbol => 'aSymbolValue',
+        :snake_case_symbol => 'snake_case_symbolValue',
+        :mixedCaseSymbol => 'mixedCaseSymbolValue',
         'snake_case_string' => 'snake_case_stringValue',
-        'mixedCaseString'   => 'mixedCaseStringFirstChoiceValue',
-        :mixedCaseString    => 'mixedCaseStringFallbackValue',
-        :CamelCaseSymbol    => 'CamelCaseSymbolValue',
-        'CamelCaseString'   => 'camel_case_stringValue',
-        :lowercasesymbol    => 'lowercasesymbolValue',
-        'lowercasestring'   => 'lowercasestringValue'
+        'mixedCaseString' => 'mixedCaseStringFirstChoiceValue',
+        :mixedCaseString => 'mixedCaseStringFallbackValue',
+        :CamelCaseSymbol => 'CamelCaseSymbolValue',
+        'CamelCaseString' => 'camel_case_stringValue',
+        :lowercasesymbol => 'lowercasesymbolValue',
+        'lowercasestring' => 'lowercasestringValue'
       }
     end
     let(:unique_value) { random_str }
@@ -112,14 +112,14 @@ describe Ably::Models::IdiomaticRubyWrapper, :api_private do
 
     {
       :symbol => 'aSymbolValue',
-      :snake_case_symbol    => 'snake_case_symbolValue',
-      :mixed_case_symbol    => 'mixedCaseSymbolValue',
-      :snake_case_string    => 'snake_case_stringValue',
-      :mixed_case_string    => 'mixedCaseStringFirstChoiceValue',
-      :camel_case_symbol    => 'CamelCaseSymbolValue',
-      :camel_case_string    => 'camel_case_stringValue',
-      :lower_case_symbol      => 'lowercasesymbolValue',
-      :lower_case_string      => 'lowercasestringValue'
+      :snake_case_symbol => 'snake_case_symbolValue',
+      :mixed_case_symbol => 'mixedCaseSymbolValue',
+      :snake_case_string => 'snake_case_stringValue',
+      :mixed_case_string => 'mixedCaseStringFirstChoiceValue',
+      :camel_case_symbol => 'CamelCaseSymbolValue',
+      :camel_case_string => 'camel_case_stringValue',
+      :lower_case_symbol => 'lowercasesymbolValue',
+      :lower_case_string => 'lowercasestringValue'
     }.each do |symbol_accessor, expected_value|
       context symbol_accessor do
         it 'allows access to non conformant keys but prefers correct mixedCaseSyntax' do
@@ -330,7 +330,7 @@ describe Ably::Models::IdiomaticRubyWrapper, :api_private do
       let(:mixed_case_data) do
         {
           'key_id' => 'value',
-          'stop'   => { client_id: "case won't change" }
+          'stop' => { client_id: "case won't change" }
         }.freeze
       end
       let(:dupe) { subject.dup }

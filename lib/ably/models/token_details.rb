@@ -98,6 +98,7 @@ module Ably::Models
     # @return [Boolean]
     def expired?
       return false if !expires
+
       expires < Time.now + TOKEN_EXPIRY_BUFFER
     end
 

@@ -223,10 +223,12 @@ module Ably::Realtime
         resend_if_disconnected_and_connected = lambda do
           connection.unsafe_once(:disconnected) do
             next unless pending_state_change_timer
+
             connection.unsafe_once(:connected) do
               next unless pending_state_change_timer
+
               connection.send_protocol_message(
-                action:  new_state.to_i,
+                action: new_state.to_i,
                 channel: channel.name
               )
               resend_if_disconnected_and_connected.call
@@ -236,7 +238,7 @@ module Ably::Realtime
         resend_if_disconnected_and_connected.call
 
         connection.send_protocol_message(
-          action:  new_state.to_i,
+          action: new_state.to_i,
           channel: channel.name
         )
       end

@@ -46,7 +46,7 @@ module Ably::Rest
 
         paginated_options = {
           coerce_into: 'Ably::Models::DeviceDetails',
-          async_blocking_operations: params.delete(:async_blocking_operations),
+          async_blocking_operations: params.delete(:async_blocking_operations)
         }
 
         response = client.get('/push/deviceRegistrations', IdiomaticRubyWrapper(params).as_json)
@@ -89,13 +89,15 @@ module Ably::Rest
       # @return [void]
       #
       def remove_where(params = {})
-        filter = if params.kind_of?(Ably::Models::DeviceDetails)
-          { 'deviceId' => params.id }
-        else
-          raise ArgumentError, "params must be a Hash" unless params.kind_of?(Hash)
-          raise ArgumentError, "device_id filter cannot be specified alongside a client_id filter. Use one or the other" if params[:client_id] && params[:device_id]
-          IdiomaticRubyWrapper(params).as_json
-        end
+        filter =
+          if params.kind_of?(Ably::Models::DeviceDetails)
+            { 'deviceId' => params.id }
+          else
+            raise ArgumentError, "params must be a Hash" unless params.kind_of?(Hash)
+            raise ArgumentError, "device_id filter cannot be specified alongside a client_id filter. Use one or the other" if params[:client_id] && params[:device_id]
+
+            IdiomaticRubyWrapper(params).as_json
+          end
         client.delete("/push/deviceRegistrations", filter)
       end
     end

@@ -32,7 +32,7 @@ module Ably
       #
       def get(options = {})
         options = options = {
-          :limit     => 100
+          :limit => 100
         }.merge(options)
 
         paginated_options = {
@@ -63,7 +63,7 @@ module Ably
         url = "#{base_path}/history"
         options = options = {
           :direction => :backwards,
-          :limit     => 100
+          :limit => 100
         }.merge(options)
 
         [:start, :end].each { |option| options[option] = as_since_epoch(options[option]) if options.has_key?(option) }

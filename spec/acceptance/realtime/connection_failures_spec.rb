@@ -210,8 +210,8 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           default_options.merge(
             log_level: :none,
             disconnected_retry_timeout: retry_every_for_tests,
-            suspended_retry_timeout:    retry_every_for_tests,
-            max_connection_state_ttl:   max_time_in_state_for_tests
+            suspended_retry_timeout: retry_every_for_tests,
+            max_connection_state_ttl: max_time_in_state_for_tests
           )
         end
 
@@ -457,9 +457,9 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               default_options.merge(
                 log_level: :error,
                 disconnected_retry_timeout: 0.1,
-                suspended_retry_timeout:    0.1,
-                max_connection_state_ttl:   0.2,
-                realtime_host:              'non.existent.host'
+                suspended_retry_timeout: 0.1,
+                max_connection_state_ttl: 0.2,
+                realtime_host: 'non.existent.host'
               )
             end
 
@@ -550,8 +550,8 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             let(:client_options) do
               default_options.merge(
                 disconnected_retry_timeout: 4,
-                suspended_retry_timeout:    8,
-                max_connection_state_ttl:   2,
+                suspended_retry_timeout: 8,
+                max_connection_state_ttl: 2,
               )
             end
 
@@ -731,8 +731,8 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             default_options.merge(
               log_level: :none,
               disconnected_retry_timeout: retry_every,
-              suspended_retry_timeout:    retry_every,
-              max_connection_state_ttl:   60
+              suspended_retry_timeout: retry_every,
+              max_connection_state_ttl: 60
             )
           end
 
@@ -997,6 +997,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                 channel.on(:attached) do
                   attached_channels << channel
                   next unless attached_channels.count == channel_count
+
                   expect(reattaching_channels.count).to eql(channel_count)
                   expect(failed_messages.count).to eql(channel_count)
                   expect(attach_protocol_messages.uniq).to match(channels.map(&:name))
@@ -1033,6 +1034,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                 attached_channels << channel
                 expect(state_change).to_not be_resumed
                 next unless attached_channels.count == channel_count
+
                 expect(failed_messages.count).to eql(channel_count)
                 expect(attach_protocol_messages.uniq).to match(channels.map(&:name))
                 stop_reactor
@@ -1072,6 +1074,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                 channel.on(:attached) do
                   attached_channels << channel
                   next unless attached_channels.count == channel_count
+
                   expect(reattaching_channels.count).to eql(channel_count)
                   expect(attach_protocol_messages.uniq).to match(channels.map(&:name))
                   stop_reactor
@@ -1302,11 +1305,11 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
       let(:timeout_options) do
         default_options.merge(
-          environment:                :production,
-          log_level:                  :none,
+          environment: :production,
+          log_level: :none,
           disconnected_retry_timeout: retry_every_for_tests,
-          suspended_retry_timeout:    retry_every_for_tests,
-          max_connection_state_ttl:   max_time_in_state_for_tests
+          suspended_retry_timeout: retry_every_for_tests,
+          max_connection_state_ttl: max_time_in_state_for_tests
         )
       end
 

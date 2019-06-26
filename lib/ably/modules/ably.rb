@@ -10,7 +10,7 @@ module Ably
   FALLBACK_HOSTS = %w(A.ably-realtime.com B.ably-realtime.com C.ably-realtime.com D.ably-realtime.com E.ably-realtime.com).freeze
 
   INTERNET_CHECK = {
-    url:     '//internet-up.ably-realtime.com/is-the-internet-up.txt',
+    url: '//internet-up.ably-realtime.com/is-the-internet-up.txt',
     ok_text: 'yes'
   }.freeze
 end

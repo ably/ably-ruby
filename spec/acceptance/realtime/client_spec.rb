@@ -34,6 +34,7 @@ describe Ably::Realtime::Client, :event_machine do
             client.connection.once(:failed) do
               expect(custom_logger_object.logs.find do |severity, message|
                 next unless %w(fatal error).include?(severity.to_s)
+
                 message.match(%r{https://help.ably.io/error/40400})
               end).to_not be_nil
               stop_reactor

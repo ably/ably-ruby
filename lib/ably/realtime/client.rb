@@ -229,7 +229,7 @@ module Ably
       #   end
       #
       def publish(channel_name, name, data = nil, attributes = {}, &success_block)
-        if !connection.can_publish_messages?
+        unless connection.can_publish_messages?
           error = Ably::Exceptions::MessageQueueingDisabled.new("Message cannot be published. Client is not allowed to queue messages when connection is in state #{connection.state}")
           return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
         end
@@ -314,7 +314,7 @@ module Ably
 
         options = {
           scheme: use_tls? ? 'wss' : 'ws',
-          host:   host
+          host: host
         }
         options.merge!(port: port) if port
 

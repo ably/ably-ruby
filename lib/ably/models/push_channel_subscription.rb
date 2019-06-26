@@ -31,7 +31,7 @@ module Ably::Models
     include Ably::Modules::ModelCommon
 
     # @param hash_object   [Hash,nil]  Device detail attributes
-    #a
+    # a
     def initialize(hash_object = {})
       @raw_hash_object = hash_object || {}
       @hash_object     = IdiomaticRubyWrapper(hash_object)
@@ -42,7 +42,7 @@ module Ably::Models
       if attributes[:client_id] && attributes[:device_id]
         raise ArgumentError, 'client_id and device_id cannot both be provided, they are mutually exclusive'
       end
-      if !attributes[:channel]
+      unless attributes[:channel]
         raise ArgumentError, 'channel is required'
       end
     end
@@ -78,6 +78,7 @@ module Ably::Models
         unless val.nil? || val.kind_of?(String)
           raise ArgumentError, "#{attribute} must be nil or a string value"
         end
+
         attributes[attribute.to_sym] = val
       end
     end

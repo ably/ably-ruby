@@ -24,10 +24,10 @@ module Ably
 
       # Configuration for HTTP timeouts and HTTP request reattempts to fallback hosts
       HTTP_DEFAULTS = {
-        open_timeout:       4,
-        request_timeout:    10,
+        open_timeout: 4,
+        request_timeout: 10,
         max_retry_duration: 15,
-        max_retry_count:    3
+        max_retry_count: 3
       }.freeze
 
       FALLBACK_RETRY_TIMEOUT = 10 * 60
@@ -173,10 +173,10 @@ module Ably
         @log_retries_as_info = options.delete(:log_retries_as_info)
         @idempotent_rest_publishing = options.delete(:idempotent_rest_publishing) || Ably.major_minor_version_numeric > 1.1
 
-
         if options[:fallback_hosts_use_default] && options[:fallback_jhosts]
           raise ArgumentError, "fallback_hosts_use_default cannot be set to trye when fallback_jhosts is also provided"
         end
+
         @fallback_hosts = case
         when options.delete(:fallback_hosts_use_default)
           Ably::FALLBACK_HOSTS
@@ -253,8 +253,8 @@ module Ably
       def stats(options = {})
         options = {
           :direction => :backwards,
-          :unit      => :minute,
-          :limit     => 100
+          :unit => :minute,
+          :limit => 100
         }.merge(options)
 
         [:start, :end].each { |option| options[option] = as_since_epoch(options[option]) if options.has_key?(option) }
@@ -569,7 +569,7 @@ module Ably
             if retry_count > 0
               retry_log_severity = log_retries_as_info ? :info : :warn
               logger.public_send(retry_log_severity) do
-                "Ably::Rest::Client - Request SUCCEEDED after #{retry_count} #{retry_count > 1 ? 'retries' : 'retry' } for" \
+                "Ably::Rest::Client - Request SUCCEEDED after #{retry_count} #{retry_count > 1 ? 'retries' : 'retry'} for" \
                 " #{method} #{path} #{params} (seq ##{retry_sequence_id}, time elapsed #{(Time.now.to_f - requested_at.to_f).round(2)}s)"
               end
               set_preferred_fallback_connection conn
@@ -589,7 +589,7 @@ module Ably
 
           retry_log_severity = log_retries_as_info ? :info : :error
           logger.public_send(retry_log_severity) do
-            "Ably::Rest::Client - Request FAILED after #{retry_count} #{retry_count > 1 ? 'retries' : 'retry' } for" \
+            "Ably::Rest::Client - Request FAILED after #{retry_count} #{retry_count > 1 ? 'retries' : 'retry'} for" \
             " #{method} #{path} #{params} (seq ##{retry_sequence_id}, time elapsed #{(Time.now.to_f - requested_at.to_f).round(2)}s)"
           end
 
@@ -627,7 +627,7 @@ module Ably
 
         options = {
           scheme: use_tls? ? 'https' : 'http',
-          host:   host
+          host: host
         }
         options.merge!(port: port) if port
 
@@ -641,15 +641,15 @@ module Ably
         @connection_options ||= {
           builder: middleware,
           headers: {
-            content_type:       mime_type,
-            accept:             mime_type,
-            user_agent:         user_agent,
+            content_type: mime_type,
+            accept: mime_type,
+            user_agent: user_agent,
             'X-Ably-Version' => Ably::PROTOCOL_VERSION,
-            'X-Ably-Lib'     => lib_version_id
+            'X-Ably-Lib' => lib_version_id
           },
           request: {
             open_timeout: http_defaults.fetch(:open_timeout),
-            timeout:      http_defaults.fetch(:request_timeout)
+            timeout: http_defaults.fetch(:request_timeout)
           }
         }
       end

@@ -841,7 +841,7 @@ describe Ably::Rest::Client do
             key: api_key,
             http_max_retry_duration: max_retry_duration,
             http_max_retry_count: max_retry_count,
-            log_level: :fatal,
+            log_level: :fatal
           )
         end
 
@@ -1054,7 +1054,7 @@ describe Ably::Rest::Client do
 
     context 'version headers', :webmock do
       [nil, 'foo'].each do |variant|
-        context "with variant #{variant ? variant : 'none'}" do
+        context "with variant #{variant || 'none'}" do
           if variant
             before do
               Ably.lib_variant = variant
@@ -1271,7 +1271,8 @@ describe Ably::Rest::Client do
             fallback_hosts: [[environment, Ably::Rest::Client::DOMAIN].join('-')],
             key: api_key,
             logger: custom_logger,
-            log_retries_as_info: false)
+            log_retries_as_info: false
+          )
         end
 
         it 'is present with success message when requests do not actually fail' do
@@ -1288,7 +1289,8 @@ describe Ably::Rest::Client do
             fallback_hosts: ['non2.existent.domain.local'],
             key: api_key,
             logger: custom_logger,
-            log_retries_as_info: false)
+            log_retries_as_info: false
+          )
         end
 
         it 'is present when all requests fail' do

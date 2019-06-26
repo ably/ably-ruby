@@ -181,7 +181,7 @@ describe Ably::Modules::Enum, :api_private do
     class ExampleClassWithEnumFromHash
       extend Ably::Modules::Enum
       ENUMEXAMPLE = ruby_enum('ENUMEXAMPLE',
-        value_one:  1,
+        value_one: 1,
         value_five: 5
       )
     end

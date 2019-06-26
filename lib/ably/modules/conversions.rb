@@ -66,6 +66,7 @@ module Ably::Modules
     # i.e. { client_id: 1 } becomes { 'clientId' => 1 }
     def convert_to_mixed_case_hash(hash, options = {})
       raise ArgumentError, 'Hash expected' unless hash.kind_of?(Hash)
+
       hash.each_with_object({}) do |pair, new_hash|
         key, val = pair
         new_hash[convert_to_mixed_case(key, options)] = val

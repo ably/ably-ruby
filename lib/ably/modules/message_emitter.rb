@@ -16,6 +16,7 @@ module Ably::Modules
     #
     def subscribe(*names, &callback)
       raise ArgumentError, 'Block required to subscribe to events' unless block_given?
+
       names = :all unless names && !names.empty?
       Array(names).uniq.each do |name|
         message_emitter_subscriptions[message_emitter_subscriptions_message_name_key(name)] << callback

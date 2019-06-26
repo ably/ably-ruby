@@ -123,6 +123,7 @@ module Ably::Models
     # @api private
     def protocol_message
       raise RuntimeError, 'Message is not yet published with a ProtocolMessage. ProtocolMessage is nil' if @protocol_message.nil?
+
       @protocol_message
     end
 
@@ -152,6 +153,7 @@ module Ably::Models
 
     def logger
       return @logger if @logger
+
       protocol_message.logger if protocol_message
     end
   end

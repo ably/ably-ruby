@@ -494,6 +494,7 @@ describe Ably::Realtime::Connection, :event_machine do
             expect(connection.state).to eq(:failed)
 
             raise 'Errback already called' if errback_called
+
             errback_called = true
 
             connection.connect.errback do
@@ -1049,6 +1050,7 @@ describe Ably::Realtime::Connection, :event_machine do
             connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
               if protocol_message.action == :heartbeat
                 next if protocol_message.attributes[:source] == :websocket # ignore the native heartbeats
+
                 expect(protocol_message.attributes[:source]).to_not eql(:websocket)
                 expect(connection.time_since_connection_confirmed_alive?).to be_within(1).of(0)
                 stop_reactor
@@ -1120,11 +1122,11 @@ describe Ably::Realtime::Connection, :event_machine do
 
       let(:client_options) do
         default_options.merge(
-          log_level:                  :none,
+          log_level: :none,
           disconnected_retry_timeout: 0.1,
-          suspended_retry_timeout:    0.1,
-          max_connection_state_ttl:   0.2,
-          realtime_request_timeout:   5
+          suspended_retry_timeout: 0.1,
+          max_connection_state_ttl: 0.2,
+          realtime_request_timeout: 5
         )
       end
 
@@ -1169,7 +1171,7 @@ describe Ably::Realtime::Connection, :event_machine do
             allow(client).to receive(:endpoint).and_return(
               URI::Generic.build(
                 scheme: 'wss',
-                host:   'this.host.does.not.exist.com'
+                host: 'this.host.does.not.exist.com'
               )
             )
 
@@ -1330,6 +1332,7 @@ describe Ably::Realtime::Connection, :event_machine do
 
                   recover_client_channel.subscribe do |message|
                     raise "Unexpected message #{message}" if message.data != 'message-2'
+
                     EventMachine.add_timer(2) do
                       stop_reactor
                     end
@@ -1563,10 +1566,10 @@ describe Ably::Realtime::Connection, :event_machine do
       context 'when connection enters the :suspended state' do
         let(:client_options) do
           default_options.merge(
-            log_level:                  :fatal,
+            log_level: :fatal,
             disconnected_retry_timeout: 0.02,
-            suspended_retry_timeout:    60,
-            max_connection_state_ttl:   0.05
+            suspended_retry_timeout: 60,
+            max_connection_state_ttl: 0.05
           )
         end
 

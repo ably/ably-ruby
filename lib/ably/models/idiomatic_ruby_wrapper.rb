@@ -131,9 +131,11 @@ module Ably::Models
 
       if method_sym.to_s.match(%r{=$})
         raise ArgumentError, "Cannot set #{method_sym} with more than one argument" unless arguments.length == 1
+
         self[key] = arguments.first
       else
         raise ArgumentError, "Cannot pass an argument to #{method_sym} when retrieving its value" unless arguments.empty?
+
         self[method_sym]
       end
     end

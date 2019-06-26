@@ -11,6 +11,7 @@ module Ably::Rest
 
       def initialize(channel)
         raise ArgumentError, "Unsupported channel type '#{channel.class}'" unless channel.kind_of?(Ably::Rest::Channel)
+
         @channel = channel
       end
 

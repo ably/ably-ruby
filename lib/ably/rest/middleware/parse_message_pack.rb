@@ -34,7 +34,7 @@ module Ably
 
         def base64_body(body)
           Base64.encode64(body)
-        rescue => err
+        rescue StandardError => err
           "[#{err.message}! Could not base64 encode body: '#{body}']"
         end
       end

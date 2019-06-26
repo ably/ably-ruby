@@ -188,6 +188,7 @@ module Ably::Realtime
         destroy_transport
         channels.each do |channel|
           next if channel.detached? || channel.initialized?
+
           channel.transition_state_machine :failed, reason: error if channel.can_transition_to?(:failed)
         end
       end

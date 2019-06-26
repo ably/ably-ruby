@@ -55,7 +55,7 @@ module Ably
     end
   end
 end
-EOF
+    EOF
     File.open(module_path, 'w') { |file| file.write module_content }
 
     puts "Error code constants have been generated into #{module_path}"

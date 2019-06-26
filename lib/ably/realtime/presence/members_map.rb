@@ -149,6 +149,7 @@ module Ably::Realtime
       # @note this method will not wait for the sync operation to complete so may return an incomplete set of members.  Use {MembersMap#get} instead.
       def each(&block)
         return to_enum(:each) unless block_given?
+
         present_members.each(&block)
       end
 
@@ -259,7 +260,7 @@ module Ably::Realtime
         end
 
         @local_members.reject do |member_key, message|
-          new_local_members.keys.include?(member_key)
+          new_local_members.key?(member_key)
         end.each do |member_key, message|
           re_enter_local_member_missing_from_presence_map message
         end
@@ -291,8 +292,8 @@ module Ably::Realtime
       # Trigger a manual SYNC operation to resume member synchronisation from last known cursor position
       def resume_sync
         connection.send_protocol_message(
-          action:         Ably::Models::ProtocolMessage::ACTION.Sync.to_i,
-          channel:        channel.name,
+          action: Ably::Models::ProtocolMessage::ACTION.Sync.to_i,
+          channel: channel.name,
           channel_serial: sync_serial
         ) if channel.attached?
       end

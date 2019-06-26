@@ -79,10 +79,10 @@ module Ably::Realtime
           change_state STATE.Entering
           send_protocol_message_and_transition_state_to(
             Ably::Models::PresenceMessage::ACTION.Enter,
-            deferrable:   deferrable,
+            deferrable: deferrable,
             target_state: STATE.Entered,
-            data:         data,
-            client_id:    client_id,
+            data: data,
+            client_id: client_id,
             failed_state: current_state, # return to current state if enter fails
             &success_block
           )
@@ -140,10 +140,10 @@ module Ably::Realtime
           change_state STATE.Leaving
           send_protocol_message_and_transition_state_to(
             Ably::Models::PresenceMessage::ACTION.Leave,
-            deferrable:   deferrable,
+            deferrable: deferrable,
             target_state: STATE.Left,
-            data:         data,
-            client_id:    client_id,
+            data: data,
+            client_id: client_id,
             failed_state: current_state, # return to current state if leave fails
             &success_block
           )
@@ -188,10 +188,10 @@ module Ably::Realtime
       ensure_channel_attached(deferrable) do
         send_protocol_message_and_transition_state_to(
           Ably::Models::PresenceMessage::ACTION.Update,
-          deferrable:   deferrable,
+          deferrable: deferrable,
           target_state: STATE.Entered,
-          client_id:    client_id,
-          data:         data,
+          client_id: client_id,
+          data: data,
           &success_block
         )
       end
@@ -334,7 +334,7 @@ module Ably::Realtime
       end
 
       protocol_message = {
-        action:  Ably::Models::ProtocolMessage::ACTION.Presence,
+        action: Ably::Models::ProtocolMessage::ACTION.Presence,
         channel: channel.name,
         presence: [presence_message]
       }
@@ -346,9 +346,9 @@ module Ably::Realtime
 
     def create_presence_message(action, client_id, data)
       model = {
-        action:   Ably::Models::PresenceMessage.ACTION(action).to_i,
+        action: Ably::Models::PresenceMessage.ACTION(action).to_i,
         clientId: client_id,
-        data:     data
+        data: data
       }
 
       Ably::Models::PresenceMessage.new(model, logger: logger).tap do |presence_message|

@@ -1093,7 +1093,6 @@ describe Ably::Realtime::Auth, :event_machine do
         WebMock.allow_net_connect!
         WebMock.disable!
         context 'when credentials are valid' do
-
           it 'authentication succeeds and client can post a message' do
             channel = client.channels.get(channel_name)
             channel.subscribe do |message|

@@ -2,7 +2,7 @@ require 'ably/modules/exception_codes'
 
 module Ably
   module Exceptions
-    TOKEN_EXPIRED_CODE = 40140..40149
+    TOKEN_EXPIRED_CODE = (40140..40149).freeze
 
     # Base Ably exception class that contains status and code values used by Ably
     # Refer to https://github.com/ably/ably-common/blob/master/protocol/errors.json

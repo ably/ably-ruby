@@ -178,7 +178,7 @@ describe Ably::Rest::Channel, 'messages' do
                 # Ensure the 3rd requests operates as normal
                 allow_any_instance_of(Faraday::Connection).to receive(:post).and_call_original
               end
-              raise Faraday::ClientError.new('Fake client error')
+              raise Faraday::ClientError, 'Fake client error'
             end
           end
 
@@ -225,7 +225,7 @@ describe Ably::Rest::Channel, 'messages' do
 
         specify 'the ID is populated with a random ID and serial 0 from this lib (#RSL1k1)' do
           channel.publish 'event'
-          expect(channel.history.items[0].id).to match(/^[A-Za-z0-9\+\/]+:0$/)
+          expect(channel.history.items[0].id).to match(%r{^[A-Za-z0-9\+/]+:0$})
           base_64_id = channel.history.items[0].id.split(':')[0]
           expect(Base64.decode64(base_64_id).length).to eql(9)
         end
@@ -235,8 +235,8 @@ describe Ably::Rest::Channel, 'messages' do
             message = { name: 'event' }
             channel.publish [message, message, message]
             expect(channel.history.items.length).to eql(3)
-            expect(channel.history.items[0].id).to match(/^[A-Za-z0-9\+\/]+:2$/)
-            expect(channel.history.items[2].id).to match(/^[A-Za-z0-9\+\/]+:0$/)
+            expect(channel.history.items[0].id).to match(%r{^[A-Za-z0-9\+/]+:2$})
+            expect(channel.history.items[2].id).to match(%r{^[A-Za-z0-9\+/]+:0$})
             base_64_id = channel.history.items[0].id.split(':')[0]
             expect(Base64.decode64(base_64_id).length).to eql(9)
           end

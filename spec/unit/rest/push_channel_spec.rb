@@ -12,7 +12,7 @@ describe Ably::Rest::Channel::PushChannel do
   end
 
   it 'raises an exception if constructed with an invalid type' do
-    expect { subject.new(Hash.new) }.to raise_error(ArgumentError)
+    expect { subject.new({}) }.to raise_error(ArgumentError)
   end
 
   it 'exposes the channel as attribute #channel' do

@@ -33,7 +33,7 @@ module Ably::Models
     include Ably::Modules::ModelCommon
 
     # @param hash_object   [Hash,nil]  Device push detail attributes
-    #a
+    # a
     def initialize(hash_object = {})
       @raw_hash_object = hash_object || {}
       @hash_object     = IdiomaticRubyWrapper(@raw_hash_object)
@@ -48,6 +48,7 @@ module Ably::Models
         unless val.nil? || val.kind_of?(String)
           raise ArgumentError, "#{attribute} must be nil or a string value"
         end
+
         attributes[attribute.to_sym] = val
       end
     end
@@ -60,6 +61,7 @@ module Ably::Models
       unless val.nil? || val.kind_of?(Hash)
         raise ArgumentError, "recipient must be nil or a Hash value"
       end
+
       attributes[:recipient] = val
     end
 
@@ -72,11 +74,12 @@ module Ably::Models
         raise ArgumentError, "error_reason must be nil, a Hash value or a ErrorInfo object"
       end
 
-      attributes[:error_reason] = if val.nil?
-        nil
-      else
-        ErrorInfo(val)
-      end
+      attributes[:error_reason] =
+        if val.nil?
+          nil
+        else
+          ErrorInfo(val)
+        end
     end
 
     def attributes

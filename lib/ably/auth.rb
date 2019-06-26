@@ -33,7 +33,7 @@ module Ably
       renew_token_buffer: 10 # buffer to allow a token to be reissued before the token is considered expired (Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER)
     }.freeze
 
-    API_KEY_REGEX = /^[\w-]{2,}\.[\w-]{2,}:[\w-]{2,}$/
+    API_KEY_REGEX = /^[\w-]{2,}\.[\w-]{2,}:[\w-]{2,}$/.freeze
 
     # Supported AuthOption keys, see https://www.ably.io/documentation/realtime/types#auth-options
     # TODO: Review client_id usage embedded incorrectly within AuthOptions.
@@ -55,7 +55,7 @@ module Ably
       token_params
       ttl
       use_token_auth
-    )
+    ).freeze
 
     attr_reader :options, :token_params, :current_token_details
     alias_method :auth_options, :options
@@ -104,6 +104,7 @@ module Ably
 
       if has_client_id? && !token_creatable_externally? && !token_option
         raise ArgumentError, 'client_id cannot be provided without a complete API key or means to authenticate. An API key is needed to automatically authenticate with Ably and obtain a token' unless api_key_present?
+
         @client_id = ensure_utf_8(:client_id, client_id) if client_id
       end
 
@@ -377,6 +378,7 @@ module Ably
     # True when Token Auth is being used to authenticate with Ably
     def using_token_auth?
       return options[:use_token_auth] if options.has_key?(:use_token_auth)
+
       !!(token_option || current_token_details || has_client_id? || token_creatable_externally?)
     end
 
@@ -447,6 +449,7 @@ module Ably
     def token_client_id_allowed?(token_client_id)
       return true if client_id.nil? # no explicit client_id specified for this client
       return true if client_id == '*' || token_client_id == '*' # wildcard supported always
+
       token_client_id == client_id
     end
 
@@ -479,6 +482,7 @@ module Ably
       if client_id && client_id != '*' &&  new_client_id != client_id
         raise Ably::Exceptions::IncompatibleClientId.new("Client ID is immutable once configured for a client. Client ID cannot be changed to '#{new_client_id}'")
       end
+
       @client_id_validated = true
       @client_id = new_client_id
     end
@@ -683,6 +687,7 @@ module Ably
         if !token_client_id_allowed?(new_token_details.client_id)
           raise Ably::Exceptions::IncompatibleClientId.new("Client ID '#{new_token_details.client_id}' in the token is incompatible with the current client ID '#{client_id}'")
         end
+
         configure_client_id new_token_details.client_id
       end
       configure_current_token_details new_token_details

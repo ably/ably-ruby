@@ -39,7 +39,7 @@ describe Ably::Models::PushChannelSubscription do
 
   context 'camelCase constructor attributes' do
     let(:client_id) { random_str }
-    let(:device_details) { subject.new(channel: 'foo', 'clientId' => client_id ) }
+    let(:device_details) { subject.new(channel: 'foo', 'clientId' => client_id) }
 
     specify 'are rubyfied and exposed as underscore case' do
       expect(device_details.client_id).to eql(client_id)

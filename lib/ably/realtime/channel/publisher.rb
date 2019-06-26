@@ -11,20 +11,20 @@ module Ably::Realtime
           create_message(client, raw_msg, channel_options).tap do |message|
             next if message.client_id.nil?
             if message.client_id == '*'
-              raise Ably::Exceptions::IncompatibleClientId.new('Wildcard client_id is reserved and cannot be used when publishing messages')
+              raise Ably::Exceptions::IncompatibleClientId, 'Wildcard client_id is reserved and cannot be used when publishing messages'
             end
             if message.client_id && !message.client_id.kind_of?(String)
-              raise Ably::Exceptions::IncompatibleClientId.new('client_id must be a String when publishing messages')
+              raise Ably::Exceptions::IncompatibleClientId, 'client_id must be a String when publishing messages'
             end
             unless client.auth.can_assume_client_id?(message.client_id)
-              raise Ably::Exceptions::IncompatibleClientId.new("Cannot publish with client_id '#{message.client_id}' as it is incompatible with the current configured client_id '#{client.client_id}'")
+              raise Ably::Exceptions::IncompatibleClientId, "Cannot publish with client_id '#{message.client_id}' as it is incompatible with the current configured client_id '#{client.client_id}'"
             end
           end
         end
 
         connection.send_protocol_message(
-          action:   Ably::Models::ProtocolMessage::ACTION.Message.to_i,
-          channel:  channel_name,
+          action: Ably::Models::ProtocolMessage::ACTION.Message.to_i,
+          channel: channel_name,
           messages: messages
         )
 
@@ -49,11 +49,13 @@ module Ably::Realtime
           messages.each do |message|
             message.callback do
               next if failed
+
               actual_deliveries += 1
               deferrable.succeed messages if actual_deliveries == expected_deliveries
             end
             message.errback do |error|
               next if failed
+
               failed = true
               deferrable.fail error, message
             end
@@ -71,4 +73,3 @@ module Ably::Realtime
     end
   end
 end
-

@@ -28,7 +28,7 @@ module Ably::Rest
       def list(params)
         raise ArgumentError, "params must be a Hash" unless params.kind_of?(Hash)
 
-        if (IdiomaticRubyWrapper(params).keys & [:channel, :client_id, :device_id]).length == 0
+        if (IdiomaticRubyWrapper(params).keys & [:channel, :client_id, :device_id]).empty?
           raise ArgumentError, "at least one channel, client_id or device_id filter param must be provided"
         end
 
@@ -36,7 +36,7 @@ module Ably::Rest
 
         paginated_options = {
           coerce_into: 'Ably::Models::PushChannelSubscription',
-          async_blocking_operations: params.delete(:async_blocking_operations),
+          async_blocking_operations: params.delete(:async_blocking_operations)
         }
 
         response = client.get('/push/channelSubscriptions', IdiomaticRubyWrapper(params).as_json)
@@ -59,7 +59,7 @@ module Ably::Rest
 
         paginated_options = {
           coerce_into: 'String',
-          async_blocking_operations: params.delete(:async_blocking_operations),
+          async_blocking_operations: params.delete(:async_blocking_operations)
         }
 
         response = client.get('/push/channels', IdiomaticRubyWrapper(params).as_json)
@@ -108,7 +108,7 @@ module Ably::Rest
       def remove_where(params)
         raise ArgumentError, "params must be a Hash" unless params.kind_of?(Hash)
 
-        if (IdiomaticRubyWrapper(params).keys & [:channel, :client_id, :device_id]).length == 0
+        if (IdiomaticRubyWrapper(params).keys & [:channel, :client_id, :device_id]).empty?
           raise ArgumentError, "at least one channel, client_id or device_id filter param must be provided"
         end
 

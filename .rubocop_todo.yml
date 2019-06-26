@@ -900,7 +900,12 @@ Style/MethodCallWithoutArgsParentheses:
     - 'spec/unit/models/token_details_spec.rb'
 
 # Offense count: 1
-Style/MethodMissing:
+Style/MethodMissingSuper:
+  Exclude:
+    - 'lib/ably/models/idiomatic_ruby_wrapper.rb'
+
+# Offense count: 1
+Style/MissingRespondToMissing:
   Exclude:
     - 'lib/ably/models/idiomatic_ruby_wrapper.rb'
 

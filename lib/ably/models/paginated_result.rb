@@ -49,6 +49,7 @@ module Ably::Models
     def first(&success_callback)
       async_wrap_if_realtime(success_callback) do
         return nil unless supports_pagination?
+
         PaginatedResult.new(client.get(pagination_url('first')), base_url, client, pagination_options, &each_block)
       end
     end
@@ -61,6 +62,7 @@ module Ably::Models
     def next(&success_callback)
       async_wrap_if_realtime(success_callback) do
         return nil unless has_next?
+
         PaginatedResult.new(client.get(pagination_url('next')), base_url, client, pagination_options, &each_block)
       end
     end
@@ -173,6 +175,7 @@ module Ably::Models
     def async_wrap_if_realtime(success_callback, &operation)
       if make_async
         raise 'EventMachine is required for asynchronous operations' unless defined?(EventMachine)
+
         async_wrap success_callback, &operation
       else
         yield

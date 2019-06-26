@@ -83,6 +83,7 @@ module Ably
         # @return [void]
         def strip_current_encoding_part(message)
           raise "Cannot strip encoding when there is no encoding for this message" unless message[:encoding]
+
           message[:encoding] = message[:encoding].split('/')[0...-1].join('/')
           message[:encoding] = nil if message[:encoding].empty?
         end
@@ -117,6 +118,7 @@ module Ably
         end
 
         raise "Encoder must inherit from `Ably::Models::MessageEncoders::Base`" unless encoder_klass.ancestors.include?(Ably::Models::MessageEncoders::Base)
+
         encoder_klass.new(self, options)
       end
     end

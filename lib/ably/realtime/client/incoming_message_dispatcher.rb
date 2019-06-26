@@ -210,6 +210,7 @@ module Ably::Realtime
         while !connection.__pending_message_ack_queue__.empty?
           next_message = connection.__pending_message_ack_queue__.first
           return if next_message.message_serial > message_serial_up_to
+
           yield connection.__pending_message_ack_queue__.shift
         end
       end
