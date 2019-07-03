@@ -53,8 +53,8 @@ module Ably
       #
       #   # Publish an array of message Hashes
       #   messages = [
-      #     { name: 'click', { x: 1, y: 2 } },
-      #     { name: 'click', { x: 2, y: 3 } }
+      #     { name: 'click', data: { x: 1, y: 2 } },
+      #     { name: 'click', data: { x: 2, y: 3 } }
       #   ]
       #   channel.publish messages
       #
