@@ -96,8 +96,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       end
 
       context 'JSON Array' do
-        # TODO: Add nil type back in
-        let(:data) { { 'push' => { 'data' => { 'key' => [ true, false, 55, 'string', { 'Hash' => true }, ['array'] ] } } } }
+        let(:data) { { 'push' => { 'data' => { 'key' => [ true, false, 55, nil, 'string', { 'Hash' => true }, ['array'] ] } } } }
 
         it 'is encoded and decoded to the same Array' do
           publish_and_check_extras data
@@ -658,8 +657,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
           expect(message_state).to be_empty
           EventMachine.add_timer(2) do
             expect(message_state).to contain_exactly(:delivered)
-            # TODO: Uncomment once issue realtime#42 is resolved
-            # expect(msgs_received.length).to eql(1)
+            expect(msgs_received.length).to eql(1)
             stop_reactor
           end
         end

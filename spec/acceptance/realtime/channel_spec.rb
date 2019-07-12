@@ -279,8 +279,7 @@ describe Ably::Realtime::Channel, :event_machine do
             key: restricted_api_key,
             log_level: :fatal,
             use_token_auth: true,
-            # TODO: Use wildcard / default when intersection issue resolved, realtime#780
-            default_token_params: { capability: { "canpublish:foo" => ["publish"] } }
+            default_token_params: { capability: { "canpublish:foo" => ["*"] } }
           )
         end
         let(:restricted_client) do

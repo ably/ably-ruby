@@ -75,8 +75,7 @@ describe Ably::Rest::Channel, 'messages' do
       end
 
       context 'JSON Array' do
-        # TODO: Add nil type back in
-        let(:data) { { 'push' => { 'data' => { 'key' => [ true, false, 55, 'string', { 'Hash' => true }, ['array'] ] } } } }
+        let(:data) { { 'push' => { 'data' => { 'key' => [ true, false, 55, nil, 'string', { 'Hash' => true }, ['array'] ] } } } }
 
         it 'is encoded and decoded to the same deep multi-type object' do
           channel.publish 'event', {}, extras: data
