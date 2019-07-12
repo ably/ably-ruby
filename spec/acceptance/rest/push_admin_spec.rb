@@ -694,9 +694,6 @@ describe Ably::Rest::Push::Admin do
         end
 
         it 'supports paging' do
-          skip 'Channel lists with limits is not reliable immediately after fixture creation'
-          # TODO: Remove this once list channels with limits is reliable immediately after fixtures created
-          #       See https://github.com/ably/realtime/issues/1882
           subject.list_channels
           page = subject.list_channels(limit: 3)
           expect(page).to be_a(Ably::Models::PaginatedResult)
@@ -815,7 +812,6 @@ describe Ably::Rest::Push::Admin do
         end
 
         it 'removes matching channels' do
-          skip 'Delete by channel is not yet supported'
           subject.remove_where channel: fixed_channel, full_wait: true
           expect(subject.list(channel: fixed_channel).items.count).to eql(0)
           expect(subject.list(client_id: client_id).items.count).to eql(0)

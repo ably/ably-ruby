@@ -53,7 +53,7 @@ describe Ably::Modules::Enum, :api_private do
     end
 
     it 'allows different type comparison 2' do
-      skip 'Unless we monkeypath Symbols, the == operator is never invoked'
+      skip 'Unless we monkeypatch Symbols, the == operator is never invoked'
       expect([:value_zero].include?(subject.ValueZero)).to eql(true)
     end
 
