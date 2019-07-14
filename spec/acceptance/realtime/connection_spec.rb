@@ -1307,12 +1307,14 @@ describe Ably::Realtime::Connection, :event_machine do
                 expect(connection.send(:client_msg_serial)).to eql(-1) # no messages published yet
                 connection_id = client.connection.id
                 connection.transport.__incoming_protocol_msgbus__
-                channel.publish('event', 'message-1') do
+                channel.subscribe('event') do |message|
+                  expect(message.data).to eql('message-1')
                   msg_serial = connection.send(:client_msg_serial)
                   expect(msg_serial).to eql(0)
                   recovery_key = client.connection.recovery_key
                   connection.transition_state_machine! :failed
                 end
+                channel.publish('event', 'message-1')
               end
 
               connection.on(:failed) do
@@ -1329,7 +1331,7 @@ describe Ably::Realtime::Connection, :event_machine do
                   expect(recover_client.connection.id).to eql(connection_id)
 
                   recover_client_channel.subscribe do |message|
-                    raise "Unexpected message #{message}" if message.data != 'message-2'
+                    expect(message.data).to eql('message-2')
                     EventMachine.add_timer(2) do
                       stop_reactor
                     end
