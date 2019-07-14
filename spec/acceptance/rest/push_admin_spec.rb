@@ -812,7 +812,10 @@ describe Ably::Rest::Push::Admin do
           end.each(&:join) # Wait for all threads to complete
         end
 
+        # TODO: Reinstate once delete subscriptions by channel is possible
+        #       See https://github.com/ably/realtime/issues/1359
         it 'removes matching channels' do
+          skip 'deleting subscriptions is not yet supported realtime#1359'
           subject.remove_where channel: fixed_channel, full_wait: true
           expect(subject.list(channel: fixed_channel).items.count).to eql(0)
           expect(subject.list(client_id: client_id).items.count).to eql(0)
