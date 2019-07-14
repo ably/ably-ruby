@@ -585,8 +585,8 @@ describe Ably::Rest::Push::Admin do
       #  and two device with the unique device_id and no client_id
       before do
         [
-          lambda { device_registrations.save(default_device_attr.merge(id: device_id)) },
-          lambda { device_registrations.save(default_device_attr.merge(id: device_id_2)) },
+          lambda { device_registrations.save(default_device_attr.merge(id: device_id, client_id: nil)) },
+          lambda { device_registrations.save(default_device_attr.merge(id: device_id_2, client_id: nil)) },
           lambda { device_registrations.save(default_device_attr.merge(client_id: client_id, id: random_str)) },
           lambda { device_registrations.save(default_device_attr.merge(client_id: client_id, id: random_str)) }
         ].map do |proc|
@@ -675,6 +675,7 @@ describe Ably::Rest::Push::Admin do
         end
 
         before do
+          # Create 6 channel subscriptions to the client ID for this test
           fixture_count.times.map do |index|
             Thread.new do
               subject.save(channel: "pushenabled:#{index}:#{random_str}", client_id: client_id)
