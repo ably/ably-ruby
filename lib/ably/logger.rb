@@ -20,6 +20,8 @@ module Ably
       ensure_logger_interface_is_valid
 
       @logger.level = log_level
+
+      @log_mutex = Mutex.new
     end
 
     # The logger used by this class, defaults to {http://www.ruby-doc.org/stdlib-1.9.3/libdoc/logger/rdoc/Logger.html Ruby Logger}
@@ -38,7 +40,9 @@ module Ably
     %w(fatal error warn info debug).each do |method_name|
       define_method(method_name) do |*args, &block|
         begin
-          logger.public_send(method_name, *args, &block)
+          log_mutex.synchronize do
+            logger.public_send(method_name, *args, &block)
+          end
         rescue StandardError => e
           logger.error "Logger: Failed to log #{method_name} block - #{e.class}: #{e.message}\n#{e.backtrace.join("\n")}"
         end
@@ -46,6 +50,8 @@ module Ably
     end
 
     private
+    attr_reader :log_mutex
+
     def client
       @client
     end
