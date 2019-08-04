@@ -49,19 +49,34 @@ module Ably::Realtime
 
         logger.debug { 'ConnectionManager: Opening a websocket transport connection' }
 
+        # The socket attempt can fail at the same time as a timer firing so ensure
+        #   only one outcome is processed from this setup attempt
+        setup_attempt_status = {}
+        setup_attempted = lambda do
+          return true if setup_attempt_status[:completed]
+          setup_attempt_status[:completed] = true
+          false
+        end
+
         connection.create_websocket_transport.tap do |socket_deferrable|
           socket_deferrable.callback do |websocket_transport|
+            next if setup_attempted.call
             subscribe_to_transport_events websocket_transport
             yield websocket_transport if block_given?
           end
           socket_deferrable.errback do |error|
+            next if setup_attempted.call
             connection_opening_failed error
           end
         end
 
-        logger.debug { "ConnectionManager: Setting up automatic connection timeout timer for #{realtime_request_timeout}s" }
-        create_timeout_timer_whilst_in_state(:connecting, realtime_request_timeout) do
-          connection_opening_failed Ably::Exceptions::ConnectionTimeout.new("Connection to Ably timed out after #{realtime_request_timeout}s", nil, Ably::Exceptions::Codes::CONNECTION_TIMED_OUT)
+        # The connection request timeout must be marginally higher than the REST request timeout to ensure
+        #   any HTTP auth request failure due to timeout triggers before the connection timer kicks in
+        setup_connect_timeout = [realtime_request_timeout, Ably::Rest::Client::HTTP_DEFAULTS.fetch(:request_timeout) + 0.5].max
+        logger.debug { "ConnectionManager: Setting up automatic connection timeout timer for #{setup_connect_timeout}s" }
+        create_timeout_timer_whilst_in_state(:connecting, setup_connect_timeout) do
+          next if setup_attempted.call
+          connection_opening_failed Ably::Exceptions::ConnectionTimeout.new("Connection to Ably timed out after #{setup_connect_timeout}s", nil, Ably::Exceptions::Codes::CONNECTION_TIMED_OUT)
         end
       end
 

@@ -110,6 +110,72 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               end
             end
           end
+
+          context 'request fails due to slow response and subsequent timeout', :webmock, em_timeout: (Ably::Rest::Client::HTTP_DEFAULTS.fetch(:request_timeout) + 5) * 2 do
+            let(:auth_url) { "http://#{random_str}.domain.will.be.stubbed/path" }
+            let(:client_options) { default_options.reject { |k, v| k == :key }.merge(auth_url: auth_url, log_level: :fatal) }
+
+            # Timeout +5 seconds, beyond default allowed timeout
+            before do
+              stub_request(:get, auth_url).
+                to_return do |request|
+                  sleep Ably::Rest::Client::HTTP_DEFAULTS.fetch(:request_timeout) + 5
+                  { status: [500, "Internal Server Error"] }
+                end
+            end
+
+            specify 'the connection moves to the disconnected state and tries again, returning again to the disconnected state (#RSA4c, #RSA4c1, #RSA4c2)' do
+              states = Hash.new { |hash, key| hash[key] = [] }
+
+              connection.once(:connected) { raise "Connection can never move to connected because of auth failures" }
+
+              connection.on do |connection_state|
+                states[connection_state.current.to_sym] << Time.now
+                if states[:disconnected].count == 2 && connection_state.current == :disconnected
+                  expect(connection.error_reason).to be_a(Ably::Exceptions::ConnectionError)
+                  expect(connection.error_reason.message).to match(/auth_url/)
+                  EventMachine.add_timer(2) do
+                    expect(states.keys).to include(:connecting, :disconnected)
+                    expect(states[:connecting].count).to eql(2)
+                    expect(states[:connected].count).to eql(0)
+                    stop_reactor
+                  end
+                end
+              end
+            end
+          end
+
+          context 'request fails once due to slow response but succeeds the second time' do
+            let(:auth_url) { "http://#{random_str}.domain.will.be.stubbed/path" }
+            let(:client_options) { default_options.reject { |k, v| k == :key }.merge(auth_url: auth_url, log_level: :fatal) }
+
+            # Timeout +5 seconds, beyond default allowed timeout
+            before do
+              token_response = Ably::Rest::Client.new(default_options).auth.request_token
+              WebMock.enable!
+
+              stub_request(:get, auth_url).
+                to_return do |request|
+                  sleep Ably::Rest::Client::HTTP_DEFAULTS.fetch(:request_timeout)
+                  { status: [500, "Internal Server Error"] }
+                end.then.
+                to_return(:status => 201, :body => token_response.to_json, :headers => { 'Content-Type' => 'application/json' })
+            end
+
+            specify 'the connection moves to the disconnected state and tries again, returning again to the disconnected state (#RSA4c, #RSA4c1, #RSA4c2)' do
+              states = Hash.new { |hash, key| hash[key] = [] }
+
+              connection.once(:connected) do
+                expect(states[:disconnected].count).to eql(1)
+                expect(states[:connecting].count).to eql(2)
+                stop_reactor
+              end
+
+              connection.on do |connection_state|
+                states[connection_state.current.to_sym] << Time.now
+              end
+            end
+          end
         end
 
         context 'existing CONNECTED connection' do
