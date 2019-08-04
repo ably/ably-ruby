@@ -27,6 +27,13 @@ describe Ably::Realtime::Connection, :event_machine do
         end
       end
 
+      context 'current_host' do
+        it 'is available immediately after the client is instanced' do
+          expect(connection.current_host.to_s).to match(/\.ably\.io$/)
+          stop_reactor
+        end
+      end
+
       context 'with :auto_connect option set to false' do
         let(:client) do
           auto_close Ably::Realtime::Client.new(default_options.merge(auto_connect: false))
