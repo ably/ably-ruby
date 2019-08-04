@@ -471,11 +471,13 @@ module Ably
 
       # Allowable duration for an external auth request
       # For REST client this defaults to request_timeout
-      # For Realtime clients this defaults to realtime_request_timeout
+      # For Realtime clients this defaults to 250ms less than the realtime_request_timeout
+      #   ensuring an auth failure will be triggered before the realtime request timeout fires
+      #   which would lead to a misleading error message (connection timeout as opposed to auth request timeout)
       # @api private
       def auth_request_timeout
         if @realtime_client
-          @realtime_client.connection.defaults.fetch(:realtime_request_timeout)
+          @realtime_client.connection.defaults.fetch(:realtime_request_timeout) - 0.25
         else
           http_defaults.fetch(:request_timeout)
         end

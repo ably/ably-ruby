@@ -491,7 +491,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         let(:client_options) do
           default_options.merge(
             log_level: :none,
-            realtime_request_timeout: timeout
+            realtime_request_timeout: timeout,
           )
         end
 
