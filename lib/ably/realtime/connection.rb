@@ -161,6 +161,8 @@ module Ably
         @state_machine = ConnectionStateMachine.new(self)
         @state         = STATE(state_machine.current_state)
         @manager       = ConnectionManager.new(self)
+
+        @current_host = client.endpoint.host
       end
 
       # Causes the connection to close, entering the closed state, from any state except
