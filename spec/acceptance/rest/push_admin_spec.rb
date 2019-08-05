@@ -181,6 +181,12 @@ describe Ably::Rest::Push::Admin do
         let(:client_id) { random_str }
         let(:fixture_count) { 6 }
 
+        before(:all) do
+          # As push tests often use the global scope (devices),
+          #   we need to ensure tests cannot conflict
+          reload_test_app
+        end
+
         before do
           fixture_count.times.map do |index|
             Thread.new do
@@ -243,6 +249,12 @@ describe Ably::Rest::Push::Admin do
       describe '#get (#RSH1b1)' do
         let(:fixture_count) { 2 }
         let(:client_id) { random_str }
+
+        before(:all) do
+          # As push tests often use the global scope (devices),
+          #   we need to ensure tests cannot conflict
+          reload_test_app
+        end
 
         before do
           fixture_count.times.map do |index|
@@ -316,6 +328,12 @@ describe Ably::Rest::Push::Admin do
               },
             }
           }
+        end
+
+        before(:all) do
+          # As push tests often use the global scope (devices),
+          #   we need to ensure tests cannot conflict
+          reload_test_app
         end
 
         after do
@@ -444,6 +462,12 @@ describe Ably::Rest::Push::Admin do
         let(:device_id) { random_str }
         let(:client_id) { random_str }
 
+        before(:all) do
+          # As push tests often use the global scope (devices),
+          #   we need to ensure tests cannot conflict
+          reload_test_app
+        end
+
         before do
           [
             Thread.new do
@@ -500,6 +524,12 @@ describe Ably::Rest::Push::Admin do
       describe '#remove (#RSH1b4)' do
         let(:device_id) { random_str }
         let(:client_id) { random_str }
+
+        before(:all) do
+          # As push tests often use the global scope (devices),
+          #   we need to ensure tests cannot conflict
+          reload_test_app
+        end
 
         before do
           [
@@ -602,6 +632,12 @@ describe Ably::Rest::Push::Admin do
       describe '#list (#RSH1c1)' do
         let(:fixture_count) { 6 }
 
+        before(:all) do
+          # As push tests often use the global scope (devices),
+          #   we need to ensure tests cannot conflict
+          reload_test_app
+        end
+
         before do
           fixture_count.times.map do |index|
             Thread.new { subject.save(channel: "pushenabled:#{random_str}", client_id: client_id) }
@@ -670,8 +706,10 @@ describe Ably::Rest::Push::Admin do
       describe '#list_channels (#RSH1c2)' do
         let(:fixture_count) { 6 }
 
-        before(:context) do
-          reload_test_app # TODO: Review if necessary late, currently other tests may affect list_channels
+        before(:all) do
+          # As push tests often use the global scope (devices),
+          #   we need to ensure tests cannot conflict
+          reload_test_app
         end
 
         before do
@@ -727,6 +765,12 @@ describe Ably::Rest::Push::Admin do
         let(:channel) { "pushenabled:#{random_str}" }
         let(:client_id) { random_str }
         let(:device_id) { random_str }
+
+        before(:all) do
+          # As push tests often use the global scope (devices),
+          #   we need to ensure tests cannot conflict
+          reload_test_app
+        end
 
         it 'saves the new client_id PushChannelSubscription Hash object' do
           subject.save(channel: channel, client_id: client_id)
@@ -800,6 +844,12 @@ describe Ably::Rest::Push::Admin do
 
         let(:fixture_count) { 6 }
 
+        before(:all) do
+          # As push tests often use the global scope (devices),
+          #   we need to ensure tests cannot conflict
+          reload_test_app
+        end
+
         before do
           fixture_count.times.map do |index|
             [
@@ -851,6 +901,12 @@ describe Ably::Rest::Push::Admin do
         let(:channel2) { "pushenabled:#{random_str}" }
         let(:client_id) { random_str }
         let(:device_id) { random_str }
+
+        before(:all) do
+          # As push tests often use the global scope (devices),
+          #   we need to ensure tests cannot conflict
+          reload_test_app
+        end
 
         before do
           [

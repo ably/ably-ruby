@@ -217,6 +217,12 @@ describe Ably::Realtime::Push::Admin, :event_machine do
         let(:client_id) { random_str }
         let(:fixture_count) { 6 }
 
+        before(:all) do
+          # As push tests often use the global scope (devices),
+          #   we need to ensure tests cannot conflict
+          reload_test_app
+        end
+
         before do
           fixture_count.times.map do |index|
             Thread.new do # Parallelise the setup
@@ -273,6 +279,12 @@ describe Ably::Realtime::Push::Admin, :event_machine do
       describe '#get' do
         let(:fixture_count) { 2 }
         let(:client_id) { random_str }
+
+        before(:all) do
+          # As push tests often use the global scope (devices),
+          #   we need to ensure tests cannot conflict
+          reload_test_app
+        end
 
         before do
           fixture_count.times.map do |index|
@@ -353,6 +365,12 @@ describe Ably::Realtime::Push::Admin, :event_machine do
           }
         end
 
+        before(:all) do
+          # As push tests often use the global scope (devices),
+          #   we need to ensure tests cannot conflict
+          reload_test_app
+        end
+
         after do
           rest_device_registrations.remove_where client_id: client_id
         end
@@ -388,6 +406,12 @@ describe Ably::Realtime::Push::Admin, :event_machine do
         let(:device_id) { random_str }
         let(:client_id) { random_str }
 
+        before(:all) do
+          # As push tests often use the global scope (devices),
+          #   we need to ensure tests cannot conflict
+          reload_test_app
+        end
+
         before do
           rest_device_registrations.save({
                                            id: "device-#{client_id}-0",
@@ -420,6 +444,12 @@ describe Ably::Realtime::Push::Admin, :event_machine do
       describe '#remove' do
         let(:device_id) { random_str }
         let(:client_id) { random_str }
+
+        before(:all) do
+          # As push tests often use the global scope (devices),
+          #   we need to ensure tests cannot conflict
+          reload_test_app
+        end
 
         before do
           rest_device_registrations.save({
@@ -480,6 +510,12 @@ describe Ably::Realtime::Push::Admin, :event_machine do
       subject {
         client.push.admin.channel_subscriptions
       }
+
+      before(:all) do
+        # As push tests often use the global scope (devices),
+        #   we need to ensure tests cannot conflict
+        reload_test_app
+      end
 
       # Set up 2 devices with the same client_id
       #  and two device with the unique device_id and no client_id
@@ -543,8 +579,10 @@ describe Ably::Realtime::Push::Admin, :event_machine do
       describe '#list_channels' do
         let(:fixture_count) { 6 }
 
-        before(:context) do
-          reload_test_app # TODO: Review if necessary later, currently other tests may affect list_channels
+        before(:all) do
+          # As push tests often use the global scope (devices),
+          #   we need to ensure tests cannot conflict
+          reload_test_app
         end
 
         before do
