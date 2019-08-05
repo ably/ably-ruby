@@ -1139,6 +1139,7 @@ describe Ably::Realtime::Auth, :event_machine do
         context 'when credentials are invalid' do
           let(:key_secret) { 'invalid' }
           let(:token) { Faraday.get("#{auth_url}?keyName=#{key_name}&keySecret=#{key_secret}").body }
+          let(:client_options) { { token: token, environment: environment, protocol: protocol, log_level: :none } }
 
           it 'fails with an invalid signature error' do
             client.connection.once(:disconnected) do |state_change|
@@ -1239,7 +1240,7 @@ describe Ably::Realtime::Auth, :event_machine do
             Faraday.get("#{auth_url}?keyName=#{key_name}&keySecret=#{key_secret}&capability=#{URI.escape(basic_capability)}").body
           end
         end
-        let(:client_options) { default_options.merge(auth_callback: auth_callback) }
+        let(:client_options) { default_options.merge(auth_callback: auth_callback, log_level: :error) }
 
         it 'client fails to publish to a channel with subscribe-only capability and publishes successfully on a channel with permissions' do
           client.connection.once(:connected) do
