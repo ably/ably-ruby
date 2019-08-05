@@ -315,8 +315,9 @@ describe Ably::Realtime::Client, :event_machine do
             expect(msg.data).to eql(data)
             stop_reactor
           end
+
+          subject.publish channel_name, event_name, data
         end
-        subject.publish channel_name, event_name, data
       end
 
       specify 'publishing does not result in a channel being created' do
@@ -341,8 +342,9 @@ describe Ably::Realtime::Client, :event_machine do
               expect(msg.extras).to eql(extras)
               stop_reactor
             end
+
+            subject.publish channel_name, event_name, {}, extras: extras
           end
-          subject.publish channel_name, event_name, {}, extras: extras
         end
       end
 
@@ -353,8 +355,9 @@ describe Ably::Realtime::Client, :event_machine do
             expect(msg.data).to eql(data)
             stop_reactor
           end
+
+          subject.publish channel_name, [message]
         end
-        subject.publish channel_name, [message]
       end
 
       specify 'publishing supports an array of Hash objects' do
@@ -364,8 +367,9 @@ describe Ably::Realtime::Client, :event_machine do
             expect(msg.data).to eql(data)
             stop_reactor
           end
+
+          subject.publish channel_name, [name: event_name, data: data]
         end
-        subject.publish channel_name, [name: event_name, data: data]
       end
 
       specify 'publishing on a closed connection fails' do

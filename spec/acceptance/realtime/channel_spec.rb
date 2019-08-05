@@ -1008,9 +1008,6 @@ describe Ably::Realtime::Channel, :event_machine do
 
             it 'publishes the message without a name attribute in the payload' do
               published = false
-              channel.publish(nil, data) do
-                published = true
-              end
 
               channel.subscribe do |message|
                 expect(message.name).to be_nil
@@ -1023,6 +1020,10 @@ describe Ably::Realtime::Channel, :event_machine do
                   end
                 end
               end
+
+              channel.publish(nil, data) do
+                published = true
+              end
             end
           end
 
@@ -1031,9 +1032,6 @@ describe Ably::Realtime::Channel, :event_machine do
 
             it 'publishes the message without a data attribute in the payload' do
               published = false
-              channel.publish(name, nil) do
-                published = true
-              end
 
               channel.subscribe do |message|
                 expect(message.data).to be_nil
@@ -1045,6 +1043,10 @@ describe Ably::Realtime::Channel, :event_machine do
                     stop_reactor
                   end
                 end
+              end
+
+              channel.publish(name, nil) do
+                published = true
               end
             end
           end
@@ -1996,6 +1998,8 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context '#resume (#RTL2f)' do
+          let(:client_options) { default_options.merge(log_level: :fatal) }
+
           it 'is false when a channel first attaches' do
             channel.attach
             channel.on(:attached) do |channel_state_change|
