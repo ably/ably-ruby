@@ -1,7 +1,14 @@
 # Change Log
 
-## [v1.1.1](https://github.com/ably/ably-ruby/tree/v1.1.1)
+## [v1.1.2](https://github.com/ably/ably-ruby/tree/v1.1.2)
 
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.1.1...v1.1.2)
+
+**Merged pull requests:**
+
+- Remove legacy skipped tests and upgrade MsgPack [\#184](https://github.com/ably/ably-ruby/pull/184) ([mattheworiordan](https://github.com/mattheworiordan))
+
+## [v1.1.1](https://github.com/ably/ably-ruby/tree/v1.1.1) (2019-05-06)
 [Full Changelog](https://github.com/ably/ably-ruby/compare/v1.1.0...v1.1.1)
 
 **Implemented enhancements:**
@@ -67,7 +74,6 @@
 **Closed issues:**
 
 - Passing a frozen channel name or name gives an error on the REST client \[Reopen\] [\#145](https://github.com/ably/ably-ruby/issues/145)
-- Passing a frozen channel name or name gives an error on the REST client [\#132](https://github.com/ably/ably-ruby/issues/132)
 
 **Merged pull requests:**
 
