@@ -273,6 +273,137 @@ shared_examples 'a client initializer' do
         end
       end
     end
+
+    context 'environment' do
+      context 'when set without custom fallback hosts configured' do
+        let(:environment) { 'foo' }
+        let(:client_options) { default_options.merge(environment: environment) }
+        let(:default_fallbacks) { %w(a b c d e).map { |id| "#{environment}-#{id}-fallback.ably-realtime.com" } }
+
+        it 'sets the environment attribute' do
+          expect(subject.environment).to eql(environment)
+        end
+
+        it 'uses the default fallback hosts (#TBC, see https://github.com/ably/wiki/issues/361)' do
+          expect(subject.fallback_hosts.sort).to eql(default_fallbacks)
+        end
+      end
+
+      context 'when set with custom fallback hosts configured' do
+        let(:environment) { 'foo' }
+        let(:custom_fallbacks) { %w(a b c).map { |id| "#{environment}-#{id}.foo.com" } }
+        let(:client_options) { default_options.merge(environment: environment, fallback_hosts: custom_fallbacks) }
+
+        it 'sets the environment attribute' do
+          expect(subject.environment).to eql(environment)
+        end
+
+        it 'uses the custom provided fallback hosts (#RSC15a)' do
+          expect(subject.fallback_hosts.sort).to eql(custom_fallbacks)
+        end
+      end
+
+      context 'when set with fallback_hosts_use_default' do
+        let(:environment) { 'foo' }
+        let(:custom_fallbacks) { %w(a b c).map { |id| "#{environment}-#{id}.foo.com" } }
+        let(:default_production_fallbacks) { %w(a b c d e).map { |id| "#{id}.ably-realtime.com" } }
+        let(:client_options) { default_options.merge(environment: environment, fallback_hosts_use_default: true) }
+
+        it 'sets the environment attribute' do
+          expect(subject.environment).to eql(environment)
+        end
+
+        it 'uses the production default fallback hosts (#RTN17b)' do
+          expect(subject.fallback_hosts.sort).to eql(default_production_fallbacks)
+        end
+      end
+    end
+
+    context 'rest_host' do
+      context 'when set without custom fallback hosts configured' do
+        let(:custom_rest_host) { 'foo.com' }
+        let(:client_options) { default_options.merge(rest_host: custom_rest_host) }
+
+        it 'sets the custom_host attribute' do
+          expect(subject.custom_host).to eql(custom_rest_host)
+        end
+
+        it 'has no default fallback hosts' do
+          expect(subject.fallback_hosts).to be_empty
+        end
+      end
+
+      context 'when set with environment and without custom fallback hosts configured' do
+        let(:environment) { 'foobar' }
+        let(:custom_rest_host) { 'foo.com' }
+        let(:client_options) { default_options.merge(environment: environment, rest_host: custom_rest_host) }
+
+        it 'sets the environment attribute' do
+          expect(subject.environment).to eql(environment)
+        end
+
+        it 'sets the custom_host attribute' do
+          expect(subject.custom_host).to eql(custom_rest_host)
+        end
+
+        it 'has no default fallback hosts' do
+          expect(subject.fallback_hosts).to be_empty
+        end
+      end
+
+      context 'when set with custom fallback hosts configured' do
+        let(:custom_rest_host) { 'foo.com' }
+        let(:custom_fallbacks) { %w(a b c).map { |id| "#{environment}-#{id}.foo.com" } }
+        let(:client_options) { default_options.merge(rest_host: custom_rest_host, fallback_hosts: custom_fallbacks) }
+
+        it 'sets the custom_host attribute' do
+          expect(subject.custom_host).to eql(custom_rest_host)
+        end
+
+        it 'has no default fallback hosts' do
+          expect(subject.fallback_hosts.sort).to eql(custom_fallbacks)
+        end
+      end
+    end
+
+    context 'realtime_host' do
+      context 'when set without custom fallback hosts configured' do
+        let(:custom_realtime_host) { 'realtime.foo.com' }
+        let(:client_options) { default_options.merge(realtime_host: custom_realtime_host) }
+
+        # These tests are shared between realtime & rest clients
+        # So don't test for the attribute, instead test the options
+        it 'sets the realtime_host option' do
+          expect(subject.options[:realtime_host]).to eql(custom_realtime_host)
+        end
+
+        it 'has no default fallback hosts' do
+          expect(subject.fallback_hosts).to be_empty
+        end
+      end
+    end
+
+    context 'custom port' do
+      context 'when set without custom fallback hosts configured' do
+        let(:custom_port) { 555 }
+        let(:client_options) { default_options.merge(port: custom_port) }
+
+        it 'has no default fallback hosts' do
+          expect(subject.fallback_hosts).to be_empty
+        end
+      end
+    end
+
+    context 'custom TLS port' do
+      context 'when set without custom fallback hosts configured' do
+        let(:custom_port) { 555 }
+        let(:client_options) { default_options.merge(tls_port: custom_port) }
+
+        it 'has no default fallback hosts' do
+          expect(subject.fallback_hosts).to be_empty
+        end
+      end
+    end
   end
 
   context 'delegators' do

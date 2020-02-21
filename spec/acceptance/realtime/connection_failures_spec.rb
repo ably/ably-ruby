@@ -1508,7 +1508,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
       end
 
       context 'with production environment' do
-        let(:custom_hosts)   { %w(A.ably-realtime.com B.ably-realtime.com) }
+        let(:custom_hosts)   { %w(a.ably-realtime.com b.ably-realtime.com) }
         before do
           stub_const 'Ably::FALLBACK_HOSTS', custom_hosts
         end
