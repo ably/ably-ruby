@@ -3,6 +3,9 @@ require 'json'
 require 'logger'
 require 'uri'
 
+require 'typhoeus'
+require 'typhoeus/adapters/faraday'
+
 require 'ably/rest/middleware/exceptions'
 
 module Ably
@@ -202,6 +205,8 @@ module Ably
         @http_defaults = HTTP_DEFAULTS.dup
         options.each do |key, val|
           if http_key = key[/^http_(.+)/, 1]
+            # Typhoeus converts decimal durations to milliseconds, so 0.0001 timeout is treated as 0 (no timeout)
+            val = 0.001 if val.kind_of?(Numeric) && (val > 0) && (val < 0.001)
             @http_defaults[http_key.to_sym] = val if val && @http_defaults.has_key?(http_key.to_sym)
           end
         end
@@ -666,7 +671,7 @@ module Ably
         }
       end
 
-      # Return a Faraday middleware stack to initiate the Faraday::Connection with
+      # Return a Faraday middleware stack to initiate the Faraday::RackBuilder with
       #
       # @see http://mislav.uniqpath.com/2011/07/faraday-advanced-http/
       def middleware
@@ -678,8 +683,8 @@ module Ably
 
           setup_incoming_middleware builder, logger, fail_if_unsupported_mime_type: true
 
-          # Set Faraday's HTTP adapter
-          builder.adapter :excon
+          # Set Faraday's HTTP adapter with support for HTTP/2
+          builder.adapter :typhoeus, http_version: :httpv2_0
         end
       end
 
