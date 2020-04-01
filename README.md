@@ -329,7 +329,3 @@ This library uses [semantic versioning](http://semver.org/). For each release, t
 * Visit [https://github.com/ably/ably-ruby/tags](https://github.com/ably/ably-ruby/tags) and `Add release notes` for the release including links to the changelog entry.
 * Run `rake release` to publish the gem to [Rubygems](https://rubygems.org/gems/ably)
 * Release the [REST-only library `ably-ruby-rest`](https://github.com/ably/ably-ruby-rest#release-process)
-
-## License
-
-Copyright (c) 2017 Ably Real-time Ltd, Licensed under the Apache License, Version 2.0.  Refer to [LICENSE](LICENSE) for the license terms.
