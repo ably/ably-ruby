@@ -5,7 +5,7 @@ module Ably
     TOKEN_EXPIRED_CODE = 40140..40149
 
     # Base Ably exception class that contains status and code values used by Ably
-    # Refer to https://github.com/ably/ably-common/blob/master/protocol/errors.json
+    # Refer to https://github.com/ably/ably-common/blob/main/protocol/errors.json
     #
     # @!attribute [r] message
     #   @return [String] Error message from Ably
@@ -116,7 +116,7 @@ module Ably
     class InvalidState < BaseAblyException; end
 
     # A generic Ably exception taht supports a status & code.
-    # See https://github.com/ably/ably-common/blob/master/protocol/errors.json for a list of Ably errors
+    # See https://github.com/ably/ably-common/blob/main/protocol/errors.json for a list of Ably errors
     class Standard < BaseAblyException; end
 
     # The HTTP request has returned a 500 error

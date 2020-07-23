@@ -4,11 +4,11 @@ class TestApp
   TEST_RESOURCES_PATH = File.expand_path('../../../lib/submodules/ably-common/test-resources', __FILE__)
 
   # App configuration for test app
-  # See https://github.com/ably/ably-common/blob/master/test-resources/test-app-setup.json
+  # See https://github.com/ably/ably-common/blob/main/test-resources/test-app-setup.json
   APP_SPEC = JSON.parse(File.read(File.join(TEST_RESOURCES_PATH, 'test-app-setup.json')))['post_apps']
 
   # Cipher details used for client_encoded presence data in test app
-  # See https://github.com/ably/ably-common/blob/master/test-resources/test-app-setup.json
+  # See https://github.com/ably/ably-common/blob/main/test-resources/test-app-setup.json
   APP_SPEC_CIPHER = JSON.parse(File.read(File.join(TEST_RESOURCES_PATH, 'test-app-setup.json')))['cipher']
 
   # If an app has already been created and we need a new app, create a new test app
