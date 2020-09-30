@@ -32,6 +32,13 @@ module Ably
 
       FALLBACK_RETRY_TIMEOUT = 10 * 60
 
+      # Faraday 1.0 introduced new error types, however we want to support Faraday <1 too which only used Faraday::ClientError
+      FARADAY_CLIENT_OR_SERVER_ERRORS = if defined?(Faraday::ParsingError)
+        [Faraday::ClientError, Faraday::ServerError, Faraday::ConnectionFailed, Faraday::SSLError, Faraday::ParsingError]
+      else
+        Faraday::ClientError
+      end
+
       def_delegators :auth, :client_id, :auth_options
 
       # Custom environment to use such as 'sandbox' when testing the client library against an alternate Ably environment
@@ -578,7 +585,7 @@ module Ably
             end
           end
 
-        rescue Faraday::TimeoutError, Faraday::ClientError, Ably::Exceptions::ServerError => error
+        rescue *([Faraday::TimeoutError, Ably::Exceptions::ServerError] + FARADAY_CLIENT_OR_SERVER_ERRORS) => error
           retry_sequence_id ||= SecureRandom.urlsafe_base64(4)
           time_passed = Time.now - requested_at
 
@@ -598,7 +605,7 @@ module Ably
           case error
             when Faraday::TimeoutError
               raise Ably::Exceptions::ConnectionTimeout.new(error.message, nil, Ably::Exceptions::Codes::CONNECTION_TIMED_OUT, error, { request_id: request_id })
-            when Faraday::ClientError
+            when *FARADAY_CLIENT_OR_SERVER_ERRORS
               # request_id is also available in the request context
               raise Ably::Exceptions::ConnectionError.new(error.message, nil, Ably::Exceptions::Codes::CONNECTION_FAILED, error, { request_id: request_id })
             else
