@@ -1058,7 +1058,7 @@ describe Ably::Realtime::Auth, :event_machine do
 
           it 'disconnected includes and invalid signature message' do
             client.connection.once(:disconnected) do |state_change|
-              expect(state_change.reason.message.match(/invalid signature/i)).to_not be_nil
+              expect(state_change.reason.message.match(/signature verification failed/i)).to_not be_nil
               expect(state_change.reason.code).to eql(40144)
               stop_reactor
             end
@@ -1111,7 +1111,7 @@ describe Ably::Realtime::Auth, :event_machine do
 
           it 'authentication fails and reason for disconnection is invalid signature' do
             client.connection.once(:disconnected) do |state_change|
-              expect(state_change.reason.message.match(/invalid signature/i)).to_not be_nil
+              expect(state_change.reason.message.match(/signature verification failed/i)).to_not be_nil
               expect(state_change.reason.code).to eql(40144)
               stop_reactor
             end
@@ -1143,7 +1143,7 @@ describe Ably::Realtime::Auth, :event_machine do
 
           it 'fails with an invalid signature error' do
             client.connection.once(:disconnected) do |state_change|
-              expect(state_change.reason.message.match(/invalid signature/i)).to_not be_nil
+              expect(state_change.reason.message.match(/signature verification failed/i)).to_not be_nil
               expect(state_change.reason.code).to eql(40144)
               stop_reactor
             end
