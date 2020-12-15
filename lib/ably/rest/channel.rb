@@ -67,7 +67,7 @@ module Ably
       #   # Publish a single Ably::Models::Message object, with a query params
       #   # specifying quickAck: true
       #   message = Ably::Models::Message(name: 'click', { x: 1, y: 2 })
-      #   channel.publish message, {quickAck: 'true'}
+      #   channel.publish message, quickAck: 'true'
       #
       def publish(first, second = nil, third = {})
         messages, qs_params = if first.kind_of?(Enumerable)
@@ -82,7 +82,7 @@ module Ably
           ensure_supported_payload second
           # RSL1h - attributes as an extra method parameter is extra-spec but need to
           # keep it for backcompat until version 2
-          [[{ name: first, data: second}.merge(third)], nil]
+          [[{ name: first, data: second }.merge(third)], nil]
         end
 
         payload = messages.each_with_index.map do |message, index|
