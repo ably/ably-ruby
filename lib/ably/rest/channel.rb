@@ -40,15 +40,14 @@ module Ably
         @push    = PushChannel.new(self)
       end
 
-      # Publish one or more messages to the channel.
-      #
-      # @param name [String, Array<Ably::Models::Message|Hash>, nil]   The event name of the message to publish, or an Array of [Ably::Model::Message] objects or [Hash] objects with +:name+ and +:data+ pairs
-      # @param data [String, ByteArray, nil]   The message payload unless an Array of [Ably::Model::Message] objects passed in the first argument
-      # @param attributes [Hash, nil]   Optional additional message attributes such as :extras, :id, :client_id or :connection_id, applied when name attribute is nil or a string
+      # Publish one or more messages to the channel. Three overloaded forms
+      # @param name [String, Array<Ably::Models::Message|Hash>, Ably::Models::Message, nil]   The event name of the message to publish, or an Array of [Ably::Model::Message] objects or [Hash] objects with +:name+ and +:data+ pairs, or a single Ably::Model::Message object
+      # @param data [String, ByteArray, Hash, nil]   The message payload unless an Array of [Ably::Model::Message] objects passed in the first argument, in which case an optional hash of query parameters
+      # @param attributes [Hash, nil]   Optional additional message attributes such as :extras, :id, :client_id or :connection_id, applied when name attribute is nil or a string (Deprecated, will be removed in 1.2 in favour of constructing a Message object)
       # @return [Boolean]  true if the message was published, otherwise false
       #
       # @example
-      #   # Publish a single message
+      #   # Publish a single message with (name, data) form
       #   channel.publish 'click', { x: 1, y: 2 }
       #
       #   # Publish an array of message Hashes
@@ -65,17 +64,25 @@ module Ably
       #   ]
       #   channel.publish messages
       #
-      def publish(name, data = nil, attributes = {})
-        messages = if name.kind_of?(Enumerable)
-          name
+      #   # Publish a single Ably::Models::Message object, with a query params
+      #   # specifying quickAck: true
+      #   message = Ably::Models::Message(name: 'click', { x: 1, y: 2 })
+      #   channel.publish message, {quickAck: 'true'}
+      #
+      def publish(first, second = nil, third = {})
+        messages, qs_params = if first.kind_of?(Enumerable)
+          # ([Message], qs_params) form
+          [first, second]
+        elsif first.kind_of?(Ably::Models::Message)
+          # (Message, qs_params) form
+          [[first], second]
         else
-          if name.kind_of?(Ably::Models::Message)
-            raise ArgumentError, "name argument does not support single Message objects, only arrays of Message objects"
-          end
-
-          name = ensure_utf_8(:name, name, allow_nil: true)
-          ensure_supported_payload data
-          [{ name: name, data: data }.merge(attributes)]
+          # (name, data, attributes) form
+          first = ensure_utf_8(:name, first, allow_nil: true)
+          ensure_supported_payload second
+          # RSL1h - attributes as an extra method parameter is extra-spec but need to
+          # keep it for backcompat until version 2
+          [[{ name: first, data: second}.merge(third)], nil]
         end
 
         payload = messages.each_with_index.map do |message, index|
@@ -103,7 +110,11 @@ module Ably
           end
         end
 
-        response = client.post("#{base_path}/publish", payload.length == 1 ? payload.first : payload)
+        options = {}
+        if qs_params
+          options[:qs_params] = qs_params
+        end
+        response = client.post("#{base_path}/publish", payload.length == 1 ? payload.first : payload, options)
 
         [201, 204].include?(response.status)
       end

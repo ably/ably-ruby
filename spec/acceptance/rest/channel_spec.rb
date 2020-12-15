@@ -40,7 +40,7 @@ describe Ably::Rest::Channel do
 
         it 'publishes the message without a client_id' do
           expect(client).to receive(:post).
-            with("/channels/#{channel_name}/publish", hash_excluding(client_id: client_id)).
+            with("/channels/#{channel_name}/publish", hash_excluding(client_id: client_id), {}).
             and_return(double('response', status: 201))
 
           expect(channel.publish(name, data)).to eql(true)
@@ -82,6 +82,44 @@ describe Ably::Rest::Channel do
         end
       end
 
+      context 'with a Message object' do
+        let(:name) { random_str }
+
+        let(:message) do
+          Ably::Models::Message(name: name, data: data)
+        end
+
+        it 'publishes the message' do
+          expect(client).to receive(:post).once.and_call_original
+          expect(channel.publish(message)).to eql(true)
+          expect(channel.history.items.first.name).to eql(name)
+        end
+      end
+
+      context 'with a Message object and query params' do
+        let(:message) do
+          Ably::Models::Message(name: name, data: data)
+        end
+
+        it 'should fail to publish the message (RSL1l1)' do
+          expect(client).to receive(:post).once.and_call_original
+          expect { channel.publish(message, { _forceNack: 'true' }) }.to raise_error(Ably::Exceptions::InvalidRequest, /40099/)
+        end
+      end
+
+      context 'with Messages and query params' do
+        let(:messages) do
+          10.times.map do |index|
+            { name: index.to_s, data: { "index" => index + 10 } }
+          end
+        end
+
+        it 'should fail to publish the message (RSL1l1)' do
+          expect(client).to receive(:post).once.and_call_original
+          expect { channel.publish(messages, { _forceNack: 'true' }) }.to raise_error(Ably::Exceptions::InvalidRequest, /40099/)
+        end
+      end
+
       context 'without adequate permissions on the channel' do
         let(:capability)     { { onlyChannel: ['subscribe'] } }
         let(:client_options) { default_options.merge(use_token_auth: true, default_token_params: { capability: capability }) }
@@ -96,7 +134,7 @@ describe Ably::Rest::Channel do
           let(:data) { random_str }
 
           it 'publishes the message without a name attribute in the payload' do
-            expect(client).to receive(:post).with(anything, { "data" => data }).once.and_call_original
+            expect(client).to receive(:post).with(anything, { "data" => data }, {}).once.and_call_original
             expect(channel.publish(nil, data)).to eql(true)
             expect(channel.history.items.first.name).to be_nil
             expect(channel.history.items.first.data).to eql(data)
@@ -107,7 +145,7 @@ describe Ably::Rest::Channel do
           let(:name) { random_str }
 
           it 'publishes the message without a data attribute in the payload' do
-            expect(client).to receive(:post).with(anything, { "name" => name }).once.and_call_original
+            expect(client).to receive(:post).with(anything, { "name" => name }, {}).once.and_call_original
             expect(channel.publish(name)).to eql(true)
             expect(channel.history.items.first.name).to eql(name)
             expect(channel.history.items.first.data).to be_nil
@@ -118,7 +156,7 @@ describe Ably::Rest::Channel do
           let(:name) { random_str }
 
           it 'publishes the message without any attributes in the payload' do
-            expect(client).to receive(:post).with(anything, {}).once.and_call_original
+            expect(client).to receive(:post).with(anything, {}, {}).once.and_call_original
             expect(channel.publish(nil)).to eql(true)
             expect(channel.history.items.first.name).to be_nil
             expect(channel.history.items.first.data).to be_nil
