@@ -566,6 +566,9 @@ module Ably
               request.options.context = {} if request.options.context.nil?
               request.options.context[:request_id] = request_id
             end
+            if options[:qs_params]
+              request.params.merge!(options[:qs_params])
+            end
             unless options[:send_auth_header] == false
               request.headers[:authorization] = auth.auth_header
               if options[:headers]
