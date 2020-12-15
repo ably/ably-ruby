@@ -110,10 +110,7 @@ module Ably
           end
         end
 
-        options = {}
-        if qs_params
-          options[:qs_params] = qs_params
-        end
+        options = qs_params ? { qs_params: qs_params } : {}
         response = client.post("#{base_path}/publish", payload.length == 1 ? payload.first : payload, options)
 
         [201, 204].include?(response.status)
