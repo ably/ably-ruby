@@ -19,6 +19,7 @@ require 'support/event_emitter_helper'
 require 'support/private_api_formatter'
 require 'support/protocol_helper'
 require 'support/random_helper'
+require 'support/serialization_helper'
 require 'support/test_logger_helper'
 
 require 'rspec_config'
