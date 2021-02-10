@@ -249,7 +249,7 @@ describe Ably::Realtime::Client, :event_machine do
 
     context '#request (#RSC19*)' do
       let(:client_options) { default_options.merge(key: api_key) }
-      let(:devise_id) { random_str }
+      let(:device_id) { random_str }
       let(:endpoint) { subject.rest_client.endpoint }
 
       context 'get' do
@@ -303,12 +303,12 @@ describe Ably::Realtime::Client, :event_machine do
 
       context 'post', :webmock do
         before do
-          stub_request(:delete, "#{endpoint}/push/deviceRegistrations/#{devise_id}/resetUpdateToken").
+          stub_request(:delete, "#{endpoint}/push/deviceRegistrations/#{device_id}/resetUpdateToken").
             to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
         end
 
         it 'supports post' do
-          subject.request(:delete, "push/deviceRegistrations/#{devise_id}/resetUpdateToken").callback do |response|
+          subject.request(:delete, "push/deviceRegistrations/#{device_id}/resetUpdateToken").callback do |response|
             expect(response).to be_success
             stop_reactor
           end
@@ -317,12 +317,12 @@ describe Ably::Realtime::Client, :event_machine do
 
       context 'delete', :webmock do
         before do
-          stub_request(:delete, "#{endpoint}/push/channelSubscriptions?deviseId=#{devise_id}").
+          stub_request(:delete, "#{endpoint}/push/channelSubscriptions?deviceId=#{device_id}").
             to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
         end
 
         it 'supports delete' do
-          subject.request(:delete, "/push/channelSubscriptions", { deviseId: devise_id}).callback do |response|
+          subject.request(:delete, "/push/channelSubscriptions", { deviceId: device_id}).callback do |response|
             expect(response).to be_success
             stop_reactor
           end
@@ -333,13 +333,13 @@ describe Ably::Realtime::Client, :event_machine do
         let(:body_params) { { 'metadata' => { 'key' => 'value' } } }
 
         before do
-          stub_request(:patch, "#{endpoint}/push/deviceRegistrations/#{devise_id}")
+          stub_request(:patch, "#{endpoint}/push/deviceRegistrations/#{device_id}")
             .with(body: serialize_body(body_params, protocol))
             .to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
         end
 
         it 'supports patch' do
-          subject.request(:patch, "/push/deviceRegistrations/#{devise_id}", {}, body_params).callback do |response|
+          subject.request(:patch, "/push/deviceRegistrations/#{device_id}", {}, body_params).callback do |response|
             expect(response).to be_success
             stop_reactor
           end
@@ -357,13 +357,13 @@ describe Ably::Realtime::Client, :event_machine do
         end
 
         before do
-          stub_request(:put, "#{endpoint}/push/deviceRegistrations/#{devise_id}")
+          stub_request(:put, "#{endpoint}/push/deviceRegistrations/#{device_id}")
             .with(body: serialize_body(body_params, protocol))
             .to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
         end
 
         it 'supports put' do
-          subject.request(:put, "/push/deviceRegistrations/#{devise_id}", {}, body_params).callback do |response|
+          subject.request(:put, "/push/deviceRegistrations/#{device_id}", {}, body_params).callback do |response|
             expect(response).to be_success
             stop_reactor
           end

@@ -1091,7 +1091,7 @@ describe Ably::Rest::Client do
 
     context '#request (#RSC19*)' do
       let(:client_options) { default_options.merge(key: api_key) }
-      let(:devise_id) { random_str }
+      let(:device_id) { random_str }
       let(:endpoint) { client.endpoint }
 
       context 'get' do
@@ -1135,12 +1135,12 @@ describe Ably::Rest::Client do
 
       context 'post', :webmock do
         before do
-          stub_request(:delete, "#{endpoint}/push/deviceRegistrations/#{devise_id}/resetUpdateToken").
+          stub_request(:delete, "#{endpoint}/push/deviceRegistrations/#{device_id}/resetUpdateToken").
             to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
         end
 
         it 'supports post' do
-          response = client.request(:delete, "push/deviceRegistrations/#{devise_id}/resetUpdateToken")
+          response = client.request(:delete, "push/deviceRegistrations/#{device_id}/resetUpdateToken")
 
           expect(response).to be_success
         end
@@ -1148,12 +1148,12 @@ describe Ably::Rest::Client do
 
       context 'delete', :webmock do
         before do
-          stub_request(:delete, "#{endpoint}/push/channelSubscriptions?deviseId=#{devise_id}").
+          stub_request(:delete, "#{endpoint}/push/channelSubscriptions?deviceId=#{device_id}").
             to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
         end
 
         it 'supports delete' do
-          response = client.request(:delete, "/push/channelSubscriptions", { deviseId: devise_id})
+          response = client.request(:delete, "/push/channelSubscriptions", { deviceId: device_id})
 
           expect(response).to be_success
         end
@@ -1163,13 +1163,13 @@ describe Ably::Rest::Client do
         let(:body_params) { { 'metadata' => { 'key' => 'value' } } }
 
         before do
-          stub_request(:patch, "#{endpoint}/push/deviceRegistrations/#{devise_id}")
+          stub_request(:patch, "#{endpoint}/push/deviceRegistrations/#{device_id}")
             .with(body: serialize_body(body_params, protocol))
             .to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
         end
 
         it 'supports patch' do
-          response = client.request(:patch, "/push/deviceRegistrations/#{devise_id}", {}, body_params)
+          response = client.request(:patch, "/push/deviceRegistrations/#{device_id}", {}, body_params)
 
           expect(response).to be_success
         end
@@ -1186,13 +1186,13 @@ describe Ably::Rest::Client do
         end
 
         before do
-          stub_request(:put, "#{endpoint}/push/deviceRegistrations/#{devise_id}")
+          stub_request(:put, "#{endpoint}/push/deviceRegistrations/#{device_id}")
             .with(body: serialize_body(body_params, protocol))
             .to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
         end
 
         it 'supports put' do
-          response = client.request(:put, "/push/deviceRegistrations/#{devise_id}", {}, body_params)
+          response = client.request(:put, "/push/deviceRegistrations/#{device_id}", {}, body_params)
 
           expect(response).to be_success
         end
