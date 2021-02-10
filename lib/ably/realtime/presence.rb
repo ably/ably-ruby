@@ -278,28 +278,14 @@ module Ably::Realtime
 
     # Return the presence messages history for the channel
     #
-    # Once attached to a channel, you can retrieve presence message history on the channel before the
-    # channel was attached with the option <tt>until_attach: true</tt>.  This is very useful for
-    # developers who wish to capture new presence events as well as retrieve historical presence state with
-    # the guarantee that no presence history has been missed.
-    #
     # @param (see Ably::Rest::Presence#history)
     # @option options (see Ably::Rest::Presence#history)
-    # @option options [Boolean]  :until_attach  When true, request for history will be limited only to messages published before the associated channel was attached. The associated channel must be attached.
     #
     # @yield [Ably::Models::PaginatedResult<Ably::Models::PresenceMessage>] First {Ably::Models::PaginatedResult page} of {Ably::Models::PresenceMessage} objects accessible with {Ably::Models::PaginatedResult#items #items}.
     #
     # @return [Ably::Util::SafeDeferrable]
     #
     def history(options = {}, &callback)
-      if options.delete(:until_attach)
-        unless channel.attached?
-          error = Ably::Exceptions::InvalidRequest.new('option :until_attach is invalid as the channel is not attached')
-          return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
-        end
-        options[:from_serial] = channel.attached_serial
-      end
-
       async_wrap(callback) do
         rest_presence.history(options.merge(async_blocking_operations: true))
       end
