@@ -1,0 +1,25 @@
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruby: [ '2.5', '2.6', '2.7' ]
+        protocol: [ 'json', 'msgpack' ]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+      - uses: actions/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+      - env:
+          RSPEC_RETRY: true
+          PARALLEL_TEST_PROCESSORS: 2
+          PROTOCOL: ${{ matrix.protocol }}
+        run: ./spec/run_parallel_tests
