@@ -431,10 +431,10 @@ module Ably
           client.auth.auth_params.tap do |auth_deferrable|
             auth_deferrable.callback do |auth_params|
               url_params = auth_params.merge(
-                format:     client.protocol,
-                echo:       client.echo_messages,
-                v:          Ably::PROTOCOL_VERSION,
-                lib:        client.rest_client.lib_version_id,
+                'format' =>     client.protocol,
+                'echo' =>       client.echo_messages,
+                'v' =>          Ably::PROTOCOL_VERSION,
+                'lib' =>        client.rest_client.lib_version_id,
               )
 
               # Use native websocket heartbeats if possible, but allow Ably protocol heartbeats
@@ -445,6 +445,7 @@ module Ably
               end
 
               url_params['clientId'] = client.auth.client_id if client.auth.has_client_id?
+              url_params.merge!(client.transport_params)
 
               if connection_resumable?
                 url_params.merge! resume: key, connection_serial: serial

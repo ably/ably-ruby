@@ -3,7 +3,7 @@ require 'spec_helper'
 require 'shared/client_initializer_behaviour'
 
 describe Ably::Realtime::Client do
-  subject do
+  subject(:realtime_client) do
     Ably::Realtime::Client.new(client_options)
   end
 
@@ -15,16 +15,29 @@ describe Ably::Realtime::Client do
     it 'passes on the options to the initializer' do
       rest_client = instance_double('Ably::Rest::Client', auth: instance_double('Ably::Auth'), options: client_options, environment: 'production', use_tls?: true, custom_tls_port: nil)
       expect(Ably::Rest::Client).to receive(:new).with(hash_including(client_options)).and_return(rest_client)
-      subject
+      realtime_client
     end
 
     context 'for attribute' do
       [:environment, :use_tls?, :log_level, :custom_host].each do |attribute|
         specify "##{attribute}" do
-          expect(subject.rest_client).to receive(attribute)
-          subject.public_send attribute
+          expect(realtime_client.rest_client).to receive(attribute)
+          realtime_client.public_send attribute
         end
       end
+    end
+  end
+
+  context 'when :transport_params option is passed' do
+    let(:expected_transport_params) do
+      { 'heartbeats' => 'true', 'v' => '1.0', 'extra_param' => 'extra_param' }
+    end
+    let(:client_options) do
+      { key: 'appid.keyuid:keysecret', transport_params: { heartbeats: true, v: 1.0, extra_param: 'extra_param'} }
+    end
+
+    it 'converts options to strings' do
+      expect(realtime_client.transport_params).to eq(expected_transport_params)
     end
   end
 
@@ -32,11 +45,11 @@ describe Ably::Realtime::Client do
     let(:client_options) { { key: 'appid.keyuid:keysecret' } }
 
     specify '#device is not supported and raises an exception' do
-      expect { subject.device }.to raise_error Ably::Exceptions::PushNotificationsNotSupported
+      expect { realtime_client.device }.to raise_error Ably::Exceptions::PushNotificationsNotSupported
     end
 
     specify '#push returns a Push object' do
-      expect(subject.push).to be_a(Ably::Realtime::Push)
+      expect(realtime_client.push).to be_a(Ably::Realtime::Push)
     end
   end
 
