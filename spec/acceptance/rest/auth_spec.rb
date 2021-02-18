@@ -41,20 +41,8 @@ describe Ably::Auth do
     end
 
     def request_body_includes(request, protocol, key, val)
-      body = if protocol == :msgpack
-        MessagePack.unpack(request.body)
-      else
-        JSON.parse(request.body)
-      end
+      body = deserialize_body(request.body, protocol)
       body[convert_to_mixed_case(key)].to_s == val.to_s
-    end
-
-    def serialize(object, protocol)
-      if protocol == :msgpack
-        MessagePack.pack(object)
-      else
-        JSON.dump(object)
-      end
     end
 
     it 'has immutable options' do
@@ -74,7 +62,7 @@ describe Ably::Auth do
 
       it 'creates a TokenRequest automatically and sends it to Ably to obtain a token', webmock: true do
         token_request_stub = stub_request(:post, "#{client.endpoint}/keys/#{key_name}/requestToken").
-          to_return(status: 201, body: serialize({}, protocol), headers: { 'Content-Type' => content_type })
+          to_return(status: 201, body: serialize_body({}, protocol), headers: { 'Content-Type' => content_type })
         expect(auth).to receive(:create_token_request).and_call_original
         auth.request_token
 
@@ -107,7 +95,7 @@ describe Ably::Auth do
                 request_body_includes(request, protocol, token_param, coerce_if_time_value(token_param, random, multiply: 1000))
               end.to_return(
                 :status => 201,
-                :body => serialize(token_response, protocol),
+                :body => serialize_body(token_response, protocol),
                 :headers => { 'Content-Type' => content_type }
               )
           end
@@ -138,7 +126,7 @@ describe Ably::Auth do
               request_body_includes(request, protocol, 'mac', mac)
             end.to_return(
               :status => 201,
-              :body => serialize(token_response, protocol),
+              :body => serialize_body(token_response, protocol),
               :headers => { 'Content-Type' => content_type })
         end
 
@@ -168,7 +156,7 @@ describe Ably::Auth do
               request_body_includes(request, protocol, 'mac', mac)
             end.to_return(
               :status => 201,
-              :body => serialize(token_response, protocol),
+              :body => serialize_body(token_response, protocol),
               :headers => { 'Content-Type' => content_type })
         end
 
@@ -310,7 +298,7 @@ describe Ably::Auth do
               request_body_includes(request, protocol, 'key_name', key_name)
             end.to_return(
               :status => 201,
-              :body => serialize(token_response, protocol),
+              :body => serialize_body(token_response, protocol),
               :headers => { 'Content-Type' => content_type }
             )
         end
