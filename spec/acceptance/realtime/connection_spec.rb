@@ -1879,5 +1879,33 @@ describe Ably::Realtime::Connection, :event_machine do
         end
       end
     end
+
+    context 'transport_params (#RTC1f)' do
+      let(:client_options) { default_options.merge(transport_params: { 'extra_param' => 'extra_param' }) }
+
+      it 'pases transport_params to query' do
+        expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
+            uri = URI.parse(url)
+            expect(CGI::parse(uri.query)['extra_param'][0]).to eq('extra_param')
+            stop_reactor
+          end
+
+          client
+      end
+
+      context 'when changing default param' do
+        let(:client_options) { default_options.merge(transport_params: { v: '1.0' }) }
+
+        it 'overrides default param (#RTC1f1)' do
+          expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
+            uri = URI.parse(url)
+            expect(CGI::parse(uri.query)['v'][0]).to eq('1.0')
+            stop_reactor
+          end
+
+          client
+        end
+      end
+    end
   end
 end

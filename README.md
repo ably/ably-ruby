@@ -13,14 +13,6 @@ We regression-test the SDK against a selection of Ruby versions (which we update
 
 If you find any compatibility issues, please [do raise an issue](https://github.com/ably/ably-ruby/issues/new) in this repository or [contact Ably customer support](https://support.ably.io/) for advice.
 
-## Known Limitations
-
-This client library is currently *not compatible* with some of the Ably features:
-
-| Feature |
-| :--- |
-| [Custom transportParams](https://www.ably.io/documentation/realtime/connection#client-options) |
-
 ## Documentation
 
 Visit https://www.ably.io/documentation for a complete API reference and more examples.

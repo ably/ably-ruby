@@ -65,6 +65,10 @@ module Ably
       # @return [String,Nil]
       attr_reader :recover
 
+      # Additional parameters to be sent in the querystring when initiating a realtime connection
+      # @return [Hash]
+      attr_reader :transport_params
+
       def_delegators :auth, :client_id, :auth_options
       def_delegators :@rest_client, :encoders
       def_delegators :@rest_client, :use_tls?, :protocol, :protocol_binary?
@@ -82,6 +86,7 @@ module Ably
       # @option options [Boolean] :echo_messages  If false, prevents messages originating from this connection being echoed back on the same connection
       # @option options [String]  :recover        When a recover option is specified a connection inherits the state of a previous connection that may have existed under a different instance of the Realtime library, please refer to the API documentation for further information on connection state recovery
       # @option options [Boolean] :auto_connect   By default as soon as the client library is instantiated it will connect to Ably. You can optionally set this to false and explicitly connect.
+      # @option options [Hash]    :transport_params   Additional parameters to be sent in the querystring when initiating a realtime connection. Keys are Strings, values are Stringifiable(a value must respond to #to_s)
       #
       # @option options [Integer] :channel_retry_timeout       (15 seconds). When a channel becomes SUSPENDED, after this delay in seconds, the channel will automatically attempt to reattach if the connection is CONNECTED
       # @option options [Integer] :disconnected_retry_timeout  (15 seconds). When the connection enters the DISCONNECTED state, after this delay in seconds, if the state is still DISCONNECTED, the client library will attempt to reconnect automatically
@@ -109,6 +114,9 @@ module Ably
           end
         end
 
+        @transport_params      = options.delete(:transport_params).to_h.each_with_object({}) do |(key, value), acc|
+          acc[key.to_s] = value.to_s
+        end
         @rest_client           = Ably::Rest::Client.new(options.merge(realtime_client: self))
         @echo_messages         = rest_client.options.fetch(:echo_messages, true) == false ? false : true
         @queue_messages        = rest_client.options.fetch(:queue_messages, true) == false ? false : true
