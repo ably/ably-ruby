@@ -12,7 +12,7 @@ describe Ably::Rest::Client do
     http_defaults = Ably::Rest::Client::HTTP_DEFAULTS
 
     def encode64(text)
-      Base64.encode64(text).gsub("\n", '')
+      Base64.urlsafe_encode64(text)
     end
 
     context '#initialize' do
@@ -50,14 +50,6 @@ describe Ably::Rest::Client do
 
       context 'with :use_token_auth set to true' do
         let(:client) { Ably::Rest::Client.new(client_options.merge(key: api_key, use_token_auth: true)) }
-
-        it 'uses token authentication' do
-          expect(client.auth).to be_using_token_auth
-        end
-      end
-
-      context 'with a :client_id configured' do
-        let(:client) { Ably::Rest::Client.new(client_options.merge(key: api_key, client_id: random_str)) }
 
         it 'uses token authentication' do
           expect(client.auth).to be_using_token_auth
@@ -144,11 +136,12 @@ describe Ably::Rest::Client do
         let(:history_querystring) { history_params.map { |k, v| "#{k}=#{v}" }.join("&") }
 
         context 'with basic auth', webmock: true do
-          let(:client_options)      { default_options.merge(key: api_key) }
+          let(:client_options)      { default_options.merge(key: api_key, client_id: client_id) }
 
           let!(:get_message_history_stub) do
-            stub_request(:get, "https://#{environment}-#{Ably::Rest::Client::DOMAIN}/channels/#{channel_name}/messages?#{history_querystring}").
-              to_return(body: [], headers: { 'Content-Type' => 'application/json' })
+            stub_request(:get, "https://#{environment}-#{Ably::Rest::Client::DOMAIN}/channels/#{channel_name}/messages?#{history_querystring}")
+              .with(headers: { 'X-Ably-ClientId' => encode64(client_id) })
+              .to_return(body: [], headers: { 'Content-Type' => 'application/json' })
           end
 
           it 'sends the API key in authentication part of the secure URL (the Authorization: Basic header is not used with the Faraday HTTP library by default)' do

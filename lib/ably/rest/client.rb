@@ -571,10 +571,9 @@ module Ably
             end
             unless options[:send_auth_header] == false
               request.headers[:authorization] = auth.auth_header
-              if options[:headers]
-                options[:headers].map do |key, val|
-                  request.headers[key] = val
-                end
+
+              options[:headers].to_h.merge(auth.extra_auth_headers).map do |key, val|
+                request.headers[key] = val
               end
             end
           end.tap do

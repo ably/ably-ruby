@@ -87,22 +87,6 @@ describe Ably::Realtime::Client, :event_machine do
                 end
               end
             end
-
-            context 'with client_id' do
-              let(:client_options) do
-                default_options.merge(client_id: random_str)
-              end
-              it 'connects using token auth' do
-                run_reactor do
-                  connection.on(:connected) do
-                    expect(connection.state).to eq(:connected)
-                    expect(auth_params[:access_token]).to_not be_nil
-                    expect(auth_params[:key]).to be_nil
-                    stop_reactor
-                  end
-                end
-              end
-            end
           end
         end
 

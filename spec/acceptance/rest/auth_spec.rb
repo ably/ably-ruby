@@ -1117,63 +1117,6 @@ describe Ably::Auth do
         end
       end
 
-      context 'when implicit as a result of using :client_id' do
-        let(:client_id) { '999' }
-        let(:client) do
-          Ably::Rest::Client.new(key: api_key, client_id: client_id, environment: environment, protocol: protocol)
-        end
-        let(:token) { 'unique-token' }
-        let(:token_response) do
-          {
-            token: token
-          }.to_json
-        end
-
-        context 'and requests to the Ably server are mocked', :webmock do
-          let!(:request_token_stub) do
-            stub_request(:post, "#{client.endpoint}/keys/#{key_name}/requestToken").
-              to_return(:status => 201, :body => token_response, :headers => { 'Content-Type' => 'application/json' })
-          end
-          let!(:publish_message_stub) do
-            stub_request(:post, "#{client.endpoint}/channels/foo/publish").
-              with(headers: { 'Authorization' => "Bearer #{encode64(token)}" }).
-              to_return(status: 201, body: '{}', headers: { 'Content-Type' => 'application/json' })
-          end
-
-          it 'will send a token request to the server' do
-            client.channel('foo').publish('event', 'data')
-            expect(request_token_stub).to have_been_requested
-          end
-        end
-
-        describe 'a token is created' do
-          let(:token) { client.auth.current_token_details }
-
-          it 'before a request is made' do
-            expect(token).to be_nil
-          end
-
-          it 'when a message is published' do
-            expect(client.channel('foo').publish('event', 'data')).to be_truthy
-          end
-
-          it 'with capability and TTL defaults (#TK2a, #TK2b)' do
-            client.channel('foo').publish('event', 'data')
-
-            expect(token).to be_a(Ably::Models::TokenDetails)
-            capability_with_str_key = { "*" => ["*"] } # Ably default is all capabilities
-            capability = Hash[capability_with_str_key.keys.map(&:to_s).zip(capability_with_str_key.values)]
-            expect(token.capability).to eq(capability)
-            expect(token.expires.to_i).to be_within(2).of(Time.now.to_i + 60 * 60) # Ably default is 1hr
-            expect(token.client_id).to eq(client_id)
-          end
-
-          specify '#client_id contains the client_id' do
-            expect(client.auth.client_id).to eql(client_id)
-          end
-        end
-      end
-
       context 'when token expires' do
         before do
           stub_const 'Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER', 0 # allow token to be used even if about to expire

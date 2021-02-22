@@ -77,18 +77,6 @@ describe Ably::Realtime::Connection, :event_machine do
                 end
               end
             end
-
-            context 'with implicit authorisation' do
-              let(:client_options) { default_options.merge(client_id: 'force_token_auth') }
-
-              it 'uses the token created by the implicit authorisation' do
-                expect(client.rest_client.auth).to receive(:request_token).once.and_call_original
-
-                connection.once(:connected) do
-                  stop_reactor
-                end
-              end
-            end
           end
 
           context 'that expire' do
