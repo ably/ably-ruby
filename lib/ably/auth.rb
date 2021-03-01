@@ -103,7 +103,6 @@ module Ably
       end
 
       if has_client_id? && !token_creatable_externally? && !token_option
-        raise ArgumentError, 'client_id cannot be provided without a complete API key or means to authenticate. An API key is needed to automatically authenticate with Ably and obtain a token' unless api_key_present?
         @client_id = ensure_utf_8(:client_id, client_id) if client_id
       end
 
@@ -377,7 +376,7 @@ module Ably
     # True when Token Auth is being used to authenticate with Ably
     def using_token_auth?
       return options[:use_token_auth] if options.has_key?(:use_token_auth)
-      !!(token_option || current_token_details || has_client_id? || token_creatable_externally?)
+      !!(token_option || current_token_details || token_creatable_externally?)
     end
 
     def client_id
@@ -405,6 +404,17 @@ module Ably
         token_auth_header
       else
         basic_auth_header
+      end
+    end
+
+    # Extra headers that may be used during authentication
+    #
+    # @return [Hash] headers
+    def extra_auth_headers
+      if client_id && using_basic_auth?
+        { 'X-Ably-ClientId' => Base64.urlsafe_encode64(client_id) }
+      else
+        {}
       end
     end
 
