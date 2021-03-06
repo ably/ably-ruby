@@ -83,6 +83,16 @@ describe Ably::Realtime::Channel, :event_machine do
           end
         end
 
+        it 'sets attach_serial property after the attachment (#RTL15a)' do
+          expect(channel.properties.attach_serial).to be_nil
+
+          channel.attach
+          channel.on(:attached) do
+            expect(channel.properties.attach_serial).to_not be_nil
+            stop_reactor
+          end
+        end
+
         it 'sends an ATTACH and waits for an ATTACHED (#RTL4c)' do
           connection.once(:connected) do
             attach_count = 0
