@@ -2449,6 +2449,60 @@ describe Ably::Realtime::Presence, :event_machine do
         end
       end
 
+      describe '#RTP17b' do
+        let(:leave_action) { Ably::Models::PresenceMessage::ACTION.Leave }
+
+        it 'updates presence members on leave' do
+          presence_client_two.subscribe(:enter) do
+            channel_anonymous_client.attach do
+              channel_anonymous_client.presence.get do |members|
+                presence_client_two.subscribe(:leave) do
+                  expect(presence_client_two.members.local_members).to be_empty
+                  stop_reactor
+                end
+
+                leave_message = Ably::Models::PresenceMessage.new(
+                  'id' => "#{client_two.connection.id}:#{presence_client_two.client_id}:1",
+                  'clientId' => presence_client_two.client_id,
+                  'connectionId' => client_two.connection.id,
+                  'timestamp' => as_since_epoch(Time.now),
+                  'action' => leave_action
+                )
+
+                presence_client_two.__incoming_msgbus__.publish :presence, leave_message
+              end
+            end
+          end
+
+          presence_client_two.enter
+        end
+
+        it 'does no update presence members on fabricated leave' do
+          presence_client_two.subscribe(:enter) do
+            channel_anonymous_client.attach do
+              channel_anonymous_client.presence.get do |members|
+                presence_client_two.subscribe(:leave) do
+                  expect(presence_client_two.members.local_members).to_not be_empty
+                  stop_reactor
+                end
+
+                fabricated_leave_message = Ably::Models::PresenceMessage.new(
+                  'id' => "#{client_two.connection.id}:#{presence_client_two.client_id}:1",
+                  'clientId' => presence_client_two.client_id,
+                  'connectionId' => "fabricated:#{presence_client_two.client_id}:0",
+                  'timestamp' => as_since_epoch(Time.now),
+                  'action' => leave_action
+                )
+
+                presence_client_two.__incoming_msgbus__.publish :presence, fabricated_leave_message
+              end
+            end
+          end
+
+          presence_client_two.enter
+        end
+      end
+
       context 'when a channel becomes attached again' do
         let(:attached_action) { Ably::Models::ProtocolMessage::ACTION.Attached.to_i }
         let(:sync_action) { Ably::Models::ProtocolMessage::ACTION.Sync.to_i }
