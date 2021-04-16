@@ -1,5 +1,43 @@
 # Change Log
 
+## [v1.1.4](https://github.com/ably/ably-ruby/tree/v1.1.4)
+
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.1.4.rc...HEAD)
+
+**Implemented enhancements:**
+
+- statesman dependency very outdated [\#199](https://github.com/ably/ably-ruby/issues/199)
+- Add support for custom transportParams [\#176](https://github.com/ably/ably-ruby/issues/176)
+- Re-enable imempotency tests as part of 1.1 release [\#174](https://github.com/ably/ably-ruby/issues/174)
+- Ensure request method accepts UPDATE, PATCH & DELETE verbs [\#168](https://github.com/ably/ably-ruby/issues/168)
+- my-members presenceMap requirement change for 1.1 [\#163](https://github.com/ably/ably-ruby/issues/163)
+- Add ChannelProperties as part of 1.0 spec \(RTL15\) [\#112](https://github.com/ably/ably-ruby/issues/112)
+
+**Fixed bugs:**
+
+- client\_id should be passed as clientId [\#159](https://github.com/ably/ably-ruby/issues/159)
+
+**Closed issues:**
+
+- Error in the HTTP2 framing layer issue before heroku-20 [\#215](https://github.com/ably/ably-ruby/issues/215)
+- Using a clientId should no longer be forcing token auth in the 1.1 spec [\#182](https://github.com/ably/ably-ruby/issues/182)
+
+**Merged pull requests:**
+
+- Continue running all workflow jobs when one fails [\#235](https://github.com/ably/ably-ruby/pull/235) ([owenpearson](https://github.com/owenpearson))
+- Set SNI hostname and verify peer certificates when using TLS [\#234](https://github.com/ably/ably-ruby/pull/234) ([lmars](https://github.com/lmars))
+- Validate that members presenceMap does not change on synthesized leave [\#231](https://github.com/ably/ably-ruby/pull/231) ([TheSmartnik](https://github.com/TheSmartnik))
+- Conform license and copyright [\#229](https://github.com/ably/ably-ruby/pull/229) ([QuintinWillison](https://github.com/QuintinWillison))
+- Add ChannelProperties \(RTL15\) [\#227](https://github.com/ably/ably-ruby/pull/227) ([TheSmartnik](https://github.com/TheSmartnik))
+- Replace fury badges with shields.io [\#226](https://github.com/ably/ably-ruby/pull/226) ([owenpearson](https://github.com/owenpearson))
+- Add transport\_params option to realtime client \(RTC1f1\) [\#224](https://github.com/ably/ably-ruby/pull/224) ([TheSmartnik](https://github.com/TheSmartnik))
+- Use GitHub actions [\#223](https://github.com/ably/ably-ruby/pull/223) ([owenpearson](https://github.com/owenpearson))
+- Add support for delete, patch, put method in \#request [\#218](https://github.com/ably/ably-ruby/pull/218) ([TheSmartnik](https://github.com/TheSmartnik))
+- Upgrade statesman [\#217](https://github.com/ably/ably-ruby/pull/217) ([TheSmartnik](https://github.com/TheSmartnik))
+- Remove until\_attach option for presence history [\#216](https://github.com/ably/ably-ruby/pull/216) ([TheSmartnik](https://github.com/TheSmartnik))
+- Update Travis CI versions [\#214](https://github.com/ably/ably-ruby/pull/214) ([TheSmartnik](https://github.com/TheSmartnik))
+- Add maintainers file [\#213](https://github.com/ably/ably-ruby/pull/213) ([niksilver](https://github.com/niksilver))
+
 ## [v1.1.3](https://github.com/ably/ably-ruby/tree/v1.1.3)
 
 [Full Changelog](https://github.com/ably/ably-ruby/compare/v1.1.2...v1.1.3)
