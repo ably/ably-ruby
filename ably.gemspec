@@ -20,7 +20,7 @@ Gem::Specification.new do |spec|
 
   spec.add_runtime_dependency 'eventmachine', '~> 1.2.6'
   spec.add_runtime_dependency 'em-http-request', '~> 1.1'
-  spec.add_runtime_dependency 'statesman', '~> 1.0.0'
+  spec.add_runtime_dependency 'statesman', '~> 7.4'
   spec.add_runtime_dependency 'faraday', '~> 1.0'
   spec.add_runtime_dependency 'typhoeus', '~> 1.4'
 
@@ -46,7 +46,7 @@ Gem::Specification.new do |spec|
     spec.add_development_dependency 'webmock', '2.2'
     spec.add_development_dependency 'parallel_tests', '~> 2.9.0'
   else
-    spec.add_development_dependency 'webmock', '~> 2.2'
+    spec.add_development_dependency 'webmock', '~> 3.11'
     spec.add_development_dependency 'coveralls'
     spec.add_development_dependency 'parallel_tests', '~> 2.22'
     if !RUBY_VERSION.match(/^2\.[0123]/)

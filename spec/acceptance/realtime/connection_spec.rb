@@ -77,18 +77,6 @@ describe Ably::Realtime::Connection, :event_machine do
                 end
               end
             end
-
-            context 'with implicit authorisation' do
-              let(:client_options) { default_options.merge(client_id: 'force_token_auth') }
-
-              it 'uses the token created by the implicit authorisation' do
-                expect(client.rest_client.auth).to receive(:request_token).once.and_call_original
-
-                connection.once(:connected) do
-                  stop_reactor
-                end
-              end
-            end
           end
 
           context 'that expire' do
@@ -1875,6 +1863,34 @@ describe Ably::Realtime::Connection, :event_machine do
             expect(CGI::parse(uri.query)['lib'][0]).to match(/^ruby-#{variant}-1\.1\.\d+(-[\w\.]+)?$/)
             stop_reactor
           end
+          client
+        end
+      end
+    end
+
+    context 'transport_params (#RTC1f)' do
+      let(:client_options) { default_options.merge(transport_params: { 'extra_param' => 'extra_param' }) }
+
+      it 'pases transport_params to query' do
+        expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
+            uri = URI.parse(url)
+            expect(CGI::parse(uri.query)['extra_param'][0]).to eq('extra_param')
+            stop_reactor
+          end
+
+          client
+      end
+
+      context 'when changing default param' do
+        let(:client_options) { default_options.merge(transport_params: { v: '1.0' }) }
+
+        it 'overrides default param (#RTC1f1)' do
+          expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
+            uri = URI.parse(url)
+            expect(CGI::parse(uri.query)['v'][0]).to eq('1.0')
+            stop_reactor
+          end
+
           client
         end
       end

@@ -89,31 +89,15 @@ describe Ably::Rest::Push::Admin do
           end
         end
 
-        def request_body(request, protocol)
-          if protocol == :msgpack
-            MessagePack.unpack(request.body)
-          else
-            JSON.parse(request.body)
-          end
-        end
-
-        def serialize(object, protocol)
-          if protocol == :msgpack
-            MessagePack.pack(object)
-          else
-            JSON.dump(object)
-          end
-        end
-
         let!(:publish_stub) do
           stub_request(:post, "#{client.endpoint}/push/publish").
             with do |request|
-              expect(request_body(request, protocol)['recipient']['camelCase']['secondLevelCamelCase']).to eql('val')
-              expect(request_body(request, protocol)['recipient']).to_not have_key('camel_case')
+              expect(deserialize_body(request.body, protocol)['recipient']['camelCase']['secondLevelCamelCase']).to eql('val')
+              expect(deserialize_body(request.body, protocol)['recipient']).to_not have_key('camel_case')
               true
             end.to_return(
               :status => 201,
-              :body => serialize({}, protocol),
+              :body => serialize_body({}, protocol),
               :headers => { 'Content-Type' => content_type }
             )
         end

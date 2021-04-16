@@ -41,20 +41,8 @@ describe Ably::Auth do
     end
 
     def request_body_includes(request, protocol, key, val)
-      body = if protocol == :msgpack
-        MessagePack.unpack(request.body)
-      else
-        JSON.parse(request.body)
-      end
+      body = deserialize_body(request.body, protocol)
       body[convert_to_mixed_case(key)].to_s == val.to_s
-    end
-
-    def serialize(object, protocol)
-      if protocol == :msgpack
-        MessagePack.pack(object)
-      else
-        JSON.dump(object)
-      end
     end
 
     it 'has immutable options' do
@@ -74,7 +62,7 @@ describe Ably::Auth do
 
       it 'creates a TokenRequest automatically and sends it to Ably to obtain a token', webmock: true do
         token_request_stub = stub_request(:post, "#{client.endpoint}/keys/#{key_name}/requestToken").
-          to_return(status: 201, body: serialize({}, protocol), headers: { 'Content-Type' => content_type })
+          to_return(status: 201, body: serialize_body({}, protocol), headers: { 'Content-Type' => content_type })
         expect(auth).to receive(:create_token_request).and_call_original
         auth.request_token
 
@@ -107,7 +95,7 @@ describe Ably::Auth do
                 request_body_includes(request, protocol, token_param, coerce_if_time_value(token_param, random, multiply: 1000))
               end.to_return(
                 :status => 201,
-                :body => serialize(token_response, protocol),
+                :body => serialize_body(token_response, protocol),
                 :headers => { 'Content-Type' => content_type }
               )
           end
@@ -138,7 +126,7 @@ describe Ably::Auth do
               request_body_includes(request, protocol, 'mac', mac)
             end.to_return(
               :status => 201,
-              :body => serialize(token_response, protocol),
+              :body => serialize_body(token_response, protocol),
               :headers => { 'Content-Type' => content_type })
         end
 
@@ -168,7 +156,7 @@ describe Ably::Auth do
               request_body_includes(request, protocol, 'mac', mac)
             end.to_return(
               :status => 201,
-              :body => serialize(token_response, protocol),
+              :body => serialize_body(token_response, protocol),
               :headers => { 'Content-Type' => content_type })
         end
 
@@ -310,7 +298,7 @@ describe Ably::Auth do
               request_body_includes(request, protocol, 'key_name', key_name)
             end.to_return(
               :status => 201,
-              :body => serialize(token_response, protocol),
+              :body => serialize_body(token_response, protocol),
               :headers => { 'Content-Type' => content_type }
             )
         end
@@ -1125,63 +1113,6 @@ describe Ably::Auth do
           it 'should indicate an error and not retry the request (#RSA4a)' do
             sleep ttl + 1
             expect { token_auth_client.channels.get('foo').publish 'event' }.to raise_error(Ably::Exceptions::TokenExpired)
-          end
-        end
-      end
-
-      context 'when implicit as a result of using :client_id' do
-        let(:client_id) { '999' }
-        let(:client) do
-          Ably::Rest::Client.new(key: api_key, client_id: client_id, environment: environment, protocol: protocol)
-        end
-        let(:token) { 'unique-token' }
-        let(:token_response) do
-          {
-            token: token
-          }.to_json
-        end
-
-        context 'and requests to the Ably server are mocked', :webmock do
-          let!(:request_token_stub) do
-            stub_request(:post, "#{client.endpoint}/keys/#{key_name}/requestToken").
-              to_return(:status => 201, :body => token_response, :headers => { 'Content-Type' => 'application/json' })
-          end
-          let!(:publish_message_stub) do
-            stub_request(:post, "#{client.endpoint}/channels/foo/publish").
-              with(headers: { 'Authorization' => "Bearer #{encode64(token)}" }).
-              to_return(status: 201, body: '{}', headers: { 'Content-Type' => 'application/json' })
-          end
-
-          it 'will send a token request to the server' do
-            client.channel('foo').publish('event', 'data')
-            expect(request_token_stub).to have_been_requested
-          end
-        end
-
-        describe 'a token is created' do
-          let(:token) { client.auth.current_token_details }
-
-          it 'before a request is made' do
-            expect(token).to be_nil
-          end
-
-          it 'when a message is published' do
-            expect(client.channel('foo').publish('event', 'data')).to be_truthy
-          end
-
-          it 'with capability and TTL defaults (#TK2a, #TK2b)' do
-            client.channel('foo').publish('event', 'data')
-
-            expect(token).to be_a(Ably::Models::TokenDetails)
-            capability_with_str_key = { "*" => ["*"] } # Ably default is all capabilities
-            capability = Hash[capability_with_str_key.keys.map(&:to_s).zip(capability_with_str_key.values)]
-            expect(token.capability).to eq(capability)
-            expect(token.expires.to_i).to be_within(2).of(Time.now.to_i + 60 * 60) # Ably default is 1hr
-            expect(token.client_id).to eq(client_id)
-          end
-
-          specify '#client_id contains the client_id' do
-            expect(client.auth.client_id).to eql(client_id)
           end
         end
       end
