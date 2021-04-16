@@ -16,10 +16,13 @@ module Ably::Realtime
       )
       include Ably::Modules::StateEmitter
 
+      attr_reader :host
+
       def initialize(connection, url)
         @connection = connection
         @state      = STATE.Initialized
         @url        = url
+        @host       = URI.parse(url).hostname
 
         setup_event_handlers
       end
@@ -49,7 +52,7 @@ module Ably::Realtime
       # Required {http://www.rubydoc.info/github/eventmachine/eventmachine/EventMachine/Connection EventMachine::Connection} interface
       def connection_completed
         change_state STATE.Connected
-        start_tls if client.use_tls?
+        start_tls(tls_opts) if client.use_tls?
         driver.start
       end
 
@@ -213,6 +216,15 @@ module Ably::Realtime
             :protocol_message
           end
         )
+      end
+
+      # TLS options to pass to EventMachine::Connection#start_tls
+      #
+      # See https://www.rubydoc.info/github/eventmachine/eventmachine/EventMachine/Connection#start_tls-instance_method
+      def tls_opts
+        {
+          sni_hostname: host,
+        }
       end
     end
   end
