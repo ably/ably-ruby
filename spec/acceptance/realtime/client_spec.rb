@@ -87,22 +87,6 @@ describe Ably::Realtime::Client, :event_machine do
                 end
               end
             end
-
-            context 'with client_id' do
-              let(:client_options) do
-                default_options.merge(client_id: random_str)
-              end
-              it 'connects using token auth' do
-                run_reactor do
-                  connection.on(:connected) do
-                    expect(connection.state).to eq(:connected)
-                    expect(auth_params[:access_token]).to_not be_nil
-                    expect(auth_params[:key]).to be_nil
-                    stop_reactor
-                  end
-                end
-              end
-            end
           end
         end
 
@@ -249,6 +233,8 @@ describe Ably::Realtime::Client, :event_machine do
 
     context '#request (#RSC19*)' do
       let(:client_options) { default_options.merge(key: api_key) }
+      let(:device_id) { random_str }
+      let(:endpoint) { subject.rest_client.endpoint }
 
       context 'get' do
         it 'returns an HttpPaginatedResponse object' do
@@ -294,6 +280,76 @@ describe Ably::Realtime::Client, :event_machine do
                 end
               end
             end
+          end
+        end
+      end
+
+
+      context 'post', :webmock do
+        before do
+          stub_request(:delete, "#{endpoint}/push/deviceRegistrations/#{device_id}/resetUpdateToken").
+            to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
+        end
+
+        it 'supports post' do
+          subject.request(:delete, "push/deviceRegistrations/#{device_id}/resetUpdateToken").callback do |response|
+            expect(response).to be_success
+            stop_reactor
+          end
+        end
+      end
+
+      context 'delete', :webmock do
+        before do
+          stub_request(:delete, "#{endpoint}/push/channelSubscriptions?deviceId=#{device_id}").
+            to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
+        end
+
+        it 'supports delete' do
+          subject.request(:delete, "/push/channelSubscriptions", { deviceId: device_id}).callback do |response|
+            expect(response).to be_success
+            stop_reactor
+          end
+        end
+      end
+
+      context 'patch', :webmock do
+        let(:body_params) { { 'metadata' => { 'key' => 'value' } } }
+
+        before do
+          stub_request(:patch, "#{endpoint}/push/deviceRegistrations/#{device_id}")
+            .with(body: serialize_body(body_params, protocol))
+            .to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
+        end
+
+        it 'supports patch' do
+          subject.request(:patch, "/push/deviceRegistrations/#{device_id}", {}, body_params).callback do |response|
+            expect(response).to be_success
+            stop_reactor
+          end
+        end
+      end
+
+      context 'put', :webmock do
+        let(:body_params) do
+          {
+            'id' => random_str,
+            'platform' => 'ios',
+            'formFactor' => 'phone',
+            'metadata' => { 'key' => 'value' }
+          }
+        end
+
+        before do
+          stub_request(:put, "#{endpoint}/push/deviceRegistrations/#{device_id}")
+            .with(body: serialize_body(body_params, protocol))
+            .to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
+        end
+
+        it 'supports put' do
+          subject.request(:put, "/push/deviceRegistrations/#{device_id}", {}, body_params).callback do |response|
+            expect(response).to be_success
+            stop_reactor
           end
         end
       end

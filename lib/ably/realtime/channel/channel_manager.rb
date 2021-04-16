@@ -37,7 +37,7 @@ module Ably::Realtime
         # library, such as returning to attached whne detach has failed
         if attached_protocol_message
           update_presence_sync_state_following_attached attached_protocol_message
-          channel.set_attached_serial attached_protocol_message.channel_serial
+          channel.properties.set_attach_serial(attached_protocol_message.channel_serial)
         end
       end
 
@@ -76,7 +76,7 @@ module Ably::Realtime
           update_presence_sync_state_following_attached protocol_message
         end
 
-        channel.set_attached_serial protocol_message.channel_serial
+        channel.properties.set_attach_serial(protocol_message.channel_serial)
       end
 
       # Handle DETACED messages, see #RTL13 for server-initated detaches

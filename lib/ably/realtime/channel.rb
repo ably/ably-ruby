@@ -79,6 +79,10 @@ module Ably
       # @return [Hash]
       attr_reader :options
 
+      # Properties of a channel and its state
+      # @return [{Ably::Realtime::Channel::ChannelProperties}]
+      attr_reader :properties
+
       # When a channel failure occurs this attribute contains the Ably Exception
       # @return [Ably::Models::ErrorInfo,Ably::Exceptions::BaseAblyException]
       attr_reader :error_reason
@@ -87,11 +91,6 @@ module Ably
       # @return [Ably::Realtime::Channel::ChannelManager]
       # @api private
       attr_reader :manager
-
-      # Serial number assigned to this channel when it was attached
-      # @return [Integer]
-      # @api private
-      attr_reader :attached_serial
 
       # Initialize a new Channel object
       #
@@ -112,6 +111,7 @@ module Ably
         @state         = STATE(state_machine.current_state)
         @manager       = ChannelManager.new(self, client.connection)
         @push          = PushChannel.new(self)
+        @properties    = ChannelProperties.new(self)
 
         setup_event_handlers
         setup_presence
@@ -292,7 +292,7 @@ module Ably
             error = Ably::Exceptions::InvalidRequest.new('option :until_attach is invalid as the channel is not attached' )
             return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
           end
-          options[:from_serial] = attached_serial
+          options[:from_serial] = properties.attach_serial
         end
 
         async_wrap(callback) do
@@ -317,11 +317,6 @@ module Ably
       # @api private
       def clear_error_reason
         @error_reason = nil
-      end
-
-      # @api private
-      def set_attached_serial(serial)
-        @attached_serial = serial
       end
 
       # @api private
@@ -372,3 +367,4 @@ end
 require 'ably/realtime/channel/channel_manager'
 require 'ably/realtime/channel/channel_state_machine'
 require 'ably/realtime/channel/push_channel'
+require 'ably/realtime/channel/channel_properties'

@@ -12,7 +12,7 @@ describe Ably::Rest::Client do
     http_defaults = Ably::Rest::Client::HTTP_DEFAULTS
 
     def encode64(text)
-      Base64.encode64(text).gsub("\n", '')
+      Base64.urlsafe_encode64(text)
     end
 
     context '#initialize' do
@@ -50,14 +50,6 @@ describe Ably::Rest::Client do
 
       context 'with :use_token_auth set to true' do
         let(:client) { Ably::Rest::Client.new(client_options.merge(key: api_key, use_token_auth: true)) }
-
-        it 'uses token authentication' do
-          expect(client.auth).to be_using_token_auth
-        end
-      end
-
-      context 'with a :client_id configured' do
-        let(:client) { Ably::Rest::Client.new(client_options.merge(key: api_key, client_id: random_str)) }
 
         it 'uses token authentication' do
           expect(client.auth).to be_using_token_auth
@@ -144,11 +136,12 @@ describe Ably::Rest::Client do
         let(:history_querystring) { history_params.map { |k, v| "#{k}=#{v}" }.join("&") }
 
         context 'with basic auth', webmock: true do
-          let(:client_options)      { default_options.merge(key: api_key) }
+          let(:client_options)      { default_options.merge(key: api_key, client_id: client_id) }
 
           let!(:get_message_history_stub) do
-            stub_request(:get, "https://#{environment}-#{Ably::Rest::Client::DOMAIN}/channels/#{channel_name}/messages?#{history_querystring}").
-              to_return(body: [], headers: { 'Content-Type' => 'application/json' })
+            stub_request(:get, "https://#{environment}-#{Ably::Rest::Client::DOMAIN}/channels/#{channel_name}/messages?#{history_querystring}")
+              .with(headers: { 'X-Ably-ClientId' => encode64(client_id) })
+              .to_return(body: [], headers: { 'Content-Type' => 'application/json' })
           end
 
           it 'sends the API key in authentication part of the secure URL (the Authorization: Basic header is not used with the Faraday HTTP library by default)' do
@@ -1126,6 +1119,8 @@ describe Ably::Rest::Client do
 
     context '#request (#RSC19*)' do
       let(:client_options) { default_options.merge(key: api_key) }
+      let(:device_id) { random_str }
+      let(:endpoint) { client.endpoint }
 
       context 'get' do
         it 'returns an HttpPaginatedResponse object' do
@@ -1163,6 +1158,71 @@ describe Ably::Rest::Client do
             next_page = next_page.next
             expect(next_page.items.length).to eql(2)
           end
+        end
+      end
+
+      context 'post', :webmock do
+        before do
+          stub_request(:delete, "#{endpoint}/push/deviceRegistrations/#{device_id}/resetUpdateToken").
+            to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
+        end
+
+        it 'supports post' do
+          response = client.request(:delete, "push/deviceRegistrations/#{device_id}/resetUpdateToken")
+
+          expect(response).to be_success
+        end
+      end
+
+      context 'delete', :webmock do
+        before do
+          stub_request(:delete, "#{endpoint}/push/channelSubscriptions?deviceId=#{device_id}").
+            to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
+        end
+
+        it 'supports delete' do
+          response = client.request(:delete, "/push/channelSubscriptions", { deviceId: device_id})
+
+          expect(response).to be_success
+        end
+      end
+
+      context 'patch', :webmock do
+        let(:body_params) { { 'metadata' => { 'key' => 'value' } } }
+
+        before do
+          stub_request(:patch, "#{endpoint}/push/deviceRegistrations/#{device_id}")
+            .with(body: serialize_body(body_params, protocol))
+            .to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
+        end
+
+        it 'supports patch' do
+          response = client.request(:patch, "/push/deviceRegistrations/#{device_id}", {}, body_params)
+
+          expect(response).to be_success
+        end
+      end
+
+      context 'put', :webmock do
+        let(:body_params) do
+          {
+            'id' => random_str,
+            'platform' => 'ios',
+            'formFactor' => 'phone',
+            'metadata' => { 'key' => 'value' }
+          }
+        end
+
+        before do
+          stub_request(:put, "#{endpoint}/push/deviceRegistrations/#{device_id}")
+            .with(body: serialize_body(body_params, protocol))
+            .to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
+        end
+
+        it 'supports put' do
+          response = client.request(:put, "/push/deviceRegistrations/#{device_id}", {}, body_params)
+
+          expect(response).to be_success
         end
       end
     end

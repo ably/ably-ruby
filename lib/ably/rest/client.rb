@@ -345,14 +345,14 @@ module Ably
       #
       # @return [Ably::Models::HttpPaginatedResponse<>]
       def request(method, path, params = {}, body = nil, headers = {}, options = {})
-        raise "Method #{method.to_s.upcase} not supported" unless [:get, :put, :post].include?(method.to_sym)
+        raise "Method #{method.to_s.upcase} not supported" unless %i(get put patch post delete).include?(method.to_sym)
 
         response = case method.to_sym
-        when :get
+        when :get, :delete
           reauthorize_on_authorization_failure do
             send_request(method, path, params, headers: headers)
           end
-        when :post
+        when :post, :patch, :put
           path_with_params = Addressable::URI.new
           path_with_params.query_values = params || {}
           query = path_with_params.query
@@ -568,12 +568,14 @@ module Ably
               request.options.context = {} if request.options.context.nil?
               request.options.context[:request_id] = request_id
             end
+            if options[:qs_params]
+              request.params.merge!(options[:qs_params])
+            end
             unless options[:send_auth_header] == false
               request.headers[:authorization] = auth.auth_header
-              if options[:headers]
-                options[:headers].map do |key, val|
-                  request.headers[key] = val
-                end
+
+              options[:headers].to_h.merge(auth.extra_auth_headers).map do |key, val|
+                request.headers[key] = val
               end
             end
           end.tap do

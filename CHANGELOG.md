@@ -1,5 +1,13 @@
 # Change Log
 
+## [v1.1.3](https://github.com/ably/ably-ruby/tree/v1.1.3)
+
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.1.2...v1.1.3)
+
+**Merged pull requests:**
+
+- RestChannel#publish: implement params (RSL1l) [\#210](https://github.com/ably/ably-ruby/pull/210) ([simonwoolf](https://github.com/simonwoolf))
+
 ## [v1.1.2](https://github.com/ably/ably-ruby/tree/v1.1.2)
 
 [Full Changelog](https://github.com/ably/ably-ruby/compare/v1.1.1...v1.1.2)

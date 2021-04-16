@@ -1,3 +1,5 @@
+require 'openssl'
+
 module Ably::Realtime
   class Connection
     # EventMachine WebSocket transport
@@ -16,10 +18,13 @@ module Ably::Realtime
       )
       include Ably::Modules::StateEmitter
 
+      attr_reader :host
+
       def initialize(connection, url)
         @connection = connection
         @state      = STATE.Initialized
         @url        = url
+        @host       = URI.parse(url).hostname
 
         setup_event_handlers
       end
@@ -49,7 +54,7 @@ module Ably::Realtime
       # Required {http://www.rubydoc.info/github/eventmachine/eventmachine/EventMachine/Connection EventMachine::Connection} interface
       def connection_completed
         change_state STATE.Connected
-        start_tls if client.use_tls?
+        start_tls(tls_opts) if client.use_tls?
         driver.start
       end
 
@@ -75,6 +80,51 @@ module Ably::Realtime
       # {http://www.rubydoc.info/gems/websocket-driver/0.3.5/WebSocket/Driver WebSocket::Driver} interface
       def write(data)
         send_data(data)
+      end
+
+      # TLS verification support, original implementation by Mislav Marohnić:
+      #
+      # https://github.com/lostisland/faraday/commit/63cf47c95b573539f047c729bd9ad67560bc83ff
+      def ssl_verify_peer(cert_string)
+        cert = nil
+        begin
+          cert = OpenSSL::X509::Certificate.new(cert_string)
+        rescue OpenSSL::X509::CertificateError => e
+          disconnect_with_reason "Websocket host '#{host}' returned an invalid TLS certificate: #{e.message}"
+          return false
+        end
+
+        @last_seen_cert = cert
+
+        if certificate_store.verify(@last_seen_cert)
+          begin
+            certificate_store.add_cert(@last_seen_cert)
+          rescue OpenSSL::X509::StoreError => e
+            unless e.message == 'cert already in hash table'
+              disconnect_with_reason "Websocket host '#{host}' returned an invalid TLS certificate: #{e.message}"
+              return false
+            end
+          end
+          true
+        else
+          disconnect_with_reason "Websocket host '#{host}' returned an invalid TLS certificate"
+          false
+        end
+      end
+
+      def ssl_handshake_completed
+        unless OpenSSL::SSL.verify_certificate_identity(@last_seen_cert, host)
+          disconnect_with_reason "Websocket host '#{host}' returned an invalid TLS certificate"
+          false
+        else
+          true
+        end
+      end
+
+      def certificate_store
+        @certificate_store ||= OpenSSL::X509::Store.new.tap do |store|
+          store.set_default_paths
+        end
       end
 
       # True if socket connection is ready to be released
@@ -104,6 +154,12 @@ module Ably::Realtime
 
       def connection
         @connection
+      end
+
+      def disconnect_with_reason(reason)
+        client.logger.error { "WebsocketTransport: Disconnecting due to error: #{reason}" }
+        @reason_closed = reason
+        disconnect
       end
 
       def reason_closed
@@ -213,6 +269,16 @@ module Ably::Realtime
             :protocol_message
           end
         )
+      end
+
+      # TLS options to pass to EventMachine::Connection#start_tls
+      #
+      # See https://www.rubydoc.info/github/eventmachine/eventmachine/EventMachine/Connection#start_tls-instance_method
+      def tls_opts
+        {
+          sni_hostname: host,
+          verify_peer:  true,
+        }
       end
     end
   end
