@@ -16,9 +16,6 @@
 **Fixed bugs:**
 
 - client\_id should be passed as clientId [\#159](https://github.com/ably/ably-ruby/issues/159)
-
-**Closed issues:**
-
 - Error in the HTTP2 framing layer issue before heroku-20 [\#215](https://github.com/ably/ably-ruby/issues/215)
 - Using a clientId should no longer be forcing token auth in the 1.1 spec [\#182](https://github.com/ably/ably-ruby/issues/182)
 
