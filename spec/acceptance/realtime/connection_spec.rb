@@ -1169,6 +1169,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 host:   'this.host.does.not.exist.com'
               )
             )
+            allow(client).to receive(:fallback_hosts).and_return([])
 
             connection.transition_state_machine! :disconnected
           end
