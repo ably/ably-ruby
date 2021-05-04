@@ -1,9 +1,9 @@
-# [Ably](https://www.ably.io)
+# [Ably](https://ably.com
 
 [![Gem Version](https://img.shields.io/gem/v/ably?style=flat)](https://img.shields.io/gem/v/ably?style=flat)
 [![Coverage Status](https://coveralls.io/repos/ably/ably-ruby/badge.svg)](https://coveralls.io/r/ably/ably-ruby)
 
-A Ruby client library for [ably.io](https://www.ably.io), the realtime messaging service. This library currently targets the [Ably 1.1 client library specification](https://www.ably.io/documentation/client-lib-development-guide/features/). You can jump to the '[Known Limitations](#known-limitations)' section to see the features this client library does not yet support or [view our client library SDKs feature support matrix](https://www.ably.io/download/sdk-feature-support-matrix) to see the list of all the available features.
+A Ruby client library for [ably.com](https://ably.com), the realtime messaging service. This library currently targets the [Ably 1.1 client library specification](https://ably.com/documentation/client-lib-development-guide/features/). You can see the complete list of features this client library supports in [our client library SDKs feature support matrix](https://ably.com/download/sdk-feature-support-matrix).
 
 ## Supported platforms
 
@@ -11,11 +11,11 @@ This SDK supports Ruby 1.9.3+.
 
 We regression-test the SDK against a selection of Ruby versions (which we update over time, but usually consists of mainstream and widely used versions). Please refer to [.github/workflows/check.yml](./.github/workflows/check.yml) for the set of versions that currently undergo CI testing.
 
-If you find any compatibility issues, please [do raise an issue](https://github.com/ably/ably-ruby/issues/new) in this repository or [contact Ably customer support](https://support.ably.io/) for advice.
+If you find any compatibility issues, please [do raise an issue](https://github.com/ably/ably-ruby/issues/new) in this repository or [contact Ably customer support](https://ably.com/support/) for advice.
 
 ## Documentation
 
-Visit https://www.ably.io/documentation for a complete API reference and more examples.
+Visit https://ably.com/documentation for a complete API reference and code examples.
 
 ## Installation
 
@@ -35,7 +35,7 @@ Or install it yourself as:
 
 ### Using with Rails or Sinatra
 
-This `ably` gem provides both a [Realtime](http://www.ably.io/documentation/realtime/usage) and [REST](http://www.ably.io/documentation/rest/usage) version of the Ably library. Realtime depends on EventMachine to provide an asynchronous evented framework to run the library in, whereas the REST library depends only on synchronous libraries such as Faraday.
+This `ably` gem provides both a [Realtime](https://ably.com/documentation/realtime/usage) and [REST](https://ably.com/documentation/rest/usage) version of the Ably library. Realtime depends on EventMachine to provide an asynchronous evented framework to run the library in, whereas the REST library depends only on synchronous libraries such as Faraday.
 
 If you are using Ably within your Rails or Sinatra apps, more often than not, you probably want to use the REST only version of the library that has no dependency on EventMachine and provides a synchronous API that you will be used to using within Rails and Sinatra. [See the REST only Ruby version of the Ably library](https://github.com/ably/ably-ruby-rest).
 
@@ -61,7 +61,7 @@ client = Ably::Realtime.new(key: 'xxxxx')
 client = Ably::Realtime.new(token: 'xxxxx')
 ```
 
-If you do not have an API key, [sign up for a free API key now](https://www.ably.io/signup)
+If you do not have an API key, [sign up for a free API key now](https://ably.com/signup)
 
 ### Connection
 
@@ -187,7 +187,7 @@ channel.publish "name (not encrypted)", "sensitive data (encrypted before being 
 
 ### Introduction
 
-Unlike the Realtime API, all calls are synchronous and are not run within an [EventMachine](https://github.com/eventmachine/eventmachine) [reactor](https://github.com/eventmachine/eventmachine/wiki/General-Introduction).
+Unlike the Realtime API, all calls are synchronous and are not run within [EventMachine](https://github.com/eventmachine/eventmachine).
 
 All examples assume a client and/or channel has been created as follows:
 
@@ -295,7 +295,7 @@ If you only need to use the REST features of this library and do not want EventM
 
 ## Support, feedback and troubleshooting
 
-Please visit http://support.ably.io/ for access to our knowledgebase and to ask for any assistance.
+Please visit https://ably.com/support for access to our knowledgebase and to ask for any assistance.
 
 You can also view the [community reported Github issues](https://github.com/ably/ably-ruby/issues).
 
