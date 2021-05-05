@@ -1,5 +1,14 @@
 # Change Log
 
+## [v1.1.5](https://github.com/ably/ably-ruby/tree/v1.1.5)
+
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.1.4...v.1.1.5)
+
+**Implemented enhancements:**
+
+- Upgrade to support HTTP/2 [\#192](https://github.com/ably/ably-ruby/issues/192), fixed in [\#197](https://github.com/ably/ably-ruby/pull/197) ([mattheworiordan](https://github.com/mattheworiordan))
+- Default fallback hosts for custom environments [\#232](https://github.com/ably/ably-ruby/issues/232), fixed in [\#196](https://github.com/ably/ably-ruby/pull/196) ([mattheworiordan](https://github.com/mattheworiordan), [owenpearson](https://github.com/owenpearson), [lmars](https://github.com/lmars))
+
 ## [v1.1.4](https://github.com/ably/ably-ruby/tree/v1.1.4)
 
 [Full Changelog](https://github.com/ably/ably-ruby/compare/v1.1.3...v1.1.4)
