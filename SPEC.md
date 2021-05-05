@@ -1,4 +1,4 @@
-# Ably Realtime & REST Client Library 1.1.4 Specification
+# Ably Realtime & REST Client Library 1.1.5 Specification
 
 ### Ably::Realtime::Auth
 _(see [spec/acceptance/realtime/auth_spec.rb](./spec/acceptance/realtime/auth_spec.rb))_
@@ -600,123 +600,124 @@ _(see [spec/acceptance/realtime/connection_failures_spec.rb](./spec/acceptance/r
           * request fails due to slow response and subsequent timeout
             * [the connection moves to the disconnected state and tries again, returning again to the disconnected state (#RSA4c, #RSA4c1, #RSA4c2)](./spec/acceptance/realtime/connection_failures_spec.rb#L127)
           * request fails once due to slow response but succeeds the second time
-            * [the connection moves to the disconnected state and tries again, returning again to the disconnected state (#RSA4c, #RSA4c1, #RSA4c2)](./spec/acceptance/realtime/connection_failures_spec.rb#L165)
+            * [the connection moves to the disconnected state and tries again, returning again to the disconnected state (#RSA4c, #RSA4c1, #RSA4c2)](./spec/acceptance/realtime/connection_failures_spec.rb#L175)
         * existing CONNECTED connection
           * authorize request failure leaves connection in existing condition
-            * [the connection remains in the CONNECTED state and authorize fails (#RSA4c, #RSA4c1, #RSA4c3)](./spec/acceptance/realtime/connection_failures_spec.rb#L186)
+            * [the connection remains in the CONNECTED state and authorize fails (#RSA4c, #RSA4c1, #RSA4c3)](./spec/acceptance/realtime/connection_failures_spec.rb#L196)
       * with auth_callback
         * opening a new connection
           * when callback fails due to an exception
-            * [the connection moves to the disconnected state and tries again, returning again to the disconnected state (#RSA4c, #RSA4c1, #RSA4c2)](./spec/acceptance/realtime/connection_failures_spec.rb#L214)
+            * [the connection moves to the disconnected state and tries again, returning again to the disconnected state (#RSA4c, #RSA4c1, #RSA4c2)](./spec/acceptance/realtime/connection_failures_spec.rb#L224)
           * existing CONNECTED connection
             * when callback fails due to the request taking longer than realtime_request_timeout
-              * [the authorization request fails as configured in the realtime_request_timeout (#RSA4c, #RSA4c1, #RSA4c3)](./spec/acceptance/realtime/connection_failures_spec.rb#L245)
+              * [the authorization request fails as configured in the realtime_request_timeout (#RSA4c, #RSA4c1, #RSA4c3)](./spec/acceptance/realtime/connection_failures_spec.rb#L255)
     * automatic connection retry
       * with invalid WebSocket host
         * when disconnected
-          * [enters the suspended state after multiple attempts to connect](./spec/acceptance/realtime/connection_failures_spec.rb#L310)
+          * [enters the suspended state after multiple attempts to connect](./spec/acceptance/realtime/connection_failures_spec.rb#L320)
           * for the first time
-            * [reattempts connection immediately and then waits disconnected_retry_timeout for a subsequent attempt](./spec/acceptance/realtime/connection_failures_spec.rb#L331)
+            * [reattempts connection immediately and then waits disconnected_retry_timeout for a subsequent attempt](./spec/acceptance/realtime/connection_failures_spec.rb#L341)
           * #close
-            * [transitions connection state to :closed](./spec/acceptance/realtime/connection_failures_spec.rb#L348)
+            * [transitions connection state to :closed](./spec/acceptance/realtime/connection_failures_spec.rb#L358)
         * when connection state is :suspended
-          * [stays in the suspended state after any number of reconnection attempts](./spec/acceptance/realtime/connection_failures_spec.rb#L367)
+          * [stays in the suspended state after any number of reconnection attempts](./spec/acceptance/realtime/connection_failures_spec.rb#L377)
           * for the first time
-            * [waits suspended_retry_timeout before attempting to reconnect](./spec/acceptance/realtime/connection_failures_spec.rb#L390)
+            * [waits suspended_retry_timeout before attempting to reconnect](./spec/acceptance/realtime/connection_failures_spec.rb#L400)
           * #close
-            * [transitions connection state to :closed](./spec/acceptance/realtime/connection_failures_spec.rb#L412)
+            * [transitions connection state to :closed](./spec/acceptance/realtime/connection_failures_spec.rb#L422)
         * when connection state is :failed
           * #close
-            * [will not transition state to :close and fails with an InvalidStateChange exception](./spec/acceptance/realtime/connection_failures_spec.rb#L431)
+            * [will not transition state to :close and fails with an InvalidStateChange exception](./spec/acceptance/realtime/connection_failures_spec.rb#L441)
         * #error_reason
-          * [contains the error when state is disconnected](./spec/acceptance/realtime/connection_failures_spec.rb#L452)
-          * [contains the error when state is suspended](./spec/acceptance/realtime/connection_failures_spec.rb#L452)
-          * [contains the error when state is failed](./spec/acceptance/realtime/connection_failures_spec.rb#L452)
-          * [is reset to nil when :connected](./spec/acceptance/realtime/connection_failures_spec.rb#L466)
-          * [is reset to nil when :closed](./spec/acceptance/realtime/connection_failures_spec.rb#L477)
+          * [contains the error when state is disconnected](./spec/acceptance/realtime/connection_failures_spec.rb#L462)
+          * [contains the error when state is suspended](./spec/acceptance/realtime/connection_failures_spec.rb#L462)
+          * [contains the error when state is failed](./spec/acceptance/realtime/connection_failures_spec.rb#L462)
+          * [is reset to nil when :connected](./spec/acceptance/realtime/connection_failures_spec.rb#L476)
+          * [is reset to nil when :closed](./spec/acceptance/realtime/connection_failures_spec.rb#L487)
       * #connect
         * connection opening times out
-          * [attempts to reconnect](./spec/acceptance/realtime/connection_failures_spec.rb#L508)
+          * [attempts to reconnect](./spec/acceptance/realtime/connection_failures_spec.rb#L518)
           * when retry intervals are stubbed to attempt reconnection quickly
-            * [never calls the provided success block](./spec/acceptance/realtime/connection_failures_spec.rb#L532)
+            * [never calls the provided success block](./spec/acceptance/realtime/connection_failures_spec.rb#L542)
     * connection resume
       * when DISCONNECTED ProtocolMessage received from the server
-        * [reconnects automatically and immediately](./spec/acceptance/realtime/connection_failures_spec.rb#L563)
+        * [reconnects automatically and immediately](./spec/acceptance/realtime/connection_failures_spec.rb#L573)
         * connection state freshness is monitored
-          * [resumes connections when disconnected within the connection_state_ttl period (#RTN15g)](./spec/acceptance/realtime/connection_failures_spec.rb#L584)
+          * [resumes connections when disconnected within the connection_state_ttl period (#RTN15g)](./spec/acceptance/realtime/connection_failures_spec.rb#L594)
           * when connection_state_ttl period has passed since being disconnected
-            * [clears the local connection state and uses a new connection when the connection_state_ttl period has passed (#RTN15g)](./spec/acceptance/realtime/connection_failures_spec.rb#L624)
+            * [clears the local connection state and uses a new connection when the connection_state_ttl period has passed (#RTN15g)](./spec/acceptance/realtime/connection_failures_spec.rb#L634)
           * when connection_state_ttl period has passed since last activity on the connection
-            * [does not clear the local connection state when the connection_state_ttl period has passed since last activity, but the idle timeout has not passed (#RTN15g1, #RTN15g2)](./spec/acceptance/realtime/connection_failures_spec.rb#L677)
-            * [clears the local connection state and uses a new connection when the connection_state_ttl + max_idle_interval period has passed since last activity (#RTN15g1, #RTN15g2)](./spec/acceptance/realtime/connection_failures_spec.rb#L711)
-            * [still reattaches the channels automatically following a new connection being established (#RTN15g2)](./spec/acceptance/realtime/connection_failures_spec.rb#L746)
+            * [does not clear the local connection state when the connection_state_ttl period has passed since last activity, but the idle timeout has not passed (#RTN15g1, #RTN15g2)](./spec/acceptance/realtime/connection_failures_spec.rb#L687)
+            * [clears the local connection state and uses a new connection when the connection_state_ttl + max_idle_interval period has passed since last activity (#RTN15g1, #RTN15g2)](./spec/acceptance/realtime/connection_failures_spec.rb#L721)
+            * [still reattaches the channels automatically following a new connection being established (#RTN15g2)](./spec/acceptance/realtime/connection_failures_spec.rb#L756)
         * and subsequently fails to reconnect
-          * [retries every 15 seconds](./spec/acceptance/realtime/connection_failures_spec.rb#L805)
+          * [retries every 15 seconds](./spec/acceptance/realtime/connection_failures_spec.rb#L815)
       * when websocket transport is abruptly disconnected
-        * [reconnects automatically](./spec/acceptance/realtime/connection_failures_spec.rb#L848)
+        * [reconnects automatically](./spec/acceptance/realtime/connection_failures_spec.rb#L858)
         * hosts used
-          * [reconnects with the default host](./spec/acceptance/realtime/connection_failures_spec.rb#L864)
+          * [reconnects with the default host](./spec/acceptance/realtime/connection_failures_spec.rb#L874)
       * after successfully reconnecting and resuming
-        * [retains connection_id and updates the connection_key (#RTN15e, #RTN16d)](./spec/acceptance/realtime/connection_failures_spec.rb#L888)
-        * [includes the error received in the connection state change from Ably but leaves the channels attached](./spec/acceptance/realtime/connection_failures_spec.rb#L903)
-        * [retains channel subscription state](./spec/acceptance/realtime/connection_failures_spec.rb#L929)
-        * [retains the client_msg_serial (#RTN15c2, #RTN15c3)](./spec/acceptance/realtime/connection_failures_spec.rb#L990)
+        * [retains connection_id and updates the connection_key (#RTN15e, #RTN16d)](./spec/acceptance/realtime/connection_failures_spec.rb#L898)
+        * [includes the error received in the connection state change from Ably but leaves the channels attached](./spec/acceptance/realtime/connection_failures_spec.rb#L913)
+        * [retains channel subscription state](./spec/acceptance/realtime/connection_failures_spec.rb#L939)
+        * [retains the client_msg_serial (#RTN15c2, #RTN15c3)](./spec/acceptance/realtime/connection_failures_spec.rb#L1000)
         * when messages were published whilst the client was disconnected
-          * [receives the messages published whilst offline](./spec/acceptance/realtime/connection_failures_spec.rb#L957)
+          * [receives the messages published whilst offline](./spec/acceptance/realtime/connection_failures_spec.rb#L967)
       * when failing to resume
         * because the connection_key is not or no longer valid
-          * [updates the connection_id and connection_key](./spec/acceptance/realtime/connection_failures_spec.rb#L1030)
-          * [issue a reattach for all attached channels and fail all message awaiting an ACK (#RTN15c3)](./spec/acceptance/realtime/connection_failures_spec.rb#L1045)
-          * [issue a reattach for all attaching channels and fail all queued messages (#RTN15c3)](./spec/acceptance/realtime/connection_failures_spec.rb#L1083)
-          * [issue a attach for all suspended channels (#RTN15c3)](./spec/acceptance/realtime/connection_failures_spec.rb#L1119)
-          * [sets the error reason on each channel](./spec/acceptance/realtime/connection_failures_spec.rb#L1157)
-          * [continues to use the client_msg_serial (#RTN15c3)](./spec/acceptance/realtime/connection_failures_spec.rb#L1172)
+          * [updates the connection_id and connection_key](./spec/acceptance/realtime/connection_failures_spec.rb#L1040)
+          * [issue a reattach for all attached channels and fail all message awaiting an ACK (#RTN15c3)](./spec/acceptance/realtime/connection_failures_spec.rb#L1055)
+          * [issue a reattach for all attaching channels and fail all queued messages (#RTN15c3)](./spec/acceptance/realtime/connection_failures_spec.rb#L1093)
+          * [issue a attach for all suspended channels (#RTN15c3)](./spec/acceptance/realtime/connection_failures_spec.rb#L1129)
+          * [sets the error reason on each channel](./spec/acceptance/realtime/connection_failures_spec.rb#L1167)
+          * [continues to use the client_msg_serial (#RTN15c3)](./spec/acceptance/realtime/connection_failures_spec.rb#L1182)
         * as the DISCONNECTED window to resume has passed
-          * [starts a new connection automatically and does not try and resume](./spec/acceptance/realtime/connection_failures_spec.rb#L1209)
+          * [starts a new connection automatically and does not try and resume](./spec/acceptance/realtime/connection_failures_spec.rb#L1219)
       * when an ERROR protocol message is received
         * whilst connecting
           * with a token error code in the range 40140 <= code < 40150 (#RTN14b)
-            * [triggers a re-authentication](./spec/acceptance/realtime/connection_failures_spec.rb#L1240)
+            * [triggers a re-authentication](./spec/acceptance/realtime/connection_failures_spec.rb#L1250)
           * with an error code indicating an error other than a token failure (#RTN14g, #RTN15i)
-            * [causes the connection to fail](./spec/acceptance/realtime/connection_failures_spec.rb#L1256)
+            * [causes the connection to fail](./spec/acceptance/realtime/connection_failures_spec.rb#L1266)
           * with no error code indicating an error other than a token failure (#RTN14g, #RTN15i)
-            * [causes the connection to fail](./spec/acceptance/realtime/connection_failures_spec.rb#L1269)
+            * [causes the connection to fail](./spec/acceptance/realtime/connection_failures_spec.rb#L1279)
         * whilst connected
           * with a token error code in the range 40140 <= code < 40150 (#RTN14b)
-            * [triggers a re-authentication](./spec/acceptance/realtime/connection_failures_spec.rb#L1240)
+            * [triggers a re-authentication](./spec/acceptance/realtime/connection_failures_spec.rb#L1250)
           * with an error code indicating an error other than a token failure (#RTN14g, #RTN15i)
-            * [causes the connection to fail](./spec/acceptance/realtime/connection_failures_spec.rb#L1256)
+            * [causes the connection to fail](./spec/acceptance/realtime/connection_failures_spec.rb#L1266)
           * with no error code indicating an error other than a token failure (#RTN14g, #RTN15i)
-            * [causes the connection to fail](./spec/acceptance/realtime/connection_failures_spec.rb#L1269)
+            * [causes the connection to fail](./spec/acceptance/realtime/connection_failures_spec.rb#L1279)
       * whilst resuming
         * with a token error code in the region 40140 <= code < 40150 (RTN15c5)
-          * [triggers a re-authentication and then resumes the connection](./spec/acceptance/realtime/connection_failures_spec.rb#L1313)
+          * [triggers a re-authentication and then resumes the connection](./spec/acceptance/realtime/connection_failures_spec.rb#L1323)
       * with any other error (#RTN15c4)
-        * [moves the connection to the failed state](./spec/acceptance/realtime/connection_failures_spec.rb#L1345)
+        * [moves the connection to the failed state](./spec/acceptance/realtime/connection_failures_spec.rb#L1355)
     * fallback host feature
       * with custom realtime websocket host option
-        * [never uses a fallback host](./spec/acceptance/realtime/connection_failures_spec.rb#L1389)
+        * [never uses a fallback host](./spec/acceptance/realtime/connection_failures_spec.rb#L1399)
       * with custom realtime websocket port option
-        * [never uses a fallback host](./spec/acceptance/realtime/connection_failures_spec.rb#L1407)
+        * [never uses a fallback host](./spec/acceptance/realtime/connection_failures_spec.rb#L1417)
       * with non-production environment
-        * [does not use a fallback host by default](./spec/acceptance/realtime/connection_failures_spec.rb#L1426)
+        * :fallback_hosts_use_default is unset
+          * [uses fallback hosts by default](./spec/acceptance/realtime/connection_failures_spec.rb#L1441)
         * :fallback_hosts_use_default is true
-          * [uses a fallback host on every subsequent disconnected attempt until suspended (#RTN17b, #TO3k7)](./spec/acceptance/realtime/connection_failures_spec.rb#L1444)
-          * [does not use a fallback host if the connection connects on the default host and then later becomes disconnected](./spec/acceptance/realtime/connection_failures_spec.rb#L1462)
+          * [uses a fallback host on every subsequent disconnected attempt until suspended (#RTN17b, #TO3k7)](./spec/acceptance/realtime/connection_failures_spec.rb#L1459)
+          * [does not use a fallback host if the connection connects on the default host and then later becomes disconnected](./spec/acceptance/realtime/connection_failures_spec.rb#L1477)
         * :fallback_hosts array is provided
-          * [uses a fallback host on every subsequent disconnected attempt until suspended (#RTN17b, #TO3k6)](./spec/acceptance/realtime/connection_failures_spec.rb#L1490)
+          * [uses a fallback host on every subsequent disconnected attempt until suspended (#RTN17b, #TO3k6)](./spec/acceptance/realtime/connection_failures_spec.rb#L1505)
       * with production environment
         * when the Internet is down
-          * [never uses a fallback host](./spec/acceptance/realtime/connection_failures_spec.rb#L1526)
+          * [never uses a fallback host](./spec/acceptance/realtime/connection_failures_spec.rb#L1541)
         * when the Internet is up
           * and default options
-            * [uses a fallback host + the original host once on every subsequent disconnected attempt until suspended](./spec/acceptance/realtime/connection_failures_spec.rb#L1549)
-            * [uses the primary host when suspended, and then every fallback host and the primary host again on every subsequent suspended attempt](./spec/acceptance/realtime/connection_failures_spec.rb#L1568)
-            * [uses the correct host name for the WebSocket requests to the fallback hosts](./spec/acceptance/realtime/connection_failures_spec.rb#L1591)
+            * [uses a fallback host + the original host once on every subsequent disconnected attempt until suspended](./spec/acceptance/realtime/connection_failures_spec.rb#L1564)
+            * [uses the primary host when suspended, and then every fallback host and the primary host again on every subsequent suspended attempt](./spec/acceptance/realtime/connection_failures_spec.rb#L1583)
+            * [uses the correct host name for the WebSocket requests to the fallback hosts](./spec/acceptance/realtime/connection_failures_spec.rb#L1606)
           * :fallback_hosts array is provided by an empty array
-            * [uses a fallback host on every subsequent disconnected attempt until suspended (#RTN17b, #TO3k6)](./spec/acceptance/realtime/connection_failures_spec.rb#L1621)
+            * [uses a fallback host on every subsequent disconnected attempt until suspended (#RTN17b, #TO3k6)](./spec/acceptance/realtime/connection_failures_spec.rb#L1636)
           * :fallback_hosts array is provided
-            * [uses a fallback host on every subsequent disconnected attempt until suspended (#RTN17b, #TO3k6)](./spec/acceptance/realtime/connection_failures_spec.rb#L1641)
+            * [uses a fallback host on every subsequent disconnected attempt until suspended (#RTN17b, #TO3k6)](./spec/acceptance/realtime/connection_failures_spec.rb#L1656)
 
 ### Ably::Realtime::Connection
 _(see [spec/acceptance/realtime/connection_spec.rb](./spec/acceptance/realtime/connection_spec.rb))_
@@ -737,7 +738,7 @@ _(see [spec/acceptance/realtime/connection_spec.rb](./spec/acceptance/realtime/c
             * opening a new connection
               * with almost expired tokens
                 * [renews token every time after it expires](./spec/acceptance/realtime/connection_spec.rb#L106)
-              * with immediately expired token
+              * with immediately expired token and no fallback hosts
                 * [renews the token on connect, and makes one immediate subsequent attempt to obtain a new token (#RSA4b)](./spec/acceptance/realtime/connection_spec.rb#L136)
                 * when disconnected_retry_timeout is 0.5 seconds
                   * [renews the token on connect, and continues to attempt renew based on the retry schedule](./spec/acceptance/realtime/connection_spec.rb#L151)
@@ -769,176 +770,176 @@ _(see [spec/acceptance/realtime/connection_spec.rb](./spec/acceptance/realtime/c
         * [are emitted in order](./spec/acceptance/realtime/connection_spec.rb#L431)
       * with explicit #connect
         * [are emitted in order](./spec/acceptance/realtime/connection_spec.rb#L437)
-    * #connect
-      * [returns a SafeDeferrable that catches exceptions in callbacks and logs them](./spec/acceptance/realtime/connection_spec.rb#L445)
-      * [calls the Deferrable callback on success](./spec/acceptance/realtime/connection_spec.rb#L450)
-      * [calls the provided block on success even if state changes to disconnected first](./spec/acceptance/realtime/connection_spec.rb#L457)
+    * #connect with no fallbacks
+      * [returns a SafeDeferrable that catches exceptions in callbacks and logs them](./spec/acceptance/realtime/connection_spec.rb#L447)
+      * [calls the Deferrable callback on success](./spec/acceptance/realtime/connection_spec.rb#L452)
+      * [calls the provided block on success even if state changes to disconnected first](./spec/acceptance/realtime/connection_spec.rb#L459)
       * with invalid auth details
-        * [calls the Deferrable errback only once on connection failure](./spec/acceptance/realtime/connection_spec.rb#L486)
+        * [calls the Deferrable errback only once on connection failure](./spec/acceptance/realtime/connection_spec.rb#L488)
       * when already connected
-        * [does nothing and no further state changes are emitted](./spec/acceptance/realtime/connection_spec.rb#L502)
+        * [does nothing and no further state changes are emitted](./spec/acceptance/realtime/connection_spec.rb#L504)
       * connection#id
-        * [is null before connecting](./spec/acceptance/realtime/connection_spec.rb#L516)
+        * [is null before connecting](./spec/acceptance/realtime/connection_spec.rb#L518)
       * connection#key
-        * [is null before connecting](./spec/acceptance/realtime/connection_spec.rb#L523)
+        * [is null before connecting](./spec/acceptance/realtime/connection_spec.rb#L525)
       * once connected
         * connection#id
-          * [is a string](./spec/acceptance/realtime/connection_spec.rb#L534)
-          * [is unique from the connection#key](./spec/acceptance/realtime/connection_spec.rb#L541)
-          * [is unique for every connection](./spec/acceptance/realtime/connection_spec.rb#L548)
+          * [is a string](./spec/acceptance/realtime/connection_spec.rb#L536)
+          * [is unique from the connection#key](./spec/acceptance/realtime/connection_spec.rb#L543)
+          * [is unique for every connection](./spec/acceptance/realtime/connection_spec.rb#L550)
         * connection#key
-          * [is a string](./spec/acceptance/realtime/connection_spec.rb#L557)
-          * [is unique from the connection#id](./spec/acceptance/realtime/connection_spec.rb#L564)
-          * [is unique for every connection](./spec/acceptance/realtime/connection_spec.rb#L571)
+          * [is a string](./spec/acceptance/realtime/connection_spec.rb#L559)
+          * [is unique from the connection#id](./spec/acceptance/realtime/connection_spec.rb#L566)
+          * [is unique for every connection](./spec/acceptance/realtime/connection_spec.rb#L573)
       * following a previous connection being opened and closed
-        * [reconnects and is provided with a new connection ID and connection key from the server](./spec/acceptance/realtime/connection_spec.rb#L581)
+        * [reconnects and is provided with a new connection ID and connection key from the server](./spec/acceptance/realtime/connection_spec.rb#L583)
       * when closing
-        * [fails the deferrable before the connection is closed](./spec/acceptance/realtime/connection_spec.rb#L598)
+        * [fails the deferrable before the connection is closed](./spec/acceptance/realtime/connection_spec.rb#L600)
     * #serial connection serial
-      * [is set to -1 when a new connection is opened](./spec/acceptance/realtime/connection_spec.rb#L615)
-      * [is set to 0 when a message is received back](./spec/acceptance/realtime/connection_spec.rb#L638)
-      * [is set to 1 when the second message is received](./spec/acceptance/realtime/connection_spec.rb#L646)
+      * [is set to -1 when a new connection is opened](./spec/acceptance/realtime/connection_spec.rb#L617)
+      * FAILED: ~~[is set to 0 when a message is received back](./spec/acceptance/realtime/connection_spec.rb#L640)~~
+      * [is set to 1 when the second message is received](./spec/acceptance/realtime/connection_spec.rb#L648)
       * when a message is sent but the ACK has not yet been received
-        * [the sent message msgSerial is 0 but the connection serial remains at -1](./spec/acceptance/realtime/connection_spec.rb#L623)
+        * [the sent message msgSerial is 0 but the connection serial remains at -1](./spec/acceptance/realtime/connection_spec.rb#L625)
     * #msgSerial
       * when messages are queued for publish before a connection is established
-        * [the msgSerial is always incrementing (and not reset when the new connection is established) ensuring messages are never de-duped by the realtime service](./spec/acceptance/realtime/connection_spec.rb#L674)
+        * [the msgSerial is always incrementing (and not reset when the new connection is established) ensuring messages are never de-duped by the realtime service](./spec/acceptance/realtime/connection_spec.rb#L676)
     * #close
-      * [returns a SafeDeferrable that catches exceptions in callbacks and logs them](./spec/acceptance/realtime/connection_spec.rb#L694)
-      * [calls the Deferrable callback on success](./spec/acceptance/realtime/connection_spec.rb#L701)
+      * [returns a SafeDeferrable that catches exceptions in callbacks and logs them](./spec/acceptance/realtime/connection_spec.rb#L696)
+      * [calls the Deferrable callback on success](./spec/acceptance/realtime/connection_spec.rb#L703)
       * when already closed
-        * [does nothing and no further state changes are emitted](./spec/acceptance/realtime/connection_spec.rb#L712)
+        * [does nothing and no further state changes are emitted](./spec/acceptance/realtime/connection_spec.rb#L714)
       * when connection state is
         * :initialized
-          * [changes the connection state to :closing and then immediately :closed without sending a ProtocolMessage CLOSE](./spec/acceptance/realtime/connection_spec.rb#L739)
+          * [changes the connection state to :closing and then immediately :closed without sending a ProtocolMessage CLOSE](./spec/acceptance/realtime/connection_spec.rb#L741)
         * :connected
-          * [changes the connection state to :closing and waits for the server to confirm connection is :closed with a ProtocolMessage](./spec/acceptance/realtime/connection_spec.rb#L756)
+          * [changes the connection state to :closing and waits for the server to confirm connection is :closed with a ProtocolMessage](./spec/acceptance/realtime/connection_spec.rb#L758)
           * with an unresponsive connection
-            * [force closes the connection when a :closed ProtocolMessage response is not received](./spec/acceptance/realtime/connection_spec.rb#L783)
+            * [force closes the connection when a :closed ProtocolMessage response is not received](./spec/acceptance/realtime/connection_spec.rb#L785)
     * #ping
-      * [echoes a heart beat (#RTN13a)](./spec/acceptance/realtime/connection_spec.rb#L805)
-      * [sends a unique ID in each protocol message (#RTN13e)](./spec/acceptance/realtime/connection_spec.rb#L815)
-      * [waits until the connection becomes CONNECTED when in the CONNETING state](./spec/acceptance/realtime/connection_spec.rb#L839)
+      * [echoes a heart beat (#RTN13a)](./spec/acceptance/realtime/connection_spec.rb#L807)
+      * [sends a unique ID in each protocol message (#RTN13e)](./spec/acceptance/realtime/connection_spec.rb#L817)
+      * [waits until the connection becomes CONNECTED when in the CONNETING state](./spec/acceptance/realtime/connection_spec.rb#L841)
       * with incompatible states
         * when not connected
-          * [fails the deferrable (#RTN13b)](./spec/acceptance/realtime/connection_spec.rb#L852)
+          * [fails the deferrable (#RTN13b)](./spec/acceptance/realtime/connection_spec.rb#L854)
         * when suspended
-          * [fails the deferrable (#RTN13b)](./spec/acceptance/realtime/connection_spec.rb#L861)
+          * [fails the deferrable (#RTN13b)](./spec/acceptance/realtime/connection_spec.rb#L863)
         * when failed
-          * [fails the deferrable (#RTN13b)](./spec/acceptance/realtime/connection_spec.rb#L873)
+          * [fails the deferrable (#RTN13b)](./spec/acceptance/realtime/connection_spec.rb#L875)
         * when closed
-          * [fails the deferrable (#RTN13b)](./spec/acceptance/realtime/connection_spec.rb#L885)
+          * [fails the deferrable (#RTN13b)](./spec/acceptance/realtime/connection_spec.rb#L887)
         * when it becomes closed
-          * [fails the deferrable (#RTN13b)](./spec/acceptance/realtime/connection_spec.rb#L899)
+          * [fails the deferrable (#RTN13b)](./spec/acceptance/realtime/connection_spec.rb#L901)
       * with a success block that raises an exception
-        * [catches the exception and logs the error](./spec/acceptance/realtime/connection_spec.rb#L912)
+        * [catches the exception and logs the error](./spec/acceptance/realtime/connection_spec.rb#L914)
       * when ping times out
-        * [fails the deferrable logs a warning (#RTN13a, #RTN13c)](./spec/acceptance/realtime/connection_spec.rb#L926)
-        * [yields to the block with a nil value](./spec/acceptance/realtime/connection_spec.rb#L945)
+        * [fails the deferrable logs a warning (#RTN13a, #RTN13c)](./spec/acceptance/realtime/connection_spec.rb#L928)
+        * [yields to the block with a nil value](./spec/acceptance/realtime/connection_spec.rb#L947)
     * Heartbeats (#RTN23)
       * heartbeat interval
         * when reduced artificially
-          * [is the sum of the max_idle_interval and realtime_request_timeout (#RTN23a)](./spec/acceptance/realtime/connection_spec.rb#L972)
-          * [disconnects the transport if no heartbeat received since connected (#RTN23a)](./spec/acceptance/realtime/connection_spec.rb#L982)
-          * [disconnects the transport if no heartbeat received since last event received (#RTN23a)](./spec/acceptance/realtime/connection_spec.rb#L993)
+          * [is the sum of the max_idle_interval and realtime_request_timeout (#RTN23a)](./spec/acceptance/realtime/connection_spec.rb#L974)
+          * [disconnects the transport if no heartbeat received since connected (#RTN23a)](./spec/acceptance/realtime/connection_spec.rb#L984)
+          * [disconnects the transport if no heartbeat received since last event received (#RTN23a)](./spec/acceptance/realtime/connection_spec.rb#L995)
       * transport-level heartbeats are supported in the websocket transport
-        * [provides the heartbeats argument in the websocket connection params (#RTN23b)](./spec/acceptance/realtime/connection_spec.rb#L1008)
-        * [receives websocket heartbeat messages (#RTN23b) [slow test as need to wait for heartbeat]](./spec/acceptance/realtime/connection_spec.rb#L1017)
+        * [provides the heartbeats argument in the websocket connection params (#RTN23b)](./spec/acceptance/realtime/connection_spec.rb#L1010)
+        * [receives websocket heartbeat messages (#RTN23b) [slow test as need to wait for heartbeat]](./spec/acceptance/realtime/connection_spec.rb#L1019)
       * with websocket heartbeats disabled (undocumented)
-        * [does not provide the heartbeats argument in the websocket connection params (#RTN23b)](./spec/acceptance/realtime/connection_spec.rb#L1033)
-        * [receives websocket protocol messages (#RTN23b) [slow test as need to wait for heartbeat]](./spec/acceptance/realtime/connection_spec.rb#L1042)
+        * [does not provide the heartbeats argument in the websocket connection params (#RTN23b)](./spec/acceptance/realtime/connection_spec.rb#L1035)
+        * [receives websocket protocol messages (#RTN23b) [slow test as need to wait for heartbeat]](./spec/acceptance/realtime/connection_spec.rb#L1044)
     * #details
-      * [is nil before connected](./spec/acceptance/realtime/connection_spec.rb#L1060)
-      * [contains the ConnectionDetails object once connected (#RTN21)](./spec/acceptance/realtime/connection_spec.rb#L1067)
-      * [contains the new ConnectionDetails object once a subsequent connection is created (#RTN21)](./spec/acceptance/realtime/connection_spec.rb#L1076)
+      * [is nil before connected](./spec/acceptance/realtime/connection_spec.rb#L1062)
+      * [contains the ConnectionDetails object once connected (#RTN21)](./spec/acceptance/realtime/connection_spec.rb#L1069)
+      * [contains the new ConnectionDetails object once a subsequent connection is created (#RTN21)](./spec/acceptance/realtime/connection_spec.rb#L1078)
       * with a different default connection_state_ttl
-        * [updates the private Connection#connection_state_ttl when received from Ably in ConnectionDetails](./spec/acceptance/realtime/connection_spec.rb#L1097)
+        * [updates the private Connection#connection_state_ttl when received from Ably in ConnectionDetails](./spec/acceptance/realtime/connection_spec.rb#L1099)
     * recovery
       * #recovery_key
-        * [is composed of connection key and serial that is kept up to date with each message ACK received](./spec/acceptance/realtime/connection_spec.rb#L1134)
-        * [is available when connection is in one of the states: connecting, connected, disconnected](./spec/acceptance/realtime/connection_spec.rb#L1162)
-        * [is nil when connection is explicitly CLOSED](./spec/acceptance/realtime/connection_spec.rb#L1191)
+        * [is composed of connection key and serial that is kept up to date with each message ACK received](./spec/acceptance/realtime/connection_spec.rb#L1136)
+        * [is available when connection is in one of the states: connecting, connected, disconnected](./spec/acceptance/realtime/connection_spec.rb#L1164)
+        * [is nil when connection is explicitly CLOSED](./spec/acceptance/realtime/connection_spec.rb#L1194)
       * opening a new connection using a recently disconnected connection's #recovery_key
         * connection#id after recovery
-          * [remains the same](./spec/acceptance/realtime/connection_spec.rb#L1203)
+          * [remains the same](./spec/acceptance/realtime/connection_spec.rb#L1206)
         * when messages have been sent whilst the old connection is disconnected
           * the new connection
-            * [recovers server-side queued messages](./spec/acceptance/realtime/connection_spec.rb#L1239)
+            * [recovers server-side queued messages](./spec/acceptance/realtime/connection_spec.rb#L1242)
         * when messages have been published
           * the new connection
-            * [uses the correct msgSerial from the old connection](./spec/acceptance/realtime/connection_spec.rb#L1268)
+            * [uses the correct msgSerial from the old connection](./spec/acceptance/realtime/connection_spec.rb#L1271)
         * when messages are published before the new connection is recovered
           * the new connection
-            * [uses the correct msgSerial from the old connection for the queued messages](./spec/acceptance/realtime/connection_spec.rb#L1298)
+            * [uses the correct msgSerial from the old connection for the queued messages](./spec/acceptance/realtime/connection_spec.rb#L1301)
       * with :recover option
         * with invalid syntax
-          * [raises an exception](./spec/acceptance/realtime/connection_spec.rb#L1345)
+          * [raises an exception](./spec/acceptance/realtime/connection_spec.rb#L1348)
         * with invalid formatted value sent to server
-          * [sets the #error_reason and moves the connection to FAILED](./spec/acceptance/realtime/connection_spec.rb#L1354)
+          * [sets the #error_reason and moves the connection to FAILED](./spec/acceptance/realtime/connection_spec.rb#L1357)
         * with expired (missing) value sent to server
-          * [connects but sets the error reason and includes the reason in the state change](./spec/acceptance/realtime/connection_spec.rb#L1369)
+          * [connects but sets the error reason and includes the reason in the state change](./spec/acceptance/realtime/connection_spec.rb#L1372)
     * with many connections simultaneously
-      * [opens each with a unique connection#id and connection#key](./spec/acceptance/realtime/connection_spec.rb#L1388)
+      * [opens each with a unique connection#id and connection#key](./spec/acceptance/realtime/connection_spec.rb#L1391)
     * when a state transition is unsupported
-      * [logs the invalid state change as fatal](./spec/acceptance/realtime/connection_spec.rb#L1408)
+      * [logs the invalid state change as fatal](./spec/acceptance/realtime/connection_spec.rb#L1411)
     * protocol failure
       * receiving an invalid ProtocolMessage
-        * [emits an error on the connection and logs a fatal error message](./spec/acceptance/realtime/connection_spec.rb#L1424)
+        * [emits an error on the connection and logs a fatal error message](./spec/acceptance/realtime/connection_spec.rb#L1427)
     * undocumented method
       * #internet_up?
-        * [returns a Deferrable](./spec/acceptance/realtime/connection_spec.rb#L1442)
+        * [returns a Deferrable](./spec/acceptance/realtime/connection_spec.rb#L1445)
         * internet up URL protocol
           * when using TLS for the connection
-            * [uses TLS for the Internet check to https://internet-up.ably-realtime.com/is-the-internet-up.txt](./spec/acceptance/realtime/connection_spec.rb#L1453)
+            * [uses TLS for the Internet check to https://internet-up.ably-realtime.com/is-the-internet-up.txt](./spec/acceptance/realtime/connection_spec.rb#L1456)
           * when using a non-secured connection
-            * [uses TLS for the Internet check to http://internet-up.ably-realtime.com/is-the-internet-up.txt](./spec/acceptance/realtime/connection_spec.rb#L1463)
+            * [uses TLS for the Internet check to http://internet-up.ably-realtime.com/is-the-internet-up.txt](./spec/acceptance/realtime/connection_spec.rb#L1466)
         * when the Internet is up
-          * [calls the block with true](./spec/acceptance/realtime/connection_spec.rb#L1494)
-          * [calls the success callback of the Deferrable](./spec/acceptance/realtime/connection_spec.rb#L1501)
+          * [calls the block with true](./spec/acceptance/realtime/connection_spec.rb#L1497)
+          * [calls the success callback of the Deferrable](./spec/acceptance/realtime/connection_spec.rb#L1504)
           * with a TLS connection
-            * [checks the Internet up URL over TLS](./spec/acceptance/realtime/connection_spec.rb#L1477)
+            * [checks the Internet up URL over TLS](./spec/acceptance/realtime/connection_spec.rb#L1480)
           * with a non-TLS connection
-            * [checks the Internet up URL over TLS](./spec/acceptance/realtime/connection_spec.rb#L1487)
+            * [checks the Internet up URL over TLS](./spec/acceptance/realtime/connection_spec.rb#L1490)
         * when the Internet is down
-          * [calls the block with false](./spec/acceptance/realtime/connection_spec.rb#L1516)
-          * [calls the failure callback of the Deferrable](./spec/acceptance/realtime/connection_spec.rb#L1523)
+          * [calls the block with false](./spec/acceptance/realtime/connection_spec.rb#L1519)
+          * [calls the failure callback of the Deferrable](./spec/acceptance/realtime/connection_spec.rb#L1526)
     * state change side effects
       * when connection enters the :disconnected state
-        * [queues messages to be sent and all channels remain attached](./spec/acceptance/realtime/connection_spec.rb#L1537)
+        * [queues messages to be sent and all channels remain attached](./spec/acceptance/realtime/connection_spec.rb#L1540)
       * when connection enters the :suspended state
-        * [moves the channels into the suspended state and prevents publishing of messages on those channels](./spec/acceptance/realtime/connection_spec.rb#L1570)
+        * [moves the channels into the suspended state and prevents publishing of messages on those channels](./spec/acceptance/realtime/connection_spec.rb#L1573)
       * when connection enters the :failed state
-        * [sets all channels to failed and prevents publishing of messages on those channels](./spec/acceptance/realtime/connection_spec.rb#L1601)
+        * [sets all channels to failed and prevents publishing of messages on those channels](./spec/acceptance/realtime/connection_spec.rb#L1604)
     * connection state change
-      * [emits event to all and single subscribers](./spec/acceptance/realtime/connection_spec.rb#L1615)
-      * [emits a ConnectionStateChange object](./spec/acceptance/realtime/connection_spec.rb#L1630)
+      * [emits event to all and single subscribers](./spec/acceptance/realtime/connection_spec.rb#L1618)
+      * [emits a ConnectionStateChange object](./spec/acceptance/realtime/connection_spec.rb#L1633)
       * ConnectionStateChange object
-        * [has current state](./spec/acceptance/realtime/connection_spec.rb#L1638)
-        * [has a previous state](./spec/acceptance/realtime/connection_spec.rb#L1646)
-        * [has the event that generated the state change (#TH5)](./spec/acceptance/realtime/connection_spec.rb#L1654)
-        * [has an empty reason when there is no error](./spec/acceptance/realtime/connection_spec.rb#L1670)
+        * [has current state](./spec/acceptance/realtime/connection_spec.rb#L1641)
+        * [has a previous state](./spec/acceptance/realtime/connection_spec.rb#L1649)
+        * [has the event that generated the state change (#TH5)](./spec/acceptance/realtime/connection_spec.rb#L1657)
+        * [has an empty reason when there is no error](./spec/acceptance/realtime/connection_spec.rb#L1673)
         * on failure
-          * [has a reason Error object when there is an error on the connection](./spec/acceptance/realtime/connection_spec.rb#L1683)
+          * [has a reason Error object when there is an error on the connection](./spec/acceptance/realtime/connection_spec.rb#L1686)
         * retry_in
-          * [is nil when a retry is not required](./spec/acceptance/realtime/connection_spec.rb#L1698)
-          * [is 0 when first attempt to connect fails](./spec/acceptance/realtime/connection_spec.rb#L1705)
-          * [is 0 when an immediate reconnect will occur](./spec/acceptance/realtime/connection_spec.rb#L1715)
-          * [contains the next retry period when an immediate reconnect will not occur](./spec/acceptance/realtime/connection_spec.rb#L1725)
+          * [is nil when a retry is not required](./spec/acceptance/realtime/connection_spec.rb#L1701)
+          * [is 0 when first attempt to connect fails](./spec/acceptance/realtime/connection_spec.rb#L1708)
+          * [is 0 when an immediate reconnect will occur](./spec/acceptance/realtime/connection_spec.rb#L1718)
+          * [contains the next retry period when an immediate reconnect will not occur](./spec/acceptance/realtime/connection_spec.rb#L1728)
       * whilst CONNECTED
         * when a CONNECTED message is received (#RTN24)
-          * [emits an UPDATE event](./spec/acceptance/realtime/connection_spec.rb#L1760)
-          * [updates the ConnectionDetail and Connection attributes (#RTC8a1)](./spec/acceptance/realtime/connection_spec.rb#L1775)
+          * [emits an UPDATE event](./spec/acceptance/realtime/connection_spec.rb#L1763)
+          * [updates the ConnectionDetail and Connection attributes (#RTC8a1)](./spec/acceptance/realtime/connection_spec.rb#L1778)
         * when a CONNECTED message with an error is received
-          * [emits an UPDATE event](./spec/acceptance/realtime/connection_spec.rb#L1810)
+          * [emits an UPDATE event](./spec/acceptance/realtime/connection_spec.rb#L1813)
     * version params
-      * [sends the protocol version param v (#G4, #RTN2f)](./spec/acceptance/realtime/connection_spec.rb#L1831)
-      * [sends the lib version param lib (#RTN2g)](./spec/acceptance/realtime/connection_spec.rb#L1840)
+      * [sends the protocol version param v (#G4, #RTN2f)](./spec/acceptance/realtime/connection_spec.rb#L1834)
+      * [sends the lib version param lib (#RTN2g)](./spec/acceptance/realtime/connection_spec.rb#L1843)
       * with variant
-        * [sends the lib version param lib with the variant (#RTN2g + #RSC7b)](./spec/acceptance/realtime/connection_spec.rb#L1860)
+        * [sends the lib version param lib with the variant (#RTN2g + #RSC7b)](./spec/acceptance/realtime/connection_spec.rb#L1863)
     * transport_params (#RTC1f)
-      * [pases transport_params to query](./spec/acceptance/realtime/connection_spec.rb#L1874)
+      * [pases transport_params to query](./spec/acceptance/realtime/connection_spec.rb#L1877)
       * when changing default param
-        * [overrides default param (#RTC1f1)](./spec/acceptance/realtime/connection_spec.rb#L1887)
+        * [overrides default param (#RTC1f1)](./spec/acceptance/realtime/connection_spec.rb#L1890)
 
 ### Ably::Realtime::Channel Message
 _(see [spec/acceptance/realtime/message_spec.rb](./spec/acceptance/realtime/message_spec.rb))_
@@ -1579,7 +1580,7 @@ _(see [spec/acceptance/realtime/presence_spec.rb](./spec/acceptance/realtime/pre
     * local PresenceMap for presence members entered by this client
       * [maintains a copy of the member map for any member that shares this connection's connection ID (#RTP17)](./spec/acceptance/realtime/presence_spec.rb#L2427)
       * #RTP17b
-        * FAILED: ~~[updates presence members on leave](./spec/acceptance/realtime/presence_spec.rb#L2455)~~
+        * [updates presence members on leave](./spec/acceptance/realtime/presence_spec.rb#L2455)
         * [does no update presence members on fabricated leave](./spec/acceptance/realtime/presence_spec.rb#L2480)
       * when a channel becomes attached again
         * and the resume flag is true
@@ -1909,14 +1910,14 @@ _(see [spec/acceptance/rest/base_spec.rb](./spec/acceptance/rest/base_spec.rb))_
       * due to invalid Auth
         * [should raise an InvalidRequest exception with a valid error message and code](./spec/acceptance/rest/base_spec.rb#L75)
       * server error with JSON error response body
-        * [should raise a ServerError exception](./spec/acceptance/rest/base_spec.rb#L94)
+        * [should raise a ServerError exception](./spec/acceptance/rest/base_spec.rb#L96)
       * 500 server error without a valid JSON response body
-        * [should raise a ServerError exception](./spec/acceptance/rest/base_spec.rb#L105)
+        * [should raise a ServerError exception](./spec/acceptance/rest/base_spec.rb#L109)
     * token authentication failures
       * when auth#token_renewable?
-        * [should automatically reissue a token](./spec/acceptance/rest/base_spec.rb#L143)
+        * [should automatically reissue a token](./spec/acceptance/rest/base_spec.rb#L147)
       * when NOT auth#token_renewable?
-        * [should raise an TokenExpired exception](./spec/acceptance/rest/base_spec.rb#L158)
+        * [should raise an TokenExpired exception](./spec/acceptance/rest/base_spec.rb#L162)
 
 ### Ably::Rest::Channel
 _(see [spec/acceptance/rest/channel_spec.rb](./spec/acceptance/rest/channel_spec.rb))_
@@ -2099,121 +2100,126 @@ _(see [spec/acceptance/rest/client_spec.rb](./spec/acceptance/rest/client_spec.r
           * [is configured to timeout connection requests in 10 seconds](./spec/acceptance/rest/client_spec.rb#L290)
     * fallback hosts
       * configured
-        * [should make connection attempts to A.ably-realtime.com, B.ably-realtime.com, C.ably-realtime.com, D.ably-realtime.com, E.ably-realtime.com (#RSC15a)](./spec/acceptance/rest/client_spec.rb#L304)
+        * [should make connection attempts to a.ably-realtime.com, b.ably-realtime.com, c.ably-realtime.com, d.ably-realtime.com, e.ably-realtime.com (#RSC15a)](./spec/acceptance/rest/client_spec.rb#L304)
       * when environment is NOT production (#RSC15b)
-        * [does not retry failed requests with fallback hosts when there is a connection error](./spec/acceptance/rest/client_spec.rb#L321)
+        * and custom fallback hosts are empty
+          * [does not retry failed requests with fallback hosts when there is a connection error](./spec/acceptance/rest/client_spec.rb#L322)
+        * and no custom fallback hosts are provided
+          * [should make connection attempts to sandbox-a-fallback.ably-realtime.com, sandbox-b-fallback.ably-realtime.com, sandbox-c-fallback.ably-realtime.com, sandbox-d-fallback.ably-realtime.com, sandbox-e-fallback.ably-realtime.com (#RSC15a)](./spec/acceptance/rest/client_spec.rb#L330)
       * when environment is production
         * and connection times out
-          * [tries fallback hosts 3 times (#RSC15b, #RSC15b)](./spec/acceptance/rest/client_spec.rb#L360)
+          * [tries fallback hosts 3 times (#RSC15b, #RSC15b)](./spec/acceptance/rest/client_spec.rb#L374)
           * and the total request time exeeds 15 seconds
-            * [makes no further attempts to any fallback hosts](./spec/acceptance/rest/client_spec.rb#L375)
+            * [makes no further attempts to any fallback hosts](./spec/acceptance/rest/client_spec.rb#L389)
         * and connection fails
-          * [tries fallback hosts 3 times](./spec/acceptance/rest/client_spec.rb#L391)
+          * [tries fallback hosts 3 times](./spec/acceptance/rest/client_spec.rb#L405)
         * and first request to primary endpoint fails
-          * [tries a fallback host, and for the next request tries the primary endpoint again (#RSC15e)](./spec/acceptance/rest/client_spec.rb#L425)
+          * [tries a fallback host, and for the next request tries the primary endpoint again (#RSC15e)](./spec/acceptance/rest/client_spec.rb#L439)
         * and basic authentication fails
-          * [does not attempt the fallback hosts as this is an authentication failure](./spec/acceptance/rest/client_spec.rb#L452)
+          * [does not attempt the fallback hosts as this is an authentication failure](./spec/acceptance/rest/client_spec.rb#L466)
         * and server returns a 50x error
-          * [attempts the fallback hosts as this is an authentication failure (#RSC15d)](./spec/acceptance/rest/client_spec.rb#L474)
+          * [attempts the fallback hosts as this is an authentication failure (#RSC15d)](./spec/acceptance/rest/client_spec.rb#L488)
       * when environment is production and server returns a 50x error
         * with custom fallback hosts provided
-          * [attempts the fallback hosts as this is an authentication failure (#RSC15b, #RSC15a, #TO3k6)](./spec/acceptance/rest/client_spec.rb#L523)
+          * [attempts the fallback hosts as this is an authentication failure (#RSC15b, #RSC15a, #TO3k6)](./spec/acceptance/rest/client_spec.rb#L537)
         * with an empty array of fallback hosts provided (#RSC15b, #RSC15a, #TO3k6)
-          * [does not attempt the fallback hosts as this is an authentication failure](./spec/acceptance/rest/client_spec.rb#L536)
+          * [does not attempt the fallback hosts as this is an authentication failure](./spec/acceptance/rest/client_spec.rb#L550)
         * using a local web-server
           * and timing out the primary host
             * POST with request timeout less than max_retry_duration
-              * [tries the primary host, then both fallback hosts (#RSC15d)](./spec/acceptance/rest/client_spec.rb#L600)
+              * [tries the primary host, then both fallback hosts (#RSC15d)](./spec/acceptance/rest/client_spec.rb#L614)
             * GET with request timeout less than max_retry_duration
-              * [tries the primary host, then both fallback hosts (#RSC15d)](./spec/acceptance/rest/client_spec.rb#L623)
+              * [tries the primary host, then both fallback hosts (#RSC15d)](./spec/acceptance/rest/client_spec.rb#L637)
             * POST with request timeout more than max_retry_duration
-              * [does not try any fallback hosts (#RSC15d)](./spec/acceptance/rest/client_spec.rb#L646)
+              * [does not try any fallback hosts (#RSC15d)](./spec/acceptance/rest/client_spec.rb#L660)
             * GET with request timeout more than max_retry_duration
-              * [does not try any fallback hosts (#RSC15d)](./spec/acceptance/rest/client_spec.rb#L668)
+              * [does not try any fallback hosts (#RSC15d)](./spec/acceptance/rest/client_spec.rb#L682)
           * and failing the primary host
-            * [tries one of the fallback hosts](./spec/acceptance/rest/client_spec.rb#L713)
+            * [tries one of the fallback hosts](./spec/acceptance/rest/client_spec.rb#L727)
           * to fail the primary host, allow a fallback to succeed, then later trigger a fallback to the primary host (#RSC15f)
-            * [succeeds and remembers fallback host preferences across requests](./spec/acceptance/rest/client_spec.rb#L769)
+            * [succeeds and remembers fallback host preferences across requests](./spec/acceptance/rest/client_spec.rb#L783)
             * with custom :fallback_retry_timeout
-              * [stops using the preferred fallback after this time](./spec/acceptance/rest/client_spec.rb#L806)
+              * [stops using the preferred fallback after this time](./spec/acceptance/rest/client_spec.rb#L820)
       * when environment is not production and server returns a 50x error
+        * with no fallback hosts provided (#TBC, see https://github.com/ably/wiki/issues/361)
+          * [uses the default fallback hosts for that environment as this is not an authentication failure](./spec/acceptance/rest/client_spec.rb#L874)
         * with custom fallback hosts provided (#RSC15b, #TO3k6)
-          * [attempts the fallback hosts as this is not an authentication failure](./spec/acceptance/rest/client_spec.rb#L867)
+          * [attempts the fallback hosts as this is not an authentication failure](./spec/acceptance/rest/client_spec.rb#L902)
         * with an empty array of fallback hosts provided (#RSC15b, #TO3k6)
-          * [does not attempt the fallback hosts as this is an authentication failure](./spec/acceptance/rest/client_spec.rb#L880)
+          * [does not attempt the fallback hosts as this is an authentication failure](./spec/acceptance/rest/client_spec.rb#L915)
         * with fallback_hosts_use_default: true (#RSC15b, #TO3k7)
-          * [attempts the default fallback hosts as this is an authentication failure](./spec/acceptance/rest/client_spec.rb#L905)
+          * [attempts the default fallback hosts as this is an authentication failure](./spec/acceptance/rest/client_spec.rb#L940)
     * with a custom host
       * that does not exist
-        * [fails immediately and raises a Faraday Error](./spec/acceptance/rest/client_spec.rb#L921)
+        * [fails immediately and raises a Faraday Error](./spec/acceptance/rest/client_spec.rb#L956)
         * fallback hosts
-          * [are never used](./spec/acceptance/rest/client_spec.rb#L942)
+          * [are never used](./spec/acceptance/rest/client_spec.rb#L977)
       * that times out
-        * [fails immediately and raises a Faraday Error](./spec/acceptance/rest/client_spec.rb#L957)
+        * [fails immediately and raises a Faraday Error](./spec/acceptance/rest/client_spec.rb#L992)
         * fallback hosts
-          * [are never used](./spec/acceptance/rest/client_spec.rb#L970)
+          * [are never used](./spec/acceptance/rest/client_spec.rb#L1005)
     * HTTP configuration options
-      * [is frozen](./spec/acceptance/rest/client_spec.rb#L1027)
+      * [is frozen](./spec/acceptance/rest/client_spec.rb#L1062)
       * defaults
-        * [#http_open_timeout is 4s](./spec/acceptance/rest/client_spec.rb#L982)
-        * [#http_request_timeout is 10s](./spec/acceptance/rest/client_spec.rb#L986)
-        * [#http_max_retry_count is 3](./spec/acceptance/rest/client_spec.rb#L990)
-        * [#http_max_retry_duration is 15s](./spec/acceptance/rest/client_spec.rb#L994)
+        * [#http_open_timeout is 4s](./spec/acceptance/rest/client_spec.rb#L1017)
+        * [#http_request_timeout is 10s](./spec/acceptance/rest/client_spec.rb#L1021)
+        * [#http_max_retry_count is 3](./spec/acceptance/rest/client_spec.rb#L1025)
+        * [#http_max_retry_duration is 15s](./spec/acceptance/rest/client_spec.rb#L1029)
       * configured
-        * [#http_open_timeout uses provided value](./spec/acceptance/rest/client_spec.rb#L1010)
-        * [#http_request_timeout uses provided value](./spec/acceptance/rest/client_spec.rb#L1014)
-        * [#http_max_retry_count uses provided value](./spec/acceptance/rest/client_spec.rb#L1018)
-        * [#http_max_retry_duration uses provided value](./spec/acceptance/rest/client_spec.rb#L1022)
+        * [#http_open_timeout uses provided value](./spec/acceptance/rest/client_spec.rb#L1045)
+        * [#http_request_timeout uses provided value](./spec/acceptance/rest/client_spec.rb#L1049)
+        * [#http_max_retry_count uses provided value](./spec/acceptance/rest/client_spec.rb#L1053)
+        * [#http_max_retry_duration uses provided value](./spec/acceptance/rest/client_spec.rb#L1057)
     * #auth
-      * [is provides access to the Auth object](./spec/acceptance/rest/client_spec.rb#L1038)
-      * [configures the Auth object with all ClientOptions passed to client in the initializer](./spec/acceptance/rest/client_spec.rb#L1042)
+      * [is provides access to the Auth object](./spec/acceptance/rest/client_spec.rb#L1073)
+      * [configures the Auth object with all ClientOptions passed to client in the initializer](./spec/acceptance/rest/client_spec.rb#L1077)
     * version headers
       * with variant none
-        * [sends a protocol version and lib version header (#G4, #RSC7a, #RSC7b)](./spec/acceptance/rest/client_spec.rb#L1076)
+        * [sends a protocol version and lib version header (#G4, #RSC7a, #RSC7b)](./spec/acceptance/rest/client_spec.rb#L1111)
       * with variant foo
-        * [sends a protocol version and lib version header (#G4, #RSC7a, #RSC7b)](./spec/acceptance/rest/client_spec.rb#L1076)
+        * [sends a protocol version and lib version header (#G4, #RSC7a, #RSC7b)](./spec/acceptance/rest/client_spec.rb#L1111)
     * #request (#RSC19*)
       * get
-        * [returns an HttpPaginatedResponse object](./spec/acceptance/rest/client_spec.rb#L1091)
+        * [returns an HttpPaginatedResponse object](./spec/acceptance/rest/client_spec.rb#L1126)
         * 404 request to invalid URL
-          * [returns an object with 404 status code and error message](./spec/acceptance/rest/client_spec.rb#L1098)
+          * [returns an object with 404 status code and error message](./spec/acceptance/rest/client_spec.rb#L1133)
         * paged results
-          * [provides paging](./spec/acceptance/rest/client_spec.rb#L1110)
+          * [provides paging](./spec/acceptance/rest/client_spec.rb#L1145)
       * post
-        * [supports post](./spec/acceptance/rest/client_spec.rb#L1135)
+        * [supports post](./spec/acceptance/rest/client_spec.rb#L1170)
       * delete
-        * [supports delete](./spec/acceptance/rest/client_spec.rb#L1148)
+        * [supports delete](./spec/acceptance/rest/client_spec.rb#L1183)
       * patch
-        * [supports patch](./spec/acceptance/rest/client_spec.rb#L1164)
+        * [supports patch](./spec/acceptance/rest/client_spec.rb#L1199)
       * put
-        * [supports put](./spec/acceptance/rest/client_spec.rb#L1187)
+        * [supports put](./spec/acceptance/rest/client_spec.rb#L1222)
     * request_id generation
       * Timeout error
-        * with option add_request_ids: true
-          * [has an error with the same request_id of the request](./spec/acceptance/rest/client_spec.rb#L1210)
+        * with option add_request_ids: true and no fallback hosts
+          * [has an error with the same request_id of the request](./spec/acceptance/rest/client_spec.rb#L1245)
         * with option add_request_ids: true and REST operations with a message body
           * with mocks to inspect the params
             * with a single publish
-              * [succeeds and sends the request_id as a param](./spec/acceptance/rest/client_spec.rb#L1232)
+              * [succeeds and sends the request_id as a param](./spec/acceptance/rest/client_spec.rb#L1267)
             * with an array publish
-              * [succeeds and sends the request_id as a param](./spec/acceptance/rest/client_spec.rb#L1239)
+              * [succeeds and sends the request_id as a param](./spec/acceptance/rest/client_spec.rb#L1274)
           * without mocks to ensure the requests are accepted
             * with a single publish
-              * [succeeds and sends the request_id as a param](./spec/acceptance/rest/client_spec.rb#L1248)
+              * [succeeds and sends the request_id as a param](./spec/acceptance/rest/client_spec.rb#L1283)
             * with an array publish
-              * [succeeds and sends the request_id as a param](./spec/acceptance/rest/client_spec.rb#L1255)
+              * [succeeds and sends the request_id as a param](./spec/acceptance/rest/client_spec.rb#L1290)
         * option add_request_ids: true and specified fallback hosts
-          * [request_id is the same across retries](./spec/acceptance/rest/client_spec.rb#L1280)
-        * without request_id
-          * [does not include request_id in ConnectionTimeout error](./spec/acceptance/rest/client_spec.rb#L1292)
+          * [request_id is the same across retries](./spec/acceptance/rest/client_spec.rb#L1315)
+        * without request_id and no fallback hosts
+          * [does not include request_id in ConnectionTimeout error](./spec/acceptance/rest/client_spec.rb#L1327)
       * UnauthorizedRequest nonce error
-        * [includes request_id in UnauthorizedRequest error due to replayed nonce](./spec/acceptance/rest/client_spec.rb#L1305)
+        * [includes request_id in UnauthorizedRequest error due to replayed nonce](./spec/acceptance/rest/client_spec.rb#L1340)
     * failed request logging
-      * [is absent when requests do not fail](./spec/acceptance/rest/client_spec.rb#L1322)
+      * [is absent when requests do not fail](./spec/acceptance/rest/client_spec.rb#L1357)
       * with the first request failing
-        * [is present with success message when requests do not actually fail](./spec/acceptance/rest/client_spec.rb#L1337)
+        * [is present with success message when requests do not actually fail](./spec/acceptance/rest/client_spec.rb#L1372)
       * with all requests failing
-        * [is present when all requests fail](./spec/acceptance/rest/client_spec.rb#L1354)
+        * [is present when all requests fail](./spec/acceptance/rest/client_spec.rb#L1389)
 
 ### Ably::Models::MessageEncoders
 _(see [spec/acceptance/rest/encoders_spec.rb](./spec/acceptance/rest/encoders_spec.rb))_
@@ -3847,9 +3853,40 @@ _(see [spec/unit/realtime/client_spec.rb](./spec/unit/realtime/client_spec.rb))_
         * with custom logger and log_level
           * [uses the custom logger](./spec/shared/client_initializer_behaviour.rb#L259)
           * [sets the custom log level](./spec/shared/client_initializer_behaviour.rb#L263)
+      * environment
+        * when set without custom fallback hosts configured
+          * [sets the environment attribute](./spec/shared/client_initializer_behaviour.rb#L275)
+          * [uses the default fallback hosts (#TBC, see https://github.com/ably/wiki/issues/361)](./spec/shared/client_initializer_behaviour.rb#L279)
+        * when set with custom fallback hosts configured
+          * [sets the environment attribute](./spec/shared/client_initializer_behaviour.rb#L289)
+          * [uses the custom provided fallback hosts (#RSC15a)](./spec/shared/client_initializer_behaviour.rb#L293)
+        * when set with fallback_hosts_use_default
+          * [sets the environment attribute](./spec/shared/client_initializer_behaviour.rb#L304)
+          * [uses the production default fallback hosts (#RTN17b)](./spec/shared/client_initializer_behaviour.rb#L308)
+      * rest_host
+        * when set without custom fallback hosts configured
+          * [sets the custom_host attribute](./spec/shared/client_initializer_behaviour.rb#L319)
+          * [has no default fallback hosts](./spec/shared/client_initializer_behaviour.rb#L323)
+        * when set with environment and without custom fallback hosts configured
+          * [sets the environment attribute](./spec/shared/client_initializer_behaviour.rb#L333)
+          * [sets the custom_host attribute](./spec/shared/client_initializer_behaviour.rb#L337)
+          * [has no default fallback hosts](./spec/shared/client_initializer_behaviour.rb#L341)
+        * when set with custom fallback hosts configured
+          * [sets the custom_host attribute](./spec/shared/client_initializer_behaviour.rb#L351)
+          * [has no default fallback hosts](./spec/shared/client_initializer_behaviour.rb#L355)
+      * realtime_host
+        * when set without custom fallback hosts configured
+          * [sets the realtime_host option](./spec/shared/client_initializer_behaviour.rb#L368)
+          * [has no default fallback hosts](./spec/shared/client_initializer_behaviour.rb#L372)
+      * custom port
+        * when set without custom fallback hosts configured
+          * [has no default fallback hosts](./spec/shared/client_initializer_behaviour.rb#L383)
+      * custom TLS port
+        * when set without custom fallback hosts configured
+          * [has no default fallback hosts](./spec/shared/client_initializer_behaviour.rb#L394)
     * delegators
-      * [delegates :client_id to .auth](./spec/shared/client_initializer_behaviour.rb#L277)
-      * [delegates :auth_options to .auth](./spec/shared/client_initializer_behaviour.rb#L282)
+      * [delegates :client_id to .auth](./spec/shared/client_initializer_behaviour.rb#L408)
+      * [delegates :auth_options to .auth](./spec/shared/client_initializer_behaviour.rb#L413)
   * delegation to the REST Client
     * [passes on the options to the initializer](./spec/unit/realtime/client_spec.rb#L15)
     * for attribute
@@ -4055,9 +4092,40 @@ _(see [spec/unit/rest/client_spec.rb](./spec/unit/rest/client_spec.rb))_
         * with custom logger and log_level
           * [uses the custom logger](./spec/shared/client_initializer_behaviour.rb#L259)
           * [sets the custom log level](./spec/shared/client_initializer_behaviour.rb#L263)
+      * environment
+        * when set without custom fallback hosts configured
+          * [sets the environment attribute](./spec/shared/client_initializer_behaviour.rb#L275)
+          * [uses the default fallback hosts (#TBC, see https://github.com/ably/wiki/issues/361)](./spec/shared/client_initializer_behaviour.rb#L279)
+        * when set with custom fallback hosts configured
+          * [sets the environment attribute](./spec/shared/client_initializer_behaviour.rb#L289)
+          * [uses the custom provided fallback hosts (#RSC15a)](./spec/shared/client_initializer_behaviour.rb#L293)
+        * when set with fallback_hosts_use_default
+          * [sets the environment attribute](./spec/shared/client_initializer_behaviour.rb#L304)
+          * [uses the production default fallback hosts (#RTN17b)](./spec/shared/client_initializer_behaviour.rb#L308)
+      * rest_host
+        * when set without custom fallback hosts configured
+          * [sets the custom_host attribute](./spec/shared/client_initializer_behaviour.rb#L319)
+          * [has no default fallback hosts](./spec/shared/client_initializer_behaviour.rb#L323)
+        * when set with environment and without custom fallback hosts configured
+          * [sets the environment attribute](./spec/shared/client_initializer_behaviour.rb#L333)
+          * [sets the custom_host attribute](./spec/shared/client_initializer_behaviour.rb#L337)
+          * [has no default fallback hosts](./spec/shared/client_initializer_behaviour.rb#L341)
+        * when set with custom fallback hosts configured
+          * [sets the custom_host attribute](./spec/shared/client_initializer_behaviour.rb#L351)
+          * [has no default fallback hosts](./spec/shared/client_initializer_behaviour.rb#L355)
+      * realtime_host
+        * when set without custom fallback hosts configured
+          * [sets the realtime_host option](./spec/shared/client_initializer_behaviour.rb#L368)
+          * [has no default fallback hosts](./spec/shared/client_initializer_behaviour.rb#L372)
+      * custom port
+        * when set without custom fallback hosts configured
+          * [has no default fallback hosts](./spec/shared/client_initializer_behaviour.rb#L383)
+      * custom TLS port
+        * when set without custom fallback hosts configured
+          * [has no default fallback hosts](./spec/shared/client_initializer_behaviour.rb#L394)
     * delegators
-      * [delegates :client_id to .auth](./spec/shared/client_initializer_behaviour.rb#L277)
-      * [delegates :auth_options to .auth](./spec/shared/client_initializer_behaviour.rb#L282)
+      * [delegates :client_id to .auth](./spec/shared/client_initializer_behaviour.rb#L408)
+      * [delegates :auth_options to .auth](./spec/shared/client_initializer_behaviour.rb#L413)
   * initializer options
     * TLS
       * disabled
@@ -4145,6 +4213,6 @@ _(see [spec/unit/util/pub_sub_spec.rb](./spec/unit/util/pub_sub_spec.rb))_
 
   ## Test summary
 
-  * Passing tests: 2073
+  * Passing tests: 2109
   * Pending tests: 5
   * Failing tests: 1
