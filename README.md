@@ -1,4 +1,4 @@
-# [Ably](https://ably.com
+# [Ably](https://ably.com)
 
 [![Gem Version](https://img.shields.io/gem/v/ably?style=flat)](https://img.shields.io/gem/v/ably?style=flat)
 [![Coverage Status](https://coveralls.io/repos/ably/ably-ruby/badge.svg)](https://coveralls.io/r/ably/ably-ruby)
