@@ -2,6 +2,8 @@
 
 ## [v1.1.5](https://github.com/ably/ably-ruby/tree/v1.1.5)
 
+Please note: this library now depends on `libcurl` as a system dependency. On most systems this is already installed but in rare cases where it isn't (for example debian-slim Docker images such as ruby-slim) you will need to install it yourself. On debian you can install it with the command `sudo apt-get install libcurl4`.
+
 [Full Changelog](https://github.com/ably/ably-ruby/compare/v1.1.4...v.1.1.5)
 
 **Implemented enhancements:**
