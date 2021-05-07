@@ -9,6 +9,8 @@ A Ruby client library for [ably.com](https://ably.com), the realtime messaging s
 
 This SDK supports Ruby 1.9.3+.
 
+As of v1.1.5 this library requires `libcurl` as a system dependency. On most systems this is already installed but in rare cases where it isn't (for example debian-slim Docker images such as ruby-slim) you will need to install it yourself. On debian you can install it with the command `sudo apt-get install libcurl4`.
+
 We regression-test the SDK against a selection of Ruby versions (which we update over time, but usually consists of mainstream and widely used versions). Please refer to [.github/workflows/check.yml](./.github/workflows/check.yml) for the set of versions that currently undergo CI testing.
 
 If you find any compatibility issues, please [do raise an issue](https://github.com/ably/ably-ruby/issues/new) in this repository or [contact Ably customer support](https://ably.com/support/) for advice.
