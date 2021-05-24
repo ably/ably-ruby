@@ -481,16 +481,6 @@ module Ably
         end
       end
 
-      # Library Ably version user agent
-      # @api private
-      def lib_version_id
-        @lib_version_id ||= [
-          'ruby',
-          Ably.lib_variant,
-          Ably::VERSION
-        ].compact.join('-')
-      end
-
       # Allowable duration for an external auth request
       # For REST client this defaults to request_timeout
       # For Realtime clients this defaults to 250ms less than the realtime_request_timeout
@@ -671,7 +661,6 @@ module Ably
             accept:             mime_type,
             user_agent:         user_agent,
             'X-Ably-Version' => Ably::PROTOCOL_VERSION,
-            'X-Ably-Lib'     => lib_version_id,
             'Ably-Agent'     => agent
           },
           request: {
