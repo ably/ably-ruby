@@ -42,6 +42,9 @@ module Ably
         Faraday::ClientError
       end
 
+      # Default Ably Agent
+      AGENT = "ably-ruby/#{Ably::VERSION}"
+
       def_delegators :auth, :client_id, :auth_options
 
       # Custom environment to use such as 'sandbox' when testing the client library against an alternate Ably environment
@@ -51,6 +54,10 @@ module Ably
       # The protocol configured for this client, either binary `:msgpack` or text based `:json`
       # @return [Symbol]
       attr_reader :protocol
+
+      # Client agent i.e. `example-gem/1.2.0 ably-ruby/1.1.5 ruby/1.9.3`
+      # @return [String]
+      attr_reader :agent
 
       # {Ably::Auth} authentication object configured for this connection
       # @return [Ably::Auth]
@@ -168,6 +175,7 @@ module Ably
           end
         end
 
+        @agent               = options.delete(:agent) || AGENT
         @realtime_client     = options.delete(:realtime_client)
         @tls                 = options.delete(:tls) == false ? false : true
         @environment         = options.delete(:environment) # nil is production
@@ -663,7 +671,8 @@ module Ably
             accept:             mime_type,
             user_agent:         user_agent,
             'X-Ably-Version' => Ably::PROTOCOL_VERSION,
-            'X-Ably-Lib'     => lib_version_id
+            'X-Ably-Lib'     => lib_version_id,
+            'Ably-Agent'     => agent
           },
           request: {
             open_timeout: http_defaults.fetch(:open_timeout),
