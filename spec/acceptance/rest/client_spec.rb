@@ -1081,29 +1081,15 @@ describe Ably::Rest::Client do
     end
 
     context 'version headers', :webmock do
-      [nil, 'foo'].each do |variant|
-        context "with variant #{variant ? variant : 'none'}" do
-          if variant
-            before do
-              Ably.lib_variant = variant
-            end
+      [nil, 'ably-ruby/1.1.1 ruby/1.9.3'].each do |agent|
+        context "with #{agent ? "custom #{agent}" : 'default'} agent" do
+          let(:client_options) { default_options.merge(key: api_key, agent: agent) }
 
-            after do
-              Ably.lib_variant = nil
-            end
-          end
-
-          let(:client_options) { default_options.merge(key: api_key) }
           let!(:publish_message_stub) do
-            lib = ['ruby']
-            lib << variant if variant
-            lib << Ably::VERSION
-
-
             stub_request(:post, "#{client.endpoint}/channels/foo/publish").
               with(headers: {
                 'X-Ably-Version' => Ably::PROTOCOL_VERSION,
-                'X-Ably-Lib' => lib.join('-')
+                'Ably-Agent' => agent || Ably::AGENT
               }).
               to_return(status: 201, body: '{}', headers: { 'Content-Type' => 'application/json' })
           end

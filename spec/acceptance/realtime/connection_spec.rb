@@ -1840,34 +1840,13 @@ describe Ably::Realtime::Connection, :event_machine do
         client
       end
 
-      it 'sends the lib version param lib (#RTN2g)' do
+      it 'sends the lib version param agent (#RCS7d)' do
         expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
           uri = URI.parse(url)
-          expect(CGI::parse(uri.query)['lib'][0]).to match(/^ruby-1\.1\.\d+(-[\w\.]+)?+$/)
+          expect(CGI::parse(uri.query)['agent'][0]).to match(/^ably-ruby\/\d\.\d\.\d$/)
           stop_reactor
         end
         client
-      end
-
-      context 'with variant' do
-        let(:variant) { 'foo' }
-
-        before do
-          Ably.lib_variant = variant
-        end
-
-        after do
-          Ably.lib_variant = nil
-        end
-
-        it 'sends the lib version param lib with the variant (#RTN2g + #RSC7b)' do
-          expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
-            uri = URI.parse(url)
-            expect(CGI::parse(uri.query)['lib'][0]).to match(/^ruby-#{variant}-1\.1\.\d+(-[\w\.]+)?$/)
-            stop_reactor
-          end
-          client
-        end
       end
     end
 

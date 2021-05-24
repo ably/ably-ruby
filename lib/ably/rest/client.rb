@@ -42,9 +42,6 @@ module Ably
         Faraday::ClientError
       end
 
-      # Default Ably Agent
-      AGENT = "ably-ruby/#{Ably::VERSION}"
-
       def_delegators :auth, :client_id, :auth_options
 
       # Custom environment to use such as 'sandbox' when testing the client library against an alternate Ably environment
@@ -175,7 +172,7 @@ module Ably
           end
         end
 
-        @agent               = options.delete(:agent) || AGENT
+        @agent               = options.delete(:agent) || Ably::AGENT
         @realtime_client     = options.delete(:realtime_client)
         @tls                 = options.delete(:tls) == false ? false : true
         @environment         = options.delete(:environment) # nil is production

@@ -44,7 +44,7 @@ describe Ably::Rest::Client do
           let(:client_options) { { key: 'appid.keyuid:keysecret' } }
 
           it 'should return default ably agent' do
-            expect(subject.agent).to eq(Ably::Rest::Client::AGENT)
+            expect(subject.agent).to eq(Ably::AGENT)
           end
         end
 
