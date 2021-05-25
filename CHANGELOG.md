@@ -1,5 +1,18 @@
 # Change Log
 
+## [v1.1.6](https://github.com/ably/ably-ruby/tree/v1.1.6)
+
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.1.5...v1.1.6)
+
+This release will have no effect for users of the realtime `ably-ruby` client, however for users of `ably-ruby-rest` it will update the `faraday` dependency to 1.x (this change was already made for `ably-ruby` in `v1.1.5`).
+
+**Merged pull requests:**
+
+- Document libcurl requirement [\#243](https://github.com/ably/ably-ruby/pull/243) ([owenpearson](https://github.com/owenpearson))
+- Fix broken markdown hyperlink in readme [\#242](https://github.com/ably/ably-ruby/pull/242) ([owenpearson](https://github.com/owenpearson))
+- Update README with new Ably links [\#239](https://github.com/ably/ably-ruby/pull/239) ([mattheworiordan](https://github.com/mattheworiordan))
+- Fix documentation for Channel\#publish [\#183](https://github.com/ably/ably-ruby/pull/183) ([zreisman](https://github.com/zreisman))
+
 ## [v1.1.5](https://github.com/ably/ably-ruby/tree/v1.1.5)
 
 Please note: this library now depends on `libcurl` as a system dependency. On most systems this is already installed but in rare cases where it isn't (for example debian-slim Docker images such as ruby-slim) you will need to install it yourself. On debian you can install it with the command `sudo apt-get install libcurl4`.
