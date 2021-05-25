@@ -1843,7 +1843,7 @@ describe Ably::Realtime::Connection, :event_machine do
       it 'sends the lib version param agent (#RCS7d)' do
         expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
           uri = URI.parse(url)
-          expect(CGI::parse(uri.query)['agent'][0]).to match(/^ably-ruby\/\d\.\d\.\d$/)
+          expect(CGI::parse(uri.query)['agent'][0]).to match(/^ably-ruby\/\d\.\d\.\d ruby\/\d\.\d\.\d$/)
           stop_reactor
         end
         client

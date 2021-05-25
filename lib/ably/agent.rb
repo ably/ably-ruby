@@ -1,4 +1,3 @@
 module Ably
-  # Default Ably Agent
-  AGENT = "ably-ruby/#{Ably::VERSION}"
+  AGENT = "ably-ruby/#{Ably::VERSION} ruby/#{RUBY_VERSION}"
 end
