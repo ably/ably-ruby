@@ -4,7 +4,7 @@
 
 ## [v1.1.6](https://github.com/ably/ably-ruby/tree/v1.1.6)
 
-This release will have no effect for users of the realtime `ably-ruby` client, however for users of `ably-ruby-rest` it will update the `faraday` dependency to 1.x (this change was already made for `ably-ruby` in `v1.1.5`.
+This release will have no effect for users of the realtime `ably-ruby` client, however for users of `ably-ruby-rest` it will update the `faraday` dependency to 1.x (this change was already made for `ably-ruby` in `v1.1.5`).
 
 **Merged pull requests:**
 
