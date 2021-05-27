@@ -3,6 +3,9 @@ require 'json'
 require 'logger'
 require 'uri'
 
+require 'typhoeus'
+require 'typhoeus/adapters/faraday'
+
 require 'ably/rest/middleware/exceptions'
 
 module Ably
@@ -181,16 +184,18 @@ module Ably
         @idempotent_rest_publishing = options.delete(:idempotent_rest_publishing) || Ably.major_minor_version_numeric > 1.1
 
 
-        if options[:fallback_hosts_use_default] && options[:fallback_jhosts]
-          raise ArgumentError, "fallback_hosts_use_default cannot be set to trye when fallback_jhosts is also provided"
+        if options[:fallback_hosts_use_default] && options[:fallback_hosts]
+          raise ArgumentError, "fallback_hosts_use_default cannot be set to try when fallback_hosts is also provided"
         end
         @fallback_hosts = case
         when options.delete(:fallback_hosts_use_default)
           Ably::FALLBACK_HOSTS
         when options_fallback_hosts = options.delete(:fallback_hosts)
           options_fallback_hosts
-        when environment || custom_host || options[:realtime_host] || custom_port || custom_tls_port
+        when custom_host || options[:realtime_host] || custom_port || custom_tls_port
           []
+        when environment
+          CUSTOM_ENVIRONMENT_FALLBACKS_SUFFIXES.map { |host| "#{environment}#{host}" }
         else
           Ably::FALLBACK_HOSTS
         end
@@ -202,6 +207,8 @@ module Ably
         @http_defaults = HTTP_DEFAULTS.dup
         options.each do |key, val|
           if http_key = key[/^http_(.+)/, 1]
+            # Typhoeus converts decimal durations to milliseconds, so 0.0001 timeout is treated as 0 (no timeout)
+            val = 0.001 if val.kind_of?(Numeric) && (val > 0) && (val < 0.001)
             @http_defaults[http_key.to_sym] = val if val && @http_defaults.has_key?(http_key.to_sym)
           end
         end
@@ -665,7 +672,7 @@ module Ably
         }
       end
 
-      # Return a Faraday middleware stack to initiate the Faraday::Connection with
+      # Return a Faraday middleware stack to initiate the Faraday::RackBuilder with
       #
       # @see http://mislav.uniqpath.com/2011/07/faraday-advanced-http/
       def middleware
@@ -677,8 +684,8 @@ module Ably
 
           setup_incoming_middleware builder, logger, fail_if_unsupported_mime_type: true
 
-          # Set Faraday's HTTP adapter
-          builder.adapter :excon
+          # Set Faraday's HTTP adapter with support for HTTP/2
+          builder.adapter :typhoeus, http_version: :httpv2_0
         end
       end
 

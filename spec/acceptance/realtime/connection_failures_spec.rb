@@ -156,10 +156,20 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
               stub_request(:get, auth_url).
                 to_return do |request|
-                  sleep Ably::Rest::Client::HTTP_DEFAULTS.fetch(:request_timeout)
-                  { status: [500, "Internal Server Error"] }
-                end.then.
-                to_return(:status => 201, :body => token_response.to_json, :headers => { 'Content-Type' => 'application/json' })
+                sleep Ably::Rest::Client::HTTP_DEFAULTS.fetch(:request_timeout)
+                { status: [500, "Internal Server Error"] }
+              end.then.
+              to_return(:status => 201, :body => token_response.to_json, :headers => { 'Content-Type' => 'application/json' })
+
+              stub_request(:get, 'https://internet-up.ably-realtime.com/is-the-internet-up.txt')
+                .with(
+                  headers: {
+                    'Accept-Encoding' => 'gzip, compressed',
+                    'Connection' => 'close',
+                    'Host' => 'internet-up.ably-realtime.com',
+                    'User-Agent' => 'EventMachine HttpClient'
+                  }
+                ).to_return(status: 200, body: 'yes\n', headers: { 'Content-Type' => 'text/plain' })
             end
 
             specify 'the connection moves to the disconnected state and tries again, returning again to the disconnected state (#RSA4c, #RSA4c1, #RSA4c2)' do
@@ -1423,14 +1433,19 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         let(:expected_host)  { "#{environment}-#{Ably::Realtime::Client::DOMAIN}" }
         let(:client_options) { timeout_options.merge(environment: environment) }
 
-        it 'does not use a fallback host by default' do
-          expect(connection).to receive(:create_transport).exactly(retry_count_for_all_states).times do |host|
-            expect(host).to eql(expected_host)
-            raise EventMachine::ConnectionError
-          end
+        context ':fallback_hosts_use_default is unset' do
+          let(:max_time_in_state_for_tests) { 8 }
+          let(:expected_hosts) { Ably::CUSTOM_ENVIRONMENT_FALLBACKS_SUFFIXES.map { |suffix| "#{environment}#{suffix}" } + [expected_host] }
+          let(:fallback_hosts_used) { Array.new }
 
-          connection.once(:suspended) do
+          it 'uses fallback hosts by default' do
+            allow(connection).to receive(:create_transport) do |host|
+              fallback_hosts_used << host
+              raise EventMachine::ConnectionError
+            end
+
             connection.once(:suspended) do
+              expect(fallback_hosts_used.uniq).to match_array(expected_hosts)
               stop_reactor
             end
           end
@@ -1508,7 +1523,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
       end
 
       context 'with production environment' do
-        let(:custom_hosts)   { %w(A.ably-realtime.com B.ably-realtime.com) }
+        let(:custom_hosts)   { %w(a.ably-realtime.com b.ably-realtime.com) }
         before do
           stub_const 'Ably::FALLBACK_HOSTS', custom_hosts
         end

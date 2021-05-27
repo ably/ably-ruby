@@ -6,8 +6,18 @@
 module Ably
   # Fallback hosts to use when a connection to rest/realtime.ably.io is not possible due to
   # network failures either at the client, between the client and Ably, within an Ably data center, or at the IO domain registrar
+  # see https://docs.ably.io/client-lib-development-guide/features/#RSC15a
   #
-  FALLBACK_HOSTS = %w(A.ably-realtime.com B.ably-realtime.com C.ably-realtime.com D.ably-realtime.com E.ably-realtime.com).freeze
+  FALLBACK_DOMAIN = 'ably-realtime.com'.freeze
+  FALLBACK_IDS = %w(a b c d e).freeze
+
+  # Default production fallbacks a.ably-realtime.com ... e.ably-realtime.com
+  FALLBACK_HOSTS = FALLBACK_IDS.map { |host| "#{host}.#{FALLBACK_DOMAIN}".freeze }.freeze
+
+  # Custom environment default fallbacks {ENV}-a-fallback.ably-realtime.com ... {ENV}-a-fallback.ably-realtime.com
+  CUSTOM_ENVIRONMENT_FALLBACKS_SUFFIXES = FALLBACK_IDS.map do |host|
+    "-#{host}-fallback.#{FALLBACK_DOMAIN}".freeze
+  end.freeze
 
   INTERNET_CHECK = {
     url:     '//internet-up.ably-realtime.com/is-the-internet-up.txt',

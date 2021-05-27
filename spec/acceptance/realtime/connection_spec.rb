@@ -122,7 +122,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 end
               end
 
-              context 'with immediately expired token' do
+              context 'with immediately expired token and no fallback hosts' do
                 let(:ttl) { 0.001 }
                 let(:auth_requests) { [] }
                 let(:token_callback) do
@@ -131,7 +131,7 @@ describe Ably::Realtime::Connection, :event_machine do
                     Ably::Rest::Client.new(default_options).auth.request_token(ttl: ttl).token
                   end
                 end
-                let(:client_options) { default_options.merge(auth_callback: token_callback) }
+                let(:client_options) { default_options.merge(auth_callback: token_callback, fallback_hosts: []) }
 
                 it 'renews the token on connect, and makes one immediate subsequent attempt to obtain a new token (#RSA4b)' do
                   started_at = Time.now.to_f
@@ -146,7 +146,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 end
 
                 context 'when disconnected_retry_timeout is 0.5 seconds' do
-                  let(:client_options) { default_options.merge(disconnected_retry_timeout: 0.5, auth_callback: token_callback) }
+                  let(:client_options) { default_options.merge(disconnected_retry_timeout: 0.5, auth_callback: token_callback, fallback_hosts: []) }
 
                   it 'renews the token on connect, and continues to attempt renew based on the retry schedule' do
                     disconnect_count = 0
@@ -172,7 +172,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 end
 
                 context 'using implicit token auth' do
-                  let(:client_options) { default_options.merge(use_token_auth: true, default_token_params: { ttl: ttl }) }
+                  let(:client_options) { default_options.merge(use_token_auth: true, default_token_params: { ttl: ttl }, fallback_hosts: []) }
 
                   before do
                     stub_const 'Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER', -10 # ensure client lib thinks token is still valid
@@ -441,7 +441,9 @@ describe Ably::Realtime::Connection, :event_machine do
       end
     end
 
-    context '#connect' do
+    context '#connect with no fallbacks' do
+      let(:client_options)   { default_options.merge(fallback_hosts: []) }
+
       it 'returns a SafeDeferrable that catches exceptions in callbacks and logs them' do
         expect(connection.connect).to be_a(Ably::Util::SafeDeferrable)
         stop_reactor
@@ -1167,6 +1169,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 host:   'this.host.does.not.exist.com'
               )
             )
+            allow(client).to receive(:fallback_hosts).and_return([])
 
             connection.transition_state_machine! :disconnected
           end

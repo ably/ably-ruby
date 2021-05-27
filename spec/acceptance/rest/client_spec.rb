@@ -301,30 +301,44 @@ describe Ably::Rest::Client do
       context 'configured' do
         let(:client_options) { default_options.merge(key: api_key, environment: 'production') }
 
-        it 'should make connection attempts to A.ably-realtime.com, B.ably-realtime.com, C.ably-realtime.com, D.ably-realtime.com, E.ably-realtime.com (#RSC15a)' do
+        it 'should make connection attempts to a.ably-realtime.com, b.ably-realtime.com, c.ably-realtime.com, d.ably-realtime.com, e.ably-realtime.com (#RSC15a)' do
           hosts = []
           5.times do
             hosts << client.fallback_connection.host
           end
-          expect(hosts).to match_array(%w(A.ably-realtime.com B.ably-realtime.com C.ably-realtime.com D.ably-realtime.com E.ably-realtime.com))
+          expect(hosts).to match_array(%w(a.ably-realtime.com b.ably-realtime.com c.ably-realtime.com d.ably-realtime.com e.ably-realtime.com))
         end
       end
 
       context 'when environment is NOT production (#RSC15b)' do
-        let(:client_options) { default_options.merge(environment: 'sandbox', key: api_key) }
-        let!(:default_host_request_stub) do
-          stub_request(:post, "https://#{environment}-#{Ably::Rest::Client::DOMAIN}#{path}").to_return do
-            raise Faraday::TimeoutError.new('timeout error message')
+        context 'and custom fallback hosts are empty' do
+          let(:client_options) { default_options.merge(environment: 'sandbox', key: api_key, fallback_hosts: []) }
+          let!(:default_host_request_stub) do
+            stub_request(:post, "https://#{environment}-#{Ably::Rest::Client::DOMAIN}#{path}").to_return do
+              raise Faraday::TimeoutError.new('timeout error message')
+            end
+          end
+
+          it 'does not retry failed requests with fallback hosts when there is a connection error' do
+            expect { publish_block.call }.to raise_error Ably::Exceptions::ConnectionTimeout
           end
         end
 
-        it 'does not retry failed requests with fallback hosts when there is a connection error' do
-          expect { publish_block.call }.to raise_error Ably::Exceptions::ConnectionTimeout
+        context 'and no custom fallback hosts are provided' do
+          let(:client_options) { default_options.merge(environment: 'sandbox', key: api_key) }
+
+          it 'should make connection attempts to sandbox-a-fallback.ably-realtime.com, sandbox-b-fallback.ably-realtime.com, sandbox-c-fallback.ably-realtime.com, sandbox-d-fallback.ably-realtime.com, sandbox-e-fallback.ably-realtime.com (#RSC15a)' do
+            hosts = []
+            5.times do
+              hosts << client.fallback_connection.host
+            end
+            expect(hosts).to match_array(%w(a b c d e).map { |id| "sandbox-#{id}-fallback.ably-realtime.com" })
+          end
         end
       end
 
       context 'when environment is production' do
-        let(:custom_hosts)       { %w(A.ably-realtime.com B.ably-realtime.com) }
+        let(:custom_hosts)       { %w(a.ably-realtime.com b.ably-realtime.com) }
         let(:max_retry_count)    { 2 }
         let(:max_retry_duration) { 0.5 }
         let(:fallback_block)     { proc { raise Faraday::SSLError.new('ssl error message') } }
@@ -823,11 +837,12 @@ describe Ably::Rest::Client do
       end
 
       context 'when environment is not production and server returns a 50x error' do
+        let(:env)                { 'custom-env' }
+        let(:default_fallbacks)  { %w(a b c d e).map { |id| "#{env}-#{id}-fallback.ably-realtime.com" } }
         let(:custom_hosts)       { %w(A.foo.com B.foo.com) }
         let(:max_retry_count)    { 2 }
         let(:max_retry_duration) { 0.5 }
         let(:fallback_block)     { proc { raise Faraday::SSLError.new('ssl error message') } }
-        let(:env)                { 'custom-env' }
         let(:production_options) do
           default_options.merge(
             environment: env,
@@ -849,6 +864,26 @@ describe Ably::Rest::Client do
         end
         let!(:default_host_request_stub) do
           stub_request(:post, "https://#{env}-#{Ably::Rest::Client::DOMAIN}#{path}").to_return(&fallback_block)
+        end
+
+        context 'with no fallback hosts provided (#TBC, see https://github.com/ably/wiki/issues/361)' do
+          let(:client_options) {
+            production_options.merge(log_level: :fatal)
+          }
+
+          it 'uses the default fallback hosts for that environment as this is not an authentication failure' do
+            fallbacks_called_count = 0
+            default_fallbacks.each do |host|
+              counting_fallback_proc = proc do
+                fallbacks_called_count += 1
+                fallback_block.call
+              end
+              stub_request(:post, "https://#{host}#{path}").to_return(&counting_fallback_proc)
+            end
+            expect { publish_block.call }.to raise_error(Ably::Exceptions::ServerError)
+            expect(default_host_request_stub).to have_been_requested
+            expect(fallbacks_called_count).to be >= 2
+          end
         end
 
         context 'with custom fallback hosts provided (#RSC15b, #TO3k6)' do
@@ -1194,9 +1229,9 @@ describe Ably::Rest::Client do
 
     context 'request_id generation' do
       context 'Timeout error' do
-        context 'with option add_request_ids: true', :webmock, :prevent_log_stubbing do
+        context 'with option add_request_ids: true and no fallback hosts', :webmock, :prevent_log_stubbing do
           let(:custom_logger_object) { TestLogger.new }
-          let(:client_options) { default_options.merge(key: api_key, logger: custom_logger_object, add_request_ids: true) }
+          let(:client_options) { default_options.merge(key: api_key, logger: custom_logger_object, add_request_ids: true, fallback_hosts: []) }
 
           before do
             @request_id = nil
@@ -1286,8 +1321,8 @@ describe Ably::Rest::Client do
           end
         end
 
-        context 'without request_id' do
-          let(:client_options) { default_options.merge(key: api_key, http_request_timeout: 0) }
+        context 'without request_id and no fallback hosts' do
+          let(:client_options) { default_options.merge(key: api_key, http_request_timeout: 0, fallback_hosts: []) }
 
           it 'does not include request_id in ConnectionTimeout error' do
             begin

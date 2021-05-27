@@ -87,8 +87,10 @@ describe Ably::Rest do
         let(:error_response) { '{ "error": { "statusCode": 500, "code": 50000, "message": "Internal error" } }' }
 
         before do
-          stub_request(:get, "#{client.endpoint}/time").
-            to_return(:status => 500, :body => error_response, :headers => { 'Content-Type' => 'application/json' })
+          (client.fallback_hosts.map { |host| "https://#{host}" } + [client.endpoint]).each do |host|
+            stub_request(:get, "#{host}/time")
+              .to_return(:status => 500, :body => error_response, :headers => { 'Content-Type' => 'application/json' })
+          end
         end
 
         it 'should raise a ServerError exception' do
@@ -98,8 +100,10 @@ describe Ably::Rest do
 
       describe '500 server error without a valid JSON response body', :webmock do
         before do
-          stub_request(:get, "#{client.endpoint}/time").
-          to_return(:status => 500, :headers => { 'Content-Type' => 'application/json' })
+          (client.fallback_hosts.map { |host| "https://#{host}" } + [client.endpoint]).each do |host|
+            stub_request(:get, "#{host}/time").
+            to_return(:status => 500, :headers => { 'Content-Type' => 'application/json' })
+          end
         end
 
         it 'should raise a ServerError exception' do
