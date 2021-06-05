@@ -20,7 +20,7 @@ Gem::Specification.new do |spec|
 
   spec.add_runtime_dependency 'eventmachine', '~> 1.2.6'
   spec.add_runtime_dependency 'em-http-request', '~> 1.1'
-  spec.add_runtime_dependency 'statesman', '~> 7.4'
+  spec.add_runtime_dependency 'statesman', '~> 8.0'
   spec.add_runtime_dependency 'faraday', '~> 1.0'
   spec.add_runtime_dependency 'typhoeus', '~> 1.4'
 
