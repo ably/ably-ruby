@@ -354,6 +354,15 @@ describe Ably::Rest::Channel do
           end
         end
       end
+
+      context 'max message size is exceeded (#TO3l8)' do
+        let(:data) { 101.times.map { { data: 'x' * 655 } } }
+
+        it 'should raise Ably::Exceptions::MaxMessageSizeExceeded exception' do
+          expect { channel.publish([ data: data ]) }.to \
+            raise_error(Ably::Exceptions::MaxMessageSizeExceeded)
+        end
+      end
     end
 
     describe '#history' do
