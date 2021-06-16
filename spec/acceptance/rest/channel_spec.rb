@@ -355,7 +355,7 @@ describe Ably::Rest::Channel do
         end
       end
 
-      context 'max message size is exceeded (#TO3l8)' do
+      context 'message size is exceeded (#TO3l8)' do
         let(:data) { 101.times.map { { data: 'x' * 655 } } }
 
         it 'should raise Ably::Exceptions::MaxMessageSizeExceeded exception' do

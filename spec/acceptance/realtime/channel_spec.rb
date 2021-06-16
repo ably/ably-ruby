@@ -1403,6 +1403,20 @@ describe Ably::Realtime::Channel, :event_machine do
           end
         end
       end
+
+      context 'message size exceeded (#TO3l8)' do
+        let(:data) { { data: 'x' * 700000 } }
+
+        it 'should not allow to send a message' do
+          channel.publish([{ data: data }]).tap do |deferrable|
+            deferrable.errback do |error|
+              expect(error.message).to match(/^Maximum\ message\ length\ exceeded/)
+              expect(error.href).to eq('https://help.ably.io/error/40009')
+              stop_reactor
+            end
+          end
+        end
+      end
     end
 
     describe '#subscribe' do
