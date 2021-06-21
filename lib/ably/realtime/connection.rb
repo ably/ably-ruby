@@ -82,6 +82,9 @@ module Ably
       # Max number of messages to bundle in a single ProtocolMessage
       MAX_PROTOCOL_MESSAGE_BATCH_SIZE = 50
 
+      # Max message size
+      MAX_MESSAGE_SIZE = 65536 # See spec TO3l8
+
       # A unique public identifier for this connection, used to identify this member in presence events and messages
       # @return [String]
       attr_reader :id
