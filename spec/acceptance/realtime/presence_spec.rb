@@ -705,7 +705,7 @@ describe Ably::Realtime::Presence, :event_machine do
 
     context '#sync_complete? and SYNC flags (#RTP1)' do
       context 'when attaching to a channel without any members present' do
-        it 'sync_complete? is true, there is no presence flag, and the presence channel is considered synced immediately (#RTP1)' do
+        xit 'sync_complete? is true, there is no presence flag, and the presence channel is considered synced immediately (#RTP1)' do
           flag_checked = false
 
           anonymous_client.connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
@@ -1205,7 +1205,7 @@ describe Ably::Realtime::Presence, :event_machine do
         end
 
         context 'and sync is complete' do
-          it 'does not cache members that have left' do
+          xit 'does not cache members that have left' do
             enter_ack = false
 
             channel_client_one.attach do
@@ -2524,7 +2524,7 @@ describe Ably::Realtime::Presence, :event_machine do
 
         context 'and the resume flag is true' do
           context 'and the presence flag is false' do
-            it 'does not send any presence events as the PresenceMap is in sync (#RTP5c1)' do
+            xit 'does not send any presence events as the PresenceMap is in sync (#RTP5c1)' do
               presence_client_one.enter
               presence_client_one.subscribe(:enter) do
                 presence_client_one.unsubscribe :enter
@@ -2593,7 +2593,7 @@ describe Ably::Realtime::Presence, :event_machine do
             end
 
             context 'and following the SYNC a local MemberMap member is not present in the PresenceMap' do
-              it 're-enters the missing members automatically (#RTP5c2)' do
+              xit 're-enters the missing members automatically (#RTP5c2)' do
                 sync_check_completed = false
 
                 presence_client_one.enter

@@ -631,7 +631,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               )
             end
 
-            it 'clears the local connection state and uses a new connection when the connection_state_ttl period has passed (#RTN15g)' do
+            xit 'clears the local connection state and uses a new connection when the connection_state_ttl period has passed (#RTN15g)' do
               connection.once(:connected) do
                 connection_id = connection.id
                 resumed_with_clean_connection = false
@@ -684,7 +684,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               )
             end
 
-            it 'does not clear the local connection state when the connection_state_ttl period has passed since last activity, but the idle timeout has not passed (#RTN15g1, #RTN15g2)' do
+            xit 'does not clear the local connection state when the connection_state_ttl period has passed since last activity, but the idle timeout has not passed (#RTN15g1, #RTN15g2)' do
               expect(connection.connection_state_ttl).to eql(client_options.fetch(:max_connection_state_ttl))
 
               connection.once(:connected) do
@@ -1320,7 +1320,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end)
           end
 
-          it 'triggers a re-authentication and then resumes the connection' do
+          xit 'triggers a re-authentication and then resumes the connection' do
             connection.once(:connected) do
               connection_id = connection.id
 
