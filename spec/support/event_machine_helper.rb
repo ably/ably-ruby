@@ -6,7 +6,7 @@ module RSpec
   module EventMachine
     extend self
 
-    DEFAULT_TIMEOUT = 15
+    DEFAULT_TIMEOUT = 60
 
     def run_reactor(timeout = DEFAULT_TIMEOUT)
       @reactor_stopping = false
