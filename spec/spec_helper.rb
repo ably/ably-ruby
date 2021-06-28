@@ -4,6 +4,11 @@ def console(message)
   puts "\033[31m[#{Time.now.strftime('%H:%M:%S.%L')}]\033[0m \033[33m#{message}\033[0m"
 end
 
+# Fix for OpenSSL::SSL::SSLError
+require 'openssl'
+OpenSSL::SSL.send(:remove_const, :VERIFY_PEER)
+OpenSSL::SSL.const_set(:VERIFY_PEER, OpenSSL::SSL::VERIFY_NONE)
+
 unless RUBY_VERSION.match(/^1\./)
   require 'coveralls'
   Coveralls.wear!
