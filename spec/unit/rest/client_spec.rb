@@ -67,6 +67,41 @@ describe Ably::Rest::Client do
         end
       end
     end
+
+    context 'log_exception_reporting_url' do
+      context 'default' do
+        let(:client_options) { { key: 'appid.keyuid:keysecret' } }
+
+        it 'includes default log exception reporting url' do
+          expect(subject.log_exception_reporting_url).to eql(Ably::Rest::Client::LOG_EXCEPTION_REPORTING_URL)
+        end
+      end
+
+      context 'nil' do
+        let(:client_options) { { log_exception_reporting_url: nil, key: 'appid.keyuid:keysecret' } }
+
+        it 'should disable log_exception_reporting_url' do
+          expect(subject.log_exception_reporting_url).to eql(false)
+        end
+      end
+
+      context 'false' do
+        let(:client_options) { { log_exception_reporting_url: false, key: 'appid.keyuid:keysecret' } }
+
+        it 'should disable log_exception_reporting_url' do
+          expect(subject.log_exception_reporting_url).to eql(false)
+        end
+      end
+
+      context 'custom string' do
+        let(:custom_log_exception_reporting_url) { 'https://notify.errors.com' }
+        let(:client_options) { { log_exception_reporting_url: custom_log_exception_reporting_url, key: 'appid.keyuid:keysecret' } }
+
+        it 'includes custom log exception reporting url' do
+          expect(subject.log_exception_reporting_url).to eql(custom_log_exception_reporting_url)
+        end
+      end
+    end
   end
 
   context 'request_id generation' do
