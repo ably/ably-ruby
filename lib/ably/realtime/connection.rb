@@ -437,7 +437,7 @@ module Ably
                 'format' =>     client.protocol,
                 'echo' =>       client.echo_messages,
                 'v' =>          Ably::PROTOCOL_VERSION,
-                'lib' =>        client.rest_client.lib_version_id,
+                'agent' =>      client.rest_client.agent
               )
 
               # Use native websocket heartbeats if possible, but allow Ably protocol heartbeats

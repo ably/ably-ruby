@@ -1,6 +1,7 @@
 require 'addressable/uri'
 
 require 'ably/version'
+require 'ably/agent'
 
 %w(modules util).each do |namespace|
   Dir.glob(File.expand_path("ably/#{namespace}/*.rb", File.dirname(__FILE__))).sort.each do |file|
