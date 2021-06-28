@@ -60,6 +60,8 @@ describe Ably::Rest::Channel do
         end
 
         it 'publishes an array of messages in one HTTP request' do
+          expect(messages.sum(&:size) < Ably::Rest::Channel::MAX_MESSAGE_SIZE).to eq(true)
+
           expect(client).to receive(:post).once.and_call_original
           expect(channel.publish(messages)).to eql(true)
           expect(channel.history.items.map(&:name)).to match_array(messages.map { |message| message[:name] })
@@ -75,6 +77,8 @@ describe Ably::Rest::Channel do
         end
 
         it 'publishes an array of messages in one HTTP request' do
+          expect(messages.sum(&:size) < Ably::Rest::Channel::MAX_MESSAGE_SIZE).to eq(true)
+
           expect(client).to receive(:post).once.and_call_original
           expect(channel.publish(messages)).to eql(true)
           expect(channel.history.items.map(&:name)).to match_array(messages.map(&:name))
@@ -348,6 +352,15 @@ describe Ably::Rest::Channel do
             expect(messages.first.data).to eql(payload)
             expect(messages.last.data).to eql(payload)
           end
+        end
+      end
+
+      context 'message size is exceeded (#TO3l8)' do
+        let(:data) { 101.times.map { { data: 'x' * 655 } } }
+
+        it 'should raise Ably::Exceptions::MaxMessageSizeExceeded exception' do
+          expect { channel.publish([ data: data ]) }.to \
+            raise_error(Ably::Exceptions::MaxMessageSizeExceeded)
         end
       end
     end

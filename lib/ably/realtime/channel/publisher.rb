@@ -22,6 +22,11 @@ module Ably::Realtime
           end
         end
 
+        if messages.sum(&:size) > Ably::Realtime::Connection::MAX_MESSAGE_SIZE
+          error = Ably::Exceptions::MaxMessageSizeExceeded.new("Message size exceeded #{Ably::Realtime::Connection::MAX_MESSAGE_SIZE} bytes.")
+          return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
+        end
+
         connection.send_protocol_message(
           action:   Ably::Models::ProtocolMessage::ACTION.Message.to_i,
           channel:  channel_name,

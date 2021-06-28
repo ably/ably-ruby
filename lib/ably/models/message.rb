@@ -105,6 +105,20 @@ module Ably::Models
       end.to_json
     end
 
+    # The size is the sum over name, data, clientId, and extras in bytes (TO3l8a)
+    #
+    def size
+      %w(name data client_id extras).map do |attr|
+        if (value = attributes[attr.to_sym]).is_a?(String)
+          value.bytesize
+        elsif value.nil?
+          0
+        else
+          value.to_json.bytesize
+        end
+      end.sum
+    end
+
     # Assign this message to a ProtocolMessage before delivery to the Ably system
     # @api private
     def assign_to_protocol_message(protocol_message)
