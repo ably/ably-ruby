@@ -73,15 +73,31 @@ describe Ably::Rest::Client do
         let(:client_options) { { key: 'appid.keyuid:keysecret' } }
 
         it 'includes default log exception reporting url' do
-          expect(subject.log_exception_reporting_url).to eql(Ably::Rest::Client::LOG_EXCEPTION_REPORTING_URL)
+          expect(subject.log_exception_reporting_url).to eql(nil)
+        end
+
+        it 'should set default log_exception_reporting_service' do
+          expect(subject.log_exception_reporting_service).to be_a(Ably::Reporting::Service)
+        end
+
+        it 'should enable log_exception_reporting' do
+          expect(subject.log_exception_reporting).to eql(true)
         end
       end
 
       context 'nil' do
         let(:client_options) { { log_exception_reporting_url: nil, key: 'appid.keyuid:keysecret' } }
 
-        it 'should disable log_exception_reporting_url' do
-          expect(subject.log_exception_reporting_url).to eql(false)
+        it 'should set log_exception_reporting_url to nil' do
+          expect(subject.log_exception_reporting_url).to eql(nil)
+        end
+
+        it 'should not set log_exception_reporting_service' do
+          expect(subject.log_exception_reporting_service).to eql(nil)
+        end
+
+        it 'should disable log_exception_reporting' do
+          expect(subject.log_exception_reporting).to eql(false)
         end
       end
 
@@ -91,6 +107,10 @@ describe Ably::Rest::Client do
         it 'should disable log_exception_reporting_url' do
           expect(subject.log_exception_reporting_url).to eql(false)
         end
+
+        it 'should not set log_exception_reporting_service' do
+          expect(subject.log_exception_reporting_service).to eq(nil)
+        end
       end
 
       context 'custom string' do
@@ -99,6 +119,35 @@ describe Ably::Rest::Client do
 
         it 'includes custom log exception reporting url' do
           expect(subject.log_exception_reporting_url).to eql(custom_log_exception_reporting_url)
+        end
+      end
+    end
+
+    context 'log_exception_reporting_service' do
+      context 'default' do
+        let(:client_options) { { key: 'appid.keyuid:keysecret' } }
+
+        it 'should return log exception reporting service' do
+          expect(subject.log_exception_reporting_service).to be_a(Ably::Reporting::Service)
+        end
+      end
+
+      context 'custom' do
+        class CustomLogExceptionReportingService < Ably::Reporting::Base
+          def initialize(options)
+            @dsn = options.delete(:dsn)
+          end
+
+          def capture_exception(exception)
+            @dsn
+          end
+        end
+
+        let(:client_options) { { log_exception_reporting_class: CustomLogExceptionReportingService, log_exception_reporting_url: 'http://test.com', key: 'appid.keyuid:keysecret' } }
+
+        it 'should return log exception reporting service' do
+          expect(subject.log_exception_reporting_service).to be_a(CustomLogExceptionReportingService)
+          expect(subject.log_exception_reporting_service.capture_exception(nil)).to eq('http://test.com')
         end
       end
     end

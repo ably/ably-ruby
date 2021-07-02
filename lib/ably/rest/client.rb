@@ -25,9 +25,6 @@ module Ably
       # Default Ably domain for REST
       DOMAIN = 'rest.ably.io'
 
-      # Default log exception reporting URL for REST
-      LOG_EXCEPTION_REPORTING_URL = "https://765e1fcaba404d7598d2fd5a2a43c4f0:8d469b2b0fb34c01a12ae217931c4aed@errors.ably.io/3"
-
       # Configuration for HTTP timeouts and HTTP request reattempts to fallback hosts
       HTTP_DEFAULTS = {
         open_timeout:       4,
@@ -67,10 +64,18 @@ module Ably
       # @return [Logger::Severity]
       attr_reader :log_level
 
+      # Log exception reporting
+      # @return [Boolean]
+      attr_reader :log_exception_reporting
+
       # The custom log exception reporting url if it was provided with the option +:log_exception_reporting_url:+ when the {Client} was created
       # If nil, empty string or false, then exception reporting is disabled (#TO3m)
       # @return [String,Nil,Boolean]
       attr_reader :log_exception_reporting_url
+
+      # The log exception reporting service instance.
+      # @return [Ably::Reporting::Base, nil]
+      attr_reader :log_exception_reporting_service
 
       # The custom host that is being used if it was provided with the option +:rest_host+ when the {Client} was created
       # @return [String,Nil]
@@ -133,6 +138,7 @@ module Ably
       # @option options [Boolean]                 :use_binary_protocol (true) When true will use the MessagePack binary protocol, when false it will use JSON encoding. This option will overide :protocol option
       # @option options [Logger::Severity,Symbol] :log_level           (Logger::WARN) Log level for the standard Logger that outputs to STDOUT. Can be set to :fatal (Logger::FATAL), :error (Logger::ERROR), :warn (Logger::WARN), :info (Logger::INFO), :debug (Logger::DEBUG) or :none
       # @option options [String,Nil,Boolean]      :log_exception_reporting_url Exception reporting URL. If nil, false or empty string, then disabled
+      # @option options [Ably::Reporting::Service,Nil] :log_exception_reporting_class Log exception reporting class. By default it is Ably::Reporting::Sentry
       # @option options [Logger]                  :logger              A custom logger can be used however it must adhere to the Ruby Logger interface, see http://www.ruby-doc.org/stdlib-1.9.3/libdoc/logger/rdoc/Logger.html
       # @option options [String]                  :client_id           client ID identifying this connection to other clients
       # @option options [String]                  :auth_url            a URL to be used to GET or POST a set of token request params, to obtain a signed token request
@@ -228,13 +234,23 @@ module Ably
           @log_level = ::Logger.const_get(log_level.to_s.upcase) if log_level.kind_of?(Symbol) || log_level.kind_of?(String)
         end
 
+        @log_exception_reporting = true
         if options.has_key?(:log_exception_reporting_url)
           @log_exception_reporting_url = options.delete(:log_exception_reporting_url)
-          if @log_exception_reporting_url.nil? || !@log_exception_reporting_url
-            @log_exception_reporting_url = false
+          @log_exception_reporting = !@log_exception_reporting_url.nil? && @log_exception_reporting_url
+        end
+
+        if @log_exception_reporting
+          log_exception_reporting_options = { dsn: @log_exception_reporting_url }
+          if options.has_key?(:log_exception_reporting_class)
+            log_exception_reporting_class = options.delete(:log_exception_reporting_class)
+            @log_exception_reporting_service = log_exception_reporting_class.new(log_exception_reporting_options)
+            unless @log_exception_reporting_service.respond_to?(:capture_exception)
+              raise ArgumentError, 'log_exception_reporting_service does not respond to capture_exception() method'
+            end
+          else
+            @log_exception_reporting_service = Ably::Reporting::Service.new(log_exception_reporting_options)
           end
-        else
-          @log_exception_reporting_url = LOG_EXCEPTION_REPORTING_URL
         end
 
         options.delete(:use_binary_protocol).tap do |use_binary_protocol|
