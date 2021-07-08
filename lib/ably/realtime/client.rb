@@ -131,6 +131,8 @@ module Ably
         @auth       = Ably::Realtime::Auth.new(self)
         @channels   = Ably::Realtime::Channels.new(self)
         @connection = Ably::Realtime::Connection.new(self, options)
+
+        initialize_error_handler
       end
 
       # Return a {Ably::Realtime::Channel Realtime Channel} for the given name
@@ -329,6 +331,14 @@ module Ably
         options.merge!(port: port) if port
 
         URI::Generic.build(options)
+      end
+
+      def initialize_error_handler
+        return if !ENV['LOG_EXCEPTION_REPORT'].nil? && ENV['LOG_EXCEPTION_REPORT'] != 'true' || !log_exception_reporting || !log_exception_reporting_service
+
+        EventMachine.error_handler do |exception|
+          log_exception_reporting_service.capture_exception(exception)
+        end
       end
     end
   end

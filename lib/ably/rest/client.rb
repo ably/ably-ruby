@@ -573,6 +573,9 @@ module Ably
             send_request(method, path, params, options)
           end
         end
+      rescue => exception
+        log_exception_report(exception) if ENV['LOG_EXCEPTION_REPORT'].nil? || ENV['LOG_EXCEPTION_REPORT'] == 'true'
+        raise exception
       end
 
       # Sends HTTP request to connection end point
@@ -728,6 +731,11 @@ module Ably
 
       def initialize_default_encoders
         Ably::Models::MessageEncoders.register_default_encoders self, binary_protocol: protocol == :msgpack
+      end
+
+      def log_exception_report(exception)
+        return if !log_exception_reporting || !log_exception_reporting_service
+        log_exception_reporting_service.capture_exception(exception)
       end
     end
   end

@@ -171,4 +171,23 @@ describe Ably::Rest::Client do
       expect(subject.push).to be_a(Ably::Rest::Push)
     end
   end
+
+  context 'log exception report' do
+    let(:client_options) { { key: 'appid.keyuid:keysecret' } }
+
+    before { allow(subject).to receive(:send_request).with(:get, '/insecure_request', {}, {}).and_raise(Ably::Exceptions::InsecureRequest.new('log report')) }
+    before { expect(subject).to receive(:log_exception_report).with(Ably::Exceptions::InsecureRequest) }
+
+    after { ENV['LOG_EXCEPTION_REPORT'] = 'false' }
+
+    context 'when LOG_EXCEPTION_REPORT is enabled' do
+      let(:request) { subject.get('/insecure_request', {}, { disable_automatic_reauthorize: true }) }
+
+      before { ENV['LOG_EXCEPTION_REPORT'] = 'true' }
+
+      it 'should call log_exception_report' do
+        expect { request }.to raise_error(Ably::Exceptions::InsecureRequest)
+      end
+    end
+  end
 end

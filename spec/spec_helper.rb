@@ -11,6 +11,8 @@ end
 
 require 'webmock/rspec'
 
+ENV['LOG_EXCEPTION_REPORT'] ||= 'false'
+
 require 'ably'
 
 require 'support/api_helper'
