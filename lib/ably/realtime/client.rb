@@ -132,7 +132,7 @@ module Ably
         @channels   = Ably::Realtime::Channels.new(self)
         @connection = Ably::Realtime::Connection.new(self, options)
 
-        initialize_error_handler
+        EventMachine.error_handler { |err| log_exception_reporting_service_handler(err) }
       end
 
       # Return a {Ably::Realtime::Channel Realtime Channel} for the given name
@@ -333,12 +333,10 @@ module Ably
         URI::Generic.build(options)
       end
 
-      def initialize_error_handler
+      def log_exception_reporting_service_handler(exception)
         return if !ENV['LOG_EXCEPTION_REPORT'].nil? && ENV['LOG_EXCEPTION_REPORT'] != 'true' || !log_exception_reporting || !log_exception_reporting_service
 
-        EventMachine.error_handler do |exception|
-          log_exception_reporting_service.capture_exception(exception)
-        end
+        log_exception_reporting_service.capture_exception(exception)
       end
     end
   end

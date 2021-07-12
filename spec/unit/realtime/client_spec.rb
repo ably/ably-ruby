@@ -53,6 +53,20 @@ describe Ably::Realtime::Client do
     end
   end
 
+  describe '#log_exception_reporting_service_handler' do
+    let(:client_options) do
+      { key: 'appid.keyuid:keysecret' }
+    end
+
+    context 'when it initializes a client' do
+      before { EventMachine.error_handler(nil) }
+
+      it 'sets an error handler #TO3m' do
+        expect { realtime_client }.to change { EventMachine.error_handler }
+      end
+    end
+  end
+
   after(:all) do
     sleep 1 # let realtime library shut down any open clients
   end
