@@ -498,7 +498,9 @@ describe Ably::Realtime::Presence, :event_machine do
         end
 
         presence_client_one.enter do
-          presence_client_one.leave
+          EventMachine.add_timer(0.5) do
+            presence_client_one.leave
+          end
         end
       end
     end
@@ -1211,10 +1213,11 @@ describe Ably::Realtime::Presence, :event_machine do
             channel_client_one.attach do
               presence_client_one.subscribe(:enter) do
                 presence_client_one.unsubscribe :enter
-
-                expect(presence_client_one.members).to be_in_sync
-                expect(presence_client_one.members.send(:members).count).to eql(1)
-                presence_client_one.leave data
+                EventMachine.next_tick do
+                  expect(presence_client_one.members).to be_in_sync
+                  expect(presence_client_one.members.send(:members).count).to eql(1)
+                  presence_client_one.leave data
+                end
               end
 
               presence_client_one.enter(enter_data) do
