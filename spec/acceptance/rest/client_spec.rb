@@ -1103,7 +1103,7 @@ describe Ably::Rest::Client do
       end
     end
 
-    context '#request (#RSC19*)' do
+    context '#request (#RSC19*, #TO3l9)' do
       let(:client_options) { default_options.merge(key: api_key) }
       let(:device_id) { random_str }
       let(:endpoint) { client.endpoint }
@@ -1158,6 +1158,12 @@ describe Ably::Rest::Client do
 
           expect(response).to be_success
         end
+
+        it 'raises an exception once body size in bytes exceeded' do
+          expect {
+            client.request(:post, endpoint, {}, { content: 'x' * Ably::Rest::Client::MAX_FRAME_SIZE })
+          }.to raise_error(Ably::Exceptions::MaxFrameSizeExceeded)
+        end
       end
 
       context 'delete', :webmock do
@@ -1187,6 +1193,12 @@ describe Ably::Rest::Client do
 
           expect(response).to be_success
         end
+
+        it 'raises an exception once body size in bytes exceeded' do
+          expect {
+            client.request(:patch, endpoint, {}, { content: 'x' * Ably::Rest::Client::MAX_FRAME_SIZE })
+          }.to raise_error(Ably::Exceptions::MaxFrameSizeExceeded)
+        end
       end
 
       context 'put', :webmock do
@@ -1209,6 +1221,12 @@ describe Ably::Rest::Client do
           response = client.request(:put, "/push/deviceRegistrations/#{device_id}", {}, body_params)
 
           expect(response).to be_success
+        end
+
+        it 'raises an exception once body size in bytes exceeded' do
+          expect {
+            client.request(:put, endpoint, {}, { content: 'x' * Ably::Rest::Client::MAX_FRAME_SIZE })
+          }.to raise_error(Ably::Exceptions::MaxFrameSizeExceeded)
         end
       end
     end

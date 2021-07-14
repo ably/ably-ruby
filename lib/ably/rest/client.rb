@@ -25,6 +25,8 @@ module Ably
       # Default Ably domain for REST
       DOMAIN = 'rest.ably.io'
 
+      MAX_FRAME_SIZE = 524288
+
       # Configuration for HTTP timeouts and HTTP request reattempts to fallback hosts
       HTTP_DEFAULTS = {
         open_timeout:       4,
@@ -363,6 +365,9 @@ module Ably
             send_request(method, path, params, headers: headers)
           end
         when :post, :patch, :put
+          if body.to_json.bytesize > MAX_FRAME_SIZE
+            raise Ably::Exceptions::MaxFrameSizeExceeded.new("Maximum frame size exceeded #{MAX_FRAME_SIZE} bytes.")
+          end
           path_with_params = Addressable::URI.new
           path_with_params.query_values = params || {}
           query = path_with_params.query
