@@ -287,6 +287,16 @@ stats_page.next # retrieves the next page => #<Ably::Models::PaginatedResult ...
 client.time #=> 2013-12-12 14:23:34 +0000
 ```
 
+## Ruby 3.0 support
+
+If you cannot install ably realtime gem because of eventmachine openssl problems, please try to set your `openssl-dir`, i.e.:
+
+```ruby
+gem install eventmachine -- --with-openssl-dir=/usr/local/opt/openssl@1.1
+```
+
+More about eventmachine and ruby 3.0 support here https://github.com/eventmachine/eventmachine/issues/932
+
 ## Dependencies
 
 If you only need to use the REST features of this library and do not want EventMachine as a dependency, then you should consider using the [Ably Ruby REST gem](https://rubygems.org/gems/ably-rest).
