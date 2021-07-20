@@ -5,8 +5,17 @@ def console(message)
 end
 
 unless RUBY_VERSION.match(/^1\./)
-  require 'coveralls'
-  Coveralls.wear!
+  require 'simplecov'
+
+  SimpleCov.start do
+    require 'simplecov-lcov'
+    SimpleCov::Formatter::LcovFormatter.config do |c|
+      c.report_with_single_file = true
+      c.single_report_path = 'coverage/lcov.info'
+    end
+    formatter SimpleCov::Formatter::LcovFormatter
+    add_filter %w[vendor]
+  end
 end
 
 require 'webmock/rspec'
