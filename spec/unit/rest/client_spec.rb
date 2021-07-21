@@ -38,6 +38,26 @@ describe Ably::Rest::Client do
       end
     end
 
+    context 'use agent' do
+      context 'set agent to non-default value' do
+        context 'default agent' do
+          let(:client_options) { { key: 'appid.keyuid:keysecret' } }
+
+          it 'should return default ably agent' do
+            expect(subject.agent).to eq(Ably::AGENT)
+          end
+        end
+
+        context 'custom agent' do
+          let(:client_options) { { key: 'appid.keyuid:keysecret', agent: 'example-gem/1.1.4 ably-ruby/1.1.5 ruby/3.0.0' } }
+
+          it 'should overwrite client.agent' do
+            expect(subject.agent).to eq('example-gem/1.1.4 ably-ruby/1.1.5 ruby/3.0.0')
+          end
+        end
+      end
+    end
+
     context ':use_token_auth' do
       context 'set to false' do
         context 'with a key and :tls => false' do

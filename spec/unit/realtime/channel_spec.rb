@@ -68,7 +68,7 @@ describe Ably::Realtime::Channel do
 
   describe '#publish name argument' do
     let(:encoded_value) { random_str.encode(encoding) }
-    let(:message) { instance_double('Ably::Models::Message', client_id: nil) }
+    let(:message) { instance_double('Ably::Models::Message', client_id: nil, size: 0) }
 
     before do
       allow(subject).to receive(:create_message).and_return(message)

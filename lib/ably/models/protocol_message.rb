@@ -185,6 +185,14 @@ module Ably::Models
         end
     end
 
+    def message_size
+      presence.map(&:size).sum + messages.map(&:size).sum
+    end
+
+    def has_correct_message_size?
+      message_size <= connection_details.max_message_size
+    end
+
     def flags
       Integer(attributes[:flags])
     rescue TypeError

@@ -52,6 +52,9 @@ module Ably
       end
     end
 
+    # Maximum message size exceeded TO3l8
+    class MaxMessageSizeExceeded < BaseAblyException; end
+
     # An invalid request was received by Ably
     class InvalidRequest < BaseAblyException; end
 

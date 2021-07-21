@@ -38,6 +38,7 @@ module Ably::Models
           self.attributes[duration_field] = (self.attributes[duration_field].to_f / 1000).round
         end
       end
+      self.attributes[:max_message_size] ||= 65536
       self.attributes.freeze
     end
 

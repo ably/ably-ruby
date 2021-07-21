@@ -211,6 +211,65 @@ describe Ably::Models::Message do
     end
   end
 
+  describe '#size' do
+    let(:model) { subject.new({ name: name, data: data, client_id: client_id, extras: extras }, protocol_message: protocol_message) }
+
+    context 'String (#TO3l8a)' do
+      let(:data) { 'example string data' }
+      let(:client_id) { '1' }
+      let(:name) { 'My Name' }
+      let(:extras) { 'extras' }
+
+      it 'should return 33 bytes' do
+        expect(model.size).to eq(33)
+      end
+    end
+
+    context 'Object (#TO3l8b)' do
+      let(:data) { Object.new }
+      let(:client_id) { String('10') }
+      let(:name) { 'John' }
+      let(:extras) { Hash.new }
+
+      it 'should return 38 bytes' do
+        expect(model.size).to eq(38)
+      end
+    end
+
+    context 'Array (#TO3l8b)' do
+      let(:data) { [1, 'two', :three] }
+      let(:client_id) { '2' }
+      let(:name) { 'Kate' }
+      let(:extras) { [] }
+
+      it 'should return 24 bytes' do
+        expect(model.size).to eq(24)
+      end
+    end
+
+    context 'extras (#TO3l8d)' do
+      let(:data) { { example: 'value', score: 1, hash: { test: true } } }
+      let(:client_id) { '3' }
+      let(:name) { 'John' }
+      let(:extras) { {} }
+
+      it 'should return 57 bytes' do
+        expect(model.size).to eq(57)
+      end
+    end
+
+    context 'nil (#TO3l8e)' do
+      let(:data) { nil }
+      let(:client_id) { '' }
+      let(:name) { '' }
+      let(:extras) { nil}
+
+      it 'should return 19 bytes' do
+        expect(model.size).to eq(0)
+      end
+    end
+  end
+
   context 'from REST request with embedded fields', :api_private do
     let(:id)                  { random_str }
     let(:protocol_message_id) { random_str }

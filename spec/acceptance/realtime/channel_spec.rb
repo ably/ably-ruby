@@ -1403,6 +1403,20 @@ describe Ably::Realtime::Channel, :event_machine do
           end
         end
       end
+
+      context 'message size exceeded (#TO3l8)' do
+        let(:message) { 'x' * 700000 }
+
+        let(:client) { auto_close Ably::Realtime::Client.new(client_options) }
+        let(:channel) { client.channels.get(channel_name) }
+
+        it 'should not allow to send a message' do
+          channel.publish('event', message).errback do |error|
+            expect(error).to be_instance_of(Ably::Exceptions::MaxMessageSizeExceeded)
+            stop_reactor
+          end
+        end
+      end
     end
 
     describe '#subscribe' do
