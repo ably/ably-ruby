@@ -20,7 +20,7 @@ describe Ably::Realtime::Presence, 'history', :event_machine do
 
     it 'provides up to the moment presence history' do
       presence_client_one.enter(data) do
-        presence_client_one.leave(leave_data) do
+        presence_client_one.subscribe(:leave) do
           presence_client_one.history do |history_page|
             expect(history_page).to be_a(Ably::Models::PaginatedResult)
             expect(history_page.items.count).to eql(2)
@@ -36,6 +36,8 @@ describe Ably::Realtime::Presence, 'history', :event_machine do
             stop_reactor
           end
         end
+
+        presence_client_one.leave(leave_data)
       end
     end
 
