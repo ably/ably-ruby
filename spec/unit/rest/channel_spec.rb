@@ -14,6 +14,10 @@ describe Ably::Rest::Channel do
 
   subject { Ably::Rest::Channel.new(client, channel_name) }
 
+  it 'should return Ably::Rest::Channel::MAX_MESSAGE_SIZE equal 65536 (TO3l8)' do
+    expect(Ably::Rest::Channel::MAX_MESSAGE_SIZE).to eq(65536)
+  end
+
   describe '#initializer' do
     let(:channel_name) { random_str.encode(encoding) }
 
@@ -124,6 +128,12 @@ describe Ably::Rest::Channel do
 
       it 'raises an argument error' do
         expect { subject.publish(encoded_value, 'data') }.to raise_error ArgumentError, /must be a String/
+      end
+    end
+
+    context 'max message size exceeded' do
+      it 'should raise Ably::Exceptions::MaxMessageSizeExceeded' do
+        expect { subject.publish('x' * 65537, 'data') }.to raise_error Ably::Exceptions::MaxMessageSizeExceeded
       end
     end
   end

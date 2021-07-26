@@ -318,6 +318,54 @@ describe Ably::Models::ProtocolMessage do
       end
     end
 
+    context '#message_size (#TO3l8)' do
+      context 'on presence' do
+        let(:protocol_message) do
+          new_protocol_message(presence: [{ action: 1, data: 'test342343', client_id: 'sdf' }])
+        end
+
+        it 'should return 13 bytes (sum in bytes: data and client_id)' do
+          expect(protocol_message.message_size).to eq(13)
+        end
+      end
+
+      context 'on message' do
+        let(:protocol_message) do
+          new_protocol_message(messages: [{ action: 1, unknown: 'test', data: 'test342343', client_id: 'sdf', name: 'sf23ewrew', extras: { time: Time.now, time_zone: 'UTC' } }])
+        end
+
+        it 'should return 76 bytes (sum in bytes: data, client_id, name, extras)' do
+          expect(protocol_message.message_size).to eq(76)
+        end
+      end
+    end
+
+    context '#has_correct_message_size? (#TO3l8)' do
+      context 'on presence' do
+        it 'should return true when a message has correct size' do
+          protocol_message = new_protocol_message(presence: [{ action: 1, data: 'x' * 100 }])
+          expect(protocol_message.has_correct_message_size?).to eq(true)
+        end
+
+        it 'should return false when a message has not correct size' do
+          protocol_message = new_protocol_message(presence: [{ action: 1, data: 'x' * 65537 }])
+          expect(protocol_message.has_correct_message_size?).to eq(false)
+        end
+      end
+
+      context 'on message' do
+        it 'should return true when a message has correct size' do
+          protocol_message = new_protocol_message(messages: [{ name: 'x' * 100 }])
+          expect(protocol_message.has_correct_message_size?).to eq(true)
+        end
+
+        it 'should return false when a message has not correct size' do
+          protocol_message = new_protocol_message(messages: [{ name: 'x' * 65537 }])
+          expect(protocol_message.has_correct_message_size?).to eq(false)
+        end
+      end
+    end
+
     context '#connection_details (#TR4o)' do
       let(:connection_details) { protocol_message.connection_details }
 

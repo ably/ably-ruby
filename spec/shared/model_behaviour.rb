@@ -19,7 +19,7 @@ shared_examples 'a model' do |shared_options = {}|
     end
 
     context '#attributes', :api_private do
-      let(:model_options) { { action: 5 } }
+      let(:model_options) { { action: 5, max_message_size: 65536 } }
 
       it 'provides access to #attributes' do
         expect(model.attributes).to eq(model_options)

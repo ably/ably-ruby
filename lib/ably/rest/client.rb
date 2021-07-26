@@ -52,6 +52,10 @@ module Ably
       # @return [Symbol]
       attr_reader :protocol
 
+      # Client agent i.e. `example-gem/1.2.0 ably-ruby/1.1.5 ruby/1.9.3`
+      # @return [String]
+      attr_reader :agent
+
       # {Ably::Auth} authentication object configured for this connection
       # @return [Ably::Auth]
       attr_reader :auth
@@ -183,6 +187,7 @@ module Ably
           end
         end
 
+        @agent               = options.delete(:agent) || Ably::AGENT
         @realtime_client     = options.delete(:realtime_client)
         @tls                 = options.delete(:tls) == false ? false : true
         @environment         = options.delete(:environment) # nil is production
@@ -506,16 +511,6 @@ module Ably
         end
       end
 
-      # Library Ably version user agent
-      # @api private
-      def lib_version_id
-        @lib_version_id ||= [
-          'ruby',
-          Ably.lib_variant,
-          Ably::VERSION
-        ].compact.join('-')
-      end
-
       # Allowable duration for an external auth request
       # For REST client this defaults to request_timeout
       # For Realtime clients this defaults to 250ms less than the realtime_request_timeout
@@ -699,7 +694,7 @@ module Ably
             accept:             mime_type,
             user_agent:         user_agent,
             'X-Ably-Version' => Ably::PROTOCOL_VERSION,
-            'X-Ably-Lib'     => lib_version_id
+            'Ably-Agent'     => agent
           },
           request: {
             open_timeout: http_defaults.fetch(:open_timeout),
