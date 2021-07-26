@@ -14,7 +14,7 @@ unless RUBY_VERSION.match(/^1\./)
       c.single_report_path = 'coverage/lcov.info'
     end
     formatter SimpleCov::Formatter::LcovFormatter
-    add_filter %w[vendor]
+    add_filter %w[vendor spec]
   end
 end
 
