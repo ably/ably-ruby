@@ -7,7 +7,7 @@ A Ruby client library for [ably.com](https://ably.com), the realtime messaging s
 
 ## Supported platforms
 
-This SDK supports Ruby 1.9.3+.
+This SDK supports Ruby 1.9.3+. For eventmachine and Ruby 3.0 note please visit [Ruby 3.0 support](#ruby-30-support) section.
 
 As of v1.1.5 this library requires `libcurl` as a system dependency. On most systems this is already installed but in rare cases where it isn't (for example debian-slim Docker images such as ruby-slim) you will need to install it yourself. On debian you can install it with the command `sudo apt-get install libcurl4`.
 
@@ -286,6 +286,16 @@ stats_page.next # retrieves the next page => #<Ably::Models::PaginatedResult ...
 ```ruby
 client.time #=> 2013-12-12 14:23:34 +0000
 ```
+
+## Ruby 3.0 support
+
+If you cannot install ably realtime gem because of eventmachine openssl problems, please try to set your `openssl-dir`, i.e.:
+
+```ruby
+gem install eventmachine -- --with-openssl-dir=/usr/local/opt/openssl@1.1
+```
+
+More about eventmachine and ruby 3.0 support here https://github.com/eventmachine/eventmachine/issues/932
 
 ## Dependencies
 

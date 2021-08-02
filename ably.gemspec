@@ -33,7 +33,7 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'msgpack', '>= 1.3.0'
   spec.add_runtime_dependency 'addressable', '>= 2.0.0'
 
-  spec.add_development_dependency 'rake', '~> 11.3'
+  spec.add_development_dependency 'rake', '~> 13.0'
   spec.add_development_dependency 'redcarpet', '~> 3.3'
   spec.add_development_dependency 'rspec', '~> 3.3.0' # version lock, see config.around(:example, :event_machine) in event_machine_helper.rb
   spec.add_development_dependency 'rspec-retry', '~> 0.6'
@@ -49,10 +49,14 @@ Gem::Specification.new do |spec|
     spec.add_development_dependency 'webmock', '~> 3.11'
     spec.add_development_dependency 'simplecov', '~> 0.21.2'
     spec.add_development_dependency 'simplecov-lcov', '~> 0.8.0'
-    spec.add_development_dependency 'parallel_tests', '~> 2.22'
+    spec.add_development_dependency 'parallel_tests', '~> 3.7'
     if !RUBY_VERSION.match(/^2\.[0123]/)
-      spec.add_development_dependency 'pry'
-      spec.add_development_dependency 'pry-byebug'
+      spec.add_development_dependency 'pry', '~> 0.14.1'
+      spec.add_development_dependency 'pry-byebug', '~> 3.8.0'
     end
+  end
+
+  if RUBY_VERSION.match(/^3\./)
+    spec.add_development_dependency 'webrick', '~> 1.7.0'
   end
 end
