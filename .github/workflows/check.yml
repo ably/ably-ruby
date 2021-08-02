@@ -25,3 +25,17 @@ jobs:
           PARALLEL_TEST_PROCESSORS: 2
           PROTOCOL: ${{ matrix.protocol }}
         run: ./spec/run_parallel_tests
+      - uses: coverallsapp/github-action@1.1.3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          flag-name: run-ruby_${{ matrix.ruby }}-${{ matrix.protocol }}_protocol
+          parallel: true
+  finish:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Coveralls Finished
+        uses: coverallsapp/github-action@1.1.3
+        with:
+          github-token: ${{ secrets.github_token }}
+          parallel-finished: true
