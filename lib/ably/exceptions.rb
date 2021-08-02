@@ -52,6 +52,9 @@ module Ably
       end
     end
 
+    # Maximum frame size exceeded TO3l9
+    class MaxFrameSizeExceeded < BaseAblyException; end
+
     # Maximum message size exceeded TO3l8
     class MaxMessageSizeExceeded < BaseAblyException; end
 

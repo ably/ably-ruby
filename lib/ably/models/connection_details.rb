@@ -39,6 +39,7 @@ module Ably::Models
         end
       end
       self.attributes[:max_message_size] ||= 65536
+      self.attributes[:max_frame_size] ||= 524288
       self.attributes.freeze
     end
 
