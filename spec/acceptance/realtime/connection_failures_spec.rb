@@ -1320,8 +1320,9 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end)
           end
 
-          it 'triggers a re-authentication and then resumes the connection' do
-            pending "After sandbox env update connection isn't found and a new connection is created. Spec fails"
+          xit 'triggers a re-authentication and then resumes the connection' do
+            # [PENDING] After sandbox env update connection isn't found and a new connection is created. Spec fails
+            #
             connection.once(:connected) do
               connection_id = connection.id
 
