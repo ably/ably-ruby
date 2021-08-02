@@ -63,6 +63,8 @@ module Ably::Realtime
           log_channel_error protocol_message.error
         end
 
+        channel.properties.set_attach_serial(protocol_message.channel_serial)
+
         if protocol_message.has_channel_resumed_flag?
           logger.debug { "ChannelManager: Additional resumed ATTACHED message received for #{channel.state} channel '#{channel.name}'" }
         else
@@ -75,8 +77,6 @@ module Ably::Realtime
           )
           update_presence_sync_state_following_attached protocol_message
         end
-
-        channel.properties.set_attach_serial(protocol_message.channel_serial)
       end
 
       # Handle DETACED messages, see #RTL13 for server-initated detaches
