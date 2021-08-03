@@ -17,6 +17,7 @@
 
 **Merged pull requests:**
 
+- Enabled TLS hostname validation CVE-2020-13482 [\#263](https://github.com/ably/ably-ruby/pull/263) ([lukaszsliwa](https://github.com/lukaszsliwa))
 - Ruby 3.0 support [\#260](https://github.com/ably/ably-ruby/pull/260) ([lukaszsliwa](https://github.com/lukaszsliwa))
 - TO3l9 Max frame size [\#259](https://github.com/ably/ably-ruby/pull/259) ([lukaszsliwa](https://github.com/lukaszsliwa))
 - Update client options support to 1.1 spec level \(maxMessageSize\) [\#252](https://github.com/ably/ably-ruby/pull/252) ([lukaszsliwa](https://github.com/lukaszsliwa))
