@@ -1,5 +1,31 @@
 # Change Log
 
+## [v1.1.7](https://github.com/ably/ably-ruby/tree/v1.1.7)
+
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.1.6...v1.1.7)
+
+**Implemented enhancements:**
+
+- Implement RSC7d \(Ably-Agent header\) [\#230](https://github.com/ably/ably-ruby/issues/230)
+- Support Ruby 3.x [\#220](https://github.com/ably/ably-ruby/issues/220)
+
+**Closed issues:**
+
+- Create code snippets for homepage \(ruby\) [\#249](https://github.com/ably/ably-ruby/issues/249)
+- Update client options support to 1.1 spec level \(maxMessageSize\) [\#247](https://github.com/ably/ably-ruby/issues/247)
+- Update client options support to 1.1 spec level \(maxFrameSize\) [\#245](https://github.com/ably/ably-ruby/issues/245)
+
+**Merged pull requests:**
+
+- Enabled TLS hostname validation CVE-2020-13482 [\#263](https://github.com/ably/ably-ruby/pull/263) ([lukaszsliwa](https://github.com/lukaszsliwa))
+- Ruby 3.0 support [\#260](https://github.com/ably/ably-ruby/pull/260) ([lukaszsliwa](https://github.com/lukaszsliwa))
+- TO3l9 Max frame size [\#259](https://github.com/ably/ably-ruby/pull/259) ([lukaszsliwa](https://github.com/lukaszsliwa))
+- Update client options support to 1.1 spec level \(maxMessageSize\) [\#252](https://github.com/ably/ably-ruby/pull/252) ([lukaszsliwa](https://github.com/lukaszsliwa))
+- Update ably-common to latest main [\#251](https://github.com/ably/ably-ruby/pull/251) ([owenpearson](https://github.com/owenpearson))
+- Implement RSC7d \(Ably-Agent header\) [\#248](https://github.com/ably/ably-ruby/pull/248) ([lukaszsliwa](https://github.com/lukaszsliwa))
+- Upgrade statesman to ~\> 8.0 [\#237](https://github.com/ably/ably-ruby/pull/237) ([darkhelmet](https://github.com/darkhelmet))
+- Update attach\_serial before emiting UPDATE event [\#228](https://github.com/ably/ably-ruby/pull/228) ([TheSmartnik](https://github.com/TheSmartnik))
+
 ## [v1.1.6](https://github.com/ably/ably-ruby/tree/v1.1.6)
 
 [Full Changelog](https://github.com/ably/ably-ruby/compare/v1.1.5...v1.1.6)
