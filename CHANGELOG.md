@@ -2,7 +2,7 @@
 
 ## [v1.1.7](https://github.com/ably/ably-ruby/tree/v1.1.7)
 
-[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.1.6...HEAD)
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.1.6...v1.1.7)
 
 **Implemented enhancements:**
 
