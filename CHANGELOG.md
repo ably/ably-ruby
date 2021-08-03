@@ -11,18 +11,14 @@
 
 **Closed issues:**
 
-- Make CI Green [\#254](https://github.com/ably/ably-ruby/issues/254)
 - Create code snippets for homepage \(ruby\) [\#249](https://github.com/ably/ably-ruby/issues/249)
 - Update client options support to 1.1 spec level \(maxMessageSize\) [\#247](https://github.com/ably/ably-ruby/issues/247)
 - Update client options support to 1.1 spec level \(maxFrameSize\) [\#245](https://github.com/ably/ably-ruby/issues/245)
 
 **Merged pull requests:**
 
-- Using xit\(\) instead of pending\(\) inside it\(\) {} block [\#309](https://github.com/ably/ably-ruby/pull/309) ([lukaszsliwa](https://github.com/lukaszsliwa))
-- New Coveralls Github Actions implementation [\#261](https://github.com/ably/ably-ruby/pull/261) ([lukaszsliwa](https://github.com/lukaszsliwa))
 - Ruby 3.0 support [\#260](https://github.com/ably/ably-ruby/pull/260) ([lukaszsliwa](https://github.com/lukaszsliwa))
 - TO3l9 Max frame size [\#259](https://github.com/ably/ably-ruby/pull/259) ([lukaszsliwa](https://github.com/lukaszsliwa))
-- Try to fix flaky specs [\#258](https://github.com/ably/ably-ruby/pull/258) ([TheSmartnik](https://github.com/TheSmartnik))
 - Update client options support to 1.1 spec level \(maxMessageSize\) [\#252](https://github.com/ably/ably-ruby/pull/252) ([lukaszsliwa](https://github.com/lukaszsliwa))
 - Update ably-common to latest main [\#251](https://github.com/ably/ably-ruby/pull/251) ([owenpearson](https://github.com/owenpearson))
 - Implement RSC7d \(Ably-Agent header\) [\#248](https://github.com/ably/ably-ruby/pull/248) ([lukaszsliwa](https://github.com/lukaszsliwa))
