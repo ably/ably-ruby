@@ -482,6 +482,89 @@ describe Ably::Realtime::Connection, :event_machine do
         end
       end
 
+      context 'when explicitly reconnecting disconnected/suspended connection in retry (#RTN11c)' do
+        let(:close_connection_proc) do
+          lambda do
+            EventMachine.add_timer(0.001) do
+              if connection.transport.nil?
+                close_connection_proc.call
+              else
+                connection.transport.close_connection_after_writing
+              end
+            end
+          end
+        end
+
+        context 'when suspended' do
+          let(:suspended_retry_timeout) { 60 }
+          let(:client_options) do
+            default_options.merge(
+              disconnected_retry_timeout: 0.02,
+              suspended_retry_timeout: suspended_retry_timeout,
+              connection_state_ttl: 0
+            )
+          end
+
+          it 'reconnects immediately' do
+            connection.once(:connecting) { close_connection_proc.call }
+
+            connection.on(:suspended) do |connection_state_change|
+              if connection_state_change.retry_in.zero?
+                # Exhausting immediate retries
+                connection.once(:connecting) { close_connection_proc.call }
+              else
+                suspended_at = Time.now.to_f
+                connection.on(:connected) do
+                  expect(connection_state_change.retry_in).to eq(suspended_retry_timeout)
+                  expect(connection.state).to eq(:connected)
+                  expect(Time.now.to_f).to be_within(4).of(suspended_at)
+                  stop_reactor
+                end
+              end
+
+              connection.connect
+            end
+
+            connection.connect
+          end
+        end
+
+        context 'when disconnected' do
+          let(:retry_timeout) { 60 }
+          let(:client_options) do
+            default_options.merge(
+              disconnected_retry_timeout: retry_timeout,
+              suspended_retry_timeout: retry_timeout,
+              connection_state_ttl: 0
+            )
+          end
+
+          it 'reconnects immediately' do
+            connection.once(:connected) do
+              connection.on(:disconnected) do |connection_state_change|
+                disconnected_at = Time.now.to_f
+                connection.on(:connected) do
+                  if connection_state_change.retry_in.zero?
+                    # Exhausting immediate retries
+                    close_connection_proc.call
+                  else
+                    expect(connection_state_change.retry_in).to eq(retry_timeout)
+                    expect(connection.state).to eq(:connected)
+                    expect(Time.now.to_f).to be_within(4).of(disconnected_at)
+                    stop_reactor
+                  end
+                end
+                connection.connect
+              end
+
+              close_connection_proc.call
+            end
+
+            connection.connect
+          end
+        end
+      end
+
       context 'with invalid auth details' do
         let(:client_options) { default_options.merge(key: 'this.is:invalid', log_level: :none) }
 
