@@ -686,6 +686,8 @@ module Ably
 
           # Set Faraday's HTTP adapter with support for HTTP/2
           builder.adapter :typhoeus, http_version: :httpv2_0
+          # Set connection Keep-Alive
+          builder.adapter :net_http_persistent
         end
       end
 
