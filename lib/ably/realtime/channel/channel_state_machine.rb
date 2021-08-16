@@ -26,10 +26,14 @@ module Ably::Realtime
       transition :from => :detaching,    :to => [:detached, :attaching, :attached, :failed, :suspended]
       transition :from => :detached,     :to => [:attaching, :attached, :failed]
       transition :from => :suspended,    :to => [:attaching, :attached, :detached, :failed]
-      transition :from => :failed,       :to => [:attaching]
+      transition :from => :failed,       :to => [:attaching, :initialized]
 
       after_transition do |channel, transition|
         channel.synchronize_state_with_statemachine
+      end
+
+      after_transition(to: [:initialized]) do |channel|
+        channel.clear_error_reason
       end
 
       after_transition(to: [:attaching]) do |channel|
