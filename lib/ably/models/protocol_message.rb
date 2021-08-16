@@ -19,8 +19,6 @@ module Ably::Models
   # @!attribute [r] channel_serial
   #   @return [String] Contains a serial number for a message on the current channel
   # @!attribute [r] connection_id
-  #   @return [String] Contains a string public identifier for the connection
-  # @!attribute [r] connection_key
   #   @return [String] Contains a string private connection key used to recover this connection
   # @!attribute [r] connection_serial
   #   @return [Bignum] Contains a serial number for a message sent from the server to the client
@@ -96,12 +94,6 @@ module Ably::Models
       define_method attribute do
         attributes[attribute.to_sym]
       end
-    end
-
-    def connection_key
-      # connection_key in connection details takes precedence over connection_key on the ProtocolMessage
-      # connection_key in the ProtocolMessage will be deprecated in future protocol versions > 0.8
-      connection_details.connection_key || attributes[:connection_key]
     end
 
     def id!

@@ -10,9 +10,9 @@ describe Ably::Models::ProtocolMessage do
     subject.new({ action: 1 }.merge(options))
   end
 
-  # TR4n, TR4b, TR4c, TR4d, TR4e
+  # TR4n, TR4b, TR4c, TR4d
   it_behaves_like 'a model',
-    with_simple_attributes: %w(id channel channel_serial connection_id connection_key),
+    with_simple_attributes: %w(id channel channel_serial connection_id),
     base_model_options: { action: 1 } do
 
     let(:model_args) { [] }
@@ -414,24 +414,6 @@ describe Ably::Models::ProtocolMessage do
         it 'contains an empty AuthDetails object' do
           expect(auth).to be_a(Ably::Models::AuthDetails)
           expect(auth.access_token).to eql(nil)
-        end
-      end
-    end
-
-    context '#connection_key (#TR4e)' do
-      context 'existing only in #connection_details.connection_key' do
-        let(:protocol_message) { new_protocol_message(connectionDetails: { connectionKey: 'key' }) }
-
-        it 'is returned' do
-          expect(protocol_message.connection_key).to eql('key')
-        end
-      end
-
-      context 'existing in both #connection_key and #connection_details.connection_key' do
-        let(:protocol_message) { new_protocol_message(connectionKey: 'deprecated', connectionDetails: { connectionKey: 'key' }) }
-
-        it 'returns #connection_details.connection_key as #connection_key will be deprecated > 0.8' do
-          expect(protocol_message.connection_key).to eql('key')
         end
       end
     end

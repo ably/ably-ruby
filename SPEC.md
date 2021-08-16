@@ -3299,8 +3299,6 @@ _(see [spec/unit/models/protocol_message_spec.rb](./spec/unit/models/protocol_me
         * [retrieves attribute :channel_serial](./spec/shared/model_behaviour.rb#L15)
       * #connection_id
         * [retrieves attribute :connection_id](./spec/shared/model_behaviour.rb#L15)
-      * #connection_key
-        * [retrieves attribute :connection_key](./spec/shared/model_behaviour.rb#L15)
     * #==
       * [is true when attributes are the same](./spec/shared/model_behaviour.rb#L41)
       * [is false when attributes are not the same](./spec/shared/model_behaviour.rb#L46)
@@ -3386,11 +3384,6 @@ _(see [spec/unit/models/protocol_message_spec.rb](./spec/unit/models/protocol_me
         * [contains the attributes from the JSON auth details](./spec/unit/models/protocol_message_spec.rb#L358)
       * without a JSON value
         * [contains an empty AuthDetails object](./spec/unit/models/protocol_message_spec.rb#L366)
-    * #connection_key (#TR4e)
-      * existing only in #connection_details.connection_key
-        * [is returned](./spec/unit/models/protocol_message_spec.rb#L377)
-      * existing in both #connection_key and #connection_details.connection_key
-        * [returns #connection_details.connection_key as #connection_key will be deprecated > 0.8](./spec/unit/models/protocol_message_spec.rb#L385)
 
 ### Ably::Models::PushChannelSubscription
 _(see [spec/unit/models/push_channel_subscription_spec.rb](./spec/unit/models/push_channel_subscription_spec.rb))_

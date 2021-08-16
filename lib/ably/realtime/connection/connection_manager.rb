@@ -117,17 +117,17 @@ module Ably::Realtime
             EventMachine.next_tick { connection.trigger_resumed }
             resend_pending_message_ack_queue
           else
-            logger.debug { "ConnectionManager: Connection was not resumed, old connection ID #{connection.id} has been updated with new connection ID #{protocol_message.connection_id} and key #{protocol_message.connection_key}" }
+            logger.debug { "ConnectionManager: Connection was not resumed, old connection ID #{connection.id} has been updated with new connection ID #{protocol_message.connection_id} and key #{protocol_message.connection_details.connection_key}" }
             nack_messages_on_all_channels protocol_message.error
             force_reattach_on_channels protocol_message.error
           end
         else
-          logger.debug { "ConnectionManager: New connection created with ID #{protocol_message.connection_id} and key #{protocol_message.connection_key}" }
+          logger.debug { "ConnectionManager: New connection created with ID #{protocol_message.connection_id} and key #{protocol_message.connection_details.connection_key}" }
         end
 
         reattach_suspended_channels protocol_message.error
 
-        connection.configure_new protocol_message.connection_id, protocol_message.connection_key, protocol_message.connection_serial
+        connection.configure_new protocol_message.connection_id, protocol_message.connection_details.connection_key, protocol_message.connection_serial
       end
 
       # When connection is CONNECTED and receives an update
@@ -139,7 +139,7 @@ module Ably::Realtime
         # Update the connection details and any associated defaults
         connection.set_connection_details protocol_message.connection_details
 
-        connection.configure_new protocol_message.connection_id, protocol_message.connection_key, protocol_message.connection_serial
+        connection.configure_new protocol_message.connection_id, protocol_message.connection_details.connection_key, protocol_message.connection_serial
 
         state_change = Ably::Models::ConnectionStateChange.new(
           current: connection.state,
