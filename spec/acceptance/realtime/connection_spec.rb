@@ -565,6 +565,35 @@ describe Ably::Realtime::Connection, :event_machine do
         end
       end
 
+      context 'when reconnecting a failed connection' do
+        let(:channel) { client.channel(random_str) }
+        let(:client_options) { default_options.merge(log_level: :none) }
+
+        it 'transitions all channels state to initialized and cleares error_reason' do
+          connection.on(:failed) do |connection_state_change|
+            expect(connection.error_reason).to be_a(Ably::Exceptions::BaseAblyException)
+            expect(channel.error_reason).to be_a(Ably::Exceptions::BaseAblyException)
+            expect(channel).to be_failed
+
+            connection.on(:connected) do
+              expect(connection.error_reason).to eq(nil)
+              expect(channel).to be_initialized
+              expect(channel.error_reason).to eq(nil)
+              stop_reactor
+            end
+
+            connection.connect
+          end
+
+          connection.connect do
+            channel.attach do
+              error = Ably::Exceptions::ConnectionFailed.new('forced failure', 500, 50000)
+              client.connection.manager.error_received_from_server error
+            end
+          end
+        end
+      end
+
       context 'with invalid auth details' do
         let(:client_options) { default_options.merge(key: 'this.is:invalid', log_level: :none) }
 

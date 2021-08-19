@@ -36,6 +36,10 @@ module Ably::Realtime
         connection.manager.setup_transport
       end
 
+      after_transition(to: [:connecting], from: [:failed]) do |connection|
+        connection.manager.reintialize_failed_chanels
+      end
+
       after_transition(to: [:connecting], from: [:disconnected, :suspended]) do |connection|
         connection.manager.reconnect_transport
       end

@@ -319,6 +319,15 @@ module Ably::Realtime
         end
       end
 
+      # @api private
+      def reintialize_failed_chanels
+        channels.select do |channel|
+          channel.failed?
+        end.each do |channel|
+          channel.transition_state_machine :initialized
+        end
+      end
+
       # When continuity on a connection is lost all messages
       # whether queued or awaiting an ACK must be NACK'd as we now have a new connection
       def nack_messages_on_all_channels(error)
