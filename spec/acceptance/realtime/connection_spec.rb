@@ -805,6 +805,18 @@ describe Ably::Realtime::Connection, :event_machine do
     end
 
     context '#close' do
+      let(:close_connection_proc) do
+        lambda do
+          EventMachine.add_timer(0.001) do
+            if connection.transport.nil?
+              close_connection_proc.call
+            else
+              connection.transport.close_connection_after_writing
+            end
+          end
+        end
+      end
+
       it 'returns a SafeDeferrable that catches exceptions in callbacks and logs them' do
         connection.connect do
           expect(connection.close).to be_a(Ably::Util::SafeDeferrable)
@@ -910,6 +922,81 @@ describe Ably::Realtime::Connection, :event_machine do
                 EventMachine.next_tick { connection.close }
               end
             end
+          end
+        end
+
+        context ':suspended RTN12d' do
+          let(:suspended_retry_timeout) { 60 }
+          let(:client_options) do
+            default_options.merge(
+              disconnected_retry_timeout: 0.02,
+              suspended_retry_timeout: suspended_retry_timeout,
+              connection_state_ttl: 0
+            )
+          end
+
+          it 'immediatly closes connection' do
+            connection.on(:connecting) { close_connection_proc.call }
+            connection.on(:suspended) do |connection_state_change|
+              if connection_state_change.retry_in.zero?
+                # Exhausting immediate retries
+                connection.once(:connecting) { close_connection_proc.call }
+              else
+                suspended_at = Time.now.to_f
+                connection.on(:closed) do
+                  expect(connection_state_change.retry_in).to eq(suspended_retry_timeout)
+                  expect(connection.state).to eq(:closed)
+                  expect(Time.now.to_f).to be_within(4).of(suspended_at)
+                  stop_reactor
+                end
+
+                connection.close
+              end
+
+              connection.connect
+            end
+
+            connection.connect
+          end
+        end
+
+        context ':disconnected RTN12d' do
+          let(:retry_timeout) { 60 }
+          let(:client_options) do
+            default_options.merge(
+              disconnected_retry_timeout: retry_timeout,
+              suspended_retry_timeout: retry_timeout,
+              connection_state_ttl: 0
+            )
+          end
+
+          it 'immediatly closes connection' do
+            connection.once(:connected) do
+              connection.on(:disconnected) do |connection_state_change|
+                disconnected_at = Time.now.to_f
+                connection.on(:connected) do
+                  if connection_state_change.retry_in.zero?
+                    # Exhausting immediate retries
+                    close_connection_proc.call
+                  else
+                    connection.once(:closed) do
+                      expect(connection_state_change.retry_in).to eq(retry_timeout)
+                      expect(connection.state).to eq(:closed)
+                      expect(Time.now.to_f).to be_within(4).of(disconnected_at)
+                      stop_reactor
+                    end
+
+                    connection.close
+                  end
+                end
+
+                connection.connect
+              end
+
+              close_connection_proc.call
+            end
+
+            connection.connect
           end
         end
       end
