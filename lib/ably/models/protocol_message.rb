@@ -217,6 +217,11 @@ module Ably::Models
     end
 
     # @api private
+    def has_attach_resume_flag?
+      flags && 32 == 32 # 2^5
+    end
+
+    # @api private
     def has_attach_presence_flag?
       flags & 65536 == 65536 # 2^16
     end

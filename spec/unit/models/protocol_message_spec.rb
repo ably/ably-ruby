@@ -176,6 +176,14 @@ describe Ably::Models::ProtocolMessage do
         end
       end
 
+      context 'when attach resumed flag' do
+        let(:protocol_message) { new_protocol_message(flags: 5) }
+
+        it '#has_attach_resume_flag? is true' do
+          expect(protocol_message.has_attach_resume_flag?).to be_truthy
+        end
+      end
+
       context 'when channel resumed and presence flags present' do
         let(:protocol_message) { new_protocol_message(flags: 5) }
 
