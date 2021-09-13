@@ -142,6 +142,9 @@ module Ably::Models
 
     # Contains any arbitrary key value pairs which may also contain other primitive JSON types, JSON-encodable objects or JSON-encodable arrays.
     # The extras field is provided to contain message metadata and/or ancillary payloads in support of specific functionality, e.g. push
+    # 1.2 adds the delta extension which is of type DeltaExtras, and the headers extension, which contains arbitrary string->string key-value pairs,
+    # settable at publish time. Unless otherwise specified, the client library should not attempt to do any filtering or validation of the extras
+    # field itself, but should treat it opaquely, encoding it and passing it to realtime unaltered.
     # @api private
     def extras
       attributes[:extras].tap do |val|
@@ -149,6 +152,14 @@ module Ably::Models
           raise ArgumentError, "extras contains an unsupported type #{val.class}"
         end
       end
+    end
+
+    # Delta extras extension (TM2i)
+    # @return [DeltaExtras, nil]
+    # @api private
+    def delta_extras
+      return nil if attributes[:extras][:delta].nil?
+      @delta_extras ||= DeltaExtras.new(attributes[:extras][:delta]).freeze
     end
 
     private
