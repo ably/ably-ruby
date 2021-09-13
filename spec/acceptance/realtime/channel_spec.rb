@@ -2224,6 +2224,27 @@ describe Ably::Realtime::Channel, :event_machine do
             channel.transition_state_machine! :suspended
           end
         end
+
+        context 'when connection is no longer connected' do
+          it 'will not attempt to reattach (#RTL13c)' do
+            channel.attach do
+              connection.once(:closing) do
+                channel.once(:attaching) do |state_change|
+                  raise 'Channel should not attempt to reattach'
+                end
+
+                channel.transition_state_machine! :suspended
+              end
+
+              connection.once(:closed) do
+                expect(channel).to be_suspended
+                stop_reactor
+              end
+
+              connection.close
+            end
+          end
+        end
       end
 
       context 'and channel is attaching' do
