@@ -25,17 +25,17 @@ describe Ably::Realtime::Channels do
 
         it 'will update the options on the channel if provided' do
           channel = subject.get(channel_name, options)
-          expect(channel.options).to eql(options)
-          expect(channel.options).to_not include(:encrypted)
+          expect(channel.options.params).to eql(options)
+          expect(channel.options.params).to_not include(:encrypted)
           subject.get(channel_name, encrypted: true)
           expect(channel.options[:encrypted]).to eql(true)
         end
 
         it 'will leave the options intact on the channel if not provided' do
           channel = subject.get(channel_name, options)
-          expect(channel.options).to eql(options)
+          expect(channel.options.params).to eql(options)
           subject.get(channel_name)
-          expect(channel.options).to eql(options)
+          expect(channel.options.params).to eql(options)
         end
       end
     end

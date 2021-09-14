@@ -166,7 +166,7 @@ module Ably
 
       # @api private
       def update_options(channel_options)
-        @options = channel_options.clone.freeze
+        @options = Ably::Models::ChannelOptions.new(self, channel_options.clone).freeze
       end
 
       private

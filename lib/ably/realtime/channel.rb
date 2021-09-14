@@ -321,7 +321,7 @@ module Ably
 
       # @api private
       def update_options(channel_options)
-        @options = channel_options.clone.freeze
+        @options = Ably::Models::ChannelOptions.new(self, channel_options.clone).freeze
       end
 
       # Used by {Ably::Modules::StateEmitter} to debug state changes
@@ -368,4 +368,3 @@ require 'ably/realtime/channel/channel_manager'
 require 'ably/realtime/channel/channel_state_machine'
 require 'ably/realtime/channel/push_channel'
 require 'ably/realtime/channel/channel_properties'
-require 'ably/realtime/channel/channel_options'
