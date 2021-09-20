@@ -878,6 +878,56 @@ describe Ably::Realtime::Connection, :event_machine do
           end
         end
 
+        context ':connecting RTN12f' do
+          context ":connected does not arrive when trying to close" do
+            it 'moves to closed' do
+              connection.on(:closed) do |state_change|
+                state_changes = connection.state_history.map { |t| t[:state].to_sym }
+
+                expect(state_changes).to eq([:connecting, :closing, :closed])
+                stop_reactor
+              end
+
+              connection.on(:connecting) do
+                connection.close
+                connection.__outgoing_protocol_msgbus__.unsubscribe
+              end
+
+              connection.connect
+            end
+          end
+
+          context ":connected arrive when trying to close" do
+            let(:protocol_message_attributes) do
+              {
+                action: Ably::Models::ProtocolMessage::ACTION.Connected.to_i,
+                connection_serial: 55,
+                connection_details: {
+                  max_idle_interval: 2 * 1000
+                }
+              }
+            end
+
+            it 'moves to connected and then to closed' do
+              connection.on(:closed) do |state_change|
+                state_changes = connection.state_history.map { |t| t[:state].to_sym }
+
+                expect(state_changes).to eq([:connecting, :connected, :closing, :closed])
+                stop_reactor
+              end
+
+              connection.on(:connecting) do
+                connection.__outgoing_protocol_msgbus__.unsubscribe
+
+                connection.__incoming_protocol_msgbus__.publish :protocol_message, Ably::Models::ProtocolMessage.new(protocol_message_attributes)
+                connection.close
+              end
+
+              connection.connect
+            end
+          end
+        end
+
         context ':connected' do
           it 'changes the connection state to :closing and waits for the server to confirm connection is :closed with a ProtocolMessage' do
             connection.on(:connected) do
