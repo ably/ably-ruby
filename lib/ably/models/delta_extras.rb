@@ -8,27 +8,18 @@ module Ably::Models
   class DeltaExtras
     include Ably::Modules::ModelCommon
 
-    # DeltaExtras attributes
-    # @return [Hash]
-    #
-    attr_reader :attributes
-
-    def initialize(attributes = {})
-      @attributes = IdiomaticRubyWrapper((attributes || {}), stop_at: [:from, :format])
-    end
-
     # The id of the message the delta was generated from.
     # @return [String, nil]
     #
-    def from
-      attributes[:from]
-    end
+    attr_reader :from
 
     # The delta format.
     # @return [String, nil]
     #
-    def format
-      attributes[:format]
+    attr_reader :format
+
+    def initialize(attributes = {})
+      @from, @format = IdiomaticRubyWrapper((attributes || {}), stop_at: [:from, :format]).attributes.values_at(:from, :format)
     end
 
     def to_json(*args)
