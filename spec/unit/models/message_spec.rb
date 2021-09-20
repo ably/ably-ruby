@@ -608,16 +608,26 @@ describe Ably::Models::Message do
   end
 
   context '#delta_extras (TM2i)' do
-    let(:message) { subject.new({ extras: { delta: { from: '1234-1234-5678-9009', format: 'vcdiff' } } }) }
-
     let(:delta_extras) { message.delta_extras }
 
-    it 'should return vcdiff format' do
-      expect(delta_extras.format).to eq('vcdiff')
+    context 'when delta' do
+      let(:message) { subject.new({ extras: { delta: { from: '1234-1234-5678-9009', format: 'vcdiff' } } }) }
+
+      it 'should return vcdiff format' do
+        expect(delta_extras.format).to eq('vcdiff')
+      end
+
+      it 'should return 1234-1234-5678-9009 message id' do
+        expect(delta_extras.from).to eq('1234-1234-5678-9009')
+      end
     end
 
-    it 'should return 1234-1234-5678-9009 message id' do
-      expect(delta_extras.from).to eq('1234-1234-5678-9009')
+    context 'when no delta' do
+      let(:message) { subject.new({ extras: {} }) }
+
+      it 'should return nil' do
+        expect(delta_extras).to eq(nil)
+      end
     end
   end
 end
