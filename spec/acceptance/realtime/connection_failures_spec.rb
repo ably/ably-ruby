@@ -570,7 +570,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
       end
 
       context 'when DISCONNECTED ProtocolMessage received from the server' do
-        it 'reconnects automatically and immediately' do
+        it 'reconnects automatically and immediately (#RTN15a)' do
           fail_if_suspended_or_failed
 
           connection.once(:connected) do
@@ -587,6 +587,30 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
             protocol_message = Ably::Models::ProtocolMessage.new(action: Ably::Models::ProtocolMessage::ACTION.Disconnected.to_i)
             connection.__incoming_protocol_msgbus__.publish :protocol_message, protocol_message
+          end
+        end
+
+        context 'when protocolMessage contains token error' do
+          context "library does not have a means to renew the token (#RTN15h1)" do
+            let(:auth_url) { 'https://echo.ably.io/createJWT' }
+            let(:token) { Faraday.get("#{auth_url}?keyName=#{key_name}&keySecret=#{key_secret}").body }
+            let(:client_options) { default_options.merge(token: token, log_level: :none) }
+
+            let(:error_message) { 'error_message' }
+
+            it 'moves connection state to failed'  do
+              connection.on(:failed) do |connection_state_change|
+                expect(connection.error_reason.message).to eq(error_message)
+                stop_reactor
+              end
+
+              connection.on(:connected) do
+                protocol_message = Ably::Models::ProtocolMessage.new(action: Ably::Models::ProtocolMessage::ACTION.Disconnected.to_i, error: { code: 40140, message: error_message })
+                connection.__incoming_protocol_msgbus__.publish :protocol_message, protocol_message
+              end
+
+              connection.connect
+            end
           end
         end
 
