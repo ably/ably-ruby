@@ -323,6 +323,8 @@ module Ably
       def update_options(channel_options)
         @options = channel_options.clone.freeze
       end
+      alias set_options update_options # (RSL7)
+      alias options= update_options
 
       # Used by {Ably::Modules::StateEmitter} to debug state changes
       # @api private
