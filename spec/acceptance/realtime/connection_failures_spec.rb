@@ -612,6 +612,37 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               connection.connect
             end
           end
+
+          context "library have a means to renew the token (#RTN15h2)" do
+            let(:client_options) { default_options.merge(log_level: :none) }
+            let(:error_message) { 'error_message' }
+
+            def send_disconnect_message
+              protocol_message = Ably::Models::ProtocolMessage.new(action: Ably::Models::ProtocolMessage::ACTION.Disconnected.to_i, error: { code: 40140, message: error_message })
+              connection.__incoming_protocol_msgbus__.publish :protocol_message, protocol_message
+            end
+
+            it 'attempts to reconnect'  do
+              connection.on(:failed) do |connection_state_change|
+                raise "Connection shouldn't be failed"
+              end
+
+              connection.on(:connected) do
+                connection.once(:connecting) do
+                  connection.once(:disconnected) do
+                    expect(connection.error_reason.message).to eq(error_message)
+                    stop_reactor
+                  end
+
+                  send_disconnect_message
+                end
+
+                send_disconnect_message
+              end
+
+              connection.connect
+            end
+          end
         end
 
         context 'connection state freshness is monitored' do
