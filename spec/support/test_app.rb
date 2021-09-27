@@ -59,7 +59,7 @@ class TestApp
 
     url = "#{sandbox_client.endpoint}/apps/#{app_id}"
 
-    basic_auth = Base64.encode64(api_key).chomp
+    basic_auth = Base64.urlsafe_encode64(api_key).chomp
     headers    = { "Authorization" => "Basic #{basic_auth}" }
 
     Faraday.delete(url, nil, headers)
