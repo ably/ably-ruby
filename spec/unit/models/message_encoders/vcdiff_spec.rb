@@ -22,13 +22,13 @@ describe Ably::Models::MessageEncoders::Vcdiff do
       end
 
       context 'vcdiff plugin was set' do
-        let(:channel_options) { { plugins: { vcdiff: Plugin } } }
-
         class Plugin
           def self.decode(message, base)
             'vcdiff'
           end
         end
+
+        let(:channel_options) { { plugins: { vcdiff: Plugin } } }
 
         it 'should run vcdiff.decode function' do
           expect do
@@ -36,6 +36,20 @@ describe Ably::Models::MessageEncoders::Vcdiff do
             expect(message[:data]).to eq(data)
             expect(channel_options[:base_encoded_previous_payload]).to eq(data)
           end.to change { message[:data] }.to('vcdiff')
+        end
+      end
+
+      context 'vcdiff plugin does not support decode method' do
+        class InvalidPlugin
+          # without decode(data, base) method
+        end
+
+        let(:channel_options) { { plugins: { vcdiff: InvalidPlugin } } }
+
+        it 'should raise an exception' do
+          expect do
+            subject.decode(message, channel_options)
+          end.to raise_error(Ably::Exceptions::VcdiffError)
         end
       end
     end

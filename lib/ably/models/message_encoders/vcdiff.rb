@@ -21,6 +21,9 @@ module Ably::Models::MessageEncoders
       delta_base = channel_options[:base_encoded_previous_payload]
       delta_base = delta_base.force_encoding(Encoding::UTF_8) if delta_base.is_a?(String) # (PC3a)
 
+      unless vcdiff.respond_to?(:decode)
+        raise Ably::Exceptions::VcdiffError.new('Plugin does not support `decode(data, base)` method with two arguments.', 400, 40018)
+      end
       data = vcdiff.decode(message[:data], delta_base)
 
       message[:data] = data
