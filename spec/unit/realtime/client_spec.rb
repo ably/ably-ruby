@@ -41,6 +41,19 @@ describe Ably::Realtime::Client do
     end
   end
 
+  context 'with :plugins option is passed' do
+    let(:expected_plugins) do
+      { delta: 'vcdiff' }
+    end
+    let(:client_options) do
+      { key: 'appid.keyuid:keysecret', plugins: { delta: 'vcdiff'} }
+    end
+
+    it 'should set plugins' do
+      expect(realtime_client.plugins).to eq(expected_plugins)
+    end
+  end
+
   context 'push' do
     let(:client_options) { { key: 'appid.keyuid:keysecret' } }
 

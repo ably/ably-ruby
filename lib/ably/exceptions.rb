@@ -78,6 +78,9 @@ module Ably
     # Encryption or Decryption failure
     class CipherError < BaseAblyException; end
 
+    # VCdiff failure
+    class VcdiffError < BaseAblyException; end
+
     # Encoding or decoding failure
     class EncoderError < BaseAblyException; end
 

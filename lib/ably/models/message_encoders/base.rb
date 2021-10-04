@@ -103,6 +103,7 @@ module Ably
         client.register_encoder Ably::Models::MessageEncoders::Utf8
         client.register_encoder Ably::Models::MessageEncoders::Json
         client.register_encoder Ably::Models::MessageEncoders::Cipher
+        client.register_encoder Ably::Models::MessageEncoders::Vcdiff
         client.register_encoder Ably::Models::MessageEncoders::Base64, binary_protocol: binary_protocol
       end
 
@@ -127,3 +128,4 @@ require 'ably/models/message_encoders/base64'
 require 'ably/models/message_encoders/cipher'
 require 'ably/models/message_encoders/json'
 require 'ably/models/message_encoders/utf8'
+require 'ably/models/message_encoders/vcdiff'

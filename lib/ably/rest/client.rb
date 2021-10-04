@@ -118,6 +118,10 @@ module Ably
       # @return [Boolean]
       attr_reader :idempotent_rest_publishing
 
+      # Collection of plugins (PC2)
+      # @return [Hash]
+      attr_reader :plugins
+
       # Creates a {Ably::Rest::Client Rest Client} and configures the {Ably::Auth} object for the connection.
       #
       # @param [Hash,String] options an options Hash used to configure the client and the authentication, or String with an API key or Token ID
@@ -152,6 +156,8 @@ module Ably
       #
       # @option options [Boolean]                 :add_request_ids             (false) When true, adds a unique request_id to each request sent to Ably servers. This is handy when reporting issues, because you can refer to a specific request.
       # @option options [Boolean]                 :idempotent_rest_publishing  (false if ver < 1.2) When true, idempotent publishing is enabled for all messages published via REST
+      #
+      # @option options [Hash]                    :plugins                     Set of type => plugin
       #
       # @return [Ably::Rest::Client]
       #
@@ -190,6 +196,7 @@ module Ably
         @log_retries_as_info = options.delete(:log_retries_as_info)
         @idempotent_rest_publishing = options.delete(:idempotent_rest_publishing) || Ably.major_minor_version_numeric > 1.1
 
+        @plugins             = options.delete(:plugins) || {}
 
         if options[:fallback_hosts_use_default] && options[:fallback_hosts]
           raise ArgumentError, "fallback_hosts_use_default cannot be set to try when fallback_hosts is also provided"
@@ -257,7 +264,8 @@ module Ably
       #
       # @return (see Ably::Rest::Channels#get)
       def channel(name, channel_options = {})
-        channels.get(name, channel_options)
+        channel_options_with_plugins = channel_options.merge(plugin: plugins)
+        channels.get(name, channel_options_with_plugins)
       end
 
       # Retrieve the Stats for the application

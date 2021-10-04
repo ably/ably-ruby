@@ -69,6 +69,10 @@ module Ably
       # @return [Hash]
       attr_reader :transport_params
 
+      # Collection of plugins (PC2)
+      # @return [Hash]
+      attr_reader :plugins
+
       def_delegators :auth, :client_id, :auth_options
       def_delegators :@rest_client, :encoders
       def_delegators :@rest_client, :use_tls?, :protocol, :protocol_binary?
@@ -93,6 +97,7 @@ module Ably
       # @option options [Integer] :disconnected_retry_timeout  (15 seconds). When the connection enters the DISCONNECTED state, after this delay in seconds, if the state is still DISCONNECTED, the client library will attempt to reconnect automatically
       # @option options [Integer] :suspended_retry_timeout     (30 seconds). When the connection enters the SUSPENDED state, after this delay in seconds, if the state is still SUSPENDED, the client library will attempt to reconnect automatically
       # @option options [Boolean] :disable_websocket_heartbeats   WebSocket heartbeats are more efficient than protocol level heartbeats, however they can be disabled for development purposes
+      # @option options [Hash]                    :plugins                     Set of type => plugin
       #
       # @return [Ably::Realtime::Client]
       #
@@ -125,6 +130,8 @@ module Ably
         @auto_connect          = rest_client.options.fetch(:auto_connect, true) == false ? false : true
         @recover               = rest_client.options[:recover]
 
+        @plugins               = options.delete(:plugins) || rest_client.options[:plugins] || {}
+
         raise ArgumentError, "Recovery key '#{recover}' is invalid" if recover && !recover.match(Connection::RECOVER_REGEX)
 
         @auth       = Ably::Realtime::Auth.new(self)
@@ -138,7 +145,8 @@ module Ably
       # @return (see Ably::Realtime::Channels#get)
       #
       def channel(name, channel_options = {})
-        channels.get(name, channel_options)
+        channel_options_with_plugins = channel_options.merge(plugin: plugins)
+        channels.get(name, channel_options_with_plugins)
       end
 
       # Retrieve the Ably service time

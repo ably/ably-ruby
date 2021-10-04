@@ -108,6 +108,13 @@ module Ably::Realtime
                   channel.transition_state_machine :attached, reason: protocol_message.error, resumed: protocol_message.has_channel_resumed_flag?, protocol_message: protocol_message
                 end
               end
+
+              # Re-enter when an ATTACHED message is received with no HAS_PRESENCE flag
+              # (so no SYNC is expected as the server does not believe anyone is currently present)
+              #
+              # (#RTP17c, #RTP17c2)
+              #
+              channel.presence.enter if channel.attached? && !protocol_message.has_presence_flag?
             end
 
           when ACTION.Detach
@@ -119,6 +126,12 @@ module Ably::Realtime
           when ACTION.Sync
             presence = get_channel(protocol_message.channel).presence
             presence.manager.sync_process_messages protocol_message.channel_serial, protocol_message.presence
+
+            # Re-enter after a SYNC operation has completed
+            #
+            # (#RTP18b, #RTP17c, #RTP17c1)
+            #
+            presence.enter if presence.members.sync_serial_cursor_at_end?
 
           when ACTION.Presence
             if protocol_message.has_correct_message_size?
