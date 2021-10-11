@@ -20,7 +20,7 @@ describe Ably::Realtime::Channels, :event_machine do
       auto_close Ably::Realtime::Client.new(key: api_key, environment: environment, protocol: protocol)
     end
     let(:channel_name) { random_str }
-    let(:options)      { { key: 'value' } }
+    let(:options)      { { key: 'value', plugin: {} } }
 
     describe 'using shortcut method #channel on the client object' do
       let(:channel) { client.channel(channel_name) }
