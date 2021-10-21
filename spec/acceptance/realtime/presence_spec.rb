@@ -2634,7 +2634,24 @@ describe Ably::Realtime::Presence, :event_machine do
       end
     end
 
-    context 'channel state side effects' do
+    context 'channel state side effects (RTP5)' do
+      context 'channel transitions to the ATTACHED state (RTP5b)' do
+        it 'all queued presence messages are sent' do
+          channel_client_one.on(:attached) do
+            client_one.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+              if protocol_message.action == :presence
+                expect(protocol_message.action).to eq(:presence)
+                stop_reactor
+              end
+            end
+          end
+
+          presence_client_one.enter do
+            channel_client_one.attach
+          end
+        end
+      end
+
       context 'channel transitions to the FAILED state' do
         let(:anonymous_client) { auto_close Ably::Realtime::Client.new(client_options.merge(log_level: :fatal)) }
         let(:client_one)       { auto_close Ably::Realtime::Client.new(client_options.merge(client_id: client_one_id, log_level: :fatal)) }
