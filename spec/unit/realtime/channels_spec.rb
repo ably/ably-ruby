@@ -11,19 +11,19 @@ describe Ably::Realtime::Channels do
 
   context 'creating channels' do
     context '#get' do
-      it 'creates a channel if it does not exist' do
+      it 'creates a channel if it does not exist (RSN3a)' do
         expect(Ably::Realtime::Channel).to receive(:new).with(client, channel_name, options)
         subject.get(channel_name, options)
       end
 
       context 'when an existing channel exists' do
-        it 'will reuse a channel object if it exists' do
+        it 'will reuse a channel object if it exists (RSN3a)' do
           channel = subject.get(channel_name, options)
           expect(channel).to be_a(Ably::Realtime::Channel)
           expect(subject.get(channel_name, options).object_id).to eql(channel.object_id)
         end
 
-        it 'will update the options on the channel if provided' do
+        it 'will update the options on the channel if provided (RSN3c)' do
           channel = subject.get(channel_name, options)
           expect(channel.options).to eql(options)
           expect(channel.options).to_not include(:encrypted)
