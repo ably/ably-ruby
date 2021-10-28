@@ -92,6 +92,16 @@ module Ably
       # @api private
       attr_reader :manager
 
+      # The last message id (RTL20)
+      # @return [String]
+      # @api private
+      attr_accessor :last_message_id
+
+      # The last base encoded payload (RTL19)
+      # @return [String]
+      # @api private
+      attr_accessor :last_payload
+
       # Initialize a new Channel object
       #
       # @param  client [Ably::Rest::Client]
@@ -339,10 +349,20 @@ module Ably
       private
       def setup_event_handlers
         __incoming_msgbus__.subscribe(:message) do |message|
-          message.decode(client.encoders, options) do |encode_error, error_message|
+          options_with_previous_attributes = options.merge(
+            previous_message_id: last_message_id,       # (RTL19)
+            base_encoded_previous_payload: last_payload # (RTL20)
+          )
+          message.decode(client.encoders, options_with_previous_attributes) do |encode_error, error_message|
             client.logger.error error_message
           end
+          self.last_message_id = message.id # (RTL19)
+          self.last_payload = message.data  # (RTL20)
+
           emit_message message.name, message
+        rescue Ably::Exceptions::VcdiffError => error
+          logger.error("Vcdiff encoding error: #{error.message}") # RTL18a
+          manager.request_reattach(reason: error) # RTL18b, RTL18c
         end
       end
 

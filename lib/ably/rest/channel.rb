@@ -178,7 +178,7 @@ module Ably
 
       def decode_message(message)
         message.decode client.encoders, options
-      rescue Ably::Exceptions::CipherError, Ably::Exceptions::EncoderError => e
+      rescue Ably::Exceptions::CipherError, Ably::Exceptions::VcdiffError, Ably::Exceptions::EncoderError => e
         client.logger.error { "Decoding Error on channel '#{name}', message event name '#{message.name}'. #{e.class.name}: #{e.message}" }
       end
     end

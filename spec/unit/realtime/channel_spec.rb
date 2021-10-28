@@ -68,7 +68,7 @@ describe Ably::Realtime::Channel do
 
   describe '#publish name argument' do
     let(:encoded_value) { random_str.encode(encoding) }
-    let(:message) { instance_double('Ably::Models::Message', client_id: nil, size: 0) }
+    let(:message) { instance_double('Ably::Models::Message', client_id: nil, size: 0, id: nil, data: nil) }
 
     before do
       allow(subject).to receive(:create_message).and_return(message)
@@ -133,6 +133,7 @@ describe Ably::Realtime::Channel do
   context 'msgbus', :api_private do
     let(:message) do
       Ably::Models::Message.new({
+        'id' => '1',
         'name' => 'test',
         'data' => 'payload'
       }, protocol_message: instance_double('Ably::Models::ProtocolMessage'))
@@ -155,10 +156,10 @@ describe Ably::Realtime::Channel do
   context 'subscriptions' do
     let(:message_history) { Hash.new { |hash, key| hash[key] = 0 } }
     let(:click_event) { 'click' }
-    let(:click_message) { instance_double('Ably::Models::Message', name: click_event, encode: nil, decode: nil) }
+    let(:click_message) { instance_double('Ably::Models::Message', name: click_event, encode: nil, decode: nil, id: nil, data: nil) }
     let(:focus_event) { 'focus' }
-    let(:focus_message) { instance_double('Ably::Models::Message', name: focus_event, encode: nil, decode: nil) }
-    let(:blur_message) { instance_double('Ably::Models::Message', name: 'blur', encode: nil, decode: nil) }
+    let(:focus_message) { instance_double('Ably::Models::Message', name: focus_event, encode: nil, decode: nil, id: nil, data: nil) }
+    let(:blur_message) { instance_double('Ably::Models::Message', name: 'blur', encode: nil, decode: nil, id: nil, data: nil) }
 
     context '#subscribe' do
       before do

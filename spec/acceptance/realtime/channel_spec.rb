@@ -2310,5 +2310,11 @@ describe Ably::Realtime::Channel, :event_machine do
         end
       end
     end
+
+    context 'when it decoded a vcdiff message incorrectly' do
+      xit 'should log error and attach (#RTL18a, #RTL18b, #RTL18c)' do
+
+      end
+    end
   end
 end

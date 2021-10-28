@@ -18,16 +18,20 @@ module Ably::Models::MessageEncoders
         raise Ably::Exceptions::VcdiffError.new('Missing vcdiff decoder (https://github.com/ably-forks/vcdiff-decoder-ruby)', 400, 40019)
       end
 
+      # Comparing against the delta reference id (RTL20, RTL18, RTL18a, RTL18b, RTL18c)
+      unless message.dig(:extras, :delta, :from) == channel_options[:previous_message_id]
+        raise Ably::Exceptions::VcdiffError.new('Last message ID is different than Message.extras.delta.from', 400, 40018)
+      end
+
       delta_base = channel_options[:base_encoded_previous_payload]
       delta_base = delta_base.force_encoding(Encoding::UTF_8) if delta_base.is_a?(String) # (PC3a)
 
       unless vcdiff.respond_to?(:decode)
         raise Ably::Exceptions::VcdiffError.new('Plugin does not support `decode(data, base)` method with two arguments.', 400, 40018)
       end
-      data = vcdiff.decode(message[:data], delta_base)
+      message[:data] = vcdiff.decode(message[:data], delta_base)
 
-      message[:data] = data
-      channel_options[:base_encoded_previous_payload] = data
+      strip_current_encoding_part message
     rescue => exception
       raise Ably::Exceptions::VcdiffError.new("vcdiff delta decode failed with #{exception}", 400, 40018)
     end

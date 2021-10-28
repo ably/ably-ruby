@@ -24,7 +24,7 @@ describe Ably::Models::MessageEncoders::Vcdiff do
       context 'vcdiff plugin was set' do
         class Plugin
           def self.decode(message, base)
-            'vcdiff'
+            'vcdiffdata'
           end
         end
 
@@ -32,10 +32,20 @@ describe Ably::Models::MessageEncoders::Vcdiff do
 
         it 'should run vcdiff.decode function' do
           expect do
-            data = subject.decode(message, channel_options)
-            expect(message[:data]).to eq(data)
-            expect(channel_options[:base_encoded_previous_payload]).to eq(data)
-          end.to change { message[:data] }.to('vcdiff')
+            subject.decode(message, channel_options)
+          end.to change { message[:data] }.to('vcdiffdata')
+        end
+
+        context 'last message id is different than message.extras.delta.from' do
+          let(:channel_options) { { plugins: { vcdiff: Plugin } } }
+
+          before { message[:extras] = { delta: { from: 'CurrentId' } } }
+
+          it 'should raise the VcdiffError exception' do
+            expect do
+              subject.decode(message, channel_options.merge(previous_message_id: 'AnotherId'))
+            end.to raise_error(Ably::Exceptions::VcdiffError)
+          end
         end
       end
 
@@ -46,7 +56,7 @@ describe Ably::Models::MessageEncoders::Vcdiff do
 
         let(:channel_options) { { plugins: { vcdiff: InvalidPlugin } } }
 
-        it 'should raise an exception' do
+        it 'should raise the VcdiffError exception' do
           expect do
             subject.decode(message, channel_options)
           end.to raise_error(Ably::Exceptions::VcdiffError)
