@@ -18,7 +18,7 @@ describe Ably::Rest::Channels do
       Ably::Rest::Client.new(key: api_key, environment: environment, protocol: protocol)
     end
     let(:channel_name) { random_str }
-    let(:options)      { { key: 'value', plugin: {} } }
+    let(:options)      { { key: 'value' } }
 
     describe 'using shortcut method #channel on the client object' do
       let(:channel) { client.channel(channel_name) }

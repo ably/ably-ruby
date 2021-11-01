@@ -264,7 +264,8 @@ module Ably
       #
       # @return (see Ably::Rest::Channels#get)
       def channel(name, channel_options = {})
-        channel_options_with_plugins = channel_options.merge(plugin: plugins)
+        channel_options_with_plugins = channel_options
+        channel_options_with_plugins = { plugins: plugins }.merge(channel_options) unless plugins.empty?
         channels.get(name, channel_options_with_plugins)
       end
 
