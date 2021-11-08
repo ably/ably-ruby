@@ -12,6 +12,20 @@ module Ably
       # @return {Ably::Rest::Channel}
       attr_reader :channel
 
+      # The last message id (RTL20)
+      #
+      # @return [String]
+      # @api private
+      #
+      attr_accessor :last_message_id
+
+      # The last base encoded payload (RTL19)
+      #
+      # @return [String]
+      # @api private
+      #
+      attr_accessor :last_payload
+
       # Initialize a new Presence object
       #
       # @param client [Ably::Rest::Client]
@@ -31,7 +45,7 @@ module Ably
       # @return [Ably::Models::PaginatedResult<Ably::Models::PresenceMessage>] First {Ably::Models::PaginatedResult page} of {Ably::Models::PresenceMessage} objects accessible with {Ably::Models::PaginatedResult#items #items}.
       #
       def get(options = {})
-        options = options = {
+        options = {
           :limit     => 100
         }.merge(options)
 
@@ -61,7 +75,7 @@ module Ably
       #
       def history(options = {})
         url = "#{base_path}/history"
-        options = options = {
+        options = {
           :direction => :backwards,
           :limit     => 100
         }.merge(options)
@@ -83,14 +97,28 @@ module Ably
         end
       end
 
+      # It saves the last_message_id and last_payload from the message
+      #
+      # @api private
+      #
+      def update_last_message_id_and_last_payload(presence_message)
+        self.last_message_id = presence_message.attributes[:id] # (RTL19)
+        self.last_payload = presence_message.attributes[:data]  # (RTL20)
+      end
+
       private
       def base_path
         "/channels/#{URI.encode_www_form_component(channel.name)}/presence"
       end
 
       def decode_message(presence_message)
-        presence_message.decode client.encoders, channel.options
-      rescue Ably::Exceptions::CipherError, Ably::Exceptions::EncoderError => e
+        options = channel.options_with_previous_attributes
+        decoded_message = presence_message.decode(client.encoders, options)
+
+        update_last_message_id_and_last_payload(presence_message)
+
+        decoded_message
+      rescue Ably::Exceptions::CipherError, Ably::Exceptions::VcdiffError, Ably::Exceptions::EncoderError => e
         client.logger.error { "Decoding Error on presence channel '#{channel.name}', presence message client_id '#{presence_message.client_id}'. #{e.class.name}: #{e.message}" }
       end
     end

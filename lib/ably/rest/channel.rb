@@ -22,6 +22,20 @@ module Ably
       # @api private
       attr_reader :push
 
+      # The last message id (RTL20)
+      # @return [String]
+      #
+      # @api private
+      #
+      attr_accessor :last_message_id
+
+      # The last base encoded payload (RTL19)
+      #
+      # @return [String]
+      # @api private
+      #
+      attr_accessor :last_payload
+
       IDEMPOTENT_LIBRARY_GENERATED_ID_LENGTH = 9 # See spec RSL1k1
       MAX_MESSAGE_SIZE = 65536 # See spec TO3l8
 
@@ -171,13 +185,37 @@ module Ably
       alias set_options update_options # (RSL7)
       alias options= update_options
 
+      # It saves the message last_message_id and last_payload
+      #
+      # @api private
+      #
+      def options_with_previous_attributes
+        options.merge(
+          previous_message_id: last_message_id,       # (RTL19)
+          base_encoded_previous_payload: last_payload # (RTL20)
+        )
+      end
+
+      # It saves the last_message_id and last_payload from the message
+      #
+      # @api private
+      #
+      def update_last_message_id_and_last_payload(message)
+        self.last_message_id = message.attributes[:id] # (RTL19)
+        self.last_payload = message.attributes[:data]  # (RTL20)
+      end
+
       private
       def base_path
         "/channels/#{URI.encode_www_form_component(name)}"
       end
 
       def decode_message(message)
-        message.decode client.encoders, options
+        decoded_message = message.decode(client.encoders, options_with_previous_attributes)
+
+        update_last_message_id_and_last_payload(message)
+
+        decoded_message
       rescue Ably::Exceptions::CipherError, Ably::Exceptions::VcdiffError, Ably::Exceptions::EncoderError => e
         client.logger.error { "Decoding Error on channel '#{name}', message event name '#{message.name}'. #{e.class.name}: #{e.message}" }
       end

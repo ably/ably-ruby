@@ -336,6 +336,23 @@ module Ably
       alias set_options update_options # (RSL7)
       alias options= update_options
 
+      # @api private
+      def options_with_previous_attributes
+        options.merge(
+          previous_message_id: last_message_id,       # (RTL19)
+          base_encoded_previous_payload: last_payload # (RTL20)
+        )
+      end
+
+      # It saves the last_message_id and last_payload from the message
+      #
+      # @api private
+      #
+      def update_last_message_id_and_last_payload(message)
+        self.last_message_id = message.attributes[:id] # (RTL19)
+        self.last_payload = message.attributes[:data]  # (RTL20)
+      end
+
       # Used by {Ably::Modules::StateEmitter} to debug state changes
       # @api private
       def logger
@@ -349,15 +366,10 @@ module Ably
       private
       def setup_event_handlers
         __incoming_msgbus__.subscribe(:message) do |message|
-          options_with_previous_attributes = options.merge(
-            previous_message_id: last_message_id,       # (RTL19)
-            base_encoded_previous_payload: last_payload # (RTL20)
-          )
           message.decode(client.encoders, options_with_previous_attributes) do |encode_error, error_message|
             client.logger.error error_message
           end
-          self.last_message_id = message.id # (RTL19)
-          self.last_payload = message.data  # (RTL20)
+          update_last_message_id_and_last_payload(message)
 
           emit_message message.name, message
         rescue Ably::Exceptions::VcdiffError => error
