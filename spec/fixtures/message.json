@@ -1,0 +1,6 @@
+{
+  "message": "This is example message 1",
+  "score": 101,
+  "average": 123.1,
+  "collection": ["a", "b", "c", 1]
+}
