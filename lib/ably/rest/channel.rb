@@ -168,6 +168,8 @@ module Ably
       def update_options(channel_options)
         @options = Ably::Models::ChannelOptions.new(self, channel_options.clone).freeze
       end
+      alias set_options update_options # (RSL7)
+      alias options= update_options
 
       private
       def base_path

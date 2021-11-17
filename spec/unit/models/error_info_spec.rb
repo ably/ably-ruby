@@ -5,7 +5,7 @@ describe Ably::Models::ErrorInfo do
   subject { Ably::Models::ErrorInfo }
 
   context '#TI1, #TI4' do
-    it_behaves_like 'a model', with_simple_attributes: %w(code status_code href message) do
+    it_behaves_like 'a model', with_simple_attributes: %w(code status_code href message request_id cause) do
       let(:model_args) { [] }
     end
   end
@@ -15,6 +15,22 @@ describe Ably::Models::ErrorInfo do
     it 'is an alias for #status_code' do
       expect(subject.status).to eql(subject.status_code)
       expect(subject.status).to eql(401)
+    end
+  end
+
+  context '#request_id #RSC7c' do
+    subject { Ably::Models::ErrorInfo.new('request_id' => '123-456-789-001') }
+
+    it 'should return request ID' do
+      expect(subject.request_id).to eql('123-456-789-001')
+    end
+  end
+
+  context '#cause #TI1' do
+    subject { Ably::Models::ErrorInfo.new('cause' => Ably::Models::ErrorInfo.new({})) }
+
+    it 'should return cause attribute' do
+      expect(subject.cause).to be_kind_of(Ably::Models::ErrorInfo)
     end
   end
 

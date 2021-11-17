@@ -176,6 +176,28 @@ describe Ably::Models::ProtocolMessage do
         end
       end
 
+      context 'when attach resumed flag' do
+        context 'flags is 34' do
+          let(:protocol_message) { new_protocol_message(flags: 34) }
+
+          it '#has_attach_resume_flag? is true' do
+            expect(protocol_message.has_attach_resume_flag?).to be_truthy
+          end
+
+          it '#has_attach_presence_flag? is false' do
+            expect(protocol_message.has_attach_presence_flag?).to be_falsey
+          end
+        end
+
+        context 'flags is 0' do
+          let(:protocol_message) { new_protocol_message(flags: 0) }
+
+          it 'should raise an exception if flags is a float number' do
+            expect(protocol_message.has_attach_resume_flag?).to be_falsy
+          end
+        end
+      end
+
       context 'when channel resumed and presence flags present' do
         let(:protocol_message) { new_protocol_message(flags: 5) }
 

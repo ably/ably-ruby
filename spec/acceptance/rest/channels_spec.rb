@@ -36,8 +36,9 @@ describe Ably::Rest::Channels do
       let(:new_channel_options) { { encrypted: true } }
       let(:original_channel)    { client.channels.get(channel_name, options) }
 
-      it 'overrides the existing channel options and returns the channel object' do
+      it 'overrides the existing channel options and returns the channel object (RSN3c)' do
         expect(original_channel.options.params).to_not include(:encrypted)
+
         new_channel = client.channels.get(channel_name, new_channel_options)
         expect(new_channel).to be_a(Ably::Rest::Channel)
         expect(new_channel.options[:encrypted]).to eql(true)

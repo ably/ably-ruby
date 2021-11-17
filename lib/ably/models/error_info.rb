@@ -27,6 +27,10 @@ module Ably::Models
   #   @return [Integer] Ably error code (see ably-common/protocol/errors.json)
   # @!attribute [r] status
   #   @return [Integer] HTTP Status Code corresponding to this error, where applicable
+  # @!attribute [r] request_id
+  #   @return [Integer] HTTP RequestId corresponding to this error, where applicable (#RSC7c)
+  # @!attribute [r] cause
+  #   @return [Integer] HTTP Status Code corresponding to this error, where applicable (#TI1)
   # @!attribute [r] attributes
   #   @return [Hash] Access the protocol message Hash object ruby'fied to use symbolized keys
   #
@@ -38,7 +42,7 @@ module Ably::Models
       @hash_object     = IdiomaticRubyWrapper(hash_object.clone.freeze)
     end
 
-    %w(message code href status_code).each do |attribute|
+    %w(message code href status_code request_id cause).each do |attribute|
       define_method attribute do
         attributes[attribute.to_sym]
       end
@@ -52,7 +56,7 @@ module Ably::Models
     def to_s
       error_href = href || (code ? "https://help.ably.io/error/#{code}" : '')
       see_msg = " -> see #{error_href} for help" unless message.to_s.include?(error_href.to_s)
-      "<Error: #{message} (code: #{code}, http status: #{status})>#{see_msg}"
+      "<Error: #{message} (code: #{code}, http status: #{status} request_id: #{request_id} cause: #{cause})>#{see_msg}"
     end
   end
 end
