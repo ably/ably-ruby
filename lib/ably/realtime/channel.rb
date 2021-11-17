@@ -96,8 +96,7 @@ module Ably
       #
       # @param  client [Ably::Rest::Client]
       # @param  name [String] The name of the channel
-      # @param  channel_options [Hash]     Channel options, currently reserved for Encryption options
-      # @option channel_options [Hash,Ably::Models::CipherParams]   :cipher   A hash of options or a {Ably::Models::CipherParams} to configure the encryption. *:key* is required, all other options are optional.  See {Ably::Util::Crypto#initialize} for a list of +:cipher+ options
+      # @param  channel_options [Hash, Ably::Models::ChannelOptions]     A hash of options or a {Ably::Models::ChannelOptions}
       #
       def initialize(client, name, channel_options = {})
         name = ensure_utf_8(:name, name)
@@ -309,6 +308,15 @@ module Ably
         )
       end
 
+      # Sets or updates the stored channel options. (#RSL7) (#RTL16)
+      # @param channel_options [Hash, Ably::Models::ChannelOptions]     A hash of options or a {Ably::Models::ChannelOptions}
+      # @return [Ably::Models::ChannelOptions]
+      def set_options(channel_options)
+        @options = Ably::Models::ChannelOptions(channel_options)
+      end
+      alias update_options set_options
+      alias options= set_options
+
       # @api private
       def set_channel_error_reason(error)
         @error_reason = error
@@ -318,13 +326,6 @@ module Ably
       def clear_error_reason
         @error_reason = nil
       end
-
-      # @api private
-      def update_options(channel_options)
-        @options = Ably::Models::ChannelOptions.new(self, channel_options.clone).freeze
-      end
-      alias set_options update_options # (RSL7)
-      alias options= update_options
 
       # Used by {Ably::Modules::StateEmitter} to debug state changes
       # @api private

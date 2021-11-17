@@ -10,7 +10,8 @@ describe Ably::Realtime::Channels, :event_machine do
     end
 
     it 'returns channel object and passes the provided options' do
-      expect(channel_with_options.options.params).to eql(options)
+      expect(channel_options).to be_a(Ably::Models::ChannelOptions)
+      expect(channel_options.to_h).to eq(options)
       stop_reactor
     end
   end
@@ -20,7 +21,29 @@ describe Ably::Realtime::Channels, :event_machine do
       auto_close Ably::Realtime::Client.new(key: api_key, environment: environment, protocol: protocol)
     end
     let(:channel_name) { random_str }
-    let(:options)      { { key: 'value' } }
+    let(:options)      do
+      { params: { key: 'value' } }
+    end
+
+    subject(:channel_options) { channel_with_options.options }
+
+    describe '#set_options (#RTL16)' do
+      let(:channel) { client.channel(channel_name) }
+
+      it "updates channel's options" do
+        expect { channel.options = options }.to change { channel.options.to_h }.from({}).to(options)
+        stop_reactor
+      end
+
+      context 'when providing Ably::Models::ChannelOptions object' do
+        let(:options_object) { Ably::Models::ChannelOptions.new(options) }
+
+        it "updates channel's options" do
+          expect { channel.options =  options_object}.to change { channel.options.to_h }.from({}).to(options)
+          stop_reactor
+        end
+      end
+    end
 
     describe 'using shortcut method #channel on the client object' do
       let(:channel) { client.channel(channel_name) }
@@ -39,7 +62,7 @@ describe Ably::Realtime::Channels, :event_machine do
       let(:original_channel)    { client.channels.get(channel_name, options) }
 
       it 'overrides the existing channel options and returns the channel object' do
-        expect(original_channel.options.params).to_not include(:encrypted)
+        expect(original_channel.options.to_h).to_not include(:encrypted)
         new_channel = client.channels.get(channel_name, new_channel_options)
         expect(new_channel).to be_a(Ably::Realtime::Channel)
         expect(new_channel.options[:encrypted]).to eql(true)
@@ -51,10 +74,10 @@ describe Ably::Realtime::Channels, :event_machine do
       let(:original_channel) { client.channels.get(channel_name, options) }
 
       it 'returns the existing channel without modifying the channel options' do
-        expect(original_channel.options.params).to eql(options)
+        expect(original_channel.options.to_h).to eq(options)
         new_channel = client.channels.get(channel_name)
         expect(new_channel).to be_a(Ably::Realtime::Channel)
-        expect(original_channel.options.params).to eql(options)
+        expect(original_channel.options.to_h).to eq(options)
         stop_reactor
       end
     end

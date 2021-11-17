@@ -30,7 +30,7 @@ module Ably::Util
     #    crypto.decrypt(decrypted) # => 'secret text'
     #
     def initialize(params)
-      @fixed_iv = params.delete(:fixed_iv) if params.kind_of?(Hash)
+      @fixed_iv = params[:fixed_iv]
       @cipher_params = Ably::Models::CipherParams(params)
     end
 

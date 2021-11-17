@@ -5,7 +5,9 @@ describe Ably::Realtime::Channels do
   let(:connection) { instance_double('Ably::Realtime::Connection', unsafe_on: true, on_resume: true) }
   let(:client) { instance_double('Ably::Realtime::Client', connection: connection, client_id: 'clientId') }
   let(:channel_name) { 'unique' }
-  let(:options) { { 'bizarre' => 'value' } }
+  let(:options) do
+    { params: { bizarre: 'value' } }
+  end
 
   subject { Ably::Realtime::Channels.new(client) }
 
@@ -25,17 +27,17 @@ describe Ably::Realtime::Channels do
 
         it 'will update the options on the channel if provided (RSN3c)' do
           channel = subject.get(channel_name, options)
-          expect(channel.options.params).to eql(options)
-          expect(channel.options.params).to_not include(:encrypted)
+          expect(channel.options.to_h).to eq(options)
+          expect(channel.options.to_h).to_not include(:encrypted)
           subject.get(channel_name, encrypted: true)
-          expect(channel.options[:encrypted]).to eql(true)
+          expect(channel.options[:encrypted]).to eq(true)
         end
 
         it 'will leave the options intact on the channel if not provided' do
           channel = subject.get(channel_name, options)
-          expect(channel.options.params).to eql(options)
+          expect(channel.options.to_h).to eq(options)
           subject.get(channel_name)
-          expect(channel.options.params).to eql(options)
+          expect(channel.options.to_h).to eq(options)
         end
       end
     end
