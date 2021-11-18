@@ -163,14 +163,21 @@ module Ably
         @presence ||= Presence.new(client, self)
       end
 
+      # Sets or updates the stored channel options. (#RSL7)
+      # @param channel_options [Hash, Ably::Models::ChannelOptions]  A hash of options or a {Ably::Models::ChannelOptions}
+      # @return [Ably::Models::ChannelOptions]
+      def set_options(channel_options)
+        update_options(channel_options)
+      end
+      alias options= set_options
+
+      private
+
       # @api private
       def update_options(channel_options)
         @options = Ably::Models::ChannelOptions(channel_options)
       end
-      alias set_options update_options # (RSL7)
-      alias options= update_options
 
-      private
       def base_path
         "/channels/#{URI.encode_www_form_component(name)}"
       end

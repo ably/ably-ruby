@@ -1982,6 +1982,64 @@ describe Ably::Realtime::Channel, :event_machine do
       end
     end
 
+    describe '#set_options (#RTL16a)' do
+      let(:modes) { %i[subscribe] }
+      let(:channel_options) do
+        { modes: modes }
+      end
+
+      shared_examples 'an update that sends ATTACH message' do |state|
+        it 'sends an ATTACH message on options change' do
+          attach_sent = nil
+
+          client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+            if protocol_message.action == :attach && protocol_message.flags.nonzero?
+              attach_sent = true
+              expect(protocol_message.flags).to eq(262144)
+            end
+          end
+
+          channel.once(state) do
+            channel.options = channel_options
+          end
+
+          channel.on(:attached) do
+            client.connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+              next if protocol_message.action != :attached
+
+              expect(attach_sent).to eq(true)
+              stop_reactor
+            end
+          end
+
+          channel.attach
+        end
+      end
+
+      context 'when channel is attaching' do
+        it_behaves_like 'an update that sends ATTACH message', :attaching
+      end
+
+      context 'when channel is attaching' do
+        it_behaves_like 'an update that sends ATTACH message', :attached
+      end
+
+      context 'when channel is initialized' do
+        it "doesn't send ATTACH message" do
+          client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+            raise "Unexpected message" if protocol_message.action == :attach
+          end
+
+          channel.options = channel_options
+          expect(channel.options.modes.map(&:to_sym)).to eq(modes)
+
+          EventMachine.next_tick do
+            stop_reactor
+          end
+        end
+      end
+    end
+
     context 'channel state change' do
       it 'emits a ChannelStateChange object' do
         channel.on(:attached) do |channel_state_change|

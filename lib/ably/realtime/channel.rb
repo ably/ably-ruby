@@ -308,13 +308,14 @@ module Ably
         )
       end
 
-      # Sets or updates the stored channel options. (#RSL7) (#RTL16)
+      # Sets or updates the stored channel options. (#RTL16)
       # @param channel_options [Hash, Ably::Models::ChannelOptions]     A hash of options or a {Ably::Models::ChannelOptions}
       # @return [Ably::Models::ChannelOptions]
       def set_options(channel_options)
-        @options = Ably::Models::ChannelOptions(channel_options)
+        update_options(channel_options)
+
+        manager.request_reattach if need_reattach?
       end
-      alias update_options set_options
       alias options= set_options
 
       # @api private
@@ -338,6 +339,15 @@ module Ably
       private :change_state
 
       private
+
+      def need_reattach?
+        !!(attaching? || attached?) && !!(options.modes || options.params)
+      end
+
+      def update_options(channel_options)
+        @options = Ably::Models::ChannelOptions(channel_options)
+      end
+
       def setup_event_handlers
         __incoming_msgbus__.subscribe(:message) do |message|
           message.decode(client.encoders, options) do |encode_error, error_message|
