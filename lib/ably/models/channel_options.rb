@@ -37,9 +37,10 @@ module Ably::Models
     # @option modes [Hash] modes (for realtime client libraries only) an array of ChannelMode
     # @option cipher [Hash,Ably::Models::CipherParams]   :cipher   A hash of options or a {Ably::Models::CipherParams} to configure the encryption. *:key* is required, all other options are optional.
     #
-    def initialize(attributes)
-      @attributes = IdiomaticRubyWrapper(attributes.clone)
+    def initialize(attrs)
+      @attributes = IdiomaticRubyWrapper(attrs.clone)
 
+      attributes[:modes] = modes.to_a.map { |mode| Ably::Models::ChannelOptions::MODES[mode] } if modes
       attributes[:cipher] = Ably::Models::CipherParams(cipher) if cipher
       attributes.clone
     end
@@ -60,9 +61,16 @@ module Ably::Models
 
     # @!attribute modes
     #
-    # @return [Array<>]
+    # @return [Array<ChannelOptions::MODES>]
     def modes
-      attributes[:modes].to_a
+      attributes[:modes]
+    end
+
+    # Converts modes to a bitfield that coresponds to ProtocolMessage#flags
+    #
+    # @return [Integer]
+    def message_flags
+      modes.map { |mode| Ably::Models::ProtocolMessage::ATTACH_FLAGS_MAPPING[mode.to_sym] }.reduce(:|)
     end
   end
 end

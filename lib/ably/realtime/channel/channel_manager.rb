@@ -199,14 +199,15 @@ module Ably::Realtime
       end
 
       def send_attach_protocol_message
-        send_state_change_protocol_message Ably::Models::ProtocolMessage::ACTION.Attach, :suspended # move to suspended
+        message_opptions = { flags: channel.options.message_flags } if channel.options.modes
+        send_state_change_protocol_message Ably::Models::ProtocolMessage::ACTION.Attach, :suspended, message_opptions
       end
 
       def send_detach_protocol_message(previous_state)
         send_state_change_protocol_message Ably::Models::ProtocolMessage::ACTION.Detach, previous_state # return to previous state if failed
       end
 
-      def send_state_change_protocol_message(new_state, state_if_failed)
+      def send_state_change_protocol_message(new_state, state_if_failed, message_options = {})
         state_at_time_of_request = channel.state
         @pending_state_change_timer = EventMachine::Timer.new(realtime_request_timeout) do
           if channel.state == state_at_time_of_request
@@ -227,7 +228,8 @@ module Ably::Realtime
               next unless pending_state_change_timer
               connection.send_protocol_message(
                 action:  new_state.to_i,
-                channel: channel.name
+                channel: channel.name,
+                **message_options.to_h
               )
               resend_if_disconnected_and_connected.call
             end
@@ -237,7 +239,8 @@ module Ably::Realtime
 
         connection.send_protocol_message(
           action:  new_state.to_i,
-          channel: channel.name
+          channel: channel.name,
+          **message_options.to_h
         )
       end
 

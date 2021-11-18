@@ -117,6 +117,30 @@ describe Ably::Realtime::Channel, :event_machine do
           end
         end
 
+        context 'context when channel options contain modes' do
+          before do
+            channel.options = { modes: %i[publish] }
+          end
+
+          it 'sends an ATTACH with options as flags (#RTL4l)' do
+            connection.once(:connected) do
+              # client.connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+              #   return if protocol_message.action != :attached
+
+              #   expect(protocol_message.has_attach_publish_flag?).to(eq)
+              # end
+              client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                next if protocol_message.action != :attach
+
+                expect(protocol_message.has_attach_publish_flag?).to eq(true)
+                stop_reactor
+              end
+
+              channel.attach
+            end
+          end
+        end
+
         it 'implicitly attaches the channel (#RTL7c)' do
           expect(channel).to be_initialized
           channel.subscribe { |message| }

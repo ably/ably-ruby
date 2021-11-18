@@ -66,6 +66,14 @@ module Ably::Models
       auth:         17
     )
 
+    ATTACH_FLAGS_MAPPING = {
+      resume: 32, # 2^5
+      presence: 65536, # 2^16
+      publish: 131072, # 2^17
+      subscribe: 262144, # 2^18
+      presence_subscribe: 524288, # 2^19
+    }
+
     # Indicates this protocol message action will generate an ACK response such as :message or :presence
     # @api private
     def self.ack_required?(for_action)
@@ -218,27 +226,27 @@ module Ably::Models
 
     # @api private
     def has_attach_resume_flag?
-      flags & 32 == 32 # 2^5
+      flags & ATTACH_FLAGS_MAPPING[:resume] == ATTACH_FLAGS_MAPPING[:resume] # 2^5
     end
 
     # @api private
     def has_attach_presence_flag?
-      flags & 65536 == 65536 # 2^16
+      flags & ATTACH_FLAGS_MAPPING[:presence] == ATTACH_FLAGS_MAPPING[:presence] # 2^16
     end
 
     # @api private
     def has_attach_publish_flag?
-      flags & 131072 == 131072 # 2^17
+      flags & ATTACH_FLAGS_MAPPING[:publish] == ATTACH_FLAGS_MAPPING[:publish] # 2^17
     end
 
     # @api private
     def has_attach_subscribe_flag?
-      flags & 262144 == 262144 # 2^18
+      flags & ATTACH_FLAGS_MAPPING[:subscribe] == ATTACH_FLAGS_MAPPING[:subscribe] # 2^18
     end
 
     # @api private
     def has_attach_presence_subscribe_flag?
-      flags & 524288 == 524288 # 2^19
+      flags & ATTACH_FLAGS_MAPPING[:presence_subscribe] == ATTACH_FLAGS_MAPPING[:presence_subscribe] # 2^19
     end
 
     def connection_details
