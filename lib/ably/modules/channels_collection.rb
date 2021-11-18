@@ -13,7 +13,7 @@ module Ably::Modules
     # Return a Channel for the given name
     #
     # @param name [String] The name of the channel
-    # @param channel_options [Hash] Channel options including the encryption options
+    # @param channel_options [Hash, Ably::Models::ChannelOptions] A hash of options or a {Ably::Models::ChannelOptions}
     #
     # @return [Channel]
     #
