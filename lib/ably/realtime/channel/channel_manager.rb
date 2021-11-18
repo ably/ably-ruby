@@ -38,6 +38,7 @@ module Ably::Realtime
         if attached_protocol_message
           update_presence_sync_state_following_attached attached_protocol_message
           channel.properties.set_attach_serial(attached_protocol_message.channel_serial)
+          channel.options.set_modes_from_flags(attached_protocol_message.flags)
         end
       end
 
@@ -64,6 +65,7 @@ module Ably::Realtime
         end
 
         channel.properties.set_attach_serial(protocol_message.channel_serial)
+        channel.options.set_modes_from_flags(protocol_message.flags)
 
         if protocol_message.has_channel_resumed_flag?
           logger.debug { "ChannelManager: Additional resumed ATTACHED message received for #{channel.state} channel '#{channel.name}'" }
@@ -199,7 +201,7 @@ module Ably::Realtime
       end
 
       def send_attach_protocol_message
-        message_opptions = { flags: channel.options.message_flags } if channel.options.modes
+        message_opptions = { flags: channel.options.modes_to_flags } if channel.options.modes
         send_state_change_protocol_message Ably::Models::ProtocolMessage::ACTION.Attach, :suspended, message_opptions
       end
 

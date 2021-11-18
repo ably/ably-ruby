@@ -124,11 +124,6 @@ describe Ably::Realtime::Channel, :event_machine do
 
           it 'sends an ATTACH with options as flags (#RTL4l)' do
             connection.once(:connected) do
-              # client.connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
-              #   return if protocol_message.action != :attached
-
-              #   expect(protocol_message.has_attach_publish_flag?).to(eq)
-              # end
               client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
                 next if protocol_message.action != :attach
 
@@ -138,6 +133,19 @@ describe Ably::Realtime::Channel, :event_machine do
 
               channel.attach
             end
+          end
+        end
+
+        context 'when received attached' do
+          it 'decodes flags and sets it as modes on channel options (#RTL4m)'do
+            channel.on(:attached) do
+              expect(channel.options.modes.map(&:to_sym)).to eq(%i[subscribe])
+              stop_reactor
+            end
+
+            channel.transition_state_machine(:attaching)
+            attached_message = Ably::Models::ProtocolMessage.new(action: 11, channel: channel_name, flags: 262144)
+            client.connection.__incoming_protocol_msgbus__.publish :protocol_message, attached_message
           end
         end
 

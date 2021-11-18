@@ -69,8 +69,23 @@ module Ably::Models
     # Converts modes to a bitfield that coresponds to ProtocolMessage#flags
     #
     # @return [Integer]
-    def message_flags
+    def modes_to_flags
       modes.map { |mode| Ably::Models::ProtocolMessage::ATTACH_FLAGS_MAPPING[mode.to_sym] }.reduce(:|)
+    end
+
+
+    # Sets modes from ProtocolMessage#flags
+    #
+    # @return [Array<ChannelOptions::MODES>]
+    def set_modes_from_flags(flags)
+      return unless flags
+
+      message_modes = MODES.select do |mode|
+        flag = Ably::Models::ProtocolMessage::ATTACH_FLAGS_MAPPING[mode.to_sym]
+        flags & flag == flag
+      end
+
+      attributes[:modes] = message_modes.map { |mode| Ably::Models::ChannelOptions::MODES[mode] }
     end
   end
 end
