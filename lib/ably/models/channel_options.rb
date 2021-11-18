@@ -30,7 +30,7 @@ module Ably::Models
 
     alias_method :to_h, :attributes
 
-    def_delegators :attributes, :fetch
+    def_delegators :attributes, :fetch, :size
     # Initialize a new ChannelOptions
     #
     # @option params [Hash] (TB2c) params (for realtime client libraries only) a  of key/value pairs

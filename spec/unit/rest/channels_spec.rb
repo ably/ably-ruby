@@ -4,26 +4,53 @@ require 'spec_helper'
 describe Ably::Rest::Channels do
   let(:client)       { instance_double('Ably::Rest::Client') }
   let(:channel_name) { 'unique'.encode(Encoding::UTF_8) }
-  let(:options)      { { 'bizarre' => 'value' } }
+  let(:options)      do
+    { params: { 'bizarre' => 'value' } }
+  end
 
   subject { Ably::Rest::Channels.new(client) }
 
-  context 'creating channels' do
-    it '#get creates a channel' do
-      expect(Ably::Rest::Channel).to receive(:new).with(client, channel_name, options)
-      subject.get(channel_name, options)
+  describe '#get' do
+    context "when channel doesn't exist" do
+      with_different_option_types(:options) do
+        it 'creates a channel (RSN3a)' do
+          expect(Ably::Rest::Channel).to receive(:new).with(client, channel_name, options)
+          subject.get(channel_name, options)
+        end
+      end
     end
 
-    it '#get will reuse the channel object' do
-      channel = subject.get(channel_name, options)
-      expect(channel).to be_a(Ably::Rest::Channel)
-      expect(subject.get(channel_name, options).object_id).to eql(channel.object_id)
-    end
+    context 'when an existing channel exists' do
+      with_different_option_types(:options) do
+        it 'will reuse a channel object if it exists (RSN3a)' do
+          channel = subject.get(channel_name, channel_options)
+          expect(channel).to be_a(Ably::Rest::Channel)
+          expect(subject.get(channel_name, channel_options).object_id).to eql(channel.object_id)
+        end
+      end
 
-    it '[] creates a channel' do
-      expect(Ably::Rest::Channel).to receive(:new).with(client, channel_name, options)
-      subject.get(channel_name, options)
+      context 'with new channel_options' do
+        let(:modes) { %i[subscribe] }
+        let(:new_options) do
+          { modes:  modes }
+        end
+
+        with_different_option_types(:new_options) do
+          it 'will update channel with provided options (RSN3c)' do
+            channel = subject.get(channel_name, options)
+            expect(channel.options.modes).to be_nil
+
+            subject.get(channel_name, channel_options)
+            expect(channel.options.modes).to eq(modes)
+          end
+        end
+      end
     end
+  end
+
+  it '[] creates a channel' do
+    expect(Ably::Rest::Channel).to receive(:new).with(client, channel_name, options)
+    subject.get(channel_name, options)
   end
 
   context '#fetch' do

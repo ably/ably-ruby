@@ -20,7 +20,7 @@ module Ably::Modules
     def get(name, channel_options = {})
       if channels.has_key?(name)
         channels[name].tap do |channel|
-          channel.update_options channel_options if channel_options && !channel_options.empty?
+          channel.update_options channel_options if channel_options && channel_options.size.nonzero?
         end
       else
         channels[name] ||= channel_klass.new(client, name, channel_options)
