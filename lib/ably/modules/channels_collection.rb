@@ -20,7 +20,10 @@ module Ably::Modules
     def get(name, channel_options = {})
       if channels.has_key?(name)
         channels[name].tap do |channel|
-          channel.options = channel_options if channel_options && channel_options.size.nonzero?
+          if channel_options && channel_options.size.nonzero?
+            channel.raise_on_reattach! if channel.respond_to?(:raise_on_reattach!)
+            channel.options = channel_options
+          end
         end
       else
         channels[name] ||= channel_klass.new(client, name, channel_options)

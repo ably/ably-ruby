@@ -27,21 +27,16 @@ describe Ably::Realtime::Channels, :event_machine do
 
     subject(:channel_options) { channel_with_options.options }
 
-    describe '#set_options (#RTL16)' do
-      let(:channel) { client.channel(channel_name) }
+    context 'when channel supposed to trigger reattachment per RTL16a (#RTS3c1)' do
+      it 'will raise an error' do
+        channel = client.channels.get(channel_name, options)
 
-      it "updates channel's options" do
-        expect { channel.options = options }.to change { channel.options.to_h }.from({}).to(options)
-        stop_reactor
-      end
-
-      context 'when providing Ably::Models::ChannelOptions object' do
-        let(:options_object) { Ably::Models::ChannelOptions.new(options) }
-
-        it "updates channel's options" do
-          expect { channel.options =  options_object}.to change { channel.options.to_h }.from({}).to(options)
+        channel.on(:attached) do
+          expect { client.channels.get(channel_name, { modes: [] }) }.to raise_error ArgumentError, /use Channel#set_options directly/
           stop_reactor
         end
+
+        channel.attach
       end
     end
 
