@@ -348,9 +348,11 @@ module Ably
       #
       # @api private
       #
-      def update_last_message_id_and_last_payload(message)
-        self.last_message_id = message.attributes[:id] # (RTL19)
-        self.last_payload = message.attributes[:data]  # (RTL20)
+      def update_last_message_id_and_last_payload(message, encoded_message)
+        return nil unless message.assigned_to_protocol_message?
+
+        self.last_message_id = message.id # (RTL19)
+        self.last_payload = encoded_message # (RTL20)
       end
 
       # Used by {Ably::Modules::StateEmitter} to debug state changes
@@ -366,10 +368,11 @@ module Ably
       private
       def setup_event_handlers
         __incoming_msgbus__.subscribe(:message) do |message|
+          encoded_message = message.attributes[:data] # (RTL19c)
           message.decode(client.encoders, options_with_previous_attributes) do |encode_error, error_message|
             client.logger.error error_message
           end
-          update_last_message_id_and_last_payload(message)
+          update_last_message_id_and_last_payload(message, encoded_message)
 
           emit_message message.name, message
         rescue Ably::Exceptions::VcdiffError => error

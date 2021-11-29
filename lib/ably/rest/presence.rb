@@ -98,12 +98,15 @@ module Ably
       end
 
       # It saves the last_message_id and last_payload from the message
+      # if protocol message was assigned.
       #
       # @api private
       #
-      def update_last_message_id_and_last_payload(presence_message)
-        self.last_message_id = presence_message.attributes[:id] # (RTL19)
-        self.last_payload = presence_message.attributes[:data]  # (RTL20)
+      def update_last_message_id_and_last_payload(presence_message, payload)
+        return nil unless presence_message.assigned_to_protocol_message?
+
+        self.last_message_id = presence_message.id # (RTL19)
+        self.last_payload = payload  # (RTL20)
       end
 
       private
@@ -113,11 +116,12 @@ module Ably
 
       def decode_message(presence_message)
         options = channel.options_with_previous_attributes
-        decoded_message = presence_message.decode(client.encoders, options)
+        encoded_message = presence_message.attributes[:data]
+        presence_message.decode(client.encoders, options)
 
-        update_last_message_id_and_last_payload(presence_message)
+        update_last_message_id_and_last_payload(presence_message, encoded_message)
 
-        decoded_message
+        presence_message
       rescue Ably::Exceptions::CipherError, Ably::Exceptions::VcdiffError, Ably::Exceptions::EncoderError => e
         client.logger.error { "Decoding Error on presence channel '#{channel.name}', presence message client_id '#{presence_message.client_id}'. #{e.class.name}: #{e.message}" }
       end

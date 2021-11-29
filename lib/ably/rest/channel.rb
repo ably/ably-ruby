@@ -185,7 +185,7 @@ module Ably
       alias set_options update_options # (RSL7)
       alias options= update_options
 
-      # It saves the message last_message_id and last_payload
+      # It returns the message last_message_id and last_payload
       #
       # @api private
       #
@@ -200,9 +200,11 @@ module Ably
       #
       # @api private
       #
-      def update_last_message_id_and_last_payload(message)
-        self.last_message_id = message.attributes[:id] # (RTL19)
-        self.last_payload = message.attributes[:data]  # (RTL20)
+      def update_last_message_id_and_last_payload(message, encoded_message)
+        return nil unless message.assigned_to_protocol_message?
+
+        self.last_message_id = message.id # (RTL19)
+        self.last_payload = encoded_message  # (RTL20)
       end
 
       private
@@ -211,9 +213,10 @@ module Ably
       end
 
       def decode_message(message)
+        encoded_message = message.attributes[:data] # (RTL19c)
         decoded_message = message.decode(client.encoders, options_with_previous_attributes)
 
-        update_last_message_id_and_last_payload(message)
+        update_last_message_id_and_last_payload(message, encoded_message)
 
         decoded_message
       rescue Ably::Exceptions::CipherError, Ably::Exceptions::VcdiffError, Ably::Exceptions::EncoderError => e

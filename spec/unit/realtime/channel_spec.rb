@@ -156,10 +156,10 @@ describe Ably::Realtime::Channel do
   context 'subscriptions' do
     let(:message_history) { Hash.new { |hash, key| hash[key] = 0 } }
     let(:click_event) { 'click' }
-    let(:click_message) { instance_double('Ably::Models::Message', name: click_event, encode: nil, decode: nil, attributes: { id: nil, data: nil }) }
+    let(:click_message) { instance_double('Ably::Models::Message', name: click_event, encode: nil, decode: nil, id: nil, data: nil, assigned_to_protocol_message?: true, attributes: { id: nil, data: nil }) }
     let(:focus_event) { 'focus' }
-    let(:focus_message) { instance_double('Ably::Models::Message', name: focus_event, encode: nil, decode: nil, attributes: { id: nil, data: nil }) }
-    let(:blur_message) { instance_double('Ably::Models::Message', name: 'blur', encode: nil, decode: nil, attributes: { id: nil, data: nil }) }
+    let(:focus_message) { instance_double('Ably::Models::Message', name: focus_event, encode: nil, decode: nil, id: nil, data: nil, assigned_to_protocol_message?: true, attributes: { id: nil, data: nil }) }
+    let(:blur_message) { instance_double('Ably::Models::Message', name: 'blur', encode: nil, decode: nil, id: nil, data: nil, assigned_to_protocol_message?: true, attributes: { id: nil, data: nil }) }
 
     context '#subscribe' do
       before do

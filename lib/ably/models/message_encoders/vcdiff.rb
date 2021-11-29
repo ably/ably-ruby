@@ -14,13 +14,15 @@ module Ably
         end
 
         def decode(message, channel_options)
-          return nil unless is_vcdiff_encoded?(message)
+          return nil unless is_vcdiff_encoded?(message) # (RTL19)
 
           if !channel_options[:plugins] || !(vcdiff = channel_options[:plugins][:vcdiff]) # (PC3)
             raise Ably::Exceptions::VcdiffError.new('Missing vcdiff decoder (https://github.com/ably-forks/vcdiff-decoder-ruby)', 400, 40019)
           end
 
           # Comparing against the delta reference id (RTL20, RTL18, RTL18a, RTL18b, RTL18c)
+          # The extras.delta.from format is {protocol message id}:{protocol message index} i.e.: hzDoTpFqnD:1:0
+          #
           unless message.dig(:extras, :delta, :from) == channel_options[:previous_message_id]
             raise Ably::Exceptions::VcdiffError.new('Last message ID is different than Message.extras.delta.from', 400, 40018)
           end
@@ -41,19 +43,10 @@ module Ably
         private
 
         # It returns true if the message encoding contains vcdiff part. For example
-        #   utf-8/cipher+aes-128-cbc/vcdiff/base64
+        #   utf-8/cipher+aes-128-cbc/base64/vcdiff => true
         #
         def is_vcdiff_encoded?(message)
-          !message[:encoding].nil? && message[:encoding].split('/').include?(ENCODING_ID)
-        end
-
-        # It returns encoding without vcdiff part (RSL4b). For example, it converts from
-        #   utf-8/cipher+aes-128-cbc/vcdiff/base64
-        # to
-        #   utf-8/cipher+aes-128-cbc/base64
-        #
-        def strip_current_encoding_part(message)
-          message[:encoding] = message[:encoding].split('/').select { |part| part != ENCODING_ID }.join('/')
+          !current_encoding_part(message).to_s.match(/^#{ENCODING_ID}$/i).nil?
         end
       end
     end
