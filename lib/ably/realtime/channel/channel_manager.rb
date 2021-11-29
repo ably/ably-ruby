@@ -39,6 +39,7 @@ module Ably::Realtime
           update_presence_sync_state_following_attached attached_protocol_message
           channel.properties.set_attach_serial(attached_protocol_message.channel_serial)
           channel.options.set_modes_from_flags(attached_protocol_message.flags)
+          channel.options.set_params(attached_protocol_message.params)
         end
       end
 

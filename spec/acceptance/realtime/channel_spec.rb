@@ -170,6 +170,20 @@ describe Ably::Realtime::Channel, :event_machine do
             attached_message = Ably::Models::ProtocolMessage.new(action: 11, channel: channel_name, flags: 262144)
             client.connection.__incoming_protocol_msgbus__.publish :protocol_message, attached_message
           end
+
+          it 'set params as channel options params (#RTL4k1)' do
+            params = { param: :something }
+
+            channel.on(:attached) do
+              expect(channel.params).to eq(channel.options.params)
+              expect(channel.params).to eq(params)
+              stop_reactor
+            end
+
+            channel.transition_state_machine(:attaching)
+            attached_message = Ably::Models::ProtocolMessage.new(action: 11, channel: channel_name, params: params)
+            client.connection.__incoming_protocol_msgbus__.publish :protocol_message, attached_message
+          end
         end
 
         it 'implicitly attaches the channel (#RTL7c)' do

@@ -36,6 +36,7 @@ module Ably
       include Ably::Modules::MessageEmitter
       include Ably::Realtime::Channel::Publisher
       extend Ably::Modules::Enum
+      extend Forwardable
 
       # ChannelState
       # The permited states for this channel
@@ -96,6 +97,10 @@ module Ably
       # @return [Bolean]
       # @api private
       attr_reader :raise_on_reattach
+
+      # ChannelOptions params attrribute (#RTL4k)
+      # return [Hash]
+      def_delegators :options, :params
 
       # Initialize a new Channel object
       #

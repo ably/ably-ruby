@@ -223,6 +223,24 @@ describe Ably::Models::ProtocolMessage do
       end
     end
 
+    context '#params (#RTL4k1)' do
+      let(:params) do
+        { foo: :bar }
+      end
+
+      context 'when present' do
+        specify do
+          expect(new_protocol_message({ params: params }).params).to eq(params)
+        end
+      end
+
+      context 'when empty' do
+        specify do
+          expect(new_protocol_message({}).params).to eq({})
+        end
+      end
+    end
+
     context '#has_connection_serial?' do
       context 'without connection_serial' do
         let(:protocol_message) { new_protocol_message({}) }

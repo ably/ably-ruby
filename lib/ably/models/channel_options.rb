@@ -73,9 +73,18 @@ module Ably::Models
       modes.map { |mode| Ably::Models::ProtocolMessage::ATTACH_FLAGS_MAPPING[mode.to_sym] }.reduce(:|)
     end
 
+    # @return [Hash]
+    # @api private
+    def set_params(hash)
+      return if hash.empty?
+
+      attributes[:params] = hash
+    end
+
     # Sets modes from ProtocolMessage#flags
     #
     # @return [Array<ChannelOptions::MODES>]
+    # @api private
     def set_modes_from_flags(flags)
       return unless flags
 
