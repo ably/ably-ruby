@@ -193,6 +193,10 @@ module Ably::Models
       message_size <= connection_details.max_message_size
     end
 
+    def params
+      @params ||= attributes[:params].to_h
+    end
+
     def flags
       Integer(attributes[:flags])
     rescue TypeError

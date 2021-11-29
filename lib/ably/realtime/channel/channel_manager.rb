@@ -201,7 +201,10 @@ module Ably::Realtime
       end
 
       def send_attach_protocol_message
-        message_opptions = { flags: channel.options.modes_to_flags } if channel.options.modes
+        message_opptions = {}
+        message_opptions[:flags] = channel.options.modes_to_flags if channel.options.modes
+        message_opptions[:params] = channel.options.params if channel.options.params.any?
+
         send_state_change_protocol_message Ably::Models::ProtocolMessage::ACTION.Attach, :suspended, message_opptions
       end
 

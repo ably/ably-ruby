@@ -73,7 +73,6 @@ module Ably::Models
       modes.map { |mode| Ably::Models::ProtocolMessage::ATTACH_FLAGS_MAPPING[mode.to_sym] }.reduce(:|)
     end
 
-
     # Sets modes from ProtocolMessage#flags
     #
     # @return [Array<ChannelOptions::MODES>]

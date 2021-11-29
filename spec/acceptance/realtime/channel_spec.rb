@@ -136,6 +136,29 @@ describe Ably::Realtime::Channel, :event_machine do
           end
         end
 
+        context 'context when channel options contain params' do
+          let(:params) do
+            { foo: 'foo', bar: 'bar'}
+          end
+
+          before do
+            channel.options = { params: params }
+          end
+
+          it 'sends an ATTACH with params (#RTL4k)' do
+            connection.once(:connected) do
+              client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                next if protocol_message.action != :attach
+
+                expect(protocol_message.params).to eq(params)
+                stop_reactor
+              end
+
+              channel.attach
+            end
+          end
+        end
+
         context 'when received attached' do
           it 'decodes flags and sets it as modes on channel options (#RTL4m)'do
             channel.on(:attached) do
