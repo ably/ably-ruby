@@ -1165,6 +1165,33 @@ describe Ably::Auth do
         end
       end
 
+      context 'when token does not expire' do
+        let(:client_options) { default_options.merge(use_token_auth: true, key: api_key, query_time: true) }
+        let(:channel) { client.channels.get(random_str) }
+
+        context 'for the next 2 hours' do
+          let(:local_time) { Time.now - 2 * 60 * 60 }
+
+          before do
+            @now = Time.now
+            allow(Time).to receive(:now).and_return(local_time)
+          end
+
+          it 'saves a round-trip request (#RSA4b1)' do
+            expect(auth.current_token_details).to be_nil
+            channel.publish 'event'
+            expect(auth.current_token_details).not_to be_nil
+
+            token = auth.current_token_details
+
+            sleep 2.5
+            channel.publish 'event'
+            expect(auth.current_token_details).to eql(token)
+          end
+        end
+
+      end
+
       context 'when :client_id is provided in a token' do
         let(:client_id) { '123' }
         let(:token) do

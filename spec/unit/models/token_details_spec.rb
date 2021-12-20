@@ -80,6 +80,20 @@ describe Ably::Models::TokenDetails do
           expect(subject.expired?).to eql(false)
         end
       end
+
+      context 'with :from attribute' do
+        subject { Ably::Models::TokenDetails.new(expires: expire_time) }
+
+        let(:server_offset_time) { 2 * 60 * 60 } # 2 hours
+
+        it 'is false' do
+          expect(subject.expired?(from: (Time.now - server_offset_time))).to eql(false)
+        end
+
+        it 'is true' do
+          expect(subject.expired?(from: Time.now)).to eql(true)
+        end
+      end
     end
   end
 
