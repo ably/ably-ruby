@@ -1172,24 +1172,15 @@ describe Ably::Auth do
         context 'for the next 2 hours' do
           let(:local_time) { Time.now - 2 * 60 * 60 }
 
-          before do
-            @now = Time.now
-            allow(Time).to receive(:now).and_return(local_time)
-          end
+          before { allow(Time).to receive(:now).and_return(local_time) }
 
-          it 'saves a round-trip request (#RSA4b1)' do
-            expect(auth.current_token_details).to be_nil
-            channel.publish 'event'
-            expect(auth.current_token_details).not_to be_nil
-
-            token = auth.current_token_details
-
-            sleep 2.5
-            channel.publish 'event'
-            expect(auth.current_token_details).to eql(token)
+          it 'should not request for the new token (#RSA4b1)' do
+            expect { channel.publish 'event' }.to change { auth.current_token_details }
+            expect do
+              expect { channel.publish 'event' }.not_to change { auth.current_token_details }
+            end.not_to change { auth.current_token_details.expires }
           end
         end
-
       end
 
       context 'when :client_id is provided in a token' do
