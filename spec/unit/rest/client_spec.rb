@@ -89,9 +89,18 @@ describe Ably::Rest::Client do
     end
   end
 
+  context 'plugins' do
+    class Plugin ; end
+
+    let(:client_options) { { key: 'appid.keyuid:keysecret', plugins: { example: Plugin } } }
+    it 'should set plugins correctly (#TO3o)' do
+      expect(subject.plugins[:example]).to eq(Plugin)
+    end
+  end
+
   context 'request_id generation' do
     let(:client_options) { { key: 'appid.keyuid:keysecret', add_request_ids: true } }
-    it 'includes request_id in URL' do
+    it 'includes request_id in URL (#TO3p)' do
       expect(subject.add_request_ids).to eql(true)
     end
   end

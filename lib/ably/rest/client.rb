@@ -97,6 +97,11 @@ module Ably
       # @api private
       attr_reader :options
 
+      # A map between a PluginType and a Plugin object. The client library might downcast a Plugin to particular plugin type. #TO3o
+      # @return [Hash]
+      # @api private
+      attr_reader :plugins
+
       # The list of fallback hosts to be used by this client
       # if empty or nil then fallback host functionality is disabled
       attr_reader :fallback_hosts
@@ -150,6 +155,8 @@ module Ably
       # @option options [Array<String>]           :fallback_hosts              When an array of fallback hosts are provided, these fallback hosts are always used if a request fails to the primary endpoint. If an empty array is provided, the fallback host functionality is disabled
       # @option options [Integer]                 :fallback_retry_timeout     (600 seconds) amount of time in seconds a REST client will continue to use a working fallback host when the primary fallback host has previously failed
       #
+      # @option options [Hash]                    :plugins                    ({}) Map between PluginType and Plugin as in #TO3o
+      #
       # @option options [Boolean]                 :add_request_ids             (false) When true, adds a unique request_id to each request sent to Ably servers. This is handy when reporting issues, because you can refer to a specific request.
       # @option options [Boolean]                 :idempotent_rest_publishing  (false if ver < 1.2) When true, idempotent publishing is enabled for all messages published via REST
       #
@@ -186,6 +193,7 @@ module Ably
         @custom_host         = options.delete(:rest_host)
         @custom_port         = options.delete(:port)
         @custom_tls_port     = options.delete(:tls_port)
+        @plugins             = options.delete(:plugins) || {}
         @add_request_ids     = options.delete(:add_request_ids)
         @log_retries_as_info = options.delete(:log_retries_as_info)
         @idempotent_rest_publishing = options.delete(:idempotent_rest_publishing) || Ably.major_minor_version_numeric > 1.1

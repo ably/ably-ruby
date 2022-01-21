@@ -41,6 +41,15 @@ describe Ably::Realtime::Client do
     end
   end
 
+  context 'plugins' do
+    class Plugin ; end
+
+    let(:client_options) { { key: 'appid.keyuid:keysecret', plugins: { example: Plugin } } }
+    it 'should set plugins correctly (#TO3o)' do
+      expect(subject.plugins[:example]).to eq(Plugin)
+    end
+  end
+
   context 'push' do
     let(:client_options) { { key: 'appid.keyuid:keysecret' } }
 
