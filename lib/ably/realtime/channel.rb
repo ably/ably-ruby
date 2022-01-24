@@ -111,7 +111,7 @@ module Ably
       def initialize(client, name, channel_options = {})
         name = ensure_utf_8(:name, name)
 
-        update_options channel_options
+        @options       = Ably::Models::ChannelOptions(channel_options)
         @client        = client
         @name          = name
         @queue         = []
@@ -323,7 +323,7 @@ module Ably
       # @param channel_options [Hash, Ably::Models::ChannelOptions]     A hash of options or a {Ably::Models::ChannelOptions}
       # @return [Ably::Models::ChannelOptions]
       def set_options(channel_options)
-        update_options(channel_options)
+        @options = Ably::Models::ChannelOptions(channel_options)
 
         if need_reattach?
           raise_reattachment_error if raise_on_reattach
@@ -366,10 +366,6 @@ module Ably
 
       def need_reattach?
         !!(attaching? || attached?) && !!(options.modes || options.params)
-      end
-
-      def update_options(channel_options)
-        @options = Ably::Models::ChannelOptions(channel_options)
       end
 
       def setup_event_handlers

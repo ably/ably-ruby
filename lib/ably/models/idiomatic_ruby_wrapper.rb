@@ -94,6 +94,10 @@ module Ably::Models
       attributes.size
     end
 
+    def empty?
+      attributes.empty?
+    end
+
     def keys
       map { |key, value| key }
     end

@@ -30,7 +30,7 @@ module Ably::Models
 
     alias_method :to_h, :attributes
 
-    def_delegators :attributes, :fetch, :size
+    def_delegators :attributes, :fetch, :size, :empty?
     # Initialize a new ChannelOptions
     #
     # @option params [Hash] (TB2c) params (for realtime client libraries only) a  of key/value pairs
@@ -76,8 +76,6 @@ module Ably::Models
     # @return [Hash]
     # @api private
     def set_params(hash)
-      return if hash.empty?
-
       attributes[:params] = hash
     end
 

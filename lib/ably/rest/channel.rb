@@ -34,7 +34,7 @@ module Ably
       def initialize(client, name, channel_options = {})
         name = (ensure_utf_8 :name, name)
 
-        update_options channel_options
+        @options = Ably::Models::ChannelOptions(channel_options)
         @client  = client
         @name    = name
         @push    = PushChannel.new(self)
@@ -167,16 +167,11 @@ module Ably
       # @param channel_options [Hash, Ably::Models::ChannelOptions]  A hash of options or a {Ably::Models::ChannelOptions}
       # @return [Ably::Models::ChannelOptions]
       def set_options(channel_options)
-        update_options(channel_options)
+        @options = Ably::Models::ChannelOptions(channel_options)
       end
       alias options= set_options
 
       private
-
-      # @api private
-      def update_options(channel_options)
-        @options = Ably::Models::ChannelOptions(channel_options)
-      end
 
       def base_path
         "/channels/#{URI.encode_www_form_component(name)}"

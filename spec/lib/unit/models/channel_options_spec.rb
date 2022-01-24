@@ -4,7 +4,8 @@ require 'spec_helper'
 
 RSpec.describe Ably::Models::ChannelOptions do
   let(:modes) { nil }
-  let(:options) { described_class.new(modes: modes) }
+  let(:params) { {} }
+  let(:options) { described_class.new(modes: modes, params: params) }
 
   describe '#modes_to_flags' do
     let(:modes) { %w[publish subscribe presence_subscribe] }
@@ -33,4 +34,19 @@ RSpec.describe Ably::Models::ChannelOptions do
       expect(options.modes.map(&:to_sym)).to eq(%i[subscribe])
     end
   end
+
+    describe '#set_params' do
+      let(:previous_params) { { example_attribute: 1 } }
+      let(:new_params) { { new_attribute: 1 } }
+      let(:params) { previous_params }
+
+      it 'should be able to overwrite attributes' do
+        expect { options.set_params(new_params) }.to \
+          change { options.params }.from(previous_params).to(new_params)
+      end
+
+      it 'should be able to make params empty' do # (1)
+        expect { options.set_params({}) }.to change { options.params }.from(previous_params).to({})
+      end
+    end
 end
