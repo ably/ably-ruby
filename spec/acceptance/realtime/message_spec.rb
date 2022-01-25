@@ -75,6 +75,83 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       end
     end
 
+    context 'a single Message object (#RSL1a)' do
+      let(:name) { random_str }
+      let(:data) { random_str }
+      let(:message) { Ably::Models::Message.new(name: name, data: data) }
+
+      it 'publishes the message' do
+        channel.attach
+        channel.publish(message)
+        channel.subscribe do |msg|
+          expect(msg.name).to eq(message.name)
+          expect(msg.data).to eq(message.data)
+          stop_reactor
+        end
+      end
+    end
+
+    context 'an array of Message objects (#RSL1a)' do
+      let(:data) { random_str }
+      let(:message1) { Ably::Models::Message.new(name: random_str, data: data) }
+      let(:message2) { Ably::Models::Message.new(name: random_str, data: data) }
+      let(:message3) { Ably::Models::Message.new(name: random_str, data: data) }
+
+      it 'publishes three messages' do
+        channel.attach
+        channel.publish([message1, message2, message3])
+        counter = 0
+        channel.subscribe do |message|
+          counter += 1
+          expect(message.data).to eq(data)
+          expect(message.name).to eq(message1.name) if counter == 1
+          expect(message.name).to eq(message2.name) if counter == 2
+          if counter == 3
+            expect(message.name).to eq(message3.name)
+            stop_reactor
+          end
+        end
+      end
+    end
+
+    context 'an array of hashes (#RSL1a)' do
+      let(:data) { random_str }
+      let(:message1) { { name: random_str, data: data } }
+      let(:message2) { { name: random_str, data: data } }
+      let(:message3) { { name: random_str, data: data } }
+
+      it 'publishes three messages' do
+        channel.attach
+        channel.publish([message1, message2, message3])
+        counter = 0
+        channel.subscribe do |message|
+          counter += 1
+          expect(message.data).to eq(data)
+          expect(message.name).to eq(message1[:name]) if counter == 1
+          expect(message.name).to eq(message2[:name]) if counter == 2
+          if counter == 3
+            expect(message.name).to eq(message3[:name])
+            stop_reactor
+          end
+        end
+      end
+    end
+
+    context 'a name with data payload (#RSL1a, #RSL1b)' do
+      let(:name) { random_str }
+      let(:data) { random_str }
+
+      it 'publishes a message' do
+        channel.attach
+        channel.publish(name, data)
+        channel.subscribe do |message|
+          expect(message.name).to eql(name)
+          expect(message.data).to eq(data)
+          stop_reactor
+        end
+      end
+    end
+
     context 'with supported extra payload content type (#RTL6h, #RSL6a2)' do
       let(:channel) { client.channel("pushenabled:#{random_str}") }
 

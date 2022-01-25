@@ -115,5 +115,38 @@ module Ably::Modules
 
       raise Ably::Exceptions::UnsupportedDataType.new('Invalid data payload', 400, Ably::Exceptions::Codes::INVALID_MESSAGE_DATA_OR_ENCODING)
     end
+
+    # It converts the name, data, attributes into the array of Message objects
+    #
+    # @return [Array<Ably::Models::Message>]
+    #
+    def build_messages(name, data = nil, attributes = {})
+      if name.kind_of?(Enumerable)
+        return name.map { |item| Ably::Models::Message(ensure_supported_name_and_payload(item, data, attributes).dup) }
+      end
+      [Ably::Models::Message(ensure_supported_name_and_payload(name, data, attributes).dup)]
+    end
+
+    # Ensures if the first argument (name) is a String, Hash or Ably::Models::Message object,
+    # second argument (data) should be a String, Hash, Array or nil (see ensure_supported_payload() method).
+    #
+    # @return [Hash]        It contains :name, :data and other attributes
+    #
+    # (RSL1a, RSL1b)
+    #
+    def ensure_supported_name_and_payload(name, _data = nil, attributes = {})
+      return name.attributes if name.kind_of?(Ably::Models::Message)
+
+      data = _data
+      if (hash = name).kind_of?(Hash)
+        name, data = hash[:name], (hash[:data] || _data)
+        attributes.merge!(hash)
+      end
+
+      name = ensure_utf_8(:name, name, allow_nil: true)
+      ensure_supported_payload data
+
+      attributes.merge({ name: name, data: data })
+    end
   end
 end

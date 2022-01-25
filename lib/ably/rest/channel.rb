@@ -41,9 +41,9 @@ module Ably
         @push    = PushChannel.new(self)
       end
 
-      # Publish one or more messages to the channel. Three overloaded forms
+      # Publish one or more messages to the channel. Five overloaded forms
       # @param name [String, Array<Ably::Models::Message|Hash>, Ably::Models::Message, nil]   The event name of the message to publish, or an Array of [Ably::Model::Message] objects or [Hash] objects with +:name+ and +:data+ pairs, or a single Ably::Model::Message object
-      # @param data [String, ByteArray, Hash, nil]   The message payload unless an Array of [Ably::Model::Message] objects passed in the first argument, in which case an optional hash of query parameters
+      # @param data [String, Array, Hash, nil]   The message payload unless an Array of [Ably::Model::Message] objects passed in the first argument, in which case an optional hash of query parameters
       # @param attributes [Hash, nil]   Optional additional message attributes such as :extras, :id, :client_id or :connection_id, applied when name attribute is nil or a string (Deprecated, will be removed in 2.0 in favour of constructing a Message object)
       # @return [Boolean]  true if the message was published, otherwise false
       #
@@ -51,42 +51,33 @@ module Ably
       #   # Publish a single message with (name, data) form
       #   channel.publish 'click', { x: 1, y: 2 }
       #
-      #   # Publish an array of message Hashes
+      #   # Publish a single message with single Hash form
+      #   message = { name: 'click', data: { x: 1, y: 2 } }
+      #   channel.publish message
+      #
+      #   # Publish an array of message Hashes form
       #   messages = [
       #     { name: 'click', data: { x: 1, y: 2 } },
       #     { name: 'click', data: { x: 2, y: 3 } }
       #   ]
       #   channel.publish messages
       #
-      #   # Publish an array of Ably::Models::Message objects
+      #   # Publish an array of Ably::Models::Message objects form
       #   messages = [
-      #     Ably::Models::Message(name: 'click', { x: 1, y: 2 })
-      #     Ably::Models::Message(name: 'click', { x: 2, y: 3 })
+      #     Ably::Models::Message(name: 'click', data: { x: 1, y: 2 })
+      #     Ably::Models::Message(name: 'click', data: { x: 2, y: 3 })
       #   ]
       #   channel.publish messages
       #
-      #   # Publish a single Ably::Models::Message object, with a query params
-      #   # specifying quickAck: true
-      #   message = Ably::Models::Message(name: 'click', { x: 1, y: 2 })
-      #   channel.publish message, quickAck: 'true'
+      #   # Publish a single Ably::Models::Message object form
+      #   message = Ably::Models::Message(name: 'click', data: { x: 1, y: 2 })
+      #   channel.publish message
       #
-      def publish(first, second = nil, third = {})
-        messages, qs_params = if first.kind_of?(Enumerable)
-          # ([Message], qs_params) form
-          [first, second]
-        elsif first.kind_of?(Ably::Models::Message)
-          # (Message, qs_params) form
-          [[first], second]
-        else
-          # (name, data, attributes) form
-          first = ensure_utf_8(:name, first, allow_nil: true)
-          ensure_supported_payload second
-          # RSL1h - attributes as an extra method parameter is extra-spec but need to
-          # keep it for backcompat until version 2
-          [[{ name: first, data: second }.merge(third)], nil]
-        end
+      def publish(name, data = nil, attributes = {})
+        qs_params = nil
+        qs_params = data if name.kind_of?(Enumerable) || name.kind_of?(Ably::Models::Message)
 
-        messages.map! { |message| Ably::Models::Message(message.dup) }
+        messages = build_messages(name, data, attributes) # (RSL1a, RSL1b)
 
         if messages.sum(&:size) > Ably::Rest::Channel::MAX_MESSAGE_SIZE
           raise Ably::Exceptions::MaxMessageSizeExceeded.new("Maximum message size exceeded #{Ably::Rest::Channel::MAX_MESSAGE_SIZE}.")
