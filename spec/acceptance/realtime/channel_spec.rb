@@ -1181,7 +1181,7 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       context 'with more than allowed messages in a single publish' do
-        let(:channel_name) { random_str }
+        65536
 
         it 'rejects the publish' do
           messages = (Ably::Realtime::Connection::MAX_PROTOCOL_MESSAGE_BATCH_SIZE + 1).times.map do
@@ -1405,15 +1405,57 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       context 'message size exceeded (#TO3l8)' do
-        let(:message) { 'x' * 700000 }
-
         let(:client) { auto_close Ably::Realtime::Client.new(client_options) }
         let(:channel) { client.channels.get(channel_name) }
 
-        it 'should not allow to send a message' do
-          channel.publish('event', message).errback do |error|
-            expect(error).to be_instance_of(Ably::Exceptions::MaxMessageSizeExceeded)
-            stop_reactor
+        context 'and max_message_size is default (65536 bytes)' do
+          let(:channel_name) { random_str }
+          let(:max_message_size) { 65536 }
+
+          it 'should allow to send a message (32 bytes)' do
+            client.connection.once(:connected) do
+              channel.subscribe('event') do |msg|
+                expect(msg.data).to eq('x' * 32)
+                stop_reactor
+              end
+              channel.publish('event', 'x' * 32)
+            end
+          end
+
+          it 'should not allow to send a message (700000 bytes)' do
+            client.connection.once(:connected) do
+              connection_details = Ably::Models::ConnectionDetails.new(
+                client.connection.details.attributes.attributes.merge('maxMessageSize' => max_message_size)
+              )
+              client.connection.set_connection_details(connection_details)
+              expect(client.connection.details.max_message_size).to eq(65536)
+              channel.publish('event', 'x' * 700000).errback do |error|
+                expect(error).to be_instance_of(Ably::Exceptions::MaxMessageSizeExceeded)
+                stop_reactor
+              end
+            end
+          end
+        end
+
+        context 'and max_message_size is customized (11 bytes)' do
+          let(:max_message_size) { 11 }
+
+          context 'and the message size is 30 bytes' do
+            let(:channel_name) { random_str }
+
+            it 'should not allow to send a message' do
+              client.connection.once(:connected) do
+                connection_details = Ably::Models::ConnectionDetails.new(
+                  client.connection.details.attributes.attributes.merge('maxMessageSize' => max_message_size)
+                )
+                client.connection.set_connection_details(connection_details)
+                expect(client.connection.details.max_message_size).to eq(11)
+                channel.publish('event', 'x' * 30).errback do |error|
+                  expect(error).to be_instance_of(Ably::Exceptions::MaxMessageSizeExceeded)
+                  stop_reactor
+                end
+              end
+            end
           end
         end
       end

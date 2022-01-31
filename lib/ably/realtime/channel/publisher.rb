@@ -22,8 +22,9 @@ module Ably::Realtime
           end
         end
 
-        if messages.sum(&:size) > Ably::Realtime::Connection::MAX_MESSAGE_SIZE
-          error = Ably::Exceptions::MaxMessageSizeExceeded.new("Message size exceeded #{Ably::Realtime::Connection::MAX_MESSAGE_SIZE} bytes.")
+        max_message_size = connection.details && connection.details.max_message_size || Ably::Models::ConnectionDetails::MAX_MESSAGE_SIZE
+        if messages.sum(&:size) > max_message_size
+          error = Ably::Exceptions::MaxMessageSizeExceeded.new("Message size exceeded #{max_message_size} bytes.")
           return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
         end
 
