@@ -1458,6 +1458,47 @@ describe Ably::Realtime::Channel, :event_machine do
             end
           end
         end
+
+        context 'and max_message_size is nil' do
+          let(:max_message_size) { nil }
+
+          context 'and the message size is 30 bytes' do
+            let(:channel_name) { random_str }
+
+            it 'should allow to send a message' do
+              client.connection.once(:connected) do
+                connection_details = Ably::Models::ConnectionDetails.new(
+                  client.connection.details.attributes.attributes.merge('maxMessageSize' => max_message_size)
+                )
+                client.connection.set_connection_details(connection_details)
+                expect(client.connection.details.max_message_size).to eq(65536)
+                channel.subscribe('event') do |msg|
+                  expect(msg.data).to eq('x' * 30)
+                  stop_reactor
+                end
+                channel.publish('event', 'x' * 30)
+              end
+            end
+          end
+
+          context 'and the message size is 65537 bytes' do
+            let(:channel_name) { random_str }
+
+            it 'should not allow to send a message' do
+              client.connection.once(:connected) do
+                connection_details = Ably::Models::ConnectionDetails.new(
+                  client.connection.details.attributes.attributes.merge('maxMessageSize' => max_message_size)
+                )
+                client.connection.set_connection_details(connection_details)
+                expect(client.connection.details.max_message_size).to eq(65536)
+                channel.publish('event', 'x' * 65537).errback do |error|
+                  expect(error).to be_instance_of(Ably::Exceptions::MaxMessageSizeExceeded)
+                  stop_reactor
+                end
+              end
+            end
+          end
+        end
       end
     end
 
