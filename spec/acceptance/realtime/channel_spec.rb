@@ -750,6 +750,107 @@ describe Ably::Realtime::Channel, :event_machine do
         end
       end
 
+      describe '#(RTL17)' do
+        context 'when channel is initialized' do
+          it 'sends messages only on attach' do
+            expect(channel).to be_initialized
+            channel.publish('event', payload)
+
+            channel.subscribe do |message|
+              stop_reactor if message.data == payload && channel.attached?
+            end
+
+            channel.attach
+          end
+        end
+
+        context 'when channel is attaching' do
+          it 'sends messages only on attach' do
+            channel.publish('event', payload)
+
+            sent_message = nil
+            channel.subscribe do |message|
+              return if message.data != payload
+              sent_message = message
+
+              stop_reactor if channel.attached?
+            end
+
+            channel.on(:attaching) do
+              expect(channel).to be_attaching
+              expect(sent_message).to be_nil
+            end
+
+            channel.attach
+          end
+        end
+
+        context 'when channel is detaching' do
+          it 'stops sending message' do
+            sent_message = nil
+            event_published = false
+            channel.subscribe do |message|
+              sent_message = message if message.data == payload
+            end
+
+            channel.on(:detaching) do
+              channel.publish('event', payload)
+              event_published = true
+            end
+
+            channel.on(:detaching) do
+              EventMachine.next_tick do
+                expect(sent_message).to be_nil
+                stop_reactor if event_published
+              end
+            end
+
+            channel.attach do
+              channel.detach
+            end
+          end
+        end
+
+        context 'when channel is detached' do
+          it 'stops sending message' do
+            sent_message = nil
+            event_published = false
+            channel.subscribe do |message|
+              sent_message = message if message.data == payload
+            end
+
+            channel.on(:detaching) do
+              channel.publish('event', payload)
+              event_published = true
+            end
+
+            channel.on(:detached) do
+              expect(sent_message).to be_nil
+              stop_reactor if event_published
+            end
+
+            channel.attach do
+              channel.detach
+            end
+          end
+        end
+
+        context 'when channel is failed' do
+          it 'errors when trying to send a message' do
+            channel.once(:failed) do
+              channel.publish('event', payload).errback do |error|
+                expect(error).to be_a(Ably::Exceptions::ChannelInactive)
+                stop_reactor
+              end
+            end
+
+            channel.attach do
+              channel.transition_state_machine(:failed)
+            end
+          end
+        end
+      end
+
       context 'when channel is not attached in state Initializing (#RTL6c1)' do
         it 'publishes messages immediately and does not implicitly attach (#RTL6c1)' do
           sub_channel.attach do
