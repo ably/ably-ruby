@@ -23,7 +23,6 @@ module Ably
       attr_reader :push
 
       IDEMPOTENT_LIBRARY_GENERATED_ID_LENGTH = 9 # See spec RSL1k1
-      MAX_MESSAGE_SIZE = 65536 # See spec TO3l8
 
       # Initialize a new Channel object
       #
@@ -88,8 +87,8 @@ module Ably
 
         messages.map! { |message| Ably::Models::Message(message.dup) }
 
-        if messages.sum(&:size) > Ably::Rest::Channel::MAX_MESSAGE_SIZE
-          raise Ably::Exceptions::MaxMessageSizeExceeded.new("Maximum message size exceeded #{Ably::Rest::Channel::MAX_MESSAGE_SIZE}.")
+        if messages.sum(&:size) > (max_message_size = client.max_message_size || Ably::Rest::Client::MAX_MESSAGE_SIZE)
+          raise Ably::Exceptions::MaxMessageSizeExceeded.new("Maximum message size exceeded #{max_message_size} bytes.")
         end
 
         payload = messages.map do |message|
