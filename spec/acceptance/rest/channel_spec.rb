@@ -5,11 +5,13 @@ describe Ably::Rest::Channel do
   include Ably::Modules::Conversions
 
   vary_by_protocol do
-    let(:default_options) { { key: api_key, environment: environment, protocol: protocol} }
+    let(:default_options) { { key: api_key, environment: environment, protocol: protocol, max_frame_size: max_frame_size, max_message_size: max_message_size } }
     let(:client_options)  { default_options }
     let(:client) do
       Ably::Rest::Client.new(client_options)
     end
+    let(:max_message_size) { nil }
+    let(:max_frame_size) { nil }
 
     describe '#publish' do
       let(:channel_name) { random_str }
@@ -60,7 +62,8 @@ describe Ably::Rest::Channel do
         end
 
         it 'publishes an array of messages in one HTTP request' do
-          expect(messages.sum(&:size) < Ably::Rest::Channel::MAX_MESSAGE_SIZE).to eq(true)
+          expect(client.max_message_size).to eq(Ably::Rest::Client::MAX_MESSAGE_SIZE)
+          expect(messages.sum(&:size) < Ably::Rest::Client::MAX_MESSAGE_SIZE).to eq(true)
 
           expect(client).to receive(:post).once.and_call_original
           expect(channel.publish(messages)).to eql(true)
@@ -70,19 +73,78 @@ describe Ably::Rest::Channel do
       end
 
       context 'with an array of Message objects' do
-        let(:messages) do
-          10.times.map do |index|
-            Ably::Models::Message(name: index.to_s, data: { "index" => index + 10 })
+        context 'when max_message_size and max_frame_size is not set' do
+          before do
+            expect(client.max_message_size).to eq(Ably::Rest::Client::MAX_MESSAGE_SIZE)
+            expect(client.max_frame_size).to eq(Ably::Rest::Client::MAX_FRAME_SIZE)
+          end
+
+          context 'and messages size (130 bytes) is smaller than the max_message_size' do
+            let(:messages) do
+              10.times.map do |index|
+                Ably::Models::Message(name: index.to_s, data: { "index" => index + 10 })
+              end
+            end
+
+            it 'publishes an array of messages in one HTTP request' do
+              expect(messages.sum &:size).to eq(130)
+              expect(client).to receive(:post).once.and_call_original
+              expect(channel.publish(messages)).to eql(true)
+              expect(channel.history.items.map(&:name)).to match_array(messages.map(&:name))
+              expect(channel.history.items.map(&:data)).to match_array(messages.map(&:data))
+            end
+          end
+
+          context 'and messages size (177784 bytes) is bigger than the max_message_size' do
+            let(:messages) do
+              10000.times.map do |index|
+                Ably::Models::Message(name: index.to_s, data: { "index" => index + 1 })
+              end
+            end
+
+            it 'should not publish and raise Ably::Exceptions::MaxMessageSizeExceeded' do
+              expect(messages.sum &:size).to eq(177784)
+              expect { channel.publish(messages) }.to raise_error(Ably::Exceptions::MaxMessageSizeExceeded)
+            end
           end
         end
 
-        it 'publishes an array of messages in one HTTP request' do
-          expect(messages.sum(&:size) < Ably::Rest::Channel::MAX_MESSAGE_SIZE).to eq(true)
+        context 'when max_message_size is 655 bytes' do
+          let(:max_message_size) { 655 }
 
-          expect(client).to receive(:post).once.and_call_original
-          expect(channel.publish(messages)).to eql(true)
-          expect(channel.history.items.map(&:name)).to match_array(messages.map(&:name))
-          expect(channel.history.items.map(&:data)).to match_array(messages.map(&:data))
+          before do
+            expect(client.max_message_size).to eq(max_message_size)
+            expect(client.max_frame_size).to eq(Ably::Rest::Client::MAX_FRAME_SIZE)
+          end
+
+          context 'and messages size (130 bytes) is smaller than the max_message_size' do
+            let(:messages) do
+              10.times.map do |index|
+                Ably::Models::Message(name: index.to_s, data: { "index" => index + 10 })
+              end
+            end
+
+            it 'publishes an array of messages in one HTTP request' do
+              expect(messages.sum &:size).to eq(130)
+              expect(client).to receive(:post).once.and_call_original
+              expect(channel.publish(messages)).to eql(true)
+              expect(channel.history.items.map(&:name)).to match_array(messages.map(&:name))
+              expect(channel.history.items.map(&:data)).to match_array(messages.map(&:data))
+            end
+          end
+
+          context 'and messages size (177784 bytes) is bigger than the max_message_size' do
+            let(:messages) do
+              10000.times.map do |index|
+                Ably::Models::Message(name: index.to_s, data: { "index" => index + 1 })
+              end
+            end
+
+            it 'should not publish and raise Ably::Exceptions::MaxMessageSizeExceeded' do
+              expect(messages.sum &:size).to eq(177784)
+              expect { channel.publish(messages) }.to raise_error(Ably::Exceptions::MaxMessageSizeExceeded)
+            end
+          end
         end
       end
 

@@ -3,7 +3,7 @@ require 'spec_helper'
 require 'shared/protocol_msgbus_behaviour'
 
 describe Ably::Realtime::Channel do
-  let(:client)       { double('client').as_null_object }
+  let(:client)       { Ably::Realtime::Client.new(token: 'valid') }
   let(:channel_name) { 'test' }
 
   subject do
@@ -71,6 +71,7 @@ describe Ably::Realtime::Channel do
     let(:message) { instance_double('Ably::Models::Message', client_id: nil, size: 0) }
 
     before do
+      allow(subject).to receive(:enqueue_messages_on_connection).and_return(message)
       allow(subject).to receive(:create_message).and_return(message)
       allow(subject).to receive(:attach).and_return(:true)
     end

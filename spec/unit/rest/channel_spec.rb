@@ -7,16 +7,13 @@ describe Ably::Rest::Channel do
       'Ably::Rest::Client',
       encoders: [],
       post: instance_double('Faraday::Response', status: 201),
-      idempotent_rest_publishing: false,
+      idempotent_rest_publishing: false, max_message_size: max_message_size
     )
   end
   let(:channel_name) { 'unique' }
+  let(:max_message_size) { nil }
 
   subject { Ably::Rest::Channel.new(client, channel_name) }
-
-  it 'should return Ably::Rest::Channel::MAX_MESSAGE_SIZE equal 65536 (TO3l8)' do
-    expect(Ably::Rest::Channel::MAX_MESSAGE_SIZE).to eq(65536)
-  end
 
   describe '#initializer' do
     let(:channel_name) { random_str.encode(encoding) }
@@ -132,8 +129,44 @@ describe Ably::Rest::Channel do
     end
 
     context 'max message size exceeded' do
-      it 'should raise Ably::Exceptions::MaxMessageSizeExceeded' do
-        expect { subject.publish('x' * 65537, 'data') }.to raise_error Ably::Exceptions::MaxMessageSizeExceeded
+      context 'when max_message_size is nil' do
+        context 'and a message size is 65537 bytes' do
+          it 'should raise Ably::Exceptions::MaxMessageSizeExceeded' do
+            expect { subject.publish('x' * 65537, 'data') }.to raise_error Ably::Exceptions::MaxMessageSizeExceeded
+          end
+        end
+      end
+
+      context 'when max_message_size is 65536 bytes' do
+        let(:max_message_size) { 65536 }
+
+        context 'and a message size is 65537 bytes' do
+          it 'should raise Ably::Exceptions::MaxMessageSizeExceeded' do
+            expect { subject.publish('x' * 65537, 'data') }.to raise_error Ably::Exceptions::MaxMessageSizeExceeded
+          end
+        end
+
+        context 'and a message size is 10 bytes' do
+          it 'should send a message' do
+            expect(subject.publish('x' * 10, 'data')).to eq(true)
+          end
+        end
+      end
+
+      context 'when max_message_size is 10 bytes' do
+        let(:max_message_size) { 10 }
+
+        context 'and a message size is 11 bytes' do
+          it 'should raise Ably::Exceptions::MaxMessageSizeExceeded' do
+            expect { subject.publish('x' * 11, 'data') }.to raise_error Ably::Exceptions::MaxMessageSizeExceeded
+          end
+        end
+
+        context 'and a message size is 2 bytes' do
+          it 'should send a message' do
+            expect(subject.publish('x' * 2, 'data')).to eq(true)
+          end
+        end
       end
     end
   end

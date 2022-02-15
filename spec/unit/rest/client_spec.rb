@@ -87,6 +87,33 @@ describe Ably::Rest::Client do
         end
       end
     end
+
+    context 'max_message_size' do
+      context 'is not present' do
+        let(:client_options) { { key: 'appid.keyuid:keysecret' } }
+
+        it 'should return default 65536 (#TO3l8)' do
+          expect(subject.max_message_size).to eq(Ably::Rest::Client::MAX_MESSAGE_SIZE)
+        end
+      end
+
+      context 'is nil' do
+        let(:client_options) { { key: 'appid.keyuid:keysecret', max_message_size: nil } }
+
+        it 'should return default 65536 (#TO3l8)' do
+          expect(Ably::Rest::Client::MAX_MESSAGE_SIZE).to eq(65536)
+          expect(subject.max_message_size).to eq(Ably::Rest::Client::MAX_MESSAGE_SIZE)
+        end
+      end
+
+      context 'is customized 131072 bytes' do
+        let(:client_options) { { key: 'appid.keyuid:keysecret', max_message_size: 131072 } }
+
+        it 'should return 131072' do
+          expect(subject.max_message_size).to eq(131072)
+        end
+      end
+    end
   end
 
   context 'request_id generation' do

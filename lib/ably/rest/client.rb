@@ -25,7 +25,8 @@ module Ably
       # Default Ably domain for REST
       DOMAIN = 'rest.ably.io'
 
-      MAX_FRAME_SIZE = 524288
+      MAX_MESSAGE_SIZE = 65536 # See spec TO3l8
+      MAX_FRAME_SIZE = 524288 # See spec TO3l8
 
       # Configuration for HTTP timeouts and HTTP request reattempts to fallback hosts
       HTTP_DEFAULTS = {
@@ -118,6 +119,14 @@ module Ably
       # @return [Boolean]
       attr_reader :idempotent_rest_publishing
 
+      # Max message size (TO2, TO3l8) by default (65536 bytes) 64KiB
+      # @return [Integer]
+      attr_reader :max_message_size
+
+      # Max frame size (TO2, TO3l8) by default (524288 bytes) 512KiB
+      # @return [Integer]
+      attr_reader :max_frame_size
+
       # Creates a {Ably::Rest::Client Rest Client} and configures the {Ably::Auth} object for the connection.
       #
       # @param [Hash,String] options an options Hash used to configure the client and the authentication, or String with an API key or Token ID
@@ -152,6 +161,8 @@ module Ably
       #
       # @option options [Boolean]                 :add_request_ids             (false) When true, adds a unique request_id to each request sent to Ably servers. This is handy when reporting issues, because you can refer to a specific request.
       # @option options [Boolean]                 :idempotent_rest_publishing  (false if ver < 1.2) When true, idempotent publishing is enabled for all messages published via REST
+      # @option options [Integer]                 :max_message_size            (65536 bytes) Maximum size of all messages when publishing via REST publish()
+      # @option options [Integer]                 :max_frame_size              (524288 bytes) Maximum size of frame
       #
       # @return [Ably::Rest::Client]
       #
@@ -189,7 +200,8 @@ module Ably
         @add_request_ids     = options.delete(:add_request_ids)
         @log_retries_as_info = options.delete(:log_retries_as_info)
         @idempotent_rest_publishing = options.delete(:idempotent_rest_publishing) || Ably.major_minor_version_numeric > 1.1
-
+        @max_message_size    = options.delete(:max_message_size) || MAX_MESSAGE_SIZE
+        @max_frame_size      = options.delete(:max_frame_size) || MAX_FRAME_SIZE
 
         if options[:fallback_hosts_use_default] && options[:fallback_hosts]
           raise ArgumentError, "fallback_hosts_use_default cannot be set to try when fallback_hosts is also provided"
@@ -365,8 +377,8 @@ module Ably
             send_request(method, path, params, headers: headers)
           end
         when :post, :patch, :put
-          if body.to_json.bytesize > MAX_FRAME_SIZE
-            raise Ably::Exceptions::MaxFrameSizeExceeded.new("Maximum frame size exceeded #{MAX_FRAME_SIZE} bytes.")
+          if body.to_json.bytesize > max_frame_size
+            raise Ably::Exceptions::MaxFrameSizeExceeded.new("Maximum frame size exceeded #{max_frame_size} bytes.")
           end
           path_with_params = Addressable::URI.new
           path_with_params.query_values = params || {}

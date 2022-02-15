@@ -21,6 +21,12 @@ module Ably::Models
   class ConnectionDetails
     include Ably::Modules::ModelCommon
 
+    # Max message size
+    MAX_MESSAGE_SIZE = 65536 # See spec TO3l8
+
+    # Max frame size
+    MAX_FRAME_SIZE = 524288 # See spec TO3l9
+
     # @param attributes [Hash]
     # @option attributes [String]    :client_id             contains the client ID assigned to the connection
     # @option attributes [String]    :connection_key        the connection secret key string that is used to resume a connection and its state
@@ -38,8 +44,8 @@ module Ably::Models
           self.attributes[duration_field] = (self.attributes[duration_field].to_f / 1000).round
         end
       end
-      self.attributes[:max_message_size] ||= 65536
-      self.attributes[:max_frame_size] ||= 524288
+      self.attributes[:max_message_size] ||= MAX_MESSAGE_SIZE
+      self.attributes[:max_frame_size] ||= MAX_FRAME_SIZE
       self.attributes.freeze
     end
 
