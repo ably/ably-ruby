@@ -1,5 +1,64 @@
 # Change Log
 
+## [v1.1.8](https://github.com/ably/ably-ruby/tree/v1.1.8)
+
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.1.7...v1.1.8)
+
+**Fixed bugs:**
+
+- Lib apparently closing the socket after each request [\#211](https://github.com/ably/ably-ruby/issues/211)
+
+**Closed issues:**
+
+- Resolve config.around\(\) issue and upgrade rspec [\#313](https://github.com/ably/ably-ruby/issues/313)
+- Write spec tests for RTL21 [\#308](https://github.com/ably/ably-ruby/issues/308)
+- Write spec tests for RTL20 [\#307](https://github.com/ably/ably-ruby/issues/307)
+- Write spec tests for RTL19, RTL19a, b, c [\#306](https://github.com/ably/ably-ruby/issues/306)
+- Write spec tests for RTL18, RTL18a, b, c [\#305](https://github.com/ably/ably-ruby/issues/305)
+- Add support for RTL20 [\#295](https://github.com/ably/ably-ruby/issues/295)
+- Add support for RTL19, RTL19a, b, c [\#294](https://github.com/ably/ably-ruby/issues/294)
+- Add support for RTL18, RTL18a, b, c [\#293](https://github.com/ably/ably-ruby/issues/293)
+- Write spec tests for RSL6b, RLS7 \(Channels\) [\#284](https://github.com/ably/ably-ruby/issues/284)
+- Write spec tests for RSC15e, d, f \(Host Fallback \)
+ [\#280](https://github.com/ably/ably-ruby/issues/280)
+- Write spec tests for RSC7a, RSC7c \(RestClient\)
+ [\#279](https://github.com/ably/ably-ruby/issues/279)
+- Add support for DataTypes ChannelOptions TB2c, d [\#278](https://github.com/ably/ably-ruby/issues/278)
+- Add support for DataTypes TokenParams AO2g [\#277](https://github.com/ably/ably-ruby/issues/277)
+- Add support for DataTypes ClientOptions TO3j10 [\#276](https://github.com/ably/ably-ruby/issues/276)
+- Add support for DataTypes ErrorInfo TI1 [\#275](https://github.com/ably/ably-ruby/issues/275)
+- Add support for DataTypes ProtocolMessage TR3f, TR4i, q [\#274](https://github.com/ably/ably-ruby/issues/274)
+- Add support for TM2i \(DataTypes Message\) [\#273](https://github.com/ably/ably-ruby/issues/273)
+- Add support for PC1, PC2, PC3, PC3a \(Plugins\) [\#272](https://github.com/ably/ably-ruby/issues/272)
+- Add support  for RSL6b, RLS7 \(Channels\) [\#271](https://github.com/ably/ably-ruby/issues/271)
+- Add support for RSL1a, b, h, k1, k2, l, l1 \(Channels\) [\#270](https://github.com/ably/ably-ruby/issues/270)
+- Add support for RSC15e, d, f \(Host Fallback \)
+ [\#267](https://github.com/ably/ably-ruby/issues/267)
+- Update client options support to 1.1 spec level \(logExceptionReportingUrl\) [\#246](https://github.com/ably/ably-ruby/issues/246)
+- Confirm status of remaining realtime spec items for 1.0 [\#244](https://github.com/ably/ably-ruby/issues/244)
+
+**Merged pull requests:**
+
+- Allowing ConnectionDetails\#max\_message\_size [\#342](https://github.com/ably/ably-ruby/pull/342) ([lukaszsliwa](https://github.com/lukaszsliwa))
+- Add specs for RTL17 [\#335](https://github.com/ably/ably-ruby/pull/335) ([TheSmartnik](https://github.com/TheSmartnik))
+- Add spec for RTP5b [\#332](https://github.com/ably/ably-ruby/pull/332) ([TheSmartnik](https://github.com/TheSmartnik))
+- Update specs with comments to docs seciton for RSN3a/RSN3c [\#331](https://github.com/ably/ably-ruby/pull/331) ([TheSmartnik](https://github.com/TheSmartnik))
+- Fix after suite hook in specs [\#329](https://github.com/ably/ably-ruby/pull/329) ([TheSmartnik](https://github.com/TheSmartnik))
+- Add specs for RTN15h2 [\#328](https://github.com/ably/ably-ruby/pull/328) ([TheSmartnik](https://github.com/TheSmartnik))
+- Add specs for RTN12f [\#327](https://github.com/ably/ably-ruby/pull/327) ([TheSmartnik](https://github.com/TheSmartnik))
+- Added Channel\#set\_options and Channel\#options= aliases [\#326](https://github.com/ably/ably-ruby/pull/326) ([lukaszsliwa](https://github.com/lukaszsliwa))
+- Added DeltaExtras class and Message\#delta\_extras method. \(TM2i\) [\#325](https://github.com/ably/ably-ruby/pull/325) ([lukaszsliwa](https://github.com/lukaszsliwa))
+- When connection disconnectes and can't renew token it fails \(RTN15h1\) [\#324](https://github.com/ably/ably-ruby/pull/324) ([TheSmartnik](https://github.com/TheSmartnik))
+- RTN-13c Add spec that channels do not reattach when connection isn't connected [\#323](https://github.com/ably/ably-ruby/pull/323) ([TheSmartnik](https://github.com/TheSmartnik))
+- Add support for DataTypes ProtocolMessage: has\_attach\_resume\_flag? [\#322](https://github.com/ably/ably-ruby/pull/322) ([lukaszsliwa](https://github.com/lukaszsliwa))
+- Added request\_id and cause attributes to the ErrorInfo class TI1, RSC7c [\#321](https://github.com/ably/ably-ruby/pull/321) ([lukaszsliwa](https://github.com/lukaszsliwa))
+- Add spec for RTN12d [\#318](https://github.com/ably/ably-ruby/pull/318) ([TheSmartnik](https://github.com/TheSmartnik))
+- Change behavior when reconnecting from failed state \(RTN11d\) [\#316](https://github.com/ably/ably-ruby/pull/316) ([TheSmartnik](https://github.com/TheSmartnik))
+- Remove deprecated ProtocolMessage\#connection\_key TR4e [\#315](https://github.com/ably/ably-ruby/pull/315) ([TheSmartnik](https://github.com/TheSmartnik))
+- Upgrade rspec to 3.10 [\#314](https://github.com/ably/ably-ruby/pull/314) ([lukaszsliwa](https://github.com/lukaszsliwa))
+- Add a spec for \#RTN11c [\#257](https://github.com/ably/ably-ruby/pull/257) ([TheSmartnik](https://github.com/TheSmartnik))
+
+
 ## [v1.1.7](https://github.com/ably/ably-ruby/tree/v1.1.7)
 
 [Full Changelog](https://github.com/ably/ably-ruby/compare/v1.1.6...v1.1.7)
