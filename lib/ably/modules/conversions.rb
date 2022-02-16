@@ -121,10 +121,11 @@ module Ably::Modules
     # @return [Array<Ably::Models::Message>]
     #
     def build_messages(name, data = nil, attributes = {})
-      if name.kind_of?(Enumerable)
-        return name.map { |item| Ably::Models::Message(ensure_supported_name_and_payload(item, data, attributes)) }
+      return [Ably::Models::Message(ensure_supported_name_and_payload(nil, data, attributes))] if name.nil?
+
+      Array(name).map do |item|
+        Ably::Models::Message(ensure_supported_name_and_payload(item, data, attributes))
       end
-      [Ably::Models::Message(ensure_supported_name_and_payload(name, data, attributes))]
     end
 
     # Ensures if the first argument (name) is a String, Hash or Ably::Models::Message object,
