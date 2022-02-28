@@ -12,16 +12,30 @@ describe Ably::Rest::Channels do
 
   describe '#get' do
     context "when channel doesn't exist" do
-      with_different_option_types(:options) do
+      shared_examples 'creates a channel' do
         it 'creates a channel (RSN3a)' do
           expect(Ably::Rest::Channel).to receive(:new).with(client, channel_name, options)
           subject.get(channel_name, options)
         end
       end
+
+      describe 'hash' do
+        let(:channel_options) { options }
+        it { expect(channel_options).to be_a(Hash) }
+
+        include_examples 'creates a channel'
+      end
+
+      describe 'ChannelOptions object' do
+        let(:channel_options) { Ably::Models::ChannelOptions.new(options) }
+        it { expect(channel_options).to be_a(Ably::Models::ChannelOptions) }
+
+        include_examples 'creates a channel'
+      end
     end
 
     context 'when an existing channel exists' do
-      with_different_option_types(:options) do
+      shared_examples 'reuse a channel object if it exists' do
         it 'will reuse a channel object if it exists (RSN3a)' do
           channel = subject.get(channel_name, channel_options)
           expect(channel).to be_a(Ably::Rest::Channel)
@@ -29,20 +43,46 @@ describe Ably::Rest::Channels do
         end
       end
 
-      context 'with new channel_options' do
-        let(:modes) { %i[subscribe] }
-        let(:new_options) do
-          { modes:  modes }
-        end
+      describe 'hash' do
+        let(:channel_options) { options }
+        it { expect(channel_options).to be_a(Hash) }
 
-        with_different_option_types(:new_options) do
-          it 'will update channel with provided options (RSN3c)' do
-            channel = subject.get(channel_name, options)
-            expect(channel.options.modes).to be_nil
+        include_examples 'reuse a channel object if it exists'
+      end
+
+      describe 'ChannelOptions object' do
+        let(:channel_options) { Ably::Models::ChannelOptions.new(options) }
+        it { expect(channel_options).to be_a(Ably::Models::ChannelOptions) }
+
+        include_examples 'reuse a channel object if it exists'
+      end
+
+      context 'with new channel_options modes' do
+        shared_examples 'update channel with provided options :modes' do
+          it 'will update channel with provided options modes (RSN3c)' do
+            channel = subject.get(channel_name, channel_options)
+            expect(channel.options.modes).to eq(modes)
 
             subject.get(channel_name, channel_options)
             expect(channel.options.modes).to eq(modes)
           end
+        end
+
+        let(:modes) { %i[subscribe] }
+        let(:new_options) { { modes: modes } }
+
+        describe 'hash' do
+          let(:channel_options) { new_options }
+          it { expect(channel_options).to be_a(Hash) }
+
+          include_examples 'update channel with provided options :modes'
+        end
+
+        describe 'ChannelOptions object' do
+          let(:channel_options) { Ably::Models::ChannelOptions.new(new_options) }
+          it { expect(channel_options).to be_a(Ably::Models::ChannelOptions) }
+
+          include_examples 'update channel with provided options :modes'
         end
       end
     end
