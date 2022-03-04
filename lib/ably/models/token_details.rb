@@ -95,10 +95,15 @@ module Ably::Models
     # Returns true if token is expired or about to expire
     # For tokens that have not got an explicit expires attribute expired? will always return true
     #
+    # @param attributes [Hash]
+    # @option attributes [Time] :from   Sets a current time from which token expires
+    #
     # @return [Boolean]
-    def expired?
+    def expired?(attributes = {})
       return false if !expires
-      expires < Time.now + TOKEN_EXPIRY_BUFFER
+
+      from = attributes[:from] || Time.now
+      expires < from + TOKEN_EXPIRY_BUFFER
     end
 
     # True if the TokenDetails was created from an opaque string i.e. no metadata exists for this token

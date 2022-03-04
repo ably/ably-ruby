@@ -1165,6 +1165,24 @@ describe Ably::Auth do
         end
       end
 
+      context 'when token does not expire' do
+        let(:client_options) { default_options.merge(use_token_auth: true, key: api_key, query_time: true) }
+        let(:channel) { client.channels.get(random_str) }
+
+        context 'for the next 2 hours' do
+          let(:local_time) { Time.now - 2 * 60 * 60 }
+
+          before { allow(Time).to receive(:now).and_return(local_time) }
+
+          it 'should not request for the new token (#RSA4b1)' do
+            expect { channel.publish 'event' }.to change { auth.current_token_details }
+            expect do
+              expect { channel.publish 'event' }.not_to change { auth.current_token_details }
+            end.not_to change { auth.current_token_details.expires }
+          end
+        end
+      end
+
       context 'when :client_id is provided in a token' do
         let(:client_id) { '123' }
         let(:token) do

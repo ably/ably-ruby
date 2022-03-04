@@ -510,11 +510,11 @@ module Ably
     end
 
     def authorize_when_necessary
-      if current_token_details && !current_token_details.expired?
+      if current_token_details && !current_token_details.expired?(from: current_time)
         return current_token_details
-      else
-        authorize
       end
+
+      authorize
     end
 
     # Returns the current device clock time unless the
