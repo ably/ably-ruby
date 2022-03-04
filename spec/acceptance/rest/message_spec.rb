@@ -24,6 +24,57 @@ describe Ably::Rest::Channel, 'messages' do
       end
     end
 
+    context 'a single Message object (#RSL1a)' do
+      let(:name) { random_str }
+      let(:data) { random_str }
+      let(:message) { Ably::Models::Message.new(name: name, data: data) }
+
+      it 'publishes the message' do
+        channel.publish(message)
+        expect(channel.history.items.length).to eql(1)
+        message = channel.history.items.first
+        expect(message.name).to eq(name)
+        expect(message.data).to eq(data)
+      end
+    end
+
+    context 'an array of Message objects (#RSL1a)' do
+      let(:data) { random_str }
+      let(:message1) { Ably::Models::Message.new(name: random_str, data: data) }
+      let(:message2) { Ably::Models::Message.new(name: random_str, data: data) }
+      let(:message3) { Ably::Models::Message.new(name: random_str, data: data) }
+
+      it 'publishes three messages' do
+        channel.publish([message1, message2, message3])
+        expect(channel.history.items.length).to eql(3)
+      end
+    end
+
+    context 'an array of hashes (#RSL1a)' do
+      let(:data) { random_str }
+      let(:message1) { { name: random_str, data: data } }
+      let(:message2) { { name: random_str, data: data } }
+      let(:message3) { { name: random_str, data: data } }
+
+      it 'publishes three messages' do
+        channel.publish([message1, message2, message3])
+        expect(channel.history.items.length).to eql(3)
+      end
+    end
+
+    context 'a name with data payload (#RSL1a, #RSL1b)' do
+      let(:name) { random_str }
+      let(:data) { random_str }
+
+      it 'publishes the message' do
+        channel.publish(name, data)
+        expect(channel.history.items.length).to eql(1)
+        message = channel.history.items.first
+        expect(message.name).to eq(name)
+        expect(message.data).to eq(data)
+      end
+    end
+
     context 'with supported data payload content type' do
       context 'JSON Object (Hash)' do
         let(:data) { { 'Hash' => 'true' } }

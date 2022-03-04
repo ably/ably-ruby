@@ -129,22 +129,30 @@ module Ably
       # @return [Ably::Util::SafeDeferrable] Deferrable that supports both success (callback) and failure (errback) callbacks
       #
       # @example
-      #   # Publish a single message
+      #   # Publish a single message form
       #   channel.publish 'click', { x: 1, y: 2 }
       #
-      #   # Publish an array of message Hashes
+      #   # Publish a single message with single Hash form
+      #   message = { name: 'click', data: { x: 1, y: 2 } }
+      #   channel.publish message
+      #
+      #   # Publish an array of message Hashes form
       #   messages = [
-      #     { name: 'click', { x: 1, y: 2 } },
-      #     { name: 'click', { x: 2, y: 3 } }
+      #     { name: 'click', data: { x: 1, y: 2 } },
+      #     { name: 'click', data: { x: 2, y: 3 } }
       #   ]
       #   channel.publish messages
       #
-      #   # Publish an array of Ably::Models::Message objects
+      #   # Publish an array of Ably::Models::Message objects form
       #   messages = [
-      #     Ably::Models::Message(name: 'click', { x: 1, y: 2 })
-      #     Ably::Models::Message(name: 'click', { x: 2, y: 3 })
+      #     Ably::Models::Message(name: 'click', data: { x: 1, y: 2 })
+      #     Ably::Models::Message(name: 'click', data: { x: 2, y: 3 })
       #   ]
       #   channel.publish messages
+      #
+      #   # Publish an array of Ably::Models::Message objects form
+      #   message = Ably::Models::Message(name: 'click', data: { x: 1, y: 2 })
+      #   channel.publish message
       #
       #   channel.publish('click', 'body') do |message|
       #     puts "#{message.name} event received with #{message.data}"
@@ -165,13 +173,7 @@ module Ably
           return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
         end
 
-        messages = if name.kind_of?(Enumerable)
-          name
-        else
-          name = ensure_utf_8(:name, name, allow_nil: true)
-          ensure_supported_payload data
-          [{ name: name, data: data }.merge(attributes)]
-        end
+        messages = build_messages(name, data, attributes) # (RSL1a, RSL1b)
 
         if messages.length > Realtime::Connection::MAX_PROTOCOL_MESSAGE_BATCH_SIZE
           error = Ably::Exceptions::InvalidRequest.new("It is not possible to publish more than #{Realtime::Connection::MAX_PROTOCOL_MESSAGE_BATCH_SIZE} messages with a single publish request.")
