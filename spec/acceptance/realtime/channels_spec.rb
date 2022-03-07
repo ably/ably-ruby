@@ -38,6 +38,24 @@ describe Ably::Realtime::Channels, :event_machine do
 
         channel.attach
       end
+
+      context 'params keys are the same but values are different' do
+        let(:options)      do
+          { params: { x: '1' } }
+        end
+
+        it 'will raise an error' do
+          channel = client.channels.get(channel_name, options)
+
+          channel.on(:attached) do
+            expect { client.channels.get(channel_name, { params: { x: '2' } }) }.to raise_error ArgumentError, /use Channel#set_options directly/
+
+            stop_reactor
+          end
+
+          channel.attach
+        end
+      end
     end
 
     describe 'using shortcut method #channel on the client object' do
