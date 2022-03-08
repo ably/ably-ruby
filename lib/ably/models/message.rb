@@ -162,13 +162,13 @@ module Ably::Models
       @delta_extras ||= DeltaExtras.new(attributes[:extras][:delta]).freeze
     end
 
+    def protocol_message_index
+      protocol_message.messages.map(&:object_id).index(self.object_id)
+    end
+
     private
     def raw_hash_object
       @raw_hash_object
-    end
-
-    def protocol_message_index
-      protocol_message.messages.map(&:object_id).index(self.object_id)
     end
 
     def set_attributes_object(new_attributes)

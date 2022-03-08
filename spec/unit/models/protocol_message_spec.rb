@@ -330,6 +330,26 @@ describe Ably::Models::ProtocolMessage do
       end
     end
 
+    context '#messages (#RTL21)' do
+      let(:protocol_message) do
+        new_protocol_message(messages: [{ name: 'test1' }, { name: 'test2' }, { name: 'test3' }])
+      end
+
+      before do
+        message = Ably::Models::Message(name: 'test4')
+        message.assign_to_protocol_message(protocol_message)
+        protocol_message.add_message(message)
+      end
+
+      it 'contains Message objects in ascending order' do
+        expect(protocol_message.messages.count).to eql(4)
+        protocol_message.messages.each_with_index do |message, index|
+          expect(message.protocol_message_index).to eql(index)
+          expect(message.name).to include('test')
+        end
+      end
+    end
+
     context '#presence (#TR4l)' do
       let(:protocol_message) { new_protocol_message(presence: [{ action: 1, data: 'test' }]) }
 
