@@ -463,19 +463,23 @@ describe Ably::Models::ProtocolMessage do
 
   context '#to_json', :api_private do
     let(:json_object) { JSON.parse(model.to_json) }
-    let(:message) { { 'name' => 'event', 'clientId' => 'joe', 'timestamp' => as_since_epoch(Time.now) } }
+    let(:message1) { { 'name' => 'event1', 'clientId' => 'joe', 'timestamp' => as_since_epoch(Time.now) } }
+    let(:message2) { { 'name' => 'event2', 'clientId' => 'joe', 'timestamp' => as_since_epoch(Time.now) } }
+    let(:message3) { { 'name' => 'event3', 'clientId' => 'joe', 'timestamp' => as_since_epoch(Time.now) } }
     let(:attached_action) { Ably::Models::ProtocolMessage::ACTION.Attached }
     let(:message_action) { Ably::Models::ProtocolMessage::ACTION.Message }
 
     context 'with valid data' do
-      let(:model) { new_protocol_message({ :action => attached_action, :channelSerial => 'unique', messages: [message] }) }
+      let(:model) { new_protocol_message({ :action => attached_action, :channelSerial => 'unique', messages: [message1, message2, message3] }) }
 
       it 'converts the attribute back to Java mixedCase notation using string keys' do
         expect(json_object["channelSerial"]).to eql('unique')
       end
 
       it 'populates the messages' do
-        expect(json_object["messages"].first).to include(message)
+        expect(json_object["messages"][0]).to include(message1)
+        expect(json_object["messages"][1]).to include(message2)
+        expect(json_object["messages"][2]).to include(message3)
       end
     end
 
@@ -488,7 +492,7 @@ describe Ably::Models::ProtocolMessage do
     end
 
     context 'is aliased by #to_s' do
-      let(:model) { new_protocol_message({ :action => attached_action, :channelSerial => 'unique', messages: [message], :timestamp => as_since_epoch(Time.now) }) }
+      let(:model) { new_protocol_message({ :action => attached_action, :channelSerial => 'unique', messages: [message1, message2, message3], :timestamp => as_since_epoch(Time.now) }) }
 
       specify do
         expect(json_object).to eql(JSON.parse("#{model}"))
@@ -497,14 +501,18 @@ describe Ably::Models::ProtocolMessage do
   end
 
   context '#to_msgpack', :api_private do
-    let(:model)    { new_protocol_message({ :connectionSerial => 'unique', messages: [message] }) }
-    let(:message)  { { 'name' => 'event', 'clientId' => 'joe', 'timestamp' => as_since_epoch(Time.now) } }
+    let(:model)    { new_protocol_message({ :connectionSerial => 'unique', messages: [message1, message2, message3] }) }
+    let(:message1)  { { 'name' => 'event1', 'clientId' => 'joe', 'timestamp' => as_since_epoch(Time.now) } }
+    let(:message2)  { { 'name' => 'event2', 'clientId' => 'joe', 'timestamp' => as_since_epoch(Time.now) } }
+    let(:message3)  { { 'name' => 'event3', 'clientId' => 'joe', 'timestamp' => as_since_epoch(Time.now) } }
     let(:packed)   { model.to_msgpack }
     let(:unpacked) { MessagePack.unpack(packed) }
 
     it 'returns a unpackable msgpack object' do
       expect(unpacked['connectionSerial']).to eq('unique')
-      expect(unpacked['messages'][0]['name']).to eq('event')
+      expect(unpacked['messages'][0]['name']).to eq('event1')
+      expect(unpacked['messages'][1]['name']).to eq('event2')
+      expect(unpacked['messages'][2]['name']).to eq('event3')
     end
   end
 end
