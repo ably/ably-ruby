@@ -93,11 +93,6 @@ module Ably
       # @api private
       attr_reader :manager
 
-      # Flag that controlls reattaching behavior on options update per RTS3c1
-      # @return [Bolean]
-      # @api private
-      attr_reader :raise_on_reattach
-
       # ChannelOptions params attrribute (#RTL4k)
       # return [Hash]
       def_delegators :options, :params
@@ -121,7 +116,6 @@ module Ably
         @manager       = ChannelManager.new(self, client.connection)
         @push          = PushChannel.new(self)
         @properties    = ChannelProperties.new(self)
-        @raise_on_reattach = false
 
         setup_event_handlers
         setup_presence
@@ -325,11 +319,7 @@ module Ably
       def set_options(channel_options)
         @options = Ably::Models::ChannelOptions(channel_options)
 
-        if need_reattach?
-          raise_reattachment_error if raise_on_reattach
-
-          manager.request_reattach
-        end
+        manager.request_reattach if need_reattach?
       end
       alias options= set_options
 
@@ -349,24 +339,15 @@ module Ably
         client.logger
       end
 
-      # @api private
-      def raise_on_reattach!
-        @raise_on_reattach = true
-      end
-
       # As we are using a state machine, do not allow change_state to be used
       # #transition_state_machine must be used instead
       private :change_state
 
-      private
-
-      def raise_reattachment_error
-        raise ArgumentError, "You are trying to indirectly update channel options which will trigger reattachment of the channel. Please, use Channel#set_options directly if you wish to continue"
-      end
-
       def need_reattach?
         !!(attaching? || attached?) && !!(options.modes || options.params)
       end
+
+      private
 
       def setup_event_handlers
         __incoming_msgbus__.subscribe(:message) do |message|

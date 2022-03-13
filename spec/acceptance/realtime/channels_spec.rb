@@ -17,11 +17,14 @@ describe Ably::Realtime::Channels, :event_machine do
   end
 
   vary_by_protocol do
+    let(:client_options) do
+      { key: api_key, environment: environment, protocol: protocol }
+    end
     let(:client) do
-      auto_close Ably::Realtime::Client.new(key: api_key, environment: environment, protocol: protocol)
+      auto_close Ably::Realtime::Client.new(client_options)
     end
     let(:channel_name) { random_str }
-    let(:options)      do
+    let(:options) do
       { params: { key: 'value' } }
     end
 
@@ -71,14 +74,27 @@ describe Ably::Realtime::Channels, :event_machine do
     end
 
     describe 'accessing an existing channel object with different options' do
+      let(:client_options)  { super().merge(logger: custom_logger_object) }
+      let(:custom_logger_object) { TestLogger.new }
       let(:new_channel_options) { { encrypted: true } }
-      let(:original_channel)    { client.channels.get(channel_name, options) }
+      let!(:original_channel)    { client.channels.get(channel_name, options) }
 
       it 'overrides the existing channel options and returns the channel object' do
         expect(original_channel.options.to_h).to_not include(:encrypted)
         new_channel = client.channels.get(channel_name, new_channel_options)
         expect(new_channel).to be_a(Ably::Realtime::Channel)
         expect(new_channel.options[:encrypted]).to eql(true)
+        stop_reactor
+      end
+
+      it 'shows deprecation warning' do
+        client.channels.get(channel_name, new_channel_options)
+
+        warning = custom_logger_object.logs.find do |severity, message|
+          message.match(/Using this method to update channel options is deprecated and may be removed/)
+        end
+
+        expect(warning).to_not be_nil
         stop_reactor
       end
     end

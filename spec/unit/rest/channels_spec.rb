@@ -2,7 +2,7 @@
 require 'spec_helper'
 
 describe Ably::Rest::Channels do
-  let(:client)       { instance_double('Ably::Rest::Client') }
+  let(:client)       { instance_double('Ably::Rest::Client', logger: double('logger').as_null_object) }
   let(:channel_name) { 'unique'.encode(Encoding::UTF_8) }
   let(:options)      do
     { params: { 'bizarre' => 'value' } }
