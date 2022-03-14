@@ -36,6 +36,7 @@ module Ably
       include Ably::Modules::MessageEmitter
       include Ably::Realtime::Channel::Publisher
       extend Ably::Modules::Enum
+      extend Forwardable
 
       # ChannelState
       # The permited states for this channel
@@ -92,17 +93,20 @@ module Ably
       # @api private
       attr_reader :manager
 
+      # ChannelOptions params attrribute (#RTL4k)
+      # return [Hash]
+      def_delegators :options, :params
+
       # Initialize a new Channel object
       #
       # @param  client [Ably::Rest::Client]
       # @param  name [String] The name of the channel
-      # @param  channel_options [Hash]     Channel options, currently reserved for Encryption options
-      # @option channel_options [Hash,Ably::Models::CipherParams]   :cipher   A hash of options or a {Ably::Models::CipherParams} to configure the encryption. *:key* is required, all other options are optional.  See {Ably::Util::Crypto#initialize} for a list of +:cipher+ options
+      # @param  channel_options [Hash, Ably::Models::ChannelOptions]     A hash of options or a {Ably::Models::ChannelOptions}
       #
       def initialize(client, name, channel_options = {})
         name = ensure_utf_8(:name, name)
 
-        update_options channel_options
+        @options       = Ably::Models::ChannelOptions(channel_options)
         @client        = client
         @name          = name
         @queue         = []
@@ -311,6 +315,16 @@ module Ably
         )
       end
 
+      # Sets or updates the stored channel options. (#RTL16)
+      # @param channel_options [Hash, Ably::Models::ChannelOptions]     A hash of options or a {Ably::Models::ChannelOptions}
+      # @return [Ably::Models::ChannelOptions]
+      def set_options(channel_options)
+        @options = Ably::Models::ChannelOptions(channel_options)
+
+        manager.request_reattach if need_reattach?
+      end
+      alias options= set_options
+
       # @api private
       def set_channel_error_reason(error)
         @error_reason = error
@@ -320,13 +334,6 @@ module Ably
       def clear_error_reason
         @error_reason = nil
       end
-
-      # @api private
-      def update_options(channel_options)
-        @options = channel_options.clone.freeze
-      end
-      alias set_options update_options # (RSL7)
-      alias options= update_options
 
       # Used by {Ably::Modules::StateEmitter} to debug state changes
       # @api private
@@ -338,7 +345,12 @@ module Ably
       # #transition_state_machine must be used instead
       private :change_state
 
+      def need_reattach?
+        !!(attaching? || attached?) && !!(options.modes || options.params)
+      end
+
       private
+
       def setup_event_handlers
         __incoming_msgbus__.subscribe(:message) do |message|
           message.decode(client.encoders, options) do |encode_error, error_message|

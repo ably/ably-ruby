@@ -13,14 +13,21 @@ module Ably::Modules
     # Return a Channel for the given name
     #
     # @param name [String] The name of the channel
-    # @param channel_options [Hash] Channel options including the encryption options
+    # @param channel_options [Hash, Ably::Models::ChannelOptions] A hash of options or a {Ably::Models::ChannelOptions}
     #
     # @return [Channel]
     #
     def get(name, channel_options = {})
       if channels.has_key?(name)
         channels[name].tap do |channel|
-          channel.update_options channel_options if channel_options && !channel_options.empty?
+          if channel_options && !channel_options.empty?
+            if channel.respond_to?(:need_reattach?) && channel.need_reattach?
+              raise_implicit_options_update
+            else
+              warn_implicit_options_update
+              channel.options = channel_options
+            end
+          end
         end
       else
         channels[name] ||= channel_klass.new(client, name, channel_options)
@@ -70,6 +77,19 @@ module Ably::Modules
     end
 
     private
+
+    def raise_implicit_options_update
+      raise ArgumentError, "You are trying to indirectly update channel options which will trigger reattachment of the channel. Please use Channel#set_options directly if you wish to continue"
+    end
+
+    def warn_implicit_options_update
+      logger.warn { "Channels#get: Using this method to update channel options is deprecated and may be removed in a future version of ably-ruby. Please use Channel#setOptions instead" }
+    end
+
+    def logger
+      client.logger
+    end
+
     def client
       @client
     end

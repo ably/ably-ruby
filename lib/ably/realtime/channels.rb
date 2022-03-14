@@ -13,7 +13,7 @@ module Ably
       # Return a {Ably::Realtime::Channel} for the given name
       #
       # @param name [String] The name of the channel
-      # @param channel_options [Hash] Channel options, currently reserved for Encryption options
+      # @param channel_options [Hash, Ably::Models::ChannelOptions] A hash of options or a {Ably::Models::ChannelOptions}
       # @return [Ably::Realtime::Channel}
       #
       def get(*args)

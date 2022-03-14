@@ -117,6 +117,75 @@ describe Ably::Realtime::Channel, :event_machine do
           end
         end
 
+        context 'context when channel options contain modes' do
+          before do
+            channel.options = { modes: %i[publish] }
+          end
+
+          it 'sends an ATTACH with options as flags (#RTL4l)' do
+            connection.once(:connected) do
+              client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                next if protocol_message.action != :attach
+
+                expect(protocol_message.has_attach_publish_flag?).to eq(true)
+                stop_reactor
+              end
+
+              channel.attach
+            end
+          end
+        end
+
+        context 'context when channel options contain params' do
+          let(:params) do
+            { foo: 'foo', bar: 'bar'}
+          end
+
+          before do
+            channel.options = { params: params }
+          end
+
+          it 'sends an ATTACH with params (#RTL4k)' do
+            connection.once(:connected) do
+              client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                next if protocol_message.action != :attach
+
+                expect(protocol_message.params).to eq(params)
+                stop_reactor
+              end
+
+              channel.attach
+            end
+          end
+        end
+
+        context 'when received attached' do
+          it 'decodes flags and sets it as modes on channel options (#RTL4m)'do
+            channel.on(:attached) do
+              expect(channel.options.modes.map(&:to_sym)).to eq(%i[subscribe])
+              stop_reactor
+            end
+
+            channel.transition_state_machine(:attaching)
+            attached_message = Ably::Models::ProtocolMessage.new(action: 11, channel: channel_name, flags: 262144)
+            client.connection.__incoming_protocol_msgbus__.publish :protocol_message, attached_message
+          end
+
+          it 'set params as channel options params (#RTL4k1)' do
+            params = { param: :something }
+
+            channel.on(:attached) do
+              expect(channel.params).to eq(channel.options.params)
+              expect(channel.params).to eq(params)
+              stop_reactor
+            end
+
+            channel.transition_state_machine(:attaching)
+            attached_message = Ably::Models::ProtocolMessage.new(action: 11, channel: channel_name, params: params)
+            client.connection.__incoming_protocol_msgbus__.publish :protocol_message, attached_message
+          end
+        end
+
         it 'implicitly attaches the channel (#RTL7c)' do
           expect(channel).to be_initialized
           channel.subscribe { |message| }
@@ -2131,6 +2200,64 @@ describe Ably::Realtime::Channel, :event_machine do
       it 'returns a Ably::Realtime::Presence object' do
         expect(channel.presence).to be_a(Ably::Realtime::Presence)
         stop_reactor
+      end
+    end
+
+    describe '#set_options (#RTL16a)' do
+      let(:modes) { %i[subscribe] }
+      let(:channel_options) do
+        { modes: modes }
+      end
+
+      shared_examples 'an update that sends ATTACH message' do |state|
+        it 'sends an ATTACH message on options change' do
+          attach_sent = nil
+
+          client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+            if protocol_message.action == :attach && protocol_message.flags.nonzero?
+              attach_sent = true
+              expect(protocol_message.flags).to eq(262144)
+            end
+          end
+
+          channel.once(state) do
+            channel.options = channel_options
+          end
+
+          channel.on(:attached) do
+            client.connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+              next if protocol_message.action != :attached
+
+              expect(attach_sent).to eq(true)
+              stop_reactor
+            end
+          end
+
+          channel.attach
+        end
+      end
+
+      context 'when channel is attaching' do
+        it_behaves_like 'an update that sends ATTACH message', :attaching
+      end
+
+      context 'when channel is attaching' do
+        it_behaves_like 'an update that sends ATTACH message', :attached
+      end
+
+      context 'when channel is initialized' do
+        it "doesn't send ATTACH message" do
+          client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+            raise "Unexpected message" if protocol_message.action == :attach
+          end
+
+          channel.options = channel_options
+          expect(channel.options.modes.map(&:to_sym)).to eq(modes)
+
+          EventMachine.next_tick do
+            stop_reactor
+          end
+        end
       end
     end
 

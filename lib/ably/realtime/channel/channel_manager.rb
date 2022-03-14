@@ -38,6 +38,8 @@ module Ably::Realtime
         if attached_protocol_message
           update_presence_sync_state_following_attached attached_protocol_message
           channel.properties.set_attach_serial(attached_protocol_message.channel_serial)
+          channel.options.set_modes_from_flags(attached_protocol_message.flags)
+          channel.options.set_params(attached_protocol_message.params)
         end
       end
 
@@ -64,6 +66,7 @@ module Ably::Realtime
         end
 
         channel.properties.set_attach_serial(protocol_message.channel_serial)
+        channel.options.set_modes_from_flags(protocol_message.flags)
 
         if protocol_message.has_channel_resumed_flag?
           logger.debug { "ChannelManager: Additional resumed ATTACHED message received for #{channel.state} channel '#{channel.name}'" }
@@ -199,14 +202,18 @@ module Ably::Realtime
       end
 
       def send_attach_protocol_message
-        send_state_change_protocol_message Ably::Models::ProtocolMessage::ACTION.Attach, :suspended # move to suspended
+        message_options = {}
+        message_options[:flags] = channel.options.modes_to_flags if channel.options.modes
+        message_options[:params] = channel.options.params if channel.options.params.any?
+
+        send_state_change_protocol_message Ably::Models::ProtocolMessage::ACTION.Attach, :suspended, message_options
       end
 
       def send_detach_protocol_message(previous_state)
         send_state_change_protocol_message Ably::Models::ProtocolMessage::ACTION.Detach, previous_state # return to previous state if failed
       end
 
-      def send_state_change_protocol_message(new_state, state_if_failed)
+      def send_state_change_protocol_message(new_state, state_if_failed, message_options = {})
         state_at_time_of_request = channel.state
         @pending_state_change_timer = EventMachine::Timer.new(realtime_request_timeout) do
           if channel.state == state_at_time_of_request
@@ -227,7 +234,8 @@ module Ably::Realtime
               next unless pending_state_change_timer
               connection.send_protocol_message(
                 action:  new_state.to_i,
-                channel: channel.name
+                channel: channel.name,
+                **message_options.to_h
               )
               resend_if_disconnected_and_connected.call
             end
@@ -237,7 +245,8 @@ module Ably::Realtime
 
         connection.send_protocol_message(
           action:  new_state.to_i,
-          channel: channel.name
+          channel: channel.name,
+          **message_options.to_h
         )
       end
 

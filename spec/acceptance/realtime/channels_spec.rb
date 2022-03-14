@@ -10,17 +10,56 @@ describe Ably::Realtime::Channels, :event_machine do
     end
 
     it 'returns channel object and passes the provided options' do
-      expect(channel_with_options.options).to eql(options)
+      expect(channel_options).to be_a(Ably::Models::ChannelOptions)
+      expect(channel_options.to_h).to eq(options)
       stop_reactor
     end
   end
 
   vary_by_protocol do
+    let(:client_options) do
+      { key: api_key, environment: environment, protocol: protocol }
+    end
     let(:client) do
-      auto_close Ably::Realtime::Client.new(key: api_key, environment: environment, protocol: protocol)
+      auto_close Ably::Realtime::Client.new(client_options)
     end
     let(:channel_name) { random_str }
-    let(:options)      { { key: 'value' } }
+    let(:options) do
+      { params: { key: 'value' } }
+    end
+
+    subject(:channel_options) { channel_with_options.options }
+
+    context 'when channel supposed to trigger reattachment per RTL16a (#RTS3c1)' do
+      it 'will raise an error' do
+        channel = client.channels.get(channel_name, options)
+
+        channel.on(:attached) do
+          expect { client.channels.get(channel_name, { modes: [] }) }.to raise_error ArgumentError, /use Channel#set_options directly/
+          stop_reactor
+        end
+
+        channel.attach
+      end
+
+      context 'params keys are the same but values are different' do
+        let(:options)      do
+          { params: { x: '1' } }
+        end
+
+        it 'will raise an error' do
+          channel = client.channels.get(channel_name, options)
+
+          channel.on(:attached) do
+            expect { client.channels.get(channel_name, { params: { x: '2' } }) }.to raise_error ArgumentError, /use Channel#set_options directly/
+
+            stop_reactor
+          end
+
+          channel.attach
+        end
+      end
+    end
 
     describe 'using shortcut method #channel on the client object' do
       let(:channel) { client.channel(channel_name) }
@@ -35,14 +74,27 @@ describe Ably::Realtime::Channels, :event_machine do
     end
 
     describe 'accessing an existing channel object with different options' do
+      let(:client_options)  { super().merge(logger: custom_logger_object) }
+      let(:custom_logger_object) { TestLogger.new }
       let(:new_channel_options) { { encrypted: true } }
-      let(:original_channel)    { client.channels.get(channel_name, options) }
+      let!(:original_channel)    { client.channels.get(channel_name, options) }
 
       it 'overrides the existing channel options and returns the channel object' do
-        expect(original_channel.options).to_not include(:encrypted)
+        expect(original_channel.options.to_h).to_not include(:encrypted)
         new_channel = client.channels.get(channel_name, new_channel_options)
         expect(new_channel).to be_a(Ably::Realtime::Channel)
         expect(new_channel.options[:encrypted]).to eql(true)
+        stop_reactor
+      end
+
+      it 'shows deprecation warning' do
+        client.channels.get(channel_name, new_channel_options)
+
+        warning = custom_logger_object.logs.find do |severity, message|
+          message.match(/Using this method to update channel options is deprecated and may be removed/)
+        end
+
+        expect(warning).to_not be_nil
         stop_reactor
       end
     end
@@ -51,10 +103,10 @@ describe Ably::Realtime::Channels, :event_machine do
       let(:original_channel) { client.channels.get(channel_name, options) }
 
       it 'returns the existing channel without modifying the channel options' do
-        expect(original_channel.options).to eql(options)
+        expect(original_channel.options.to_h).to eq(options)
         new_channel = client.channels.get(channel_name)
         expect(new_channel).to be_a(Ably::Realtime::Channel)
-        expect(original_channel.options).to eql(options)
+        expect(original_channel.options.to_h).to eq(options)
         stop_reactor
       end
     end

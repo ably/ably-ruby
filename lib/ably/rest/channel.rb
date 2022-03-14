@@ -28,13 +28,12 @@ module Ably
       #
       # @param client [Ably::Rest::Client]
       # @param name [String] The name of the channel
-      # @param channel_options [Hash] Channel options, currently reserved for Encryption options
-      # @option channel_options [Hash,Ably::Models::CipherParams]   :cipher   A hash of options or a {Ably::Models::CipherParams} to configure the encryption. *:key* is required, all other options are optional.  See {Ably::Util::Crypto#initialize} for a list of +:cipher+ options
+      # @param channel_options [Hash, Ably::Models::ChannelOptions]     A hash of options or a {Ably::Models::ChannelOptions}
       #
       def initialize(client, name, channel_options = {})
         name = (ensure_utf_8 :name, name)
 
-        update_options channel_options
+        @options = Ably::Models::ChannelOptions(channel_options)
         @client  = client
         @name    = name
         @push    = PushChannel.new(self)
@@ -154,14 +153,16 @@ module Ably
         @presence ||= Presence.new(client, self)
       end
 
-      # @api private
-      def update_options(channel_options)
-        @options = channel_options.clone.freeze
+      # Sets or updates the stored channel options. (#RSL7)
+      # @param channel_options [Hash, Ably::Models::ChannelOptions]  A hash of options or a {Ably::Models::ChannelOptions}
+      # @return [Ably::Models::ChannelOptions]
+      def set_options(channel_options)
+        @options = Ably::Models::ChannelOptions(channel_options)
       end
-      alias set_options update_options # (RSL7)
-      alias options= update_options
+      alias options= set_options
 
       private
+
       def base_path
         "/channels/#{URI.encode_www_form_component(name)}"
       end

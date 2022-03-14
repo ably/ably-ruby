@@ -3,39 +3,77 @@ require 'spec_helper'
 
 describe Ably::Realtime::Channels do
   let(:connection) { instance_double('Ably::Realtime::Connection', unsafe_on: true, on_resume: true) }
-  let(:client) { instance_double('Ably::Realtime::Client', connection: connection, client_id: 'clientId') }
+  let(:client) do
+    instance_double('Ably::Realtime::Client', connection: connection, client_id: 'clientId', logger: double('logger').as_null_object)
+  end
   let(:channel_name) { 'unique' }
-  let(:options) { { 'bizarre' => 'value' } }
+  let(:options) do
+    { params: { bizarre: 'value' } }
+  end
 
   subject { Ably::Realtime::Channels.new(client) }
 
   context 'creating channels' do
     context '#get' do
-      it 'creates a channel if it does not exist (RSN3a)' do
-        expect(Ably::Realtime::Channel).to receive(:new).with(client, channel_name, options)
-        subject.get(channel_name, options)
+      context "when channel doesn't exist" do
+        shared_examples 'creates a channel' do
+          it 'creates a channel (RTS3a)' do
+            expect(Ably::Realtime::Channel).to receive(:new).with(client, channel_name, channel_options)
+            subject.get(channel_name, channel_options)
+          end
+        end
+
+        describe 'hash' do
+          let(:channel_options) { options }
+          it { expect(channel_options).to be_a(Hash) }
+
+          include_examples 'creates a channel'
+        end
+
+        describe 'ChannelOptions object' do
+          let(:channel_options) { Ably::Models::ChannelOptions.new(options) }
+          it { expect(channel_options).to be_a(Ably::Models::ChannelOptions) }
+
+          include_examples 'creates a channel'
+        end
       end
 
       context 'when an existing channel exists' do
-        it 'will reuse a channel object if it exists (RSN3a)' do
-          channel = subject.get(channel_name, options)
-          expect(channel).to be_a(Ably::Realtime::Channel)
-          expect(subject.get(channel_name, options).object_id).to eql(channel.object_id)
+        shared_examples 'reuse a channel object if it exists' do
+          it 'will reuse a channel object if it exists (RTS3a)' do
+            channel = subject.get(channel_name, channel_options)
+            expect(channel).to be_a(Ably::Realtime::Channel)
+            expect(subject.get(channel_name, channel_options).object_id).to eql(channel.object_id)
+          end
+        end
+
+        describe 'hash' do
+          let(:channel_options) { options }
+          it { expect(channel_options).to be_a(Hash) }
+
+          include_examples 'reuse a channel object if it exists'
+        end
+
+        describe 'ChannelOptions object' do
+          let(:channel_options) { Ably::Models::ChannelOptions.new(options) }
+          it { expect(channel_options).to be_a(Ably::Models::ChannelOptions) }
+
+          include_examples 'reuse a channel object if it exists'
         end
 
         it 'will update the options on the channel if provided (RSN3c)' do
           channel = subject.get(channel_name, options)
-          expect(channel.options).to eql(options)
-          expect(channel.options).to_not include(:encrypted)
+          expect(channel.options.to_h).to eq(options)
+          expect(channel.options.to_h).to_not include(:encrypted)
           subject.get(channel_name, encrypted: true)
-          expect(channel.options[:encrypted]).to eql(true)
+          expect(channel.options[:encrypted]).to eq(true)
         end
 
         it 'will leave the options intact on the channel if not provided' do
           channel = subject.get(channel_name, options)
-          expect(channel.options).to eql(options)
+          expect(channel.options.to_h).to eq(options)
           subject.get(channel_name)
-          expect(channel.options).to eql(options)
+          expect(channel.options.to_h).to eq(options)
         end
       end
     end
