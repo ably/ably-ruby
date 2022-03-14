@@ -270,6 +270,20 @@ describe Ably::Models::Message do
     end
   end
 
+  describe '#protocol_message_index (#RTL21)' do
+    let(:messages) { [{ name: 'test1' }, { name: 'test2' }, { name: 'test3' }] }
+
+    let(:protocol_message) do
+      Ably::Models::ProtocolMessage.new({ action: 1 }.merge(messages: messages))
+    end
+
+    it 'should return correct protocol_message_index' do
+      expect(protocol_message.messages[0].protocol_message_index).to eq(0)
+      expect(protocol_message.messages[1].protocol_message_index).to eq(1)
+      expect(protocol_message.messages[2].protocol_message_index).to eq(2)
+    end
+  end
+
   context 'from REST request with embedded fields', :api_private do
     let(:id)                  { random_str }
     let(:protocol_message_id) { random_str }
