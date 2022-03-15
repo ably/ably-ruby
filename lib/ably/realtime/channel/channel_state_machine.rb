@@ -42,6 +42,11 @@ module Ably::Realtime
 
       before_transition(to: [:attached]) do |channel, current_transition|
         channel.manager.attached current_transition.metadata.protocol_message
+        channel.attach_resume!
+      end
+
+      before_transition(to: [:detaching, :failed]) do |channel, _current_transition|
+        channel.reset_attach_resume!
       end
 
       after_transition(to: [:detaching]) do |channel, current_transition|

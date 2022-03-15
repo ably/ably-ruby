@@ -134,6 +134,25 @@ describe Ably::Realtime::Channel, :event_machine do
               channel.attach
             end
           end
+
+          context 'when channel is reattaching' do
+            it 'sends ATTACH_RESUME flag along with other modes (RTL4j)' do
+              channel.attach do
+                channel.on(:suspended) do
+                  client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                    next if protocol_message.action != :attach
+
+                    expect(protocol_message.has_attach_resume_flag?).to eq(true)
+                    expect(protocol_message.has_attach_publish_flag?).to eq(true)
+                    stop_reactor
+                  end
+
+                  client.connection.connect
+                end
+                client.connection.transition_state_machine :suspended
+              end
+            end
+          end
         end
 
         context 'context when channel options contain params' do
@@ -434,6 +453,42 @@ describe Ably::Realtime::Channel, :event_machine do
               end
             end
             disconnect_transport
+          end
+        end
+      end
+
+      describe 'clean attach (RTL4j)' do
+        context "when channel wasn't previously attached" do
+          it "doesn't send ATTACH_RESUME" do
+            client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+              next if protocol_message.action != :attach
+
+              expect(protocol_message.has_attach_resume_flag?).to eq(false)
+              stop_reactor
+            end
+
+            channel.attach
+          end
+        end
+
+        context "when channel was explicitly detached" do
+          it "doesn't send ATTACH_RESUME" do
+            channel.once(:detached) do
+              client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                next if protocol_message.action != :attach
+
+                expect(protocol_message.has_attach_resume_flag?).to eq(false)
+                stop_reactor
+              end
+
+              channel.attach
+            end
+
+            channel.once(:attached) do
+              channel.detach
+            end
+
+            channel.attach
           end
         end
       end
@@ -2005,15 +2060,33 @@ describe Ably::Realtime::Channel, :event_machine do
             end
           end
 
-          it 'transitions state automatically to :attaching once the connection is re-established (#RTN15c3)' do
-            channel.attach do
-              channel.on(:suspended) do
-                client.connection.connect
-                channel.once(:attached) do
-                  stop_reactor
+          describe 'reattaching (#RTN15c3)' do
+            it 'transitions state automatically to :attaching once the connection is re-established ' do
+              channel.attach do
+                channel.on(:suspended) do
+                  client.connection.connect
+                  channel.once(:attached) do
+                    stop_reactor
+                  end
                 end
+                client.connection.transition_state_machine :suspended
               end
-              client.connection.transition_state_machine :suspended
+            end
+
+            it 'sends ATTACH_RESUME flag when reattaching (RTL4j)' do
+              channel.attach do
+                channel.on(:suspended) do
+                  client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                    next if protocol_message.action != :attach
+
+                    expect(protocol_message.has_attach_resume_flag?).to eq(true)
+                    stop_reactor
+                  end
+
+                  client.connection.connect
+                end
+                client.connection.transition_state_machine :suspended
+              end
             end
           end
         end
@@ -2209,14 +2282,18 @@ describe Ably::Realtime::Channel, :event_machine do
         { modes: modes }
       end
 
-      shared_examples 'an update that sends ATTACH message' do |state|
+      def self.build_flags(flags)
+        flags.map { |flag| Ably::Models::ProtocolMessage::ATTACH_FLAGS_MAPPING[flag] }.reduce(:|)
+      end
+
+      shared_examples 'an update that sends ATTACH message' do |state, flags|
         it 'sends an ATTACH message on options change' do
           attach_sent = nil
 
           client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
             if protocol_message.action == :attach && protocol_message.flags.nonzero?
               attach_sent = true
-              expect(protocol_message.flags).to eq(262144)
+              expect(protocol_message.flags).to eq(flags)
             end
           end
 
@@ -2238,11 +2315,11 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       context 'when channel is attaching' do
-        it_behaves_like 'an update that sends ATTACH message', :attaching
+        it_behaves_like 'an update that sends ATTACH message', :attaching, build_flags(%i[subscribe])
       end
 
       context 'when channel is attaching' do
-        it_behaves_like 'an update that sends ATTACH message', :attached
+        it_behaves_like 'an update that sends ATTACH message', :attached, build_flags(%i[resume subscribe])
       end
 
       context 'when channel is initialized' do
@@ -2502,11 +2579,20 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       context 'and channel is attached' do
-        it 'reattaches immediately (#RTL13a)' do
-          channel.attach do
+        it 'reattaches immediately (#RTL13a) with ATTACH_RESUME flag(RTL4j)' do
+          resume_flag = false
+
+          channel.once(:attached) do
+            client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+              next if protocol_message.action != :attach
+
+              resume_flag = protocol_message.has_attach_resume_flag?
+            end
+
             channel.once(:attaching) do |state_change|
               expect(state_change.reason.code).to eql(50505)
               channel.once(:attached) do
+                expect(resume_flag).to eq(true)
                 stop_reactor
               end
             end
@@ -2514,26 +2600,39 @@ describe Ably::Realtime::Channel, :event_machine do
             detach_message = Ably::Models::ProtocolMessage.new(action: detached_action, channel: channel_name, error: { code: 50505 })
             client.connection.__incoming_protocol_msgbus__.publish :protocol_message, detach_message
           end
+
+          channel.attach
         end
       end
 
       context 'and channel is suspended' do
-        it 'reattaches immediately (#RTL13a)' do
-          channel.attach do
-            channel.once(:suspended) do
-              channel.once(:attaching) do |state_change|
-                expect(state_change.reason.code).to eql(50505)
-                channel.once(:attached) do
-                  stop_reactor
-                end
-              end
+        it 'reattaches immediately (#RTL13a) with ATTACH_RESUME flag(RTL4j)' do
+          resume_flag = false
 
-              detach_message = Ably::Models::ProtocolMessage.new(action: detached_action, channel: channel_name, error: { code: 50505 })
-              client.connection.__incoming_protocol_msgbus__.publish :protocol_message, detach_message
-            end
-
+          channel.once(:attached) do
             channel.transition_state_machine! :suspended
           end
+
+          channel.once(:suspended) do
+            client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+              next if protocol_message.action != :attach
+
+              resume_flag = protocol_message.has_attach_resume_flag?
+            end
+
+            channel.once(:attaching) do |state_change|
+              expect(state_change.reason.code).to eql(50505)
+              channel.once(:attached) do
+                expect(resume_flag).to eq(true)
+                stop_reactor
+              end
+            end
+
+            detach_message = Ably::Models::ProtocolMessage.new(action: detached_action, channel: channel_name, error: { code: 50505 })
+            client.connection.__incoming_protocol_msgbus__.publish :protocol_message, detach_message
+          end
+
+          channel.attach
         end
 
         context 'when connection is no longer connected' do

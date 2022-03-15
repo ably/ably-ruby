@@ -93,6 +93,11 @@ module Ably
       # @api private
       attr_reader :manager
 
+      # Flag that specifies whether channel is resuming attachment(reattach) or is doing a 'clean attach' RTL4j1
+      # @return [Bolean]
+      # @api private
+      attr_reader :attach_resume
+
       # ChannelOptions params attrribute (#RTL4k)
       # return [Hash]
       def_delegators :options, :params
@@ -116,6 +121,7 @@ module Ably
         @manager       = ChannelManager.new(self, client.connection)
         @push          = PushChannel.new(self)
         @properties    = ChannelProperties.new(self)
+        @attach_resume = false
 
         setup_event_handlers
         setup_presence
@@ -339,6 +345,16 @@ module Ably
       # @api private
       def logger
         client.logger
+      end
+
+      # @api private
+      def attach_resume!
+        @attach_resume = true
+      end
+
+      # @api private
+      def reset_attach_resume!
+        @attach_resume = false
       end
 
       # As we are using a state machine, do not allow change_state to be used
