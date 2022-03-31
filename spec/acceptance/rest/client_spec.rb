@@ -1097,7 +1097,7 @@ describe Ably::Rest::Client do
           it 'sends a protocol version and lib version header (#G4, #RSC7a, #RSC7b)' do
             client.channels.get('foo').publish("event")
             expect(publish_message_stub).to have_been_requested
-            expect(Ably::PROTOCOL_VERSION).to eql('1.1')
+            expect(Ably::PROTOCOL_VERSION).to eql('1.2')
           end
         end
       end
@@ -1231,7 +1231,7 @@ describe Ably::Rest::Client do
       end
     end
 
-    context 'request_id generation' do
+    context 'request_id generation (#RSC7c)' do
       context 'Timeout error' do
         context 'with option add_request_ids: true and no fallback hosts', :webmock, :prevent_log_stubbing do
           let(:custom_logger_object) { TestLogger.new }
