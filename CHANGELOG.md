@@ -2,6 +2,8 @@
 
 ## [v1.2.0](https://github.com/ably/ably-ruby/tree/v1.2.0)
 
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.1.8...v1.2.0)
+
 This release updates ably-ruby to be compliant with the 1.2 version of the Ably client library feature specification. There are some minor breaking changes, please see [the migration guide](./UPDATING.md) for more information.
 
 **Closed issues:**
