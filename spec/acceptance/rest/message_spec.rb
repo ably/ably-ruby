@@ -204,13 +204,20 @@ describe Ably::Rest::Channel, 'messages' do
         end
       end
 
-      specify 'idempotent publishing is disabled by default with 1.1 (#TO3n)' do
+      specify 'idempotent publishing is disabled by default with <= 1.1 (#TO3n)' do
+        stub_const 'Ably::PROTOCOL_VERSION', '1.0'
+        client = Ably::Rest::Client.new(key: api_key, protocol: protocol)
+        expect(client.idempotent_rest_publishing).to be_falsey
+        stub_const 'Ably::PROTOCOL_VERSION', '1.1'
         client = Ably::Rest::Client.new(key: api_key, protocol: protocol)
         expect(client.idempotent_rest_publishing).to be_falsey
       end
 
-      specify 'idempotent publishing is enabled by default with 1.2 (#TO3n)' do
-        stub_const 'Ably::VERSION', '1.2.0'
+      specify 'idempotent publishing is enabled by default with >= 1.2 (#TO3n)' do
+        stub_const 'Ably::PROTOCOL_VERSION', '1.2'
+        client = Ably::Rest::Client.new(key: api_key, protocol: protocol)
+        expect(client.idempotent_rest_publishing).to be_truthy
+        stub_const 'Ably::PROTOCOL_VERSION', '1.3'
         client = Ably::Rest::Client.new(key: api_key, protocol: protocol)
         expect(client.idempotent_rest_publishing).to be_truthy
       end
