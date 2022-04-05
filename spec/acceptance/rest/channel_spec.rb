@@ -5,7 +5,7 @@ describe Ably::Rest::Channel do
   include Ably::Modules::Conversions
 
   vary_by_protocol do
-    let(:default_options) { { key: api_key, environment: environment, protocol: protocol, max_frame_size: max_frame_size, max_message_size: max_message_size } }
+    let(:default_options) { { key: api_key, environment: environment, protocol: protocol, max_frame_size: max_frame_size, max_message_size: max_message_size, idempotent_rest_publishing: false } }
     let(:client_options)  { default_options }
     let(:client) do
       Ably::Rest::Client.new(client_options)

@@ -199,9 +199,12 @@ module Ably
         @custom_tls_port     = options.delete(:tls_port)
         @add_request_ids     = options.delete(:add_request_ids)
         @log_retries_as_info = options.delete(:log_retries_as_info)
-        @idempotent_rest_publishing = options.delete(:idempotent_rest_publishing) || Ably.major_minor_version_numeric > 1.1
         @max_message_size    = options.delete(:max_message_size) || MAX_MESSAGE_SIZE
         @max_frame_size      = options.delete(:max_frame_size) || MAX_FRAME_SIZE
+
+        if (@idempotent_rest_publishing = options.delete(:idempotent_rest_publishing)).nil?
+          @idempotent_rest_publishing = Ably::PROTOCOL_VERSION.to_f > 1.1
+        end
 
         if options[:fallback_hosts_use_default] && options[:fallback_hosts]
           raise ArgumentError, "fallback_hosts_use_default cannot be set to try when fallback_hosts is also provided"
