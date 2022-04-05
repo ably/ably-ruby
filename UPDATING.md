@@ -9,6 +9,8 @@ This release is all about channel options. Here is the full [changelog](https://
 
 * The `ChannelOptions` class now supports `:params`, `:modes` and `:cipher` as options. Previously only `:cipher` was available
 
+* The client `:idempotent_rest_publishing` option is `true` by default. Previously `:idempotent_rest_publishing` was `false` by default.
+
 ### Breaking Changes
 
 * Changing channel options with `Channels#get` is now deprecated in favor of explicit options change
