@@ -5,9 +5,9 @@ require 'securerandom'
 require 'ably/rest/middleware/external_exceptions'
 
 module Ably
-  # Auth is responsible for authentication with {https://www.ably.io Ably} using basic or token authentication
+  # Auth is responsible for authentication with {https://www.ably.com Ably} using basic or token authentication
   #
-  # Find out more about Ably authentication at: https://www.ably.io/documentation/general/authentication/
+  # Find out more about Ably authentication at: https://www.ably.com/docs/general/authentication/
   #
   # @!attribute [r] client_id
   #   @return [String] The provided client ID, used for identifying this client for presence purposes
@@ -35,7 +35,7 @@ module Ably
 
     API_KEY_REGEX = /^[\w-]{2,}\.[\w-]{2,}:[\w-]{2,}$/
 
-    # Supported AuthOption keys, see https://www.ably.io/documentation/realtime/types#auth-options
+    # Supported AuthOption keys, see https://www.ably.com/docs/realtime/types#auth-options
     # TODO: Review client_id usage embedded incorrectly within AuthOptions.
     #       This is legacy code to configure a client with a client_id from the ClientOptions
     # TODO: Review inclusion of use_token_auth, ttl, token_params in auth options
@@ -277,7 +277,7 @@ module Ably
     #
     # @param [Hash] token_params the token params used in the token request
     # @option token_params [String]  :client_id     A client ID to associate with this token. The generated token may be used to authenticate as this +client_id+
-    # @option token_params [Integer] :ttl           validity time in seconds for the requested {Ably::Models::TokenDetails}.  Limits may apply, see {https://www.ably.io/documentation/other/authentication}
+    # @option token_params [Integer] :ttl           validity time in seconds for the requested {Ably::Models::TokenDetails}.  Limits may apply, see {https://www.ably.com/docs/general/authentication}
     # @option token_params [Hash]    :capability    canonicalised representation of the resource paths and associated operations
     # @option token_params [Time]    :timestamp     the time of the request
     # @option token_params [String]  :nonce         an unquoted, unescaped random string of at least 16 characters
@@ -285,7 +285,7 @@ module Ably
     # @param [Hash] auth_options the authentication options for the token request
     # @option auth_options [String]  :key           API key comprising the key name and key secret in a single string
     # @option auth_options [String]  :client_id     client ID identifying this connection to other clients (will use +client_id+ specified when library was instanced if provided)
-    # @option auth_options [Boolean] :query_time    when true will query the {https://www.ably.io Ably} system for the current time instead of using the local time
+    # @option auth_options [Boolean] :query_time    when true will query the {https://www.ably.com Ably} system for the current time instead of using the local time
     # @option auth_options [Hash]    :token_params  convenience to pass in +token_params+ within the +auth_options+ argument, especially useful when setting default token_params in the client constructor
     #
     # @return [Models::TokenRequest]

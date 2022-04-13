@@ -2,10 +2,10 @@ require 'ably/auth'
 
 module Ably
   module Realtime
-    # Auth is responsible for authentication with {https://www.ably.io Ably} using basic or token authentication
+    # Auth is responsible for authentication with {https://www.ably.com Ably} using basic or token authentication
     # This {Ably::Realtime::Auth Realtime::Auth} class wraps the {Ably::Auth Synchronous Ably::Auth} class in an EventMachine friendly way using Deferrables for all IO.  See {Ably::Auth Ably::Auth} for more information
     #
-    # Find out more about Ably authentication at: https://www.ably.io/documentation/general/authentication/
+    # Find out more about Ably authentication at: https://www.ably.com/docs/general/authentication/
     #
     # @!attribute [r] client_id
     #   (see Ably::Auth#client_id)
