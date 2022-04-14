@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe Ably::Logger do
+describe Ably::Logger, :prevent_log_stubbing do
   let(:rest_client) do
     instance_double('Ably::Rest::Client')
   end
@@ -18,14 +18,10 @@ describe Ably::Logger do
 
   context 'internals', :api_private do
     it 'delegates to the default Logger object' do
-      received = false
       expect(subject.logger).to be_a(::Logger)
-      allow_any_instance_of(::Logger).to receive(:warn) do |*args, &block|
-        expect(args.concat([block ? block.call : nil]).join(',')).to match(/message/)
-        received = true
-      end
+      expect(subject.logger).to receive(:warn).with('message')
+
       subject.warn 'message'
-      expect(received).to be_truthy
     end
 
     context 'formatter' do
@@ -136,18 +132,14 @@ describe Ably::Logger do
       end
 
       it 'delegates log messages to logger', :api_private do
-        received = false
-        allow(custom_logger_object).to receive(:fatal) do |*args, &block|
-          expect(args.concat([block ? block.call : nil]).join(',')).to match(/message/)
-          received = true
-        end
+        expect(custom_logger_object).to receive(:fatal).with('message')
+
         subject.fatal 'message'
-        expect(received).to be_truthy
       end
     end
   end
 
-  context 'with blocks', :prevent_log_stubbing do
+  context 'with blocks' do
     it 'does not call the block unless the log level is met' do
       log_level_blocks = []
       subject.warn { log_level_blocks << :warn }
