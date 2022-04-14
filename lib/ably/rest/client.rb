@@ -147,7 +147,7 @@ module Ably
       # @option options [Symbol]                  :auth_method         (:get) HTTP method to use with +auth_url+, must be either +:get+ or +:post+
       # @option options [Proc]                    :auth_callback       when provided, the Proc will be called with the token params hash as the first argument, whenever a new token is required.
       #                                                                The Proc should return a token string, {Ably::Models::TokenDetails} or JSON equivalent, {Ably::Models::TokenRequest} or JSON equivalent
-      # @option options [Boolean]                 :query_time          when true will query the {https://www.ably.io Ably} system for the current time instead of using the local time
+      # @option options [Boolean]                 :query_time          when true will query the {https://www.ably.com Ably} system for the current time instead of using the local time
       # @option options [Hash]                    :default_token_params   convenience to pass in +token_params+ that will be used as a default for all token requests. See {Auth#create_token_request}
       #
       # @option options [Integer]                 :http_open_timeout       (4 seconds) timeout in seconds for opening an HTTP connection for all HTTP requests

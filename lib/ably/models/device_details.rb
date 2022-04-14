@@ -27,7 +27,7 @@ module Ably::Models
   # @!attribute [r] form_factor
   #   @return [String] Device form factor such as phone, tablet, watch
   # @!attribute [r] client_id
-  #   @return [String] The authenticated client identifier for this device. See {https://www.ably.io/documentation/general/authentication#identified-clients auth documentation}.
+  #   @return [String] The authenticated client identifier for this device. See {https://www.ably.com/docs/general/authentication#identified-clients auth documentation}.
   # @!attribute [r] metadata
   #   @return [Hash] Arbitrary metadata that can be associated with a device
   # @!attribute [r] device_secret

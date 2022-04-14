@@ -98,7 +98,7 @@ module Ably::Models
 
     # @!attribute [r] mac
     # @return [String]  the Message Authentication Code for this request. See the
-    #                   {https://www.ably.io/documentation Ably Authentication documentation} for more details.
+    #                   {https://www.ably.com/docs Ably Authentication documentation} for more details.
     def mac
       attributes.fetch(:mac) { raise Ably::Exceptions::InvalidTokenRequest, 'MAC is missing' }
     end

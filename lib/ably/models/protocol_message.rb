@@ -3,7 +3,7 @@ module Ably::Models
   # A ProtocolMessage always relates to a single channel only, but
   # can contain multiple individual Messages or PresenceMessages.
   # ProtocolMessages are serially numbered on a connection.
-  # See the {http://docs.ably.io/client-lib-development-guide/protocol/ Ably client library developer documentation}
+  # See the {http://ably.com/docs/client-lib-development-guide/protocol/ Ably client library developer documentation}
   # for further details on the members of a ProtocolMessage
   #
   # @!attribute [r] action
@@ -11,7 +11,7 @@ module Ably::Models
   # @!attribute [r] auth
   #   @return [Ably::Models::AuthDetails] Authentication details used to perform authentication upgrades over an existing transport
   # @!attribute [r] count
-  #   @return [Integer] The count field is used for ACK and NACK actions. See {http://docs.ably.io/client-lib-development-guide/protocol/#message-acknowledgement message acknowledgement protocol}
+  #   @return [Integer] The count field is used for ACK and NACK actions. See {http://ably.com/docs/client-lib-development-guide/protocol/#message-acknowledgement message acknowledgement protocol}
   # @!attribute [r] error
   #   @return [ErrorInfo] Contains error information
   # @!attribute [r] channel
