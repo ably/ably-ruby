@@ -8,33 +8,11 @@ This release updates ably-ruby to be compliant with the 1.2 version of the Ably 
 
 **Closed issues:**
 
-- create migration guide for the upgrade to ruby 1.2  [\#347](https://github.com/ably/ably-ruby/issues/347)
-- Write spec tests for RTL17 [\#304](https://github.com/ably/ably-ruby/issues/304)
-- Write spec tests for RTL16, RTL16a [\#303](https://github.com/ably/ably-ruby/issues/303)
-- Write spec tests for RTL4m [\#302](https://github.com/ably/ably-ruby/issues/302)
-- Write spec tests for RTL4l [\#301](https://github.com/ably/ably-ruby/issues/301)
-- Write spec tests for RTL4k, RTL4k1 [\#300](https://github.com/ably/ably-ruby/issues/300)
-- Write spec tests for RTL4j, RTL4j1, RTL4j2 [\#299](https://github.com/ably/ably-ruby/issues/299)
-- Write spec tests for RTS3c, RTS3c1 [\#298](https://github.com/ably/ably-ruby/issues/298)
-- Write spec tests for RTS3a [\#297](https://github.com/ably/ably-ruby/issues/297)
-- Add support for RTL21 [\#296](https://github.com/ably/ably-ruby/issues/296)
-- Add support for RTL17 [\#292](https://github.com/ably/ably-ruby/issues/292)
-- Add support for RTL16, RTL16a [\#291](https://github.com/ably/ably-ruby/issues/291)
-- Add support for RTL4m [\#290](https://github.com/ably/ably-ruby/issues/290)
-- Add support for RTL4l [\#289](https://github.com/ably/ably-ruby/issues/289)
-- Add support for RTL4k, RTL4k1 [\#288](https://github.com/ably/ably-ruby/issues/288)
-- Add support for RTL4j, RTL4j1, RTL4j2 [\#287](https://github.com/ably/ably-ruby/issues/287)
-- Add support for RTS3c, RTS3c1 [\#286](https://github.com/ably/ably-ruby/issues/286)
-- Add support for RTS3a [\#285](https://github.com/ably/ably-ruby/issues/285)
-- Write spec tests for RSL1a, b, h, k1, k2, l, l1 \(Channels\) [\#283](https://github.com/ably/ably-ruby/issues/283)
-- Write spec tests for RSN3a, c \(Channels\) [\#282](https://github.com/ably/ably-ruby/issues/282)
-- Write spec tests for RSA4b, b1, c, RSA16 \(Authentication\) [\#281](https://github.com/ably/ably-ruby/issues/281)
-- Add support for RSN3a, c \(Channels\) [\#269](https://github.com/ably/ably-ruby/issues/269)
-- Add support for RSA4b, b1, c, RSA16 \(Authentication\) [\#268](https://github.com/ably/ably-ruby/issues/268)
-- Add support for RSC7a, RSC7c \(RestClient\)
- [\#266](https://github.com/ably/ably-ruby/issues/266)
-- Add support for Test Guidance G4 [\#265](https://github.com/ably/ably-ruby/issues/265)
-- Add support for TO3o, TO3p [\#264](https://github.com/ably/ably-ruby/issues/264)
+- Add Channel.setOptions method [\#291](https://github.com/ably/ably-ruby/issues/291)
+- Add support for channel params [\#288](https://github.com/ably/ably-ruby/issues/288)
+- Use ATTACH_RESUME flag for unclean attaches [\#287](https://github.com/ably/ably-ruby/issues/287)
+- Add ChannelOptions param to Channels.get [\#285](https://github.com/ably/ably-ruby/issues/285)
+- Update library to adhere to new spec for token renewal (see [the spec definition](https://docs.ably.io/client-lib-development-guide/features/#RSA4b) for more info) [\#268](https://github.com/ably/ably-ruby/issues/268)
 
 **Merged pull requests:**
 
