@@ -6,12 +6,17 @@ on:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     continue-on-error: true
     strategy:
       matrix:
-        ruby: [ '2.5', '2.6', '2.7', '3.0' ]
+        os: ['ubuntu-latest', 'windows-2022']
+        ruby: [ '2.7', '3.0', '3.1' ]
         protocol: [ 'json', 'msgpack' ]
+    env:
+      RSPEC_RETRY: true
+      PARALLEL_TEST_PROCESSORS: 2
+      PROTOCOL: ${{ matrix.protocol }}
     steps:
       - uses: actions/checkout@v2
         with:
@@ -20,16 +25,14 @@ jobs:
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
-      - env:
-          RSPEC_RETRY: true
-          PARALLEL_TEST_PROCESSORS: 2
-          PROTOCOL: ${{ matrix.protocol }}
-        run: ./spec/run_parallel_tests
+      - run: 'bundle exec parallel_rspec "./spec/unit"'
+      - run: 'bundle exec parallel_rspec "./spec/acceptance" --prefix-output-with-test-env-number'
       - uses: coverallsapp/github-action@1.1.3
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           flag-name: run-ruby_${{ matrix.ruby }}-${{ matrix.protocol }}_protocol
           parallel: true
+
   finish:
     needs: check
     runs-on: ubuntu-latest

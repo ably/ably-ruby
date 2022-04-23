@@ -19,7 +19,7 @@ unless RUBY_VERSION.match(/^1\./)
 end
 
 require 'webmock/rspec'
-
+require 'em/pure_ruby' if Gem.win_platform?
 require 'ably'
 
 require 'support/api_helper'
