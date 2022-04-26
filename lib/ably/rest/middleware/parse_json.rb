@@ -4,7 +4,7 @@ require 'json'
 module Ably
   module Rest
     module Middleware
-      class ParseJson < Faraday::Response::Middleware
+      class ParseJson < Faraday::Middleware
         def on_complete(env)
           if env.response_headers['Content-Type'] == 'application/json'
             env.body = parse(env.body) unless env.response_headers['Ably-Middleware-Parsed'] == true

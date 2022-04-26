@@ -5,7 +5,7 @@ module Ably
     module Middleware
       # HTTP exceptions raised due to a status code error on a 3rd party site
       # Used by auth calls
-      class ExternalExceptions < Faraday::Response::Middleware
+      class ExternalExceptions < Faraday::Middleware
         def on_complete(env)
           if env.status >= 400
             error_status_code = env.status

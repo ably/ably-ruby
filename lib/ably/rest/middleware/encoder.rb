@@ -5,7 +5,7 @@ module Ably
   module Rest
     module Middleware
       # Encode the body of the message according to the mime type
-      class Encoder < ::Faraday::Response::Middleware
+      class Encoder < Faraday::Middleware
         CONTENT_TYPE = 'Content-Type'.freeze unless defined? CONTENT_TYPE
 
         def call(env)

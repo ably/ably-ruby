@@ -4,7 +4,7 @@ require 'logger'
 require 'uri'
 
 require 'typhoeus'
-require 'typhoeus/adapters/faraday'
+require 'faraday/typhoeus'
 
 require 'ably/rest/middleware/exceptions'
 
