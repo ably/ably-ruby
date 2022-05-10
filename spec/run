@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+
+set -eo pipefail
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+
+usage() {
+  cat <<EOF
+usage: $0 [-h|--help] [-f|--format=FORMAT] [-p|--protocol=PROTOCOL] [-o|--out=FILENAME] [-t|--type=TYPE] [-r|--retry=BOOL] [-c|--cpus=INTEGER]
+Run the ably-ruby tests.
+OPTIONS:
+  -h, --help                Show this message
+  -p, --protocol=PROTOCOL   Run tests using PROTOCOL ('all', 'json', 'msgpack' and default is to run both)
+  -f, --format=FORMAT       Set format using FORMAT ('junit', 'default')
+  -o, --out=FILENAME        Output FILENAME
+  -t, --type=TYPE           Run only tests of specific TYPE ('all', 'unit', 'acceptance' and default is to run both)
+  -r, --retry=BOOL          Enable retrying (default: true)
+  -c, --cpus=INTEGER        Set number of CPUs (default: 2)
+EOF
+}
+
+main() {
+  local protocol="all"
+  local format="default"
+  local out=""
+  local type="all"
+  local cpus=2
+  local retry='true'
+
+  for i in "$@"; do
+    case $i in
+      -p=*|--protocol=*)
+        protocol="${i#*=}"
+        shift
+        ;;
+      -f=*|--format=*)
+        format="${i#*=}"
+        shift
+        ;;
+      -o=*|--out=*)
+        out="${i#*=}"
+        shift
+        ;;
+      -t=*|--type=*)
+        type="${i#*=}"
+        shift
+        ;;
+      -r=*|--retry=*)
+        retry="${i#*=}"
+        shift
+        ;;
+      -c=*|--cpus=*)
+        cpus="${i#*=}"
+        shift
+        ;;
+      -h|--help)
+        usage
+        exit 1
+        ;;
+      -*|--*)
+        echo "Unknown option $i"
+        exit 1
+        ;;
+      *)
+        ;;
+    esac
+  done
+
+  if [ "${type}" == "all" ] || [ "${type}" == "unit" ]; then
+    run_unit_tests "${cpus}" "${retry}" "${format}" "${out}"
+  fi
+
+  if [ "${type}" == "all" ] || [ "${type}" == "acceptance" ]; then
+    if [ "${protocol}" == "all" ] || [ "${protocol}" == "" ]; then
+      for protocol in json msgpack; do
+        run_acceptance_tests "${cpus}" "${retry}" "${format}" "${out}" "${protocol}"
+      done
+    else
+      run_acceptance_tests "${cpus}" "${retry}" "${format}" "${out}" "${protocol}"
+    fi
+  fi
+}
+
+run_unit_tests() {
+  if [ "$3" = "junit" ]; then
+    PARALLEL_TEST_PROCESSORS=$1 RSPEC_RETRY=$2 bundle exec rspec "${DIR}/unit" --format RspecJunitFormatter --out $4
+  else
+    PARALLEL_TEST_PROCESSORS=$1 RSPEC_RETRY=$2 bundle exec rspec "${DIR}/unit"
+  fi
+}
+
+run_acceptance_tests() {
+  if [ "$3" = "junit" ]; then
+    PARALLEL_TEST_PROCESSORS=$1 RSPEC_RETRY=$2 PROTOCOL=$5 bundle exec parallel_rspec --prefix-output-with-test-env-number -- --format RspecJunitFormatter --out $4 -- "${DIR}/acceptance"
+  else
+    PARALLEL_TEST_PROCESSORS=$1 RSPEC_RETRY=$2 PROTOCOL=$5 bundle exec parallel_rspec --prefix-output-with-test-env-number -- "${DIR}/acceptance"
+  fi
+}
+
+main "$@"
