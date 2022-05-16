@@ -11,6 +11,7 @@ jobs:
     strategy:
       matrix:
         ruby: [ '2.7', '3.0', '3.1' ]
+        protocol: [ 'json', 'msgpack' ]
     steps:
       - uses: actions/checkout@v2
         with:
@@ -20,11 +21,9 @@ jobs:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
       - name: Unit Tests
-        run: ./spec/run --type=unit --format=junit --out=unit.junit
-      - name: Integration Tests (json protocol)
-        run: ./spec/run --protocol=json --type=acceptance --format=junit --out=json-integration.junit
-      - name: Integration Tests (msgpack protocol)
-        run: ./spec/run --protocol=msgpack --type=acceptance --format=junit --out=msgpack-integration.junit
+        run: ./spec/run --protocol=${{ matrix.protocol }} --type=unit --format=junit --out=${{ matrix.protocol }}-unit-ruby-${{ matrix.ruby }}.junit
+      - name: Acceptance Tests (${{ matrix.protocol }} protocol)
+        run: ./spec/run --protocol=${{ matrix.protocol }} --type=acceptance --format=junit --out=${{ matrix.protocol }}-acceptance-ruby-${{ matrix.ruby }}.junit
       - name: Upload test results
         if: always()
         uses: ably-labs/test-observability-action@main
@@ -35,7 +34,7 @@ jobs:
       - uses: coverallsapp/github-action@1.1.3
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          flag-name: ruby-${{ matrix.ruby }}
+          flag-name: ruby-${{ matrix.ruby }}-${{ matrix.protocol }}
           parallel: true
   finish:
     needs: check
