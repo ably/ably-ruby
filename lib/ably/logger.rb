@@ -7,9 +7,9 @@ module Ably
     extend Forwardable
 
     # @param client        [Ably::Rest::Client,Ably::Realtime::Client] Rest or Realtime Ably client
-    # @param log_level     [Integer] {http://www.ruby-doc.org/stdlib-1.9.3/libdoc/logger/rdoc/Logger.html Ruby Logger} log level
+    # @param log_level     [Integer] {http://www.ruby-doc.org/stdlib-3.1.1/libdoc/logger/rdoc/Logger.html Ruby Logger} log level
     # @param custom_logger [nil,Object] A custom logger can optionally be used instead of the,
-    #                      however it must provide a {http://www.ruby-doc.org/stdlib-1.9.3/libdoc/logger/rdoc/Logger.html Ruby Logger} compatible interface.
+    #                      however it must provide a {http://www.ruby-doc.org/stdlib-3.1.1/libdoc/logger/rdoc/Logger.html Ruby Logger} compatible interface.
     #
     def initialize(client, log_level, custom_logger = nil)
       @client        = client
@@ -24,7 +24,7 @@ module Ably
       @log_mutex = Mutex.new
     end
 
-    # The logger used by this class, defaults to {http://www.ruby-doc.org/stdlib-1.9.3/libdoc/logger/rdoc/Logger.html Ruby Logger}
+    # The logger used by this class, defaults to {http://www.ruby-doc.org/stdlib-3.1.1/libdoc/logger/rdoc/Logger.html Ruby Logger}
     # @return {Object,Logger}
     attr_reader :logger
 
@@ -32,7 +32,7 @@ module Ably
     # @return {nil,Object}
     attr_reader :custom_logger
 
-    # The log level ranging from DEBUG to FATAL, refer to http://www.ruby-doc.org/stdlib-1.9.3/libdoc/logger/rdoc/Logger.html
+    # The log level ranging from DEBUG to FATAL, refer to http://www.ruby-doc.org/stdlib-3.1.1/libdoc/logger/rdoc/Logger.html
     # @return {Integer}
     attr_reader :log_level
 
