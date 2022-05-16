@@ -482,6 +482,26 @@ describe Ably::Realtime::Connection, :event_machine do
         end
       end
 
+      context "when can't connect to host" do
+        let(:client_options) { super().merge(realtime_host: 'non-existent.ably.io') }
+
+        it 'logs error on failed connection attempt' do
+          logger_expectation = lambda do |*args, &block|
+            error_message = "Connection to non-existent.ably.io:443 failed"
+            expect(args.concat([block ? block.call : nil]).join(',')).to include(error_message)
+            stop_reactor
+          end
+
+          expect(connection.logger).to receive(:warn, &logger_expectation).at_least(:once)
+
+          connection.on(:connected) do
+            raise "Connection should not succeed"
+          end
+
+          connection.connect
+        end
+      end
+
       context 'when explicitly reconnecting disconnected/suspended connection in retry (#RTN11c)' do
         let(:close_connection_proc) do
           lambda do
