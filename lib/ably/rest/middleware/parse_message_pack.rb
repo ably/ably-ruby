@@ -4,7 +4,7 @@ require 'msgpack'
 module Ably
   module Rest
     module Middleware
-      class ParseMessagePack < Faraday::Response::Middleware
+      class ParseMessagePack < Faraday::Middleware
         def on_complete(env)
           if env.response_headers['Content-Type'] == 'application/x-msgpack'
             env.body = parse(env.body) unless env.response_headers['Ably-Middleware-Parsed'] == true

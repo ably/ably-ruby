@@ -4,7 +4,7 @@ require 'logger'
 require 'uri'
 
 require 'typhoeus'
-require 'typhoeus/adapters/faraday'
+require 'faraday/typhoeus'
 
 require 'ably/rest/middleware/exceptions'
 
@@ -55,7 +55,7 @@ module Ably
       # @return [Symbol]
       attr_reader :protocol
 
-      # Client agent i.e. `example-gem/1.2.0 ably-ruby/1.1.5 ruby/1.9.3`
+      # Client agent i.e. `example-gem/1.2.0 ably-ruby/1.1.5 ruby/3.1.1`
       # @return [String]
       attr_reader :agent
 
@@ -139,7 +139,7 @@ module Ably
       # @option options [Symbol]                  :protocol            (:msgpack) Protocol used to communicate with Ably, :json and :msgpack currently supported
       # @option options [Boolean]                 :use_binary_protocol (true) When true will use the MessagePack binary protocol, when false it will use JSON encoding. This option will overide :protocol option
       # @option options [Logger::Severity,Symbol] :log_level           (Logger::WARN) Log level for the standard Logger that outputs to STDOUT. Can be set to :fatal (Logger::FATAL), :error (Logger::ERROR), :warn (Logger::WARN), :info (Logger::INFO), :debug (Logger::DEBUG) or :none
-      # @option options [Logger]                  :logger              A custom logger can be used however it must adhere to the Ruby Logger interface, see http://www.ruby-doc.org/stdlib-1.9.3/libdoc/logger/rdoc/Logger.html
+      # @option options [Logger]                  :logger              A custom logger can be used however it must adhere to the Ruby Logger interface, see http://www.ruby-doc.org/stdlib-3.1.1/libdoc/logger/rdoc/Logger.html
       # @option options [String]                  :client_id           client ID identifying this connection to other clients
       # @option options [String]                  :auth_url            a URL to be used to GET or POST a set of token request params, to obtain a signed token request
       # @option options [Hash]                    :auth_headers        a set of application-specific headers to be added to any request made to the +auth_url+

@@ -6,7 +6,7 @@ module Ably
     module Middleware
       # HTTP exceptions raised by Ably due to an error status code
       # Ably returns JSON/Msgpack error codes and messages so include this if possible in the exception messages
-      class Exceptions < Faraday::Response::Middleware
+      class Exceptions < Faraday::Middleware
         def on_complete(env)
           if env.status >= 400
             error_status_code = env.status

@@ -3,7 +3,7 @@ require 'faraday'
 module Ably
   module Rest
     module Middleware
-      class Logger < Faraday::Response::Middleware
+      class Logger < Faraday::Middleware
         extend Forwardable
 
         def initialize(app, logger = nil)

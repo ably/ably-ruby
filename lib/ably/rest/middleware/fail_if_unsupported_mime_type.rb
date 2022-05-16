@@ -4,7 +4,7 @@ require 'json'
 module Ably
   module Rest
     module Middleware
-      class FailIfUnsupportedMimeType < Faraday::Response::Middleware
+      class FailIfUnsupportedMimeType < Faraday::Middleware
         def on_complete(env)
           unless env.response_headers['Ably-Middleware-Parsed'] == true
             # Ignore empty body with success status code for no body response
