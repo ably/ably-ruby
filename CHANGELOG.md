@@ -1,5 +1,22 @@
 # Change Log
 
+## [v1.2.1](https://github.com/ably/ably-ruby/tree/v1.2.1)
+
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.2.0...v1.2.1)
+
+**Fixed bugs:**
+
+- Update Ruby version \(and Gemfile.lock dependencies\) [\#253](https://github.com/ably/ably-ruby/issues/253)
+- Error not emitted when failing to connect to an endpoint indefinitely [\#233](https://github.com/ably/ably-ruby/issues/233)
+- JWT test failing  when using JWT with auth\_url and credentials are wrong disconnected includes and invalid signature message [\#204](https://github.com/ably/ably-ruby/issues/204)
+- Connection errors when there should be warnings [\#198](https://github.com/ably/ably-ruby/issues/198)
+- Implement presence re-entry requirement change for 1.1 [\#185](https://github.com/ably/ably-ruby/issues/185)
+
+**Closed issues:**
+
+- Update urls in readme [\#353](https://github.com/ably/ably-ruby/issues/353)
+- Reconsider required Ruby version [\#344](https://github.com/ably/ably-ruby/issues/344)
+
 ## [v1.2.0](https://github.com/ably/ably-ruby/tree/v1.2.0)
 
 [Full Changelog](https://github.com/ably/ably-ruby/compare/v1.1.8...v1.2.0)
