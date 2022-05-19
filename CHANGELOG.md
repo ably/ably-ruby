@@ -8,7 +8,6 @@
 
 - Update Ruby version \(and Gemfile.lock dependencies\) [\#253](https://github.com/ably/ably-ruby/issues/253)
 - Error not emitted when failing to connect to an endpoint indefinitely [\#233](https://github.com/ably/ably-ruby/issues/233)
-- JWT test failing  when using JWT with auth\_url and credentials are wrong disconnected includes and invalid signature message [\#204](https://github.com/ably/ably-ruby/issues/204)
 - Connection errors when there should be warnings [\#198](https://github.com/ably/ably-ruby/issues/198)
 - Implement presence re-entry requirement change for 1.1 [\#185](https://github.com/ably/ably-ruby/issues/185)
 
