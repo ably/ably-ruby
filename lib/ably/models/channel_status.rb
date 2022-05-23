@@ -30,7 +30,7 @@ module Ably::Models
     end
 
     def is_active
-      attributes[:is_active]
+      attributes[:isActive]
     end
     alias_method :active?, :is_active
     alias_method :is_active?, :is_active

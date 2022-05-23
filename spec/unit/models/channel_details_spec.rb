@@ -2,7 +2,7 @@ require 'spec_helper'
 require 'shared/model_behaviour'
 
 describe Ably::Models::ChannelDetails do
-  subject { Ably::Models::ChannelDetails(channel_id: 'channel-id-123-xyz', name: 'name', status: { is_active: 'true', occupancy: { metrics: { connections: 1, presence_connections: 2, presence_members: 2, presence_subscribers: 5, publishers: 7, subscribers: 9 } } }) }
+  subject { Ably::Models::ChannelDetails(channel_id: 'channel-id-123-xyz', name: 'name', status: { isActive: 'true', occupancy: { metrics: { connections: 1, presence_connections: 2, presence_members: 2, presence_subscribers: 5, publishers: 7, subscribers: 9 } } }) }
 
   describe '#channel_id' do
     it 'should return channel id' do
