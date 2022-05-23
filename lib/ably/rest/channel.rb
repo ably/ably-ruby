@@ -161,6 +161,13 @@ module Ably
       end
       alias options= set_options
 
+      # Makes GET request for channel details (#RSL8, #RSL8a)
+      #
+      # @return [Ably::Models::ChannelDetails]
+      def status
+        Ably::Models::ChannelDetails.new(client.get(base_path).body)
+      end
+
       private
 
       def base_path
