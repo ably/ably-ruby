@@ -83,7 +83,7 @@ main() {
 
 run_unit_tests() {
   if [ "$3" = "junit" ]; then
-    PARALLEL_TEST_PROCESSORS=$1 RSPEC_RETRY=$2 bundle exec rspec "${DIR}/unit" --format RspecJunitFormatter --out $4
+    PARALLEL_TEST_PROCESSORS=$1 RSPEC_RETRY=$2 bundle exec rspec "${DIR}/unit" --format documentation --format RspecJunitFormatter --out $4
   else
     PARALLEL_TEST_PROCESSORS=$1 RSPEC_RETRY=$2 bundle exec rspec "${DIR}/unit"
   fi
@@ -91,7 +91,7 @@ run_unit_tests() {
 
 run_acceptance_tests() {
   if [ "$3" = "junit" ]; then
-    PARALLEL_TEST_PROCESSORS=$1 RSPEC_RETRY=$2 PROTOCOL=$5 bundle exec parallel_rspec --prefix-output-with-test-env-number -- --format RspecJunitFormatter --out $4 -- "${DIR}/acceptance"
+    PARALLEL_TEST_PROCESSORS=$1 RSPEC_RETRY=$2 PROTOCOL=$5 bundle exec parallel_rspec --prefix-output-with-test-env-number -- --format documentation --format RspecJunitFormatter --out $4 -- "${DIR}/acceptance"
   else
     PARALLEL_TEST_PROCESSORS=$1 RSPEC_RETRY=$2 PROTOCOL=$5 bundle exec parallel_rspec --prefix-output-with-test-env-number -- "${DIR}/acceptance"
   fi
