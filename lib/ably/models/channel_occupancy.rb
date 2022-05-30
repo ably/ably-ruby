@@ -13,12 +13,15 @@ module Ably::Models
     end
   end
 
-  # Represents occupancy of a channel
+  # Type that contain channel metrics (CHO1)
+  #
   class ChannelOccupancy
     extend Ably::Modules::Enum
     extend Forwardable
     include Ably::Modules::ModelCommon
 
+    # The attributes of ChannelOccupancy (CH02)
+    #
     attr_reader :attributes
 
     alias_method :to_h, :attributes
@@ -29,6 +32,10 @@ module Ably::Models
       @attributes = IdiomaticRubyWrapper(attrs.clone)
     end
 
+    # Metrics object (CHO2a)
+    #
+    # @return [Ably::Models::ChannelMetrics, nil]
+    #
     def metrics
       Ably::Models::ChannelMetrics(attributes[:metrics])
     end

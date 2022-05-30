@@ -13,12 +13,15 @@ module Ably::Models
     end
   end
 
-  # Represents options of a channel
+  # ChannelStatus is a type that contains status and occupancy for a channel (CHS1)
+  #
   class ChannelStatus
     extend Ably::Modules::Enum
     extend Forwardable
     include Ably::Modules::ModelCommon
 
+    # The attributes of ChannelStatus (CHS2)
+    #
     attr_reader :attributes
 
     alias_method :to_h, :attributes
@@ -29,12 +32,20 @@ module Ably::Models
       @attributes = IdiomaticRubyWrapper(attrs.clone)
     end
 
+    # Represents if the channel is active (CHS2a)
+    #
+    # @return [Boolean]
+    #
     def is_active
       attributes[:isActive]
     end
     alias_method :active?, :is_active
     alias_method :is_active?, :is_active
 
+    # Occupancy ChannelOccupancy – occupancy is an object containing the metrics for the channel (CHS2b)
+    #
+    # @return [Ably::Models::ChannelOccupancy, nil]
+    #
     def occupancy
       Ably::Models::ChannelOccupancy(attributes[:occupancy])
     end
