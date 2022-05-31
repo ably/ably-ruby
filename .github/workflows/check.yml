@@ -22,7 +22,11 @@ jobs:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
       - name: 'Run ${{ matrix.type }} tests on ruby ${{ matrix.ruby }} (${{ matrix.protocol }} protocol)'
-        run: ./spec/run --protocol=${{ matrix.protocol }} --type=${{ matrix.type }} --format=junit --out=${{ matrix.protocol }}-${{ matrix.type }}-ruby-${{ matrix.ruby }}.junit
+        env:
+          PARALLEL_TEST_PROCESSORS: 2
+          RSPEC_RETRY: true
+          PROTOCOL: ${{ matrix.protocol }}
+        run: bundle exec parallel_rspec --prefix-output-with-test-env-number -- --format documentation --format RspecJunitFormatter --out ${{ matrix.protocol }}-${{ matrix.type }}-ruby-${{ matrix.ruby }}.junit -- spec/${{ matrix.type }}
       - name: Upload test results
         if: always()
         uses: ably-labs/test-observability-action@main
