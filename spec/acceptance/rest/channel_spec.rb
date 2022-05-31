@@ -595,5 +595,23 @@ describe Ably::Rest::Channel do
         expect(channel.presence).to be_a(Ably::Rest::Presence)
       end
     end
+
+    context '#status' do
+      let(:channel_name) { "persisted:#{random_str(4)}" }
+      let(:channel) { client.channel(channel_name) }
+      let(:channel_details) { channel.status }
+
+      it 'should return channel details status (#RSL8, #RSL8a)' do
+        expect(channel_details.channel_id).to eq(channel_name)
+        expect(channel_details.name).to eq(channel_name)
+        expect(channel_details.status).to be_a(Ably::Models::ChannelStatus)
+        expect(channel_details.status.is_active).to eq(true)
+        expect(channel_details.status.occupancy.metrics.publishers).to eq(0)
+        expect(channel_details.status.occupancy.metrics.subscribers).to eq(0)
+        expect(channel_details.status.occupancy.metrics.presence_connections).to eq(0)
+        expect(channel_details.status.occupancy.metrics.presence_members).to eq(0)
+        expect(channel_details.status.occupancy.metrics.presence_subscribers).to eq(0)
+      end
+    end
   end
 end
