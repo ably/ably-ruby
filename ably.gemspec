@@ -32,6 +32,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rake', '~> 13.0'
   spec.add_development_dependency 'redcarpet', '~> 3.3'
   spec.add_development_dependency 'rspec', '~> 3.11.0'
+  spec.add_development_dependency 'rspec_junit_formatter', '~> 0.5.1'
   spec.add_development_dependency 'rspec-retry', '~> 0.6'
   spec.add_development_dependency 'yard', '~> 0.9'
   spec.add_development_dependency 'rspec-instafail', '~> 1.0'
