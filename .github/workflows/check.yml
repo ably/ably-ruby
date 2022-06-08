@@ -32,6 +32,7 @@ jobs:
           path: |
             ${{ matrix.protocol }}-${{ matrix.type }}-ruby-${{ matrix.ruby }}.junit
             coverage/
+          retention-days: 7
       - name: Upload test results
         if: always()
         uses: ably-labs/test-observability-action@main
