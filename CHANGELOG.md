@@ -1,5 +1,13 @@
 # Change Log
 
+## [v1.2.2](https://github.com/ably/ably-ruby/tree/v1.2.2)
+
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.2.1...v1.2.2)
+
+**Implemented enhancements:**
+
+- Add support to get channel lifecycle status [\#362](https://github.com/ably/ably-ruby/issues/362)
+
 ## [v1.2.1](https://github.com/ably/ably-ruby/tree/v1.2.1)
 
 [Full Changelog](https://github.com/ably/ably-ruby/compare/v1.2.0...v1.2.1)
