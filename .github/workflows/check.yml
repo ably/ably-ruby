@@ -27,6 +27,11 @@ jobs:
           RSPEC_RETRY: true
           PROTOCOL: ${{ matrix.protocol }}
         run: bundle exec parallel_rspec --prefix-output-with-test-env-number -- --format documentation --format RspecJunitFormatter --out ${{ matrix.protocol }}-${{ matrix.type }}-ruby-${{ matrix.ruby }}.junit -- spec/${{ matrix.type }}
+      - uses: actions/upload-artifact@v3
+        with:
+          path: |
+            ${{ matrix.protocol }}-${{ matrix.type }}-ruby-${{ matrix.ruby }}.junit
+            coverage/
       - name: Upload test results
         if: always()
         uses: ably-labs/test-observability-action@main
