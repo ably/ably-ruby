@@ -523,7 +523,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
 
       resources_root = File.expand_path('../../../../lib/submodules/ably-common/test-resources', __FILE__)
 
-      def self.add_tests_for_data(data)
+      shared_examples 'add_tests_for_data' do |data|
         data['items'].each_with_index do |item, index|
           context "item #{index} with encrypted encoding #{item['encrypted']['encoding']}" do
             it_behaves_like 'an Ably encrypter and decrypter', item, data
@@ -533,12 +533,12 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
 
       context 'with AES-128-CBC using crypto-data-128.json fixtures (#RTL7d)' do
         data = JSON.parse(File.read(File.join(resources_root, 'crypto-data-128.json')))
-        add_tests_for_data data
+        include_examples 'add_tests_for_data', data
       end
 
       context 'with AES-256-CBC using crypto-data-256.json fixtures (#RTL7d)' do
         data = JSON.parse(File.read(File.join(resources_root, 'crypto-data-256.json')))
-        add_tests_for_data data
+        include_examples 'add_tests_for_data', data
       end
 
       context 'with multiple sends from one client to another' do
