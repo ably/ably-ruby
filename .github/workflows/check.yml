@@ -29,7 +29,7 @@ jobs:
         run: |
           cp .github/workflows/.rspec_parallel .rspec_parallel
           mkdir junit
-          bundle exec parallel_rspec --prefix-output-with-test-env-number -- spec/${{ matrix.type }}
+          bundle exec parallel_rspec --prefix-output-with-test-env-number --first-is-1 -- spec/${{ matrix.type }}
       - uses: actions/upload-artifact@v3
         with:
           path: |
