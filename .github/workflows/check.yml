@@ -26,7 +26,7 @@ jobs:
           PARALLEL_TEST_PROCESSORS: 2
           RSPEC_RETRY: true
           PROTOCOL: ${{ matrix.protocol }}
-        run: bundle exec parallel_rspec --prefix-output-with-test-env-number -- --format documentation --format RspecJunitFormatter --out ${{ matrix.protocol }}-${{ matrix.type }}-ruby-${{ matrix.ruby }}-${{ env.TEST_ENV_NUMBER }}.junit -- spec/${{ matrix.type }}
+        run: bundle exec parallel_rspec --prefix-output-with-test-env-number -- --format documentation --format RspecJunitFormatter --out ${{ matrix.protocol }}-${{ matrix.type }}-ruby-${{ matrix.ruby }}-<%= ENV["TEST_ENV_NUMBER"] %>.junit -- spec/${{ matrix.type }}
       - uses: actions/upload-artifact@v3
         with:
           path: |
