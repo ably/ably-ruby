@@ -26,11 +26,14 @@ jobs:
           PARALLEL_TEST_PROCESSORS: 2
           RSPEC_RETRY: true
           PROTOCOL: ${{ matrix.protocol }}
-        run: bundle exec parallel_rspec --prefix-output-with-test-env-number -- --format documentation --format RspecJunitFormatter --out ${{ matrix.protocol }}-${{ matrix.type }}-ruby-${{ matrix.ruby }}-<%= ENV["TEST_ENV_NUMBER"] %>.junit -- spec/${{ matrix.type }}
+        run: |
+          cp .github/workflows/.rspec_parallel .rspec_parallel
+          mkdir junit
+          bundle exec parallel_rspec --prefix-output-with-test-env-number -- spec/${{ matrix.type }}
       - uses: actions/upload-artifact@v3
         with:
           path: |
-            ${{ matrix.protocol }}-${{ matrix.type }}-ruby-${{ matrix.ruby }}.junit
+            junit/
             coverage/
           retention-days: 7
       - name: Upload test results
@@ -39,7 +42,7 @@ jobs:
         with:
           server-url: 'https://test-observability.herokuapp.com'
           server-auth: ${{ secrets.TEST_OBSERVABILITY_SERVER_AUTH_KEY }}
-          path: '.'
+          path: 'junit/'
       - uses: coverallsapp/github-action@1.1.3
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
