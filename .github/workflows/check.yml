@@ -26,6 +26,8 @@ jobs:
           PARALLEL_TEST_PROCESSORS: 2
           RSPEC_RETRY: true
           PROTOCOL: ${{ matrix.protocol }}
+          TEST_TYPE: ${{ matrix.type }}
+          RUBY_VERSION: ${{ matrix.ruby }}
         run: |
           cp .github/workflows/.rspec_parallel .rspec_parallel
           mkdir junit
