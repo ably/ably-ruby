@@ -1,9 +1,10 @@
-# encoding: utf-8
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe Ably::Rest::Push do
   vary_by_protocol do
-    let(:default_options) { { key: api_key, environment: environment, protocol: protocol} }
+    let(:default_options) { { key: api_key, environment: environment, protocol: protocol } }
     let(:client_options)  { default_options }
     let(:client) do
       Ably::Rest::Client.new(client_options)
