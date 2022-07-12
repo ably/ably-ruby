@@ -1,7 +1,9 @@
+# frozen_string_literal: true
+
 require 'singleton'
 
 class TestApp
-  TEST_RESOURCES_PATH = File.expand_path('../../../lib/submodules/ably-common/test-resources', __FILE__)
+  TEST_RESOURCES_PATH = File.expand_path('../../lib/submodules/ably-common/test-resources', __dir__)
 
   # App configuration for test app
   # See https://github.com/ably/ably-common/blob/main/test-resources/test-app-setup.json
@@ -14,10 +16,10 @@ class TestApp
   # If an app has already been created and we need a new app, create a new test app
   # This is sometimes needed when a test needs to be isolated from any other tests
   def self.reload
-    if instance_variable_get('@singleton__instance__')
-      instance.delete
-      instance.create_test_app
-    end
+    return unless instance_variable_get('@singleton__instance__')
+
+    instance.delete
+    instance.create_test_app
   end
 
   include Singleton
@@ -60,7 +62,7 @@ class TestApp
     url = "#{sandbox_client.endpoint}/apps/#{app_id}"
 
     basic_auth = Base64.urlsafe_encode64(api_key).chomp
-    headers    = { "Authorization" => "Basic #{basic_auth}" }
+    headers    = { 'Authorization' => "Basic #{basic_auth}" }
 
     Faraday.delete(url, nil, headers)
   end
@@ -73,7 +75,7 @@ class TestApp
     url = "#{sandbox_client.endpoint}/apps"
 
     headers = {
-      'Accept'       => 'application/json',
+      'Accept' => 'application/json',
       'Content-Type' => 'application/json'
     }
 
@@ -100,6 +102,7 @@ class TestApp
   end
 
   private
+
   def sandbox_client
     @sandbox_client ||= Ably::Rest::Client.new(key: 'app.key:secret', tls: true, environment: environment)
   end
