@@ -1,11 +1,13 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe Ably::Modules::Conversions, :api_private do
-  let(:class_with_module) { Class.new do; include Ably::Modules::Conversions; end }
+  let(:class_with_module) { Class.new { ; include Ably::Modules::Conversions; } }
   let(:subject) { class_with_module.new }
   before do
     # make method being tested public
-    class_with_module.class_eval %{ public :#{method} }
+    class_with_module.class_eval %( public :#{method} ), __FILE__, __LINE__
   end
 
   context '#as_since_epoch' do
