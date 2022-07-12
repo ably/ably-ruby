@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe Ably::Modules::AsyncWrapper, :api_private do
@@ -11,9 +13,7 @@ describe Ably::Modules::AsyncWrapper, :api_private do
         async_wrap success_callback, &@block
       end
 
-      def block=(block)
-        @block = block
-      end
+      attr_writer :block
 
       def logger
         @logger ||= Ably::Models::NilLogger.new
@@ -56,7 +56,7 @@ describe Ably::Modules::AsyncWrapper, :api_private do
 
       it 'catches exceptions in the provided block and logs them to logger' do
         run_reactor do
-          subject.operation do |result|
+          subject.operation do |_result|
             raise 'Intentional exception'
           end
           expect(subject.logger).to receive(:error) do |*args, &block|
@@ -83,7 +83,7 @@ describe Ably::Modules::AsyncWrapper, :api_private do
             expect(result).to eql(result)
             EventMachine.add_timer(sleep_time * 2) { stop_reactor }
           end
-          deferrable.errback do |error|
+          deferrable.errback do |_error|
             raise 'Errback should not have been called'
           end
         end
@@ -94,7 +94,7 @@ describe Ably::Modules::AsyncWrapper, :api_private do
           timers_called = 0
           EventMachine.add_periodic_timer(sleep_time / 5) { timers_called += 1 }
 
-          subject.operation do |result|
+          subject.operation do |_result|
             expect(timers_called).to be >= 4
             stop_reactor
           end
@@ -106,7 +106,7 @@ describe Ably::Modules::AsyncWrapper, :api_private do
       let(:block) do
         lambda do
           sleep sleep_time
-          raise RuntimeError, 'Intentional'
+          raise 'Intentional'
         end
       end
 
@@ -123,7 +123,7 @@ describe Ably::Modules::AsyncWrapper, :api_private do
 
       it 'does not call the provided block' do
         run_reactor do
-          subject.operation do |result|
+          subject.operation do |_result|
             raise 'Callback should not have been called'
           end
           EventMachine.add_timer(sleep_time * 2) { stop_reactor }
@@ -133,7 +133,7 @@ describe Ably::Modules::AsyncWrapper, :api_private do
       it 'does not call the callback block of the SafeDeferrable' do
         run_reactor do
           deferrable = subject.operation
-          deferrable.callback do |result|
+          deferrable.callback do |_result|
             raise 'Callback should not have been called'
           end
           EventMachine.add_timer(sleep_time * 2) { stop_reactor }
