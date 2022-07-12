@@ -1,8 +1,10 @@
+# frozen_string_literal: true
+
 module Ably
   module Realtime
     # Class that maintains a map of Channels ensuring Channels are reused
     class Channels
-      include Ably::Modules::ChannelsCollection
+      include ::Ably::Modules::ChannelsCollection
 
       # @return [Ably::Realtime::Channels]
       def initialize(client)
@@ -43,7 +45,7 @@ module Ably
       def release(channel)
         get(channel).detach do
           @channels.delete(channel)
-        end if @channels.has_key?(channel)
+        end if @channels.key?(channel)
       end
     end
   end
