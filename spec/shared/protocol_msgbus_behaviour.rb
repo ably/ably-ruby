@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 shared_examples 'a protocol message bus' do
   describe '__protocol_msgbus__ PubSub', :api_private do
     let(:protocol_message) do
@@ -12,7 +14,7 @@ shared_examples 'a protocol message bus' do
     specify 'supports valid ProtocolMessage messages' do
       received = 0
       msgbus.subscribe(:protocol_message) { received += 1 }
-      expect { msgbus.publish(:protocol_message, protocol_message) }.to change { received }.to(1)
+      expect { msgbus.publish(:protocol_message, protocol_message) }.to(change { received }.to(1))
     end
 
     specify 'fail with unacceptable STATE event names' do
