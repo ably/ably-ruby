@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module SerializationHelper
   def serialize_body(object, protocol)
     if protocol == :msgpack
