@@ -1,19 +1,21 @@
+# frozen_string_literal: true
+
 module Ably
   module RSpec
     # Generate Markdown Specification from the RSpec public API tests
     #
     class MarkdownSpecFormatter
       ::RSpec::Core::Formatters.register self, :start, :close,
-                                               :example_group_started, :example_group_finished,
-                                               :example_passed, :example_failed, :example_pending,
-                                               :dump_summary
+                                         :example_group_started, :example_group_finished,
+                                         :example_passed, :example_failed, :example_pending,
+                                         :dump_summary
 
-      def initialize(output)
+      def initialize(_output)
         @output = if documenting_rest_only?
-          File.open(File.expand_path('../../../../../../SPEC.md', __FILE__), 'w')
-        else
-          File.open(File.expand_path('../../../SPEC.md', __FILE__), 'w')
-        end
+                    File.open(File.expand_path('../../../../../SPEC.md', __dir__), 'w')
+                  else
+                    File.open(File.expand_path('../../SPEC.md', __dir__), 'w')
+                  end
 
         @indent  = 0
         @passed  = 0
@@ -21,17 +23,17 @@ module Ably
         @failed  = 0
       end
 
-      def start(notification)
+      def start(_notification)
         puts "\n\e[33m --> Creating SPEC.md <--\e[0m\n"
         scope = if defined?(Ably::Realtime)
-          'Realtime & REST'
-        else
-          'REST'
-        end
+                  'Realtime & REST'
+                else
+                  'REST'
+                end
         output.write "# Ably #{scope} Client Library #{Ably::VERSION} Specification\n"
       end
 
-      def close(notification)
+      def close(_notification)
         output.close
       end
 
@@ -41,33 +43,33 @@ module Ably
         @indent += 1
       end
 
-      def example_group_finished(notification)
+      def example_group_finished(_notification)
         @indent -= 1
       end
 
       def example_passed(notification)
-        unless notification.example.metadata[:api_private]
-          output.write "#{indent_prefix}#{example_name_and_link(notification)}\n"
-          @passed += 1
-        end
+        return if notification.example.metadata[:api_private]
+
+        output.write "#{indent_prefix}#{example_name_and_link(notification)}\n"
+        @passed += 1
       end
 
       def example_failed(notification)
-        unless notification.example.metadata[:api_private]
-          output.write "#{indent_prefix}FAILED: ~~#{example_name_and_link(notification)}~~\n"
-          @failed += 1
-        end
+        return if notification.example.metadata[:api_private]
+
+        output.write "#{indent_prefix}FAILED: ~~#{example_name_and_link(notification)}~~\n"
+        @failed += 1
       end
 
       def example_pending(notification)
-        unless notification.example.metadata[:api_private]
-          output.write "#{indent_prefix}PENDING: *#{example_name_and_link(notification)}*\n"
-          @pending += 1
-        end
+        return if notification.example.metadata[:api_private]
+
+        output.write "#{indent_prefix}PENDING: *#{example_name_and_link(notification)}*\n"
+        @pending += 1
       end
 
-      def dump_summary(notification)
-        output.write <<-EOF.gsub('        ', '')
+      def dump_summary(_notification)
+        output.write <<-MARKDOWN.gsub('        ', '')
 
           -------
 
@@ -76,22 +78,23 @@ module Ably
           * Passing tests: #{@passed}
           * Pending tests: #{@pending}
           * Failing tests: #{@failed}
-        EOF
+        MARKDOWN
       end
 
       private
+
       attr_reader :output, :indent
 
       def documenting_rest_only?
-        File.exists?(File.expand_path('../../../../../../ably-rest.gemspec', __FILE__))
+        File.exist?(File.expand_path('../../../../../ably-rest.gemspec', __dir__))
       end
 
       def example_name_and_link(notification)
-        "[#{notification.example.metadata[:description]}](#{path_for(notification.example.location).gsub(/\:(\d+)/, '#L\1')})"
+        "[#{notification.example.metadata[:description]}](#{path_for(notification.example.location).gsub(/:(\d+)/, '#L\1')})"
       end
 
       def heading_location_path(notification)
-        "[#{notification.group.location.gsub(/\:(\d+)/, '').gsub(%r{^\.\/}, '')}](#{path_for(notification.group.location).gsub(/\:(\d+)/, '')})"
+        "[#{notification.group.location.gsub(/:(\d+)/, '').gsub(%r{^\./}, '')}](#{path_for(notification.group.location).gsub(/:(\d+)/, '')})"
       end
 
       def path_for(location)
@@ -103,7 +106,7 @@ module Ably
       end
 
       def submodule_sha
-        @sha ||= `git ls-tree HEAD:lib/submodules grep ably-ruby`[/^\w+\s+\w+\s+(\w+)/, 1]
+        @submodule_sha ||= `git ls-tree HEAD:lib/submodules grep ably-ruby`[/^\w+\s+\w+\s+(\w+)/, 1]
       end
 
       def indent_prefix
