@@ -1,4 +1,5 @@
-# encoding: utf-8
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'shared/model_behaviour'
 
@@ -7,7 +8,7 @@ describe Ably::Models::DevicePushDetails do
 
   subject { Ably::Models::DevicePushDetails }
 
-  %w(state).each do |string_attribute|
+  %w[state].each do |string_attribute|
     let(:empty_push_details) { subject.new }
 
     describe "##{string_attribute} and ##{string_attribute}=" do
@@ -46,7 +47,7 @@ describe Ably::Models::DevicePushDetails do
     end
   end
 
-  describe "#recipient and #recipient=" do
+  describe '#recipient and #recipient=' do
     let(:new_val) { { foo: random_str } }
 
     specify 'setter accepts a Hash value and getter returns the new value' do
@@ -63,11 +64,11 @@ describe Ably::Models::DevicePushDetails do
     end
 
     specify 'rejects non Hash or nil values' do
-      expect { empty_push_details.recipient = "foo" }.to raise_error(ArgumentError)
+      expect { empty_push_details.recipient = 'foo' }.to raise_error(ArgumentError)
     end
   end
 
-  describe "#error_reason and #error_reason=" do
+  describe '#error_reason and #error_reason=' do
     let(:error_message) { random_str }
     let(:error_attributes) { { message: error_message } }
 
@@ -95,7 +96,7 @@ describe Ably::Models::DevicePushDetails do
     end
 
     specify 'rejects non Hash, ErrorInfo or nil values' do
-      expect { empty_push_details.error_reason = "foo" }.to raise_error(ArgumentError)
+      expect { empty_push_details.error_reason = 'foo' }.to raise_error(ArgumentError)
     end
   end
 end
