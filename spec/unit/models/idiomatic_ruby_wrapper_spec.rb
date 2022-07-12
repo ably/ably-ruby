@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe Ably::Models::IdiomaticRubyWrapper, :api_private do
@@ -94,16 +96,16 @@ describe Ably::Models::IdiomaticRubyWrapper, :api_private do
   context 'non standard mixedCaseData' do
     let(:data) do
       {
-        :symbol             => 'aSymbolValue',
-        :snake_case_symbol  => 'snake_case_symbolValue',
-        :mixedCaseSymbol    => 'mixedCaseSymbolValue',
+        :symbol => 'aSymbolValue',
+        :snake_case_symbol => 'snake_case_symbolValue',
+        :mixedCaseSymbol => 'mixedCaseSymbolValue',
         'snake_case_string' => 'snake_case_stringValue',
-        'mixedCaseString'   => 'mixedCaseStringFirstChoiceValue',
-        :mixedCaseString    => 'mixedCaseStringFallbackValue',
-        :CamelCaseSymbol    => 'CamelCaseSymbolValue',
-        'CamelCaseString'   => 'camel_case_stringValue',
-        :lowercasesymbol    => 'lowercasesymbolValue',
-        'lowercasestring'   => 'lowercasestringValue'
+        'mixedCaseString' => 'mixedCaseStringFirstChoiceValue',
+        :mixedCaseString => 'mixedCaseStringFallbackValue',
+        :CamelCaseSymbol => 'CamelCaseSymbolValue',
+        'CamelCaseString' => 'camel_case_stringValue',
+        :lowercasesymbol => 'lowercasesymbolValue',
+        'lowercasestring' => 'lowercasestringValue'
       }
     end
     let(:unique_value) { random_str }
@@ -111,15 +113,15 @@ describe Ably::Models::IdiomaticRubyWrapper, :api_private do
     subject { Ably::Models::IdiomaticRubyWrapper.new(data) }
 
     {
-      :symbol => 'aSymbolValue',
-      :snake_case_symbol    => 'snake_case_symbolValue',
-      :mixed_case_symbol    => 'mixedCaseSymbolValue',
-      :snake_case_string    => 'snake_case_stringValue',
-      :mixed_case_string    => 'mixedCaseStringFirstChoiceValue',
-      :camel_case_symbol    => 'CamelCaseSymbolValue',
-      :camel_case_string    => 'camel_case_stringValue',
-      :lower_case_symbol      => 'lowercasesymbolValue',
-      :lower_case_string      => 'lowercasestringValue'
+      symbol: 'aSymbolValue',
+      snake_case_symbol: 'snake_case_symbolValue',
+      mixed_case_symbol: 'mixedCaseSymbolValue',
+      snake_case_string: 'snake_case_stringValue',
+      mixed_case_string: 'mixedCaseStringFirstChoiceValue',
+      camel_case_symbol: 'CamelCaseSymbolValue',
+      camel_case_string: 'camel_case_stringValue',
+      lower_case_symbol: 'lowercasesymbolValue',
+      lower_case_string: 'lowercasestringValue'
     }.each do |symbol_accessor, expected_value|
       context symbol_accessor do
         it 'allows access to non conformant keys but prefers correct mixedCaseSyntax' do
@@ -170,7 +172,7 @@ describe Ably::Models::IdiomaticRubyWrapper, :api_private do
     end
 
     context 'with snake case JSON' do
-      let(:subject) { Ably::Models::IdiomaticRubyWrapper.new('wrong_case' => 'will_be_corrected')}
+      let(:subject) { Ably::Models::IdiomaticRubyWrapper.new('wrong_case' => 'will_be_corrected') }
       specify '#to_json uses mixedCase for any non mixedCase keys' do
         expect(parsed_json['wrongCase']).to eql('will_be_corrected')
       end
@@ -205,14 +207,14 @@ describe Ably::Models::IdiomaticRubyWrapper, :api_private do
     end
 
     context 'iterable' do
-      subject { Ably::Models::IdiomaticRubyWrapper.new(mixed_case_data, stop_at: [:hash_object, :array_object]) }
+      subject { Ably::Models::IdiomaticRubyWrapper.new(mixed_case_data, stop_at: %i[hash_object array_object]) }
 
-      let(:expected_keys) { [:mixed_case, :simple, :hash_object, :array_object] }
-      let(:expected_vals) { mixed_case_data.map { |k,v| v } }
+      let(:expected_keys) { %i[mixed_case simple hash_object array_object] }
+      let(:expected_vals) { mixed_case_data.map { |_k, v| v } }
 
       it 'yields key value pairs' do
-        expect(subject.map { |k,v| k }).to eql(expected_keys)
-        expect(subject.map { |k,v| v }).to eql(expected_vals)
+        expect(subject.map { |k, _v| k }).to eql(expected_keys)
+        expect(subject.map { |_k, v| v }).to eql(expected_vals)
       end
 
       context '#each' do
@@ -245,7 +247,7 @@ describe Ably::Models::IdiomaticRubyWrapper, :api_private do
       end
 
       it 'calls the block if key does not exist' do
-        expect(subject.fetch(:non_existent) { 'block_default' } ).to eql('block_default')
+        expect(subject.fetch(:non_existent, 'block_default')).to eql('block_default')
       end
     end
 
@@ -257,12 +259,12 @@ describe Ably::Models::IdiomaticRubyWrapper, :api_private do
       end
       let(:presented_as_data) do
         {
-          :key => 'value'
+          key: 'value'
         }
       end
       let(:invalid_match) do
         {
-          :key => 'other value'
+          key: 'other value'
         }
       end
       let(:other) { Ably::Models::IdiomaticRubyWrapper.new(mixed_case_data) }
@@ -330,7 +332,7 @@ describe Ably::Models::IdiomaticRubyWrapper, :api_private do
       let(:mixed_case_data) do
         {
           'key_id' => 'value',
-          'stop'   => { client_id: "case won't change" }
+          'stop' => { client_id: "case won't change" }
         }.freeze
       end
       let(:dupe) { subject.dup }
