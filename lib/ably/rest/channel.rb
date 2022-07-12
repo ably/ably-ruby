@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Ably
   module Rest
     # The Ably Realtime service organises the traffic within any application into named channels.
@@ -8,7 +10,7 @@ module Ably
     # @!attribute [r] options
     #   @return {Hash} channel options configured for this channel, see {#initialize} for channel_options
     class Channel
-      include Ably::Modules::Conversions
+      include ::Ably::Modules::Conversions
 
       # Ably client associated with this channel
       # @return [Ably::Realtime::Client]
@@ -73,12 +75,12 @@ module Ably
       #
       def publish(name, data = nil, attributes = {})
         qs_params = nil
-        qs_params = data if name.kind_of?(Enumerable) || name.kind_of?(Ably::Models::Message)
+        qs_params = data if name.is_a?(Enumerable) || name.is_a?(Ably::Models::Message)
 
         messages = build_messages(name, data, attributes) # (RSL1a, RSL1b)
 
         if messages.sum(&:size) > (max_message_size = client.max_message_size || Ably::Rest::Client::MAX_MESSAGE_SIZE)
-          raise Ably::Exceptions::MaxMessageSizeExceeded.new("Maximum message size exceeded #{max_message_size} bytes.")
+          raise Ably::Exceptions::MaxMessageSizeExceeded, "Maximum message size exceeded #{max_message_size} bytes."
         end
 
         payload = messages.map do |message|
@@ -86,22 +88,16 @@ module Ably
             msg.encode client.encoders, options
 
             next if msg.client_id.nil?
-            if msg.client_id == '*'
-              raise Ably::Exceptions::IncompatibleClientId.new('Wildcard client_id is reserved and cannot be used when publishing messages')
-            end
-            unless client.auth.can_assume_client_id?(msg.client_id)
-              raise Ably::Exceptions::IncompatibleClientId.new("Cannot publish with client_id '#{msg.client_id}' as it is incompatible with the current configured client_id '#{client.client_id}'")
-            end
+            raise Ably::Exceptions::IncompatibleClientId, 'Wildcard client_id is reserved and cannot be used when publishing messages' if msg.client_id == '*'
+            raise Ably::Exceptions::IncompatibleClientId, "Cannot publish with client_id '#{msg.client_id}' as it is incompatible with the current configured client_id '#{client.client_id}'" unless client.auth.can_assume_client_id?(msg.client_id)
           end.as_json
-        end.tap do |payload|
-          if client.idempotent_rest_publishing
-            # We cannot mutate for idempotent publishing if one or more messages already has an ID
-            if payload.all? { |msg| !msg['id'] }
-              # Mutate the JSON to support idempotent publishing where a Message.id does not exist
-              idempotent_publish_id = SecureRandom.base64(IDEMPOTENT_LIBRARY_GENERATED_ID_LENGTH)
-              payload.each_with_index do |msg, idx|
-                msg['id'] = "#{idempotent_publish_id}:#{idx}"
-              end
+        end.tap do |p|
+          # We cannot mutate for idempotent publishing if one or more messages already has an ID
+          if client.idempotent_rest_publishing && p.all? { |msg| !msg['id'] }
+            # Mutate the JSON to support idempotent publishing where a Message.id does not exist
+            idempotent_publish_id = SecureRandom.base64(IDEMPOTENT_LIBRARY_GENERATED_ID_LENGTH)
+            p.each_with_index do |msg, idx|
+              msg['id'] = "#{idempotent_publish_id}:#{idx}"
             end
           end
         end
@@ -125,16 +121,16 @@ module Ably
       def history(options = {})
         url = "#{base_path}/messages"
         options = {
-          :direction => :backwards,
-          :limit     => 100
+          direction: :backwards,
+          limit: 100
         }.merge(options)
 
-        [:start, :end].each { |option| options[option] = as_since_epoch(options[option]) if options.has_key?(option) }
-        raise ArgumentError, ":end must be equal to or after :start" if options[:start] && options[:end] && (options[:start] > options[:end])
+        %I[start end].each { |option| options[option] = as_since_epoch(options[option]) if options.key?(option) }
+        raise ArgumentError, ':end must be equal to or after :start' if options[:start] && options[:end] && (options[:start] > options[:end])
 
         paginated_options = {
           coerce_into: 'Ably::Models::Message',
-          async_blocking_operations: options.delete(:async_blocking_operations),
+          async_blocking_operations: options.delete(:async_blocking_operations)
         }
 
         response = client.get(url, options)
