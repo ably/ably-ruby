@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'shared/protocol_msgbus_behaviour'
 
@@ -5,7 +7,7 @@ describe Ably::Auth do
   let(:client)        { double('client').as_null_object }
   let(:client_id)     { nil }
   let(:auth_options)  { { key: 'appid.keyuid:keysecret', client_id: client_id } }
-  let(:token_params)  { { } }
+  let(:token_params)  { {} }
 
   subject do
     Ably::Auth.new(client, token_params, auth_options)
