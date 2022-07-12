@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Ably is the base namespace for the Ably {Ably::Realtime Realtime} & {Ably::Rest Rest} client libraries.
 #
 # Please refer to the {file:README.md Readme} on getting started.
@@ -9,7 +11,7 @@ module Ably
   # see https://ably.com/docs/client-lib-development-guide/features/#RSC15a
   #
   FALLBACK_DOMAIN = 'ably-realtime.com'.freeze
-  FALLBACK_IDS = %w(a b c d e).freeze
+  FALLBACK_IDS = %w[a b c d e].freeze
 
   # Default production fallbacks a.ably-realtime.com ... e.ably-realtime.com
   FALLBACK_HOSTS = FALLBACK_IDS.map { |host| "#{host}.#{FALLBACK_DOMAIN}".freeze }.freeze
@@ -20,7 +22,7 @@ module Ably
   end.freeze
 
   INTERNET_CHECK = {
-    url:     '//internet-up.ably-realtime.com/is-the-internet-up.txt',
+    url: '//internet-up.ably-realtime.com/is-the-internet-up.txt',
     ok_text: 'yes'
   }.freeze
 end
