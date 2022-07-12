@@ -1,4 +1,5 @@
-# encoding: utf-8
+# frozen_string_literal: true
+
 require 'base64'
 require 'msgpack'
 
@@ -13,7 +14,7 @@ describe Ably::Models::Message do
   let(:protocol_message) { Ably::Models::ProtocolMessage.new(action: 1, timestamp: protocol_message_timestamp) }
 
   context 'serialization of the Message object (#RSL1j)' do
-    it_behaves_like 'a model', with_simple_attributes: %w(id name client_id data encoding) do
+    it_behaves_like 'a model', with_simple_attributes: %w[id name client_id data encoding] do
       let(:model_args) { [protocol_message: protocol_message] }
     end
   end
@@ -79,7 +80,7 @@ describe Ably::Models::Message do
 
     context 'when this model has a connectionId attribute' do
       context 'but no protocol message' do
-        let(:model) { subject.new('connectionId' => model_connection_id ) }
+        let(:model) { subject.new('connectionId' => model_connection_id) }
 
         it 'uses the model value' do
           expect(model.connection_id).to eql(model_connection_id)
@@ -97,7 +98,7 @@ describe Ably::Models::Message do
 
     context 'when this model has no connectionId attribute' do
       context 'and no protocol message' do
-        let(:model) { subject.new({ }) }
+        let(:model) { subject.new({}) }
 
         it 'uses the model value' do
           expect(model.connection_id).to be_nil
@@ -105,7 +106,7 @@ describe Ably::Models::Message do
       end
 
       context 'with a protocol message with a connectionId' do
-        let(:model) { subject.new({ }, protocol_message: protocol_message) }
+        let(:model) { subject.new({}, protocol_message: protocol_message) }
 
         it 'uses the model value' do
           expect(model.connection_id).to eql(protocol_connection_id)
@@ -123,7 +124,7 @@ describe Ably::Models::Message do
   end
 
   context 'initialized with' do
-    %w(name client_id encoding).each do |attribute|
+    %w[name client_id encoding].each do |attribute|
       context ":#{attribute}" do
         let(:encoded_value)   { value.encode(encoding) }
         let(:value)           { random_str }
@@ -193,7 +194,7 @@ describe Ably::Models::Message do
       let(:model) { subject.new({ name: 'test', clientId: 'joe' }, protocol_message: protocol_message) }
 
       it 'converts the attribute back to Java mixedCase notation using string keys' do
-        expect(json_object["clientId"]).to eql('joe')
+        expect(json_object['clientId']).to eql('joe')
       end
     end
 
@@ -202,11 +203,11 @@ describe Ably::Models::Message do
       let(:model) { subject.new({ name: 'test', data: data }, protocol_message: protocol_message) }
 
       it 'encodes as Base64 so that it can be converted to UTF-8 automatically by JSON#dump' do
-        expect(json_object["data"]).to eql(::Base64.encode64(data))
+        expect(json_object['data']).to eql(::Base64.encode64(data))
       end
 
       it 'adds Base64 encoding' do
-        expect(json_object["encoding"]).to eql('base64')
+        expect(json_object['encoding']).to eql('base64')
       end
     end
   end
@@ -229,7 +230,7 @@ describe Ably::Models::Message do
       let(:data) { Object.new }
       let(:client_id) { String('10') }
       let(:name) { 'John' }
-      let(:extras) { Hash.new }
+      let(:extras) { {} }
 
       it 'should return 38 bytes' do
         expect(model.size).to eq(38)
@@ -262,7 +263,7 @@ describe Ably::Models::Message do
       let(:data) { nil }
       let(:client_id) { '' }
       let(:name) { '' }
-      let(:extras) { nil}
+      let(:extras) { nil }
 
       it 'should return 19 bytes' do
         expect(model.size).to eq(0)
@@ -294,10 +295,10 @@ describe Ably::Models::Message do
 
     let(:protocol_message) do
       Ably::Models::ProtocolMessage.new({
-        action: :message,
-        timestamp: protocol_timestamp,
-        id: protocol_message_id
-      })
+                                          action: :message,
+                                          timestamp: protocol_timestamp,
+                                          id: protocol_message_id
+                                        })
     end
 
     context 'with protocol message' do
@@ -355,14 +356,14 @@ describe Ably::Models::Message do
     let(:protocol_message_id) { random_str }
     let(:protocol_message) do
       Ably::Models::ProtocolMessage.new({
-        action: :message,
-        timestamp: ably_time.to_i,
-        msg_serial: message_serial,
-        id: protocol_message_id,
-        messages: [
-          message_0_json, message_1_json
-        ]
-      })
+                                          action: :message,
+                                          timestamp: ably_time.to_i,
+                                          msg_serial: message_serial,
+                                          id: protocol_message_id,
+                                          messages: [
+                                            message_0_json, message_1_json
+                                          ]
+                                        })
     end
 
     let(:message_0) { protocol_message.messages.first }
@@ -383,20 +384,20 @@ describe Ably::Models::Message do
     end
 
     it 'should not allow changes to the payload' do
-      expect { message_0.data["test"] = true }.to raise_error RuntimeError, /can't modify frozen.*Hash/
+      expect { message_0.data['test'] = true }.to raise_error RuntimeError, /can't modify frozen.*Hash/
     end
 
     context 'with identical message objects' do
       let(:protocol_message) do
         Ably::Models::ProtocolMessage.new({
-          action: :message,
-          timestamp: ably_time.to_i,
-          msg_serial: message_serial,
-          id: protocol_message_id,
-          messages: [
-            message_0_json, message_0_json, message_0_json
-          ]
-        })
+                                            action: :message,
+                                            timestamp: ably_time.to_i,
+                                            msg_serial: message_serial,
+                                            id: protocol_message_id,
+                                            messages: [
+                                              message_0_json, message_0_json, message_0_json
+                                            ]
+                                          })
       end
 
       it 'provide a unique ID:index' do
@@ -517,7 +518,7 @@ describe Ably::Models::Message do
       context 'with a block' do
         it 'does not call the block' do
           block_called = false
-          subject.from_encoded(message_data) do |exception, message|
+          subject.from_encoded(message_data) do |_exception, _message|
             block_called = true
           end
           expect(block_called).to be_falsey
@@ -526,7 +527,7 @@ describe Ably::Models::Message do
     end
 
     context 'with an encoding' do
-      let(:hash_data)           { { 'key' => 'value', 'key2' => 123 } }
+      let(:hash_data) { { 'key' => 'value', 'key2' => 123 } }
       let(:message_data) do
         { name: 'name', data: JSON.dump(hash_data), encoding: 'json' }
       end
@@ -541,7 +542,7 @@ describe Ably::Models::Message do
     end
 
     context 'with a custom encoding' do
-      let(:hash_data)           { { 'key' => 'value', 'key2' => 123 } }
+      let(:hash_data) { { 'key' => 'value', 'key2' => 123 } }
       let(:message_data) do
         { name: 'name', data: JSON.dump(hash_data), encoding: 'foo/json' }
       end
@@ -592,7 +593,7 @@ describe Ably::Models::Message do
       context 'with a block' do
         it 'calls the block with the exception' do
           block_called = false
-          subject.from_encoded(message_data, channel_options) do |exception, message|
+          subject.from_encoded(message_data, channel_options) do |exception, _message|
             expect(exception).to be_a(Ably::Exceptions::CipherError)
             block_called = true
           end
