@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'faraday'
 
 module Ably
@@ -7,16 +9,14 @@ module Ably
       # Used by auth calls
       class ExternalExceptions < Faraday::Middleware
         def on_complete(env)
-          if env.status >= 400
-            error_status_code = env.status
-            message = "Error #{error_status_code}: #{(env.body || '')[0...200]}"
+          return unless env.status >= 400
 
-            if error_status_code >= 500
-              raise Ably::Exceptions::ServerError, message
-            else
-              raise Ably::Exceptions::InvalidRequest, message
-            end
-          end
+          error_status_code = env.status
+          message = "Error #{error_status_code}: #{(env.body || '')[0...200]}"
+
+          raise Ably::Exceptions::ServerError, message if error_status_code >= 500
+
+          raise Ably::Exceptions::InvalidRequest, message
         end
       end
     end
