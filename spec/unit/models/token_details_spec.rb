@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'shared/model_behaviour'
 
@@ -6,13 +8,12 @@ describe Ably::Models::TokenDetails do
 
   subject { Ably::Models::TokenDetails }
 
-  it_behaves_like 'a model', with_simple_attributes: %w(token key_name client_id) do
+  it_behaves_like 'a model', with_simple_attributes: %w[token key_name client_id] do
     let(:model_args) { [] }
   end
 
-
   context 'attributes' do
-    let(:capability) { { "value" => random_str } }
+    let(:capability) { { 'value' => random_str } }
     let(:capability_str) { JSON.dump(capability) }
 
     context '#capability' do
@@ -25,7 +26,7 @@ describe Ably::Models::TokenDetails do
 
     context do
       let(:time) { Time.now }
-      { :issued => :issued, :expires => :expires }.each do |method_name, attribute|
+      { issued: :issued, expires: :expires }.each do |method_name, attribute|
         context "##{method_name} with :#{method_name} option as milliseconds in constructor" do
           subject { Ably::Models::TokenDetails.new({ attribute.to_sym => time.to_i * 1000 }) }
 
@@ -74,7 +75,7 @@ describe Ably::Models::TokenDetails do
       end
 
       context 'when expires is not available (i.e. string tokens)' do
-        subject { Ably::Models::TokenDetails.new() }
+        subject { Ably::Models::TokenDetails.new }
 
         it 'is always false' do
           expect(subject.expired?).to eql(false)
@@ -163,7 +164,7 @@ describe Ably::Models::TokenDetails do
 
   context 'from_json (#TD7)' do
     let(:issued_time) { Time.now }
-    let(:expires_time) { Time.now + 24*60*60 }
+    let(:expires_time) { Time.now + 24 * 60 * 60 }
     let(:capabilities) { { '*' => ['publish'] } }
 
     context 'with Ruby idiomatic Hash object' do
