@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'faraday'
 require 'json'
 require 'logger'
@@ -18,32 +20,32 @@ module Ably
     #   @return [Hash] {Ably::Auth} options configured for this client
     #
     class Client
-      include Ably::Modules::Conversions
-      include Ably::Modules::HttpHelpers
+      include ::Ably::Modules::Conversions
+      include ::Ably::Modules::HttpHelpers
       extend Forwardable
 
       # Default Ably domain for REST
       DOMAIN = 'rest.ably.io'
 
-      MAX_MESSAGE_SIZE = 65536 # See spec TO3l8
-      MAX_FRAME_SIZE = 524288 # See spec TO3l8
+      MAX_MESSAGE_SIZE = 65_536 # See spec TO3l8
+      MAX_FRAME_SIZE = 524_288 # See spec TO3l8
 
       # Configuration for HTTP timeouts and HTTP request reattempts to fallback hosts
       HTTP_DEFAULTS = {
-        open_timeout:       4,
-        request_timeout:    10,
+        open_timeout: 4,
+        request_timeout: 10,
         max_retry_duration: 15,
-        max_retry_count:    3
+        max_retry_count: 3
       }.freeze
 
       FALLBACK_RETRY_TIMEOUT = 10 * 60
 
       # Faraday 1.0 introduced new error types, however we want to support Faraday <1 too which only used Faraday::ClientError
       FARADAY_CLIENT_OR_SERVER_ERRORS = if defined?(Faraday::ParsingError)
-        [Faraday::ClientError, Faraday::ServerError, Faraday::ConnectionFailed, Faraday::SSLError, Faraday::ParsingError]
-      else
-        Faraday::ClientError
-      end
+                                          [Faraday::ClientError, Faraday::ServerError, Faraday::ConnectionFailed, Faraday::SSLError, Faraday::ParsingError]
+                                        else
+                                          Faraday::ClientError
+                                        end
 
       def_delegators :auth, :client_id, :auth_options
 
@@ -138,7 +140,7 @@ module Ably
       # @option options [String]                  :environment         Specify 'sandbox' when testing the client library against an alternate Ably environment
       # @option options [Symbol]                  :protocol            (:msgpack) Protocol used to communicate with Ably, :json and :msgpack currently supported
       # @option options [Boolean]                 :use_binary_protocol (true) When true will use the MessagePack binary protocol, when false it will use JSON encoding. This option will overide :protocol option
-      # @option options [Logger::Severity,Symbol] :log_level           (Logger::WARN) Log level for the standard Logger that outputs to STDOUT. Can be set to :fatal (Logger::FATAL), :error (Logger::ERROR), :warn (Logger::WARN), :info (Logger::INFO), :debug (Logger::DEBUG) or :none
+      # @option options [Logger::Severity,Symbol] :log_level           (Logger::WARN) Log level for the standard Logger that outputs to $stdout. Can be set to :fatal (Logger::FATAL), :error (Logger::ERROR), :warn (Logger::WARN), :info (Logger::INFO), :debug (Logger::DEBUG) or :none
       # @option options [Logger]                  :logger              A custom logger can be used however it must adhere to the Ruby Logger interface, see http://www.ruby-doc.org/stdlib-3.1.1/libdoc/logger/rdoc/Logger.html
       # @option options [String]                  :client_id           client ID identifying this connection to other clients
       # @option options [String]                  :auth_url            a URL to be used to GET or POST a set of token request params, to obtain a signed token request
@@ -177,17 +179,17 @@ module Ably
         raise ArgumentError, 'Options Hash is expected' if options.nil?
 
         options = options.clone
-        if options.kind_of?(String)
+        if options.is_a?(String)
           options = if options.match(Auth::API_KEY_REGEX)
-            { key: options }
-          else
-            { token: options }
-          end
+                      { key: options }
+                    else
+                      { token: options }
+                    end
         end
 
         @agent               = options.delete(:agent) || Ably::AGENT
         @realtime_client     = options.delete(:realtime_client)
-        @tls                 = options.delete(:tls) == false ? false : true
+        @tls                 = options.delete(:tls) != false
         @environment         = options.delete(:environment) # nil is production
         @environment         = nil if [:production, 'production'].include?(@environment)
         @protocol            = options.delete(:protocol) || :msgpack
@@ -201,26 +203,20 @@ module Ably
         @log_retries_as_info = options.delete(:log_retries_as_info)
         @max_message_size    = options.delete(:max_message_size) || MAX_MESSAGE_SIZE
         @max_frame_size      = options.delete(:max_frame_size) || MAX_FRAME_SIZE
+        @idempotent_rest_publishing = Ably::PROTOCOL_VERSION.to_f > 1.1 if (@idempotent_rest_publishing = options.delete(:idempotent_rest_publishing)).nil?
+        raise ArgumentError, 'fallback_hosts_use_default cannot be set to try when fallback_hosts is also provided' if options[:fallback_hosts_use_default] && options[:fallback_hosts]
 
-        if (@idempotent_rest_publishing = options.delete(:idempotent_rest_publishing)).nil?
-          @idempotent_rest_publishing = Ably::PROTOCOL_VERSION.to_f > 1.1
-        end
-
-        if options[:fallback_hosts_use_default] && options[:fallback_hosts]
-          raise ArgumentError, "fallback_hosts_use_default cannot be set to try when fallback_hosts is also provided"
-        end
-        @fallback_hosts = case
-        when options.delete(:fallback_hosts_use_default)
-          Ably::FALLBACK_HOSTS
-        when options_fallback_hosts = options.delete(:fallback_hosts)
-          options_fallback_hosts
-        when custom_host || options[:realtime_host] || custom_port || custom_tls_port
-          []
-        when environment
-          CUSTOM_ENVIRONMENT_FALLBACKS_SUFFIXES.map { |host| "#{environment}#{host}" }
-        else
-          Ably::FALLBACK_HOSTS
-        end
+        @fallback_hosts = if options.delete(:fallback_hosts_use_default)
+                            Ably::FALLBACK_HOSTS
+                          elsif (options_fallback_hosts = options.delete(:fallback_hosts))
+                            options_fallback_hosts
+                          elsif custom_host || options[:realtime_host] || custom_port || custom_tls_port
+                            []
+                          elsif environment
+                            CUSTOM_ENVIRONMENT_FALLBACKS_SUFFIXES.map { |host| "#{environment}#{host}" }
+                          else
+                            Ably::FALLBACK_HOSTS
+                          end
 
         options[:fallback_retry_timeout] ||= FALLBACK_RETRY_TIMEOUT
 
@@ -228,28 +224,29 @@ module Ably
         # check if the option exists in HTTP_DEFAULTS.  If so, update http_defaults
         @http_defaults = HTTP_DEFAULTS.dup
         options.each do |key, val|
-          if http_key = key[/^http_(.+)/, 1]
-            # Typhoeus converts decimal durations to milliseconds, so 0.0001 timeout is treated as 0 (no timeout)
-            val = 0.001 if val.kind_of?(Numeric) && (val > 0) && (val < 0.001)
-            @http_defaults[http_key.to_sym] = val if val && @http_defaults.has_key?(http_key.to_sym)
-          end
+          next unless (http_key = key[/^http_(.+)/, 1])
+
+          # Typhoeus converts decimal durations to milliseconds, so 0.0001 timeout is treated as 0 (no timeout)
+          val = 0.001 if val.is_a?(Numeric) && val.positive? && (val < 0.001)
+          @http_defaults[http_key.to_sym] = val if val && @http_defaults.key?(http_key.to_sym)
         end
         @http_defaults.freeze
 
         if @log_level == :none
           @custom_logger = Ably::Models::NilLogger.new
-        else
-          @log_level = ::Logger.const_get(log_level.to_s.upcase) if log_level.kind_of?(Symbol) || log_level.kind_of?(String)
+        elsif log_level.is_a?(Symbol) || log_level.is_a?(String)
+          @log_level = ::Logger.const_get(log_level.to_s.upcase)
         end
 
         options.delete(:use_binary_protocol).tap do |use_binary_protocol|
-          if use_binary_protocol == true
+          case use_binary_protocol
+          when true
             @protocol = :msgpack
-          elsif use_binary_protocol == false
+          when false
             @protocol = :json
           end
         end
-        raise ArgumentError, 'Protocol is invalid.  Must be either :msgpack or :json' unless [:msgpack, :json].include?(@protocol)
+        raise ArgumentError, 'Protocol is invalid.  Must be either :msgpack or :json' unless %I[msgpack json].include?(@protocol)
 
         token_params = options.delete(:default_token_params) || {}
         @options = options
@@ -288,13 +285,13 @@ module Ably
       #
       def stats(options = {})
         options = {
-          :direction => :backwards,
-          :unit      => :minute,
-          :limit     => 100
+          direction: :backwards,
+          unit: :minute,
+          limit: 100
         }.merge(options)
 
-        [:start, :end].each { |option| options[option] = as_since_epoch(options[option]) if options.has_key?(option) }
-        raise ArgumentError, ":end must be equal to or after :start" if options[:start] && options[:end] && (options[:start] > options[:end])
+        %I[start end].each { |option| options[option] = as_since_epoch(options[option]) if options.key?(option) }
+        raise ArgumentError, ':end must be equal to or after :start' if options[:start] && options[:end] && (options[:start] > options[:end])
 
         paginated_options = {
           coerce_into: 'Ably::Models::Stats'
@@ -372,32 +369,30 @@ module Ably
       #
       # @return [Ably::Models::HttpPaginatedResponse<>]
       def request(method, path, params = {}, body = nil, headers = {}, options = {})
-        raise "Method #{method.to_s.upcase} not supported" unless %i(get put patch post delete).include?(method.to_sym)
+        raise "Method #{method.to_s.upcase} not supported" unless %i[get put patch post delete].include?(method.to_sym)
 
         response = case method.to_sym
-        when :get, :delete
-          reauthorize_on_authorization_failure do
-            send_request(method, path, params, headers: headers)
-          end
-        when :post, :patch, :put
-          if body.to_json.bytesize > max_frame_size
-            raise Ably::Exceptions::MaxFrameSizeExceeded.new("Maximum frame size exceeded #{max_frame_size} bytes.")
-          end
-          path_with_params = Addressable::URI.new
-          path_with_params.query_values = params || {}
-          query = path_with_params.query
-          reauthorize_on_authorization_failure do
-            send_request(method, "#{path}#{"?#{query}" unless query.nil? || query.empty?}", body, headers: headers)
-          end
-        end
+                   when :get, :delete
+                     reauthorize_on_authorization_failure do
+                       send_request(method, path, params, headers: headers)
+                     end
+                   when :post, :patch, :put
+                     raise Ably::Exceptions::MaxFrameSizeExceeded, "Maximum frame size exceeded #{max_frame_size} bytes." if body.to_json.bytesize > max_frame_size
+
+                     path_with_params = Addressable::URI.new
+                     path_with_params.query_values = params || {}
+                     query = path_with_params.query
+                     reauthorize_on_authorization_failure do
+                       send_request(method, "#{path}#{"?#{query}" unless query.nil? || query.empty?}", body, headers: headers)
+                     end
+                   end
 
         paginated_options = {
-          async_blocking_operations: options.delete(:async_blocking_operations),
+          async_blocking_operations: options.delete(:async_blocking_operations)
         }
 
         Ably::Models::HttpPaginatedResponse.new(response, path, self, paginated_options)
-
-      rescue Exceptions::ResourceMissing, Exceptions::ForbiddenRequest, Exceptions::ResourceMissing => e
+      rescue Exceptions::ResourceMissing, Exceptions::ForbiddenRequest => e
         response = Models::HttpPaginatedResponse::ErrorResponse.new(e.status, e.code, e.message)
         Models::HttpPaginatedResponse.new(response, path, self)
       rescue Exceptions::TokenExpired, Exceptions::UnauthorizedRequest => e
@@ -455,7 +450,7 @@ module Ably
       #
       # @api private
       def register_encoder(encoder, options = {})
-        encoders << Ably::Models::MessageEncoders.encoder_from(encoder, options)
+        encoders << ::Ably::Models::MessageEncoders.encoder_from(encoder, options)
       end
 
       # @!attribute [r] protocol_binary?
@@ -488,9 +483,7 @@ module Ably
       #
       # @api private
       def fallback_connection
-        unless defined?(@fallback_connections) && @fallback_connections
-          @fallback_connections = fallback_hosts.shuffle.map { |host| Faraday.new(endpoint_for_host(host).to_s, connection_options) }
-        end
+        @fallback_connections = fallback_hosts.shuffle.map { |host| Faraday.new(endpoint_for_host(host).to_s, connection_options) } unless defined?(@fallback_connections) && @fallback_connections
         @fallback_index ||= 0
 
         @fallback_connections[@fallback_index % @fallback_connections.count].tap do
@@ -519,9 +512,9 @@ module Ably
       #
       # @return [nil, String]  Returns nil (falsey) if the primary host is being used, or the currently used host if a fallback host is currently preferred
       def using_preferred_fallback_host?
-        if preferred_fallback_connection && (preferred_fallback_connection.fetch(:expires_at) > Time.now)
-          preferred_fallback_connection.fetch(:connection_object).host
-        end
+        return unless preferred_fallback_connection && (preferred_fallback_connection.fetch(:expires_at) > Time.now)
+
+        preferred_fallback_connection.fetch(:connection_object).host
       end
 
       private
@@ -531,15 +524,15 @@ module Ably
       # See #using_preferred_fallback_host? for context
       def set_preferred_fallback_connection(connection)
         @preferred_fallback_connection = if connection == @connection
-          # If the succeeded connection is in fact the primary connection (tried after a failed fallback)
-          #   then clear the preferred fallback connection
-          nil
-        else
-          {
-            expires_at: Time.now + options.fetch(:fallback_retry_timeout),
-            connection_object: connection,
-          }
-        end
+                                           # If the succeeded connection is in fact the primary connection (tried after a failed fallback)
+                                           #   then clear the preferred fallback connection
+                                           nil
+                                         else
+                                           {
+                                             expires_at: Time.now + options.fetch(:fallback_retry_timeout),
+                                             connection_object: connection
+                                           }
+                                         end
       end
 
       def get_preferred_fallback_connection_object
@@ -570,17 +563,18 @@ module Ably
         preferred_fallback_connection_for_first_request = get_preferred_fallback_connection_object
 
         begin
-          use_fallback = can_fallback_to_alternate_ably_host? && (retry_count > 0)
+          use_fallback = can_fallback_to_alternate_ably_host? && retry_count.positive?
 
           conn = if preferred_fallback_connection_for_first_request
-            case retry_count
-            when 0
-              preferred_fallback_connection_for_first_request
-            when 1
-              # Ensure the root host is used first if the preferred fallback fails, see #RSC15f
-              connection(use_fallback: false)
-            end
-          end || connection(use_fallback: use_fallback) # default to normal connection selection process if not preferred connection set
+                   case retry_count
+                   when 0
+                     preferred_fallback_connection_for_first_request
+                   when 1
+                     # Ensure the root host is used first if the preferred fallback fails, see #RSC15f
+                     connection(use_fallback: false)
+                   end
+                 end || connection(use_fallback: use_fallback)
+          # default to normal connection selection process if not preferred connection set
 
           conn.send(method, path, params) do |request|
             if add_request_ids
@@ -588,9 +582,8 @@ module Ably
               request.options.context = {} if request.options.context.nil?
               request.options.context[:request_id] = request_id
             end
-            if options[:qs_params]
-              request.params.merge!(options[:qs_params])
-            end
+            request.params.merge!(options[:qs_params]) if options[:qs_params]
+
             unless options[:send_auth_header] == false
               request.headers[:authorization] = auth.auth_header
 
@@ -599,41 +592,40 @@ module Ably
               end
             end
           end.tap do
-            if retry_count > 0
+            if retry_count.positive?
               retry_log_severity = log_retries_as_info ? :info : :warn
               logger.public_send(retry_log_severity) do
-                "Ably::Rest::Client - Request SUCCEEDED after #{retry_count} #{retry_count > 1 ? 'retries' : 'retry' } for" \
+                "Ably::Rest::Client - Request SUCCEEDED after #{retry_count} #{retry_count > 1 ? 'retries' : 'retry'} for" \
                 " #{method} #{path} #{params} (seq ##{retry_sequence_id}, time elapsed #{(Time.now.to_f - requested_at.to_f).round(2)}s)"
               end
               set_preferred_fallback_connection conn
             end
           end
-
-        rescue *([Faraday::TimeoutError, Ably::Exceptions::ServerError] + FARADAY_CLIENT_OR_SERVER_ERRORS) => error
+        rescue *([Faraday::TimeoutError, Ably::Exceptions::ServerError] + FARADAY_CLIENT_OR_SERVER_ERRORS) => e
           retry_sequence_id ||= SecureRandom.urlsafe_base64(4)
           time_passed = Time.now - requested_at
 
           if can_fallback_to_alternate_ably_host? && (retry_count < max_retry_count) && (time_passed <= max_retry_duration)
             retry_count += 1
             retry_log_severity = log_retries_as_info ? :info : :warn
-            logger.public_send(retry_log_severity) { "Ably::Rest::Client - Retry #{retry_count} for #{method} #{path} #{params} as initial attempt failed (seq ##{retry_sequence_id}): #{error}" }
+            logger.public_send(retry_log_severity) { "Ably::Rest::Client - Retry #{retry_count} for #{method} #{path} #{params} as initial attempt failed (seq ##{retry_sequence_id}): #{e}" }
             retry
           end
 
           retry_log_severity = log_retries_as_info ? :info : :error
           logger.public_send(retry_log_severity) do
-            "Ably::Rest::Client - Request FAILED after #{retry_count} #{retry_count > 1 ? 'retries' : 'retry' } for" \
+            "Ably::Rest::Client - Request FAILED after #{retry_count} #{retry_count > 1 ? 'retries' : 'retry'} for" \
             " #{method} #{path} #{params} (seq ##{retry_sequence_id}, time elapsed #{(Time.now.to_f - requested_at.to_f).round(2)}s)"
           end
 
-          case error
-            when Faraday::TimeoutError
-              raise Ably::Exceptions::ConnectionTimeout.new(error.message, nil, Ably::Exceptions::Codes::CONNECTION_TIMED_OUT, error, { request_id: request_id })
-            when *FARADAY_CLIENT_OR_SERVER_ERRORS
-              # request_id is also available in the request context
-              raise Ably::Exceptions::ConnectionError.new(error.message, nil, Ably::Exceptions::Codes::CONNECTION_FAILED, error, { request_id: request_id })
-            else
-              raise error
+          case e
+          when Faraday::TimeoutError
+            raise Ably::Exceptions::ConnectionTimeout.new(e.message, nil, Ably::Exceptions::Codes::CONNECTION_TIMED_OUT, e, { request_id: request_id })
+          when *FARADAY_CLIENT_OR_SERVER_ERRORS
+            # request_id is also available in the request context
+            raise Ably::Exceptions::ConnectionError.new(e.message, nil, Ably::Exceptions::Codes::CONNECTION_FAILED, e, { request_id: request_id })
+          else
+            raise e
           end
         end
       end
@@ -641,26 +633,19 @@ module Ably
       def reauthorize_on_authorization_failure
         yield
       rescue Ably::Exceptions::TokenExpired => e
-        if auth.token_renewable?
-          auth.authorize
-          yield
-        else
-          raise e
-        end
+        raise e unless auth.token_renewable?
+
+        auth.authorize
+        yield
       end
 
       def endpoint_for_host(host)
-        port = if use_tls?
-          custom_tls_port
-        else
-          custom_port
-        end
-
-        raise ArgumentError, "Custom port must be an Integer or nil" if port && !port.kind_of?(Integer)
+        port = use_tls? ? custom_tls_port : custom_port
+        raise ArgumentError, 'Custom port must be an Integer or nil' if port && !port.is_a?(Integer)
 
         options = {
           scheme: use_tls? ? 'https' : 'http',
-          host:   host
+          host: host
         }
         options.merge!(port: port) if port
 
@@ -674,15 +659,15 @@ module Ably
         @connection_options ||= {
           builder: middleware,
           headers: {
-            content_type:       mime_type,
-            accept:             mime_type,
-            user_agent:         user_agent,
-            'X-Ably-Version' => Ably::PROTOCOL_VERSION,
-            'Ably-Agent'     => agent
+            content_type: mime_type,
+            accept: mime_type,
+            user_agent: user_agent,
+            'X-Ably-Version': Ably::PROTOCOL_VERSION,
+            'Ably-Agent': agent
           },
           request: {
             open_timeout: http_defaults.fetch(:open_timeout),
-            timeout:      http_defaults.fetch(:request_timeout)
+            timeout: http_defaults.fetch(:request_timeout)
           }
         }
       end
@@ -709,7 +694,7 @@ module Ably
       end
 
       def initialize_default_encoders
-        Ably::Models::MessageEncoders.register_default_encoders self, binary_protocol: protocol == :msgpack
+        ::Ably::Models::MessageEncoders.register_default_encoders self, binary_protocol: protocol == :msgpack
       end
     end
   end
