@@ -1,4 +1,5 @@
-# encoding: utf-8
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe Ably::Rest::Channel do
@@ -31,7 +32,7 @@ describe Ably::Rest::Channel do
     end
 
     context 'as frozen UTF_8 string' do
-      let(:channel_name) { 'unique'.freeze }
+      let(:channel_name) { 'unique' }
       let(:encoding) { Encoding::UTF_8 }
 
       it 'is permitted' do
@@ -96,7 +97,7 @@ describe Ably::Rest::Channel do
     end
 
     context 'as frozen UTF_8 string' do
-      let(:encoded_value) { 'unique'.freeze }
+      let(:encoded_value) { 'unique' }
       let(:encoding) { Encoding::UTF_8 }
 
       it 'is permitted' do
@@ -132,17 +133,17 @@ describe Ably::Rest::Channel do
       context 'when max_message_size is nil' do
         context 'and a message size is 65537 bytes' do
           it 'should raise Ably::Exceptions::MaxMessageSizeExceeded' do
-            expect { subject.publish('x' * 65537, 'data') }.to raise_error Ably::Exceptions::MaxMessageSizeExceeded
+            expect { subject.publish('x' * 65_537, 'data') }.to raise_error Ably::Exceptions::MaxMessageSizeExceeded
           end
         end
       end
 
       context 'when max_message_size is 65536 bytes' do
-        let(:max_message_size) { 65536 }
+        let(:max_message_size) { 65_536 }
 
         context 'and a message size is 65537 bytes' do
           it 'should raise Ably::Exceptions::MaxMessageSizeExceeded' do
-            expect { subject.publish('x' * 65537, 'data') }.to raise_error Ably::Exceptions::MaxMessageSizeExceeded
+            expect { subject.publish('x' * 65_537, 'data') }.to raise_error Ably::Exceptions::MaxMessageSizeExceeded
           end
         end
 
