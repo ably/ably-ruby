@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Ably
   module Modules
     module EventEmitter
@@ -20,6 +22,7 @@ module Ably
       end
 
       private
+
       def unplugged_callbacks
         @unplugged_callbacks ||= {
           callbacks: Hash.new { |hash, key| hash[key] = [] },
