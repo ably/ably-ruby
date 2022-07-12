@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Output the message to the console
 # Useful for debugging as clearly visible, and name is not used anywhere else in library as opposed to debug or puts
 def console(message)
