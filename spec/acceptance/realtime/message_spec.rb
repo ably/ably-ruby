@@ -1,4 +1,5 @@
-# encoding: utf-8
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'base64'
 require 'json'
@@ -19,7 +20,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
     let(:other_client_channel) { other_client.channel(channel_name) }
 
     let(:channel_name) { "subscribe_send_text-#{random_str}" }
-    let(:options)      { { :protocol => :json } }
+    let(:options)      { { protocol: :json } }
     let(:payload)      { 'Test message (subscribe_send_text)' }
 
     it 'sends a String data payload' do
@@ -51,7 +52,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       end
 
       context 'JSON Array' do
-        let(:data) { [ nil, true, false, 55, 'string', { 'Hash' => true }, ['array'] ] }
+        let(:data) { [nil, true, false, 55, 'string', { 'Hash' => true }, ['array']] }
 
         it 'is encoded and decoded to the same Array' do
           publish_and_check_data data
@@ -173,7 +174,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       end
 
       context 'JSON Array' do
-        let(:data) { { 'push' => { 'data' => { 'key' => [ true, false, 55, nil, 'string', { 'Hash' => true }, ['array'] ] } } } }
+        let(:data) { { 'push' => { 'data' => { 'key' => [true, false, 55, nil, 'string', { 'Hash' => true }, ['array']] } } } }
 
         it 'is encoded and decoded to the same Array' do
           publish_and_check_extras data
@@ -242,7 +243,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
 
     context 'when the message publisher has a client_id' do
       let(:client_id) { random_str }
-      let(:client_options)  { default_options.merge(client_id: client_id) }
+      let(:client_options) { default_options.merge(client_id: client_id) }
 
       it 'contains a #client_id attribute' do
         when_all(channel.attach, other_client_channel.attach) do
@@ -306,8 +307,8 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
             no_echo_channel.attach do
               no_echo_channel.publish 'test_event', payload
 
-              no_echo_channel.subscribe('test_event') do |message|
-                fail "Message should not have been echoed back"
+              no_echo_channel.subscribe('test_event') do |_message|
+                raise 'Message should not have been echoed back'
               end
 
               echo_channel.subscribe('test_event') do |message|
@@ -322,8 +323,8 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
 
         it 'will not echo messages to the client from other REST clients publishing using that connection_key', em_timeout: 10 do
           no_echo_channel.attach do
-            no_echo_channel.subscribe('test_event') do |message|
-              fail "Message should not have been echoed back"
+            no_echo_channel.subscribe('test_event') do |_message|
+              raise 'Message should not have been echoed back'
             end
 
             rest_client.channel(channel_name).publish('test_event', nil, connection_key: no_echo_client.connection.key)
@@ -375,11 +376,11 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
           end
         end
 
-        channel.subscribe('test_event') do |message|
+        channel.subscribe('test_event') do |_message|
           echos[:client] += 1
           check_message_and_callback_counts.call
         end
-        other_client_channel.subscribe('test_event') do |message|
+        other_client_channel.subscribe('test_event') do |_message|
           echos[:other] += 1
           check_message_and_callback_counts.call
         end
@@ -399,9 +400,9 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
 
     context 'without suitable publishing permissions' do
       let(:restricted_client) do
-        auto_close Ably::Realtime::Client.new(options.merge(key: restricted_api_key, environment: environment, protocol: protocol, :log_level => :error))
+        auto_close Ably::Realtime::Client.new(options.merge(key: restricted_api_key, environment: environment, protocol: protocol, log_level: :error))
       end
-      let(:restricted_channel) { restricted_client.channel("cansubscribe:example") }
+      let(:restricted_channel) { restricted_client.channel('cansubscribe:example') }
       let(:payload)            { 'Test message without permission to publish' }
 
       it 'calls the error callback' do
@@ -411,8 +412,8 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
             expect(error.status).to eql(401)
             stop_reactor
           end
-          deferrable.callback do |message|
-            fail 'Success callback should not have been called'
+          deferrable.callback do |_message|
+            raise 'Success callback should not have been called'
           end
         end
       end
@@ -468,9 +469,10 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
           let(:encoded_data)     { encoded['data'] }
           let(:encoded_encoding) { encoded['encoding'] }
           let(:encoded_data_decoded) do
-            if encoded_encoding == 'json'
+            case encoded_encoding
+            when 'json'
               JSON.parse(encoded_data)
-            elsif encoded_encoding == 'base64'
+            when 'base64'
               Base64.decode64(encoded_data)
             else
               encoded_data
@@ -521,7 +523,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
         end
       end
 
-      resources_root = File.expand_path('../../../../lib/submodules/ably-common/test-resources', __FILE__)
+      resources_root = File.expand_path('../../../lib/submodules/ably-common/test-resources', __dir__)
 
       shared_examples 'add_tests_for_data' do |data|
         data['items'].each_with_index do |item, index|
@@ -598,7 +600,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
         end
 
         [MessagePack.pack({ 'key' => SecureRandom.hex }), 'ã unicode', { 'key' => SecureRandom.hex }].each do |payload|
-          payload_description = "#{payload.class}#{" #{payload.encoding}" if payload.kind_of?(String)}"
+          payload_description = "#{payload.class}#{" #{payload.encoding}" if payload.is_a?(String)}"
 
           it "delivers a #{payload_description} payload to the receiver" do
             encrypted_channel_client2.attach do
@@ -726,11 +728,11 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       let(:event_name)     { random_str }
       let(:message_state)  { [] }
       let(:connection)     { client.connection }
-      let(:client_options) { default_options.merge(:log_level => :fatal) }
+      let(:client_options) { default_options.merge(log_level: :fatal) }
       let(:msgs_received)  { [] }
 
       it 'publishes the message again, later receives the ACK and only one message is ever received from Ably' do
-        on_reconnected = lambda do |*args|
+        on_reconnected = lambda do |*_args|
           expect(message_state).to be_empty
           EventMachine.add_timer(2) do
             expect(message_state).to contain_exactly(:delivered)
@@ -769,7 +771,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       let(:event_name) { random_str }
 
       describe 'the connection is not resumed' do
-        let(:client_options) { default_options.merge(:log_level => :fatal) }
+        let(:client_options) { default_options.merge(log_level: :fatal) }
 
         it 'calls the errback for all messages' do
           connection.once(:connected) do
@@ -795,7 +797,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       end
 
       describe 'the connection becomes suspended' do
-        let(:client_options) { default_options.merge(:log_level => :fatal) }
+        let(:client_options) { default_options.merge(log_level: :fatal) }
 
         it 'calls the errback for all messages' do
           connection.once(:connected) do
@@ -822,7 +824,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       end
 
       describe 'the connection becomes failed' do
-        let(:client_options) { default_options.merge(:log_level => :none) }
+        let(:client_options) { default_options.merge(log_level: :none) }
 
         it 'calls the errback for all messages' do
           connection.once(:connected) do
@@ -849,10 +851,10 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
   end
 
   context 'message encoding interoperability' do
-    let(:client_options)  { { key: api_key, environment: environment, protocol: :json } }
+    let(:client_options) { { key: api_key, environment: environment, protocol: :json } }
     let(:channel_name) { "subscribe_send_text-#{random_str}" }
 
-    fixtures_path = File.expand_path('../../../../lib/submodules/ably-common/test-resources/messages-encoding.json', __FILE__)
+    fixtures_path = File.expand_path('../../../lib/submodules/ably-common/test-resources/messages-encoding.json', __dir__)
 
     context 'over a JSON transport' do
       let(:realtime_client) do
@@ -869,14 +871,14 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
             realtime_channel.attach do
               realtime_channel.subscribe do |message|
                 if encoding_spec['expectedHexValue']
-                  expect(message.data.unpack('H*').first).to eql(encoding_spec['expectedHexValue'])
+                  expect(message.data.unpack1('H*')).to eql(encoding_spec['expectedHexValue'])
                 else
                   expect(message.data).to eql(encoding_spec['expectedValue'])
                 end
                 stop_reactor
               end
 
-              raw_message = { "data" => encoding_spec['data'], "encoding" => encoding_spec['encoding'] }
+              raw_message = { 'data' => encoding_spec['data'], 'encoding' => encoding_spec['encoding'] }
               rest_client.post("/channels/#{channel_name}/messages", JSON.dump(raw_message))
             end
           end
@@ -885,12 +887,12 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
         context "when encoding #{encoding_spec['expectedType']}" do
           it 'ensures that client libraries have compatible encoding and decoding using common fixtures' do
             data = if encoding_spec['expectedHexValue']
-              encoding_spec['expectedHexValue'].scan(/../).map { |x| x.hex }.pack('c*')
-            else
-              encoding_spec['expectedValue']
-            end
+                     encoding_spec['expectedHexValue'].scan(/../).map(&:hex).pack('c*')
+                   else
+                     encoding_spec['expectedValue']
+                   end
 
-            realtime_channel.publish("event", data) do
+            realtime_channel.publish('event', data) do
               response = rest_client.get("/channels/#{channel_name}/messages")
               message = response.body[0]
               expect(message['encoding']).to eql(encoding_spec['encoding'])
@@ -923,14 +925,14 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
             realtime_subscribe_channel.attach do
               realtime_subscribe_channel.subscribe do |message|
                 if encoding_spec['expectedHexValue']
-                  expect(message.data.unpack('H*').first).to eql(encoding_spec['expectedHexValue'])
+                  expect(message.data.unpack1('H*')).to eql(encoding_spec['expectedHexValue'])
                 else
                   expect(message.data).to eql(encoding_spec['expectedValue'])
                 end
                 stop_reactor
               end
 
-              raw_message = { "data" => encoding_spec['data'], "encoding" => encoding_spec['encoding'] }
+              raw_message = { 'data' => encoding_spec['data'], 'encoding' => encoding_spec['encoding'] }
               rest_publish_client.post("/channels/#{channel_name}/messages", JSON.dump(raw_message))
             end
           end
@@ -949,11 +951,11 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
             expect(rest_publish_client).to be_protocol_binary
 
             data = if encoding_spec['expectedHexValue']
-              encoding_spec['expectedHexValue'].scan(/../).map { |x| x.hex }.pack('c*')
-            else
-              encoding_spec['expectedValue']
-            end
-            rest_publish_channel.publish "event", data
+                     encoding_spec['expectedHexValue'].scan(/../).map(&:hex).pack('c*')
+                   else
+                     encoding_spec['expectedValue']
+                   end
+            rest_publish_channel.publish 'event', data
 
             response = rest_retrieve_client.get("/channels/#{channel_name}/messages")
             message = response.body[0]
