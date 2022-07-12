@@ -1,16 +1,18 @@
+# frozen_string_literal: true
+
 module RSpec
   module ProtocolHelper
     SUPPORTED_PROTOCOLS = {
-      json:    'JSON',
+      json: 'JSON',
       msgpack: 'MsgPack'
-    }
+    }.freeze
 
     PROTOCOLS = if ENV['PROTOCOL']
-      protocol = ENV['PROTOCOL'].downcase.to_sym
-      { protocol => SUPPORTED_PROTOCOLS[protocol] }
-    else
-      SUPPORTED_PROTOCOLS
-    end
+                  protocol = ENV['PROTOCOL'].downcase.to_sym
+                  { protocol => SUPPORTED_PROTOCOLS[protocol] }
+                else
+                  SUPPORTED_PROTOCOLS
+                end
 
     def vary_by_protocol(&block)
       RSpec::ProtocolHelper::PROTOCOLS.each do |protocol, description|
@@ -31,5 +33,3 @@ RSpec.configure do |config|
     context.class.let(:protocol) { :msgpack }
   end
 end
-
-
