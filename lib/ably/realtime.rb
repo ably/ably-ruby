@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'eventmachine'
 require 'websocket/driver'
 require 'em-http-request'
@@ -14,11 +16,11 @@ require 'ably/realtime/presence'
 
 require 'ably/models/message_encoders/base'
 
-Dir.glob(File.expand_path("models/*.rb", File.dirname(__FILE__))).each do |file|
+Dir.glob(File.expand_path('models/*.rb', File.dirname(__FILE__))).each do |file|
   require file
 end
 
-Dir.glob(File.expand_path("realtime/models/*.rb", File.dirname(__FILE__))).each do |file|
+Dir.glob(File.expand_path('realtime/models/*.rb', File.dirname(__FILE__))).each do |file|
   require file
 end
 
