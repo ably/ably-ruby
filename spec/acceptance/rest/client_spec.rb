@@ -1,4 +1,5 @@
-# encoding: utf-8
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'webrick'
 
@@ -31,12 +32,10 @@ describe Ably::Rest::Client do
         let(:client) { Ably::Rest::Client.new(client_options.merge(key: 'app.key:secret', log_level: :fatal)) }
 
         it 'logs an entry with a help href url matching the code #TI5' do
-          begin
-            client.channels.get('foo').publish('test')
-            raise 'Expected Ably::Exceptions::ResourceMissing'
-          rescue Ably::Exceptions::ResourceMissing => err
-            expect err.to_s.match(%r{https://help.ably.io/error/40400})
-          end
+          client.channels.get('foo').publish('test')
+          raise 'Expected Ably::Exceptions::ResourceMissing'
+        rescue Ably::Exceptions::ResourceMissing => e
+          expect e.to_s.match(%r{https://help.ably.io/error/40400})
         end
       end
 
@@ -71,10 +70,10 @@ describe Ably::Rest::Client do
       end
 
       context 'with an :auth_callback lambda' do
-        let(:client) { Ably::Rest::Client.new(client_options.merge(auth_callback: lambda { |token_params| token_request })) }
+        let(:client) { Ably::Rest::Client.new(client_options.merge(auth_callback: ->(_token_params) { token_request })) }
 
         it 'calls the auth lambda to get a new token' do
-          expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token_details }
+          expect { client.channel('channel_name').publish('event', 'message') }.to(change { client.auth.current_token_details })
           expect(client.auth.current_token_details.client_id).to eql(client_id)
         end
 
@@ -86,10 +85,10 @@ describe Ably::Rest::Client do
       context 'with :default_token_params' do
         let(:client) do
           Ably::Rest::Client.new(client_options.merge(
-            default_token_params: { client_id: 'bob' },
-            use_token_auth: true,
-            key: api_key
-          ))
+                                   default_token_params: { client_id: 'bob' },
+                                   use_token_auth: true,
+                                   key: api_key
+                                 ))
         end
 
         it 'overides the default token params (#TO3j11)' do
@@ -99,11 +98,11 @@ describe Ably::Rest::Client do
       end
 
       context 'with an :auth_callback lambda (clientId provided in library options instead of as a token_request param)' do
-        let(:client) { Ably::Rest::Client.new(client_options.merge(client_id: client_id, auth_callback: lambda { |token_params| token_request })) }
+        let(:client) { Ably::Rest::Client.new(client_options.merge(client_id: client_id, auth_callback: ->(_token_params) { token_request })) }
         let(:token_request) { client.auth.create_token_request({}, key_name: key_name, key_secret: key_secret) }
 
         it 'correctly sets the clientId on the token' do
-          expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token_details }
+          expect { client.channel('channel_name').publish('event', 'message') }.to(change { client.auth.current_token_details })
           expect(client.auth.current_token_details.client_id).to eql(client_id)
         end
       end
@@ -118,13 +117,13 @@ describe Ably::Rest::Client do
 
         context 'before any REST request' do
           before do
-            expect(client.auth).to receive(:token_request_from_auth_url).with(token_request_url, hash_including(:auth_method => :get), anything).once do
+            expect(client.auth).to receive(:token_request_from_auth_url).with(token_request_url, hash_including(auth_method: :get), anything).once do
               client.auth.create_token_request(client_id: client_id)
             end
           end
 
           it 'sends an HTTP request to the provided auth URL to get a new token' do
-            expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token_details }
+            expect { client.channel('channel_name').publish('event', 'message') }.to(change { client.auth.current_token_details })
             expect(client.auth.current_token_details.client_id).to eql(client_id)
           end
         end
@@ -133,10 +132,10 @@ describe Ably::Rest::Client do
       context 'auth headers', webmock: true do
         let(:channel_name)        { random_str }
         let(:history_params)      { { 'direction' => 'backwards', 'limit' => 100 } }
-        let(:history_querystring) { history_params.map { |k, v| "#{k}=#{v}" }.join("&") }
+        let(:history_querystring) { history_params.map { |k, v| "#{k}=#{v}" }.join('&') }
 
         context 'with basic auth', webmock: true do
-          let(:client_options)      { default_options.merge(key: api_key, client_id: client_id) }
+          let(:client_options) { default_options.merge(key: api_key, client_id: client_id) }
 
           let!(:get_message_history_stub) do
             stub_request(:get, "https://#{environment}-#{Ably::Rest::Client::DOMAIN}/channels/#{channel_name}/messages?#{history_querystring}")
@@ -155,9 +154,9 @@ describe Ably::Rest::Client do
           let(:client_options) { default_options.merge(token: token_string) }
 
           let!(:get_message_history_stub) do
-            stub_request(:get, "#{http_protocol}://#{environment}-#{Ably::Rest::Client::DOMAIN}/channels/#{channel_name}/messages?#{history_querystring}").
-              with(headers: { 'Authorization' => "Bearer #{encode64(token_string)}" }).
-              to_return(body: [], headers: { 'Content-Type' => 'application/json' })
+            stub_request(:get, "#{http_protocol}://#{environment}-#{Ably::Rest::Client::DOMAIN}/channels/#{channel_name}/messages?#{history_querystring}")
+              .with(headers: { 'Authorization' => "Bearer #{encode64(token_string)}" })
+              .to_return(body: [], headers: { 'Content-Type' => 'application/json' })
           end
 
           context 'without specifying protocol' do
@@ -184,7 +183,7 @@ describe Ably::Rest::Client do
 
     context 'using tokens' do
       let(:client) do
-        Ably::Rest::Client.new(client_options.merge(auth_callback: lambda do |token_params|
+        Ably::Rest::Client.new(client_options.merge(auth_callback: lambda do |_token_params|
           @request_index ||= 0
           @request_index += 1
           send("token_request_#{@request_index > 2 ? 'next' : @request_index}")
@@ -207,12 +206,12 @@ describe Ably::Rest::Client do
         let(:token_request_options) { { key_name: key_name, key_secret: key_secret, token_params: { ttl: Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER } } }
 
         it 'creates a new token automatically when the old token expires' do
-          expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token_details }
+          expect { client.channel('channel_name').publish('event', 'message') }.to(change { client.auth.current_token_details })
           expect(client.auth.current_token_details.client_id).to eql(token_request_1.client_id)
 
           sleep 1
 
-          expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token_details }
+          expect { client.channel('channel_name').publish('event', 'message') }.to(change { client.auth.current_token_details })
           expect(client.auth.current_token_details.client_id).to eql(token_request_2.client_id)
         end
 
@@ -231,12 +230,12 @@ describe Ably::Rest::Client do
         let(:token_request_options) { { key_name: key_name, key_secret: key_secret, ttl: 3600 } }
 
         it 'reuses the existing token for every request' do
-          expect { client.channel('channel_name').publish('event', 'message') }.to change { client.auth.current_token_details }
+          expect { client.channel('channel_name').publish('event', 'message') }.to(change { client.auth.current_token_details })
           expect(client.auth.current_token_details.client_id).to eql(token_request_1.client_id)
 
           sleep 1
 
-          expect { client.channel('channel_name').publish('event', 'message') }.to_not change { client.auth.current_token_details }
+          expect { client.channel('channel_name').publish('event', 'message') }.to_not(change { client.auth.current_token_details })
           expect(client.auth.current_token_details.client_id).to eql(token_request_1.client_id)
         end
       end
@@ -296,7 +295,7 @@ describe Ably::Rest::Client do
 
     context 'fallback hosts', :webmock do
       let(:path)           { '/channels/test/publish' }
-      let(:publish_block)  { lambda { client.channel('test').publish('event', 'data') } }
+      let(:publish_block)  { -> { client.channel('test').publish('event', 'data') } }
 
       context 'configured' do
         let(:client_options) { default_options.merge(key: api_key, environment: 'production') }
@@ -306,7 +305,7 @@ describe Ably::Rest::Client do
           5.times do
             hosts << client.fallback_connection.host
           end
-          expect(hosts).to match_array(%w(a.ably-realtime.com b.ably-realtime.com c.ably-realtime.com d.ably-realtime.com e.ably-realtime.com))
+          expect(hosts).to match_array(%w[a.ably-realtime.com b.ably-realtime.com c.ably-realtime.com d.ably-realtime.com e.ably-realtime.com])
         end
       end
 
@@ -315,7 +314,7 @@ describe Ably::Rest::Client do
           let(:client_options) { default_options.merge(environment: 'sandbox', key: api_key, fallback_hosts: []) }
           let!(:default_host_request_stub) do
             stub_request(:post, "https://#{environment}-#{Ably::Rest::Client::DOMAIN}#{path}").to_return do
-              raise Faraday::TimeoutError.new('timeout error message')
+              raise Faraday::TimeoutError, 'timeout error message'
             end
           end
 
@@ -332,16 +331,16 @@ describe Ably::Rest::Client do
             5.times do
               hosts << client.fallback_connection.host
             end
-            expect(hosts).to match_array(%w(a b c d e).map { |id| "sandbox-#{id}-fallback.ably-realtime.com" })
+            expect(hosts).to match_array(%w[a b c d e].map { |id| "sandbox-#{id}-fallback.ably-realtime.com" })
           end
         end
       end
 
       context 'when environment is production' do
-        let(:custom_hosts)       { %w(a.ably-realtime.com b.ably-realtime.com) }
+        let(:custom_hosts)       { %w[a.ably-realtime.com b.ably-realtime.com] }
         let(:max_retry_count)    { 2 }
         let(:max_retry_duration) { 0.5 }
-        let(:fallback_block)     { proc { raise Faraday::SSLError.new('ssl error message') } }
+        let(:fallback_block)     { proc { raise Faraday::SSLError, 'ssl error message' } }
         let(:client_options) do
           default_options.merge(
             environment: nil,
@@ -367,7 +366,7 @@ describe Ably::Rest::Client do
         context 'and connection times out' do
           let!(:default_host_request_stub) do
             stub_request(:post, "https://#{Ably::Rest::Client::DOMAIN}#{path}").to_return do
-              raise Faraday::TimeoutError.new('timeout error message')
+              raise Faraday::TimeoutError, 'timeout error message'
             end
           end
 
@@ -382,7 +381,7 @@ describe Ably::Rest::Client do
             let!(:default_host_request_stub) do
               stub_request(:post, "https://#{Ably::Rest::Client::DOMAIN}#{path}").to_return do
                 sleep max_retry_duration * 1.5
-                raise Faraday::TimeoutError.new('timeout error message')
+                raise Faraday::TimeoutError, 'timeout error message'
               end
             end
 
@@ -398,7 +397,7 @@ describe Ably::Rest::Client do
         context 'and connection fails' do
           let!(:default_host_request_stub) do
             stub_request(:post, "https://#{Ably::Rest::Client::DOMAIN}#{path}").to_return do
-              raise Faraday::ConnectionFailed.new('connection failure error message')
+              raise Faraday::ConnectionFailed, 'connection failure error message'
             end
           end
 
@@ -424,19 +423,18 @@ describe Ably::Rest::Client do
           let!(:default_host_request_stub) do
             stub_request(:post, "https://#{Ably::Rest::Client::DOMAIN}#{path}").to_return do
               requests << true
-              if requests.count == 1
-                raise Faraday::ConnectionFailed.new('connection failure error message')
-              else
-                {
-                  headers: { 'Content-Type' => 'application/json' },
-                  status: 200,
-                  body: {}.to_json
-                }
-              end
+
+              raise Faraday::ConnectionFailed, 'connection failure error message' if requests.count == 1
+
+              {
+                headers: { 'Content-Type' => 'application/json' },
+                status: 200,
+                body: {}.to_json
+              }
             end
           end
 
-          it "tries a fallback host, and for the next request tries the primary endpoint again (#RSC15e)" do
+          it 'tries a fallback host, and for the next request tries the primary endpoint again (#RSC15e)' do
             expect { publish_block.call }.to raise_error Ably::Exceptions::ConnectionError, /ssl error message/
             expect(default_host_request_stub).to have_been_requested
             expect(first_fallback_request_stub).to have_been_requested
@@ -454,11 +452,11 @@ describe Ably::Rest::Client do
               headers: { 'Content-Type' => 'application/json' },
               status: status,
               body: {
-	              "error" => {
-		              "statusCode" => 401,
-		              "code" => 40101,
-		              "message" => "Invalid credentials"
-	              }
+                'error' => {
+                  'statusCode' => 401,
+                  'code' => 40_101,
+                  'message' => 'Invalid credentials'
+                }
               }.to_json
             )
           end
@@ -495,10 +493,10 @@ describe Ably::Rest::Client do
       end
 
       context 'when environment is production and server returns a 50x error' do
-        let(:custom_hosts)       { %w(A.foo.com B.foo.com) }
+        let(:custom_hosts)       { %w[A.foo.com B.foo.com] }
         let(:max_retry_count)    { 2 }
         let(:max_retry_duration) { 0.5 }
-        let(:fallback_block)     { proc { raise Faraday::SSLError.new('ssl error message') } }
+        let(:fallback_block)     { proc { raise Faraday::SSLError, 'ssl error message' } }
         let(:production_options) do
           default_options.merge(
             environment: nil,
@@ -530,9 +528,9 @@ describe Ably::Rest::Client do
             stub_request(:post, "https://#{custom_hosts[1]}#{path}").to_return(&fallback_block)
           end
 
-          let(:client_options) {
+          let(:client_options) do
             production_options.merge(fallback_hosts: custom_hosts, log_level: :error)
-          }
+          end
 
           it 'attempts the fallback hosts as this is an authentication failure (#RSC15b, #RSC15a, #TO3k6)' do
             expect { publish_block.call }.to raise_error(Ably::Exceptions::ServerError)
@@ -543,9 +541,9 @@ describe Ably::Rest::Client do
         end
 
         context 'with an empty array of fallback hosts provided (#RSC15b, #RSC15a, #TO3k6)' do
-          let(:client_options) {
+          let(:client_options) do
             production_options.merge(fallback_hosts: [])
-          }
+          end
 
           it 'does not attempt the fallback hosts as this is an authentication failure' do
             expect { publish_block.call }.to raise_error(Ably::Exceptions::ServerError)
@@ -556,7 +554,7 @@ describe Ably::Rest::Client do
         context 'using a local web-server', webmock: false do
           let(:primary_host) { 'local-rest.ably.io' }
           let(:fallbacks) { ['local.ably.io', 'localhost'] }
-          let(:port) { rand(10000) + 2000 }
+          let(:port) { rand(2000..11_999) }
           let(:channel_name) { 'foo' }
           let(:request_timeout) { 3 }
 
@@ -566,10 +564,10 @@ describe Ably::Rest::Client do
 
           context 'and timing out the primary host' do
             before do
-              @web_server = WEBrick::HTTPServer.new(:Port => port, :SSLEnable => false, :AccessLog => [], Logger: WEBrick::Log.new("/dev/null"))
-            request_handler = lambda do |result_body|
+              @web_server = WEBrick::HTTPServer.new(Port: port, SSLEnable: false, AccessLog: [], Logger: WEBrick::Log.new('/dev/null'))
+              request_handler = lambda do |result_body|
                 lambda do |req, res|
-                  host = req.header["host"].first
+                  host = req.header['host'].first
                   if host.include?(primary_host)
                     @primary_host_request_count ||= 0
                     @primary_host_request_count += 1
@@ -589,7 +587,7 @@ describe Ably::Rest::Client do
                   end
                 end
               end
-              @web_server.mount_proc "/time", &request_handler.call('[1000000000000]')
+              @web_server.mount_proc '/time', &request_handler.call('[1000000000000]')
               @web_server.mount_proc "/channels/#{channel_name}/publish", &request_handler.call('{}')
               Thread.new do
                 @web_server.start
@@ -685,14 +683,13 @@ describe Ably::Rest::Client do
                 expect(@fallback_request_count).to be_nil
               end
             end
-
           end
 
           context 'and failing the primary host' do
             before do
-              @web_server = WEBrick::HTTPServer.new(:Port => port, :SSLEnable => false, :AccessLog => [], Logger: WEBrick::Log.new("/dev/null"))
+              @web_server = WEBrick::HTTPServer.new(Port: port, SSLEnable: false, AccessLog: [], Logger: WEBrick::Log.new('/dev/null'))
               @web_server.mount_proc "/channels/#{channel_name}/publish" do |req, res|
-                if req.header["host"].first.include?(primary_host)
+                if req.header['host'].first.include?(primary_host)
                   @primary_host_requested = true
                   res.status = 500
                 else
@@ -735,10 +732,10 @@ describe Ably::Rest::Client do
             before do
               @request_count = 0
               @primary_host_request_count = 0
-              @web_server = WEBrick::HTTPServer.new(:Port => port, :SSLEnable => false, :AccessLog => [], Logger: WEBrick::Log.new("/dev/null"))
+              @web_server = WEBrick::HTTPServer.new(Port: port, SSLEnable: false, AccessLog: [], Logger: WEBrick::Log.new('/dev/null'))
               @web_server.mount_proc "/channels/#{channel_name}/publish" do |req, res|
                 @request_count += 1
-                if req.header["host"].first.include?(primary_host)
+                if req.header['host'].first.include?(primary_host)
                   @primary_host_request_count += 1
                   # Fail all requests to the primary host so that a fallback is used
                   # Except request 6 which should suceed and clear the fallback host preference
@@ -749,16 +746,14 @@ describe Ably::Rest::Client do
                   else
                     res.status = 500
                   end
-                else
+                elsif [2, 5].include?(@request_count)
                   # Fail the second request (first failed fallback of first request)
                   # Fail the third request on the previously succeeded fallback host to trigger an attempt on the primary host
-                  if [2, 5].include?(@request_count)
-                    res.status = 500
-                  else
-                    res.status = 200
-                    res['Content-Type'] = 'application/json'
-                    res.body = '{}'
-                  end
+                  res.status = 500
+                else
+                  res.status = 200
+                  res['Content-Type'] = 'application/json'
+                  res.body = '{}'
                 end
               end
 
@@ -778,7 +773,7 @@ describe Ably::Rest::Client do
               ).merge(additional_client_options)
             end
 
-            let (:additional_client_options) { {} }
+            let(:additional_client_options) { {} }
 
             it 'succeeds and remembers fallback host preferences across requests' do
               # Send a request, expect primary endpoint to fail, one fallback to fail, second fallback to succeed
@@ -815,7 +810,7 @@ describe Ably::Rest::Client do
             end
 
             context 'with custom :fallback_retry_timeout' do
-              let (:additional_client_options) { { fallback_retry_timeout: 5 } }
+              let(:additional_client_options) { { fallback_retry_timeout: 5 } }
 
               it 'stops using the preferred fallback after this time' do
                 # Send a request, expect primary endpoint to fail, one fallback to fail, second fallback to succeed
@@ -838,18 +833,18 @@ describe Ably::Rest::Client do
 
       context 'when environment is not production and server returns a 50x error' do
         let(:env)                { 'custom-env' }
-        let(:default_fallbacks)  { %w(a b c d e).map { |id| "#{env}-#{id}-fallback.ably-realtime.com" } }
-        let(:custom_hosts)       { %w(A.foo.com B.foo.com) }
+        let(:default_fallbacks)  { %w[a b c d e].map { |id| "#{env}-#{id}-fallback.ably-realtime.com" } }
+        let(:custom_hosts)       { %w[A.foo.com B.foo.com] }
         let(:max_retry_count)    { 2 }
         let(:max_retry_duration) { 0.5 }
-        let(:fallback_block)     { proc { raise Faraday::SSLError.new('ssl error message') } }
+        let(:fallback_block)     { proc { raise Faraday::SSLError, 'ssl error message' } }
         let(:production_options) do
           default_options.merge(
             environment: env,
             key: api_key,
             http_max_retry_duration: max_retry_duration,
             http_max_retry_count: max_retry_count,
-            log_level: :fatal,
+            log_level: :fatal
           )
         end
 
@@ -867,9 +862,9 @@ describe Ably::Rest::Client do
         end
 
         context 'with no fallback hosts provided (#TBC, see https://github.com/ably/wiki/issues/361)' do
-          let(:client_options) {
+          let(:client_options) do
             production_options.merge(log_level: :fatal)
-          }
+          end
 
           it 'uses the default fallback hosts for that environment as this is not an authentication failure' do
             fallbacks_called_count = 0
@@ -895,9 +890,9 @@ describe Ably::Rest::Client do
             stub_request(:post, "https://#{custom_hosts[1]}#{path}").to_return(&fallback_block)
           end
 
-          let(:client_options) {
+          let(:client_options) do
             production_options.merge(fallback_hosts: custom_hosts, log_level: :fatal)
-          }
+          end
 
           it 'attempts the fallback hosts as this is not an authentication failure' do
             expect { publish_block.call }.to raise_error(Ably::Exceptions::ServerError)
@@ -908,9 +903,9 @@ describe Ably::Rest::Client do
         end
 
         context 'with an empty array of fallback hosts provided (#RSC15b, #TO3k6)' do
-          let(:client_options) {
+          let(:client_options) do
             production_options.merge(fallback_hosts: [], log_level: :fatal)
-          }
+          end
 
           it 'does not attempt the fallback hosts as this is an authentication failure' do
             expect { publish_block.call }.to raise_error(Ably::Exceptions::ServerError)
@@ -933,9 +928,9 @@ describe Ably::Rest::Client do
             stub_request(:post, "https://#{Ably::FALLBACK_HOSTS[1]}#{path}").to_return(&fallback_block)
           end
 
-          let(:client_options) {
+          let(:client_options) do
             production_options.merge(fallback_hosts: custom_hosts, log_level: :fatal)
-          }
+          end
 
           it 'attempts the default fallback hosts as this is an authentication failure' do
             expect { publish_block.call }.to raise_error(Ably::Exceptions::ServerError)
@@ -948,9 +943,9 @@ describe Ably::Rest::Client do
     end
 
     context 'with a custom host' do
-      let(:custom_host)   { 'host.does.not.exist' }
+      let(:custom_host) { 'host.does.not.exist' }
       let(:client_options) { default_options.merge(key: api_key, rest_host: custom_host) }
-      let(:capability)     { { :foo => ["publish"] } }
+      let(:capability)     { { foo: ['publish'] } }
 
       context 'that does not exist' do
         it 'fails immediately and raises a Faraday Error' do
@@ -962,7 +957,7 @@ describe Ably::Rest::Client do
 
           let!(:custom_host_request_stub) do
             stub_request(:post, "https://#{custom_host}#{path}").to_return do
-              raise Faraday::ConnectionFailed.new('connection failure error message')
+              raise Faraday::ConnectionFailed, 'connection failure error message'
             end
           end
 
@@ -985,7 +980,7 @@ describe Ably::Rest::Client do
         let(:path) { '/keys/app_id.key_name/requestToken' }
         let!(:custom_host_request_stub) do
           stub_request(:post, "https://#{custom_host}#{path}").to_return do
-            raise Faraday::TimeoutError.new('timeout error message')
+            raise Faraday::TimeoutError, 'timeout error message'
           end
         end
 
@@ -1069,7 +1064,6 @@ describe Ably::Rest::Client do
       let(:unique_ttl)     { 1234 }
       let(:client_options) { default_options.merge(auth_url: dummy_auth_url, ttl: unique_ttl) }
 
-
       it 'is provides access to the Auth object' do
         expect(client.auth).to be_kind_of(Ably::Auth)
       end
@@ -1086,16 +1080,16 @@ describe Ably::Rest::Client do
           let(:client_options) { default_options.merge(key: api_key, agent: agent) }
 
           let!(:publish_message_stub) do
-            stub_request(:post, "#{client.endpoint}/channels/foo/publish").
-              with(headers: {
-                'X-Ably-Version' => Ably::PROTOCOL_VERSION,
-                'Ably-Agent' => agent || Ably::AGENT
-              }).
-              to_return(status: 201, body: '{}', headers: { 'Content-Type' => 'application/json' })
+            stub_request(:post, "#{client.endpoint}/channels/foo/publish")
+              .with(headers: {
+                      'X-Ably-Version' => Ably::PROTOCOL_VERSION,
+                      'Ably-Agent' => agent || Ably::AGENT
+                    })
+              .to_return(status: 201, body: '{}', headers: { 'Content-Type' => 'application/json' })
           end
 
           it 'sends a protocol version and lib version header (#G4, #RSC7a, #RSC7b)' do
-            client.channels.get('foo').publish("event")
+            client.channels.get('foo').publish('event')
             expect(publish_message_stub).to have_been_requested
             expect(Ably::PROTOCOL_VERSION).to eql('1.2')
           end
@@ -1120,7 +1114,7 @@ describe Ably::Rest::Client do
             response = client.request(:get, 'does-not-exist')
             expect(response).to be_a(Ably::Models::HttpPaginatedResponse)
             expect(response.error_message).to match(/Could not find/)
-            expect(response.error_code).to eql(40400)
+            expect(response.error_code).to eql(40_400)
             expect(response.status_code).to eql(404)
           end
         end
@@ -1149,8 +1143,8 @@ describe Ably::Rest::Client do
 
       context 'post', :webmock do
         before do
-          stub_request(:delete, "#{endpoint}/push/deviceRegistrations/#{device_id}/resetUpdateToken").
-            to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
+          stub_request(:delete, "#{endpoint}/push/deviceRegistrations/#{device_id}/resetUpdateToken")
+            .to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
         end
 
         it 'supports post' do
@@ -1160,20 +1154,20 @@ describe Ably::Rest::Client do
         end
 
         it 'raises an exception once body size in bytes exceeded' do
-          expect {
+          expect do
             client.request(:post, endpoint, {}, { content: 'x' * Ably::Rest::Client::MAX_FRAME_SIZE })
-          }.to raise_error(Ably::Exceptions::MaxFrameSizeExceeded)
+          end.to raise_error(Ably::Exceptions::MaxFrameSizeExceeded)
         end
       end
 
       context 'delete', :webmock do
         before do
-          stub_request(:delete, "#{endpoint}/push/channelSubscriptions?deviceId=#{device_id}").
-            to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
+          stub_request(:delete, "#{endpoint}/push/channelSubscriptions?deviceId=#{device_id}")
+            .to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
         end
 
         it 'supports delete' do
-          response = client.request(:delete, "/push/channelSubscriptions", { deviceId: device_id})
+          response = client.request(:delete, '/push/channelSubscriptions', { deviceId: device_id })
 
           expect(response).to be_success
         end
@@ -1195,9 +1189,9 @@ describe Ably::Rest::Client do
         end
 
         it 'raises an exception once body size in bytes exceeded' do
-          expect {
+          expect do
             client.request(:patch, endpoint, {}, { content: 'x' * Ably::Rest::Client::MAX_FRAME_SIZE })
-          }.to raise_error(Ably::Exceptions::MaxFrameSizeExceeded)
+          end.to raise_error(Ably::Exceptions::MaxFrameSizeExceeded)
         end
       end
 
@@ -1224,9 +1218,9 @@ describe Ably::Rest::Client do
         end
 
         it 'raises an exception once body size in bytes exceeded' do
-          expect {
+          expect do
             client.request(:put, endpoint, {}, { content: 'x' * Ably::Rest::Client::MAX_FRAME_SIZE })
-          }.to raise_error(Ably::Exceptions::MaxFrameSizeExceeded)
+          end.to raise_error(Ably::Exceptions::MaxFrameSizeExceeded)
         end
       end
     end
@@ -1242,7 +1236,7 @@ describe Ably::Rest::Client do
             stub_request(:get, Addressable::Template.new("#{client.endpoint}/time{?request_id}")).with do |request|
               @request_id = request.uri.query_values['request_id']
             end.to_return do
-              raise Faraday::TimeoutError.new('timeout error message')
+              raise Faraday::TimeoutError, 'timeout error message'
             end
           end
 
@@ -1250,7 +1244,7 @@ describe Ably::Rest::Client do
             expect { client.time }.to raise_error(Ably::Exceptions::ConnectionTimeout, /#{@request_id}/)
             expect(@request_id).to be_a(String)
             expect(@request_id).to_not be_empty
-            expect(custom_logger_object.logs.find { |severity, message| message.match(/#{@request_id}/i)} ).to_not be_nil
+            expect(custom_logger_object.logs.find { |_severity, message| message.match(/#{@request_id}/i) }).to_not be_nil
           end
         end
 
@@ -1261,10 +1255,10 @@ describe Ably::Rest::Client do
 
           context 'with mocks to inspect the params', :webmock do
             before do
-              stub_request(:post, Addressable::Template.new("#{client.endpoint}/channels/#{channel_name}/publish{?request_id}")).
-                with do |request|
+              stub_request(:post, Addressable::Template.new("#{client.endpoint}/channels/#{channel_name}/publish{?request_id}"))
+                .with do |request|
                   @request_id = request.uri.query_values['request_id']
-                end.to_return(:status => 200, :body => [], :headers => { 'Content-Type' => 'application/json' })
+                end.to_return(status: 200, body: [], headers: { 'Content-Type' => 'application/json' })
             end
 
             context 'with a single publish' do
@@ -1311,13 +1305,13 @@ describe Ably::Rest::Client do
                 @request_id = request.uri.query_values['request_id']
                 requests << @request_id
               end.to_return do
-                raise Faraday::TimeoutError.new('timeout error message')
+                raise Faraday::TimeoutError, 'timeout error message'
               end
             end
           end
 
           specify 'request_id is the same across retries' do
-            expect{ client.time }.to raise_error(Ably::Exceptions::ConnectionTimeout, /#{@request_id}/)
+            expect { client.time }.to raise_error(Ably::Exceptions::ConnectionTimeout, /#{@request_id}/)
             expect(@request_id).to be_a(String)
             expect(@request_id).to_not be_empty
             expect(requests.uniq.count).to eql(1)
@@ -1329,17 +1323,15 @@ describe Ably::Rest::Client do
           let(:client_options) { default_options.merge(key: api_key, http_request_timeout: 0, fallback_hosts: []) }
 
           it 'does not include request_id in ConnectionTimeout error' do
-            begin
-              client.stats
-            rescue Ably::Exceptions::ConnectionTimeout => err
-              expect(err.request_id).to eql(nil)
-            end
+            client.stats
+          rescue Ably::Exceptions::ConnectionTimeout => e
+            expect(e.request_id).to eql(nil)
           end
         end
       end
 
       context 'UnauthorizedRequest nonce error' do
-        let(:token_params) { { nonce: "samenonce_#{protocol}", timestamp:  Time.now.to_i } }
+        let(:token_params) { { nonce: "samenonce_#{protocol}", timestamp: Time.now.to_i } }
 
         it 'includes request_id in UnauthorizedRequest error due to replayed nonce' do
           client1 = Ably::Rest::Client.new(default_options.merge(key: api_key))
@@ -1347,8 +1339,8 @@ describe Ably::Rest::Client do
           expect { client1.auth.request_token(token_params) }.not_to raise_error
           begin
             client2.auth.request_token(token_params)
-          rescue Ably::Exceptions::UnauthorizedRequest => err
-            expect(err.request_id).to_not eql(nil)
+          rescue Ably::Exceptions::UnauthorizedRequest => e
+            expect(e.request_id).to_not eql(nil)
           end
         end
       end
@@ -1370,13 +1362,14 @@ describe Ably::Rest::Client do
             fallback_hosts: [[environment, Ably::Rest::Client::DOMAIN].join('-')],
             key: api_key,
             logger: custom_logger,
-            log_retries_as_info: false)
+            log_retries_as_info: false
+          )
         end
 
         it 'is present with success message when requests do not actually fail' do
           client.time
-          expect(custom_logger.logs(min_severity: :warn).select { |severity, msg| msg.match(/Retry/) }.length).to eql(1)
-          expect(custom_logger.logs(min_severity: :warn).select { |severity, msg| msg.match(/SUCCEEDED/) }.length).to eql(1)
+          expect(custom_logger.logs(min_severity: :warn).select { |_severity, msg| msg.match(/Retry/) }.length).to eql(1)
+          expect(custom_logger.logs(min_severity: :warn).select { |_severity, msg| msg.match(/SUCCEEDED/) }.length).to eql(1)
         end
       end
 
@@ -1387,13 +1380,14 @@ describe Ably::Rest::Client do
             fallback_hosts: ['non2.existent.domain.local'],
             key: api_key,
             logger: custom_logger,
-            log_retries_as_info: false)
+            log_retries_as_info: false
+          )
         end
 
         it 'is present when all requests fail' do
           expect { client.time }.to raise_error(Ably::Exceptions::ConnectionError)
-          expect(custom_logger.logs(min_severity: :warn).select { |severity, msg| msg.match(/Retry/) }.length).to be >= 2
-          expect(custom_logger.logs(min_severity: :error).select { |severity, msg| msg.match(/FAILED/) }.length).to eql(1)
+          expect(custom_logger.logs(min_severity: :warn).select { |_severity, msg| msg.match(/Retry/) }.length).to be >= 2
+          expect(custom_logger.logs(min_severity: :error).select { |_severity, msg| msg.match(/FAILED/) }.length).to eql(1)
         end
       end
     end
