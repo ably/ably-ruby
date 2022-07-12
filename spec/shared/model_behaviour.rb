@@ -1,4 +1,4 @@
-# encoding: utf-8
+# frozen_string_literal: true
 
 shared_examples 'a model' do |shared_options = {}|
   let(:base_model_options) { shared_options.fetch(:base_model_options, {}) }
@@ -19,7 +19,7 @@ shared_examples 'a model' do |shared_options = {}|
     end
 
     context '#attributes', :api_private do
-      let(:model_options) { { action: 5, max_message_size: 65536, max_frame_size: 524288 } }
+      let(:model_options) { { action: 5, max_message_size: 65_536, max_frame_size: 524_288 } }
 
       it 'provides access to #attributes' do
         expect(model.attributes).to eq(model_options)
