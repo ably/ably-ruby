@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe Ably::Util::PubSub do
@@ -26,7 +28,7 @@ describe Ably::Util::PubSub do
 
     context 'with coercion', api_private: true do
       let(:options) do
-        { coerce_into: lambda { |event| String(event) } }
+        { coerce_into: ->(event) { String(event) } }
       end
 
       it 'calls the provided proc to coerce the event name' do
@@ -36,7 +38,7 @@ describe Ably::Util::PubSub do
       end
 
       context 'and two different configurations but sharing the same class' do
-        let!(:exception_pubsub) { Ably::Util::PubSub.new(coerce_into: lambda { |event| raise KeyError }) }
+        let!(:exception_pubsub) { Ably::Util::PubSub.new(coerce_into: ->(_event) { raise KeyError }) }
 
         it 'does not share state' do
           expect(obj).to receive(:received_message).with(msg).once
@@ -58,7 +60,7 @@ describe Ably::Util::PubSub do
   end
 
   context '#unsubscribe' do
-    let(:callback) { lambda { |msg| obj.received_message msg } }
+    let(:callback) { ->(msg) { obj.received_message msg } }
 
     before do
       subject.subscribe(:message, &callback)
