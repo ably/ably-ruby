@@ -1,7 +1,11 @@
+# frozen_string_literal: true
+
 module Ably
   module Rest
+    # Channels provides the top-level class to be instanced for the Ably REST library
+    #
     class Channels
-      include Ably::Modules::ChannelsCollection
+      include ::Ably::Modules::ChannelsCollection
 
       # @return [Ably::Rest::Channels]
       def initialize(client)
