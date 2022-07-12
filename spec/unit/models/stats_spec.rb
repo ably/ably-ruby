@@ -1,4 +1,5 @@
-# encoding: utf-8
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'shared/model_behaviour'
 
@@ -7,7 +8,7 @@ describe Ably::Models::Stats do
 
   subject { Ably::Models::Stats }
 
-  %w(all persisted).each do |attribute|
+  %w[all persisted].each do |attribute|
     context "##{attribute} stats" do
       let(:data) do
         { attribute.to_sym => { messages: { count: 5 }, all: { data: 10 } } }
@@ -34,7 +35,7 @@ describe Ably::Models::Stats do
         expect { subject.unknown }.to raise_error NoMethodError
       end
 
-      %w(all presence messages).each do |type|
+      %w[all presence messages].each do |type|
         context "##{type}" do
           it 'is a MessageCount object' do
             expect(subject.public_send(type)).to be_a(Ably::Models::Stats::MessageCount)
@@ -44,7 +45,7 @@ describe Ably::Models::Stats do
     end
   end
 
-  %w(inbound outbound).each do |direction|
+  %w[inbound outbound].each do |direction|
     context "##{direction} stats" do
       let(:data) do
         {
@@ -72,7 +73,7 @@ describe Ably::Models::Stats do
         expect { subject.unknown }.to raise_error NoMethodError
       end
 
-      %w(realtime rest webhook all).each do |type|
+      %w[realtime rest webhook all].each do |type|
         context "##{type}" do
           it 'is a MessageTypes object' do
             expect(subject.public_send(type)).to be_a(Ably::Models::Stats::MessageTypes)
@@ -108,7 +109,7 @@ describe Ably::Models::Stats do
       expect { subject.unknown }.to raise_error NoMethodError
     end
 
-    %w(tls plain all).each do |type|
+    %w[tls plain all].each do |type|
       context "##{type}" do
         it 'is a ResourceCount object' do
           expect(subject.public_send(type)).to be_a(Ably::Models::Stats::ResourceCount)
@@ -143,7 +144,7 @@ describe Ably::Models::Stats do
       expect { subject.unknown }.to raise_error NoMethodError
     end
 
-    %w(opened peak mean min refused).each do |type|
+    %w[opened peak mean min refused].each do |type|
       context "##{type}" do
         it 'is a Integer object' do
           expect(subject.public_send(type)).to be_a(Integer)
@@ -152,7 +153,7 @@ describe Ably::Models::Stats do
     end
   end
 
-  %w(api_requests token_requests).each do |request_type|
+  %w[api_requests token_requests].each do |request_type|
     context "##{request_type} stats" do
       let(:data) do
         {
@@ -177,7 +178,7 @@ describe Ably::Models::Stats do
         expect { subject.unknown }.to raise_error NoMethodError
       end
 
-      %w(succeeded failed refused).each do |type|
+      %w[succeeded failed refused].each do |type|
         context "##{type}" do
           it 'is a Integer object' do
             expect(subject.public_send(type)).to be_a(Integer)
@@ -199,7 +200,7 @@ describe Ably::Models::Stats do
     subject { Ably::Models::Stats.new(interval_id: '2004-02-01:05:06') }
 
     it 'returns a Time object representing the start of the interval' do
-      expect(subject.interval_time.to_i).to eql(Time.new(2004, 02, 01, 05, 06, 00, '+00:00').to_i)
+      expect(subject.interval_time.to_i).to eql(Time.new(2004, 0o2, 0o1, 0o5, 0o6, 0o0, '+00:00').to_i)
     end
   end
 
