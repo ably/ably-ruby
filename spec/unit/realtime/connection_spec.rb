@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'shared/protocol_msgbus_behaviour'
 
@@ -12,7 +14,7 @@ describe Ably::Realtime::Connection do
   end
 
   before do
-    expect(EventMachine).to receive(:next_tick)  # non_blocking_loop_while for delivery of messages async
+    expect(EventMachine).to receive(:next_tick) # non_blocking_loop_while for delivery of messages async
     subject.__incoming_protocol_msgbus__.off
     subject.__outgoing_protocol_msgbus__.off
   end
@@ -21,7 +23,7 @@ describe Ably::Realtime::Connection do
     specify 'are supported for valid STATE events' do
       state = nil
       subject.on(:initialized) { state = :ready }
-      expect { subject.emit(:initialized) }.to change { state }.to(:ready)
+      expect { subject.emit(:initialized) }.to(change { state }.to(:ready))
     end
 
     specify 'fail with unacceptable STATE event names' do
@@ -56,7 +58,7 @@ describe Ably::Realtime::Connection do
     describe '#off_resume' do
       it 'registers a callback' do
         subject.on_resume { callbacks << true }
-        additional_proc = lambda { raise 'This should not be called' }
+        additional_proc = -> { raise 'This should not be called' }
         subject.off_resume(&additional_proc)
         subject.trigger_resumed
         expect(callbacks.count).to eql(1)
