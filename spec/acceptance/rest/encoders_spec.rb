@@ -1,4 +1,5 @@
-# encoding: utf-8
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'base64'
 
@@ -21,7 +22,7 @@ describe Ably::Models::MessageEncoders do
   end
 
   def on_publish
-    expect(client).to receive(:post) do |url, message|
+    expect(client).to receive(:post) do |_url, message|
       yield(message['encoding'], message['data'])
     end.and_return(response)
   end
