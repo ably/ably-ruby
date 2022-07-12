@@ -1,0 +1,34 @@
+AllCops:
+  TargetRubyVersion: 2.7
+Metrics/BlockLength:
+  Enabled: false
+Metrics/ClassLength:
+  Enabled: false
+Layout/LineLength:
+  Enabled: false
+Naming/VariableNumber:
+  Enabled: false
+Lint/ConstantDefinitionInBlock:
+  Enabled: false
+Metrics/MethodLength:
+  Enabled: false
+Style/MultilineBlockChain:
+  Enabled: false
+Metrics/AbcSize:
+  Enabled: false
+Metrics/PerceivedComplexity:
+  Enabled: false
+Lint/HashCompareByIdentity:
+  Enabled: false
+Style/Alias:
+  Enabled: false
+Metrics/CyclomaticComplexity:
+  Enabled: false
+Naming/PredicateName:
+  Enabled: false
+Naming/AccessorMethodName:
+  Enabled: false
+Lint/UselessMethodDefinition:
+  Enabled: false
+Metrics/ParameterLists:
+  Enabled: false
