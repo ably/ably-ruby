@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe Ably::Realtime::Channel::PushChannel do
@@ -12,7 +14,7 @@ describe Ably::Realtime::Channel::PushChannel do
   end
 
   it 'raises an exception if constructed with an invalid type' do
-    expect { subject.new(Hash.new) }.to raise_error(ArgumentError)
+    expect { subject.new({}) }.to raise_error(ArgumentError)
   end
 
   it 'exposes the channel as attribute #channel' do
@@ -27,7 +29,7 @@ describe Ably::Realtime::Channel::PushChannel do
   context 'methods not implemented as push notifications' do
     subject { Ably::Realtime::Channel::PushChannel.new(channel) }
 
-    %w(subscribe_device subscribe_client_id unsubscribe_device unsubscribe_client_id get_subscriptions).each do |method_name|
+    %w[subscribe_device subscribe_client_id unsubscribe_device unsubscribe_client_id get_subscriptions].each do |method_name|
       specify "##{method_name} raises an unsupported exception" do
         expect { subject.public_send(method_name, 'foo') }.to raise_error(Ably::Exceptions::PushNotificationsNotSupported)
       end
