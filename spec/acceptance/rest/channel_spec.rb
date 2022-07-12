@@ -1,4 +1,5 @@
-# encoding: utf-8
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe Ably::Rest::Channel do
@@ -41,9 +42,9 @@ describe Ably::Rest::Channel do
         let(:client_options) { default_options.merge(client_id: client_id) }
 
         it 'publishes the message without a client_id' do
-          expect(client).to receive(:post).
-            with("/channels/#{channel_name}/publish", hash_excluding(client_id: client_id), {}).
-            and_return(double('response', status: 201))
+          expect(client).to receive(:post)
+            .with("/channels/#{channel_name}/publish", hash_excluding(client_id: client_id), {})
+            .and_return(double('response', status: 201))
 
           expect(channel.publish(name, data)).to eql(true)
         end
@@ -57,7 +58,7 @@ describe Ably::Rest::Channel do
       context 'with an array of Hash objects with :name and :data attributes' do
         let(:messages) do
           10.times.map do |index|
-            { name: index.to_s, data: { "index" => index + 10 } }
+            { name: index.to_s, data: { 'index' => index + 10 } }
           end
         end
 
@@ -82,12 +83,12 @@ describe Ably::Rest::Channel do
           context 'and messages size (130 bytes) is smaller than the max_message_size' do
             let(:messages) do
               10.times.map do |index|
-                Ably::Models::Message(name: index.to_s, data: { "index" => index + 10 })
+                Ably::Models::Message(name: index.to_s, data: { 'index' => index + 10 })
               end
             end
 
             it 'publishes an array of messages in one HTTP request' do
-              expect(messages.sum &:size).to eq(130)
+              expect(messages.sum(&:size)).to eq(130)
               expect(client).to receive(:post).once.and_call_original
               expect(channel.publish(messages)).to eql(true)
               expect(channel.history.items.map(&:name)).to match_array(messages.map(&:name))
@@ -97,13 +98,13 @@ describe Ably::Rest::Channel do
 
           context 'and messages size (177784 bytes) is bigger than the max_message_size' do
             let(:messages) do
-              10000.times.map do |index|
-                Ably::Models::Message(name: index.to_s, data: { "index" => index + 1 })
+              10_000.times.map do |index|
+                Ably::Models::Message(name: index.to_s, data: { 'index' => index + 1 })
               end
             end
 
             it 'should not publish and raise Ably::Exceptions::MaxMessageSizeExceeded' do
-              expect(messages.sum &:size).to eq(177784)
+              expect(messages.sum(&:size)).to eq(177_784)
               expect { channel.publish(messages) }.to raise_error(Ably::Exceptions::MaxMessageSizeExceeded)
             end
           end
@@ -120,12 +121,12 @@ describe Ably::Rest::Channel do
           context 'and messages size (130 bytes) is smaller than the max_message_size' do
             let(:messages) do
               10.times.map do |index|
-                Ably::Models::Message(name: index.to_s, data: { "index" => index + 10 })
+                Ably::Models::Message(name: index.to_s, data: { 'index' => index + 10 })
               end
             end
 
             it 'publishes an array of messages in one HTTP request' do
-              expect(messages.sum &:size).to eq(130)
+              expect(messages.sum(&:size)).to eq(130)
               expect(client).to receive(:post).once.and_call_original
               expect(channel.publish(messages)).to eql(true)
               expect(channel.history.items.map(&:name)).to match_array(messages.map(&:name))
@@ -135,13 +136,13 @@ describe Ably::Rest::Channel do
 
           context 'and messages size (177784 bytes) is bigger than the max_message_size' do
             let(:messages) do
-              10000.times.map do |index|
-                Ably::Models::Message(name: index.to_s, data: { "index" => index + 1 })
+              10_000.times.map do |index|
+                Ably::Models::Message(name: index.to_s, data: { 'index' => index + 1 })
               end
             end
 
             it 'should not publish and raise Ably::Exceptions::MaxMessageSizeExceeded' do
-              expect(messages.sum &:size).to eq(177784)
+              expect(messages.sum(&:size)).to eq(177_784)
               expect { channel.publish(messages) }.to raise_error(Ably::Exceptions::MaxMessageSizeExceeded)
             end
           end
@@ -176,7 +177,7 @@ describe Ably::Rest::Channel do
       context 'with Messages and query params' do
         let(:messages) do
           10.times.map do |index|
-            { name: index.to_s, data: { "index" => index + 10 } }
+            { name: index.to_s, data: { 'index' => index + 10 } }
           end
         end
 
@@ -200,7 +201,7 @@ describe Ably::Rest::Channel do
           let(:data) { random_str }
 
           it 'publishes the message without a name attribute in the payload' do
-            expect(client).to receive(:post).with(anything, { "data" => data }, {}).once.and_call_original
+            expect(client).to receive(:post).with(anything, { 'data' => data }, {}).once.and_call_original
             expect(channel.publish(nil, data)).to eql(true)
             expect(channel.history.items.first.name).to be_nil
             expect(channel.history.items.first.data).to eql(data)
@@ -211,7 +212,7 @@ describe Ably::Rest::Channel do
           let(:name) { random_str }
 
           it 'publishes the message without a data attribute in the payload' do
-            expect(client).to receive(:post).with(anything, { "name" => name }, {}).once.and_call_original
+            expect(client).to receive(:post).with(anything, { 'name' => name }, {}).once.and_call_original
             expect(channel.publish(name)).to eql(true)
             expect(channel.history.items.first.name).to eql(name)
             expect(channel.history.items.first.data).to be_nil
@@ -240,9 +241,9 @@ describe Ably::Rest::Channel do
           context 'with a valid client_id in the message' do
             it 'succeeds' do
               channel.publish([name: 'event', client_id: 'valid'])
-                channel.history do |messages|
-                  expect(messages.first.client_id).to eql('valid')
-                end
+              channel.history do |messages|
+                expect(messages.first.client_id).to eql('valid')
+              end
             end
           end
 
@@ -368,10 +369,10 @@ describe Ably::Rest::Channel do
         let(:channel) { client.channels.get(channel_name) }
 
         context 'stubbed', :webmock do
-          let!(:get_stub) {
-            stub_request(:post, "#{endpoint}/channels/#{channel_name_encoded}/publish").
-              to_return(:body => '{}', :headers => { 'Content-Type' => 'application/json' })
-          }
+          let!(:get_stub) do
+            stub_request(:post, "#{endpoint}/channels/#{channel_name_encoded}/publish")
+              .to_return(body: '{}', headers: { 'Content-Type' => 'application/json' })
+          end
 
           it 'correctly encodes the channel name' do
             channel.publish('foo')
@@ -390,7 +391,7 @@ describe Ably::Rest::Channel do
           if !(RUBY_VERSION.match(/^1\./) || RUBY_VERSION.match(/^2\.[012]/))
             channel.publish(+'foo-bar') # new style freeze, see https://github.com/ably/ably-ruby/issues/132
           else
-            channel.publish('foo-bar'.freeze) # new + style not supported until Ruby 2.3
+            channel.publish('foo-bar') # new + style not supported until Ruby 2.3
           end
 
           channel.history do |messages|
@@ -421,7 +422,7 @@ describe Ably::Rest::Channel do
         let(:data) { 101.times.map { { data: 'x' * 655 } } }
 
         it 'should raise Ably::Exceptions::MaxMessageSizeExceeded exception' do
-          expect { channel.publish([ data: data ]) }.to \
+          expect { channel.publish([data: data]) }.to \
             raise_error(Ably::Exceptions::MaxMessageSizeExceeded)
         end
       end
@@ -431,9 +432,9 @@ describe Ably::Rest::Channel do
       let(:channel) { client.channel("persisted:#{random_str(4)}") }
       let(:expected_history) do
         [
-          { :name => 'test1', :data => 'foo' },
-          { :name => 'test2', :data => 'bar' },
-          { :name => 'test3', :data => 'baz' }
+          { name: 'test1', data: 'foo' },
+          { name: 'test2', data: 'bar' },
+          { name: 'test3', data: 'baz' }
         ]
       end
       let!(:before_published) { client.time }
@@ -453,9 +454,10 @@ describe Ably::Rest::Channel do
 
         expect(actual_history_items.size).to eql(3)
 
-        expected_history.each do |message|
-          message_name, message_data = message[:name], message[:data]
-          matching_message = actual_history_items.find { |message| message.name == message_name && message.data == message_data }
+        expected_history.each do |message1|
+          message_name = message1[:name]
+          message_data = message1[:data]
+          matching_message = actual_history_items.find { |message2| message2.name == message_name && message2.data == message_data }
           expect(matching_message).to be_a(Ably::Models::Message)
         end
       end
@@ -518,7 +520,7 @@ describe Ably::Rest::Channel do
 
       context 'limit' do
         before do
-          channel.publish 120.times.to_a.map { |i| { name: 'event' } }
+          channel.publish(120.times.to_a.map { |_i| { name: 'event' } })
         end
 
         it 'defaults to 100' do
@@ -538,20 +540,20 @@ describe Ably::Rest::Channel do
         client.endpoint
       end
       let(:default_history_options) do
-          {
-            direction: :backwards,
-            limit: 100
-          }
-        end
+        {
+          direction: :backwards,
+          limit: 100
+        }
+      end
 
-      [:start, :end].each do |option|
+      %i[start end].each do |option|
         describe ":#{option}", :webmock do
-          let!(:history_stub) {
+          let!(:history_stub) do
             query_params = default_history_options
-            .merge(option => milliseconds).map { |k, v| "#{k}=#{v}" }.join('&')
-            stub_request(:get, "#{endpoint}/channels/#{URI.encode_www_form_component(channel_name)}/messages?#{query_params}").
-              to_return(:body => '{}', :headers => { 'Content-Type' => 'application/json' })
-          }
+                           .merge(option => milliseconds).map { |k, v| "#{k}=#{v}" }.join('&')
+            stub_request(:get, "#{endpoint}/channels/#{URI.encode_www_form_component(channel_name)}/messages?#{query_params}")
+              .to_return(body: '{}', headers: { 'Content-Type' => 'application/json' })
+          end
 
           before do
             channel.history(options)
