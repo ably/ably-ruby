@@ -1,4 +1,5 @@
-# encoding: utf-8
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'shared/protocol_msgbus_behaviour'
 
@@ -73,7 +74,7 @@ describe Ably::Realtime::Channel do
     before do
       allow(subject).to receive(:enqueue_messages_on_connection).and_return(message)
       allow(subject).to receive(:create_message).and_return(message)
-      allow(subject).to receive(:attach).and_return(:true)
+      allow(subject).to receive(:attach).and_return(true)
     end
 
     context 'as UTF_8 string' do
@@ -121,7 +122,7 @@ describe Ably::Realtime::Channel do
     specify 'are supported for valid STATE events' do
       state = nil
       subject.on(:initialized) { state = :ready }
-      expect { subject.emit(:initialized) }.to change { state }.to(:ready)
+      expect { subject.emit(:initialized) }.to(change { state }.to(:ready))
     end
 
     specify 'fail with unacceptable STATE event names' do
@@ -134,16 +135,16 @@ describe Ably::Realtime::Channel do
   context 'msgbus', :api_private do
     let(:message) do
       Ably::Models::Message.new({
-        'name' => 'test',
-        'data' => 'payload'
-      }, protocol_message: instance_double('Ably::Models::ProtocolMessage'))
+                                  'name' => 'test',
+                                  'data' => 'payload'
+                                }, protocol_message: instance_double('Ably::Models::ProtocolMessage'))
     end
     let(:msgbus) { subject.__incoming_msgbus__ }
 
     specify 'supports messages' do
       received = 0
       msgbus.subscribe(:message) { received += 1 }
-      expect { msgbus.publish(:message, message) }.to change { received }.to(1)
+      expect { msgbus.publish(:message, message) }.to(change { received }.to(1))
     end
 
     specify 'fail with unacceptable STATE event names' do
@@ -163,7 +164,7 @@ describe Ably::Realtime::Channel do
 
     context '#subscribe' do
       before do
-        allow(subject).to receive(:attach).and_return(:true)
+        allow(subject).to receive(:attach).and_return(true)
       end
 
       specify 'without a block raises an invalid ArgumentError' do
@@ -171,20 +172,20 @@ describe Ably::Realtime::Channel do
       end
 
       specify 'with no event name specified subscribes the provided block to all events' do
-        subject.subscribe { |message| message_history[:received] += 1}
+        subject.subscribe { |_message| message_history[:received] += 1 }
         subject.__incoming_msgbus__.publish(:message, click_message)
         expect(message_history[:received]).to eql(1)
       end
 
       specify 'with a single event name subscribes that block to matching events' do
-        subject.subscribe(click_event) { |message| message_history[:received] += 1 }
-        subject.subscribe('non_match_move')  { |message| message_history[:received] += 1 }
+        subject.subscribe(click_event) { |_message| message_history[:received] += 1 }
+        subject.subscribe('non_match_move') { |_message| message_history[:received] += 1 }
         subject.__incoming_msgbus__.publish(:message, click_message)
         expect(message_history[:received]).to eql(1)
       end
 
       specify 'with a multiple event name arguments subscribes that block to all of those event names' do
-        subject.subscribe(focus_event, click_event) { |message| message_history[:received] += 1 }
+        subject.subscribe(focus_event, click_event) { |_message| message_history[:received] += 1 }
         subject.__incoming_msgbus__.publish(:message, click_message)
         expect(message_history[:received]).to eql(1)
         subject.__incoming_msgbus__.publish(:message, focus_message)
@@ -196,7 +197,7 @@ describe Ably::Realtime::Channel do
       end
 
       specify 'with a multiple duplicate event name arguments subscribes that block to all of those unique event names once' do
-        subject.subscribe(click_event, click_event) { |message| message_history[:received] += 1 }
+        subject.subscribe(click_event, click_event) { |_message| message_history[:received] += 1 }
         subject.__incoming_msgbus__.publish(:message, click_message)
         expect(message_history[:received]).to eql(1)
       end
@@ -204,11 +205,11 @@ describe Ably::Realtime::Channel do
 
     context '#unsubscribe' do
       let(:callback) do
-        lambda { |message| message_history[:received] += 1 }
+        ->(_message) { message_history[:received] += 1 }
       end
 
       before do
-        allow(subject).to receive(:attach).and_return(:true)
+        allow(subject).to receive(:attach).and_return(true)
         subject.subscribe click_event, &callback
       end
 
