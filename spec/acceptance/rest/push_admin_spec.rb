@@ -1,11 +1,12 @@
-# encoding: utf-8
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe Ably::Rest::Push::Admin do
   include Ably::Modules::Conversions
 
   vary_by_protocol do
-    let(:default_options) { { key: api_key, environment: environment, protocol: protocol} }
+    let(:default_options) { { key: api_key, environment: environment, protocol: protocol } }
     let(:client_options)  { default_options }
     let(:client) do
       Ably::Rest::Client.new(client_options)
@@ -31,7 +32,7 @@ describe Ably::Rest::Push::Admin do
       subject { client.push.admin }
 
       context 'without publish permissions' do
-        let(:capability) { { :foo => ['subscribe'] } }
+        let(:capability) { { foo: ['subscribe'] } }
 
         before do
           client.auth.authorize(capability: capability)
@@ -90,15 +91,15 @@ describe Ably::Rest::Push::Admin do
         end
 
         let!(:publish_stub) do
-          stub_request(:post, "#{client.endpoint}/push/publish").
-            with do |request|
+          stub_request(:post, "#{client.endpoint}/push/publish")
+            .with do |request|
               expect(deserialize_body(request.body, protocol)['recipient']['camelCase']['secondLevelCamelCase']).to eql('val')
               expect(deserialize_body(request.body, protocol)['recipient']).to_not have_key('camel_case')
               true
             end.to_return(
-              :status => 201,
-              :body => serialize_body({}, protocol),
-              :headers => { 'Content-Type' => content_type }
+              status: 201,
+              body: serialize_body({}, protocol),
+              headers: { 'Content-Type' => content_type }
             )
         end
 
@@ -125,7 +126,7 @@ describe Ably::Rest::Push::Admin do
         let(:notification_payload) do
           {
             notification: {
-              title: random_str,
+              title: random_str
             },
             data: {
               foo: random_str
@@ -147,7 +148,7 @@ describe Ably::Rest::Push::Admin do
       subject { client.push.admin.device_registrations }
 
       context 'without permissions' do
-        let(:capability) { { :foo => ['subscribe'] } }
+        let(:capability) { { foo: ['subscribe'] } }
 
         before do
           client.auth.authorize(capability: capability)
@@ -175,17 +176,17 @@ describe Ably::Rest::Push::Admin do
           fixture_count.times.map do |index|
             Thread.new do
               subject.save({
-                id: "device-#{client_id}-#{index}",
-                platform: 'ios',
-                form_factor: 'phone',
-                client_id: client_id,
-                push: {
-                  recipient: {
-                    transport_type: 'gcm',
-                    registration_token: 'secret_token',
-                  }
-                }
-              })
+                             id: "device-#{client_id}-#{index}",
+                             platform: 'ios',
+                             form_factor: 'phone',
+                             client_id: client_id,
+                             push: {
+                               recipient: {
+                                 transport_type: 'gcm',
+                                 registration_token: 'secret_token'
+                               }
+                             }
+                           })
             end
           end.each(&:join) # Wait for all threads to complete
         end
@@ -244,17 +245,17 @@ describe Ably::Rest::Push::Admin do
           fixture_count.times.map do |index|
             Thread.new do
               subject.save({
-                id: "device-#{client_id}-#{index}",
-                platform: 'ios',
-                form_factor: 'phone',
-                client_id: client_id,
-                push: {
-                  recipient: {
-                    transport_type: 'gcm',
-                    registration_token: 'secret_token',
-                  }
-                }
-              })
+                             id: "device-#{client_id}-#{index}",
+                             platform: 'ios',
+                             form_factor: 'phone',
+                             client_id: client_id,
+                             push: {
+                               recipient: {
+                                 transport_type: 'gcm',
+                                 registration_token: 'secret_token'
+                               }
+                             }
+                           })
             end
           end.each(&:join) # Wait for all threads to complete
         end
@@ -280,7 +281,7 @@ describe Ably::Rest::Push::Admin do
         end
 
         it 'raises a ResourceMissing exception if device ID does not exist' do
-          expect { subject.get("device-does-not-exist") }.to raise_error(Ably::Exceptions::ResourceMissing)
+          expect { subject.get('device-does-not-exist') }.to raise_error(Ably::Exceptions::ResourceMissing)
         end
       end
 
@@ -305,11 +306,11 @@ describe Ably::Rest::Push::Admin do
               recipient: {
                 transport_type: 'apns',
                 device_token: transport_token,
-                foo_bar: 'string',
+                foo_bar: 'string'
               },
               error_reason: {
-                message: "this will be ignored"
-              },
+                message: 'this will be ignored'
+              }
             }
           }
         end
@@ -355,13 +356,13 @@ describe Ably::Rest::Push::Admin do
 
           it 'saves the associated DevicePushDetails' do
             subject.save(device_details.merge(
-              push: {
-                recipient: {
-                  transport_type: 'gcm',
-                  registrationToken: device_token
-                }
-              }
-            ))
+                           push: {
+                             recipient: {
+                               transport_type: 'gcm',
+                               registrationToken: device_token
+                             }
+                           }
+                         ))
 
             device_retrieved = subject.get(device_details.fetch(:id))
 
@@ -376,14 +377,14 @@ describe Ably::Rest::Push::Admin do
 
           it 'saves the associated DevicePushDetails' do
             subject.save(device_details.merge(
-              push: {
-                recipient: {
-                  transport_type: 'web',
-                  targetUrl: target_url,
-                  encryptionKey: encryption_key
-                }
-              }
-            ))
+                           push: {
+                             recipient: {
+                               transport_type: 'web',
+                               targetUrl: target_url,
+                               encryptionKey: encryption_key
+                             }
+                           }
+                         ))
 
             device_retrieved = subject.get(device_details.fetch(:id))
 
@@ -432,7 +433,7 @@ describe Ably::Rest::Push::Admin do
           device_retrieved = subject.get(device_details.fetch(:id))
           expect(device_retrieved.metadata[:foo]).to eql('bar')
 
-          subject.save(DeviceDetails(device_details.merge(metadata: { foo: 'changed'})))
+          subject.save(DeviceDetails(device_details.merge(metadata: { foo: 'changed' })))
           device_retrieved = subject.get(device_details.fetch(:id))
           expect(device_retrieved.metadata[:foo]).to eql('changed')
         end
@@ -456,31 +457,31 @@ describe Ably::Rest::Push::Admin do
           [
             Thread.new do
               subject.save({
-                id: "device-#{client_id}-0",
-                platform: 'ios',
-                form_factor: 'phone',
-                client_id: client_id,
-                push: {
-                  recipient: {
-                    transport_type: 'gcm',
-                    registrationToken: 'secret_token',
-                  }
-                }
-              })
+                             id: "device-#{client_id}-0",
+                             platform: 'ios',
+                             form_factor: 'phone',
+                             client_id: client_id,
+                             push: {
+                               recipient: {
+                                 transport_type: 'gcm',
+                                 registrationToken: 'secret_token'
+                               }
+                             }
+                           })
             end,
             Thread.new do
               subject.save({
-                id: "device-#{client_id}-1",
-                platform: 'ios',
-                form_factor: 'phone',
-                client_id: client_id,
-                push: {
-                  recipient: {
-                    transport_type: 'gcm',
-                    registration_token: 'secret_token',
-                  }
-                }
-              })
+                             id: "device-#{client_id}-1",
+                             platform: 'ios',
+                             form_factor: 'phone',
+                             client_id: client_id,
+                             push: {
+                               recipient: {
+                                 transport_type: 'gcm',
+                                 registration_token: 'secret_token'
+                               }
+                             }
+                           })
             end
           ].each(&:join) # Wait for all threads to complete
         end
@@ -519,31 +520,31 @@ describe Ably::Rest::Push::Admin do
           [
             Thread.new do
               subject.save({
-                id: "device-#{client_id}-0",
-                platform: 'ios',
-                form_factor: 'phone',
-                client_id: client_id,
-                push: {
-                  recipient: {
-                    transport_type: 'gcm',
-                    registration_token: 'secret_token',
-                  }
-                }
-              })
+                             id: "device-#{client_id}-0",
+                             platform: 'ios',
+                             form_factor: 'phone',
+                             client_id: client_id,
+                             push: {
+                               recipient: {
+                                 transport_type: 'gcm',
+                                 registration_token: 'secret_token'
+                               }
+                             }
+                           })
             end,
             Thread.new do
               subject.save({
-                id: "device-#{client_id}-1",
-                platform: 'ios',
-                form_factor: 'phone',
-                client_id: client_id,
-                push: {
-                  recipient: {
-                    transport_type: 'gcm',
-                    registration_token: 'secret_token',
-                  }
-                }
-              })
+                             id: "device-#{client_id}-1",
+                             platform: 'ios',
+                             form_factor: 'phone',
+                             client_id: client_id,
+                             push: {
+                               recipient: {
+                                 transport_type: 'gcm',
+                                 registration_token: 'secret_token'
+                               }
+                             }
+                           })
             end
           ].each(&:join) # Wait for all threads to complete
         end
@@ -573,7 +574,7 @@ describe Ably::Rest::Push::Admin do
       let(:client_id) { random_str }
       let(:device_id) { random_str }
       let(:device_id_2) { random_str }
-      let(:default_device_attr) {
+      let(:default_device_attr) do
         {
           platform: 'ios',
           form_factor: 'phone',
@@ -581,28 +582,28 @@ describe Ably::Rest::Push::Admin do
           push: {
             recipient: {
               transport_type: 'gcm',
-              registration_token: 'secret_token',
+              registration_token: 'secret_token'
             }
           }
         }
-      }
+      end
 
-      let(:device_registrations) {
+      let(:device_registrations) do
         client.push.admin.device_registrations
-      }
+      end
 
-      subject {
+      subject do
         client.push.admin.channel_subscriptions
-      }
+      end
 
       # Set up 2 devices with the same client_id
       #  and two device with the unique device_id and no client_id
       before do
         [
-          lambda { device_registrations.save(default_device_attr.merge(id: device_id, client_id: nil)) },
-          lambda { device_registrations.save(default_device_attr.merge(id: device_id_2, client_id: nil)) },
-          lambda { device_registrations.save(default_device_attr.merge(client_id: client_id, id: random_str)) },
-          lambda { device_registrations.save(default_device_attr.merge(client_id: client_id, id: random_str)) }
+          -> { device_registrations.save(default_device_attr.merge(id: device_id, client_id: nil)) },
+          -> { device_registrations.save(default_device_attr.merge(id: device_id_2, client_id: nil)) },
+          -> { device_registrations.save(default_device_attr.merge(client_id: client_id, id: random_str)) },
+          -> { device_registrations.save(default_device_attr.merge(client_id: client_id, id: random_str)) }
         ].map do |proc|
           Thread.new { proc.call }
         end.each(&:join) # Wait for all threads to complete
@@ -623,9 +624,9 @@ describe Ably::Rest::Push::Admin do
         end
 
         before do
-          fixture_count.times.map do |index|
+          fixture_count.times.map do |_index|
             Thread.new { subject.save(channel: "pushenabled:#{random_str}", client_id: client_id) }
-          end + fixture_count.times.map do |index|
+          end + fixture_count.times.map do |_index|
             Thread.new { subject.save(channel: "pushenabled:#{random_str}", device_id: device_id) }
           end.each(&:join) # Wait for all threads to complete
         end
@@ -835,11 +836,11 @@ describe Ably::Rest::Push::Admin do
         end
 
         before do
-          fixture_count.times.map do |index|
+          fixture_count.times.map do |_index|
             [
-              lambda { subject.save(channel: "pushenabled:#{random_str}", client_id: client_id) },
-              lambda { subject.save(channel: "pushenabled:#{random_str}", device_id: device_id) },
-              lambda { subject.save(channel: fixed_channel, device_id: device_id_2) }
+              -> { subject.save(channel: "pushenabled:#{random_str}", client_id: client_id) },
+              -> { subject.save(channel: "pushenabled:#{random_str}", device_id: device_id) },
+              -> { subject.save(channel: fixed_channel, device_id: device_id_2) }
             ]
           end.flatten.map do |proc|
             Thread.new { proc.call }
@@ -894,9 +895,9 @@ describe Ably::Rest::Push::Admin do
 
         before do
           [
-            lambda { subject.save(channel: channel, client_id: client_id) },
-            lambda { subject.save(channel: channel, device_id: device_id) },
-            lambda { subject.save(channel: channel2, client_id: client_id) }
+            -> { subject.save(channel: channel, client_id: client_id) },
+            -> { subject.save(channel: channel, device_id: device_id) },
+            -> { subject.save(channel: channel2, client_id: client_id) }
           ].map do |proc|
             Thread.new { proc.call }
           end.each(&:join) # Wait for all threads to complete
