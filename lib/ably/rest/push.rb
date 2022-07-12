@@ -1,10 +1,12 @@
+# frozen_string_literal: true
+
 require 'ably/rest/push/admin'
 
 module Ably
   module Rest
     # Class providing push notification functionality
     class Push
-      include Ably::Modules::Conversions
+      include ::Ably::Modules::Conversions
 
       # @private
       attr_reader :client
@@ -22,18 +24,19 @@ module Ably
       # Activate this device for push notifications by registering with the push transport such as GCM/APNS
       #
       # @note This is unsupported in the Ruby library
-      def activate(*arg)
+      def activate(*_arg)
         raise_unsupported
       end
 
       # Deactivate this device for push notifications by removing the registration with the push transport such as GCM/APNS
       #
       # @note This is unsupported in the Ruby library
-      def deactivate(*arg)
+      def deactivate(*_arg)
         raise_unsupported
       end
 
       private
+
       def raise_unsupported
         raise Ably::Exceptions::PushNotificationsNotSupported, 'This device does not support receiving or subscribing to push notifications. All PushChannel methods are unavailable'
       end
