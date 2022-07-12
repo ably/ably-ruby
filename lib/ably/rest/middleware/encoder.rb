@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'faraday'
 require 'json'
 
@@ -6,7 +8,7 @@ module Ably
     module Middleware
       # Encode the body of the message according to the mime type
       class Encoder < Faraday::Middleware
-        CONTENT_TYPE = 'Content-Type'.freeze unless defined? CONTENT_TYPE
+        CONTENT_TYPE = 'Content-Type' unless defined? CONTENT_TYPE
 
         def call(env)
           encode env if env.body
@@ -14,16 +16,17 @@ module Ably
         end
 
         private
+
         def encode(env)
           env.body = case request_type(env)
-          when 'application/x-msgpack'
-            to_msgpack(env.body)
-          when 'application/json', '', nil
-            env.request_headers[CONTENT_TYPE] = 'application/json'
-            to_json(env.body)
-          else
-            env.body
-          end
+                     when 'application/x-msgpack'
+                       to_msgpack(env.body)
+                     when 'application/json', '', nil
+                       env.request_headers[CONTENT_TYPE] = 'application/json'
+                       to_json(env.body)
+                     else
+                       env.body
+                     end
         end
 
         def to_msgpack(body)
@@ -31,7 +34,7 @@ module Ably
         end
 
         def to_json(body)
-          if body.kind_of?(String)
+          if body.is_a?(String)
             body
           else
             body.to_json
