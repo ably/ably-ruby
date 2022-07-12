@@ -1,4 +1,5 @@
-# encoding: utf-8
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'shared/protocol_msgbus_behaviour'
 
@@ -13,7 +14,7 @@ describe Ably::Realtime::Presence do
     specify 'are supported for valid STATE events' do
       state = nil
       subject.on(:initialized) { state = :entered }
-      expect { subject.emit(:initialized) }.to change { state }.to(:entered)
+      expect { subject.emit(:initialized) }.to(change { state }.to(:entered))
     end
 
     specify 'fail with unacceptable STATE event names' do
@@ -26,16 +27,16 @@ describe Ably::Realtime::Presence do
   context 'msgbus', :api_private do
     let(:message) do
       Ably::Models::PresenceMessage.new({
-        'action' => 0,
-        'connection_id' => random_str,
-      }, protocol_message: instance_double('Ably::Models::ProtocolMessage'))
+                                          'action' => 0,
+                                          'connection_id' => random_str
+                                        }, protocol_message: instance_double('Ably::Models::ProtocolMessage'))
     end
     let(:msgbus) { subject.__incoming_msgbus__ }
 
     specify 'supports messages' do
       received = 0
       msgbus.subscribe(:presence) { received += 1 }
-      expect { msgbus.publish(:presence, message) }.to change { received }.to(1)
+      expect { msgbus.publish(:presence, message) }.to(change { received }.to(1))
     end
 
     specify 'fail with unacceptable STATE event names' do
@@ -65,20 +66,20 @@ describe Ably::Realtime::Presence do
       end
 
       specify 'with no action specified subscribes the provided block to all action' do
-        subject.subscribe { |message| message_history[:received] += 1}
+        subject.subscribe { |_message| message_history[:received] += 1 }
         subject.__incoming_msgbus__.publish(:presence, enter_message)
         expect(message_history[:received]).to eql(1)
       end
 
       specify 'with a single action argument subscribes that block to matching actions' do
-        subject.subscribe(enter_action) { |message| message_history[:received] += 1 }
-        subject.subscribe(:leave)  { |message| message_history[:received] += 1 }
+        subject.subscribe(enter_action) { |_message| message_history[:received] += 1 }
+        subject.subscribe(:leave) { |_message| message_history[:received] += 1 }
         subject.__incoming_msgbus__.publish(:presence, enter_message)
         expect(message_history[:received]).to eql(1)
       end
 
       specify 'with a multiple action arguments subscribes that block to all of those actions' do
-        subject.subscribe(:leave, enter_action) { |message| message_history[:received] += 1 }
+        subject.subscribe(:leave, enter_action) { |_message| message_history[:received] += 1 }
         subject.__incoming_msgbus__.publish(:presence, enter_message)
         expect(message_history[:received]).to eql(1)
         subject.__incoming_msgbus__.publish(:presence, leave_message)
@@ -90,7 +91,7 @@ describe Ably::Realtime::Presence do
       end
 
       specify 'with a multiple duplicate action arguments subscribes that block to all of those unique actions once' do
-        subject.subscribe(enter_action, enter_action) { |message| message_history[:received] += 1 }
+        subject.subscribe(enter_action, enter_action) { |_message| message_history[:received] += 1 }
         subject.__incoming_msgbus__.publish(:presence, enter_message)
         expect(message_history[:received]).to eql(1)
       end
@@ -98,7 +99,7 @@ describe Ably::Realtime::Presence do
 
     context '#unsubscribe' do
       let(:callback) do
-        lambda { |message| message_history[:received] += 1 }
+        ->(_message) { message_history[:received] += 1 }
       end
       before do
         subject.subscribe(enter_action, &callback)
