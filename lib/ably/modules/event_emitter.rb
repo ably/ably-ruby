@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'ably/modules/safe_yield'
 
 module Ably
@@ -20,8 +22,10 @@ module Ably
     #   #=> "Signal Test received"
     #
     module EventEmitter
-      include Ably::Modules::SafeYield
+      include ::Ably::Modules::SafeYield
 
+      # ClassMethods provides the methods for the Ably library classes
+      #
       module ClassMethods
         attr_reader :event_emitter_coerce_proc
 
@@ -79,16 +83,16 @@ module Ably
       # Emit an event with event_name that will in turn call all matching callbacks setup with `on`
       def emit(event_name, *args)
         [callbacks_any, callbacks[callbacks_event_coerced(event_name)]].each do |callback_arr|
-          callback_arr.clone.
-          select do |proc_hash|
-            if proc_hash[:unsafe]
-              proc_hash[:emit_proc].call(*args)
-            else
-              safe_yield proc_hash[:emit_proc], *args
-            end
-          end.each do |callback|
-            callback_arr.delete callback
-          end
+          callback_arr.clone
+                      .select do |proc_hash|
+                        if proc_hash[:unsafe]
+                          proc_hash[:emit_proc].call(*args)
+                        else
+                          safe_yield proc_hash[:emit_proc], *args
+                        end
+                      end.each do |callback|
+                        callback_arr.delete callback
+                      end
         end
       end
 
@@ -112,12 +116,13 @@ module Ably
       end
 
       private
+
       def off_internal(unsafe, *event_names, &block)
         keys = if event_names.empty?
-          callbacks.keys
-        else
-          event_names
-        end
+                 callbacks.keys
+               else
+                 event_names
+               end
 
         if event_names.empty?
           callbacks_any.delete_if do |proc_hash|
