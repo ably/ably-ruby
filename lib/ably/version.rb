@@ -1,3 +1,7 @@
+# frozen_string_literal: true
+
+# Ably main module
+#
 module Ably
   VERSION = '1.2.2'
   PROTOCOL_VERSION = '1.2'
