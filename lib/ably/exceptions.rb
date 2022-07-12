@@ -1,8 +1,10 @@
+# frozen_string_literal: true
+
 require 'ably/modules/exception_codes'
 
 module Ably
   module Exceptions
-    TOKEN_EXPIRED_CODE = 40140..40149
+    TOKEN_EXPIRED_CODE = (40_140..40_149).freeze
 
     # Base Ably exception class that contains status and code values used by Ably
     # Refer to https://github.com/ably/ably-common/blob/main/protocol/errors.json
@@ -21,10 +23,10 @@ module Ably
 
         @base_exception = base_exception
         @status = status
-        @status ||= base_exception.status if base_exception && base_exception.respond_to?(:status)
+        @status ||= base_exception.status if base_exception&.respond_to?(:status)
         @status ||= options[:fallback_status]
         @code = code
-        @code ||= base_exception.code if base_exception && base_exception.respond_to?(:code)
+        @code ||= base_exception.code if base_exception&.respond_to?(:code)
         @code ||= options[:fallback_code]
         @request_id ||= options[:request_id]
       end
@@ -43,12 +45,12 @@ module Ably
         message.join(' ')
       end
 
-      def as_json(*args)
+      def as_json(*_args)
         {
           message: "#{self.class}: #{message}",
           status: @status,
           code: @code
-        }.delete_if { |key, val| val.nil? }
+        }.delete_if { |_, val| val.nil? }
       end
     end
 
@@ -91,9 +93,7 @@ module Ably
         message = [super]
         if @base_exception
           message << "#{@base_exception}"
-          if @base_exception.respond_to?(:message) && @base_exception.message.match(/certificate verify failed/i)
-            message << "See https://goo.gl/eKvfcR to resolve this issue."
-          end
+          message << 'See https://goo.gl/eKvfcR to resolve this issue.' if @base_exception.respond_to?(:message) && @base_exception.message.match(/certificate verify failed/i)
         end
         message.join(' < ')
       end
@@ -155,8 +155,9 @@ module Ably
     # When a channel is detached / failed, certain operations are not permitted such as publishing messages
     class ChannelInactive < BaseAblyException; end
 
+    # When client id is invalid
     class IncompatibleClientId < BaseAblyException
-      def initialize(messages, status = 400, code = Ably::Exceptions::Codes::INVALID_CLIENT_ID, *args)
+      def initialize(_messages, status = 400, code = Ably::Exceptions::Codes::INVALID_CLIENT_ID, *args)
         super(message, status, code, *args)
       end
     end
