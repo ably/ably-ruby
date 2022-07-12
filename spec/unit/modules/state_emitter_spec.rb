@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe Ably::Modules::StateEmitter do
@@ -6,11 +8,10 @@ describe Ably::Modules::StateEmitter do
     extend  Ably::Modules::Enum
 
     STATE = ruby_enum('STATE',
-      :initializing,
-      :connecting,
-      :connected,
-      :disconnected
-    )
+                      :initializing,
+                      :connecting,
+                      :connected,
+                      :disconnected)
     include Ably::Modules::StateEmitter
 
     def initialize(logger)
@@ -30,15 +31,15 @@ describe Ably::Modules::StateEmitter do
   end
 
   specify '#state= sets current state' do
-    expect { subject.state = :connecting }.to change { subject.state.to_sym }.to(:connecting)
+    expect { subject.state = :connecting }.to(change { subject.state.to_sym }.to(:connecting))
   end
 
   specify '#change_state sets current state' do
-    expect { subject.change_state :connecting }.to change { subject.state.to_sym }.to(:connecting)
+    expect { subject.change_state :connecting }.to(change { subject.state.to_sym }.to(:connecting))
   end
 
   context '#change_state with arguments' do
-    let(:args) { [5,3,1] }
+    let(:args) { [5, 3, 1] }
     let(:callback_status) { { called: false } }
 
     it 'passes the arguments through to the executed callback' do
@@ -46,7 +47,7 @@ describe Ably::Modules::StateEmitter do
         expect(callback_args).to eql(args)
         callback_status[:called] = true
       end
-      expect { subject.change_state :connecting, *args }.to change { subject.state.to_sym }.to(:connecting)
+      expect { subject.change_state :connecting, *args }.to(change { subject.state.to_sym }.to(:connecting))
       expect(callback_status).to eql(called: true)
     end
   end
@@ -127,7 +128,7 @@ describe Ably::Modules::StateEmitter do
       end
 
       it 'calls the block when one of the states is reached' do
-        subject.once_or_if [:connecting, :connected], &block
+        subject.once_or_if %i[connecting connected], &block
         expect(block_calls.count).to eql(0)
 
         subject.change_state :connected
@@ -135,7 +136,7 @@ describe Ably::Modules::StateEmitter do
       end
 
       it 'calls the block only once' do
-        subject.once_or_if [:connecting, :connected], &block
+        subject.once_or_if %i[connecting connected], &block
         expect(block_calls.count).to eql(0)
 
         3.times do
@@ -150,7 +151,7 @@ describe Ably::Modules::StateEmitter do
           raise 'Should not receive a nil block' if block.nil?
         end
 
-        subject.once_or_if(:connected) { }
+        subject.once_or_if(:connected) {}
         subject.change_state :connected
       end
     end
@@ -234,7 +235,7 @@ describe Ably::Modules::StateEmitter do
     end
 
     context 'state change arguments' do
-      let(:arguments) { [1,2,3] }
+      let(:arguments) { [1, 2, 3] }
 
       specify 'are passed to success blocks' do
         subject.once_or_if(:connected) do |*arguments|
@@ -244,7 +245,7 @@ describe Ably::Modules::StateEmitter do
       end
 
       specify 'are passed to else blocks' do
-        else_block = lambda { |arguments| expect(arguments).to eql(arguments) }
+        else_block = ->(arguments) { expect(arguments).to eql(arguments) }
         subject.once_or_if(:connected, else: else_block) do
           raise 'Success should not be called'
         end
@@ -254,11 +255,11 @@ describe Ably::Modules::StateEmitter do
 
     context 'with blocks that raise exceptions' do
       let(:success_block) do
-        lambda { raise 'Success exception' }
+        -> { raise 'Success exception' }
       end
 
       let(:failure_block) do
-        lambda { raise 'Failure exception' }
+        -> { raise 'Failure exception' }
       end
 
       let(:target_state) { :connected }
@@ -291,11 +292,11 @@ describe Ably::Modules::StateEmitter do
     let(:target_state) { :connected }
 
     let(:success_block) do
-      lambda { raise 'Success exception' }
+      -> { raise 'Success exception' }
     end
 
     let(:failure_block) do
-      lambda { raise 'Failure exception' }
+      -> { raise 'Failure exception' }
     end
 
     before do
