@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'shared/model_behaviour'
 
@@ -7,7 +9,7 @@ describe Ably::Models::ConnectionDetails do
   subject { Ably::Models::ConnectionDetails }
 
   # Spec model items CD2*
-  it_behaves_like 'a model', with_simple_attributes: %w(client_id connection_key max_message_size max_frame_size max_inbound_rate) do
+  it_behaves_like 'a model', with_simple_attributes: %w[client_id connection_key max_message_size max_frame_size max_inbound_rate] do
     let(:model_args) { [] }
   end
 
