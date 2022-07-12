@@ -1,16 +1,18 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'shared/model_behaviour'
 
 describe Ably::Models::TokenRequest do
   subject { Ably::Models::TokenRequest }
 
-  it_behaves_like 'a model', with_simple_attributes: %w(key_name client_id nonce mac) do
+  it_behaves_like 'a model', with_simple_attributes: %w[key_name client_id nonce mac] do
     let(:model_args) { [] }
   end
 
   context 'attributes' do
     context '#capability' do
-      let(:capability) { { "value" => random_str } }
+      let(:capability) { { 'value' => random_str } }
       let(:capability_str) { JSON.dump(capability) }
 
       subject { Ably::Models::TokenRequest.new({ capability: capability_str }) }
@@ -20,13 +22,13 @@ describe Ably::Models::TokenRequest do
       end
     end
 
-    context "#timestamp" do
+    context '#timestamp' do
       let(:time) { Time.now }
 
       context 'with :timestamp option as milliseconds in constructor' do
         subject { Ably::Models::TokenRequest.new(timestamp: time.to_i * 1000) }
 
-        it "retrieves attribute :timestamp as Time" do
+        it 'retrieves attribute :timestamp as Time' do
           expect(subject.timestamp).to be_a(Time)
           expect(subject.timestamp.to_i).to eql(time.to_i)
         end
@@ -35,7 +37,7 @@ describe Ably::Models::TokenRequest do
       context 'with :timestamp option as Time in constructor' do
         subject { Ably::Models::TokenRequest.new(timestamp: time) }
 
-        it "retrieves attribute :timestamp as Time" do
+        it 'retrieves attribute :timestamp as Time' do
           expect(subject.timestamp).to be_a(Time)
           expect(subject.timestamp.to_i).to eql(time.to_i)
         end
@@ -44,19 +46,19 @@ describe Ably::Models::TokenRequest do
       context 'when converted to JSON' do
         subject { Ably::Models::TokenRequest.new(timestamp: time) }
 
-        it "is in milliseconds since epoch" do
+        it 'is in milliseconds since epoch' do
           expect(JSON.parse(JSON.dump(subject))['timestamp']).to eql((time.to_f * 1000).round)
         end
       end
     end
 
-    context "#ttl" do
+    context '#ttl' do
       let(:ttl) { 500 }
 
       context 'with :ttl option as milliseconds in constructor' do
         subject { Ably::Models::TokenRequest.new(ttl: ttl * 1000) }
 
-        it "retrieves attribute :ttl as seconds" do
+        it 'retrieves attribute :ttl as seconds' do
           expect(subject.ttl).to be_a(Integer)
           expect(subject.ttl).to eql(ttl)
         end
@@ -65,7 +67,7 @@ describe Ably::Models::TokenRequest do
       context 'when converted to JSON' do
         subject { Ably::Models::TokenRequest.new(ttl: ttl * 1000) }
 
-        it "is in milliseconds since epoch" do
+        it 'is in milliseconds since epoch' do
           expect(JSON.parse(JSON.dump(subject))['ttl']).to eql(ttl * 1000)
         end
       end
