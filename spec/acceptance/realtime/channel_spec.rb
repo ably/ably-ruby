@@ -1,4 +1,5 @@
-# encoding: utf-8
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe Ably::Realtime::Channel, :event_machine do
@@ -100,10 +101,12 @@ describe Ably::Realtime::Channel, :event_machine do
             test_complete = false
             client.connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
               next if test_complete
+
               attached_count += 1 if protocol_message.action == :attached
             end
             client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
               next if test_complete
+
               attach_count += 1 if protocol_message.action == :attach
             end
             channel.attach do
@@ -157,7 +160,7 @@ describe Ably::Realtime::Channel, :event_machine do
 
         context 'context when channel options contain params' do
           let(:params) do
-            { foo: 'foo', bar: 'bar'}
+            { foo: 'foo', bar: 'bar' }
           end
 
           before do
@@ -179,14 +182,14 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'when received attached' do
-          it 'decodes flags and sets it as modes on channel options (#RTL4m)'do
+          it 'decodes flags and sets it as modes on channel options (#RTL4m)' do
             channel.on(:attached) do
               expect(channel.options.modes.map(&:to_sym)).to eq(%i[subscribe])
               stop_reactor
             end
 
             channel.transition_state_machine(:attaching)
-            attached_message = Ably::Models::ProtocolMessage.new(action: 11, channel: channel_name, flags: 262144)
+            attached_message = Ably::Models::ProtocolMessage.new(action: 11, channel: channel_name, flags: 262_144)
             client.connection.__incoming_protocol_msgbus__.publish :protocol_message, attached_message
           end
 
@@ -215,15 +218,15 @@ describe Ably::Realtime::Channel, :event_machine do
 
         context 'when the implicit channel attach fails' do
           let(:allowed_params) do
-            { capability: { "*" => ["*"] } }
+            { capability: { '*' => ['*'] } }
           end
           let(:not_allowed_params) do
-            { capability: { "only_this_channel" => ["*"] } }
+            { capability: { 'only_this_channel' => ['*'] } }
           end
           let(:client_options) { default_options.merge(default_token_params: not_allowed_params, use_token_auth: true, log_level: :fatal) }
 
           it 'registers the listener anyway (#RTL7c)' do
-            channel.subscribe do |message|
+            channel.subscribe do |_message|
               stop_reactor
             end
             channel.once(:failed) do
@@ -294,8 +297,8 @@ describe Ably::Realtime::Channel, :event_machine do
         it 'does nothing (#RTL4a)' do
           channel.attach do
             stopping = false
-            client.connection.__outgoing_protocol_msgbus__.once(:protocol_message) do |protocol_message|
-              raise "No outgoing messages should be sent as already ATTACHED" unless stopping
+            client.connection.__outgoing_protocol_msgbus__.once(:protocol_message) do |_protocol_message|
+              raise 'No outgoing messages should be sent as already ATTACHED' unless stopping
             end
             5.times do |index|
               EventMachine.add_timer(0.2 * index) { channel.attach }
@@ -377,13 +380,13 @@ describe Ably::Realtime::Channel, :event_machine do
             key: restricted_api_key,
             log_level: :fatal,
             use_token_auth: true,
-            default_token_params: { capability: { "canpublish:foo" => ["*"] } }
+            default_token_params: { capability: { 'canpublish:foo' => ['*'] } }
           )
         end
         let(:restricted_client) do
           auto_close Ably::Realtime::Client.new(auth_options)
         end
-        let(:restricted_channel) { restricted_client.channel("cansubscribe:foo") }
+        let(:restricted_channel) { restricted_client.channel('cansubscribe:foo') }
 
         it 'emits failed event (#RTL4e)' do
           restricted_channel.attach
@@ -415,7 +418,7 @@ describe Ably::Realtime::Channel, :event_machine do
             restricted_channel.attach
             restricted_channel.once(:failed) do
               restricted_client.close do
-                token_params = { capability: { "cansubscribe:foo" => ["subscribe"] } }
+                token_params = { capability: { 'cansubscribe:foo' => ['subscribe'] } }
                 restricted_client.auth.authorize(token_params) do
                   restricted_channel.once(:attached) do
                     expect(restricted_channel.error_reason).to be_nil
@@ -471,7 +474,7 @@ describe Ably::Realtime::Channel, :event_machine do
           end
         end
 
-        context "when channel was explicitly detached" do
+        context 'when channel was explicitly detached' do
           it "doesn't send ATTACH_RESUME" do
             channel.once(:detached) do
               client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
@@ -555,7 +558,7 @@ describe Ably::Realtime::Channel, :event_machine do
               connection.__incoming_protocol_msgbus__.unsubscribe
               detached_requested_at = Time.now.to_i
               channel.detach do
-                raise "The detach should not succeed if no incoming protocol messages are processed"
+                raise 'The detach should not succeed if no incoming protocol messages are processed'
               end.errback do
                 expect(channel).to be_attached
                 expect(Time.now.to_i - detached_requested_at).to be_within(1).of(request_timeout)
@@ -585,7 +588,6 @@ describe Ably::Realtime::Channel, :event_machine do
         it 'waits for the attach to complete and then moves to detached' do
           connection.once(:connected) do
             channel.once(:attaching) do
-              reached_attached = false
               channel.once(:attached) do
                 channel.once(:detached) do
                   stop_reactor
@@ -659,7 +661,7 @@ describe Ably::Realtime::Channel, :event_machine do
             channel.detach do
               expect(channel).to be_detached
               channel.on do
-                raise "Channel state should not change when calling detached if already detached"
+                raise 'Channel state should not change when calling detached if already detached'
               end
               channel.detach do
                 EventMachine.add_timer(1) { stop_reactor }
@@ -701,7 +703,7 @@ describe Ably::Realtime::Channel, :event_machine do
                     stop_reactor
                   end
                 end
-                error = Ably::Exceptions::ConnectionFailed.new('forced failure', 500, 50000)
+                error = Ably::Exceptions::ConnectionFailed.new('forced failure', 500, 50_000)
                 client.connection.manager.error_received_from_server error
               end
             end
@@ -724,7 +726,7 @@ describe Ably::Realtime::Channel, :event_machine do
                       stop_reactor
                     end
                   end
-                  error = Ably::Exceptions::ConnectionFailed.new('forced failure', 500, 50000)
+                  error = Ably::Exceptions::ConnectionFailed.new('forced failure', 500, 50_000)
                   client.connection.manager.error_received_from_server error
                 end
               end
@@ -811,7 +813,7 @@ describe Ably::Realtime::Channel, :event_machine do
         it 'ignores the additional ATTACHED if resumed is true (#RTL12)' do
           channel.attach do
             channel.once do |obj|
-              fail "No state change expected: #{obj}"
+              raise "No state change expected: #{obj}"
             end
             attached_message = Ably::Models::ProtocolMessage.new(action: 11, channel: channel_name, flags: 4) # ATTACHED with resumed flag
             client.connection.__incoming_protocol_msgbus__.publish :protocol_message, attached_message
@@ -845,11 +847,11 @@ describe Ably::Realtime::Channel, :event_machine do
               expect(state_change.current).to eq(:attached)
               expect(state_change.previous).to eq(:attached)
               expect(state_change.resumed).to be_falsey
-              expect(state_change.reason.code).to eql(50505)
-              expect(channel.error_reason.code).to eql(50505)
+              expect(state_change.reason.code).to eql(50_505)
+              expect(channel.error_reason.code).to eql(50_505)
               stop_reactor
             end
-            attached_message = Ably::Models::ProtocolMessage.new(action: 11, channel: channel_name, error: { code: 50505 }, flags: 0) # No resumed flag with error
+            attached_message = Ably::Models::ProtocolMessage.new(action: 11, channel: channel_name, error: { code: 50_505 }, flags: 0) # No resumed flag with error
             client.connection.__incoming_protocol_msgbus__.publish :protocol_message, attached_message
           end
         end
@@ -894,7 +896,8 @@ describe Ably::Realtime::Channel, :event_machine do
 
             sent_message = nil
             channel.subscribe do |message|
-              return if message.data != payload
+              break unless message.data == payload
+
               sent_message = message
 
               stop_reactor if channel.attached?
@@ -1000,6 +1003,7 @@ describe Ably::Realtime::Channel, :event_machine do
               client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
                 if protocol_message.action == :message
                   raise "Expected channel state to be attaching when publishing messages, not #{channel.state}" unless channel.attaching?
+
                   outgoing_message_count += protocol_message.messages.count
                 end
               end
@@ -1026,6 +1030,7 @@ describe Ably::Realtime::Channel, :event_machine do
                 client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
                   if protocol_message.action == :message
                     raise "Expected channel state to be attaching when publishing messages, not #{channel.state}" unless channel.detaching?
+
                     outgoing_message_count += protocol_message.messages.count
                   end
                 end
@@ -1054,6 +1059,7 @@ describe Ably::Realtime::Channel, :event_machine do
                 client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
                   if protocol_message.action == :message
                     raise "Expected channel state to be attaching when publishing messages, not #{channel.state}" unless channel.detached?
+
                     outgoing_message_count += protocol_message.messages.count
                   end
                 end
@@ -1073,7 +1079,7 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       context 'with :queue_messages client option set to false (#RTL6c4)' do
-        let(:client_options)  { default_options.merge(queue_messages: false) }
+        let(:client_options) { default_options.merge(queue_messages: false) }
 
         context 'and connection state connected (#RTL6c4)' do
           it 'publishes the message' do
@@ -1107,7 +1113,7 @@ describe Ably::Realtime::Channel, :event_machine do
           end
         end
 
-        [:disconnected, :suspended, :closing, :closed].each do |invalid_connection_state|
+        %i[disconnected suspended closing closed].each do |invalid_connection_state|
           context "and connection state #{invalid_connection_state} (#RTL6c4)" do
             let(:client_options)  { default_options.merge(queue_messages: false) }
             it 'fails the deferrable' do
@@ -1130,7 +1136,7 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'and the channel state is failed (#RTL6c4)' do
-          let(:client_options)  { default_options.merge(queue_messages: false) }
+          let(:client_options) { default_options.merge(queue_messages: false) }
           it 'fails the deferrable' do
             client.connection.once(:connected) do
               channel.attach
@@ -1185,7 +1191,7 @@ describe Ably::Realtime::Channel, :event_machine do
       context 'with an array of Hash objects with :name and :data attributes' do
         let(:messages) do
           10.times.map do |index|
-            { name: index.to_s, data: { "index" => index + 10 } }
+            { name: index.to_s, data: { 'index' => index + 10 } }
           end
         end
 
@@ -1213,7 +1219,7 @@ describe Ably::Realtime::Channel, :event_machine do
       context 'with an array of Message objects' do
         let(:messages) do
           10.times.map do |index|
-            Ably::Models::Message(name: index.to_s, data: { "index" => index + 10 })
+            Ably::Models::Message(name: index.to_s, data: { 'index' => index + 10 })
           end
         end
 
@@ -1302,11 +1308,11 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'with two invalid message out of 12' do
-          let(:rest_client)    { Ably::Rest::Client.new(default_options.merge(client_id: 'valid')) }
+          let(:rest_client) { Ably::Rest::Client.new(default_options.merge(client_id: 'valid')) }
 
           let(:invalid_messages) do
             2.times.map do |index|
-              Ably::Models::Message(name: index.to_s, data: { "index" => index + 10 }, client_id: 'prohibited')
+              Ably::Models::Message(name: index.to_s, data: { 'index' => index + 10 }, client_id: 'prohibited')
             end
           end
 
@@ -1319,7 +1325,7 @@ describe Ably::Realtime::Channel, :event_machine do
                   raise 'Publish should have failed'
                 end
 
-                deferrable.errback do |error, message|
+                deferrable.errback do |_error, _message|
                   # TODO: Review whether we should fail once or multiple times
                   channel.history do |page|
                     expect(page.items.count).to eql(0)
@@ -1341,11 +1347,11 @@ describe Ably::Realtime::Channel, :event_machine do
         end
 
         context 'only invalid messages' do
-          let(:rest_client)    { Ably::Rest::Client.new(default_options.merge(client_id: 'valid')) }
+          let(:rest_client) { Ably::Rest::Client.new(default_options.merge(client_id: 'valid')) }
 
           let(:invalid_messages) do
             10.times.map do |index|
-              Ably::Models::Message(name: index.to_s, data: { "index" => index + 10 }, client_id: 'prohibited')
+              Ably::Models::Message(name: index.to_s, data: { 'index' => index + 10 }, client_id: 'prohibited')
             end
           end
 
@@ -1358,7 +1364,7 @@ describe Ably::Realtime::Channel, :event_machine do
                   raise 'Publish should have failed'
                 end
 
-                deferrable.errback do |error, message|
+                deferrable.errback do |_error, _message|
                   channel.history do |page|
                     expect(page.items.count).to eql(0)
                     stop_reactor
@@ -1381,7 +1387,7 @@ describe Ably::Realtime::Channel, :event_machine do
 
       context 'with many many messages and many connections simultaneously' do
         let(:connection_count) { 5 }
-        let(:messages)         { 5.times.map { |index| { name: "test", data: "message-#{index}" } } }
+        let(:messages)         { 5.times.map { |index| { name: 'test', data: "message-#{index}" } } }
         let(:published)        { [] }
         let(:channel_name)     { random_str }
 
@@ -1406,8 +1412,6 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       context 'with more than allowed messages in a single publish' do
-        65536
-
         it 'rejects the publish' do
           messages = (Ably::Realtime::Connection::MAX_PROTOCOL_MESSAGE_BATCH_SIZE + 1).times.map do
             { name: 'foo' }
@@ -1488,10 +1492,10 @@ describe Ably::Realtime::Channel, :event_machine do
             context 'with an invalid client_id in the message' do
               let(:client_options)   { default_options.merge(key: nil, token: token, log_level: :error) }
               it 'succeeds in the client library but then fails when delivered to Ably' do
-                channel.publish([name: 'event', client_id: 'invalid']).tap do |deferrable|
+                channel.publish([name: 'event', client_id: 'invalid']).tap do |_deferrable|
                   EM.add_timer(0.5) { stop_reactor }
                 end
-                channel.subscribe('event') do |message|
+                channel.subscribe('event') do |_message|
                   raise 'Message should not have been published'
                 end
               end
@@ -1635,7 +1639,7 @@ describe Ably::Realtime::Channel, :event_machine do
 
         context 'and max_message_size is default (65536 bytes)' do
           let(:channel_name) { random_str }
-          let(:max_message_size) { 65536 }
+          let(:max_message_size) { 65_536 }
 
           it 'should allow to send a message (32 bytes)' do
             client.connection.once(:connected) do
@@ -1653,9 +1657,9 @@ describe Ably::Realtime::Channel, :event_machine do
                 client.connection.details.attributes.attributes.merge('maxMessageSize' => max_message_size)
               )
               client.connection.set_connection_details(connection_details)
-              expect(client.connection.details.max_message_size).to eq(65536)
-              channel.publish('event', 'x' * 700000).errback do |error|
-                expect(error).to be_instance_of(Ably::Exceptions::MaxMessageSizeExceeded)
+              expect(client.connection.details.max_message_size).to eq(65_536)
+              channel.publish('event', 'x' * 700_000).errback do |error|
+                expect(error[0]).to eq(Ably::Exceptions::MaxMessageSizeExceeded)
                 stop_reactor
               end
             end
@@ -1676,7 +1680,7 @@ describe Ably::Realtime::Channel, :event_machine do
                 client.connection.set_connection_details(connection_details)
                 expect(client.connection.details.max_message_size).to eq(11)
                 channel.publish('event', 'x' * 30).errback do |error|
-                  expect(error).to be_instance_of(Ably::Exceptions::MaxMessageSizeExceeded)
+                  expect(error[0]).to eq(Ably::Exceptions::MaxMessageSizeExceeded)
                   stop_reactor
                 end
               end
@@ -1696,7 +1700,7 @@ describe Ably::Realtime::Channel, :event_machine do
                   client.connection.details.attributes.attributes.merge('maxMessageSize' => max_message_size)
                 )
                 client.connection.set_connection_details(connection_details)
-                expect(client.connection.details.max_message_size).to eq(65536)
+                expect(client.connection.details.max_message_size).to eq(65_536)
                 channel.subscribe('event') do |msg|
                   expect(msg.data).to eq('x' * 30)
                   stop_reactor
@@ -1715,9 +1719,9 @@ describe Ably::Realtime::Channel, :event_machine do
                   client.connection.details.attributes.attributes.merge('maxMessageSize' => max_message_size)
                 )
                 client.connection.set_connection_details(connection_details)
-                expect(client.connection.details.max_message_size).to eq(65536)
-                channel.publish('event', 'x' * 65537).errback do |error|
-                  expect(error).to be_instance_of(Ably::Exceptions::MaxMessageSizeExceeded)
+                expect(client.connection.details.max_message_size).to eq(65_536)
+                channel.publish('event', 'x' * 65_537).errback do |error|
+                  expect(error[0]).to eq(Ably::Exceptions::MaxMessageSizeExceeded)
                   stop_reactor
                 end
               end
@@ -1763,14 +1767,14 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       context 'with a callback that raises an exception' do
-        let(:exception) { StandardError.new("Intentional error") }
+        let(:exception) { StandardError.new('Intentional error') }
 
         it 'logs the error and continues' do
           emitted_exception = false
           expect(client.logger).to receive(:error) do |*args, &block|
             expect(args.concat([block ? block.call : nil]).join(',')).to match(/#{exception.message}/)
           end
-          channel.subscribe('click') do |message|
+          channel.subscribe('click') do |_message|
             emitted_exception = true
             raise exception
           end
@@ -1785,7 +1789,7 @@ describe Ably::Realtime::Channel, :event_machine do
 
       context 'many times with different event names' do
         it 'filters events accordingly to each callback' do
-          click_callback = lambda { |message| messages << message }
+          click_callback = ->(message) { messages << message }
 
           channel.subscribe('click', &click_callback)
           channel.subscribe('move', &click_callback)
@@ -1835,7 +1839,7 @@ describe Ably::Realtime::Channel, :event_machine do
 
     context 'when connection state changes to' do
       context ':failed' do
-        let(:connection_error) { Ably::Exceptions::ConnectionFailed.new('forced failure', 500, 50000) }
+        let(:connection_error) { Ably::Exceptions::ConnectionFailed.new('forced failure', 500, 50_000) }
         let(:client_options)   { default_options.merge(log_level: :none) }
 
         def fake_error(error)
@@ -1849,7 +1853,7 @@ describe Ably::Realtime::Channel, :event_machine do
                 channel.on(:failed) do |connection_state_change|
                   error = connection_state_change.reason
                   expect(error).to be_a(Ably::Exceptions::ConnectionFailed)
-                  expect(error.code).to eql(50000)
+                  expect(error.code).to eql(50_000)
                   stop_reactor
                 end
                 fake_error connection_error
@@ -1865,7 +1869,7 @@ describe Ably::Realtime::Channel, :event_machine do
               channel.on(:failed) do |connection_state_change|
                 error = connection_state_change.reason
                 expect(error).to be_a(Ably::Exceptions::ConnectionFailed)
-                expect(error.code).to eql(50000)
+                expect(error.code).to eql(50_000)
                 stop_reactor
               end
               fake_error connection_error
@@ -1877,7 +1881,7 @@ describe Ably::Realtime::Channel, :event_machine do
               channel.on(:failed) do |connection_state_change|
                 error = connection_state_change.reason
                 expect(error).to be_a(Ably::Exceptions::ConnectionFailed)
-                expect(error.code).to eql(50000)
+                expect(error.code).to eql(50_000)
                 stop_reactor
               end
               fake_error connection_error
@@ -2170,7 +2174,7 @@ describe Ably::Realtime::Channel, :event_machine do
             it 'returns to a suspended state (#RTL3d)' do
               channel.attach do
                 channel.once(:attached) do
-                  fail "Channel should not have become attached"
+                  raise 'Channel should not have become attached'
                 end
 
                 channel.once(:suspended) do
@@ -2179,7 +2183,7 @@ describe Ably::Realtime::Channel, :event_machine do
                     # don't process any incoming ProtocolMessages so the connection never opens
                     client.connection.__incoming_protocol_msgbus__.unsubscribe
                     channel.once(:suspended) do |state_change|
-                      expect(state_change.reason.code).to eql(90007)
+                      expect(state_change.reason.code).to eql(90_007)
                       stop_reactor
                     end
                   end
@@ -2249,7 +2253,7 @@ describe Ably::Realtime::Channel, :event_machine do
         context 'with a failed channel' do
           let(:client_options) do
             default_options.merge(
-              default_token_params: { capability: { "foo" =>["*"] } },
+              default_token_params: { capability: { 'foo' => ['*'] } },
               use_token_auth: true,
               log_level: :fatal
             )
@@ -2325,7 +2329,7 @@ describe Ably::Realtime::Channel, :event_machine do
       context 'when channel is initialized' do
         it "doesn't send ATTACH message" do
           client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
-            raise "Unexpected message" if protocol_message.action == :attach
+            raise 'Unexpected message' if protocol_message.action == :attach
           end
 
           channel.options = channel_options
@@ -2403,7 +2407,7 @@ describe Ably::Realtime::Channel, :event_machine do
               stop_reactor
             end
             channel.attach do
-              error = Ably::Exceptions::ConnectionFailed.new('forced failure', 500, 50000)
+              error = Ably::Exceptions::ConnectionFailed.new('forced failure', 500, 50_000)
               client.connection.manager.error_received_from_server error
             end
           end
@@ -2478,7 +2482,7 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       context 'moves to' do
-        %w(suspended failed).each do |channel_state|
+        %w[suspended failed].each do |channel_state|
           context(channel_state) do
             let(:client) do
               auto_close Ably::Realtime::Client.new(default_options.merge(log_level: :error))
@@ -2499,7 +2503,7 @@ describe Ably::Realtime::Channel, :event_machine do
                 connection.on(:connecting) { disconnect_transport_proc.call }
 
                 connection.once(:disconnected) do
-                  channel.publish("foo").errback do |error|
+                  channel.publish('foo').errback do |_error|
                     stop_reactor
                   end
                   channel.transition_state_machine channel_state.to_sym
@@ -2512,11 +2516,11 @@ describe Ably::Realtime::Channel, :event_machine do
 
               channel.attach
               channel.once(:attached) do
-                deferrable = channel.publish("foo")
-                deferrable.errback do |error|
-                  fail "Message publish should not fail"
+                deferrable = channel.publish('foo')
+                deferrable.errback do |_error|
+                  raise 'Message publish should not fail'
                 end
-                deferrable.callback do |error|
+                deferrable.callback do |_error|
                   EventMachine.add_timer(0.5) do
                     expect(connection_been_disconnected).to be_truthy
                     stop_reactor
@@ -2555,13 +2559,13 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       context 'and channel is failed' do
-        let(:client_options) {
+        let(:client_options) do
           default_options.merge(
             use_token_auth: true,
-            default_token_params: { capability: { "foo" => ["publish"] } },
+            default_token_params: { capability: { 'foo' => ['publish'] } },
             log_level: :fatal
           )
-        }
+        end
 
         it 'does nothing (#RTL13)' do
           connection.once(:connected) do
@@ -2590,14 +2594,14 @@ describe Ably::Realtime::Channel, :event_machine do
             end
 
             channel.once(:attaching) do |state_change|
-              expect(state_change.reason.code).to eql(50505)
+              expect(state_change.reason.code).to eql(50_505)
               channel.once(:attached) do
                 expect(resume_flag).to eq(true)
                 stop_reactor
               end
             end
 
-            detach_message = Ably::Models::ProtocolMessage.new(action: detached_action, channel: channel_name, error: { code: 50505 })
+            detach_message = Ably::Models::ProtocolMessage.new(action: detached_action, channel: channel_name, error: { code: 50_505 })
             client.connection.__incoming_protocol_msgbus__.publish :protocol_message, detach_message
           end
 
@@ -2621,14 +2625,14 @@ describe Ably::Realtime::Channel, :event_machine do
             end
 
             channel.once(:attaching) do |state_change|
-              expect(state_change.reason.code).to eql(50505)
+              expect(state_change.reason.code).to eql(50_505)
               channel.once(:attached) do
                 expect(resume_flag).to eq(true)
                 stop_reactor
               end
             end
 
-            detach_message = Ably::Models::ProtocolMessage.new(action: detached_action, channel: channel_name, error: { code: 50505 })
+            detach_message = Ably::Models::ProtocolMessage.new(action: detached_action, channel: channel_name, error: { code: 50_505 })
             client.connection.__incoming_protocol_msgbus__.publish :protocol_message, detach_message
           end
 
@@ -2639,7 +2643,7 @@ describe Ably::Realtime::Channel, :event_machine do
           it 'will not attempt to reattach (#RTL13c)' do
             channel.attach do
               connection.once(:closing) do
-                channel.once(:attaching) do |state_change|
+                channel.once(:attaching) do |_state_change|
                   raise 'Channel should not attempt to reattach'
                 end
 
@@ -2677,10 +2681,9 @@ describe Ably::Realtime::Channel, :event_machine do
           channel.once(:attaching) do
             attaching_at = Time.now
             # First attaching fails during server-initiated ATTACHED received
-            channel.once(:suspended) do |state_change|
+            channel.once(:suspended) do |_state_change|
               expect(Time.now.to_i - attaching_at.to_i).to be_within(1).of(1)
 
-              suspended_at = Time.now
               # Automatic attach happens at channel_retry_timeout
               channel.once(:attaching) do
                 expect(Time.now.to_i - attaching_at.to_i).to be_within(1).of(2)
@@ -2711,11 +2714,11 @@ describe Ably::Realtime::Channel, :event_machine do
       it 'should transition to the failed state and the error_reason should be set (#RTL14)' do
         channel.attach do
           channel.once(:failed) do |state_change|
-            expect(state_change.reason.code).to eql(50505)
-            expect(channel.error_reason.code).to eql(50505)
+            expect(state_change.reason.code).to eql(50_505)
+            expect(channel.error_reason.code).to eql(50_505)
             stop_reactor
           end
-          error_message = Ably::Models::ProtocolMessage.new(action: 9, channel: channel_name, error: { code: 50505 }) # ProtocolMessage ERROR type
+          error_message = Ably::Models::ProtocolMessage.new(action: 9, channel: channel_name, error: { code: 50_505 }) # ProtocolMessage ERROR type
           client.connection.__incoming_protocol_msgbus__.publish :protocol_message, error_message
         end
       end
