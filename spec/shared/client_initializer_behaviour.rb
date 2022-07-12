@@ -1,4 +1,4 @@
-# encoding: utf-8
+# frozen_string_literal: true
 
 shared_examples 'a client initializer' do
   def subdomain
@@ -18,12 +18,12 @@ shared_examples 'a client initializer' do
   end
 
   def rest?
-    subject.kind_of?(Ably::Rest::Client)
+    subject.is_a?(Ably::Rest::Client)
   end
 
   context 'with invalid arguments' do
     context 'empty hash' do
-      let(:client_options) { Hash.new }
+      let(:client_options) { {} }
 
       it 'raises an exception' do
         expect { subject }.to raise_error(ArgumentError, /key is missing/)
@@ -193,7 +193,7 @@ shared_examples 'a client initializer' do
         let(:client_options) { default_options.merge(port: 999, tls: false, auto_connect: false) }
 
         it 'uses the custom port for non-TLS requests' do
-          expect(subject.endpoint.to_s).to include(":999")
+          expect(subject.endpoint.to_s).to include(':999')
         end
       end
 
@@ -201,7 +201,7 @@ shared_examples 'a client initializer' do
         let(:client_options) { default_options.merge(tls_port: 666, tls: true, auto_connect: false) }
 
         it 'uses the custom port for TLS requests' do
-          expect(subject.endpoint.to_s).to include(":666")
+          expect(subject.endpoint.to_s).to include(':666')
         end
       end
     end
@@ -270,7 +270,7 @@ shared_examples 'a client initializer' do
       context 'when set without custom fallback hosts configured' do
         let(:environment) { 'foo' }
         let(:client_options) { default_options.merge(environment: environment) }
-        let(:default_fallbacks) { %w(a b c d e).map { |id| "#{environment}-#{id}-fallback.ably-realtime.com" } }
+        let(:default_fallbacks) { %w[a b c d e].map { |id| "#{environment}-#{id}-fallback.ably-realtime.com" } }
 
         it 'sets the environment attribute' do
           expect(subject.environment).to eql(environment)
@@ -283,7 +283,7 @@ shared_examples 'a client initializer' do
 
       context 'when set with custom fallback hosts configured' do
         let(:environment) { 'foo' }
-        let(:custom_fallbacks) { %w(a b c).map { |id| "#{environment}-#{id}.foo.com" } }
+        let(:custom_fallbacks) { %w[a b c].map { |id| "#{environment}-#{id}.foo.com" } }
         let(:client_options) { default_options.merge(environment: environment, fallback_hosts: custom_fallbacks) }
 
         it 'sets the environment attribute' do
@@ -297,8 +297,8 @@ shared_examples 'a client initializer' do
 
       context 'when set with fallback_hosts_use_default' do
         let(:environment) { 'foo' }
-        let(:custom_fallbacks) { %w(a b c).map { |id| "#{environment}-#{id}.foo.com" } }
-        let(:default_production_fallbacks) { %w(a b c d e).map { |id| "#{id}.ably-realtime.com" } }
+        let(:custom_fallbacks) { %w[a b c].map { |id| "#{environment}-#{id}.foo.com" } }
+        let(:default_production_fallbacks) { %w[a b c d e].map { |id| "#{id}.ably-realtime.com" } }
         let(:client_options) { default_options.merge(environment: environment, fallback_hosts_use_default: true) }
 
         it 'sets the environment attribute' do
@@ -345,7 +345,7 @@ shared_examples 'a client initializer' do
 
       context 'when set with custom fallback hosts configured' do
         let(:custom_rest_host) { 'foo.com' }
-        let(:custom_fallbacks) { %w(a b c).map { |id| "#{environment}-#{id}.foo.com" } }
+        let(:custom_fallbacks) { %w[a b c].map { |id| "#{environment}-#{id}.foo.com" } }
         let(:client_options) { default_options.merge(rest_host: custom_rest_host, fallback_hosts: custom_fallbacks) }
 
         it 'sets the custom_host attribute' do
