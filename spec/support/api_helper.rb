@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'support/test_app'
 
 module ApiHelper
@@ -49,12 +51,12 @@ RSpec.configure do |config|
 end
 
 module ApiPreloader
-  def self.included(mod)
+  def self.included(_mod)
     WebMock.disable!
     TestApp.instance.api_key
   end
 
   RSpec.configure do |config|
-    config.include self, :file_path => %r(spec/acceptance)
+    config.include self, file_path: %r{spec/acceptance}
   end
 end
