@@ -1,4 +1,5 @@
-# encoding: utf-8
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'shared/model_behaviour'
 
@@ -12,9 +13,8 @@ describe Ably::Models::ProtocolMessage do
 
   # TR4n, TR4b, TR4c, TR4d
   it_behaves_like 'a model',
-    with_simple_attributes: %w(id channel channel_serial connection_id),
-    base_model_options: { action: 1 } do
-
+                  with_simple_attributes: %w[id channel channel_serial connection_id],
+                  base_model_options: { action: 1 } do
     let(:model_args) { [] }
   end
 
@@ -102,7 +102,7 @@ describe Ably::Models::ProtocolMessage do
     end
 
     context '#message_serial' do
-      let(:protocol_message) { new_protocol_message(msg_serial: "55") }
+      let(:protocol_message) { new_protocol_message(msg_serial: '55') }
       it 'converts :msg_serial to an Integer' do
         expect(protocol_message.message_serial).to be_a(Integer)
         expect(protocol_message.message_serial).to eql(55)
@@ -119,7 +119,7 @@ describe Ably::Models::ProtocolMessage do
       end
 
       context 'with msg_serial' do
-        let(:protocol_message) { new_protocol_message(msg_serial: "55") }
+        let(:protocol_message) { new_protocol_message(msg_serial: '55') }
 
         it 'returns true' do
           expect(protocol_message.has_message_serial?).to eql(true)
@@ -128,7 +128,7 @@ describe Ably::Models::ProtocolMessage do
     end
 
     context '#connection_serial' do
-      let(:protocol_message) { new_protocol_message(connection_serial: "55") }
+      let(:protocol_message) { new_protocol_message(connection_serial: '55') }
       it 'converts :connection_serial to an Integer' do
         expect(protocol_message.connection_serial).to be_a(Integer)
         expect(protocol_message.connection_serial).to eql(55)
@@ -251,7 +251,7 @@ describe Ably::Models::ProtocolMessage do
       end
 
       context 'with connection_serial' do
-        let(:protocol_message) { new_protocol_message(connection_serial: "55") }
+        let(:protocol_message) { new_protocol_message(connection_serial: '55') }
 
         it 'returns true' do
           expect(protocol_message.has_connection_serial?).to eql(true)
@@ -261,7 +261,7 @@ describe Ably::Models::ProtocolMessage do
 
     context '#serial' do
       context 'with underlying msg_serial' do
-        let(:protocol_message) { new_protocol_message(msg_serial: "55") }
+        let(:protocol_message) { new_protocol_message(msg_serial: '55') }
         it 'converts :msg_serial to an Integer' do
           expect(protocol_message.serial).to be_a(Integer)
           expect(protocol_message.serial).to eql(55)
@@ -269,7 +269,7 @@ describe Ably::Models::ProtocolMessage do
       end
 
       context 'with underlying connection_serial' do
-        let(:protocol_message) { new_protocol_message(connection_serial: "55") }
+        let(:protocol_message) { new_protocol_message(connection_serial: '55') }
         it 'converts :connection_serial to an Integer' do
           expect(protocol_message.serial).to be_a(Integer)
           expect(protocol_message.serial).to eql(55)
@@ -277,7 +277,7 @@ describe Ably::Models::ProtocolMessage do
       end
 
       context 'with underlying connection_serial and msg_serial' do
-        let(:protocol_message) { new_protocol_message(connection_serial: "99", msg_serial: "11") }
+        let(:protocol_message) { new_protocol_message(connection_serial: '99', msg_serial: '11') }
         it 'prefers connection_serial and converts :connection_serial to an Integer' do
           expect(protocol_message.serial).to be_a(Integer)
           expect(protocol_message.serial).to eql(99)
@@ -295,7 +295,7 @@ describe Ably::Models::ProtocolMessage do
       end
 
       context 'with msg_serial' do
-        let(:protocol_message) { new_protocol_message(msg_serial: "55") }
+        let(:protocol_message) { new_protocol_message(msg_serial: '55') }
 
         it 'returns true' do
           expect(protocol_message.has_serial?).to eql(true)
@@ -303,7 +303,7 @@ describe Ably::Models::ProtocolMessage do
       end
 
       context 'with connection_serial' do
-        let(:protocol_message) { new_protocol_message(connection_serial: "55") }
+        let(:protocol_message) { new_protocol_message(connection_serial: '55') }
 
         it 'returns true' do
           expect(protocol_message.has_serial?).to eql(true)
@@ -408,7 +408,7 @@ describe Ably::Models::ProtocolMessage do
         end
 
         it 'should return false when a message has not correct size' do
-          protocol_message = new_protocol_message(presence: [{ action: 1, data: 'x' * 65537 }])
+          protocol_message = new_protocol_message(presence: [{ action: 1, data: 'x' * 65_537 }])
           expect(protocol_message.has_correct_message_size?).to eq(false)
         end
       end
@@ -420,7 +420,7 @@ describe Ably::Models::ProtocolMessage do
         end
 
         it 'should return false when a message has not correct size' do
-          protocol_message = new_protocol_message(messages: [{ name: 'x' * 65537 }])
+          protocol_message = new_protocol_message(messages: [{ name: 'x' * 65_537 }])
           expect(protocol_message.has_correct_message_size?).to eq(false)
         end
       end
@@ -488,21 +488,21 @@ describe Ably::Models::ProtocolMessage do
     let(:message_action) { Ably::Models::ProtocolMessage::ACTION.Message }
 
     context 'with valid data' do
-      let(:model) { new_protocol_message({ :action => attached_action, :channelSerial => 'unique', messages: [message1, message2, message3] }) }
+      let(:model) { new_protocol_message({ action: attached_action, channelSerial: 'unique', messages: [message1, message2, message3] }) }
 
       it 'converts the attribute back to Java mixedCase notation using string keys' do
-        expect(json_object["channelSerial"]).to eql('unique')
+        expect(json_object['channelSerial']).to eql('unique')
       end
 
       it 'populates the messages' do
-        expect(json_object["messages"][0]).to include(message1)
-        expect(json_object["messages"][1]).to include(message2)
-        expect(json_object["messages"][2]).to include(message3)
+        expect(json_object['messages'][0]).to include(message1)
+        expect(json_object['messages'][1]).to include(message2)
+        expect(json_object['messages'][2]).to include(message3)
       end
     end
 
     context 'with missing msg_serial for ack message' do
-      let(:model) { new_protocol_message({ :action => message_action }) }
+      let(:model) { new_protocol_message({ action: message_action }) }
 
       it 'it raises an exception' do
         expect { model.to_json }.to raise_error TypeError, /msg_serial.*missing/
@@ -510,16 +510,16 @@ describe Ably::Models::ProtocolMessage do
     end
 
     context 'is aliased by #to_s' do
-      let(:model) { new_protocol_message({ :action => attached_action, :channelSerial => 'unique', messages: [message1, message2, message3], :timestamp => as_since_epoch(Time.now) }) }
+      let(:model) { new_protocol_message({ action: attached_action, channelSerial: 'unique', messages: [message1, message2, message3], timestamp: as_since_epoch(Time.now) }) }
 
       specify do
-        expect(json_object).to eql(JSON.parse("#{model}"))
+        expect(json_object).to eql(JSON.parse(model.to_s))
       end
     end
   end
 
   context '#to_msgpack', :api_private do
-    let(:model)    { new_protocol_message({ :connectionSerial => 'unique', messages: [message1, message2, message3] }) }
+    let(:model) { new_protocol_message({ connectionSerial: 'unique', messages: [message1, message2, message3] }) }
     let(:message1)  { { 'name' => 'event1', 'clientId' => 'joe', 'timestamp' => as_since_epoch(Time.now) } }
     let(:message2)  { { 'name' => 'event2', 'clientId' => 'joe', 'timestamp' => as_since_epoch(Time.now) } }
     let(:message3)  { { 'name' => 'event3', 'clientId' => 'joe', 'timestamp' => as_since_epoch(Time.now) } }
