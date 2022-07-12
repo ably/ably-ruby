@@ -1,8 +1,12 @@
+# frozen_string_literal: true
+
 require 'faraday'
 
 module Ably
   module Rest
     module Middleware
+      # Logger provides the top-level class to be instanced for the Ably library
+      #
       class Logger < Faraday::Middleware
         extend Forwardable
 
@@ -10,7 +14,7 @@ module Ably
           super(app)
           @logger = logger || begin
             require 'logger'
-            ::Logger.new(STDOUT)
+            ::Logger.new($stdout)
           end
         end
 
@@ -28,8 +32,9 @@ module Ably
         end
 
         private
+
         def dump_headers(headers)
-          headers.map { |k, v| "#{k}: #{v.inspect}" }.join(", ")
+          headers.map { |k, v| "#{k}: #{v.inspect}" }.join(', ')
         end
 
         def body_for(env)
@@ -40,7 +45,6 @@ module Ably
           else
             env.body
           end
-
         rescue StandardError
           readable_body(env.body)
         end
