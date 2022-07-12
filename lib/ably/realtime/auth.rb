@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'ably/auth'
 
 module Ably
@@ -34,7 +36,7 @@ module Ably
     #
     class Auth
       extend Forwardable
-      include Ably::Modules::AsyncWrapper
+      include ::Ably::Modules::AsyncWrapper
 
       def_delegators :auth_sync, :client_id
       def_delegators :auth_sync, :token_client_id_allowed?, :configure_client_id, :client_id_validated?
@@ -69,7 +71,7 @@ module Ably
       #      token_details #=> Ably::Models::TokenDetails
       #    end
       #
-      def authorize(token_params = nil, auth_options = nil, &success_callback)
+      def authorize(token_params = nil, auth_options = nil, &_success_callback)
         Ably::Util::SafeDeferrable.new(logger).tap do |authorize_method_deferrable|
           # Wrap the sync authorize method and wait for the result from the deferrable
           async_wrap do
@@ -106,7 +108,7 @@ module Ably
 
             # Authorize failed, likely due to auth_url or auth_callback failing
             auth_operation.errback do |error|
-              client.connection.transition_state_machine :failed, reason: error if error.kind_of?(Ably::Exceptions::IncompatibleClientId)
+              client.connection.transition_state_machine :failed, reason: error if error.is_a?(Ably::Exceptions::IncompatibleClientId)
               authorize_method_deferrable.fail error
             end
           end
@@ -120,7 +122,7 @@ module Ably
 
       # @deprecated Use {#authorize} instead
       def authorise(*args, &block)
-        logger.warn { "Auth#authorise is deprecated and will be removed in 1.0. Please use Auth#authorize instead" }
+        logger.warn { 'Auth#authorise is deprecated and will be removed in 1.0. Please use Auth#authorize instead' }
         authorize(*args, &block)
       end
 
@@ -146,7 +148,7 @@ module Ably
 
       # @deprecated Use {#authorize_sync} instead
       def authorise_sync(*args)
-        logger.warn { "Auth#authorise_sync is deprecated and will be removed in 1.0. Please use Auth#authorize_sync instead" }
+        logger.warn { 'Auth#authorise_sync is deprecated and will be removed in 1.0. Please use Auth#authorize_sync instead' }
         authorize_sync(*args)
       end
 
@@ -235,7 +237,7 @@ module Ably
       def auth_params(&success_callback)
         fail_callback = lambda do |error, deferrable|
           logger.error { "Failed to authenticate: #{error}" }
-          if error.kind_of?(Ably::Exceptions::BaseAblyException)
+          if error.is_a?(Ably::Exceptions::BaseAblyException)
             # Use base exception if it exists carrying forward the status codes
             deferrable.fail Ably::Exceptions::AuthenticationFailed.new(error.message, nil, nil, error)
           else
@@ -255,15 +257,12 @@ module Ably
       end
 
       private
+
       # The synchronous Auth class instanced by the Rest client
       # @return [Ably::Auth]
-      def auth_sync
-        @auth_sync
-      end
+      attr_reader :auth_sync
 
-      def client
-        @client
-      end
+      attr_reader :client
 
       # Sends an AUTH ProtocolMessage on the existing connection triggering
       # an inline AUTH process, see #RTC8a
