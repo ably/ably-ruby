@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'ably/realtime/channel/publisher'
 
 module Ably
@@ -29,35 +31,28 @@ module Ably
     #   @return {Ably::Realtime::Connection::STATE} channel state
     #
     class Channel
-      include Ably::Modules::Conversions
-      include Ably::Modules::EventEmitter
-      include Ably::Modules::EventMachineHelpers
-      include Ably::Modules::AsyncWrapper
-      include Ably::Modules::MessageEmitter
-      include Ably::Realtime::Channel::Publisher
-      extend Ably::Modules::Enum
+      include ::Ably::Modules::Conversions
+      include ::Ably::Modules::EventEmitter
+      include ::Ably::Modules::EventMachineHelpers
+      include ::Ably::Modules::AsyncWrapper
+      include ::Ably::Modules::MessageEmitter
+      include ::Ably::Realtime::Channel::Publisher
+      extend ::Ably::Modules::Enum
       extend Forwardable
 
       # ChannelState
       # The permited states for this channel
-      STATE = ruby_enum('STATE',
-        :initialized,
-        :attaching,
-        :attached,
-        :detaching,
-        :detached,
-        :suspended,
-        :failed
-      )
+      STATE = ruby_enum('STATE', :initialized, :attaching, :attached, :detaching, :detached, :suspended, :failed)
 
       # ChannelEvent
       # The permitted channel events that are emitted for this channel
-      EVENT = ruby_enum('EVENT',
+      EVENT = ruby_enum(
+        'EVENT',
         STATE.to_sym_arr + [:update]
       )
 
-      include Ably::Modules::StateEmitter
-      include Ably::Modules::UsesStateMachine
+      include ::Ably::Modules::StateEmitter
+      include ::Ably::Modules::UsesStateMachine
       ensure_state_machine_emits 'Ably::Models::ChannelStateChange'
 
       # Max number of messages to bundle in a single ProtocolMessage
@@ -178,7 +173,7 @@ module Ably
           return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
         end
 
-        if !connection.can_publish_messages?
+        unless connection.can_publish_messages?
           error = Ably::Exceptions::MessageQueueingDisabled.new("Message cannot be published. Client is not allowed to queue messages when connection is in state #{connection.state}")
           return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
         end
@@ -233,7 +228,7 @@ module Ably
           return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
         end
 
-        if !attached?
+        unless attached?
           if detaching?
             # Let the pending operation complete (#RTL4h)
             once_state_changed { transition_state_machine :attaching if can_transition_to?(:attaching) }
@@ -255,12 +250,9 @@ module Ably
           success_block.call if block_given?
           return Ably::Util::SafeDeferrable.new_and_succeed_immediately(logger)
         end
+        return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, exception_for_state_change_to(:detaching)) if failed? || connection.closing? || connection.failed?
 
-        if failed? || connection.closing? || connection.failed?
-          return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, exception_for_state_change_to(:detaching))
-        end
-
-        if !detached?
+        unless detached?
           if attaching?
             # Let the pending operation complete (#RTL5i)
             once_state_changed { transition_state_machine :detaching if can_transition_to?(:detaching) }
@@ -280,9 +272,7 @@ module Ably
       #
       # @return {Ably::Realtime::Presence}
       #
-      def presence
-        @presence
-      end
+      attr_reader :presence
 
       # Return the message history of the channel
       #
@@ -317,7 +307,7 @@ module Ably
       # @api private
       def __incoming_msgbus__
         @__incoming_msgbus__ ||= Ably::Util::PubSub.new(
-          coerce_into: lambda { |event| Ably::Models::ProtocolMessage::ACTION(event) }
+          coerce_into: ->(event) { Ably::Models::ProtocolMessage::ACTION(event) }
         )
       end
 
@@ -369,7 +359,7 @@ module Ably
 
       def setup_event_handlers
         __incoming_msgbus__.subscribe(:message) do |message|
-          message.decode(client.encoders, options) do |encode_error, error_message|
+          message.decode(client.encoders, options) do |_, error_message|
             client.logger.error error_message
           end
           emit_message message.name, message
