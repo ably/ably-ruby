@@ -1,4 +1,5 @@
-# encoding: utf-8
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe Ably::Realtime::Client, :event_machine do
@@ -33,7 +34,8 @@ describe Ably::Realtime::Client, :event_machine do
             client.connect
             client.connection.once(:failed) do
               expect(custom_logger_object.logs.find do |severity, message|
-                next unless %w(fatal error).include?(severity.to_s)
+                next unless %w[fatal error].include?(severity.to_s)
+
                 message.match(%r{https://help.ably.io/error/40400})
               end).to_not be_nil
               stop_reactor
@@ -60,7 +62,7 @@ describe Ably::Realtime::Client, :event_machine do
       context 'token auth' do
         [true, false].each do |tls_enabled|
           context "with TLS #{tls_enabled ? 'enabled' : 'disabled'}" do
-            let(:capability)      { { :foo => ["publish"] } }
+            let(:capability)      { { foo: ['publish'] } }
             let(:token_client)    { auto_close Ably::Realtime::Client.new(default_options) }
             let(:token_details)   { token_client.auth.request_token_sync(capability: capability) }
             let(:client_options)  { default_options.merge(token: token_details.token) }
@@ -77,7 +79,7 @@ describe Ably::Realtime::Client, :event_machine do
             end
 
             context 'with valid :key and :use_token_auth option set to true' do
-              let(:client_options)  { default_options.merge(use_token_auth: true) }
+              let(:client_options) { default_options.merge(use_token_auth: true) }
 
               it 'automatically authorizes on connect and generates a token' do
                 connection.on(:connected) do
@@ -95,7 +97,7 @@ describe Ably::Realtime::Client, :event_machine do
           let(:auth)      { subject.auth }
 
           subject do
-            auto_close Ably::Realtime::Client.new(client_options.merge(auth_callback: Proc.new do
+            auto_close Ably::Realtime::Client.new(client_options.merge(auth_callback: proc do
               @block_called = true
               auth.create_token_request_sync(client_id: client_id)
             end))
@@ -135,7 +137,7 @@ describe Ably::Realtime::Client, :event_machine do
 
           context 'with a wildcard client_id token' do
             subject                 { auto_close Ably::Realtime::Client.new(client_options) }
-            let(:client_options)    { default_options.merge(auth_callback: lambda { |token_params| auth_token_object }, client_id: client_id) }
+            let(:client_options)    { default_options.merge(auth_callback: ->(_token_params) { auth_token_object }, client_id: client_id) }
             let(:rest_auth_client)  { Ably::Rest::Client.new(default_options.merge(key: api_key)) }
             let(:auth_token_object) { rest_auth_client.auth.request_token(client_id: '*') }
 
@@ -156,7 +158,7 @@ describe Ably::Realtime::Client, :event_machine do
             end
 
             context 'and client_id omitted in ClientOptions' do
-              let(:client_options) { default_options.merge(auth_callback: lambda { |token_params| auth_token_object }) }
+              let(:client_options) { default_options.merge(auth_callback: ->(_token_params) { auth_token_object }) }
 
               it 'uses the token provided clientId in the connection' do
                 connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
@@ -250,7 +252,7 @@ describe Ably::Realtime::Client, :event_machine do
             subject.request(:get, 'does-not-exist').callback do |response|
               expect(response).to be_a(Ably::Models::HttpPaginatedResponse)
               expect(response.error_message).to match(/Could not find/)
-              expect(response.error_code).to eql(40400)
+              expect(response.error_code).to eql(40_400)
               expect(response.status_code).to eql(404)
               stop_reactor
             end
@@ -284,11 +286,10 @@ describe Ably::Realtime::Client, :event_machine do
         end
       end
 
-
       context 'post', :webmock do
         before do
-          stub_request(:delete, "#{endpoint}/push/deviceRegistrations/#{device_id}/resetUpdateToken").
-            to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
+          stub_request(:delete, "#{endpoint}/push/deviceRegistrations/#{device_id}/resetUpdateToken")
+            .to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
         end
 
         it 'supports post' do
@@ -301,12 +302,12 @@ describe Ably::Realtime::Client, :event_machine do
 
       context 'delete', :webmock do
         before do
-          stub_request(:delete, "#{endpoint}/push/channelSubscriptions?deviceId=#{device_id}").
-            to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
+          stub_request(:delete, "#{endpoint}/push/channelSubscriptions?deviceId=#{device_id}")
+            .to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
         end
 
         it 'supports delete' do
-          subject.request(:delete, "/push/channelSubscriptions", { deviceId: device_id}).callback do |response|
+          subject.request(:delete, '/push/channelSubscriptions', { deviceId: device_id }).callback do |response|
             expect(response).to be_success
             stop_reactor
           end
