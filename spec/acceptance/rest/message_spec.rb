@@ -1,4 +1,5 @@
-# encoding: utf-8
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'base64'
 require 'securerandom'
@@ -86,7 +87,7 @@ describe Ably::Rest::Channel, 'messages' do
       end
 
       context 'JSON Array' do
-        let(:data) { [ nil, true, false, 55, 'string', { 'Hash' => true }, ['array'] ] }
+        let(:data) { [nil, true, false, 55, 'string', { 'Hash' => true }, ['array']] }
 
         it 'is encoded and decoded to the same Array' do
           channel.publish 'event', data
@@ -126,7 +127,7 @@ describe Ably::Rest::Channel, 'messages' do
       end
 
       context 'JSON Array' do
-        let(:data) { { 'push' => { 'data' => { 'key' => [ true, false, 55, nil, 'string', { 'Hash' => true }, ['array'] ] } } } }
+        let(:data) { { 'push' => { 'data' => { 'key' => [true, false, 55, nil, 'string', { 'Hash' => true }, ['array']] } } } }
 
         it 'is encoded and decoded to the same deep multi-type object' do
           channel.publish 'event', {}, extras: data
@@ -191,7 +192,7 @@ describe Ably::Rest::Channel, 'messages' do
         specify 'for multiple messages in one publish operation (#RSL1k3)' do
           message_arr = 3.times.map { Ably::Models::Message.new(id: id, data: data) }
           expect { channel.publish message_arr }.to raise_error do |error|
-            expect(error.code).to eql(40031) # Invalid publish request (invalid client-specified id), see https://github.com/ably/ably-common/pull/30
+            expect(error.code).to eql(40_031) # Invalid publish request (invalid client-specified id), see https://github.com/ably/ably-common/pull/30
           end
         end
 
@@ -229,13 +230,13 @@ describe Ably::Rest::Channel, 'messages' do
           def mock_for_two_publish_failures
             @failed_http_posts = 0
             allow(client).to receive(:can_fallback_to_alternate_ably_host?).and_return(true)
-            allow_any_instance_of(Faraday::Connection).to receive(:post) do |*args|
+            allow_any_instance_of(Faraday::Connection).to receive(:post) do |*_args|
               @failed_http_posts += 1
               if @failed_http_posts == 2
                 # Ensure the 3rd requests operates as normal
                 allow_any_instance_of(Faraday::Connection).to receive(:post).and_call_original
               end
-              raise Faraday::ClientError.new('Fake client error')
+              raise Faraday::ClientError, 'Fake client error'
             end
           end
 
@@ -282,7 +283,7 @@ describe Ably::Rest::Channel, 'messages' do
 
         specify 'the ID is populated with a random ID and serial 0 from this lib (#RSL1k1)' do
           channel.publish 'event'
-          expect(channel.history.items[0].id).to match(/^[A-Za-z0-9\+\/]+:0$/)
+          expect(channel.history.items[0].id).to match(%r{^[A-Za-z0-9+/]+:0$})
           base_64_id = channel.history.items[0].id.split(':')[0]
           expect(Base64.decode64(base_64_id).length).to eql(9)
         end
@@ -292,8 +293,8 @@ describe Ably::Rest::Channel, 'messages' do
             message = { name: 'event' }
             channel.publish [message, message, message]
             expect(channel.history.items.length).to eql(3)
-            expect(channel.history.items[0].id).to match(/^[A-Za-z0-9\+\/]+:2$/)
-            expect(channel.history.items[2].id).to match(/^[A-Za-z0-9\+\/]+:0$/)
+            expect(channel.history.items[0].id).to match(%r{^[A-Za-z0-9+/]+:2$})
+            expect(channel.history.items[2].id).to match(%r{^[A-Za-z0-9+/]+:0$})
             base_64_id = channel.history.items[0].id.split(':')[0]
             expect(Base64.decode64(base_64_id).length).to eql(9)
           end
@@ -354,9 +355,10 @@ describe Ably::Rest::Channel, 'messages' do
           let(:encoded_data)         { encoded['data'] }
           let(:encoded_encoding)     { encoded['encoding'] }
           let(:encoded_data_decoded) do
-            if encoded_encoding == 'json'
+            case encoded_encoding
+            when 'json'
               JSON.parse(encoded_data)
-            elsif encoded_encoding == 'base64'
+            when 'base64'
               Base64.decode64(encoded_data)
             else
               encoded_data
@@ -375,7 +377,7 @@ describe Ably::Rest::Channel, 'messages' do
           end
 
           it 'encrypts message automatically when published (#RTL7d)' do
-            expect(client).to receive(:post) do |path, message|
+            expect(client).to receive(:post) do |_path, message|
               if protocol == :json
                 expect(message['encoding']).to eql(encrypted_encoding)
                 expect(Base64.decode64(message['data'])).to eql(encrypted_data_decoded)
@@ -398,7 +400,7 @@ describe Ably::Rest::Channel, 'messages' do
           end
         end
 
-        resources_root = File.expand_path('../../../../lib/submodules/ably-common/test-resources', __FILE__)
+        resources_root = File.expand_path('../../../lib/submodules/ably-common/test-resources', __dir__)
 
         def self.add_tests_for_data(data)
           data['items'].each_with_index do |item, index|
@@ -447,7 +449,7 @@ describe Ably::Rest::Channel, 'messages' do
           end
 
           [MessagePack.pack({ 'key' => SecureRandom.hex }), 'ã unicode', { 'key' => SecureRandom.hex }].each do |payload|
-            payload_description = "#{payload.class}#{" #{payload.encoding}" if payload.kind_of?(String)}"
+            payload_description = "#{payload.class}#{" #{payload.encoding}" if payload.is_a?(String)}"
 
             specify "delivers a #{payload_description} payload to the receiver" do
               encrypted_channel.publish 'example', payload
