@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'shared/model_behaviour'
 
@@ -5,7 +7,7 @@ describe Ably::Models::ErrorInfo do
   subject { Ably::Models::ErrorInfo }
 
   context '#TI1, #TI4' do
-    it_behaves_like 'a model', with_simple_attributes: %w(code status_code href message request_id cause) do
+    it_behaves_like 'a model', with_simple_attributes: %w[code status_code href message request_id cause] do
       let(:model_args) { [] }
     end
   end
@@ -44,7 +46,7 @@ describe Ably::Models::ErrorInfo do
     end
 
     context 'with a specified error code' do
-      subject { Ably::Models::ErrorInfo.new('code' => 44444) }
+      subject { Ably::Models::ErrorInfo.new('code' => 44_444) }
 
       it 'includes https://help.ably.io/error/[CODE] in the stringified object' do
         expect(subject.to_s).to include('https://help.ably.io/error/44444')
@@ -52,7 +54,7 @@ describe Ably::Models::ErrorInfo do
     end
 
     context 'with an error code and an href attribute' do
-      subject { Ably::Models::ErrorInfo.new('code' => 44444, 'href' => 'http://foo.bar.com/') }
+      subject { Ably::Models::ErrorInfo.new('code' => 44_444, 'href' => 'http://foo.bar.com/') }
 
       it 'includes the specified href in the stringified object' do
         expect(subject.to_s).to include('http://foo.bar.com/')
@@ -61,7 +63,7 @@ describe Ably::Models::ErrorInfo do
     end
 
     context 'with an error code and a message with the same error URL' do
-      subject { Ably::Models::ErrorInfo.new('message' => 'error https://help.ably.io/error/44444', 'code' => 44444) }
+      subject { Ably::Models::ErrorInfo.new('message' => 'error https://help.ably.io/error/44444', 'code' => 44_444) }
 
       it 'includes the specified error URL only once in the stringified object' do
         expect(subject.to_s.scan(/help.ably.io/).length).to eql(1)
@@ -69,7 +71,7 @@ describe Ably::Models::ErrorInfo do
     end
 
     context 'with an error code and a message with a different error URL' do
-      subject { Ably::Models::ErrorInfo.new('message' => 'error https://help.ably.io/error/123123', 'code' => 44444) }
+      subject { Ably::Models::ErrorInfo.new('message' => 'error https://help.ably.io/error/123123', 'code' => 44_444) }
 
       it 'includes the specified error URL from the message and the error code URL in the stringified object' do
         puts subject.to_s
