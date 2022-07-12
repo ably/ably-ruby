@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'uri'
 require 'ably/realtime/channel/publisher'
 
@@ -21,9 +23,9 @@ module Ably
     #   (see Ably::Rest::Client#protocol_binary?)
     #
     class Client
-      include Ably::Modules::AsyncWrapper
-      include Ably::Realtime::Channel::Publisher
-      include Ably::Modules::Conversions
+      include ::Ably::Modules::AsyncWrapper
+      include ::Ably::Realtime::Channel::Publisher
+      include ::Ably::Modules::Conversions
 
       extend Forwardable
 
@@ -107,12 +109,12 @@ module Ably
         raise ArgumentError, 'Options Hash is expected' if options.nil?
 
         options = options.clone
-        if options.kind_of?(String)
+        if options.is_a?(String)
           options = if options.match(Ably::Auth::API_KEY_REGEX)
-            { key: options }
-          else
-            { token: options }
-          end
+                      { key: options }
+                    else
+                      { token: options }
+                    end
         end
 
         @transport_params      = options.delete(:transport_params).to_h.each_with_object({}) do |(key, value), acc|
@@ -238,18 +240,18 @@ module Ably
       #   end
       #
       def publish(channel_name, name, data = nil, attributes = {}, &success_block)
-        if !connection.can_publish_messages?
+        unless connection.can_publish_messages?
           error = Ably::Exceptions::MessageQueueingDisabled.new("Message cannot be published. Client is not allowed to queue messages when connection is in state #{connection.state}")
           return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
         end
 
-        messages = if name.kind_of?(Enumerable)
-          name
-        else
-          name = ensure_utf_8(:name, name, allow_nil: true)
-          ensure_supported_payload data
-          [{ name: name, data: data }.merge(attributes)]
-        end
+        messages = if name.is_a?(Enumerable)
+                     name
+                   else
+                     name = ensure_utf_8(:name, name, allow_nil: true)
+                     ensure_supported_payload data
+                     [{ name: name, data: data }.merge(attributes)]
+                   end
 
         if messages.length > Realtime::Connection::MAX_PROTOCOL_MESSAGE_BATCH_SIZE
           error = Ably::Exceptions::InvalidRequest.new("It is not possible to publish more than #{Realtime::Connection::MAX_PROTOCOL_MESSAGE_BATCH_SIZE} messages with a single publish request.")
@@ -312,18 +314,14 @@ module Ably
       end
 
       private
-      def endpoint_for_host(host)
-        port = if use_tls?
-          custom_tls_port
-        else
-          custom_port
-        end
 
-        raise ArgumentError, "Custom port must be an Integer or nil" if port && !port.kind_of?(Integer)
+      def endpoint_for_host(host)
+        port = use_tls? ? custom_tls_port : custom_port
+        raise ArgumentError, 'Custom port must be an Integer or nil' if port && !port.is_a?(Integer)
 
         options = {
           scheme: use_tls? ? 'wss' : 'ws',
-          host:   host
+          host: host
         }
         options.merge!(port: port) if port
 
