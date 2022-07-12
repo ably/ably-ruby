@@ -1,4 +1,5 @@
-# encoding: utf-8
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 # These tests are a subset of Ably::Rest::Push::Admin in async EM style
@@ -7,7 +8,7 @@ describe Ably::Realtime::Push::Admin, :event_machine do
   include Ably::Modules::Conversions
 
   vary_by_protocol do
-    let(:default_options) { { key: api_key, environment: environment, protocol: protocol} }
+    let(:default_options) { { key: api_key, environment: environment, protocol: protocol } }
     let(:client_options)  { default_options }
     let(:client) do
       Ably::Realtime::Client.new(client_options)
@@ -102,15 +103,15 @@ describe Ably::Realtime::Push::Admin, :event_machine do
         end
 
         let!(:publish_stub) do
-          stub_request(:post, "#{client.rest_client.endpoint}/push/publish").
-            with do |request|
+          stub_request(:post, "#{client.rest_client.endpoint}/push/publish")
+            .with do |request|
               expect(deserialize_body(request.body, protocol)['recipient']['camelCase']['secondLevelCamelCase']).to eql('val')
               expect(deserialize_body(request.body, protocol)['recipient']).to_not have_key('camel_case')
               true
             end.to_return(
-              :status => 201,
-              :body => serialize_body({}, protocol),
-              :headers => { 'Content-Type' => content_type }
+              status: 201,
+              body: serialize_body({}, protocol),
+              headers: { 'Content-Type' => content_type }
             )
         end
 
@@ -141,7 +142,7 @@ describe Ably::Realtime::Push::Admin, :event_machine do
         let(:notification_payload) do
           {
             notification: {
-              title: random_str,
+              title: random_str
             },
             data: {
               foo: random_str
@@ -167,28 +168,28 @@ describe Ably::Realtime::Push::Admin, :event_machine do
 
     describe '#device_registrations' do
       subject { client.push.admin.device_registrations }
-      let(:rest_device_registrations) {
+      let(:rest_device_registrations) do
         client.rest_client.push.admin.device_registrations
-      }
+      end
 
       context 'without permissions' do
         let(:client_options) do
           default_options.merge(
             use_token_auth: true,
-            default_token_params: { capability: { :foo => ['subscribe'] } },
-            log_level: :fatal,
+            default_token_params: { capability: { foo: ['subscribe'] } },
+            log_level: :fatal
           )
         end
 
         it 'raises a permissions not authorized exception' do
-          subject.get('does-not-exist').errback do |err|
-            expect(err).to be_a(Ably::Exceptions::UnauthorizedRequest)
-            subject.list.errback do |err|
-              expect(err).to be_a(Ably::Exceptions::UnauthorizedRequest)
-              subject.remove('does-not-exist').errback do |err|
-                expect(err).to be_a(Ably::Exceptions::UnauthorizedRequest)
-                subject.remove_where(device_id: 'does-not-exist').errback do |err|
-                  expect(err).to be_a(Ably::Exceptions::UnauthorizedRequest)
+          subject.get('does-not-exist').errback do |err1|
+            expect(err1).to be_a(Ably::Exceptions::UnauthorizedRequest)
+            subject.list.errback do |err2|
+              expect(err2).to be_a(Ably::Exceptions::UnauthorizedRequest)
+              subject.remove('does-not-exist').errback do |err3|
+                expect(err3).to be_a(Ably::Exceptions::UnauthorizedRequest)
+                subject.remove_where(device_id: 'does-not-exist').errback do |err4|
+                  expect(err4).to be_a(Ably::Exceptions::UnauthorizedRequest)
                   stop_reactor
                 end
               end
@@ -218,10 +219,10 @@ describe Ably::Realtime::Push::Admin, :event_machine do
                                                push: {
                                                  recipient: {
                                                    transport_type: 'gcm',
-                                                   registration_token: 'secret_token',
+                                                   registration_token: 'secret_token'
                                                  }
                                                }
-              })
+                                             })
             end
           end.each(&:join) # Wait for all threads to complete
         end
@@ -243,11 +244,11 @@ describe Ably::Realtime::Push::Admin, :event_machine do
             expect(page).to be_a(Ably::Models::PaginatedResult)
 
             expect(page.items.count).to eql(3)
-            page.next do |page|
-              expect(page.items.count).to eql(3)
-              page.next do |page|
-                expect(page.items.count).to eql(0)
-                expect(page).to be_last
+            page.next do |page1|
+              expect(page1.items.count).to eql(3)
+              page1.next do |page2|
+                expect(page2.items.count).to eql(0)
+                expect(page2).to be_last
                 stop_reactor
               end
             end
@@ -255,7 +256,7 @@ describe Ably::Realtime::Push::Admin, :event_machine do
         end
 
         it 'raises an exception if params are invalid' do
-          expect { subject.list("invalid_arg") }.to raise_error(ArgumentError)
+          expect { subject.list('invalid_arg') }.to raise_error(ArgumentError)
           stop_reactor
         end
       end
@@ -281,10 +282,10 @@ describe Ably::Realtime::Push::Admin, :event_machine do
                                                push: {
                                                  recipient: {
                                                    transport_type: 'gcm',
-                                                   registration_token: 'secret_token',
+                                                   registration_token: 'secret_token'
                                                  }
                                                }
-              })
+                                             })
             end
           end.each(&:join) # Wait for all threads to complete
         end
@@ -306,12 +307,12 @@ describe Ably::Realtime::Push::Admin, :event_machine do
         context 'with a failed request' do
           let(:client_options) do
             default_options.merge(
-              log_level: :fatal,
+              log_level: :fatal
             )
           end
 
           it 'raises a ResourceMissing exception if device ID does not exist' do
-            subject.get("device-does-not-exist").errback do |err|
+            subject.get('device-does-not-exist').errback do |err|
               expect(err).to be_a(Ably::Exceptions::ResourceMissing)
               stop_reactor
             end
@@ -340,11 +341,11 @@ describe Ably::Realtime::Push::Admin, :event_machine do
               recipient: {
                 transport_type: 'apns',
                 device_token: transport_token,
-                foo_bar: 'string',
+                foo_bar: 'string'
               },
               error_reason: {
-                message: "this will be ignored"
-              },
+                message: 'this will be ignored'
+              }
             }
           }
         end
@@ -373,7 +374,7 @@ describe Ably::Realtime::Push::Admin, :event_machine do
         context 'with a failed request' do
           let(:client_options) do
             default_options.merge(
-              log_level: :fatal,
+              log_level: :fatal
             )
           end
 
@@ -405,10 +406,10 @@ describe Ably::Realtime::Push::Admin, :event_machine do
                                            push: {
                                              recipient: {
                                                transport_type: 'gcm',
-                                               registrationToken: 'secret_token',
+                                               registrationToken: 'secret_token'
                                              }
                                            }
-          })
+                                         })
         end
 
         after do
@@ -444,10 +445,10 @@ describe Ably::Realtime::Push::Admin, :event_machine do
                                            push: {
                                              recipient: {
                                                transport_type: 'gcm',
-                                               registration_token: 'secret_token',
+                                               registration_token: 'secret_token'
                                              }
                                            }
-          })
+                                         })
         end
 
         after do
@@ -469,7 +470,7 @@ describe Ably::Realtime::Push::Admin, :event_machine do
       let(:client_id) { random_str }
       let(:device_id) { random_str }
       let(:device_id_2) { random_str }
-      let(:default_device_attr) {
+      let(:default_device_attr) do
         {
           platform: 'ios',
           form_factor: 'phone',
@@ -477,23 +478,23 @@ describe Ably::Realtime::Push::Admin, :event_machine do
           push: {
             recipient: {
               transport_type: 'gcm',
-              registration_token: 'secret_token',
+              registration_token: 'secret_token'
             }
           }
         }
-      }
+      end
 
-      let(:rest_device_registrations) {
+      let(:rest_device_registrations) do
         client.rest_client.push.admin.device_registrations
-      }
+      end
 
-      let(:rest_channel_subscriptions) {
+      let(:rest_channel_subscriptions) do
         client.rest_client.push.admin.channel_subscriptions
-      }
+      end
 
-      subject {
+      subject do
         client.push.admin.channel_subscriptions
-      }
+      end
 
       before(:all) do
         # As push tests often use the global scope (devices),
@@ -505,10 +506,10 @@ describe Ably::Realtime::Push::Admin, :event_machine do
       #  and two device with the unique device_id and no client_id
       before do
         [
-          lambda { rest_device_registrations.save(default_device_attr.merge(id: device_id)) },
-          lambda { rest_device_registrations.save(default_device_attr.merge(id: device_id_2)) },
-          lambda { rest_device_registrations.save(default_device_attr.merge(client_id: client_id, id: random_str)) },
-          lambda { rest_device_registrations.save(default_device_attr.merge(client_id: client_id, id: random_str)) }
+          -> { rest_device_registrations.save(default_device_attr.merge(id: device_id)) },
+          -> { rest_device_registrations.save(default_device_attr.merge(id: device_id_2)) },
+          -> { rest_device_registrations.save(default_device_attr.merge(client_id: client_id, id: random_str)) },
+          -> { rest_device_registrations.save(default_device_attr.merge(client_id: client_id, id: random_str)) }
         ].map do |proc|
           Thread.new { proc.call }
         end.each(&:join) # Wait for all threads to complete
@@ -523,9 +524,9 @@ describe Ably::Realtime::Push::Admin, :event_machine do
         let(:fixture_count) { 6 }
 
         before do
-          fixture_count.times.map do |index|
+          fixture_count.times.map do |_index|
             Thread.new { rest_channel_subscriptions.save(channel: "pushenabled:#{random_str}", client_id: client_id) }
-          end + fixture_count.times.map do |index|
+          end + fixture_count.times.map do |_index|
             Thread.new { rest_channel_subscriptions.save(channel: "pushenabled:#{random_str}", device_id: device_id) }
           end.each(&:join) # Wait for all threads to complete
         end
@@ -543,11 +544,11 @@ describe Ably::Realtime::Push::Admin, :event_machine do
             expect(page).to be_a(Ably::Models::PaginatedResult)
 
             expect(page.items.count).to eql(3)
-            page.next do |page|
-              expect(page.items.count).to eql(3)
-              page.next do |page|
-                expect(page.items.count).to eql(0)
-                expect(page).to be_last
+            page.next do |page1|
+              expect(page1.items.count).to eql(3)
+              page1.next do |page2|
+                expect(page2.items.count).to eql(0)
+                expect(page2).to be_last
                 stop_reactor
               end
             end
@@ -616,15 +617,15 @@ describe Ably::Realtime::Push::Admin, :event_machine do
         context 'failed requests' do
           let(:client_options) do
             default_options.merge(
-              log_level: :fatal,
+              log_level: :fatal
             )
           end
 
           it 'fails for invalid requests' do
-            subject.save(channel: 'not-enabled-channel', device_id: 'foo').errback do |err|
-              expect(err).to be_a(Ably::Exceptions::UnauthorizedRequest)
-              subject.save(channel: 'pushenabled:foo', device_id: 'not-registered-so-will-fail').errback do |err|
-                expect(err).to be_a(Ably::Exceptions::InvalidRequest)
+            subject.save(channel: 'not-enabled-channel', device_id: 'foo').errback do |err1|
+              expect(err1).to be_a(Ably::Exceptions::UnauthorizedRequest)
+              subject.save(channel: 'pushenabled:foo', device_id: 'not-registered-so-will-fail').errback do |err2|
+                expect(err2).to be_a(Ably::Exceptions::InvalidRequest)
                 stop_reactor
               end
             end
@@ -640,7 +641,7 @@ describe Ably::Realtime::Push::Admin, :event_machine do
         let(:fixture_count) { 6 }
 
         before do
-          fixture_count.times.map do |index|
+          fixture_count.times.map do |_index|
             Thread.new do
               rest_channel_subscriptions.save(channel: "pushenabled:#{random_str}", client_id: client_id)
             end
@@ -648,11 +649,11 @@ describe Ably::Realtime::Push::Admin, :event_machine do
         end
 
         it 'removes matching client_ids' do
-          subject.list(client_id: client_id) do |page|
-            expect(page.items.count).to eql(fixture_count)
+          subject.list(client_id: client_id) do |page1|
+            expect(page1.items.count).to eql(fixture_count)
             subject.remove_where(client_id: client_id, full_wait: true) do
-              subject.list(client_id: client_id) do |page|
-                expect(page.items.count).to eql(0)
+              subject.list(client_id: client_id) do |page2|
+                expect(page2.items.count).to eql(0)
                 stop_reactor
               end
             end
@@ -662,7 +663,7 @@ describe Ably::Realtime::Push::Admin, :event_machine do
         context 'failed requests' do
           let(:client_options) do
             default_options.merge(
-              log_level: :fatal,
+              log_level: :fatal
             )
           end
 
@@ -695,11 +696,11 @@ describe Ably::Realtime::Push::Admin, :event_machine do
         end
 
         it 'removes match for Hash object by channel and client_id' do
-          subject.list(client_id: client_id) do |page|
-            expect(page.items.count).to eql(1)
+          subject.list(client_id: client_id) do |page1|
+            expect(page1.items.count).to eql(1)
             subject.remove(channel: channel, client_id: client_id, full_wait: true) do
-              subject.list(client_id: client_id) do |page|
-                expect(page.items.count).to eql(0)
+              subject.list(client_id: client_id) do |page2|
+                expect(page2.items.count).to eql(0)
                 stop_reactor
               end
             end
