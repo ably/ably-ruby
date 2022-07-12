@@ -1,4 +1,5 @@
-# encoding: utf-8
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe Ably::Rest do
@@ -14,13 +15,13 @@ describe Ably::Rest do
     let(:body_value) { [as_since_epoch(now)] }
 
     before do
-      stub_request(:get, "#{client.endpoint}/time").
-        with(:headers => { 'Accept' => mime }).
-        to_return(:status => 200, :body => request_body, :headers => { 'Content-Type' => mime })
+      stub_request(:get, "#{client.endpoint}/time")
+        .with(headers: { 'Accept' => mime })
+        .to_return(status: 200, body: request_body, headers: { 'Content-Type' => mime })
     end
 
     context 'when protocol is not defined it defaults to :msgpack' do
-      let(:client_options) { { } }
+      let(:client_options) { {} }
       let(:mime) { 'application/x-msgpack' }
       let(:request_body) { body_value.to_msgpack }
 
@@ -30,11 +31,10 @@ describe Ably::Rest do
       end
     end
 
-    options = [
-        { protocol: :json },
-        { use_binary_protocol: false }
-      ].each do |client_option|
-
+    [
+      { protocol: :json },
+      { use_binary_protocol: false }
+    ].each do |client_option|
       context "when option #{client_option} is used" do
         let(:client_options) { client_option }
         let(:mime) { 'application/json' }
@@ -47,11 +47,10 @@ describe Ably::Rest do
       end
     end
 
-    options = [
-        { protocol: :msgpack },
-        { use_binary_protocol: true }
-      ].each do |client_option|
-
+    [
+      { protocol: :msgpack },
+      { use_binary_protocol: true }
+    ].each do |client_option|
       context "when option #{client_option} is used" do
         let(:client_options) { client_option }
         let(:mime) { 'application/x-msgpack' }
@@ -77,7 +76,7 @@ describe Ably::Rest do
           expect { invalid_client.channel('test').publish('foo', 'choo') }.to raise_error do |error|
             expect(error).to be_a(Ably::Exceptions::ResourceMissing)
             expect(error.message).to match(/No application found/)
-            expect(error.code).to eql(40400)
+            expect(error.code).to eql(40_400)
             expect(error.status).to eql(404)
           end
         end
@@ -89,7 +88,7 @@ describe Ably::Rest do
         before do
           (client.fallback_hosts.map { |host| "https://#{host}" } + [client.endpoint]).each do |host|
             stub_request(:get, "#{host}/time")
-              .to_return(:status => 500, :body => error_response, :headers => { 'Content-Type' => 'application/json' })
+              .to_return(status: 500, body: error_response, headers: { 'Content-Type' => 'application/json' })
           end
         end
 
@@ -101,8 +100,8 @@ describe Ably::Rest do
       describe '500 server error without a valid JSON response body', :webmock do
         before do
           (client.fallback_hosts.map { |host| "https://#{host}" } + [client.endpoint]).each do |host|
-            stub_request(:get, "#{host}/time").
-            to_return(:status => 500, :headers => { 'Content-Type' => 'application/json' })
+            stub_request(:get, "#{host}/time")
+              .to_return(status: 500, headers: { 'Content-Type' => 'application/json' })
           end
         end
 
@@ -124,18 +123,16 @@ describe Ably::Rest do
         stub_request(:post, "#{client.endpoint}/keys/#{key_name}/requestToken").to_return do
           @token_requests += 1
           {
-            :body => public_send("token_#{@token_requests}").merge(expires: (Time.now.to_i + 60) * 1000).to_json,
-            :headers => { 'Content-Type' => 'application/json' }
+            body: public_send("token_#{@token_requests}").merge(expires: (Time.now.to_i + 60) * 1000).to_json,
+            headers: { 'Content-Type' => 'application/json' }
           }
         end
 
         stub_request(:post, "#{client.endpoint}/channels/#{channel}/publish").to_return do
           @publish_attempts += 1
-          if [1, 3].include?(@publish_attempts)
-            { status: 201, :body => '[]', :headers => { 'Content-Type' => 'application/json' } }
-          else
-            raise Ably::Exceptions::TokenExpired.new('Authentication failure', 401, 40142)
-          end
+          raise Ably::Exceptions::TokenExpired.new('Authentication failure', 401, 40_142) unless [1, 3].include?(@publish_attempts)
+
+          { status: 201, body: '[]', headers: { 'Content-Type' => 'application/json' } }
         end
       end
 
