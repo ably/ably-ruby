@@ -1,20 +1,24 @@
-module Ably::Models
-  # When Log Level set to none, this NilLogger is used to silence all logging
-  # NilLogger provides a Ruby Logger compatible interface
-  class NilLogger
-    def null_method(*args)
-    end
+# frozen_string_literal: true
 
-    def level
-      :none
-    end
+module Ably
+  module Models
+    # When Log Level set to none, this NilLogger is used to silence all logging
+    # NilLogger provides a Ruby Logger compatible interface
+    class NilLogger
+      def null_method(*_args)
+      end
 
-    def level=(value)
-      level
-    end
+      def level
+        :none
+      end
 
-    [:fatal, :error, :warn, :info, :debug].each do |method|
-      alias_method method, :null_method
+      def level=(_value)
+        level
+      end
+
+      %I[fatal error warn info debug].each do |method|
+        alias_method method, :null_method
+      end
     end
   end
 end
