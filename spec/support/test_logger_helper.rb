@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Class with standard Ruby Logger interface
 #   but it keeps a record of the lof entries for later inspection
 #
@@ -8,14 +10,14 @@ class TestLogger
     @messages = []
   end
 
-  SEVERITIES = [:fatal, :error, :warn, :info, :debug]
+  SEVERITIES = %i[fatal error warn info debug].freeze
   SEVERITIES.each do |severity_sym|
     define_method(severity_sym) do |*args, &block|
-      if block
-        @messages << [severity_sym, block.call]
-      else
-        @messages << [severity_sym, args.join(', ')]
-      end
+      @messages << if block
+                     [severity_sym, block.call]
+                   else
+                     [severity_sym, args.join(', ')]
+                   end
     end
   end
 
@@ -25,7 +27,7 @@ class TestLogger
       severity_level = SEVERITIES.index(min_severity)
       raise "Unknown severity: #{min_severity}" if severity_level.nil?
 
-      @messages.select do |severity, message|
+      @messages.select do |severity, _message|
         SEVERITIES.index(severity) <= severity_level
       end
     else
@@ -37,6 +39,5 @@ class TestLogger
     1
   end
 
-  def level=(new_level)
-  end
+  def level=(new_level); end
 end
