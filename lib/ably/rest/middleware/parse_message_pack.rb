@@ -1,9 +1,13 @@
+# frozen_string_literal: true
+
 require 'faraday'
 require 'msgpack'
 
 module Ably
   module Rest
     module Middleware
+      # ParseMessagePack provides the top-level class to be instanced for the Ably library
+      #
       class ParseMessagePack < Faraday::Middleware
         def on_complete(env)
           if env.response_headers['Content-Type'] == 'application/x-msgpack'
@@ -21,10 +25,10 @@ module Ably
         end
 
         def parse(body)
-          if body.length > 0
-            MessagePack.unpack(body)
-          else
+          if body.empty?
             body
+          else
+            MessagePack.unpack(body)
           end
         rescue MessagePack::UnknownExtTypeError => e
           raise Ably::Exceptions::InvalidResponseBody, "MessagePack::UnknownExtTypeError body could not be decoded: #{e.message}. Got Base64:\n#{base64_body(body)}"
@@ -34,8 +38,8 @@ module Ably
 
         def base64_body(body)
           Base64.encode64(body)
-        rescue => err
-          "[#{err.message}! Could not base64 encode body: '#{body}']"
+        rescue StandardError => e
+          "[#{e.message}! Could not base64 encode body: '#{body}']"
         end
       end
     end
