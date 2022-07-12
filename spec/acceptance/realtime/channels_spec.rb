@@ -1,4 +1,5 @@
-# encoding: utf-8
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe Ably::Realtime::Channels, :event_machine do
@@ -74,7 +75,7 @@ describe Ably::Realtime::Channels, :event_machine do
     end
 
     describe 'accessing an existing channel object with different options' do
-      let(:client_options)  { super().merge(logger: custom_logger_object) }
+      let(:client_options) { super().merge(logger: custom_logger_object) }
       let(:custom_logger_object) { TestLogger.new }
       let(:new_channel_options) { { encrypted: true } }
       let!(:original_channel)    { client.channels.get(channel_name, options) }
@@ -90,7 +91,7 @@ describe Ably::Realtime::Channels, :event_machine do
       it 'shows deprecation warning' do
         client.channels.get(channel_name, new_channel_options)
 
-        warning = custom_logger_object.logs.find do |severity, message|
+        warning = custom_logger_object.logs.find do |_severity, message|
           message.match(/Using this method to update channel options is deprecated and may be removed/)
         end
 
