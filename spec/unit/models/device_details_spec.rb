@@ -1,4 +1,5 @@
-# encoding: utf-8
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'shared/model_behaviour'
 
@@ -7,7 +8,7 @@ describe Ably::Models::DeviceDetails do
 
   subject { Ably::Models::DeviceDetails }
 
-  %w(id platform form_factor client_id device_secret).each do |string_attribute|
+  %w[id platform form_factor client_id device_secret].each do |string_attribute|
     let(:empty_device_details) { subject.new }
 
     describe "##{string_attribute} and ##{string_attribute}=" do
@@ -34,18 +35,18 @@ describe Ably::Models::DeviceDetails do
 
   context 'camelCase constructor attributes' do
     let(:client_id) { random_str }
-    let(:device_details) { subject.new("clientId" => client_id ) }
+    let(:device_details) { subject.new('clientId' => client_id) }
 
     specify 'are rubyfied and exposed as underscore case' do
       expect(device_details.client_id).to eql(client_id)
     end
 
     specify 'are generated when the object is serialised to JSON' do
-      expect(JSON.parse(device_details.to_json)["clientId"]).to eql(client_id)
+      expect(JSON.parse(device_details.to_json)['clientId']).to eql(client_id)
     end
   end
 
-  describe "#metadata and #metadata=" do
+  describe '#metadata and #metadata=' do
     let(:new_val) { { foo: random_str } }
 
     specify 'setter accepts a Hash value and getter returns the new value' do
@@ -62,11 +63,11 @@ describe Ably::Models::DeviceDetails do
     end
 
     specify 'rejects non Hash or nil values' do
-      expect { empty_device_details.metadata = "foo" }.to raise_error(ArgumentError)
+      expect { empty_device_details.metadata = 'foo' }.to raise_error(ArgumentError)
     end
   end
 
-  describe "#push and #push=" do
+  describe '#push and #push=' do
     let(:transport_type) { random_str }
     let(:new_val) { { recipient: { transport_type: transport_type } } }
     let(:json_val) { { recipient: { transportType: transport_type } }.to_json }
@@ -96,7 +97,7 @@ describe Ably::Models::DeviceDetails do
     end
 
     specify 'rejects non Hash, DevicePushDetails or nil values' do
-      expect { empty_device_details.metadata = "foo" }.to raise_error(ArgumentError)
+      expect { empty_device_details.metadata = 'foo' }.to raise_error(ArgumentError)
     end
   end
 end
