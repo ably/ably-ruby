@@ -1,4 +1,5 @@
-# encoding: utf-8
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'ostruct'
 
@@ -83,7 +84,7 @@ describe Ably::Realtime::Connection, :event_machine do
             let(:client_options) { default_options.merge(log_level: :error) }
 
             before do
-              expect(client.rest_client.time.to_f).to be_within(2).of(Time.now.to_i), "Local clock is out of sync with Ably"
+              expect(client.rest_client.time.to_f).to be_within(2).of(Time.now.to_i), 'Local clock is out of sync with Ably'
             end
 
             before do
@@ -126,7 +127,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 let(:ttl) { 0.001 }
                 let(:auth_requests) { [] }
                 let(:token_callback) do
-                  lambda do |token_params|
+                  lambda do |_token_params|
                     auth_requests << Time.now
                     Ably::Rest::Client.new(default_options).auth.request_token(ttl: ttl).token
                   end
@@ -137,7 +138,7 @@ describe Ably::Realtime::Connection, :event_machine do
                   started_at = Time.now.to_f
                   connection.once(:disconnected) do
                     connection.once(:disconnected) do |connection_state_change|
-                      expect(connection_state_change.reason.code).to eql(40142) # token expired
+                      expect(connection_state_change.reason.code).to eql(40_142) # token expired
                       expect(Time.now.to_f - started_at).to be < 1000
                       expect(auth_requests.count).to eql(2)
                       stop_reactor
@@ -152,10 +153,9 @@ describe Ably::Realtime::Connection, :event_machine do
                     disconnect_count = 0
                     first_disconnected_at = nil
                     connection.on(:disconnected) do |connection_state_change|
-                      first_disconnected_at ||= begin
-                        Time.now.to_f
-                      end
-                      expect(connection_state_change.reason.code).to eql(40142) # token expired
+                      first_disconnected_at ||= Time.now.to_f
+
+                      expect(connection_state_change.reason.code).to eql(40_142) # token expired
                       if disconnect_count == 4 # 3 attempts to reconnect after initial
                         # First disconnect reattempts immediately as part of connect sequence
                         # Second disconnect reattempt immediately as part of disconnected retry sequence
@@ -180,10 +180,10 @@ describe Ably::Realtime::Connection, :event_machine do
 
                   it 'uses the primary host for subsequent connection and auth requests' do
                     connection.once(:disconnected) do
-                      expect(client.rest_client.connection).to receive(:post).
-                                                                 with(/requestToken$/, anything).
-                                                                 exactly(:twice). # it retries an expired token request immediately
-                                                                 and_call_original
+                      expect(client.rest_client.connection).to receive(:post)
+                        .with(/requestToken$/, anything)
+                        .exactly(:twice) # it retries an expired token request immediately
+                        .and_call_original
 
                       expect(client.rest_client).to_not receive(:fallback_connection)
                       expect(client).to_not receive(:fallback_endpoint)
@@ -215,7 +215,7 @@ describe Ably::Realtime::Connection, :event_machine do
                       expect(original_token).to_not be_expired
                       started_at = Time.now
                       connection.once(:disconnected) do |connection_state_change|
-                        expect(connection_state_change.reason.code).to eq(40142) # Token expired
+                        expect(connection_state_change.reason.code).to eq(40_142) # Token expired
 
                         # Token has expired, so now ensure it is not used again
                         stub_const 'Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER', original_token_expiry_buffer
@@ -230,7 +230,7 @@ describe Ably::Realtime::Connection, :event_machine do
                       end
                     end
 
-                    connection.unsafe_once(:failed) { |error| fail error.inspect }
+                    connection.unsafe_once(:failed) { |error| raise error.inspect }
 
                     channel.attach
                   end
@@ -241,7 +241,7 @@ describe Ably::Realtime::Connection, :event_machine do
                   let(:ttl)           { 4 }
                   let(:auth_requests) { [] }
                   let(:token_callback) do
-                    lambda do |token_params|
+                    lambda do |_token_params|
                       sleep 2
                       auth_requests << Time.now
                       Ably::Rest::Client.new(default_options).auth.request_token(ttl: ttl).token
@@ -253,7 +253,7 @@ describe Ably::Realtime::Connection, :event_machine do
                   let(:messages_received)  { [] }
 
                   def publish_and_check_disconnect(options = {})
-                    iteration = options.fetch(:iteration) { 1 }
+                    iteration = options.fetch(:iteration, 1)
                     total_expected = publish_count * iteration
                     publish_count.times.each { |index| publishing_channel.publish('event', (total_expected - publish_count + index).to_s) }
                     channel.subscribe('event') do |message|
@@ -293,7 +293,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 context 'and subsequent token is invalid' do
                   let(:ttl) { 2 }
                   let(:token_callback) do
-                    lambda do |token_params|
+                    lambda do |_token_params|
                       if @token_issued
                         "#{app_id}.invalid-token-invalid-token-invalid-token"
                       else
@@ -307,7 +307,7 @@ describe Ably::Realtime::Connection, :event_machine do
                   it 'transitions the connection to the failed state' do
                     connection.once(:disconnected) do
                       connection.once(:failed) do
-                        expect(connection.error_reason.code).to eql(40101)
+                        expect(connection.error_reason.code).to eql(40_101)
                         stop_reactor
                       end
                     end
@@ -339,7 +339,7 @@ describe Ably::Realtime::Connection, :event_machine do
                   expect(expired_token_details).to be_expired
                   connection.once(:connected) { raise 'Connection should never connect as token has expired' }
                   connection.once(:failed) do
-                    expect(client.connection.error_reason.code).to eql(40142)
+                    expect(client.connection.error_reason.code).to eql(40_142)
                     stop_reactor
                   end
                 end
@@ -353,7 +353,7 @@ describe Ably::Realtime::Connection, :event_machine do
               it 'transitions state to failed (#RSA4a)' do
                 connection.once(:connected) do
                   connection.once(:failed) do
-                    expect(client.connection.error_reason.code).to eql(40142)
+                    expect(client.connection.error_reason.code).to eql(40_142)
                     stop_reactor
                   end
                 end
@@ -386,7 +386,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 expect(client.client_id).to eql('incompatible')
                 client.connection.once(:failed) do
                   expect(client.client_id).to eql('incompatible')
-                  expect(client.connection.error_reason.code).to eql(40101) # Invalid clientId for credentials
+                  expect(client.connection.error_reason.code).to eql(40_101) # Invalid clientId for credentials
                   stop_reactor
                 end
               end
@@ -409,7 +409,7 @@ describe Ably::Realtime::Connection, :event_machine do
     end
 
     context 'initialization state changes' do
-      let(:phases) { [:connecting, :connected] }
+      let(:phases) { %i[connecting connected] }
       let(:events_emitted) { [] }
       let(:test_expectation) do
         lambda do
@@ -442,7 +442,7 @@ describe Ably::Realtime::Connection, :event_machine do
     end
 
     context '#connect with no fallbacks' do
-      let(:client_options)   { default_options.merge(fallback_hosts: []) }
+      let(:client_options) { default_options.merge(fallback_hosts: []) }
 
       it 'returns a SafeDeferrable that catches exceptions in callbacks and logs them' do
         expect(connection.connect).to be_a(Ably::Util::SafeDeferrable)
@@ -487,7 +487,7 @@ describe Ably::Realtime::Connection, :event_machine do
 
         it 'logs error on failed connection attempt' do
           logger_expectation = lambda do |*args, &block|
-            error_message = "Connection to non-existent.ably.io:443 failed"
+            error_message = 'Connection to non-existent.ably.io:443 failed'
             expect(args.concat([block ? block.call : nil]).join(',')).to include(error_message)
             stop_reactor
           end
@@ -495,7 +495,7 @@ describe Ably::Realtime::Connection, :event_machine do
           expect(connection.logger).to receive(:warn, &logger_expectation).at_least(:once)
 
           connection.on(:connected) do
-            raise "Connection should not succeed"
+            raise 'Connection should not succeed'
           end
 
           connection.connect
@@ -590,7 +590,7 @@ describe Ably::Realtime::Connection, :event_machine do
         let(:client_options) { default_options.merge(log_level: :none) }
 
         it 'transitions all channels state to initialized and cleares error_reason' do
-          connection.on(:failed) do |connection_state_change|
+          connection.on(:failed) do |_connection_state_change|
             expect(connection.error_reason).to be_a(Ably::Exceptions::BaseAblyException)
             expect(channel.error_reason).to be_a(Ably::Exceptions::BaseAblyException)
             expect(channel).to be_failed
@@ -607,7 +607,7 @@ describe Ably::Realtime::Connection, :event_machine do
 
           connection.connect do
             channel.attach do
-              error = Ably::Exceptions::ConnectionFailed.new('forced failure', 500, 50000)
+              error = Ably::Exceptions::ConnectionFailed.new('forced failure', 500, 50_000)
               client.connection.manager.error_received_from_server error
             end
           end
@@ -623,6 +623,7 @@ describe Ably::Realtime::Connection, :event_machine do
             expect(connection.state).to eq(:failed)
 
             raise 'Errback already called' if errback_called
+
             errback_called = true
 
             connection.connect.errback do
@@ -815,8 +816,8 @@ describe Ably::Realtime::Connection, :event_machine do
             end
 
             batches.times do |batch|
-              EventMachine.add_timer(batch.to_f / batches.to_f) do
-                messages_per_batch.times { |index| publishing_channel.publish('event') }
+              EventMachine.add_timer(batch.to_f / batches) do
+                messages_per_batch.times { |_index| publishing_channel.publish('event') }
               end
             end
           end
@@ -871,7 +872,7 @@ describe Ably::Realtime::Connection, :event_machine do
       end
 
       context 'when connection state is' do
-        let(:events) { Hash.new }
+        let(:events) { {} }
 
         def log_connection_changes
           connection.on(:closing) { events[:closing_emitted] = true }
@@ -899,12 +900,12 @@ describe Ably::Realtime::Connection, :event_machine do
         end
 
         context ':connecting RTN12f' do
-          context ":connected does not arrive when trying to close" do
+          context ':connected does not arrive when trying to close' do
             it 'moves to closed' do
-              connection.on(:closed) do |state_change|
+              connection.on(:closed) do |_state_change|
                 state_changes = connection.state_history.map { |t| t[:state].to_sym }
 
-                expect(state_changes).to eq([:connecting, :closing, :closed])
+                expect(state_changes).to eq(%i[connecting closing closed])
                 stop_reactor
               end
 
@@ -917,7 +918,7 @@ describe Ably::Realtime::Connection, :event_machine do
             end
           end
 
-          context ":connected arrive when trying to close" do
+          context ':connected arrive when trying to close' do
             let(:protocol_message_attributes) do
               {
                 action: Ably::Models::ProtocolMessage::ACTION.Connected.to_i,
@@ -929,10 +930,10 @@ describe Ably::Realtime::Connection, :event_machine do
             end
 
             it 'moves to connected and then to closed' do
-              connection.on(:closed) do |state_change|
+              connection.on(:closed) do |_state_change|
                 state_changes = connection.state_history.map { |t| t[:state].to_sym }
 
-                expect(state_changes).to eq([:connecting, :connected, :closing, :closed])
+                expect(state_changes).to eq(%i[connecting connected closing closed])
                 stop_reactor
               end
 
@@ -1088,12 +1089,10 @@ describe Ably::Realtime::Connection, :event_machine do
           heartbeat_ids = []
           pings_complete = []
           connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
-            if protocol_message.action == :heartbeat
-              heartbeat_ids << protocol_message.id
-            end
+            heartbeat_ids << protocol_message.id if protocol_message.action == :heartbeat
           end
 
-          ping_block = lambda do |time|
+          ping_block = lambda do |_time|
             pings_complete << true
             if pings_complete.length == 3
               expect(heartbeat_ids.uniq.length).to eql(3)
@@ -1109,7 +1108,7 @@ describe Ably::Realtime::Connection, :event_machine do
 
       it 'waits until the connection becomes CONNECTED when in the CONNETING state' do
         connection.once(:connecting) do
-          connection.ping do |time_elapsed|
+          connection.ping do |_time_elapsed|
             expect(connection.state).to eq(:connected)
             stop_reactor
           end
@@ -1198,14 +1197,14 @@ describe Ably::Realtime::Connection, :event_machine do
           message_logged = false
           connection.once(:connected) do
             allow(connection).to receive(:defaults).and_return(connection.defaults.merge(realtime_request_timeout: 0.0001))
-            expect(connection.logger).to receive(:warn) do |*args, &block|
+            expect(connection.logger).to receive(:warn) do |*_args, &block|
               expect(block.call).to match(/Ping timed out/)
               message_logged = true
             end
             connection.ping.errback do |error|
               EventMachine.add_timer(0.1) do
                 expect(error.message).to match(/Ping timed out/)
-                expect(error.code).to eql(50003)
+                expect(error.code).to eql(50_003)
                 expect(message_logged).to be_truthy
                 stop_reactor
               end
@@ -1277,9 +1276,9 @@ describe Ably::Realtime::Connection, :event_machine do
 
       context 'transport-level heartbeats are supported in the websocket transport' do
         it 'provides the heartbeats argument in the websocket connection params (#RTN23b)' do
-          expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
+          expect(EventMachine).to receive(:connect) do |_host, _port, _transport, _object, url|
             uri = URI.parse(url)
-            expect(CGI::parse(uri.query)['heartbeats'][0]).to eql('false')
+            expect(CGI.parse(uri.query)['heartbeats'][0]).to eql('false')
             stop_reactor
           end
           client
@@ -1302,9 +1301,9 @@ describe Ably::Realtime::Connection, :event_machine do
         let(:client_options) { default_options.merge(websocket_heartbeats_disabled: true) }
 
         it 'does not provide the heartbeats argument in the websocket connection params (#RTN23b)' do
-          expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
+          expect(EventMachine).to receive(:connect) do |_host, _port, _transport, _object, url|
             uri = URI.parse(url)
-            expect(CGI::parse(uri.query)['heartbeats'][0]).to eql('true')
+            expect(CGI.parse(uri.query)['heartbeats'][0]).to eql('true')
             stop_reactor
           end
           client
@@ -1315,6 +1314,7 @@ describe Ably::Realtime::Connection, :event_machine do
             connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
               if protocol_message.action == :heartbeat
                 next if protocol_message.attributes[:source] == :websocket # ignore the native heartbeats
+
                 expect(protocol_message.attributes[:source]).to_not eql(:websocket)
                 expect(connection.time_since_connection_confirmed_alive?).to be_within(1).of(0)
                 stop_reactor
@@ -1386,20 +1386,20 @@ describe Ably::Realtime::Connection, :event_machine do
 
       let(:client_options) do
         default_options.merge(
-          log_level:                  :none,
+          log_level: :none,
           disconnected_retry_timeout: 0.1,
-          suspended_retry_timeout:    0.1,
-          max_connection_state_ttl:   0.2,
-          realtime_request_timeout:   5
+          suspended_retry_timeout: 0.1,
+          max_connection_state_ttl: 0.2,
+          realtime_request_timeout: 5
         )
       end
 
       describe '#recovery_key' do
         def self.available_states
-          [:connecting, :connected, :disconnected]
+          %i[connecting connected disconnected]
         end
         let(:available_states) { self.class.available_states }
-        let(:states)           { Hash.new }
+        let(:states)           { {} }
         let(:channel)          { client.channel(random_str) }
 
         it 'is composed of connection key and serial that is kept up to date with each message ACK received' do
@@ -1435,7 +1435,7 @@ describe Ably::Realtime::Connection, :event_machine do
             allow(client).to receive(:endpoint).and_return(
               URI::Generic.build(
                 scheme: 'wss',
-                host:   'this.host.does.not.exist.com'
+                host: 'this.host.does.not.exist.com'
               )
             )
             allow(client).to receive(:fallback_hosts).and_return([])
@@ -1473,10 +1473,10 @@ describe Ably::Realtime::Connection, :event_machine do
       context "opening a new connection using a recently disconnected connection's #recovery_key" do
         context 'connection#id after recovery' do
           it 'remains the same' do
-            previous_connection_id  = nil
+            previous_connection_id = nil
 
             connection.once(:connected) do
-              previous_connection_id  = connection.id
+              previous_connection_id = connection.id
               connection.transition_state_machine! :failed
             end
 
@@ -1509,7 +1509,8 @@ describe Ably::Realtime::Connection, :event_machine do
         context 'when messages have been sent whilst the old connection is disconnected' do
           describe 'the new connection' do
             it 'recovers server-side queued messages' do
-              connection_id, recovery_key = nil, nil
+              connection_id = nil
+              recovery_key = nil
 
               channel.attach do
                 connection_id = client.connection.id
@@ -1538,7 +1539,9 @@ describe Ably::Realtime::Connection, :event_machine do
         context 'when messages have been published' do
           describe 'the new connection' do
             it 'uses the correct msgSerial from the old connection' do
-              msg_serial, recovery_key, connection_id = nil, nil, nil
+              msg_serial = nil
+              recovery_key = nil
+              connection_id = nil
 
               channel.attach do
                 expect(connection.send(:client_msg_serial)).to eql(-1) # no messages published yet
@@ -1568,7 +1571,9 @@ describe Ably::Realtime::Connection, :event_machine do
         context 'when messages are published before the new connection is recovered' do
           describe 'the new connection' do
             it 'uses the correct msgSerial from the old connection for the queued messages' do
-              msg_serial, recovery_key, connection_id = nil, nil, nil
+              msg_serial = nil
+              recovery_key = nil
+              connection_id = nil
 
               channel.attach do
                 expect(connection.send(:client_msg_serial)).to eql(-1) # no messages published yet
@@ -1628,7 +1633,7 @@ describe Ably::Realtime::Connection, :event_machine do
               expect(connection.state).to eq(:failed)
               expect(state_change.reason.message).to match(/Invalid connectionKey/i)
               expect(connection.error_reason.message).to match(/Invalid connectionKey/i)
-              expect(connection.error_reason.code).to eql(80018)
+              expect(connection.error_reason.code).to eql(80_018)
               expect(connection.error_reason).to eql(state_change.reason)
               stop_reactor
             end
@@ -1643,7 +1648,7 @@ describe Ably::Realtime::Connection, :event_machine do
               expect(connection.state).to eq(:connected)
               expect(state_change.reason.message).to match(/Unable to recover connection/i)
               expect(connection.error_reason.message).to match(/Unable to recover connection/i)
-              expect(connection.error_reason.code).to eql(80008)
+              expect(connection.error_reason.code).to eql(80_008)
               expect(connection.error_reason).to eql(state_change.reason)
               stop_reactor
             end
@@ -1803,7 +1808,7 @@ describe Ably::Realtime::Connection, :event_machine do
 
     describe 'state change side effects' do
       let(:channel)        { client.channels.get(random_str) }
-      let(:client_options) { default_options.merge(:log_level => :error) }
+      let(:client_options) { default_options.merge(log_level: :error) }
 
       context 'when connection enters the :disconnected state' do
         it 'queues messages to be sent and all channels remain attached' do
@@ -1832,10 +1837,10 @@ describe Ably::Realtime::Connection, :event_machine do
       context 'when connection enters the :suspended state' do
         let(:client_options) do
           default_options.merge(
-            log_level:                  :fatal,
+            log_level: :fatal,
             disconnected_retry_timeout: 0.02,
-            suspended_retry_timeout:    60,
-            max_connection_state_ttl:   0.05
+            suspended_retry_timeout: 60,
+            max_connection_state_ttl: 0.05
           )
         end
 
@@ -1868,7 +1873,7 @@ describe Ably::Realtime::Connection, :event_machine do
       end
 
       context 'when connection enters the :failed state' do
-        let(:client_options) { default_options.merge(:key => 'will.not:authenticate', log_level: :none) }
+        let(:client_options) { default_options.merge(key: 'will.not:authenticate', log_level: :none) }
 
         it 'sets all channels to failed and prevents publishing of messages on those channels' do
           channel.attach
@@ -1958,7 +1963,7 @@ describe Ably::Realtime::Connection, :event_machine do
               stop_reactor
             end
             connection.connect do
-              error = Ably::Exceptions::ConnectionFailed.new('forced failure', 500, 50000)
+              error = Ably::Exceptions::ConnectionFailed.new('forced failure', 500, 50_000)
               client.connection.manager.error_received_from_server error
             end
           end
@@ -2048,7 +2053,7 @@ describe Ably::Realtime::Connection, :event_machine do
             connection.once(:connected) do
               expect(client.auth.client_id).to eql('*')
 
-              connection.once(:update) do |connection_state_change|
+              connection.once(:update) do |_connection_state_change|
                 expect(client.auth.client_id).to eql('bob')
                 expect(connection.key).to eql(connection_key)
                 expect(connection.serial).to eql(55)
@@ -2075,7 +2080,7 @@ describe Ably::Realtime::Connection, :event_machine do
             {
               action: Ably::Models::ProtocolMessage::ACTION.Connected.to_i,
               connection_serial: 22,
-              error: { code: 50000, message: 'Internal failure' },
+              error: { code: 50_000, message: 'Internal failure' }
             }
           end
 
@@ -2086,7 +2091,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 expect(connection_state_change.previous).to eq(:connected)
                 expect(connection_state_change.retry_in).to be_nil
                 expect(connection_state_change.reason).to be_a(Ably::Models::ErrorInfo)
-                expect(connection_state_change.reason.code).to eql(50000)
+                expect(connection_state_change.reason.code).to eql(50_000)
                 expect(connection_state_change.reason.message).to match(/Internal failure/)
                 expect(connection.state).to eq(:connected)
                 stop_reactor
@@ -2101,18 +2106,18 @@ describe Ably::Realtime::Connection, :event_machine do
 
     context 'version params' do
       it 'sends the protocol version param v (#G4, #RTN2f)' do
-        expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
+        expect(EventMachine).to receive(:connect) do |_host, _port, _transport, _object, url|
           uri = URI.parse(url)
-          expect(CGI::parse(uri.query)['v'][0]).to eql('1.2')
+          expect(CGI.parse(uri.query)['v'][0]).to eql('1.2')
           stop_reactor
         end
         client
       end
 
       it 'sends the lib version param agent (#RCS7d)' do
-        expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
+        expect(EventMachine).to receive(:connect) do |_host, _port, _transport, _object, url|
           uri = URI.parse(url)
-          expect(CGI::parse(uri.query)['agent'][0]).to match(/^ably-ruby\/\d\.\d\.\d ruby\/\d\.\d\.\d$/)
+          expect(CGI.parse(uri.query)['agent'][0]).to match(%r{^ably-ruby/\d\.\d\.\d ruby/\d\.\d\.\d$})
           stop_reactor
         end
         client
@@ -2123,22 +2128,22 @@ describe Ably::Realtime::Connection, :event_machine do
       let(:client_options) { default_options.merge(transport_params: { 'extra_param' => 'extra_param' }) }
 
       it 'pases transport_params to query' do
-        expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
-            uri = URI.parse(url)
-            expect(CGI::parse(uri.query)['extra_param'][0]).to eq('extra_param')
-            stop_reactor
-          end
+        expect(EventMachine).to receive(:connect) do |_host, _port, _transport, _object, url|
+          uri = URI.parse(url)
+          expect(CGI.parse(uri.query)['extra_param'][0]).to eq('extra_param')
+          stop_reactor
+        end
 
-          client
+        client
       end
 
       context 'when changing default param' do
         let(:client_options) { default_options.merge(transport_params: { v: '1.0' }) }
 
         it 'overrides default param (#RTC1f1)' do
-          expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
+          expect(EventMachine).to receive(:connect) do |_host, _port, _transport, _object, url|
             uri = URI.parse(url)
-            expect(CGI::parse(uri.query)['v'][0]).to eq('1.0')
+            expect(CGI.parse(uri.query)['v'][0]).to eq('1.0')
             stop_reactor
           end
 
