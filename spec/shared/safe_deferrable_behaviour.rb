@@ -1,11 +1,11 @@
-# encoding: utf-8
+# frozen_string_literal: true
 
 shared_examples 'a safe Deferrable' do
   let(:logger) { instance_double('Logger') }
   let(:arguments) { [random_str] }
   let(:errback_calls) { [] }
   let(:success_calls) { [] }
-  let(:exception) { StandardError.new("Intentional error") }
+  let(:exception) { StandardError.new('Intentional error') }
 
   before do
     allow(subject).to receive(:logger).and_return(logger)
