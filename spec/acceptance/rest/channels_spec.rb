@@ -1,4 +1,5 @@
-# encoding: utf-8
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe Ably::Rest::Channels do
@@ -36,14 +37,14 @@ describe Ably::Rest::Channels do
       let(:channel) { client.channel(channel_name) }
 
       it "updates channel's options" do
-        expect { channel.options = options }.to change { channel.options.to_h }.from({}).to(options)
+        expect { channel.options = options }.to(change { channel.options.to_h }.from({}).to(options))
       end
 
       context 'when providing Ably::Models::ChannelOptions object' do
         let(:options_object) { Ably::Models::ChannelOptions.new(options) }
 
         it "updates channel's options" do
-          expect { channel.options =  options_object}.to change { channel.options.to_h }.from({}).to(options)
+          expect { channel.options = options_object }.to(change { channel.options.to_h }.from({}).to(options))
         end
       end
     end
