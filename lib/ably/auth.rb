@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'json'
 require 'faraday'
 require 'securerandom'
@@ -25,21 +27,21 @@ module Ably
   #   @return [Hash] Default token params used for token requests, see {#request_token}
   #
   class Auth
-    include Ably::Modules::Conversions
-    include Ably::Modules::HttpHelpers
+    include ::Ably::Modules::Conversions
+    include ::Ably::Modules::HttpHelpers
 
     # Default capability Hash object and TTL in seconds for issued tokens
     TOKEN_DEFAULTS = {
       renew_token_buffer: 10 # buffer to allow a token to be reissued before the token is considered expired (Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER)
     }.freeze
 
-    API_KEY_REGEX = /^[\w-]{2,}\.[\w-]{2,}:[\w-]{2,}$/
+    API_KEY_REGEX = /^[\w-]{2,}\.[\w-]{2,}:[\w-]{2,}$/.freeze
 
     # Supported AuthOption keys, see https://www.ably.com/docs/realtime/types#auth-options
     # TODO: Review client_id usage embedded incorrectly within AuthOptions.
     #       This is legacy code to configure a client with a client_id from the ClientOptions
     # TODO: Review inclusion of use_token_auth, ttl, token_params in auth options
-    AUTH_OPTIONS_KEYS = %w(
+    AUTH_OPTIONS_KEYS = %w[
       auth_callback
       auth_url
       auth_method
@@ -55,7 +57,7 @@ module Ably
       token_params
       ttl
       use_token_auth
-    )
+    ].freeze
 
     attr_reader :options, :token_params, :current_token_details
     alias_method :auth_options, :options
@@ -68,13 +70,8 @@ module Ably
     # @option (see #request_token)
     #
     def initialize(client, token_params, auth_options)
-      unless auth_options.kind_of?(Hash)
-        raise ArgumentError, 'Expected auth_options to be a Hash'
-      end
-
-      unless token_params.kind_of?(Hash)
-        raise ArgumentError, 'Expected token_params to be a Hash'
-      end
+      raise ArgumentError, 'Expected auth_options to be a Hash' unless auth_options.is_a?(Hash)
+      raise ArgumentError, 'Expected token_params to be a Hash' unless token_params.is_a?(Hash)
 
       # Ensure instance variables are defined
       @client_id = nil
@@ -87,23 +84,16 @@ module Ably
       @token_params        = token_params.dup
       @token_option        = options[:token] || options[:token_details]
 
-      if options[:key] && (options[:key_secret] || options[:key_name])
-        raise ArgumentError, 'key and key_name or key_secret are mutually exclusive. Provider either a key or key_name & key_secret'
-      end
+      raise ArgumentError, 'key and key_name or key_secret are mutually exclusive. Provider either a key or key_name & key_secret' if options[:key] && (options[:key_secret] || options[:key_name])
 
       split_api_key_into_key_and_secret! options if options[:key]
       store_and_delete_basic_auth_key_from_options! options
 
-      if using_basic_auth? && !api_key_present?
-        raise ArgumentError, 'key is missing. Either an API key, token, or token auth method must be provided'
-      end
+      raise ArgumentError, 'key is missing. Either an API key, token, or token auth method must be provided' if using_basic_auth? && !api_key_present?
+      raise ArgumentError, 'A client cannot be configured with a wildcard client_id, only a token can have a wildcard client_id privilege' if options[:client_id] == '*'
 
-      if options[:client_id] == '*'
-        raise ArgumentError, 'A client cannot be configured with a wildcard client_id, only a token can have a wildcard client_id privilege'
-      end
-
-      if has_client_id? && !token_creatable_externally? && !token_option
-        @client_id = ensure_utf_8(:client_id, client_id) if client_id
+      if has_client_id? && !token_creatable_externally? && !token_option && client_id
+        @client_id = ensure_utf_8(:client_id, client_id)
       end
 
       # If a token details object or token string is provided in the initializer
@@ -149,7 +139,7 @@ module Ably
       if auth_options.nil?
         auth_options = options # Use default options
 
-        if options.has_key?(:query_time)
+        if options.key?(:query_time)
           @options = options.dup
           # Query the server time only happens once
           # the options remain in auth_options though so they are passed to request_token
@@ -160,17 +150,12 @@ module Ably
         ensure_valid_auth_attributes auth_options
 
         auth_options = auth_options.dup
-
-        if auth_options[:token_params]
-          token_params = auth_options.delete(:token_params).merge(token_params || {})
-        end
+        token_params = auth_options.delete(:token_params).merge(token_params || {}) if auth_options[:token_params]
 
         # If basic credentials are provided then overwrite existing options
         # otherwise we need to retain the existing credentials in the auth options
         split_api_key_into_key_and_secret! auth_options if auth_options[:key]
-        if auth_options[:key_name] && auth_options[:key_secret]
-          store_and_delete_basic_auth_key_from_options! auth_options
-        end
+        store_and_delete_basic_auth_key_from_options! auth_options if auth_options[:key_name] && auth_options[:key_secret]
 
         @options = auth_options.dup
 
@@ -193,15 +178,13 @@ module Ably
         logger.debug { "Auth: new token following authorisation: #{new_token_details}" }
 
         # If authorize the realtime library required auth, then yield the token in a block
-        if block_given?
-          yield new_token_details
-        end
+        yield new_token_details if block_given?
       end
     end
 
     # @deprecated Use {#authorize} instead
     def authorise(*args, &block)
-      logger.warn { "Auth#authorise is deprecated and will be removed in 1.0. Please use Auth#authorize instead" }
+      logger.warn { 'Auth#authorise is deprecated and will be removed in 1.0. Please use Auth#authorize instead' }
       authorize(*args, &block)
     end
 
@@ -239,32 +222,32 @@ module Ably
       # Token param precedence (lowest to highest):
       #   Auth default => client_id => auth_options[:token_params] arg => token_params arg
       token_params = self.token_params.merge(
-        (client_id ? { client_id: client_id } : {}).
-          merge(auth_options[:token_params] || {}).
-          merge(token_params)
+        (client_id ? { client_id: client_id } : {})
+        .merge(auth_options[:token_params] || {})
+        .merge(token_params)
       )
 
-      auth_options = self.options.merge(auth_options)
+      auth_options = options.merge(auth_options)
 
       token_request = if auth_callback = auth_options.delete(:auth_callback)
-        begin
-          Timeout::timeout(client.auth_request_timeout) do
-            auth_callback.call(token_params)
-          end
-        rescue StandardError => err
-          raise Ably::Exceptions::AuthenticationFailed.new("auth_callback failed: #{err.message}", nil, nil, err, fallback_status: 500, fallback_code: Ably::Exceptions::Codes::CONNECTION_NOT_ESTABLISHED_NO_TRANSPORT_HANDLE)
-        end
-      elsif auth_url = auth_options.delete(:auth_url)
-        begin
-          Timeout::timeout(client.auth_request_timeout) do
-            token_request_from_auth_url(auth_url, auth_options, token_params)
-          end
-        rescue StandardError => err
-          raise Ably::Exceptions::AuthenticationFailed.new("auth_url failed: #{err.message}", nil, nil, err, fallback_status: 500, fallback_code: Ably::Exceptions::Codes::CONNECTION_NOT_ESTABLISHED_NO_TRANSPORT_HANDLE)
-        end
-      else
-        create_token_request(token_params, auth_options)
-      end
+                        begin
+                          Timeout::timeout(client.auth_request_timeout) do
+                            auth_callback.call(token_params)
+                          end
+                        rescue StandardError => e
+                          raise Ably::Exceptions::AuthenticationFailed.new("auth_callback failed: #{e.message}", nil, nil, e, fallback_status: 500, fallback_code: Ably::Exceptions::Codes::CONNECTION_NOT_ESTABLISHED_NO_TRANSPORT_HANDLE)
+                        end
+                      elsif auth_url = auth_options.delete(:auth_url)
+                        begin
+                          Timeout::timeout(client.auth_request_timeout) do
+                            token_request_from_auth_url(auth_url, auth_options, token_params)
+                          end
+                        rescue StandardError => e
+                          raise Ably::Exceptions::AuthenticationFailed.new("auth_url failed: #{e.message}", nil, nil, e, fallback_status: 500, fallback_code: Ably::Exceptions::Codes::CONNECTION_NOT_ESTABLISHED_NO_TRANSPORT_HANDLE)
+                        end
+                      else
+                        create_token_request(token_params, auth_options)
+                      end
 
       convert_to_token_details(token_request).tap do |token_details|
         return token_details if token_details
@@ -317,14 +300,12 @@ module Ably
 
       ensure_current_time_is_based_on_server_time if auth_options[:query_time]
       timestamp = token_params.delete(:timestamp) || current_time
-      timestamp = Time.at(timestamp) if timestamp.kind_of?(Integer)
-
-
+      timestamp = Time.at(timestamp) if timestamp.is_a?(Integer)
 
       token_request = {
-        keyName:    request_key_name,
-        timestamp:  (timestamp.to_f * 1000).round,
-        nonce:      token_params[:nonce] || SecureRandom.hex.force_encoding('UTF-8')
+        keyName: request_key_name,
+        timestamp: (timestamp.to_f * 1000).round,
+        nonce: token_params[:nonce] || SecureRandom.hex.force_encoding('UTF-8')
       }
 
       token_client_id = token_params[:client_id] || auth_options[:client_id] || client_id
@@ -341,7 +322,7 @@ module Ably
       token_request[:capability] = token_params[:capability] if token_params[:capability]
       if token_request[:capability].is_a?(Hash)
         lexicographic_ordered_capabilities = Hash[
-          token_request[:capability].sort_by { |key, value| key }.map do |key, value|
+          token_request[:capability].sort_by { |key, _| key }.map do |key, value|
             [key, value.sort]
           end
         ]
@@ -360,13 +341,7 @@ module Ably
       "#{key_name}:#{key_secret}" if api_key_present?
     end
 
-    def key_name
-      @key_name
-    end
-
-    def key_secret
-      @key_secret
-    end
+    attr_reader :key_name, :key_secret
 
     # True when Basic Auth is being used to authenticate with Ably
     def using_basic_auth?
@@ -375,7 +350,8 @@ module Ably
 
     # True when Token Auth is being used to authenticate with Ably
     def using_token_auth?
-      return options[:use_token_auth] if options.has_key?(:use_token_auth)
+      return options[:use_token_auth] if options.key?(:use_token_auth)
+
       !!(token_option || current_token_details || token_creatable_externally?)
     end
 
@@ -457,6 +433,7 @@ module Ably
     def token_client_id_allowed?(token_client_id)
       return true if client_id.nil? # no explicit client_id specified for this client
       return true if client_id == '*' || token_client_id == '*' # wildcard supported always
+
       token_client_id == client_id
     end
 
@@ -486,9 +463,8 @@ module Ably
       end
 
       # If client_id is defined and not a wildcard, prevent it changing, this is not supported
-      if client_id && client_id != '*' &&  new_client_id != client_id
-        raise Ably::Exceptions::IncompatibleClientId.new("Client ID is immutable once configured for a client. Client ID cannot be changed to '#{new_client_id}'")
-      end
+      raise Ably::Exceptions::IncompatibleClientId, "Client ID is immutable once configured for a client. Client ID cannot be changed to '#{new_client_id}'" if client_id && client_id != '*' &&  new_client_id != client_id
+
       @client_id_validated = true
       @client_id = new_client_id
     end
@@ -501,18 +477,11 @@ module Ably
     end
 
     private
-    def client
-      @client
-    end
 
-    def token_option
-      @token_option
-    end
+    attr_reader :client, :token_option
 
     def authorize_when_necessary
-      if current_token_details && !current_token_details.expired?(from: current_time)
-        return current_token_details
-      end
+      return current_token_details if current_token_details && !current_token_details.expired?(from: current_time)
 
       authorize
     end
@@ -540,41 +509,16 @@ module Ably
         raise ArgumentError, "The key(s) #{unsupported_keys.map { |k| ":#{k}" }.join(', ')} are not valid AuthOptions" unless unsupported_keys.empty?
       end
 
-      if attributes[:timestamp]
-        unless attributes[:timestamp].kind_of?(Time) || attributes[:timestamp].kind_of?(Numeric)
-          raise ArgumentError, ':timestamp must be a Time or positive Integer value of seconds since epoch'
-        end
-      end
+      raise ArgumentError, ':timestamp must be a Time or positive Integer value of seconds since epoch' if attributes[:timestamp] && !(attributes[:timestamp].is_a?(Time) || attributes[:timestamp].is_a?(Numeric))
+      raise ArgumentError, ':ttl must be a positive Numeric value representing time to live in seconds' if attributes[:ttl] && !(attributes[:ttl].is_a?(Numeric) && attributes[:ttl].to_f.positive?)
+      raise ArgumentError, ':auth_headers must be a valid Hash' if attributes[:auth_headers] && !attributes[:auth_headers].is_a?(Hash)
+      raise ArgumentError, ':auth_params must be a valid Hash' if attributes[:auth_params] && !attributes[:auth_params].is_a?(Hash)
+      raise ArgumentError, ':auth_method must be either :get or :post' if attributes[:auth_method] && !%(get post).include?(attributes[:auth_method].to_s)
 
-      if attributes[:ttl]
-        unless attributes[:ttl].kind_of?(Numeric) && attributes[:ttl].to_f > 0
-          raise ArgumentError, ':ttl must be a positive Numeric value representing time to live in seconds'
-        end
-      end
+      return unless attributes[:auth_callback]
+      return if attributes[:auth_callback].respond_to?(:call)
 
-      if attributes[:auth_headers]
-        unless attributes[:auth_headers].kind_of?(Hash)
-          raise ArgumentError, ':auth_headers must be a valid Hash'
-        end
-      end
-
-      if attributes[:auth_params]
-        unless attributes[:auth_params].kind_of?(Hash)
-          raise ArgumentError, ':auth_params must be a valid Hash'
-        end
-      end
-
-      if attributes[:auth_method]
-        unless %(get post).include?(attributes[:auth_method].to_s)
-          raise ArgumentError, ':auth_method must be either :get or :post'
-        end
-      end
-
-      if attributes[:auth_callback]
-        unless attributes[:auth_callback].respond_to?(:call)
-          raise ArgumentError, ':auth_callback must be a Proc'
-        end
-      end
+      raise ArgumentError, ':auth_callback must be a Proc'
     end
 
     def ensure_api_key_sent_over_secure_connection
@@ -605,7 +549,7 @@ module Ably
     # Returns the current token if it exists or authorizes and retrieves a token
     def token_auth_string
       if !current_token_details && token_option
-        logger.debug { "Auth: Token auth string missing, authorizing implicitly now" }
+        logger.debug { 'Auth: Token auth string missing, authorizing implicitly now' }
         # A TokenRequest was configured in the ClientOptions +:token field+ and no current token exists
         # Note: If a Token or TokenDetails is provided in the initializer, the token is stored in +current_token_details+
         authorize_with_token send_token_request(token_option)
@@ -679,7 +623,7 @@ module Ably
         end
       end
 
-      if !response.body.kind_of?(Hash) && !response.headers['Content-Type'].to_s.match(%r{text/plain|application/jwt}i)
+      if !response.body.is_a?(Hash) && !response.headers['Content-Type'].to_s.match(%r{text/plain|application/jwt}i)
         raise Ably::Exceptions::InvalidResponseBody,
               "Content Type #{response.headers['Content-Type']} is not supported by this client library"
       end
@@ -690,9 +634,8 @@ module Ably
     # Use the provided token to authenticate immediately and store the token details in +current_token_details+
     def authorize_with_token(new_token_details)
       if new_token_details && !new_token_details.from_token_string?
-        if !token_client_id_allowed?(new_token_details.client_id)
-          raise Ably::Exceptions::IncompatibleClientId.new("Client ID '#{new_token_details.client_id}' in the token is incompatible with the current client ID '#{client_id}'")
-        end
+        raise Ably::Exceptions::IncompatibleClientId, "Client ID '#{new_token_details.client_id}' in the token is incompatible with the current client ID '#{client_id}'" unless token_client_id_allowed?(new_token_details.client_id)
+
         configure_client_id new_token_details.client_id
       end
       configure_current_token_details new_token_details
@@ -703,12 +646,12 @@ module Ably
     # If the token_details_obj is not a Token or TokenDetails +nil+ is returned
     def convert_to_token_details(token_details_obj)
       case token_details_obj
-        when Ably::Models::TokenDetails
-          return token_details_obj
-        when Hash
-          return Ably::Models::TokenDetails.new(token_details_obj) if IdiomaticRubyWrapper(token_details_obj).has_key?(:issued)
-        when String
-          return Ably::Models::TokenDetails.new(token: token_details_obj)
+      when Ably::Models::TokenDetails
+        token_details_obj
+      when Hash
+        return Ably::Models::TokenDetails.new(token_details_obj) if IdiomaticRubyWrapper(token_details_obj).key?(:issued)
+      when String
+        Ably::Models::TokenDetails.new(token: token_details_obj)
       end
     end
 
@@ -716,9 +659,12 @@ module Ably
     def send_token_request(token_request)
       token_request = Ably::Models::TokenRequest(token_request)
 
-      response = client.post("/keys/#{token_request.key_name}/requestToken",
-                             token_request.attributes, send_auth_header: false,
-                             disable_automatic_reauthorize: true)
+      response = client.post(
+        "/keys/#{token_request.key_name}/requestToken",
+        token_request.attributes,
+        send_auth_header: false,
+        disable_automatic_reauthorize: true
+      )
 
       Ably::Models::TokenDetails.new(response.body)
     end
@@ -730,12 +676,12 @@ module Ably
       @connection_options ||= {
         builder: middleware,
         headers: {
-          accept:     client.mime_type,
+          accept: client.mime_type,
           user_agent: user_agent
         },
         request: {
           open_timeout: 5,
-          timeout:      10
+          timeout: 10
         }
       }
     end
