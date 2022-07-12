@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'shared/model_behaviour'
 
@@ -7,7 +9,7 @@ describe Ably::Models::AuthDetails do
   subject { Ably::Models::AuthDetails }
 
   # Spec model items AD2*
-  it_behaves_like 'a model', with_simple_attributes: %w(access_token) do
+  it_behaves_like 'a model', with_simple_attributes: %w[access_token] do
     let(:model_args) { [] }
   end
 
