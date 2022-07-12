@@ -1,4 +1,5 @@
-# encoding: utf-8
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'shared/client_initializer_behaviour'
 
@@ -101,16 +102,16 @@ describe Ably::Rest::Client do
         let(:client_options) { { key: 'appid.keyuid:keysecret', max_message_size: nil } }
 
         it 'should return default 65536 (#TO3l8)' do
-          expect(Ably::Rest::Client::MAX_MESSAGE_SIZE).to eq(65536)
+          expect(Ably::Rest::Client::MAX_MESSAGE_SIZE).to eq(65_536)
           expect(subject.max_message_size).to eq(Ably::Rest::Client::MAX_MESSAGE_SIZE)
         end
       end
 
       context 'is customized 131072 bytes' do
-        let(:client_options) { { key: 'appid.keyuid:keysecret', max_message_size: 131072 } }
+        let(:client_options) { { key: 'appid.keyuid:keysecret', max_message_size: 131_072 } }
 
         it 'should return 131072' do
-          expect(subject.max_message_size).to eq(131072)
+          expect(subject.max_message_size).to eq(131_072)
         end
       end
     end
