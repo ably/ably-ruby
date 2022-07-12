@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Ably
   # Logger unifies logging for #debug, #info, #warn, #error, and #fatal messages.
   # A new Ably client uses this Logger and sets the appropriate log level.
@@ -37,7 +39,7 @@ module Ably
     attr_reader :log_level
 
     # Catch exceptiosn in blocks passed to the logger, log the error and continue
-    %w(fatal error warn info debug).each do |method_name|
+    %w[fatal error warn info debug].each do |method_name|
       define_method(method_name) do |*args, &block|
         begin
           log_mutex.synchronize do
@@ -50,11 +52,8 @@ module Ably
     end
 
     private
-    attr_reader :log_mutex
 
-    def client
-      @client
-    end
+    attr_reader :log_mutex, :client
 
     def color(color_value, string)
       "\033[#{color_value}m#{string}\033[0m"
@@ -73,35 +72,35 @@ module Ably
     end
 
     def connection_id
-      if realtime?
-        if client.connection.id
-          "[#{cyan(client.connection.id)}] "
-        else
-          "[ #{cyan('--')} ] "
-        end
+      return unless realtime?
+
+      if client.connection.id
+        "[#{cyan(client.connection.id)}] "
+      else
+        "[ #{cyan('--')} ] "
       end
     end
 
     def realtime?
-      defined?(Ably::Realtime::Client) && client.kind_of?(Ably::Realtime::Client)
+      defined?(Ably::Realtime::Client) && client.is_a?(Ably::Realtime::Client)
     end
 
     def default_logger
-      ::Logger.new(STDOUT).tap do |logger|
-        logger.formatter = lambda do |severity, datetime, progname, msg|
-          severity = ::Logger::SEV_LABEL.index(severity) if severity.kind_of?(String)
+      ::Logger.new($stdout).tap do |logger|
+        logger.formatter = lambda do |severity, datetime, _, msg|
+          severity = ::Logger::SEV_LABEL.index(severity) if severity.is_a?(String)
 
           formatted_date = if severity == ::Logger::DEBUG
-            datetime.strftime("%H:%M:%S.%L")
-          else
-            datetime.strftime("%Y-%m-%d %H:%M:%S.%L")
-          end
+                             datetime.strftime('%H:%M:%S.%L')
+                           else
+                             datetime.strftime('%Y-%m-%d %H:%M:%S.%L')
+                           end
 
           severity_label = if severity <= ::Logger::INFO
-            magenta(::Logger::SEV_LABEL[severity])
-          else
-            red(::Logger::SEV_LABEL[severity])
-          end
+                             magenta(::Logger::SEV_LABEL[severity])
+                           else
+                             red(::Logger::SEV_LABEL[severity])
+                           end
 
           "#{formatted_date} #{severity_label} #{connection_id}#{msg}\n"
         end
@@ -109,10 +108,8 @@ module Ably
     end
 
     def ensure_logger_interface_is_valid
-      %w(fatal error warn info debug level level=).each do |method|
-        unless logger.respond_to?(method)
-          raise ArgumentError, "The custom Logger's interface does not provide the method '#{method}'"
-        end
+      %w[fatal error warn info debug level level=].each do |method|
+        raise ArgumentError, "The custom Logger's interface does not provide the method '#{method}'" unless logger.respond_to?(method)
       end
     end
   end
