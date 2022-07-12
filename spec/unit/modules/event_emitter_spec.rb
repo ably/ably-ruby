@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe Ably::Modules::EventEmitter do
@@ -38,7 +40,7 @@ describe Ably::Modules::EventEmitter do
 
     context 'with coercion', :api_private do
       let(:options) do
-        { coerce_into: lambda { |event| String(event) } }
+        { coerce_into: ->(event) { String(event) } }
       end
 
       it 'calls the provided proc to coerce the event name' do
@@ -244,7 +246,7 @@ describe Ably::Modules::EventEmitter do
   end
 
   context '#off' do
-    let(:callback) { lambda { |msg| obj.received_message msg } }
+    let(:callback) { ->(msg) { obj.received_message msg } }
 
     context 'with event specified in on handler' do
       before do
@@ -356,7 +358,7 @@ describe Ably::Modules::EventEmitter do
   end
 
   context '#unsafe_off' do
-    let(:callback) { lambda { |msg| obj.received_message msg } }
+    let(:callback) { ->(msg) { obj.received_message msg } }
 
     context 'with unsafe_on subscribers' do
       before do
