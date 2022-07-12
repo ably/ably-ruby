@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe Ably::Realtime::Client, '#stats', :event_machine do
@@ -20,7 +22,7 @@ describe Ably::Realtime::Client, '#stats', :event_machine do
         it 'passes the option arguments to the REST stat method' do
           expect(client.rest_client).to receive(:stats).with(options)
 
-          client.stats(options) do |stats|
+          client.stats(options) do |_stats|
             stop_reactor
           end
         end
