@@ -1,4 +1,5 @@
-# encoding: utf-8
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe Ably::Rest::Presence do
@@ -52,7 +53,7 @@ describe Ably::Rest::Presence do
 
         context 'with :limit option' do
           let(:page_size) { 3 }
-          let(:presence_page)  { fixtures_channel.presence.get(limit: page_size) }
+          let(:presence_page) { fixtures_channel.presence.get(limit: page_size) }
 
           it 'returns a paged response limiting number of members per page' do
             expect(presence_page.items.size).to eql(page_size)
@@ -71,11 +72,11 @@ describe Ably::Rest::Presence do
           let(:endpoint) do
             client.endpoint
           end
-          let!(:get_stub) {
+          let!(:get_stub) do
             query_params = query_options.map { |k, v| "#{k}=#{v}" }.join('&')
-            stub_request(:get, "#{endpoint}/channels/#{URI.encode_www_form_component(channel_name)}/presence?#{query_params}").
-              to_return(:body => '{}', :headers => { 'Content-Type' => 'application/json' })
-          }
+            stub_request(:get, "#{endpoint}/channels/#{URI.encode_www_form_component(channel_name)}/presence?#{query_params}")
+              .to_return(body: '{}', headers: { 'Content-Type' => 'application/json' })
+          end
           let(:channel_name) { random_str }
           let(:channel)      { client.channels.get(channel_name) }
 
@@ -119,10 +120,10 @@ describe Ably::Rest::Presence do
           let(:channel) { client.channels.get(channel_name) }
 
           context 'stubbed', :webmock do
-            let!(:get_stub) {
-              stub_request(:get, "#{endpoint}/channels/#{channel_name_encoded}/presence?limit=100").
-                to_return(:body => '{}', :headers => { 'Content-Type' => 'application/json' })
-            }
+            let!(:get_stub) do
+              stub_request(:get, "#{endpoint}/channels/#{channel_name_encoded}/presence?limit=100")
+                .to_return(body: '{}', headers: { 'Content-Type' => 'application/json' })
+            end
 
             it 'correctly encodes the channel name' do
               channel.presence.get
@@ -211,11 +212,11 @@ describe Ably::Rest::Presence do
         end
 
         context 'limit options', :webmock do
-          let!(:history_stub) {
+          let!(:history_stub) do
             query_params = history_options.map { |k, v| "#{k}=#{v}" }.join('&')
-            stub_request(:get, "#{endpoint}/channels/#{URI.encode_www_form_component(channel_name)}/presence/history?#{query_params}").
-              to_return(:body => '{}', :headers => { 'Content-Type' => 'application/json' })
-          }
+            stub_request(:get, "#{endpoint}/channels/#{URI.encode_www_form_component(channel_name)}/presence/history?#{query_params}")
+              .to_return(body: '{}', headers: { 'Content-Type' => 'application/json' })
+          end
 
           before do
             presence.history(history_options)
@@ -242,20 +243,20 @@ describe Ably::Rest::Presence do
         end
 
         context 'with time range options' do
-          [:start, :end].each do |option|
+          %i[start end].each do |option|
             describe ":#{option}", :webmock do
-              let(:history_options) {
+              let(:history_options) do
                 {
                   direction: :backwards,
                   limit: 100,
                   option => milliseconds
                 }
-              }
-              let!(:history_stub) {
+              end
+              let!(:history_stub) do
                 query_params = history_options.map { |k, v| "#{k}=#{v}" }.join('&')
-                stub_request(:get, "#{endpoint}/channels/#{URI.encode_www_form_component(channel_name)}/presence/history?#{query_params}").
-                  to_return(:body => '{}', :headers => { 'Content-Type' => 'application/json' })
-              }
+                stub_request(:get, "#{endpoint}/channels/#{URI.encode_www_form_component(channel_name)}/presence/history?#{query_params}")
+                  .to_return(body: '{}', headers: { 'Content-Type' => 'application/json' })
+              end
 
               before do
                 presence.history(history_options)
@@ -356,10 +357,10 @@ describe Ably::Rest::Presence do
         end
 
         context '#get' do
-          let!(:get_stub)   {
-            stub_request(:get, "#{endpoint}/channels/#{URI.encode_www_form_component(channel_name)}/presence?limit=100").
-              to_return(:body => serialized_encoded_message, :headers => { 'Content-Type' => content_type })
-          }
+          let!(:get_stub) do
+            stub_request(:get, "#{endpoint}/channels/#{URI.encode_www_form_component(channel_name)}/presence?limit=100")
+              .to_return(body: serialized_encoded_message, headers: { 'Content-Type' => content_type })
+          end
 
           after do
             expect(get_stub).to have_been_requested
@@ -373,10 +374,10 @@ describe Ably::Rest::Presence do
         end
 
         context '#history' do
-          let!(:history_stub)   {
-            stub_request(:get, "#{endpoint}/channels/#{URI.encode_www_form_component(channel_name)}/presence/history?direction=backwards&limit=100").
-              to_return(:body => serialized_encoded_message, :headers => { 'Content-Type' => content_type })
-          }
+          let!(:history_stub) do
+            stub_request(:get, "#{endpoint}/channels/#{URI.encode_www_form_component(channel_name)}/presence/history?direction=backwards&limit=100")
+              .to_return(body: serialized_encoded_message, headers: { 'Content-Type' => content_type })
+          end
 
           after do
             expect(history_stub).to have_been_requested
@@ -403,10 +404,10 @@ describe Ably::Rest::Presence do
 
         context '#get' do
           let(:client_options) { default_options.merge(log_level: :fatal) }
-          let!(:get_stub)   {
-            stub_request(:get, "#{endpoint}/channels/#{URI.encode_www_form_component(channel_name)}/presence?limit=100").
-              to_return(:body => serialized_encoded_message_with_invalid_encoding, :headers => { 'Content-Type' => content_type })
-          }
+          let!(:get_stub) do
+            stub_request(:get, "#{endpoint}/channels/#{URI.encode_www_form_component(channel_name)}/presence?limit=100")
+              .to_return(body: serialized_encoded_message_with_invalid_encoding, headers: { 'Content-Type' => content_type })
+          end
           let(:presence_message) { presence.get.items.first }
 
           after do
@@ -427,10 +428,10 @@ describe Ably::Rest::Presence do
 
         context '#history' do
           let(:client_options) { default_options.merge(log_level: :fatal) }
-          let!(:history_stub)   {
-            stub_request(:get, "#{endpoint}/channels/#{URI.encode_www_form_component(channel_name)}/presence/history?direction=backwards&limit=100").
-              to_return(:body => serialized_encoded_message_with_invalid_encoding, :headers => { 'Content-Type' => content_type })
-          }
+          let!(:history_stub) do
+            stub_request(:get, "#{endpoint}/channels/#{URI.encode_www_form_component(channel_name)}/presence/history?direction=backwards&limit=100")
+              .to_return(body: serialized_encoded_message_with_invalid_encoding, headers: { 'Content-Type' => content_type })
+          end
           let(:presence_message) { presence.history.items.first }
 
           after do
