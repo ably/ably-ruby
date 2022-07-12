@@ -1,4 +1,5 @@
-# encoding: utf-8
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe Ably::Rest::Client, '#stats' do
@@ -15,30 +16,30 @@ describe Ably::Rest::Client, '#stats' do
   STATS_FIXTURES = [
     {
       intervalId: Ably::Models::Stats.to_interval_id(LAST_INTERVAL - 120, :minute),
-      inbound:  { realtime: { messages: { count: 50, data: 5000 } } },
+      inbound: { realtime: { messages: { count: 50, data: 5000 } } },
       outbound: { realtime: { messages: { count: 20, data: 2000 } } }
     },
     {
       intervalId: Ably::Models::Stats.to_interval_id(LAST_INTERVAL - 60, :minute),
-      inbound:  { realtime: { messages: { count: 60, data: 6000 } } },
+      inbound: { realtime: { messages: { count: 60, data: 6000 } } },
       outbound: { realtime: { messages: { count: 10, data: 1000 } } }
     },
     {
       intervalId: Ably::Models::Stats.to_interval_id(LAST_INTERVAL, :minute),
-      inbound:       { realtime: { messages: { count: 70, data: 7000 } } },
-      outbound:      { realtime: { messages: { count: 40, data: 4000 } } },
-      persisted:     { presence: { count: 20, data: 2000 } },
-      connections:   { tls:      { peak: 20,  opened: 10 } },
-      channels:      { peak: 50, opened: 30 },
-      apiRequests:   { succeeded: 50, failed: 10 },
-      tokenRequests: { succeeded: 60, failed: 20 },
+      inbound: { realtime: { messages: { count: 70, data: 7000 } } },
+      outbound: { realtime: { messages: { count: 40, data: 4000 } } },
+      persisted: { presence: { count: 20, data: 2000 } },
+      connections: { tls:      { peak: 20, opened: 10 } },
+      channels: { peak: 50, opened: 30 },
+      apiRequests: { succeeded: 50, failed: 10 },
+      tokenRequests: { succeeded: 60, failed: 20 }
     }
-  ]
+  ].freeze
 
   PREVIOUS_YEAR_STATS_FIXTURES = PREVIOUS_YEAR_STATS.times.map do |index|
     {
       intervalId: Ably::Models::Stats.to_interval_id(PREVIOUS_INTERVAL - (index * 60), :minute),
-      inbound:       { realtime: { messages: { count: index } } }
+      inbound: { realtime: { messages: { count: index } } }
     }
   end
 
@@ -48,7 +49,7 @@ describe Ably::Rest::Client, '#stats' do
   end
 
   vary_by_protocol do
-    let(:client) {  Ably::Rest::Client.new(key: api_key, environment: environment, protocol: protocol) }
+    let(:client) { Ably::Rest::Client.new(key: api_key, environment: environment, protocol: protocol) }
 
     describe 'fetching application stats' do
       it 'returns a PaginatedResult object' do
@@ -197,7 +198,7 @@ describe Ably::Rest::Client, '#stats' do
         end
       end
 
-      [:hour, :day, :month].each do |interval|
+      %i[hour day month].each do |interval|
         context "by #{interval}" do
           let(:subject) { client.stats(start: as_since_epoch(LAST_INTERVAL), end: LAST_INTERVAL, unit: interval, direction: 'forwards', limit: 1) }
           let(:stat)    { subject.items.first }
