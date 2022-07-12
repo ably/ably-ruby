@@ -1,4 +1,5 @@
-# encoding: utf-8
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'shared/model_behaviour'
 
@@ -7,7 +8,7 @@ describe Ably::Models::PushChannelSubscription do
 
   subject { Ably::Models::PushChannelSubscription }
 
-  %w(channel client_id device_id).each do |string_attribute|
+  %w[channel client_id device_id].each do |string_attribute|
     describe "##{string_attribute} and ##{string_attribute}=" do
       let(:empty_device_details) do
         if string_attribute == 'device_id'
@@ -39,14 +40,14 @@ describe Ably::Models::PushChannelSubscription do
 
   context 'camelCase constructor attributes' do
     let(:client_id) { random_str }
-    let(:device_details) { subject.new(channel: 'foo', 'clientId' => client_id ) }
+    let(:device_details) { subject.new(channel: 'foo', 'clientId' => client_id) }
 
     specify 'are rubyfied and exposed as underscore case' do
       expect(device_details.client_id).to eql(client_id)
     end
 
     specify 'are generated when the object is serialised to JSON' do
-      expect(JSON.parse(device_details.to_json)["clientId"]).to eql(client_id)
+      expect(JSON.parse(device_details.to_json)['clientId']).to eql(client_id)
     end
   end
 
