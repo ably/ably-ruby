@@ -1,7 +1,11 @@
+# frozen_string_literal: true
+
 module Ably
   module Rest
+    # Presence provides the top-level class to be instanced for the Ably REST library
+    #
     class Presence
-      include Ably::Modules::Conversions
+      include ::Ably::Modules::Conversions
 
       # {Ably::Rest::Client} for this Presence object
       # @return {Ably::Rest::Client}
@@ -31,13 +35,13 @@ module Ably
       # @return [Ably::Models::PaginatedResult<Ably::Models::PresenceMessage>] First {Ably::Models::PaginatedResult page} of {Ably::Models::PresenceMessage} objects accessible with {Ably::Models::PaginatedResult#items #items}.
       #
       def get(options = {})
-        options = options = {
-          :limit     => 100
+        options = {
+          limit: 100
         }.merge(options)
 
         paginated_options = {
           coerce_into: 'Ably::Models::PresenceMessage',
-          async_blocking_operations: options.delete(:async_blocking_operations),
+          async_blocking_operations: options.delete(:async_blocking_operations)
         }
 
         response = client.get(base_path, options)
@@ -61,17 +65,17 @@ module Ably
       #
       def history(options = {})
         url = "#{base_path}/history"
-        options = options = {
-          :direction => :backwards,
-          :limit     => 100
+        options = {
+          direction: :backwards,
+          limit: 100
         }.merge(options)
 
-        [:start, :end].each { |option| options[option] = as_since_epoch(options[option]) if options.has_key?(option) }
-        raise ArgumentError, ":end must be equal to or after :start" if options[:start] && options[:end] && (options[:start] > options[:end])
+        %I[start end].each { |option| options[option] = as_since_epoch(options[option]) if options.key?(option) }
+        raise ArgumentError, ':end must be equal to or after :start' if options[:start] && options[:end] && (options[:start] > options[:end])
 
         paginated_options = {
           coerce_into: 'Ably::Models::PresenceMessage',
-          async_blocking_operations: options.delete(:async_blocking_operations),
+          async_blocking_operations: options.delete(:async_blocking_operations)
         }
 
         response = client.get(url, options)
@@ -84,6 +88,7 @@ module Ably
       end
 
       private
+
       def base_path
         "/channels/#{URI.encode_www_form_component(channel.name)}/presence"
       end
