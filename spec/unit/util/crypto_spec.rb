@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'msgpack'
 
@@ -96,7 +98,7 @@ describe Ably::Util::Crypto do
   end
 
   context 'using shared client lib fixture data' do
-    let(:resources_root)      { File.expand_path('../../../../lib/submodules/ably-common/test-resources', __FILE__) }
+    let(:resources_root)      { File.expand_path('../../../lib/submodules/ably-common/test-resources', __dir__) }
     let(:encryption_data_128) { JSON.parse(File.read(File.join(resources_root, 'crypto-data-128.json'))) }
     let(:encryption_data_256) { JSON.parse(File.read(File.join(resources_root, 'crypto-data-256.json'))) }
 
