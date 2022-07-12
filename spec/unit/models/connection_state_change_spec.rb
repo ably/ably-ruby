@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'shared/model_behaviour'
 
@@ -35,7 +37,6 @@ describe Ably::Models::ConnectionStateChange do
       expect(subject.new(event: unique, current: true, previous: true).event).to eql(unique)
     end
   end
-
 
   context '#retry_in (#TA2)' do
     it 'is not required' do
