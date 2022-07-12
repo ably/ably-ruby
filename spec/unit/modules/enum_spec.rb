@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe Ably::Modules::Enum, :api_private do
@@ -118,7 +120,7 @@ describe Ably::Modules::Enum, :api_private do
       end
 
       context 'by invalid type' do
-        let(:return_val) { subject.get(Array.new) }
+        let(:return_val) { subject.get([]) }
         it 'raises an error' do
           expect { return_val }.to raise_error KeyError
         end
@@ -141,7 +143,7 @@ describe Ably::Modules::Enum, :api_private do
     end
 
     specify '#to_s returns the Enum name' do
-      expect("#{subject}").to eql(enum_name)
+      expect(subject.to_s).to eql(enum_name)
     end
 
     context '#size' do
@@ -163,7 +165,7 @@ describe Ably::Modules::Enum, :api_private do
     end
 
     it 'behaves like Enumerable' do
-      expect(subject.map(&:to_sym)).to eql([:value_zero, :value_1, :value_snake_case_2, :sentence_case])
+      expect(subject.map(&:to_sym)).to eql(%i[value_zero value_1 value_snake_case_2 sentence_case])
     end
 
     context '#each' do
@@ -172,7 +174,7 @@ describe Ably::Modules::Enum, :api_private do
       end
 
       it 'yields each channel' do
-        expect(subject.each.map(&:to_sym)).to eql([:value_zero, :value_1, :value_snake_case_2, :sentence_case])
+        expect(subject.each.map(&:to_sym)).to eql(%i[value_zero value_1 value_snake_case_2 sentence_case])
       end
     end
   end
@@ -181,9 +183,8 @@ describe Ably::Modules::Enum, :api_private do
     class ExampleClassWithEnumFromHash
       extend Ably::Modules::Enum
       ENUMEXAMPLE = ruby_enum('ENUMEXAMPLE',
-        value_one:  1,
-        value_five: 5
-      )
+                              value_one: 1,
+                              value_five: 5)
     end
 
     subject { ExampleClassWithEnumFromHash::ENUMEXAMPLE }
