@@ -1,4 +1,5 @@
-# encoding: utf-8
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'shared/client_initializer_behaviour'
 
@@ -19,7 +20,7 @@ describe Ably::Realtime::Client do
     end
 
     context 'for attribute' do
-      [:environment, :use_tls?, :log_level, :custom_host].each do |attribute|
+      %i[environment use_tls? log_level custom_host].each do |attribute|
         specify "##{attribute}" do
           expect(realtime_client.rest_client).to receive(attribute)
           realtime_client.public_send attribute
@@ -33,7 +34,7 @@ describe Ably::Realtime::Client do
       { 'heartbeats' => 'true', 'v' => '1.0', 'extra_param' => 'extra_param' }
     end
     let(:client_options) do
-      { key: 'appid.keyuid:keysecret', transport_params: { heartbeats: true, v: 1.0, extra_param: 'extra_param'} }
+      { key: 'appid.keyuid:keysecret', transport_params: { heartbeats: true, v: 1.0, extra_param: 'extra_param' } }
     end
 
     it 'converts options to strings' do
