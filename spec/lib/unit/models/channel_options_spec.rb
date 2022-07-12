@@ -25,7 +25,7 @@ RSpec.describe Ably::Models::ChannelOptions do
   end
 
   describe '#set_modes_from_flags' do
-    let(:subscribe_flag) { 262144 }
+    let(:subscribe_flag) { 262_144 }
 
     it 'converts flags to ChannelOptions#modes correctly' do
       result = options.set_modes_from_flags(subscribe_flag)
@@ -35,18 +35,18 @@ RSpec.describe Ably::Models::ChannelOptions do
     end
   end
 
-    describe '#set_params' do
-      let(:previous_params) { { example_attribute: 1 } }
-      let(:new_params) { { new_attribute: 1 } }
-      let(:params) { previous_params }
+  describe '#set_params' do
+    let(:previous_params) { { example_attribute: 1 } }
+    let(:new_params) { { new_attribute: 1 } }
+    let(:params) { previous_params }
 
-      it 'should be able to overwrite attributes' do
-        expect { options.set_params(new_params) }.to \
-          change { options.params }.from(previous_params).to(new_params)
-      end
-
-      it 'should be able to make params empty' do # (1)
-        expect { options.set_params({}) }.to change { options.params }.from(previous_params).to({})
-      end
+    it 'should be able to overwrite attributes' do
+      expect { options.set_params(new_params) }.to \
+        change { options.params }.from(previous_params).to(new_params)
     end
+
+    it 'should be able to make params empty' do # (1)
+      expect { options.set_params({}) }.to(change { options.params }.from(previous_params).to({}))
+    end
+  end
 end
