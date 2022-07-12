@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'base64'
 
@@ -61,7 +63,7 @@ describe Ably::Models::CipherParams do
       end
 
       context 'with an unsupported :key_length for aes-cbc encryption' do
-        let(:key) { "A" * 48 }
+        let(:key) { 'A' * 48 }
         subject { Ably::Models::CipherParams.new(key: key, algorithm: 'aes', mode: 'cbc') }
 
         it 'raises an exception' do
@@ -86,19 +88,19 @@ describe Ably::Models::CipherParams do
 
     describe '#cipher_type' do
       it 'contains the complete algorithm string as an upper case string' do
-        expect(subject.cipher_type).to eql ('AES-128-CBC')
+        expect(subject.cipher_type).to eql('AES-128-CBC')
       end
     end
 
     describe '#mode' do
       it 'contains the mode' do
-        expect(subject.mode).to eql ('cbc')
+        expect(subject.mode).to eql('cbc')
       end
     end
 
     describe '#algorithm' do
       it 'contains the algorithm' do
-        expect(subject.algorithm).to eql ('aes')
+        expect(subject.algorithm).to eql('aes')
       end
     end
 
@@ -111,23 +113,23 @@ describe Ably::Models::CipherParams do
 
   context 'with combined param in the constructor' do
     let(:key) { Ably::Util::Crypto.generate_random_key(128) }
-    subject { Ably::Models::CipherParams.new(key: key, combined: "FOO-128-BAR") }
+    subject { Ably::Models::CipherParams.new(key: key, combined: 'FOO-128-BAR') }
 
     describe '#cipher_type' do
       it 'contains the complete algorithm string as an upper case string' do
-        expect(subject.cipher_type).to eql ('FOO-128-BAR')
+        expect(subject.cipher_type).to eql('FOO-128-BAR')
       end
     end
 
     describe '#mode' do
       it 'contains the mode' do
-        expect(subject.mode).to eql ('bar')
+        expect(subject.mode).to eql('bar')
       end
     end
 
     describe '#algorithm' do
       it 'contains the algorithm' do
-        expect(subject.algorithm).to eql ('foo')
+        expect(subject.algorithm).to eql('foo')
       end
     end
 
