@@ -1,4 +1,5 @@
-# encoding: utf-8
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'shared/model_behaviour'
 
@@ -9,7 +10,7 @@ describe Ably::Models::PresenceMessage do
   let(:protocol_message_timestamp) { as_since_epoch(Time.now) }
   let(:protocol_message) { Ably::Models::ProtocolMessage.new(action: 1, timestamp: protocol_message_timestamp) }
 
-  it_behaves_like 'a model', with_simple_attributes: %w(id client_id data encoding) do
+  it_behaves_like 'a model', with_simple_attributes: %w[id client_id data encoding] do
     let(:model_args) { [protocol_message] }
   end
 
@@ -20,7 +21,7 @@ describe Ably::Models::PresenceMessage do
 
     context 'when this model has a connectionId attribute' do
       context 'but no protocol message' do
-        let(:model) { subject.new('connectionId' => model_connection_id ) }
+        let(:model) { subject.new('connectionId' => model_connection_id) }
 
         it 'uses the model value' do
           expect(model.connection_id).to eql(model_connection_id)
@@ -38,7 +39,7 @@ describe Ably::Models::PresenceMessage do
 
     context 'when this model has no connectionId attribute' do
       context 'and no protocol message' do
-        let(:model) { subject.new({ }) }
+        let(:model) { subject.new({}) }
 
         it 'uses the model value' do
           expect(model.connection_id).to be_nil
@@ -46,7 +47,7 @@ describe Ably::Models::PresenceMessage do
       end
 
       context 'with a protocol message with a connectionId' do
-        let(:model) { subject.new({ }, protocol_message: protocol_message) }
+        let(:model) { subject.new({}, protocol_message: protocol_message) }
 
         it 'uses the model value' do
           expect(model.connection_id).to eql(protocol_connection_id)
@@ -124,7 +125,7 @@ describe Ably::Models::PresenceMessage do
   end
 
   context 'initialized with' do
-    %w(client_id connection_id encoding).each do |attribute|
+    %w[client_id connection_id encoding].each do |attribute|
       context ":#{attribute}" do
         let(:encoded_value)   { value.encode(encoding) }
         let(:value)           { random_str }
@@ -194,7 +195,7 @@ describe Ably::Models::PresenceMessage do
       let(:model) { subject.new({ action: 'enter', clientId: 'joe' }, protocol_message: protocol_message) }
 
       it 'converts the attribute back to Java mixedCase notation using string keys' do
-        expect(json_object["clientId"]).to eql('joe')
+        expect(json_object['clientId']).to eql('joe')
       end
     end
 
@@ -211,11 +212,11 @@ describe Ably::Models::PresenceMessage do
       let(:model) { subject.new({ action: 'enter', data: data }, protocol_message: protocol_message) }
 
       it 'encodes as Base64 so that it can be converted to UTF-8 automatically by JSON#dump' do
-        expect(json_object["data"]).to eql(::Base64.encode64(data))
+        expect(json_object['data']).to eql(::Base64.encode64(data))
       end
 
       it 'adds Base64 encoding' do
-        expect(json_object["encoding"]).to eql('base64')
+        expect(json_object['encoding']).to eql('base64')
       end
     end
   end
@@ -319,14 +320,14 @@ describe Ably::Models::PresenceMessage do
     let(:protocol_message_id) { random_str }
     let(:protocol_message) do
       Ably::Models::ProtocolMessage.new({
-        action: :message,
-        timestamp: ably_time.to_i,
-        msg_serial: message_serial,
-        id: protocol_message_id,
-        presence: [
-          presence_0_json, presence_1_json
-        ]
-      })
+                                          action: :message,
+                                          timestamp: ably_time.to_i,
+                                          msg_serial: message_serial,
+                                          id: protocol_message_id,
+                                          presence: [
+                                            presence_0_json, presence_1_json
+                                          ]
+                                        })
     end
 
     let(:presence_0) { protocol_message.presence.first }
@@ -433,7 +434,6 @@ describe Ably::Models::PresenceMessage do
     end
   end
 
-
   context '#from_encoded (#TP4)' do
     context 'with no encoding' do
       let(:message_data) do
@@ -451,7 +451,7 @@ describe Ably::Models::PresenceMessage do
       context 'with a block' do
         it 'does not call the block' do
           block_called = false
-          subject.from_encoded(message_data) do |exception, message|
+          subject.from_encoded(message_data) do |_exception, _message|
             block_called = true
           end
           expect(block_called).to be_falsey
@@ -460,7 +460,7 @@ describe Ably::Models::PresenceMessage do
     end
 
     context 'with an encoding' do
-      let(:hash_data)           { { 'key' => 'value', 'key2' => 123 } }
+      let(:hash_data) { { 'key' => 'value', 'key2' => 123 } }
       let(:message_data) do
         { action: 'leave', data: JSON.dump(hash_data), encoding: 'json' }
       end
@@ -475,7 +475,7 @@ describe Ably::Models::PresenceMessage do
     end
 
     context 'with a custom encoding' do
-      let(:hash_data)           { { 'key' => 'value', 'key2' => 123 } }
+      let(:hash_data) { { 'key' => 'value', 'key2' => 123 } }
       let(:message_data) do
         { action: 1, data: JSON.dump(hash_data), encoding: 'foo/json' }
       end
@@ -525,7 +525,7 @@ describe Ably::Models::PresenceMessage do
       context 'with a block' do
         it 'calls the block with the exception' do
           block_called = false
-          subject.from_encoded(message_data, channel_options) do |exception, message|
+          subject.from_encoded(message_data, channel_options) do |exception, _message|
             expect(exception).to be_a(Ably::Exceptions::CipherError)
             block_called = true
           end
@@ -556,9 +556,9 @@ describe Ably::Models::PresenceMessage do
 
   context '#shallow_clone' do
     context 'with inherited attributes from ProtocolMessage' do
-      let(:protocol_message) {
-        Ably::Models::ProtocolMessage.new('id' => 'fooId', 'connectionId' => protocol_connection_id, 'action' =>  1, 'timestamp' => protocol_message_timestamp)
-      }
+      let(:protocol_message) do
+        Ably::Models::ProtocolMessage.new('id' => 'fooId', 'connectionId' => protocol_connection_id, 'action' => 1, 'timestamp' => protocol_message_timestamp)
+      end
       let(:protocol_connection_id) { random_str }
       let(:model) { subject.new({ 'action' => 2 }, protocol_message: protocol_message) }
 
@@ -586,9 +586,9 @@ describe Ably::Models::PresenceMessage do
     end
 
     context 'with new attributes passed in to the method' do
-      let(:protocol_message) {
-        Ably::Models::ProtocolMessage.new('id' => 'fooId', 'connectionId' => protocol_connection_id, 'action' =>  1, 'timestamp' => protocol_message_timestamp)
-      }
+      let(:protocol_message) do
+        Ably::Models::ProtocolMessage.new('id' => 'fooId', 'connectionId' => protocol_connection_id, 'action' => 1, 'timestamp' => protocol_message_timestamp)
+      end
       let(:protocol_connection_id) { random_str }
       let(:model) { subject.new({ 'action' => 2 }, protocol_message: protocol_message) }
 
@@ -601,9 +601,9 @@ describe Ably::Models::PresenceMessage do
       end
 
       context 'with an invalid ProtocolMessage (missing an ID)' do
-        let(:protocol_message) {
-          Ably::Models::ProtocolMessage.new('connectionId' => protocol_connection_id, 'action' =>  1, 'timestamp' => protocol_message_timestamp)
-        }
+        let(:protocol_message) do
+          Ably::Models::ProtocolMessage.new('connectionId' => protocol_connection_id, 'action' => 1, 'timestamp' => protocol_message_timestamp)
+        end
         it 'allows an ID to be passed in to the shallow clone that takes precedence' do
           clone = model.shallow_clone(id: 'newId', action: 1, timestamp: protocol_message_timestamp + 1000)
           expect(clone.id).to match(/newId/)
