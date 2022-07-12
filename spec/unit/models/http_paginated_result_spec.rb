@@ -1,9 +1,11 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'ostruct'
 
-describe "Ably::Models::HttpPaginatedResponse: #HP1 -> #HP8" do
+describe 'Ably::Models::HttpPaginatedResponse: #HP1 -> #HP8' do
   let(:paginated_result_class) { Ably::Models::HttpPaginatedResponse }
-  let(:headers) { Hash.new }
+  let(:headers) { {} }
   let(:client) do
     instance_double('Ably::Rest::Client', logger: Ably::Models::NilLogger.new).tap do |client|
       allow(client).to receive(:get).and_return(http_response)
@@ -15,17 +17,17 @@ describe "Ably::Models::HttpPaginatedResponse: #HP1 -> #HP8" do
       { 'id' => 1 }
     ]
   end
-  let(:status) { "200" }
+  let(:status) { '200' }
   let(:http_response) do
     instance_double('Faraday::Response', {
-      body: body,
-      headers: headers,
-      status: status
-    })
+                      body: body,
+                      headers: headers,
+                      status: status
+                    })
   end
   let(:base_url) { 'http://rest.ably.io/channels/channel_name' }
   let(:full_url) { "#{base_url}/whatever?param=exists" }
-  let(:paginated_result_options) { Hash.new }
+  let(:paginated_result_options) { {} }
   let(:first_paged_request) { paginated_result_class.new(http_response, full_url, client, paginated_result_options) }
   subject { first_paged_request }
 
@@ -101,9 +103,9 @@ describe "Ably::Models::HttpPaginatedResponse: #HP1 -> #HP8" do
     end
     let(:http_response_page2) do
       instance_double('Faraday::Response', {
-        body: body_page2,
-        headers: headers
-      })
+                        body: body_page2,
+                        headers: headers
+                      })
     end
 
     context 'with each block' do
@@ -156,7 +158,7 @@ describe "Ably::Models::HttpPaginatedResponse: #HP1 -> #HP8" do
         context '#first' do
           it 'calls the errback callback when first page headers are missing' do
             run_reactor do
-              subject.next do |paginated_result|
+              subject.next do |_paginated_result|
                 deferrable = subject.first
                 deferrable.errback do |error|
                   expect(error).to be_a(Ably::Exceptions::PageMissing)
@@ -219,7 +221,7 @@ describe "Ably::Models::HttpPaginatedResponse: #HP1 -> #HP8" do
 
     context 'accessing next page' do
       let(:next_body) do
-        [ { id: 2 } ]
+        [{ id: 2 }]
       end
       let(:next_headers) do
         {
@@ -231,9 +233,9 @@ describe "Ably::Models::HttpPaginatedResponse: #HP1 -> #HP8" do
       end
       let(:next_http_response) do
         double('http_response', {
-          body: next_body,
-          headers: next_headers
-        })
+                 body: next_body,
+                 headers: next_headers
+               })
       end
       let(:subject) { first_paged_request.next }
 
