@@ -79,18 +79,18 @@ module Ably
 
       def emit_object(new_state, emit_params)
         if self.class.emits_klass
-          self.class.emits_klass.new((emit_params || {}).merge(
-            current: STATE(new_state),
-            previous: STATE(state_machine.current_state),
-            event: EVENT(new_state)
-          ))
+          self.class.emits_klass.new((emit_params || {}).merge(current: STATE(new_state), previous: STATE(state_machine.current_state), event: EVENT(new_state)))
         else
           emit_params
         end
       end
 
-      def self.included(base)
-        base.extend(ClassMethods)
+      class << self
+        private
+
+        def included(base)
+          base.extend(ClassMethods)
+        end
       end
 
       # ClassMethods module provides the methods for the Ably classes
