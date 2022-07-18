@@ -18,6 +18,8 @@ module Ably
         attr_reader :host
 
         def initialize(connection, url)
+          super
+
           @connection = connection
           @state      = STATE.Initialized
           @url        = url
@@ -108,12 +110,10 @@ module Ably
         end
 
         def ssl_handshake_completed
-          unless OpenSSL::SSL.verify_certificate_identity(@last_seen_cert, host)
-            disconnect_with_reason "Websocket host '#{host}' returned an invalid TLS certificate"
-            false
-          else
-            true
-          end
+          return true if OpenSSL::SSL.verify_certificate_identity(@last_seen_cert, host)
+
+          disconnect_with_reason "Websocket host '#{host}' returned an invalid TLS certificate"
+          false
         end
 
         def certificate_store
@@ -177,10 +177,8 @@ module Ably
           @timer = nil
         end
 
-        def create_timer(period)
-          @timer = EventMachine::Timer.new(period) do
-            yield
-          end
+        def create_timer(period, &block)
+          @timer = EventMachine::Timer.new(period, &block)
         end
 
         def setup_driver
@@ -193,7 +191,11 @@ module Ably
           driver.on('message') do |event|
             event_data = parse_event_data(event.data).freeze
             protocol_message = Ably::Models::ProtocolMessage.new(event_data, logger: logger)
-            action_name = Ably::Models::ProtocolMessage::ACTION[event_data['action']] rescue event_data['action']
+            action_name = begin
+              Ably::Models::ProtocolMessage::ACTION[event_data['action']]
+            rescue StandardError
+              event_data['action']
+            end
             logger.debug { "WebsocketTransport: Prot msg recv <=: #{action_name} - #{event_data}" }
 
             if protocol_message.invalid?
