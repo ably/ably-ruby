@@ -23,10 +23,10 @@ module Ably
 
         @base_exception = base_exception
         @status = status
-        @status ||= base_exception.status if base_exception&.respond_to?(:status)
+        @status ||= base_exception.status if base_exception.respond_to?(:status)
         @status ||= options[:fallback_status]
         @code = code
-        @code ||= base_exception.code if base_exception&.respond_to?(:code)
+        @code ||= base_exception.code if base_exception.respond_to?(:code)
         @code ||= options[:fallback_code]
         @request_id ||= options[:request_id]
       end
@@ -92,7 +92,7 @@ module Ably
       def to_s
         message = [super]
         if @base_exception
-          message << "#{@base_exception}"
+          message << @base_exception.to_s
           message << 'See https://goo.gl/eKvfcR to resolve this issue.' if @base_exception.respond_to?(:message) && @base_exception.message.match(/certificate verify failed/i)
         end
         message.join(' < ')
