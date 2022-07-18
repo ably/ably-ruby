@@ -50,10 +50,7 @@ module Ably
           attributes[:mode] = match[:mode]
         end
         raise Ably::Exceptions::CipherError, "Incompatible :key length of #{key_length} and provided :key_length of #{attributes[:key_length]}" if attributes[:key_length] && (key_length != attributes[:key_length])
-
-        if algorithm == 'aes' && mode == 'cbc' && ![128, 256].include?(key_length)
-          raise Ably::Exceptions::CipherError, "Unsupported key length #{key_length} for aes-cbc encryption. Encryption key must be 128 or 256 bits (16 or 32 ASCII characters)"
-        end
+        raise Ably::Exceptions::CipherError, "Unsupported key length #{key_length} for aes-cbc encryption. Encryption key must be 128 or 256 bits (16 or 32 ASCII characters)" if algorithm == 'aes' && mode == 'cbc' && ![128, 256].include?(key_length)
 
         attributes.freeze
       end
@@ -83,7 +80,7 @@ module Ably
       # @!attribute [r] key_length
       # @return [Integer] The length in bits of the +key+
       def key_length
-        key.unpack('b*').first.length
+        key.unpack1('b*').length
       end
 
       # @!attribute [r] mode
