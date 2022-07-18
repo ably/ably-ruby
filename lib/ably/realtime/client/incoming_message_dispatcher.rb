@@ -37,6 +37,7 @@ module Ably
         def dispatch_protocol_message(*args)
           protocol_message = args.first
           raise ArgumentError, "Expected a ProtocolMessage. Received #{protocol_message}" unless protocol_message.is_a?(::Ably::Models::ProtocolMessage)
+
           logger.debug { "#{protocol_message.action} received: #{protocol_message}" } unless protocol_message.action.match_any?(:nack, :error)
 
           if protocol_message.action.match_any?(:sync, :presence, :message) && connection.serial && protocol_message.has_connection_serial? && protocol_message.connection_serial <= connection.serial
@@ -208,7 +209,7 @@ module Ably
         def drop_pending_queue_from_ack(ack_protocol_message)
           message_serial_up_to = ack_protocol_message.message_serial + ack_protocol_message.count - 1
 
-          while !connection.__pending_message_ack_queue__.empty?
+          until connection.__pending_message_ack_queue__.empty?
             next_message = connection.__pending_message_ack_queue__.first
             return if next_message.message_serial > message_serial_up_to
 
