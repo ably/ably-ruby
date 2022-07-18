@@ -119,7 +119,8 @@ module Ably
         @attach_resume = false
 
         setup_event_handlers
-        setup_presence
+
+        @presence ||= Presence.new(self)
       end
 
       # Publish one or more messages to the channel.
@@ -232,8 +233,8 @@ module Ably
           if detaching?
             # Let the pending operation complete (#RTL4h)
             once_state_changed { transition_state_machine :attaching if can_transition_to?(:attaching) }
-          else
-            transition_state_machine :attaching if can_transition_to?(:attaching)
+          elsif can_transition_to?(:attaching)
+            transition_state_machine :attaching
           end
         end
 
@@ -291,7 +292,7 @@ module Ably
       def history(options = {}, &callback)
         if options.delete(:until_attach)
           unless attached?
-            error = Ably::Exceptions::InvalidRequest.new('option :until_attach is invalid as the channel is not attached' )
+            error = Ably::Exceptions::InvalidRequest.new('option :until_attach is invalid as the channel is not attached')
             return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
           end
           options[:from_serial] = properties.attach_serial
@@ -372,10 +373,6 @@ module Ably
 
       def connection
         client.connection
-      end
-
-      def setup_presence
-        @presence ||= Presence.new(self)
       end
 
       # Alias useful for methods with a name argument
