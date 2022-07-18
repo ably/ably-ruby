@@ -59,7 +59,7 @@ module Ably
       use_token_auth
     ].freeze
 
-    attr_reader :options, :token_params, :current_token_details
+    attr_reader :options, :token_params, :current_token_details, :key_name, :key_secret, :client, :token_option
     alias_method :auth_options, :options
 
     # Creates an Auth object
@@ -92,9 +92,7 @@ module Ably
       raise ArgumentError, 'key is missing. Either an API key, token, or token auth method must be provided' if using_basic_auth? && !api_key_present?
       raise ArgumentError, 'A client cannot be configured with a wildcard client_id, only a token can have a wildcard client_id privilege' if options[:client_id] == '*'
 
-      if has_client_id? && !token_creatable_externally? && !token_option && client_id
-        @client_id = ensure_utf_8(:client_id, client_id)
-      end
+      @client_id = ensure_utf_8(:client_id, client_id) if has_client_id? && !token_creatable_externally? && !token_option && client_id
 
       # If a token details object or token string is provided in the initializer
       # then the client can be authorized immediately using this token
@@ -229,17 +227,17 @@ module Ably
 
       auth_options = options.merge(auth_options)
 
-      token_request = if auth_callback = auth_options.delete(:auth_callback)
+      token_request = if (auth_callback = auth_options.delete(:auth_callback))
                         begin
-                          Timeout::timeout(client.auth_request_timeout) do
+                          Timeout.timeout(client.auth_request_timeout) do
                             auth_callback.call(token_params)
                           end
                         rescue StandardError => e
                           raise Ably::Exceptions::AuthenticationFailed.new("auth_callback failed: #{e.message}", nil, nil, e, fallback_status: 500, fallback_code: Ably::Exceptions::Codes::CONNECTION_NOT_ESTABLISHED_NO_TRANSPORT_HANDLE)
                         end
-                      elsif auth_url = auth_options.delete(:auth_url)
+                      elsif (auth_url = auth_options.delete(:auth_url))
                         begin
-                          Timeout::timeout(client.auth_request_timeout) do
+                          Timeout.timeout(client.auth_request_timeout) do
                             token_request_from_auth_url(auth_url, auth_options, token_params)
                           end
                         rescue StandardError => e
@@ -340,8 +338,6 @@ module Ably
     def key
       "#{key_name}:#{key_secret}" if api_key_present?
     end
-
-    attr_reader :key_name, :key_secret
 
     # True when Basic Auth is being used to authenticate with Ably
     def using_basic_auth?
@@ -463,7 +459,7 @@ module Ably
       end
 
       # If client_id is defined and not a wildcard, prevent it changing, this is not supported
-      raise Ably::Exceptions::IncompatibleClientId, "Client ID is immutable once configured for a client. Client ID cannot be changed to '#{new_client_id}'" if client_id && client_id != '*' &&  new_client_id != client_id
+      raise Ably::Exceptions::IncompatibleClientId, "Client ID is immutable once configured for a client. Client ID cannot be changed to '#{new_client_id}'" if client_id && client_id != '*' && new_client_id != client_id
 
       @client_id_validated = true
       @client_id = new_client_id
@@ -477,8 +473,6 @@ module Ably
     end
 
     private
-
-    attr_reader :client, :token_option
 
     def authorize_when_necessary
       return current_token_details if current_token_details && !current_token_details.expired?(from: current_time)
@@ -528,7 +522,7 @@ module Ably
     # Basic Auth HTTP Authorization header value
     def basic_auth_header
       ensure_api_key_sent_over_secure_connection
-      "Basic #{encode64("#{key}")}"
+      "Basic #{encode64(key.to_s)}"
     end
 
     def split_api_key_into_key_and_secret!(options)
