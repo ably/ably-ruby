@@ -39,8 +39,9 @@ module Ably
       include ::Ably::Modules::ModelCommon
 
       # @param hash_object   [Hash,nil]  Device push detail attributes
-      #a
       def initialize(hash_object = {})
+        super
+
         @raw_hash_object = hash_object || {}
         @hash_object     = IdiomaticRubyWrapper(@raw_hash_object)
       end
