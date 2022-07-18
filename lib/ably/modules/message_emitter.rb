@@ -7,7 +7,6 @@ module Ably
     # Message emitter, subscriber and unsubscriber (Pub/Sub) functionality common to Channels and Presence
     # In addition to standard Pub/Sub functionality, it allows subscribers to subscribe to :all.
     module MessageEmitter
-
       include ::Ably::Modules::SafeYield
 
       # Subscribe to events on this object
