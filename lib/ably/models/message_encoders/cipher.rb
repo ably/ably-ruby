@@ -45,7 +45,7 @@ module Ably
             message[:data] = crypto.decrypt(message[:data])
             strip_current_encoding_part message
           end
-        rescue OpenSSL::Cipher::CipherError => e
+        rescue OpenSSL::Cipher::CipherError
           raise Ably::Exceptions::CipherError.new('CipherError decrypting data, the private key may not be correct', nil, 92_003)
         end
 
