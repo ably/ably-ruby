@@ -56,12 +56,12 @@ module Ably
       # @attribute [Hash] mixedCaseHashObject mixed case Hash object
       # @attribute [Array<Symbol,String>] stop_at array of keys that this wrapper should stop wrapping at to preserve the underlying Hash as is
       #
-      def initialize(mixedCaseHashObject, options = {})
+      def initialize(mixed_case_hash_object, options = {})
         stop_at = options.fetch(:stop_at, [])
 
-        $stderr.puts '<IdiomaticRubyWrapper#initialize> WARNING: Wrapping a IdiomaticRubyWrapper with another IdiomaticRubyWrapper' if mixedCaseHashObject.is_a?(IdiomaticRubyWrapper)
+        warn '<IdiomaticRubyWrapper#initialize> WARNING: Wrapping a IdiomaticRubyWrapper with another IdiomaticRubyWrapper' if mixed_case_hash_object.is_a?(IdiomaticRubyWrapper)
 
-        @attributes = mixedCaseHashObject
+        @attributes = mixed_case_hash_object
         @stop_at = Array(stop_at).each_with_object({}) do |key, object|
           object[convert_to_snake_case_symbol(key)] = true
         end.freeze
@@ -83,14 +83,12 @@ module Ably
       def fetch(key, default = nil)
         if key?(key)
           self[key]
+        elsif default
+          default
+        elsif block_given?
+          yield key
         else
-          if default
-            default
-          elsif block_given?
-            yield key
-          else
-            raise KeyError, "key not found: #{key}"
-          end
+          raise KeyError, "key not found: #{key}"
         end
       end
 
@@ -119,7 +117,7 @@ module Ably
       def each
         return to_enum(:each) unless block_given?
 
-        attributes.each do |key, value|
+        attributes.each do |key, _|
           key = convert_to_snake_case_symbol(key)
           value = self[key]
           yield key, value
@@ -134,11 +132,17 @@ module Ably
         to_hash == other
       end
 
+      #def respond_to_missing?(method_sym, include_private = false)
+      #  return super unless key?(key)
+
+      #  method_sym.to_s.match(/=$/)
+      #end
+
       def method_missing(method_sym, *arguments)
-        key = method_sym.to_s.gsub(%r{=$}, '')
+        key = method_sym.to_s.gsub(/=$/, '')
         return super unless key?(key)
 
-        if method_sym.to_s.match(%r{=$})
+        if method_sym.to_s.match(/=$/)
           raise ArgumentError, "Cannot set #{method_sym} with more than one argument" unless arguments.length == 1
 
           self[key] = arguments.first
