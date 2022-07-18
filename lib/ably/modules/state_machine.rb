@@ -24,7 +24,7 @@ module Ably
       #
       # @return [void]
       def transition_state(state, *args)
-        unless result = transition_to(state.to_sym, *args)
+        unless (result = transition_to(state.to_sym, *args))
           exception = exception_for_state_change_to(state)
           logger.fatal { "#{self.class}: #{exception.message}\n#{caller[0..20].join("\n")}" }
         end
