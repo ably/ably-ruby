@@ -105,7 +105,7 @@ module Ably
           immediately = options[:immediately] || false
 
           fail_proc = lambda do
-            error = Ably::Exceptions::MessageDeliveryFailed.new('Continuity of connection was lost so published messages awaiting ACK have failed') unless error
+            error ||= Ably::Exceptions::MessageDeliveryFailed.new('Continuity of connection was lost so published messages awaiting ACK have failed')
             fail_messages_in_queue connection.__pending_message_ack_queue__, error
           end
 
@@ -121,7 +121,7 @@ module Ably
         # all queued messages should be failed immediately as we don't queue in
         # any of those states
         def fail_queued_messages(error)
-          error = Ably::Exceptions::MessageDeliveryFailed.new("Queued messages on channel '#{channel.name}' in state '#{channel.state}' will never be delivered") unless error
+          error ||= Ably::Exceptions::MessageDeliveryFailed.new("Queued messages on channel '#{channel.name}' in state '#{channel.state}' will never be delivered")
           fail_messages_in_queue connection.__outgoing_message_queue__, error
         end
 
