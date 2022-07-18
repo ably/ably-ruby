@@ -145,8 +145,12 @@ module Ably
         end
       end
 
-      def self.included(klass)
-        klass.extend ClassMethods
+      class << self
+        private
+
+        def included(klass)
+          klass.extend ClassMethods
+        end
       end
 
       def add_callback(event_names, proc_block)
