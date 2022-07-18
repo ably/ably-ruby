@@ -336,7 +336,7 @@ module Ably
           @liveness_timer&.cancel
           @liveness_timer = EventMachine::Timer.new(connection.heartbeat_interval + 0.1) do
             if connection.connected? && (connection.time_since_connection_confirmed_alive? >= connection.heartbeat_interval)
-              msg = "No activity seen from realtime in #{connection.heartbeat_interval}; assuming connection has dropped";
+              msg = "No activity seen from realtime in #{connection.heartbeat_interval}; assuming connection has dropped"
               error = Ably::Exceptions::ConnectionTimeout.new(msg, Ably::Exceptions::Codes::DISCONNECTED, 408)
               connection.transition_state_machine! :disconnected, reason: error
             end
@@ -377,12 +377,10 @@ module Ably
 
         # Create a timer that will execute in timeout_in seconds.
         # If the connection state changes however, cancel the timer
-        def create_timeout_timer_whilst_in_state(timer_id, timeout_in)
+        def create_timeout_timer_whilst_in_state(timer_id, timeout_in, &block)
           raise ArgumentError, 'Block required' unless block_given?
 
-          timers[timer_id] << EventMachine::Timer.new(timeout_in) do
-            yield
-          end
+          timers[timer_id] << EventMachine::Timer.new(timeout_in, &block)
           connection.unsafe_once_state_changed { clear_timers timer_id }
         end
 
