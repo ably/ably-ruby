@@ -80,9 +80,9 @@ module Ably
       # Convert key to :snake_case from snakeCase
       def convert_to_snake_case_symbol(key)
         key.to_s.gsub(/::/, '/')
-           .gsub(/([A-Z]+)([A-Z][a-z])/,'\1_\2')
-           .gsub(/([a-z\d])([A-Z])/,'\1_\2')
-           .gsub(/([a-zA-Z])(\d)/,'\1_\2')
+           .gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2')
+           .gsub(/([a-z\d])([A-Z])/, '\1_\2')
+           .gsub(/([a-zA-Z])(\d)/, '\1_\2')
            .tr('-', '_')
            .downcase
            .to_sym
@@ -113,10 +113,7 @@ module Ably
       # @return <void>
       #
       def ensure_supported_payload(payload)
-        return if payload.is_a?(String) ||
-          payload.is_a?(Hash) ||
-          payload.is_a?(Array) ||
-          payload.nil?
+        return if payload.is_a?(String) || payload.is_a?(Hash) || payload.is_a?(Array) || payload.nil?
 
         raise Ably::Exceptions::UnsupportedDataType.new('Invalid data payload', 400, Ably::Exceptions::Codes::INVALID_MESSAGE_DATA_OR_ENCODING)
       end
@@ -145,7 +142,8 @@ module Ably
 
         payload = data
         if (hash = name).is_a?(Hash)
-          name, payload = hash[:name], (hash[:data] || payload)
+          name = hash[:name]
+          payload = hash[:data] || payload
           attributes.merge!(hash)
         end
 
