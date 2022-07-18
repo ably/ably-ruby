@@ -348,13 +348,11 @@ module Ably
         Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
       end
 
-      def ensure_channel_attached(deferrable = nil, options = {})
-        if channel.attached?
-          yield
-        elsif options[:allow_suspended] && channel.suspended?
-          yield
+      def ensure_channel_attached(deferrable = nil, options = {}, &block)
+        if channel.attached? || options[:allow_suspended] && channel.suspended?
+          block.call
         else
-          attach_channel_then(deferrable) { yield }
+          attach_channel_then(deferrable, &block)
         end
         deferrable
       end
