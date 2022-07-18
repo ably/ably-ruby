@@ -90,18 +90,22 @@ module Ably
             off(&failure_wrapper) if failure_wrapper
           end
 
-          failure_wrapper = lambda do |*args|
-            failure_block.call(*args)
-            off(&success_wrapper)
-            off(&failure_wrapper)
-          end if failure_block
+          if failure_block
+            failure_wrapper = lambda do |*args|
+              failure_block.call(*args)
+              off(&success_wrapper)
+              off(&failure_wrapper)
+            end
+          end
 
           Array(target_states).each do |target_state|
             safe_unsafe_method options[:unsafe], :once, target_state, &success_wrapper
 
+            next unless failure_block
+
             safe_unsafe_method options[:unsafe], :once_state_changed do |*args|
               failure_wrapper.call(*args) unless state == target_state
-            end if failure_block
+            end
           end
         end
       end
@@ -155,21 +159,25 @@ module Ably
         end
       end
 
-      def self.included(klass)
-        klass.configure_event_emitter coerce_into: lambda { |event|
-          # Special case allows EVENT instead of STATE to be emitted
-          # Relies on the assumption that EVENT is a superset of STATE
-          if klass.const_defined?(:EVENT)
-            klass::EVENT(event)
-          else
-            klass::STATE(event)
-          end
-        }
+      class << self
+        private
 
-        klass::STATE.each do |state_predicate|
-          klass.instance_eval do
-            define_method("#{state_predicate.to_sym}?") do
-              state?(state_predicate)
+        def included(klass)
+          klass.configure_event_emitter coerce_into: lambda { |event|
+            # Special case allows EVENT instead of STATE to be emitted
+            # Relies on the assumption that EVENT is a superset of STATE
+            if klass.const_defined?(:EVENT)
+              klass::EVENT(event)
+            else
+              klass::STATE(event)
+            end
+          }
+
+          klass::STATE.each do |state_predicate|
+            klass.instance_eval do
+              define_method("#{state_predicate.to_sym}?") do
+                state?(state_predicate)
+              end
             end
           end
         end
