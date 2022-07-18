@@ -32,3 +32,11 @@ Lint/UselessMethodDefinition:
   Enabled: false
 Metrics/ParameterLists:
   Enabled: false
+Naming/MethodName:
+  Enabled: false
+Metrics/ModuleLength:
+  Enabled: false
+Gemspec/RubyVersionGlobalsUsage:
+  Enabled: false
+Style/SymbolProc:
+  Enabled: false
