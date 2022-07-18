@@ -5,8 +5,7 @@ module Ably
     # When Log Level set to none, this NilLogger is used to silence all logging
     # NilLogger provides a Ruby Logger compatible interface
     class NilLogger
-      def null_method(*_args)
-      end
+      def null_method(*_args); end
 
       def level
         :none
