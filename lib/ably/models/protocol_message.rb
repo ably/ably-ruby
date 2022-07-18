@@ -295,10 +295,10 @@ module Ably
 
         # Decode any binary data to before converting to a JSON string representation
         %w[messages presence].each do |message_type|
-          if json_hash[message_type] && !json_hash[message_type].empty?
-            json_hash[message_type].each do |message|
-              decode_binary_data_before_to_json message
-            end
+          next unless json_hash[message_type] && !json_hash[message_type].empty?
+
+          json_hash[message_type].each do |message|
+            decode_binary_data_before_to_json message
           end
         end
 
@@ -309,7 +309,12 @@ module Ably
       # @return [Boolean]
       # @api private
       def invalid?
-        action_enum = action rescue nil
+        action_enum = begin
+          action
+        rescue StandardError
+          nil
+        end
+
         !action_enum || (ack_required? && !has_serial?)
       end
 
