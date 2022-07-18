@@ -69,7 +69,7 @@ module Ably
 
         self.attributes[:name] = ensure_utf_8(:name, name, allow_nil: true) if name
         self.attributes[:client_id] = ensure_utf_8(:client_id, client_id, allow_nil: true) if client_id
-        self.attributes[:encoding] = ensure_utf_8(:encoding,  encoding,  allow_nil: true) if encoding
+        self.attributes[:encoding] = ensure_utf_8(:encoding, encoding, allow_nil: true) if encoding
 
         self.attributes.freeze
       end
