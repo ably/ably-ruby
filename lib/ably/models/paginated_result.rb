@@ -39,7 +39,7 @@ module Ably
         @items = [@items] if @items.is_a?(Hash)
 
         @items = coerce_items_into(items, @coerce_into) if @coerce_into
-        @items = items.map { |item| yield item } if block_given?
+        @items = items.map(&each_block) if block_given?
       end
 
       # Retrieve the first page of results.
@@ -91,15 +91,15 @@ module Ably
       end
 
       def inspect
-        <<-EOF.gsub(/^        /, '')
+        <<-INSPECT.gsub(/^        /, '')
           #<#{self.class.name}:#{object_id}
            @base_url="#{base_url}",
            @last?=#{!!last?},
            @has_next?=#{!!has_next?},
            @items=
-             #{items.map { |item| item.inspect }.join(",\n           ") }
+             #{items.map(&:inspect).join(",\n#{' ' * 11}")}
           >
-        EOF
+        INSPECT
       end
 
       private
@@ -115,7 +115,7 @@ module Ably
       end
 
       def pagination_headers
-        link_regex = %r{<(?<url>[^>]+)>; rel="(?<rel>[^"]+)"}
+        link_regex = /<(?<url>[^>]+)>; rel="(?<rel>[^"]+)"/
         @pagination_headers ||= begin
           # All `Link:` headers are concatenated by Faraday into a comma separated list
           # Finding matching `<url>; rel="rel"` pairs
@@ -135,7 +135,7 @@ module Ably
         raise Ably::Exceptions::PageMissing, "Paging header link #{id} does not exist" unless pagination_header(id)
 
         if pagination_header(id).match(%r{^\./})
-          "#{base_url}#{pagination_header(id)[2..-1]}"
+          "#{base_url}#{pagination_header(id)[2..]}"
         else
           pagination_header[id]
         end
