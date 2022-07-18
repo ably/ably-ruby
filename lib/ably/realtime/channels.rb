@@ -43,9 +43,11 @@ module Ably
       # @return [void]
       #
       def release(channel)
+        return unless @channels.key?(channel)
+
         get(channel).detach do
           @channels.delete(channel)
-        end if @channels.key?(channel)
+        end
       end
     end
   end
