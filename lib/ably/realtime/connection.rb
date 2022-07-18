@@ -70,7 +70,7 @@ module Ably
       ensure_state_machine_emits 'Ably::Models::ConnectionStateChange'
 
       # Expected format for a connection recover key
-      RECOVER_REGEX = /^(?<recover>[^:]+):(?<connection_serial>[^:]+):(?<msg_serial>\-?\d+)$/.freeze
+      RECOVER_REGEX = /^(?<recover>[^:]+):(?<connection_serial>[^:]+):(?<msg_serial>-?\d+)$/.freeze
 
       # Defaults for automatic connection recovery and timeouts
       DEFAULTS = {
@@ -143,9 +143,11 @@ module Ably
         @__pending_message_ack_queue__ = []
 
         @defaults = DEFAULTS.dup
-        options.each do |key, val|
-          @defaults[key] = val if DEFAULTS.key?(key)
-        end if options.is_a?(Hash)
+        if options.is_a?(Hash)
+          options.each do |key, val|
+            @defaults[key] = val if DEFAULTS.key?(key)
+          end
+        end
         @defaults.freeze
 
         # If a recover client options is provided, then we need to ensure that the msgSerial matches the
@@ -606,9 +608,9 @@ module Ably
         )
       end
 
-      def add_message_serial_if_ack_required_to(protocol_message)
+      def add_message_serial_if_ack_required_to(protocol_message, &block)
         if Ably::Models::ProtocolMessage.ack_required?(protocol_message[:action])
-          add_message_serial_to(protocol_message) { yield }
+          add_message_serial_to(protocol_message, &block)
         else
           yield
         end
@@ -624,8 +626,8 @@ module Ably
       end
 
       # Simply wait until the next EventMachine tick to ensure Connection initialization is complete
-      def when_initialized
-        EventMachine.next_tick { yield }
+      def when_initialized(&block)
+        EventMachine.next_tick(&block)
       end
 
       def connection_resumable?
