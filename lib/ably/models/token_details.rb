@@ -64,13 +64,13 @@ module Ably
       # @!attribute [r] issued
       # @return [Time] Time the token was issued
       def issued
-        as_time_from_epoch(attributes[:issued], granularity: :ms, allow_nil: :true)
+        as_time_from_epoch(attributes[:issued], granularity: :ms, allow_nil: true)
       end
 
       # @!attribute [r] expires
       # @return [Time] Time the token expires
       def expires
-        as_time_from_epoch(attributes[:expires], granularity: :ms, allow_nil: :true)
+        as_time_from_epoch(attributes[:expires], granularity: :ms, allow_nil: true)
       end
 
       # @!attribute [r] capability
