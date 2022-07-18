@@ -117,7 +117,7 @@ module Ably
       # @param hash_object  [Hash]  object with the underlying stat details
       #
       def initialize(hash_object)
-        @raw_hash_object  = hash_object
+        @raw_hash_object = hash_object
         set_attributes_object hash_object
       end
 
