@@ -48,15 +48,13 @@ module Ably
           deferrable.callback(&success_callback) if success_callback
 
           operation_with_exception_handling = lambda do
-            begin
-              yield
-            rescue StandardError => e
-              if custom_error_handling
-                custom_error_handling.call e, deferrable
-              else
-                logger.error { "An exception in an AsyncWrapper block was caught. #{err.class}: #{err.message}\n#{err.backtrace.join("\n")}" }
-                deferrable.fail e
-              end
+            yield
+          rescue StandardError => e
+            if custom_error_handling
+              custom_error_handling.call e, deferrable
+            else
+              logger.error { "An exception in an AsyncWrapper block was caught. #{e.class}: #{e.message}\n#{e.backtrace.join("\n")}" }
+              deferrable.fail e
             end
           end
 
