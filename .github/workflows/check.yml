@@ -22,7 +22,9 @@ jobs:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
       - name: Run rubocop
-        run: bundle exec rubocop
+        run: |
+          bundle install panolint
+          bundle exec rubocop --parallel
       - name: 'Run ${{ matrix.type }} tests on ruby ${{ matrix.ruby }} (${{ matrix.protocol }} protocol)'
         env:
           PARALLEL_TEST_PROCESSORS: 2
