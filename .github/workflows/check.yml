@@ -23,7 +23,7 @@ jobs:
           bundler-cache: true
       - name: Run rubocop
         run: |
-          gem: install panolint
+          gem install panolint
           bundle exec rubocop --parallel
       - name: 'Run ${{ matrix.type }} tests on ruby ${{ matrix.ruby }} (${{ matrix.protocol }} protocol)'
         env:
