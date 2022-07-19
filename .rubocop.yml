@@ -2,6 +2,8 @@ AllCops:
   TargetRubyVersion: 2.7
   Exclude:
     - 'lib/submodules/**/*'
+  SuggestExtensions: false
+  NewCops: disable
 Metrics/BlockLength:
   Enabled: false
 Metrics/ClassLength:
