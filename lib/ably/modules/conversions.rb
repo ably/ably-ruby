@@ -98,9 +98,8 @@ module Ably
       # @return <void>
       #
       def ensure_utf_8(field_name, string_value, options = {})
-        unless options[:allow_nil] && string_value.nil?
-          raise ArgumentError, "#{field_name} must be a String" unless string_value.is_a?(String)
-        end
+        raise ArgumentError, "#{field_name} must be a String" unless options[:allow_nil] && string_value.nil? || string_value.is_a?(String)
+
         string_value&.encode(Encoding::UTF_8)
       rescue Encoding::UndefinedConversionError, Encoding::InvalidByteSequenceError => e
         raise ArgumentError, "#{field_name} could not be converted to UTF-8: #{e.message}"
