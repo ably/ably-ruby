@@ -104,7 +104,7 @@ module Ably
 
       # @api private
       def self.register_default_encoders(client, options = {})
-        binary_protocol = !!options[:binary_protocol]
+        binary_protocol = options[:binary_protocol] ? true : false
         client.register_encoder ::Ably::Models::MessageEncoders::Utf8
         client.register_encoder ::Ably::Models::MessageEncoders::Json
         client.register_encoder ::Ably::Models::MessageEncoders::Cipher
