@@ -132,11 +132,9 @@ module Ably
         to_hash == other
       end
 
-      #def respond_to_missing?(method_sym, include_private = false)
-      #  return super unless key?(key)
-
-      #  method_sym.to_s.match(/=$/)
-      #end
+      def respond_to_missing?(method_sym, _include_private = false)
+        super
+      end
 
       def method_missing(method_sym, *arguments)
         key = method_sym.to_s.gsub(/=$/, '')
