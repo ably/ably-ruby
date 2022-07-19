@@ -320,10 +320,8 @@ module Ably
       token_request[:capability] = token_params[:capability] if token_params[:capability]
       if token_request[:capability].is_a?(Hash)
         lexicographic_ordered_capabilities = Hash[
-          token_request[:capability].sort_by { |key, _| key }.map do |key, value|
-            [key, value.sort]
-          end
-        ]
+          token_request[:capability].sort_by { |key, _| key }
+        ].transform_values(&:sort)
         token_request[:capability] = JSON.dump(lexicographic_ordered_capabilities)
       end
 
@@ -594,7 +592,7 @@ module Ably
       end.join('')
 
       encode64(
-        OpenSSL::HMAC.digest(OpenSSL::Digest::SHA256.new, secret, text)
+        OpenSSL::HMAC.digest(OpenSSL::Digest.new('SHA256'), secret, text)
       )
     end
 
