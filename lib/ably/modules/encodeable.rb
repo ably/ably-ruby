@@ -95,14 +95,15 @@ module Ably
         max_encoding_length = 512
         message_attributes = attributes.dup
 
-        begin
+        loop do
           raise Ably::Exceptions::EncoderError("Encoding error, encoding value is too long: '#{message_attributes[:encoding]}'", nil, 92_100) if message_attributes[:encoding].to_s.length > max_encoding_length
 
           previous_encoding = message_attributes[:encoding]
           encoders.each do |encoder|
             encoder.public_send method, message_attributes, channel_options
           end
-        end until previous_encoding == message_attributes[:encoding]
+          break if previous_encoding == message_attributes[:encoding]
+        end
 
         set_attributes_object message_attributes
       rescue Ably::Exceptions::CipherError => e
