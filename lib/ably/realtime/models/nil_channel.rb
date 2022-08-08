@@ -8,7 +8,7 @@ module Ably
       class NilChannel
         include ::Ably::Modules::EventEmitter
         extend ::Ably::Modules::Enum
-        STATE = ruby_enum('STATE', ::Ably::Realtime::Channel::STATE)
+        STATE = ruby_enum("STATE", ::Ably::Realtime::Channel::STATE)
         include ::Ably::Modules::StateEmitter
         include ::Ably::Modules::UsesStateMachine
 
@@ -16,11 +16,11 @@ module Ably
 
         def initialize
           @state_machine = ::Ably::Realtime::Channel::ChannelStateMachine.new(self)
-          @state         = STATE(state_machine.current_state)
+          @state = STATE(state_machine.current_state)
         end
 
         def name
-          'Nil channel'
+          "Nil channel"
         end
 
         def __incoming_msgbus__

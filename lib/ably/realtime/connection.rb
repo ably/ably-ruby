@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'securerandom'
+require "securerandom"
 
 module Ably
   module Realtime
@@ -47,7 +47,7 @@ module Ably
       # ConnectionState
       # The permited states for this connection
       STATE = ruby_enum(
-        'STATE',
+        "STATE",
         :initialized,
         :connecting,
         :connected,
@@ -61,13 +61,13 @@ module Ably
       # ConnectionEvent
       # The permitted connection events that are emitted for this connection
       EVENT = ruby_enum(
-        'EVENT',
+        "EVENT",
         STATE.to_sym_arr + [:update]
       )
 
       include ::Ably::Modules::StateEmitter
       include ::Ably::Modules::UsesStateMachine
-      ensure_state_machine_emits 'Ably::Models::ConnectionStateChange'
+      ensure_state_machine_emits "Ably::Models::ConnectionStateChange"
 
       # Expected format for a connection recover key
       RECOVER_REGEX = /^(?<recover>[^:]+):(?<connection_serial>[^:]+):(?<msg_serial>-?\d+)$/.freeze
@@ -79,7 +79,7 @@ module Ably
         suspended_retry_timeout: 30, # when the connection enters the SUSPENDED state, after this delay in milliseconds, if the state is still SUSPENDED, the client library will attempt to reconnect automatically
         connection_state_ttl: 120, # the duration that Ably will persist the connection state when a Realtime client is abruptly disconnected
         max_connection_state_ttl: nil, # allow a max TTL to be passed in, usually for CI test purposes thus overiding any connection_state_ttl sent from Ably
-        realtime_request_timeout: 10,  # default timeout when establishing a connection, or sending a HEARTBEAT, CONNECT, ATTACH, DETACH or CLOSE ProtocolMessage
+        realtime_request_timeout: 10, # default timeout when establishing a connection, or sending a HEARTBEAT, CONNECT, ATTACH, DETACH or CLOSE ProtocolMessage
         websocket_heartbeats_disabled: false
       }.freeze
 
@@ -138,8 +138,8 @@ module Ably
 
       # @api public
       def initialize(client, options)
-        @client                        = client
-        @__outgoing_message_queue__    = []
+        @client = client
+        @__outgoing_message_queue__ = []
         @__pending_message_ack_queue__ = []
 
         @defaults = DEFAULTS.dup
@@ -165,8 +165,8 @@ module Ably
         Client::OutgoingMessageDispatcher.new client, self
 
         @state_machine = ConnectionStateMachine.new(self)
-        @state         = STATE(state_machine.current_state)
-        @manager       = ConnectionManager.new(self)
+        @state = STATE(state_machine.current_state)
+        @manager = ConnectionManager.new(self)
 
         @current_host = client.endpoint.host
       end
@@ -200,7 +200,7 @@ module Ably
       #
       # @return [EventMachine::Deferrable]
       #
-      def connect(&_success_block)
+      def connect(&success_block)
         unless connecting? || connected?
           return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, exception_for_state_change_to(:connecting)) unless can_transition_to?(:connecting)
 
@@ -210,10 +210,10 @@ module Ably
 
         Ably::Util::SafeDeferrable.new(logger).tap do |deferrable|
           deferrable.callback do
-            yield if block_given?
+            yield if success_block
           end
           succeed_callback = deferrable.method(:succeed)
-          fail_callback    = deferrable.method(:fail)
+          fail_callback = deferrable.method(:fail)
 
           unsafe_once(:connected) do
             deferrable.succeed
@@ -262,7 +262,7 @@ module Ably
               __incoming_protocol_msgbus__.unsubscribe(:protocol_message, &wait_for_ping)
               time_passed = Time.now.to_f - started.to_f
               deferrable.succeed time_passed
-              safe_yield block, time_passed if block_given?
+              safe_yield block, time_passed if block
             end
           end
 
@@ -289,7 +289,7 @@ module Ably
             error_msg = "Ping timed out after #{defaults.fetch(:realtime_request_timeout)}s"
             logger.warn { error_msg }
             deferrable.fail Ably::Models::ErrorInfo.new(message: error_msg, code: Ably::Exceptions::Codes::TIMEOUT_ERROR)
-            safe_yield block, nil if block_given?
+            safe_yield block, nil if block
           end
         end
       end
@@ -298,9 +298,9 @@ module Ably
       # @return [EventMachine::Deferrable]
       # @api private
       def internet_up?
-        url = "http#{'s' if client.use_tls?}:#{Ably::INTERNET_CHECK.fetch(:url)}"
+        url = "http#{"s" if client.use_tls?}:#{Ably::INTERNET_CHECK.fetch(:url)}"
         EventMachine::DefaultDeferrable.new.tap do |deferrable|
-          EventMachine::HttpRequest.new(url, tls: { verify_peer: true }).get.tap do |http|
+          EventMachine::HttpRequest.new(url, tls: {verify_peer: true}).get.tap do |http|
             http.errback do
               yield false if block_given?
               deferrable.fail Ably::Exceptions::ConnectionFailed.new("Unable to connect to #{url}", nil, Ably::Exceptions::Codes::CONNECTION_FAILED)
@@ -332,8 +332,8 @@ module Ably
       # @return [void]
       # @api private
       def configure_new(connection_id, connection_key, connection_serial)
-        @id            = connection_id
-        @key           = connection_key
+        @id = connection_id
+        @key = connection_key
 
         update_connection_serial connection_serial
       end
@@ -349,7 +349,7 @@ module Ably
       # @return [void]
       # @api private
       def reset_resume_info
-        @key    = nil
+        @key = nil
         @serial = nil
       end
 
@@ -371,15 +371,15 @@ module Ably
       # @yield [String] The host name used for this connection, for network connection failures a {Ably::FALLBACK_HOSTS fallback host} is used to route around networking or intermittent problems if an Internet connection is available
       # @api private
       def determine_host
-        raise ArgumentError, 'Block required' unless block_given?
+        raise ArgumentError, "Block required" unless block_given?
 
         if should_use_fallback_hosts?
           internet_up? do |internet_is_up_result|
             @current_host = if internet_is_up_result
-                              client.fallback_endpoint.host
-                            else
-                              client.endpoint.host
-                            end
+              client.fallback_endpoint.host
+            else
+              client.endpoint.host
+            end
             yield current_host
           end
         else
@@ -439,27 +439,29 @@ module Ably
           client.auth.auth_params.tap do |auth_deferrable|
             auth_deferrable.callback do |auth_params|
               url_params = auth_params.merge(
-                'format' => client.protocol,
-                'echo' => client.echo_messages,
-                'v' => Ably::PROTOCOL_VERSION,
-                'agent' => client.rest_client.agent
+                "format" => client.protocol,
+                "echo" => client.echo_messages,
+                "v" => Ably::PROTOCOL_VERSION,
+                "agent" => client.rest_client.agent
               )
 
               # Use native websocket heartbeats if possible, but allow Ably protocol heartbeats
-              url_params['heartbeats'] = if defaults.fetch(:websocket_heartbeats_disabled)
-                                           'true'
-                                         else
-                                           'false'
-                                         end
+              url_params["heartbeats"] = if defaults.fetch(:websocket_heartbeats_disabled)
+                "true"
+              else
+                "false"
+              end
 
-              url_params['clientId'] = client.auth.client_id if client.auth.has_client_id?
+              url_params["clientId"] = client.auth.client_id if client.auth.has_client_id?
               url_params.merge!(client.transport_params)
 
               if connection_resumable?
-                url_params.merge! resume: key, connection_serial: serial
+                url_params[:resume] = key
+                url_params[:connection_serial] = serial
                 logger.debug { "Resuming connection key #{key} with serial #{serial}" }
               elsif connection_recoverable?
-                url_params.merge! recover: connection_recover_parts[:recover], connectionSerial: connection_recover_parts[:connection_serial]
+                url_params[:recover] = connection_recover_parts[:recover]
+                url_params[:connectionSerial] = connection_recover_parts[:connection_serial]
                 logger.debug { "Recovering connection with key #{client.recover}" }
                 unsafe_once(:connected, :closed, :failed) do
                   client.disable_automatic_connection_recovery
@@ -620,7 +622,7 @@ module Ably
         @client_msg_serial += 1
         protocol_message[:msgSerial] = client_msg_serial
         yield
-      rescue StandardError => e
+      rescue => e
         @client_msg_serial -= 1
         raise e
       end
@@ -640,11 +642,7 @@ module Ably
         return false if time_since_connection_confirmed_alive? > connection_state_ttl + details.max_idle_interval
 
         connected_last = state_history.reverse.find { |connected| connected.fetch(:state) == :connected }
-        if connected_last.nil?
-          false
-        else
-          true
-        end
+        !connected_last.nil?
       end
 
       def connection_recoverable?
@@ -701,6 +699,6 @@ module Ably
   end
 end
 
-require 'ably/realtime/connection/connection_manager'
-require 'ably/realtime/connection/connection_state_machine'
-require 'ably/realtime/connection/websocket_transport'
+require "ably/realtime/connection/connection_manager"
+require "ably/realtime/connection/connection_state_machine"
+require "ably/realtime/connection/websocket_transport"

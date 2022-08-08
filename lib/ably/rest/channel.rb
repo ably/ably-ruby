@@ -36,9 +36,9 @@ module Ably
         name = (ensure_utf_8 :name, name)
 
         @options = Ably::Models::ChannelOptions(channel_options)
-        @client  = client
-        @name    = name
-        @push    = PushChannel.new(self)
+        @client = client
+        @name = name
+        @push = PushChannel.new(self)
       end
 
       # Publish one or more messages to the channel. Five overloaded forms
@@ -88,21 +88,21 @@ module Ably
             msg.encode client.encoders, options
 
             next if msg.client_id.nil?
-            raise Ably::Exceptions::IncompatibleClientId, 'Wildcard client_id is reserved and cannot be used when publishing messages' if msg.client_id == '*'
+            raise Ably::Exceptions::IncompatibleClientId, "Wildcard client_id is reserved and cannot be used when publishing messages" if msg.client_id == "*"
             raise Ably::Exceptions::IncompatibleClientId, "Cannot publish with client_id '#{msg.client_id}' as it is incompatible with the current configured client_id '#{client.client_id}'" unless client.auth.can_assume_client_id?(msg.client_id)
           end.as_json
         end.tap do |p|
           # We cannot mutate for idempotent publishing if one or more messages already has an ID
-          if client.idempotent_rest_publishing && p.all? { |msg| !msg['id'] }
+          if client.idempotent_rest_publishing && p.all? { |msg| !msg["id"] }
             # Mutate the JSON to support idempotent publishing where a Message.id does not exist
             idempotent_publish_id = SecureRandom.base64(IDEMPOTENT_LIBRARY_GENERATED_ID_LENGTH)
             p.each_with_index do |msg, idx|
-              msg['id'] = "#{idempotent_publish_id}:#{idx}"
+              msg["id"] = "#{idempotent_publish_id}:#{idx}"
             end
           end
         end
 
-        options = qs_params ? { qs_params: qs_params } : {}
+        options = qs_params ? {qs_params: qs_params} : {}
         response = client.post("#{base_path}/publish", payload.length == 1 ? payload.first : payload, options)
 
         [201, 204].include?(response.status)
@@ -126,10 +126,10 @@ module Ably
         }.merge(options)
 
         %I[start end].each { |option| options[option] = as_since_epoch(options[option]) if options.key?(option) }
-        raise ArgumentError, ':end must be equal to or after :start' if options[:start] && options[:end] && (options[:start] > options[:end])
+        raise ArgumentError, ":end must be equal to or after :start" if options[:start] && options[:end] && (options[:start] > options[:end])
 
         paginated_options = {
-          coerce_into: 'Ably::Models::Message',
+          coerce_into: "Ably::Models::Message",
           async_blocking_operations: options.delete(:async_blocking_operations)
         }
 
@@ -155,7 +155,7 @@ module Ably
       def set_options(channel_options)
         @options = Ably::Models::ChannelOptions(channel_options)
       end
-      alias options= set_options
+      alias_method :options=, :set_options
 
       # Makes GET request for channel details (#RSL8, #RSL8a)
       #
@@ -179,4 +179,4 @@ module Ably
   end
 end
 
-require 'ably/rest/channel/push_channel'
+require "ably/rest/channel/push_channel"

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'ably/modules/safe_yield'
+require "ably/modules/safe_yield"
 
 module Ably
   module Modules
@@ -43,7 +43,7 @@ module Ably
 
         # Ensure @event_emitter_coerce_proc option is passed down to any classes that inherit the class with callbacks
         def inherited(subclass)
-          subclass.instance_variable_set('@event_emitter_coerce_proc', @event_emitter_coerce_proc) if defined?(@event_emitter_coerce_proc)
+          subclass.instance_variable_set(:@event_emitter_coerce_proc, @event_emitter_coerce_proc) if defined?(@event_emitter_coerce_proc)
           super
         end
       end
@@ -84,15 +84,15 @@ module Ably
       def emit(event_name, *args)
         [callbacks_any, callbacks[callbacks_event_coerced(event_name)]].each do |callback_arr|
           callback_arr.clone
-                      .select do |proc_hash|
-                        if proc_hash[:unsafe]
-                          proc_hash[:emit_proc].call(*args)
-                        else
-                          safe_yield proc_hash[:emit_proc], *args
-                        end
-                      end.each do |callback|
-                        callback_arr.delete callback
-                      end
+            .select do |proc_hash|
+            if proc_hash[:unsafe]
+              proc_hash[:emit_proc].call(*args)
+            else
+              safe_yield proc_hash[:emit_proc], *args
+            end
+          end.each do |callback|
+            callback_arr.delete callback
+          end
         end
       end
 
@@ -119,14 +119,14 @@ module Ably
 
       def off_internal(unsafe, *event_names, &block)
         keys = if event_names.empty?
-                 callbacks.keys
-               else
-                 event_names
-               end
+          callbacks.keys
+        else
+          event_names
+        end
 
         if event_names.empty?
           callbacks_any.delete_if do |proc_hash|
-            if block_given?
+            if block
               (proc_hash[:unsafe] == unsafe) && (proc_hash[:block] == block)
             else
               proc_hash[:unsafe] == unsafe
@@ -136,7 +136,7 @@ module Ably
 
         keys.each do |event_name|
           callbacks[callbacks_event_coerced(event_name)].delete_if do |proc_hash|
-            if block_given?
+            if block
               (proc_hash[:unsafe] == unsafe) && (proc_hash[:block] == block)
             else
               proc_hash[:unsafe] == unsafe

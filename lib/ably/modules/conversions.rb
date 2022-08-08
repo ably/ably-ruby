@@ -20,7 +20,7 @@ module Ably
         when Numeric
           time
         else
-          raise ArgumentError, 'time argument must be a Numeric or Time object'
+          raise ArgumentError, "time argument must be a Numeric or Time object"
         end.to_i
       end
 
@@ -35,7 +35,7 @@ module Ably
         when Time
           time
         else
-          raise ArgumentError, 'time argument must be a Numeric or Time object'
+          raise ArgumentError, "time argument must be a Numeric or Time object"
         end
       end
 
@@ -46,7 +46,7 @@ module Ably
         when :s # seconds
           1.0
         else
-          raise ArgumentError, 'invalid granularity'
+          raise ArgumentError, "invalid granularity"
         end
       end
 
@@ -55,21 +55,21 @@ module Ably
         force_camel = options.fetch(:force_camel, false)
 
         key.to_s
-           .split('_')
-           .each_with_index.map do |str, index|
-             if index.positive? || force_camel
-               str.capitalize
-             else
-               str
-             end
-           end
-           .join
+          .split("_")
+          .each_with_index.map do |str, index|
+          if index.positive? || force_camel
+            str.capitalize
+          else
+            str
+          end
+        end
+          .join
       end
 
       # Convert a Hash into a mixed case Hash objet
       # i.e. { client_id: 1 } becomes { 'clientId' => 1 }
       def convert_to_mixed_case_hash(hash, options = {})
-        raise ArgumentError, 'Hash expected' unless hash.is_a?(Hash)
+        raise ArgumentError, "Hash expected" unless hash.is_a?(Hash)
 
         hash.each_with_object({}) do |pair, new_hash|
           key, val = pair
@@ -79,17 +79,17 @@ module Ably
 
       # Convert key to :snake_case from snakeCase
       def convert_to_snake_case_symbol(key)
-        key.to_s.gsub(/::/, '/')
-           .gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2')
-           .gsub(/([a-z\d])([A-Z])/, '\1_\2')
-           .gsub(/([a-zA-Z])(\d)/, '\1_\2')
-           .tr('-', '_')
-           .downcase
-           .to_sym
+        key.to_s.gsub(/::/, "/")
+          .gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2')
+          .gsub(/([a-z\d])([A-Z])/, '\1_\2')
+          .gsub(/([a-zA-Z])(\d)/, '\1_\2')
+          .tr("-", "_")
+          .downcase
+          .to_sym
       end
 
       def convert_to_lower_case(key)
-        key.to_s.gsub('_', '')
+        key.to_s.delete("_")
       end
 
       # Ensures that the string value is converted to UTF-8 encoding
@@ -114,7 +114,7 @@ module Ably
       def ensure_supported_payload(payload)
         return if payload.is_a?(String) || payload.is_a?(Hash) || payload.is_a?(Array) || payload.nil?
 
-        raise Ably::Exceptions::UnsupportedDataType.new('Invalid data payload', 400, Ably::Exceptions::Codes::INVALID_MESSAGE_DATA_OR_ENCODING)
+        raise Ably::Exceptions::UnsupportedDataType.new("Invalid data payload", 400, Ably::Exceptions::Codes::INVALID_MESSAGE_DATA_OR_ENCODING)
       end
 
       # Converts the name, data, attributes into the array of Message objects
@@ -149,7 +149,7 @@ module Ably
         name = ensure_utf_8(:name, name, allow_nil: true)
         ensure_supported_payload payload
 
-        attributes.merge({ name: name, data: payload })
+        attributes.merge({name: name, data: payload})
       end
     end
   end

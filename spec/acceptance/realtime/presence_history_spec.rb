@@ -1,25 +1,25 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
+require "spec_helper"
 
-describe Ably::Realtime::Presence, 'history', :event_machine do
+describe Ably::Realtime::Presence, "history", :event_machine do
   vary_by_protocol do
-    let(:default_options)     { { key: api_key, environment: environment, protocol: protocol } }
+    let(:default_options) { {key: api_key, environment: environment, protocol: protocol} }
 
-    let(:channel_name)        { "persisted:#{random_str(2)}" }
+    let(:channel_name) { "persisted:#{random_str(2)}" }
 
-    let(:client_one)          { auto_close Ably::Realtime::Client.new(default_options.merge(client_id: random_str)) }
-    let(:channel_client_one)  { client_one.channel(channel_name) }
+    let(:client_one) { auto_close Ably::Realtime::Client.new(default_options.merge(client_id: random_str)) }
+    let(:channel_client_one) { client_one.channel(channel_name) }
     let(:presence_client_one) { channel_client_one.presence }
 
-    let(:client_two)          { auto_close Ably::Realtime::Client.new(default_options.merge(client_id: random_str)) }
-    let(:channel_client_two)  { client_two.channel(channel_name) }
+    let(:client_two) { auto_close Ably::Realtime::Client.new(default_options.merge(client_id: random_str)) }
+    let(:channel_client_two) { client_two.channel(channel_name) }
     let(:presence_client_two) { channel_client_two.presence }
 
-    let(:data)                { random_str }
-    let(:leave_data)          { random_str }
+    let(:data) { random_str }
+    let(:leave_data) { random_str }
 
-    it 'provides up to the moment presence history' do
+    it "provides up to the moment presence history" do
       presence_client_one.enter(data) do
         presence_client_one.subscribe(:leave) do
           presence_client_one.history do |history_page|
@@ -42,7 +42,7 @@ describe Ably::Realtime::Presence, 'history', :event_machine do
       end
     end
 
-    it 'ensures REST presence history message IDs match ProtocolMessage wrapped message and connection IDs via Realtime' do
+    it "ensures REST presence history message IDs match ProtocolMessage wrapped message and connection IDs via Realtime" do
       presence_client_one.subscribe(:enter) do |message|
         presence_client_one.history do |history_page|
           expect(history_page.items.count).to eql(1)

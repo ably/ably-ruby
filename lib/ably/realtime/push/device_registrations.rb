@@ -26,7 +26,7 @@ module Ably
         #
         def get(device_id, &callback)
           device_id = device_id.id if device_id.is_a?(Ably::Models::DeviceDetails)
-          raise ArgumentError, 'device_id must be a string or DeviceDetails object' unless device_id.is_a?(String)
+          raise ArgumentError, "device_id must be a string or DeviceDetails object" unless device_id.is_a?(String)
 
           async_wrap(callback) do
             rest_device_registrations.get(device_id)
@@ -40,8 +40,8 @@ module Ably
         #
         def list(params = {}, &callback)
           params = {} if params.nil?
-          raise ArgumentError, 'params must be a Hash' unless params.is_a?(Hash)
-          raise ArgumentError, 'device_id filter cannot be specified alongside a client_id filter. Use one or the other' if params[:client_id] && params[:device_id]
+          raise ArgumentError, "params must be a Hash" unless params.is_a?(Hash)
+          raise ArgumentError, "device_id filter cannot be specified alongside a client_id filter. Use one or the other" if params[:client_id] && params[:device_id]
 
           async_wrap(callback) do
             rest_device_registrations.list(params.merge(async_blocking_operations: true))
@@ -55,7 +55,7 @@ module Ably
         #
         def save(device, &callback)
           device_details = DeviceDetails(device)
-          raise ArgumentError, 'Device ID is required yet is empty' if device_details.id.nil? || device_details == ''
+          raise ArgumentError, "Device ID is required yet is empty" if device_details.id.nil? || device_details == ""
 
           async_wrap(callback) do
             rest_device_registrations.save(device_details)
@@ -69,7 +69,7 @@ module Ably
         #
         def remove(device_id, &callback)
           device_id = device_id.id if device_id.is_a?(Ably::Models::DeviceDetails)
-          raise ArgumentError, 'device_id must be a string or DeviceDetails object' unless device_id.is_a?(String)
+          raise ArgumentError, "device_id must be a string or DeviceDetails object" unless device_id.is_a?(String)
 
           async_wrap(callback) do
             rest_device_registrations.remove(device_id)
@@ -83,13 +83,13 @@ module Ably
         #
         def remove_where(params = {}, &callback)
           filter = if params.is_a?(Ably::Models::DeviceDetails)
-                     { 'deviceId' => params.id }
-                   else
-                     raise ArgumentError, 'params must be a Hash' unless params.is_a?(Hash)
-                     raise ArgumentError, 'device_id filter cannot be specified alongside a client_id filter. Use one or the other' if params[:client_id] && params[:device_id]
+            {"deviceId" => params.id}
+          else
+            raise ArgumentError, "params must be a Hash" unless params.is_a?(Hash)
+            raise ArgumentError, "device_id filter cannot be specified alongside a client_id filter. Use one or the other" if params[:client_id] && params[:device_id]
 
-                     IdiomaticRubyWrapper(params).as_json
-                   end
+            IdiomaticRubyWrapper(params).as_json
+          end
 
           async_wrap(callback) do
             rest_device_registrations.remove_where(filter)

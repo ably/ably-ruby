@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'faraday'
-require 'msgpack'
+require "faraday"
+require "msgpack"
 
 module Ably
   module Rest
@@ -10,9 +10,9 @@ module Ably
       #
       class ParseMessagePack < Faraday::Middleware
         def on_complete(env)
-          if env.response_headers['Content-Type'] == 'application/x-msgpack'
-            env.body = parse(env.body) unless env.response_headers['Ably-Middleware-Parsed'] == true
-            env.response_headers['Ably-Middleware-Parsed'] = true
+          if env.response_headers["Content-Type"] == "application/x-msgpack"
+            env.body = parse(env.body) unless env.response_headers["Ably-Middleware-Parsed"] == true
+            env.response_headers["Ably-Middleware-Parsed"] = true
           end
         rescue Ably::Exceptions::InvalidResponseBody => e
           debug_info = {
@@ -38,7 +38,7 @@ module Ably
 
         def base64_body(body)
           Base64.encode64(body)
-        rescue StandardError => e
+        rescue => e
           "[#{e.message}! Could not base64 encode body: '#{body}']"
         end
       end

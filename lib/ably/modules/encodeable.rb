@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'base64'
-require 'ably/exceptions'
+require "base64"
+require "ably/exceptions"
 
 module Ably
   module Modules
@@ -76,22 +76,22 @@ module Ably
       # @return [String,nil]
       # @api private
       def original_encoding
-        raw_hash_object['encoding']
+        raw_hash_object["encoding"]
       end
 
       private
 
       def decode_binary_data_before_to_json(message)
-        data_key = message[:data] ? :data : 'data'
-        encoding_key = message[:encoding] ? :encoding : 'encoding'
+        data_key = message[:data] ? :data : "data"
+        encoding_key = message[:encoding] ? :encoding : "encoding"
 
         return unless message[data_key].is_a?(String) && message[data_key].encoding == ::Encoding::ASCII_8BIT
 
         message[data_key] = ::Base64.encode64(message[data_key])
-        message[encoding_key] = [message[encoding_key], 'base64'].compact.join('/')
+        message[encoding_key] = [message[encoding_key], "base64"].compact.join("/")
       end
 
-      def apply_encoders(method, encoders, channel_options, &_error_callback)
+      def apply_encoders(method, encoders, channel_options, &error_callback)
         max_encoding_length = 512
         message_attributes = attributes.dup
 
@@ -107,7 +107,7 @@ module Ably
 
         set_attributes_object message_attributes
       rescue Ably::Exceptions::CipherError => e
-        raise e unless block_given?
+        raise e unless error_callback
 
         yield e, "Encoder error #{e.code} trying to #{method} message: #{e.message}"
       end

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'faraday'
+require "faraday"
 
 module Ably
   module Rest
@@ -13,7 +13,7 @@ module Ably
         def initialize(app, logger = nil)
           super(app)
           @logger = logger || begin
-            require 'logger'
+            require "logger"
             ::Logger.new($stdout)
           end
         end
@@ -34,24 +34,24 @@ module Ably
         private
 
         def dump_headers(headers)
-          headers.map { |k, v| "#{k}: #{v.inspect}" }.join(', ')
+          headers.map { |k, v| "#{k}: #{v.inspect}" }.join(", ")
         end
 
         def body_for(env)
-          return '' if !env.body || env.body.empty?
+          return "" if !env.body || env.body.empty?
 
-          if env.request_headers['Content-Type'] == 'application/x-msgpack'
+          if env.request_headers["Content-Type"] == "application/x-msgpack"
             MessagePack.unpack(env.body)
           else
             env.body
           end
-        rescue StandardError
+        rescue
           readable_body(env.body)
         end
 
         def readable_body(body)
           if body.respond_to?(:encoding) && body.encoding == Encoding::ASCII_8BIT
-            body.unpack('H*')
+            body.unpack("H*")
           else
             body
           end

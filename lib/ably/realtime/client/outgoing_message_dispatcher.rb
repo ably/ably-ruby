@@ -12,7 +12,7 @@ module Ably
         ACTION = ::Ably::Models::ProtocolMessage::ACTION
 
         def initialize(client, connection)
-          @client     = client
+          @client = client
           @connection = connection
 
           subscribe_to_outgoing_protocol_message_queue
@@ -50,7 +50,7 @@ module Ably
             protocol_message = outgoing_queue.shift
 
             unless connection.transport
-              protocol_message.fail Ably::Exceptions::TransportClosed.new('Transport disconnected unexpectedly', nil, Ably::Exceptions::Codes::DISCONNECTED)
+              protocol_message.fail Ably::Exceptions::TransportClosed.new("Transport disconnected unexpectedly", nil, Ably::Exceptions::Codes::DISCONNECTED)
               next
             end
 

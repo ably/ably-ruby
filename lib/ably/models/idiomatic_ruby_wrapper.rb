@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'logger'
+require "logger"
 
 module Ably
   module Modules
@@ -59,7 +59,7 @@ module Ably
       def initialize(mixed_case_hash_object, options = {})
         stop_at = options.fetch(:stop_at, [])
 
-        warn '<IdiomaticRubyWrapper#initialize> WARNING: Wrapping a IdiomaticRubyWrapper with another IdiomaticRubyWrapper' if mixed_case_hash_object.is_a?(IdiomaticRubyWrapper)
+        warn "<IdiomaticRubyWrapper#initialize> WARNING: Wrapping a IdiomaticRubyWrapper with another IdiomaticRubyWrapper" if mixed_case_hash_object.is_a?(IdiomaticRubyWrapper)
 
         @attributes = mixed_case_hash_object
         @stop_at = Array(stop_at).each_with_object({}) do |key, object|
@@ -111,7 +111,7 @@ module Ably
       def has_key?(key)
         attributes.key?(source_key_for(key))
       end
-      alias key? has_key?
+      alias_method :key?, :has_key?
 
       # Method ensuring this {IdiomaticRubyWrapper} is {http://ruby-doc.org/core-2.1.3/Enumerable.html Enumerable}
       def each
@@ -137,10 +137,10 @@ module Ably
       end
 
       def method_missing(method_sym, *arguments)
-        key = method_sym.to_s.gsub(/=$/, '')
+        key = method_sym.to_s.gsub(/=$/, "")
         return super unless key?(key)
 
-        if method_sym.to_s.match(/=$/)
+        if /=$/.match?(method_sym.to_s)
           raise ArgumentError, "Cannot set #{method_sym} with more than one argument" unless arguments.length == 1
 
           self[key] = arguments.first
@@ -162,10 +162,10 @@ module Ably
       #   wrapper.as_json => { 'mixedCase': true, 'snakeCase': 1 }
       def as_json(*args)
         attributes.each_with_object({}) do |key_val, new_hash|
-          key                      = key_val[0]
-          mixed_case_key           = convert_to_mixed_case(key)
-          wrapped_val              = self[key]
-          wrapped_val              = wrapped_val.as_json(args) if wrapped_val.is_a?(IdiomaticRubyWrapper)
+          key = key_val[0]
+          mixed_case_key = convert_to_mixed_case(key)
+          wrapped_val = self[key]
+          wrapped_val = wrapped_val.as_json(args) if wrapped_val.is_a?(IdiomaticRubyWrapper)
 
           new_hash[mixed_case_key] = wrapped_val
         end
@@ -184,8 +184,8 @@ module Ably
       #   wrapper.to_hash => { mixed_case: true, snake_case: 1 }
       def to_hash(*args)
         each_with_object({}) do |key_val, object|
-          key, val    = key_val
-          val         = val.to_hash(args) if val.is_a?(IdiomaticRubyWrapper)
+          key, val = key_val
+          val = val.to_hash(args) if val.is_a?(IdiomaticRubyWrapper)
           object[key] = val
         end
       end

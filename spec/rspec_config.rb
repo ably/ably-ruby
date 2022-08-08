@@ -7,7 +7,7 @@
 #
 # See http://rubydoc.info/gems/rspec-core/RSpec/Core/Configuration
 
-require 'rspec/retry'
+require "rspec/retry"
 
 RSpec.configure do |config|
   config.run_all_when_everything_filtered = true
@@ -25,33 +25,33 @@ RSpec.configure do |config|
   # order dependency and want to debug it, you can fix the order by providing
   # the seed, which is printed after each run.
   #     --seed 1234
-  config.order = 'random'
+  config.order = "random"
 
   config.before(:example) do
     WebMock.disable!
   end
 
   config.before(:example, :webmock) do
-    allow(TestApp).to receive(:instance).and_return(instance_double('TestApp',
-                                                                    app_id: 'app_id',
-                                                                    key_name: 'app_id.key_name',
-                                                                    key_secret: 'secret',
-                                                                    api_key: 'app_id.key_name:secret',
-                                                                    environment: 'sandbox'))
+    allow(TestApp).to receive(:instance).and_return(instance_double("TestApp",
+      app_id: "app_id",
+      key_name: "app_id.key_name",
+      key_secret: "secret",
+      api_key: "app_id.key_name:secret",
+      environment: "sandbox"))
     WebMock.enable!
   end
 
   if defined?(EventMachine)
     config.before(:example, :event_machine) do
       # Ensure EventMachine shutdown hooks are deregistered for every test
-      EventMachine.instance_variable_set '@tails', []
+      EventMachine.instance_variable_set :@tails, []
     end
   end
 
   config.add_formatter Ably::RSpec::PrivateApiFormatter
 
-  if ENV['RSPEC_RETRY']
-    puts 'Running tests using RSpec retry'
+  if ENV["RSPEC_RETRY"]
+    puts "Running tests using RSpec retry"
     config.verbose_retry = true # show retry status in spec process
     config.display_try_failure_messages = true # show exception that triggered the try
     config.default_retry_count = 3

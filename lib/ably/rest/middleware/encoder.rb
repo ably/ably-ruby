@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
-require 'faraday'
-require 'json'
+require "faraday"
+require "json"
 
 module Ably
   module Rest
     module Middleware
       # Encode the body of the message according to the mime type
       class Encoder < Faraday::Middleware
-        CONTENT_TYPE = 'Content-Type' unless defined? CONTENT_TYPE
+        CONTENT_TYPE = "Content-Type" unless defined? CONTENT_TYPE
 
         def call(env)
           encode env if env.body
@@ -19,14 +19,14 @@ module Ably
 
         def encode(env)
           env.body = case request_type(env)
-                     when 'application/x-msgpack'
-                       to_msgpack(env.body)
-                     when 'application/json', '', nil
-                       env.request_headers[CONTENT_TYPE] = 'application/json'
-                       to_json(env.body)
-                     else
-                       env.body
-                     end
+          when "application/x-msgpack"
+            to_msgpack(env.body)
+          when "application/json", "", nil
+            env.request_headers[CONTENT_TYPE] = "application/json"
+            to_json(env.body)
+          else
+            env.body
+          end
         end
 
         def to_msgpack(body)
@@ -43,7 +43,7 @@ module Ably
 
         def request_type(env)
           type = env.request_headers[CONTENT_TYPE].to_s
-          type = type.split(';', 2).first if type.index(';')
+          type = type.split(";", 2).first if type.index(";")
           type
         end
       end

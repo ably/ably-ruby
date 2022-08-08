@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'ably/models/message_encoders/base'
+require "ably/models/message_encoders/base"
 
 module Ably
   # Models module provides the methods and classes for the Ably library
@@ -61,9 +61,9 @@ module Ably
       # @option options     [Logger]          :logger            An optional Logger to be used by {Ably::Modules::SafeDeferrable} if an exception is caught in a callback
       #
       def initialize(attributes, options = {})
-        @logger           = options[:logger] # Logger expected for SafeDeferrable
+        @logger = options[:logger] # Logger expected for SafeDeferrable
         @protocol_message = options[:protocol_message]
-        @raw_hash_object  = attributes
+        @raw_hash_object = attributes
 
         set_attributes_object attributes
 
@@ -139,7 +139,7 @@ module Ably
       # @return [Ably::Models::ProtocolMessage]
       # @api private
       def protocol_message
-        raise 'Message is not yet published with a ProtocolMessage. ProtocolMessage is nil' if @protocol_message.nil?
+        raise "Message is not yet published with a ProtocolMessage. ProtocolMessage is nil" if @protocol_message.nil?
 
         @protocol_message
       end

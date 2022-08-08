@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'ably/realtime/push/admin'
+require "ably/realtime/push/admin"
 
 module Ably
   module Realtime
@@ -36,7 +36,7 @@ module Ably
       private
 
       def raise_unsupported
-        raise Ably::Exceptions::PushNotificationsNotSupported, 'This device does not support receiving or subscribing to push notifications. All PushChannel methods are unavailable'
+        raise Ably::Exceptions::PushNotificationsNotSupported, "This device does not support receiving or subscribing to push notifications. All PushChannel methods are unavailable"
       end
     end
   end

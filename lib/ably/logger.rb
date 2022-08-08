@@ -14,10 +14,10 @@ module Ably
     #                      however it must provide a {http://www.ruby-doc.org/stdlib-3.1.1/libdoc/logger/rdoc/Logger.html Ruby Logger} compatible interface.
     #
     def initialize(client, log_level, custom_logger = nil)
-      @client        = client
+      @client = client
       @custom_logger = custom_logger
-      @logger        = custom_logger || default_logger
-      @log_level     = log_level
+      @logger = custom_logger || default_logger
+      @log_level = log_level
 
       ensure_logger_interface_is_valid
 
@@ -44,7 +44,7 @@ module Ably
         log_mutex.synchronize do
           logger.public_send(method_name, *args, &block)
         end
-      rescue StandardError => e
+      rescue => e
         logger.error "Logger: Failed to log #{method_name} block - #{e.class}: #{e.message}\n#{e.backtrace.join("\n")}"
       end
     end
@@ -75,7 +75,7 @@ module Ably
       if client.connection.id
         "[#{cyan(client.connection.id)}] "
       else
-        "[ #{cyan('--')} ] "
+        "[ #{cyan("--")} ] "
       end
     end
 
@@ -89,16 +89,16 @@ module Ably
           severity = ::Logger::SEV_LABEL.index(severity) if severity.is_a?(String)
 
           formatted_date = if severity == ::Logger::DEBUG
-                             datetime.strftime('%H:%M:%S.%L')
-                           else
-                             datetime.strftime('%Y-%m-%d %H:%M:%S.%L')
-                           end
+            datetime.strftime("%H:%M:%S.%L")
+          else
+            datetime.strftime("%Y-%m-%d %H:%M:%S.%L")
+          end
 
           severity_label = if severity <= ::Logger::INFO
-                             magenta(::Logger::SEV_LABEL[severity])
-                           else
-                             red(::Logger::SEV_LABEL[severity])
-                           end
+            magenta(::Logger::SEV_LABEL[severity])
+          else
+            red(::Logger::SEV_LABEL[severity])
+          end
 
           "#{formatted_date} #{severity_label} #{connection_id}#{msg}\n"
         end

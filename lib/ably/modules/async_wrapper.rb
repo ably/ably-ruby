@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'eventmachine'
+require "eventmachine"
 
 module Ably
   module Modules
@@ -42,14 +42,14 @@ module Ably
       # @return [Ably::Util::SafeDeferrable]
       #
       def async_wrap(success_callback = nil, custom_error_handling = nil)
-        raise ArgumentError, 'Block required' unless block_given?
+        raise ArgumentError, "Block required" unless block_given?
 
         Ably::Util::SafeDeferrable.new(logger).tap do |deferrable|
           deferrable.callback(&success_callback) if success_callback
 
           operation_with_exception_handling = lambda do
             yield
-          rescue StandardError => e
+          rescue => e
             if custom_error_handling
               custom_error_handling.call e, deferrable
             else

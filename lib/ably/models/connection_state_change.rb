@@ -18,7 +18,7 @@ module Ably
       include ::Ably::Modules::ModelCommon
 
       def initialize(hash_object)
-        raise ArgumentError, 'Invalid attributes, expecting :current, :previous, :event, :retry_in, :reason' unless (hash_object.keys - %I[current previous event retry_in reason protocol_message]).empty?
+        raise ArgumentError, "Invalid attributes, expecting :current, :previous, :event, :retry_in, :reason" unless (hash_object.keys - %I[current previous event retry_in reason protocol_message]).empty?
 
         @hash_object = {
           current: hash_object.fetch(:current),

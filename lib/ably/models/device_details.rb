@@ -48,7 +48,7 @@ module Ably
       def initialize(hash_object = {})
         super
         @raw_hash_object = hash_object || {}
-        @hash_object     = IdiomaticRubyWrapper(hash_object)
+        @hash_object = IdiomaticRubyWrapper(hash_object)
       end
 
       %w[id platform form_factor client_id device_secret].each do |attribute|
@@ -68,7 +68,7 @@ module Ably
       end
 
       def metadata=(val)
-        raise ArgumentError, 'metadata must be nil or a Hash value' unless val.nil? || val.is_a?(Hash)
+        raise ArgumentError, "metadata must be nil or a Hash value" unless val.nil? || val.is_a?(Hash)
 
         attributes[:metadata] = val
       end
@@ -78,7 +78,7 @@ module Ably
       end
 
       def push=(val)
-        raise ArgumentError, 'push must be nil, a Hash value or a DevicePushDetails object' unless val.nil? || val.is_a?(Hash) || val.is_a?(Ably::Models::DevicePushDetails)
+        raise ArgumentError, "push must be nil, a Hash value or a DevicePushDetails object" unless val.nil? || val.is_a?(Hash) || val.is_a?(Ably::Models::DevicePushDetails)
 
         attributes[:push] = DevicePushDetails(val)
       end

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'uri'
-require 'ably/realtime/channel/publisher'
+require "uri"
+require "ably/realtime/channel/publisher"
 
 module Ably
   module Realtime
@@ -29,7 +29,7 @@ module Ably
 
       extend Forwardable
 
-      DOMAIN = 'realtime.ably.io'
+      DOMAIN = "realtime.ably.io"
 
       # The collection of {Ably::Realtime::Channel}s that have been created
       # @return [Aby::Realtime::Channels]
@@ -106,15 +106,15 @@ module Ably
       #    client = Ably::Realtime::Client.new(key: 'key.id:secret', client_id: 'john')
       #
       def initialize(options)
-        raise ArgumentError, 'Options Hash is expected' if options.nil?
+        raise ArgumentError, "Options Hash is expected" if options.nil?
 
         options = options.clone
         if options.is_a?(String)
           options = if options.match(Ably::Auth::API_KEY_REGEX)
-                      { key: options }
-                    else
-                      { token: options }
-                    end
+            {key: options}
+          else
+            {token: options}
+          end
         end
 
         @transport_params = options.delete(:transport_params).to_h.each_with_object({}) do |(key, value), acc|
@@ -246,12 +246,12 @@ module Ably
         end
 
         messages = if name.is_a?(Enumerable)
-                     name
-                   else
-                     name = ensure_utf_8(:name, name, allow_nil: true)
-                     ensure_supported_payload data
-                     [{ name: name, data: data }.merge(attributes)]
-                   end
+          name
+        else
+          name = ensure_utf_8(:name, name, allow_nil: true)
+          ensure_supported_payload data
+          [{name: name, data: data}.merge(attributes)]
+        end
 
         if messages.length > Realtime::Connection::MAX_PROTOCOL_MESSAGE_BATCH_SIZE
           error = Ably::Exceptions::InvalidRequest.new("It is not possible to publish more than #{Realtime::Connection::MAX_PROTOCOL_MESSAGE_BATCH_SIZE} messages with a single publish request.")
@@ -259,14 +259,14 @@ module Ably
         end
 
         enqueue_messages_on_connection(self, messages, channel_name).tap do |deferrable|
-          deferrable.callback(&success_block) if block_given?
+          deferrable.callback(&success_block) if success_block
         end
       end
 
       # @!attribute [r] endpoint
       # @return [URI::Generic] Default Ably Realtime endpoint used for all requests
       def endpoint
-        endpoint_for_host(custom_realtime_host || [environment, DOMAIN].compact.join('-'))
+        endpoint_for_host(custom_realtime_host || [environment, DOMAIN].compact.join("-"))
       end
 
       # (see Ably::Rest::Client#register_encoder)
@@ -310,20 +310,20 @@ module Ably
       #
       # @note This is unsupported in the Ruby library
       def device
-        raise Ably::Exceptions::PushNotificationsNotSupported, 'This device does not support receiving or subscribing to push notifications. The local device object is not unavailable'
+        raise Ably::Exceptions::PushNotificationsNotSupported, "This device does not support receiving or subscribing to push notifications. The local device object is not unavailable"
       end
 
       private
 
       def endpoint_for_host(host)
         port = use_tls? ? custom_tls_port : custom_port
-        raise ArgumentError, 'Custom port must be an Integer or nil' if port && !port.is_a?(Integer)
+        raise ArgumentError, "Custom port must be an Integer or nil" if port && !port.is_a?(Integer)
 
         options = {
-          scheme: use_tls? ? 'wss' : 'ws',
+          scheme: use_tls? ? "wss" : "ws",
           host: host
         }
-        options.merge!(port: port) if port
+        options[:port] = port if port
 
         URI::Generic.build(options)
       end

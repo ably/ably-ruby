@@ -42,13 +42,13 @@ module Ably
         super
 
         @raw_hash_object = hash_object || {}
-        @hash_object     = IdiomaticRubyWrapper(hash_object)
+        @hash_object = IdiomaticRubyWrapper(hash_object)
 
-        raise ArgumentError, 'Either client_id or device_id must be provided' if !attributes[:client_id] && !attributes[:device_id]
-        raise ArgumentError, 'client_id and device_id cannot both be provided, they are mutually exclusive' if attributes[:client_id] && attributes[:device_id]
+        raise ArgumentError, "Either client_id or device_id must be provided" if !attributes[:client_id] && !attributes[:device_id]
+        raise ArgumentError, "client_id and device_id cannot both be provided, they are mutually exclusive" if attributes[:client_id] && attributes[:device_id]
         return if attributes[:channel]
 
-        raise ArgumentError, 'channel is required'
+        raise ArgumentError, "channel is required"
       end
 
       # Constructor for channel subscription by device ID

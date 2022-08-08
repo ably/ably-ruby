@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'base64'
-require 'ably/util/crypto'
+require "base64"
+require "ably/util/crypto"
 
 module Ably
   # Models module provides the methods and classes for the Ably library
@@ -36,21 +36,21 @@ module Ably
       def initialize(params = {})
         @attributes = IdiomaticRubyWrapper(params.clone)
 
-        raise Ably::Exceptions::CipherError, ':key param is required' unless attributes[:key]
-        raise Ably::Exceptions::CipherError, ':key param must be a base64-encoded string or byte array (ASCII_8BIT enocdede string)' unless key.is_a?(String)
+        raise Ably::Exceptions::CipherError, ":key param is required" unless attributes[:key]
+        raise Ably::Exceptions::CipherError, ":key param must be a base64-encoded string or byte array (ASCII_8BIT enocdede string)" unless key.is_a?(String)
 
         attributes[:key] = decode_key(key) if key.is_a?(String) && key.encoding != Encoding::ASCII_8BIT
 
         if attributes[:combined]
           match = /(?<algorithm>\w+)-(?<key_length>\d+)-(?<mode>\w+)/.match(attributes[:combined])
-          raise Ably::Exceptions::CipherError, 'Invalid :combined param, expecting format such as AES-256-CBC' unless match
+          raise Ably::Exceptions::CipherError, "Invalid :combined param, expecting format such as AES-256-CBC" unless match
 
           attributes[:algorithm] = match[:algorithm]
           attributes[:key_length] = match[:key_length].to_i
           attributes[:mode] = match[:mode]
         end
         raise Ably::Exceptions::CipherError, "Incompatible :key length of #{key_length} and provided :key_length of #{attributes[:key_length]}" if attributes[:key_length] && (key_length != attributes[:key_length])
-        raise Ably::Exceptions::CipherError, "Unsupported key length #{key_length} for aes-cbc encryption. Encryption key must be 128 or 256 bits (16 or 32 ASCII characters)" if algorithm == 'aes' && mode == 'cbc' && ![128, 256].include?(key_length)
+        raise Ably::Exceptions::CipherError, "Unsupported key length #{key_length} for aes-cbc encryption. Encryption key must be 128 or 256 bits (16 or 32 ASCII characters)" if algorithm == "aes" && mode == "cbc" && ![128, 256].include?(key_length)
 
         attributes.freeze
       end
@@ -80,7 +80,7 @@ module Ably
       # @!attribute [r] key_length
       # @return [Integer] The length in bits of the +key+
       def key_length
-        key.unpack1('b*').length
+        key.unpack1("b*").length
       end
 
       # @!attribute [r] mode
@@ -104,7 +104,7 @@ module Ably
       private
 
       def decode_key(encoded_key)
-        normalised_key = encoded_key.gsub('_', '/').gsub('-', '+')
+        normalised_key = encoded_key.tr("_", "/").tr("-", "+")
         Base64.decode64(normalised_key)
       end
     end

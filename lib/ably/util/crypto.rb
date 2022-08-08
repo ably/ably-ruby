@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'msgpack'
-require 'openssl'
+require "msgpack"
+require "openssl"
 
 module Ably
   module Util
@@ -9,8 +9,8 @@ module Ably
     #
     class Crypto
       DEFAULTS = {
-        algorithm: 'aes',
-        mode: 'cbc',
+        algorithm: "aes",
+        mode: "cbc",
         key_length: 256
       }.freeze
 
@@ -95,7 +95,7 @@ module Ably
       # @return [String]
       #
       def decrypt(encrypted_payload_with_iv)
-        raise Ably::Exceptions::CipherError, 'iv is missing or not long enough' unless encrypted_payload_with_iv.length >= BLOCK_LENGTH * 2
+        raise Ably::Exceptions::CipherError, "iv is missing or not long enough" unless encrypted_payload_with_iv.length >= BLOCK_LENGTH * 2
 
         iv = encrypted_payload_with_iv.slice(0...BLOCK_LENGTH)
         encrypted_payload = encrypted_payload_with_iv.slice(BLOCK_LENGTH..-1)

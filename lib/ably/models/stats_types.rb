@@ -20,7 +20,7 @@ module Ably
         class << self
           def coerce_attributes(*attributes)
             options = attributes.pop
-            raise ArgumentError, 'Expected attribute into: within options hash' unless options.is_a?(Hash) && options[:into]
+            raise ArgumentError, "Expected attribute into: within options hash" unless options.is_a?(Hash) && options[:into]
 
             @type_klass = options[:into]
             setup_attribute_methods attributes

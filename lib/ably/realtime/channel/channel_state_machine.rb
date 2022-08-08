@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'ably/modules/state_machine'
+require "ably/modules/state_machine"
 
 module Ably
   module Realtime
@@ -23,13 +23,13 @@ module Ably
           state state_enum.to_sym, initial: index.zero?
         end
 
-        transition from: :initialized,  to: %I[attaching failed]
-        transition from: :attaching,    to: %I[attached detaching failed suspended]
-        transition from: :attached,     to: %I[attaching detaching detached failed suspended]
-        transition from: :detaching,    to: %I[detached attaching attached failed suspended]
-        transition from: :detached,     to: %I[attaching attached failed]
-        transition from: :suspended,    to: %I[attaching attached detached failed]
-        transition from: :failed,       to: %I[attaching initialized]
+        transition from: :initialized, to: %I[attaching failed]
+        transition from: :attaching, to: %I[attached detaching failed suspended]
+        transition from: :attached, to: %I[attaching detaching detached failed suspended]
+        transition from: :detaching, to: %I[detached attaching attached failed suspended]
+        transition from: :detached, to: %I[attaching attached failed]
+        transition from: :suspended, to: %I[attaching attached detached failed]
+        transition from: :failed, to: %I[attaching initialized]
 
         after_transition do |channel, _|
           channel.synchronize_state_with_statemachine

@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
+require "spec_helper"
 
-describe Ably::Realtime::Connection, 'failures', :event_machine do
+describe Ably::Realtime::Connection, "failures", :event_machine do
   let(:connection) { client.connection }
 
   vary_by_protocol do
     let(:default_options) do
-      { key: api_key, environment: environment, protocol: protocol }
+      {key: api_key, environment: environment, protocol: protocol}
     end
 
     let(:client_options) { default_options }
@@ -18,16 +18,16 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
       Ably::Rest::Client.new(default_options)
     end
 
-    context 'authentication failure' do
+    context "authentication failure" do
       let(:client_options) do
         default_options.merge(key: invalid_key, log_level: :none)
       end
 
-      context 'when API key is invalid' do
-        context 'with invalid app part of the key' do
-          let(:invalid_key) { 'not_an_app.invalid_key_name:invalid_key_value' }
+      context "when API key is invalid" do
+        context "with invalid app part of the key" do
+          let(:invalid_key) { "not_an_app.invalid_key_name:invalid_key_value" }
 
-          it 'enters the failed state and returns a not found error' do
+          it "enters the failed state and returns a not found error" do
             connection.on(:failed) do |connection_state_change|
               error = connection_state_change.reason
               expect(connection.state).to eq(:failed)
@@ -39,10 +39,10 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
 
-        context 'with invalid key name part of the key' do
+        context "with invalid key name part of the key" do
           let(:invalid_key) { "#{app_id}.invalid_key_name:invalid_key_value" }
 
-          it 'enters the failed state and returns an authorization error' do
+          it "enters the failed state and returns an authorization error" do
             connection.on(:failed) do |connection_state_change|
               error = connection_state_change.reason
               expect(connection.state).to eq(:failed)
@@ -55,15 +55,15 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         end
       end
 
-      context 'with auth_url' do
-        context 'opening a new connection' do
-          context 'request fails due to network failure' do
+      context "with auth_url" do
+        context "opening a new connection" do
+          context "request fails due to network failure" do
             let(:client_options) { default_options.reject { |k, _v| k == :key }.merge(auth_url: "http://#{random_str}.domain.will.never.resolve.to/path", log_level: :fatal) }
 
-            specify 'the connection moves to the disconnected state and tries again, returning again to the disconnected state (#RSA4c, #RSA4c1, #RSA4c2)' do
+            specify "the connection moves to the disconnected state and tries again, returning again to the disconnected state (#RSA4c, #RSA4c1, #RSA4c2)" do
               states = Hash.new { |hash, key| hash[key] = [] }
 
-              connection.once(:connected) { raise 'Connection can never move to connected because of auth failures' }
+              connection.once(:connected) { raise "Connection can never move to connected because of auth failures" }
 
               connection.on do |connection_state|
                 states[connection_state.current.to_sym] << Time.now
@@ -81,19 +81,19 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          context 'request fails due to invalid content', :webmock do
+          context "request fails due to invalid content", :webmock do
             let(:auth_endpoint) { "http://#{random_str}.domain.will.never.resolve.to/authenticate" }
             let(:client_options) { default_options.reject { |k, _v| k == :key }.merge(auth_url: auth_endpoint, log_level: :fatal) }
 
             before do
               stub_request(:get, auth_endpoint)
-                .to_return(status: 200, body: '', headers: { 'Content-type' => 'text/html' })
+                .to_return(status: 200, body: "", headers: {"Content-type" => "text/html"})
             end
 
-            specify 'the connection moves to the disconnected state and tries again, returning again to the disconnected state (#RSA4c, #RSA4c1, #RSA4c2)' do
+            specify "the connection moves to the disconnected state and tries again, returning again to the disconnected state (#RSA4c, #RSA4c1, #RSA4c2)" do
               states = Hash.new { |hash, key| hash[key] = [] }
 
-              connection.once(:connected) { raise 'Connection can never move to connected because of auth failures' }
+              connection.once(:connected) { raise "Connection can never move to connected because of auth failures" }
 
               connection.on do |connection_state|
                 states[connection_state.current.to_sym] << Time.now
@@ -112,7 +112,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          context 'request fails due to slow response and subsequent timeout', :webmock, em_timeout: (Ably::Rest::Client::HTTP_DEFAULTS.fetch(:request_timeout) + 5) * 2 do
+          context "request fails due to slow response and subsequent timeout", :webmock, em_timeout: (Ably::Rest::Client::HTTP_DEFAULTS.fetch(:request_timeout) + 5) * 2 do
             let(:auth_url) { "http://#{random_str}.domain.will.be.stubbed/path" }
             let(:client_options) { default_options.reject { |k, _v| k == :key }.merge(auth_url: auth_url, log_level: :fatal) }
 
@@ -121,14 +121,14 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               stub_request(:get, auth_url)
                 .to_return do |_request|
                   sleep Ably::Rest::Client::HTTP_DEFAULTS.fetch(:request_timeout) + 5
-                  { status: [500, 'Internal Server Error'] }
+                  {status: [500, "Internal Server Error"]}
                 end
             end
 
-            specify 'the connection moves to the disconnected state and tries again, returning again to the disconnected state (#RSA4c, #RSA4c1, #RSA4c2)' do
+            specify "the connection moves to the disconnected state and tries again, returning again to the disconnected state (#RSA4c, #RSA4c1, #RSA4c2)" do
               states = Hash.new { |hash, key| hash[key] = [] }
 
-              connection.once(:connected) { raise 'Connection can never move to connected because of auth failures' }
+              connection.once(:connected) { raise "Connection can never move to connected because of auth failures" }
 
               connection.on do |connection_state|
                 states[connection_state.current.to_sym] << Time.now
@@ -146,7 +146,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          context 'request fails once due to slow response but succeeds the second time' do
+          context "request fails once due to slow response but succeeds the second time" do
             let(:auth_url) { "http://#{random_str}.domain.will.be.stubbed/path" }
             let(:client_options) { default_options.reject { |k, _v| k == :key }.merge(auth_url: auth_url, log_level: :fatal) }
 
@@ -158,22 +158,22 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               stub_request(:get, auth_url)
                 .to_return do |_request|
                 sleep Ably::Rest::Client::HTTP_DEFAULTS.fetch(:request_timeout)
-                { status: [500, 'Internal Server Error'] }
+                {status: [500, "Internal Server Error"]}
               end.then
-                .to_return(status: 201, body: token_response.to_json, headers: { 'Content-Type' => 'application/json' })
+                .to_return(status: 201, body: token_response.to_json, headers: {"Content-Type" => "application/json"})
 
-              stub_request(:get, 'https://internet-up.ably-realtime.com/is-the-internet-up.txt')
+              stub_request(:get, "https://internet-up.ably-realtime.com/is-the-internet-up.txt")
                 .with(
                   headers: {
-                    'Accept-Encoding' => 'gzip, compressed',
-                    'Connection' => 'close',
-                    'Host' => 'internet-up.ably-realtime.com',
-                    'User-Agent' => 'EventMachine HttpClient'
+                    "Accept-Encoding" => "gzip, compressed",
+                    "Connection" => "close",
+                    "Host" => "internet-up.ably-realtime.com",
+                    "User-Agent" => "EventMachine HttpClient"
                   }
-                ).to_return(status: 200, body: 'yes\n', headers: { 'Content-Type' => 'text/plain' })
+                ).to_return(status: 200, body: 'yes\n', headers: {"Content-Type" => "text/plain"})
             end
 
-            specify 'the connection moves to the disconnected state and tries again, returning again to the disconnected state (#RSA4c, #RSA4c1, #RSA4c2)' do
+            specify "the connection moves to the disconnected state and tries again, returning again to the disconnected state (#RSA4c, #RSA4c1, #RSA4c2)" do
               states = Hash.new { |hash, key| hash[key] = [] }
 
               connection.once(:connected) do
@@ -189,17 +189,17 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
 
-        context 'existing CONNECTED connection' do
-          context 'authorize request failure leaves connection in existing condition' do
-            let(:auth_options) { { auth_url: "http://#{random_str}.domain.will.never.resolve.to/path" } }
+        context "existing CONNECTED connection" do
+          context "authorize request failure leaves connection in existing condition" do
+            let(:auth_options) { {auth_url: "http://#{random_str}.domain.will.never.resolve.to/path"} }
             let(:client_options) { default_options.merge(use_token_auth: true, log_level: :fatal) }
 
-            specify 'the connection remains in the CONNECTED state and authorize fails (#RSA4c, #RSA4c1, #RSA4c3)' do
+            specify "the connection remains in the CONNECTED state and authorize fails (#RSA4c, #RSA4c1, #RSA4c3)" do
               connection.once(:connected) do
-                connection.on { raise 'State should not change and should stay connected' }
+                connection.on { raise "State should not change and should stay connected" }
 
                 client.auth.authorize(nil, auth_options).tap do |deferrable|
-                  deferrable.callback { raise 'Authorize should not succeed' }
+                  deferrable.callback { raise "Authorize should not succeed" }
                   deferrable.errback do |err|
                     expect(err).to be_a(Ably::Exceptions::ConnectionError)
                     expect(err.message).to match(/auth_url/)
@@ -217,15 +217,15 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         end
       end
 
-      context 'with auth_callback' do
-        context 'opening a new connection' do
-          context 'when callback fails due to an exception' do
-            let(:client_options) { default_options.reject { |k, _v| k == :key }.merge(auth_callback: ->(_token_params) { raise 'Cannot issue token' }, log_level: :fatal) }
+      context "with auth_callback" do
+        context "opening a new connection" do
+          context "when callback fails due to an exception" do
+            let(:client_options) { default_options.reject { |k, _v| k == :key }.merge(auth_callback: ->(_token_params) { raise "Cannot issue token" }, log_level: :fatal) }
 
-            it 'the connection moves to the disconnected state and tries again, returning again to the disconnected state (#RSA4c, #RSA4c1, #RSA4c2)' do
+            it "the connection moves to the disconnected state and tries again, returning again to the disconnected state (#RSA4c, #RSA4c1, #RSA4c2)" do
               states = Hash.new { |hash, key| hash[key] = [] }
 
-              connection.once(:connected) { raise 'Connection can never move to connected because of auth failures' }
+              connection.once(:connected) { raise "Connection can never move to connected because of auth failures" }
 
               connection.on do |connection_state|
                 states[connection_state.current.to_sym] << Time.now
@@ -243,8 +243,8 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          context 'existing CONNECTED connection' do
-            context 'when callback fails due to the request taking longer than realtime_request_timeout' do
+          context "existing CONNECTED connection" do
+            context "when callback fails due to the request taking longer than realtime_request_timeout" do
               let(:request_timeout) { 3 }
               let(:client_options) do
                 default_options.merge(
@@ -253,14 +253,14 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                   log_level: :fatal
                 )
               end
-              let(:auth_options) { { auth_callback: ->(_token_params) { sleep 10 } } }
+              let(:auth_options) { {auth_callback: ->(_token_params) { sleep 10 }} }
 
-              it 'the authorization request fails as configured in the realtime_request_timeout (#RSA4c, #RSA4c1, #RSA4c3)' do
+              it "the authorization request fails as configured in the realtime_request_timeout (#RSA4c, #RSA4c1, #RSA4c3)" do
                 connection.once(:connected) do
-                  connection.on { raise 'State should not change and should stay connected' }
+                  connection.on { raise "State should not change and should stay connected" }
 
                   client.auth.authorize(nil, auth_options).tap do |deferrable|
-                    deferrable.callback { raise 'Authorize should not succeed' }
+                    deferrable.callback { raise "Authorize should not succeed" }
                     deferrable.errback do |err|
                       expect(err).to be_a(Ably::Exceptions::ConnectionError)
                       expect(err.message).to match(/auth_callback/)
@@ -280,9 +280,9 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
       end
     end
 
-    context 'automatic connection retry' do
-      context 'with invalid WebSocket host' do
-        let(:retry_every_for_tests)       { 0.2 }
+    context "automatic connection retry" do
+      context "with invalid WebSocket host" do
+        let(:retry_every_for_tests) { 0.2 }
         let(:max_time_in_state_for_tests) { 0.6 }
 
         let(:client_failure_options) do
@@ -296,11 +296,11 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
         # retry immediately after failure, then one retry every :retry_every_for_tests
         let(:expected_retry_attempts) { 1 + (max_time_in_state_for_tests / retry_every_for_tests).round }
-        let(:state_changes)           { Hash.new { |hash, key| hash[key] = 0 } }
-        let(:timer)                   { {} }
+        let(:state_changes) { Hash.new { |hash, key| hash[key] = 0 } }
+        let(:timer) { {} }
 
         let(:client_options) do
-          client_failure_options.merge(realtime_host: 'non.existent.host')
+          client_failure_options.merge(realtime_host: "non.existent.host")
         end
 
         def count_state_changes
@@ -319,16 +319,16 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           Time.now.to_f - timer[:start].to_f
         end
 
-        context 'when disconnected' do
-          it 'enters the suspended state after multiple attempts to connect' do
-            connection.on(:failed) { raise 'Connection should not have reached :failed state yet' }
+        context "when disconnected" do
+          it "enters the suspended state after multiple attempts to connect" do
+            connection.on(:failed) { raise "Connection should not have reached :failed state yet" }
 
             count_state_changes && start_timer
 
             connection.once(:suspended) do
               expect(connection.state).to eq(:suspended)
 
-              expect(state_changes[:connecting]).to   eql(expected_retry_attempts + 1) # allow for initial connecting attempt
+              expect(state_changes[:connecting]).to eql(expected_retry_attempts + 1) # allow for initial connecting attempt
               expect(state_changes[:disconnected]).to eql(expected_retry_attempts)
 
               expect(time_passed).to be > max_time_in_state_for_tests
@@ -336,12 +336,12 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          context 'for the first time' do
+          context "for the first time" do
             let(:client_options) do
-              default_options.merge(realtime_host: 'non.existent.host', disconnected_retry_timeout: 2, log_level: :error)
+              default_options.merge(realtime_host: "non.existent.host", disconnected_retry_timeout: 2, log_level: :error)
             end
 
-            it 'reattempts connection immediately and then waits disconnected_retry_timeout for a subsequent attempt' do
+            it "reattempts connection immediately and then waits disconnected_retry_timeout for a subsequent attempt" do
               expect(connection.defaults[:disconnected_retry_timeout]).to eql(2)
               connection.once(:disconnected) do
                 started_at = Time.now.to_f
@@ -357,10 +357,10 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          describe '#close' do
-            it 'transitions connection state to :closed' do
-              connection.on(:connected) { raise 'Connection should not have reached :connected state' }
-              connection.on(:failed)    { raise 'Connection should not have reached :failed state yet' }
+          describe "#close" do
+            it "transitions connection state to :closed" do
+              connection.on(:connected) { raise "Connection should not have reached :connected state" }
+              connection.on(:failed) { raise "Connection should not have reached :failed state yet" }
 
               connection.once(:disconnected) do
                 expect(connection.state).to eq(:disconnected)
@@ -376,9 +376,9 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
 
-        context 'when connection state is :suspended' do
-          it 'stays in the suspended state after any number of reconnection attempts' do
-            connection.on(:connected) { raise 'Connection should not have reached :connected state' }
+        context "when connection state is :suspended" do
+          it "stays in the suspended state after any number of reconnection attempts" do
+            connection.on(:connected) { raise "Connection should not have reached :connected state" }
 
             connection.once(:suspended) do
               count_state_changes && start_timer
@@ -386,8 +386,8 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               EventMachine.add_timer((retry_every_for_tests + 0.1) * 10) do
                 expect(connection.state).to eq(:suspended)
 
-                expect(state_changes[:connecting]).to   be >= 10
-                expect(state_changes[:suspended]).to    be >= 10
+                expect(state_changes[:connecting]).to be >= 10
+                expect(state_changes[:suspended]).to be >= 10
                 expect(state_changes[:disconnected]).to eql(0)
 
                 stop_reactor
@@ -395,16 +395,16 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          context 'for the first time' do
+          context "for the first time" do
             let(:client_options) do
               default_options.merge(suspended_retry_timeout: 2, max_connection_state_ttl: 0, log_level: :error)
             end
 
-            it 'waits suspended_retry_timeout before attempting to reconnect' do
+            it "waits suspended_retry_timeout before attempting to reconnect" do
               expect(client.connection.defaults[:suspended_retry_timeout]).to eql(2)
               connection.once(:connected) do
                 connection.transition_state_machine :suspended
-                allow(connection).to receive(:current_host).and_return('does.not.exist.com')
+                allow(connection).to receive(:current_host).and_return("does.not.exist.com")
 
                 started_at = Time.now.to_f
                 connection.once(:connecting) do
@@ -421,9 +421,9 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          describe '#close' do
-            it 'transitions connection state to :closed' do
-              connection.on(:connected) { raise 'Connection should not have reached :connected state' }
+          describe "#close" do
+            it "transitions connection state to :closed" do
+              connection.on(:connected) { raise "Connection should not have reached :connected state" }
 
               connection.once(:suspended) do
                 expect(connection.state).to eq(:suspended)
@@ -439,10 +439,10 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
 
-        context 'when connection state is :failed' do
-          describe '#close' do
-            it 'will not transition state to :close and fails with an InvalidStateChange exception' do
-              connection.on(:connected) { raise 'Connection should not have reached :connected state' }
+        context "when connection state is :failed" do
+          describe "#close" do
+            it "will not transition state to :close and fails with an InvalidStateChange exception" do
+              connection.on(:connected) { raise "Connection should not have reached :connected state" }
 
               connection.once(:suspended) do
                 connection.transition_state_machine :failed
@@ -460,7 +460,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
 
-        context '#error_reason' do
+        context "#error_reason" do
           %i[disconnected suspended failed].each do |state|
             it "contains the error when state is #{state}" do
               connection.on(state) do |connection_state_change|
@@ -476,7 +476,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          it 'is reset to nil when :connected' do
+          it "is reset to nil when :connected" do
             connection.once(:disconnected) do |_error|
               # stub the host so that the connection connects
               allow(connection).to receive(:determine_host).and_yield(TestApp.instance.realtime_host)
@@ -487,7 +487,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          it 'is reset to nil when :closed' do
+          it "is reset to nil when :closed" do
             connection.once(:disconnected) do |_error|
               connection.close do
                 expect(connection.error_reason).to be_nil
@@ -498,7 +498,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         end
       end
 
-      describe '#connect' do
+      describe "#connect" do
         let(:timeout) { 1.5 }
 
         let(:client_options) do
@@ -509,7 +509,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         end
 
         before do
-          connection.on(:connected) { raise 'Connection should not open in this test as CONNECTED ProtocolMessage is never received' }
+          connection.on(:connected) { raise "Connection should not open in this test as CONNECTED ProtocolMessage is never received" }
 
           connection.once(:connecting) do
             # don't process any incoming ProtocolMessages so the connection never opens
@@ -517,8 +517,8 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
 
-        context 'connection opening times out' do
-          it 'attempts to reconnect' do
+        context "connection opening times out" do
+          it "attempts to reconnect" do
             started_at = Time.now
 
             connection.once(:disconnected) do
@@ -531,20 +531,20 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             connection.connect
           end
 
-          context 'when retry intervals are stubbed to attempt reconnection quickly' do
+          context "when retry intervals are stubbed to attempt reconnection quickly" do
             let(:client_options) do
               default_options.merge(
                 log_level: :error,
                 disconnected_retry_timeout: 0.1,
                 suspended_retry_timeout: 0.1,
                 max_connection_state_ttl: 0.2,
-                realtime_host: 'non.existent.host'
+                realtime_host: "non.existent.host"
               )
             end
 
-            it 'never calls the provided success block', em_timeout: 10 do
+            it "never calls the provided success block", em_timeout: 10 do
               connection.connect do
-                raise 'success block should not have been called'
+                raise "success block should not have been called"
               end
 
               connection.once(:suspended) do
@@ -558,7 +558,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
       end
     end
 
-    context 'connection resume' do
+    context "connection resume" do
       let(:channel_name) { random_str }
       let(:channel) { client.channel(channel_name) }
       let(:publishing_client) do
@@ -568,12 +568,12 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
       let(:client_options) { default_options.merge(log_level: :none) }
 
       def fail_if_suspended_or_failed
-        connection.on(:suspended) { raise 'Connection should not have reached :suspended state' }
-        connection.on(:failed)    { raise 'Connection should not have reached :failed state' }
+        connection.on(:suspended) { raise "Connection should not have reached :suspended state" }
+        connection.on(:failed) { raise "Connection should not have reached :failed state" }
       end
 
-      context 'when DISCONNECTED ProtocolMessage received from the server' do
-        it 'reconnects automatically and immediately (#RTN15a)' do
+      context "when DISCONNECTED ProtocolMessage received from the server" do
+        it "reconnects automatically and immediately (#RTN15a)" do
           fail_if_suspended_or_failed
 
           connection.once(:connected) do
@@ -593,22 +593,22 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
 
-        context 'when protocolMessage contains token error' do
-          context 'library does not have a means to renew the token (#RTN15h1)' do
-            let(:auth_url) { 'https://echo.ably.io/createJWT' }
+        context "when protocolMessage contains token error" do
+          context "library does not have a means to renew the token (#RTN15h1)" do
+            let(:auth_url) { "https://echo.ably.io/createJWT" }
             let(:token) { Faraday.get("#{auth_url}?keyName=#{key_name}&keySecret=#{key_secret}").body }
             let(:client_options) { default_options.merge(token: token, log_level: :none) }
 
-            let(:error_message) { 'error_message' }
+            let(:error_message) { "error_message" }
 
-            it 'moves connection state to failed' do
+            it "moves connection state to failed" do
               connection.on(:failed) do |_connection_state_change|
                 expect(connection.error_reason.message).to eq(error_message)
                 stop_reactor
               end
 
               connection.on(:connected) do
-                protocol_message = Ably::Models::ProtocolMessage.new(action: Ably::Models::ProtocolMessage::ACTION.Disconnected.to_i, error: { code: 40_140, message: error_message })
+                protocol_message = Ably::Models::ProtocolMessage.new(action: Ably::Models::ProtocolMessage::ACTION.Disconnected.to_i, error: {code: 40_140, message: error_message})
                 connection.__incoming_protocol_msgbus__.publish :protocol_message, protocol_message
               end
 
@@ -616,16 +616,16 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          context 'library have a means to renew the token (#RTN15h2)' do
+          context "library have a means to renew the token (#RTN15h2)" do
             let(:client_options) { default_options.merge(log_level: :none) }
-            let(:error_message) { 'error_message' }
+            let(:error_message) { "error_message" }
 
             def send_disconnect_message
-              protocol_message = Ably::Models::ProtocolMessage.new(action: Ably::Models::ProtocolMessage::ACTION.Disconnected.to_i, error: { code: 40_140, message: error_message })
+              protocol_message = Ably::Models::ProtocolMessage.new(action: Ably::Models::ProtocolMessage::ACTION.Disconnected.to_i, error: {code: 40_140, message: error_message})
               connection.__incoming_protocol_msgbus__.publish :protocol_message, protocol_message
             end
 
-            it 'attempts to reconnect'  do
+            it "attempts to reconnect" do
               connection.on(:failed) do |_connection_state_change|
                 raise "Connection shouldn't be failed"
               end
@@ -648,8 +648,8 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
 
-        context 'connection state freshness is monitored' do
-          it 'resumes connections when disconnected within the connection_state_ttl period (#RTN15g)' do
+        context "connection state freshness is monitored" do
+          it "resumes connections when disconnected within the connection_state_ttl period (#RTN15g)" do
             connection.once(:connected) do
               connection_id = connection.id
               reconnected_with_resume = false
@@ -658,7 +658,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               allow(EventMachine).to receive(:connect).and_wrap_original do |original, *args, &block|
                 url = args[4]
                 uri = URI.parse(url)
-                expect(CGI.parse(uri.query)['resume'][0]).to_not be_empty
+                expect(CGI.parse(uri.query)["resume"][0]).to_not be_empty
                 reconnected_with_resume = true
                 original.call(*args, &block)
               end
@@ -680,7 +680,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          context 'when connection_state_ttl period has passed since being disconnected' do
+          context "when connection_state_ttl period has passed since being disconnected" do
             let(:client_options) do
               default_options.merge(
                 disconnected_retry_timeout: 4,
@@ -689,7 +689,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               )
             end
 
-            it 'clears the local connection state and uses a new connection when the connection_state_ttl period has passed (#RTN15g)' do
+            it "clears the local connection state and uses a new connection when the connection_state_ttl period has passed (#RTN15g)" do
               connection.once(:connected) do
                 connection_id = connection.id
                 resumed_with_clean_connection = false
@@ -703,7 +703,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                       allow(EventMachine).to receive(:connect).and_wrap_original do |original, *args, &block|
                         url = args[4]
                         uri = URI.parse(url)
-                        expect(CGI.parse(uri.query)['resume']).to be_empty
+                        expect(CGI.parse(uri.query)["resume"]).to be_empty
                         resumed_with_clean_connection = true
                         original.call(*args, &block)
                       end
@@ -735,14 +735,14 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          context 'when connection_state_ttl period has passed since last activity on the connection' do
+          context "when connection_state_ttl period has passed since last activity on the connection" do
             let(:client_options) do
               default_options.merge(
                 max_connection_state_ttl: 2
               )
             end
 
-            it 'does not clear the local connection state when the connection_state_ttl period has passed since last activity, but the idle timeout has not passed (#RTN15g1, #RTN15g2)' do
+            it "does not clear the local connection state when the connection_state_ttl period has passed since last activity, but the idle timeout has not passed (#RTN15g1, #RTN15g2)" do
               expect(connection.connection_state_ttl).to eql(client_options.fetch(:max_connection_state_ttl))
 
               connection.once(:connected) do
@@ -756,7 +756,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                   allow(EventMachine).to receive(:connect).and_wrap_original do |original, *args, &block|
                     url = args[4]
                     uri = URI.parse(url)
-                    expect(CGI.parse(uri.query)['resume']).to_not be_empty
+                    expect(CGI.parse(uri.query)["resume"]).to_not be_empty
                     resumed_connection = true
                     original.call(*args, &block)
                   end
@@ -774,7 +774,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               end
             end
 
-            it 'clears the local connection state and uses a new connection when the connection_state_ttl + max_idle_interval period has passed since last activity (#RTN15g1, #RTN15g2)' do
+            it "clears the local connection state and uses a new connection when the connection_state_ttl + max_idle_interval period has passed since last activity (#RTN15g1, #RTN15g2)" do
               expect(connection.connection_state_ttl).to eql(client_options.fetch(:max_connection_state_ttl))
 
               connection.once(:connected) do
@@ -789,7 +789,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                   allow(EventMachine).to receive(:connect).and_wrap_original do |original, *args, &block|
                     url = args[4]
                     uri = URI.parse(url)
-                    expect(CGI.parse(uri.query)['resume']).to be_empty
+                    expect(CGI.parse(uri.query)["resume"]).to be_empty
                     resumed_with_clean_connection = true
                     original.call(*args, &block)
                   end
@@ -807,7 +807,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               end
             end
 
-            it 'still reattaches the channels automatically following a new connection being established (#RTN15g2)' do
+            it "still reattaches the channels automatically following a new connection being established (#RTN15g2)" do
               connection.once(:connected) do
                 connection_id = connection.id
                 resumed_with_clean_connection = false
@@ -827,7 +827,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                     allow(EventMachine).to receive(:connect).and_wrap_original do |original, *args, &block|
                       url = args[4]
                       uri = URI.parse(url)
-                      expect(CGI.parse(uri.query)['resume']).to be_empty
+                      expect(CGI.parse(uri.query)["resume"]).to be_empty
                       resumed_with_clean_connection = true
                       original.call(*args, &block)
                     end
@@ -852,7 +852,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
 
-        context 'and subsequently fails to reconnect' do
+        context "and subsequently fails to reconnect" do
           let(:retry_every) { 1.5 }
 
           let(:client_options) do
@@ -906,8 +906,8 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         end
       end
 
-      context 'when websocket transport is abruptly disconnected' do
-        it 'reconnects automatically' do
+      context "when websocket transport is abruptly disconnected" do
+        it "reconnects automatically" do
           fail_if_suspended_or_failed
 
           connection.once(:connected) do
@@ -922,8 +922,8 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
 
-        context 'hosts used' do
-          it 'reconnects with the default host' do
+        context "hosts used" do
+          it "reconnects with the default host" do
             fail_if_suspended_or_failed
 
             connection.once(:connected) do
@@ -934,7 +934,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                   original_method.call(*args, &block)
                 end
                 connection.once(:connected) do
-                  host = "#{"#{environment}-" if environment && environment.to_s != 'production'}#{Ably::Realtime::Client::DOMAIN}"
+                  host = "#{"#{environment}-" if environment && environment.to_s != "production"}#{Ably::Realtime::Client::DOMAIN}"
                   expect(hosts.first).to eql(host)
                   expect(hosts.length).to eql(1)
                   stop_reactor
@@ -946,8 +946,8 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         end
       end
 
-      context 'after successfully reconnecting and resuming' do
-        it 'retains connection_id and updates the connection_key (#RTN15e, #RTN16d)' do
+      context "after successfully reconnecting and resuming" do
+        it "retains connection_id and updates the connection_key (#RTN15e, #RTN16d)" do
           connection.once(:connected) do
             previous_connection_id = connection.id
             connection.transport.close_connection_after_writing
@@ -962,14 +962,14 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
 
-        it 'includes the error received in the connection state change from Ably but leaves the channels attached' do
+        it "includes the error received in the connection state change from Ably but leaves the channels attached" do
           channel.attach do
             connection.transport.close_connection_after_writing
 
             connection.once(:connecting) do
               connection.__incoming_protocol_msgbus__.unsubscribe
               connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
-                allow(protocol_message).to receive(:error).and_return(Ably::Exceptions::Standard.new('Injected error'))
+                allow(protocol_message).to receive(:error).and_return(Ably::Exceptions::Standard.new("Injected error"))
               end
               # Create a new message dispatcher that subscribes to ProtocolMessages after the previous subscription allowing us
               # to modify the ProtocolMessage
@@ -988,9 +988,9 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
 
-        it 'retains channel subscription state' do
-          channel.subscribe('event') do |message|
-            expect(message.data).to eql('message')
+        it "retains channel subscription state" do
+          channel.subscribe("event") do |message|
+            expect(message.data).to eql("message")
             stop_reactor
           end
 
@@ -999,13 +999,13 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               connection.transport.close_connection_after_writing
 
               connection.once(:connected) do
-                publishing_client_channel.publish 'event', 'message'
+                publishing_client_channel.publish "event", "message"
               end
             end
           end
         end
 
-        it 'executes the resume callback', api_private: true do
+        it "executes the resume callback", api_private: true do
           channel.attach do
             connection.transport.close_connection_after_writing
             connection.on_resume do
@@ -1015,12 +1015,12 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
 
-        context 'when messages were published whilst the client was disconnected' do
-          it 'receives the messages published whilst offline' do
+        context "when messages were published whilst the client was disconnected" do
+          it "receives the messages published whilst offline" do
             messages_received = false
 
-            channel.subscribe('event') do |message|
-              expect(message.data).to eql('message')
+            channel.subscribe("event") do |message|
+              expect(message.data).to eql("message")
               messages_received = true
             end
 
@@ -1029,7 +1029,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                 connection.transport.unsafe_off # remove all event handlers that detect socket connection state has changed
                 connection.transport.close_connection_after_writing
 
-                publishing_client_channel.publish('event', 'message') do
+                publishing_client_channel.publish("event", "message") do
                   EventMachine.add_timer(1) do
                     expect(messages_received).to eql(false)
                     # simulate connection dropped to re-establish web socket
@@ -1049,21 +1049,21 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
 
-        it 'retains the client_msg_serial (#RTN15c2, #RTN15c3)' do
+        it "retains the client_msg_serial (#RTN15c2, #RTN15c3)" do
           last_message = nil
-          channel = client.channels.get('foo')
+          channel = client.channels.get("foo")
 
           channel.attach do
             connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
               last_message = protocol_message if protocol_message.action == :message
             end
 
-            channel.publish('first') do
+            channel.publish("first") do
               expect(last_message.message_serial).to eql(0)
-              channel.publish('second') do
+              channel.publish("second") do
                 expect(last_message.message_serial).to eql(1)
                 connection.once(:connected) do
-                  channel.publish('first on resumed connection') do
+                  channel.publish("first on resumed connection") do
                     # Message serial reset after failed resume
                     expect(last_message.message_serial).to eql(2)
                     stop_reactor
@@ -1078,18 +1078,18 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         end
       end
 
-      context 'when failing to resume' do
-        context 'because the connection_key is not or no longer valid' do
+      context "when failing to resume" do
+        context "because the connection_key is not or no longer valid" do
           let(:channel) { client.channel(random_str) }
 
           def kill_connection_transport_and_prevent_valid_resume
             connection.transport.close_connection_after_writing
-            connection.configure_new '0123456789abcdef', 'wVIsgTHAB1UvXh7z-1991d8586', -1 # force the resume connection key to be invalid
+            connection.configure_new "0123456789abcdef", "wVIsgTHAB1UvXh7z-1991d8586", -1 # force the resume connection key to be invalid
           end
 
-          it 'updates the connection_id and connection_key' do
+          it "updates the connection_id and connection_key" do
             connection.once(:connected) do
-              previous_connection_id  = connection.id
+              previous_connection_id = connection.id
               previous_connection_key = connection.key
 
               connection.once(:connected) do
@@ -1102,7 +1102,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          it 'issue a reattach for all attached channels and fail all message awaiting an ACK (#RTN15c3)' do
+          it "issue a reattach for all attached channels and fail all message awaiting an ACK (#RTN15c3)" do
             channel_count = 10
             channels = channel_count.times.map { |index| client.channel("channel-#{index}") }
             when_all(*channels.map(&:attach)) do
@@ -1112,7 +1112,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               failed_messages = []
 
               channels.each do |channel|
-                channel.publish('foo').errback do
+                channel.publish("foo").errback do
                   failed_messages << channel
                 end
                 channel.on(:attaching) do |channel_state_change|
@@ -1139,7 +1139,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          it 'issue a reattach for all attaching channels and fail all queued messages (#RTN15c3)' do
+          it "issue a reattach for all attaching channels and fail all queued messages (#RTN15c3)" do
             channel_count = 10
             channels = channel_count.times.map { |index| client.channel("channel-#{index}") }
 
@@ -1150,7 +1150,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             failed_messages = []
 
             channels.each do |channel|
-              channel.publish('foo').errback do
+              channel.publish("foo").errback do
                 failed_messages << channel
               end
 
@@ -1174,7 +1174,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          it 'issue a attach for all suspended channels (#RTN15c3)' do
+          it "issue a attach for all suspended channels (#RTN15c3)" do
             channel_count = 10
             channels = channel_count.times.map { |index| client.channel("channel-#{index}") }
 
@@ -1211,7 +1211,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          it 'sets the error reason on each channel' do
+          it "sets the error reason on each channel" do
             channel.attach do
               channel.on(:attaching) do |state_change|
                 expect(state_change.reason.message).to match(/Unable to recover connection/i)
@@ -1226,21 +1226,21 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          it 'continues to use the client_msg_serial (#RTN15c3)' do
+          it "continues to use the client_msg_serial (#RTN15c3)" do
             last_message = nil
-            channel = client.channels.get('foo')
+            channel = client.channels.get("foo")
 
             connection.once(:connected) do
               connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
                 last_message = protocol_message if protocol_message.action == :message
               end
 
-              channel.publish('first') do
+              channel.publish("first") do
                 expect(last_message.message_serial).to eql(0)
-                channel.publish('second') do
+                channel.publish("second") do
                   expect(last_message.message_serial).to eql(1)
                   connection.once(:connected) do
-                    channel.publish('first on new connection') do
+                    channel.publish("first on new connection") do
                       # Message serial reset after failed resume
                       expect(last_message.message_serial).to eql(2)
                       stop_reactor
@@ -1254,16 +1254,16 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
 
-        context 'as the DISCONNECTED window to resume has passed' do
+        context "as the DISCONNECTED window to resume has passed" do
           let(:channel) { client.channel(random_str) }
 
           def kill_connection_transport_and_prevent_valid_resume
             connection.transport.close_connection_after_writing
           end
 
-          it 'starts a new connection automatically and does not try and resume' do
+          it "starts a new connection automatically and does not try and resume" do
             connection.once(:connected) do
-              previous_connection_id  = connection.id
+              previous_connection_id = connection.id
               previous_connection_key = connection.key
 
               connection.once(:connected) do
@@ -1285,18 +1285,18 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         end
       end
 
-      context 'when an ERROR protocol message is received' do
+      context "when an ERROR protocol message is received" do
         %w[connecting connected].each do |state|
           state = state.to_sym
           context "whilst #{state}" do
-            context 'with a token error code in the range 40140 <= code < 40150 (#RTN14b)' do
+            context "with a token error code in the range 40140 <= code < 40150 (#RTN14b)" do
               let(:client_options) { default_options.merge(use_token_auth: true) }
 
-              it 'triggers a re-authentication' do
+              it "triggers a re-authentication" do
                 connection.once(state) do
                   current_token = client.auth.current_token_details
 
-                  error_message = Ably::Models::ProtocolMessage.new(action: Ably::Models::ProtocolMessage::ACTION.Error.to_i, error: { code: 40_140 })
+                  error_message = Ably::Models::ProtocolMessage.new(action: Ably::Models::ProtocolMessage::ACTION.Error.to_i, error: {code: 40_140})
                   connection.__incoming_protocol_msgbus__.publish :protocol_message, error_message
 
                   connection.once(:connected) do
@@ -1307,21 +1307,21 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               end
             end
 
-            context 'with an error code indicating an error other than a token failure (#RTN14g, #RTN15i)' do
-              it 'causes the connection to fail' do
+            context "with an error code indicating an error other than a token failure (#RTN14g, #RTN15i)" do
+              it "causes the connection to fail" do
                 connection.once(state) do
                   connection.once(:failed) do
                     stop_reactor
                   end
 
-                  error_message = Ably::Models::ProtocolMessage.new(action: Ably::Models::ProtocolMessage::ACTION.Error.to_i, error: { code: 50_000 })
+                  error_message = Ably::Models::ProtocolMessage.new(action: Ably::Models::ProtocolMessage::ACTION.Error.to_i, error: {code: 50_000})
                   connection.__incoming_protocol_msgbus__.publish :protocol_message, error_message
                 end
               end
             end
 
-            context 'with no error code indicating an error other than a token failure (#RTN14g, #RTN15i)' do
-              it 'causes the connection to fail' do
+            context "with no error code indicating an error other than a token failure (#RTN14g, #RTN15i)" do
+              it "causes the connection to fail" do
                 connection.once(state) do
                   connection.once(:failed) do
                     stop_reactor
@@ -1336,11 +1336,11 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         end
       end
 
-      context 'whilst resuming' do
-        context 'with a token error code in the region 40140 <= code < 40150 (RTN15c5)' do
+      context "whilst resuming" do
+        context "with a token error code in the region 40140 <= code < 40150 (RTN15c5)" do
           before do
-            stub_const 'Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER', 0 # allow token to be used even if about to expire
-            stub_const 'Ably::Auth::TOKEN_DEFAULTS', Ably::Auth::TOKEN_DEFAULTS.merge(renew_token_buffer: 0) # Ensure tokens issued expire immediately after issue
+            stub_const "Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER", 0 # allow token to be used even if about to expire
+            stub_const "Ably::Auth::TOKEN_DEFAULTS", Ably::Auth::TOKEN_DEFAULTS.merge(renew_token_buffer: 0) # Ensure tokens issued expire immediately after issue
           end
 
           let!(:four_second_token) do
@@ -1365,7 +1365,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end)
           end
 
-          xit 'triggers a re-authentication and then resumes the connection' do
+          xit "triggers a re-authentication and then resumes the connection" do
             # [PENDING] After sandbox env update connection isn't found and a new connection is created. Spec fails
             #
             connection.once(:connected) do
@@ -1398,9 +1398,9 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         end
       end
 
-      context 'with any other error (#RTN15c4)' do
-        it 'moves the connection to the failed state' do
-          channel = client.channels.get('foo')
+      context "with any other error (#RTN15c4)" do
+        it "moves the connection to the failed state" do
+          channel = client.channels.get("foo")
           channel.attach do
             connection.once(:failed) do |state_change|
               expect(state_change.reason.code).to eql(40_400)
@@ -1410,7 +1410,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               stop_reactor
             end
 
-            allow(client.rest_client.auth).to receive(:key).and_return('invalid.key:secret')
+            allow(client.rest_client.auth).to receive(:key).and_return("invalid.key:secret")
 
             # Simulate an abrupt disconnection which will in turn resume with an invalid key
             connection.transport.close_connection_after_writing
@@ -1419,8 +1419,8 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
       end
     end
 
-    describe 'fallback host feature' do
-      let(:retry_every_for_tests)       { 0.2  }
+    describe "fallback host feature" do
+      let(:retry_every_for_tests) { 0.2 }
       let(:max_time_in_state_for_tests) { 0.59 }
 
       let(:timeout_options) do
@@ -1434,16 +1434,16 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
       end
 
       # Retry immediately and then wait retry_every before every subsequent attempt
-      let(:expected_retry_attempts)    { 1 + (max_time_in_state_for_tests / retry_every_for_tests).round }
+      let(:expected_retry_attempts) { 1 + (max_time_in_state_for_tests / retry_every_for_tests).round }
 
-      let(:retry_count_for_one_state)  { 1 + expected_retry_attempts } # initial connect then disconnected
+      let(:retry_count_for_one_state) { 1 + expected_retry_attempts } # initial connect then disconnected
       let(:retry_count_for_all_states) { 1 + expected_retry_attempts + 1 } # initial connection, disconnected & then one suspended attempt
 
-      context 'with custom realtime websocket host option' do
-        let(:expected_host) { 'this.host.does.not.exist' }
+      context "with custom realtime websocket host option" do
+        let(:expected_host) { "this.host.does.not.exist" }
         let(:client_options) { timeout_options.merge(realtime_host: expected_host) }
 
-        it 'never uses a fallback host' do
+        it "never uses a fallback host" do
           expect(connection).to receive(:create_transport).exactly(retry_count_for_all_states).times do |host|
             expect(host).to eql(expected_host)
             raise EventMachine::ConnectionError
@@ -1457,11 +1457,11 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         end
       end
 
-      context 'with custom realtime websocket port option' do
+      context "with custom realtime websocket port option" do
         let(:custom_port) { 666 }
         let(:client_options) { timeout_options.merge(tls_port: custom_port) }
 
-        it 'never uses a fallback host' do
+        it "never uses a fallback host" do
           expect(connection).to receive(:create_transport).exactly(retry_count_for_all_states).times do |_host, port|
             expect(port).to eql(custom_port)
             raise EventMachine::ConnectionError
@@ -1475,17 +1475,17 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         end
       end
 
-      context 'with non-production environment' do
-        let(:environment)    { 'sandbox' }
-        let(:expected_host)  { "#{environment}-#{Ably::Realtime::Client::DOMAIN}" }
+      context "with non-production environment" do
+        let(:environment) { "sandbox" }
+        let(:expected_host) { "#{environment}-#{Ably::Realtime::Client::DOMAIN}" }
         let(:client_options) { timeout_options.merge(environment: environment) }
 
-        context ':fallback_hosts_use_default is unset' do
+        context ":fallback_hosts_use_default is unset" do
           let(:max_time_in_state_for_tests) { 8 }
           let(:expected_hosts) { Ably::CUSTOM_ENVIRONMENT_FALLBACKS_SUFFIXES.map { |suffix| "#{environment}#{suffix}" } + [expected_host] }
           let(:fallback_hosts_used) { [] }
 
-          it 'uses fallback hosts by default' do
+          it "uses fallback hosts by default" do
             allow(connection).to receive(:create_transport) do |host|
               fallback_hosts_used << host
               raise EventMachine::ConnectionError
@@ -1498,12 +1498,12 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
 
-        context ':fallback_hosts_use_default is true' do
+        context ":fallback_hosts_use_default is true" do
           let(:max_time_in_state_for_tests) { 4 }
           let(:fallback_hosts_used) { [] }
           let(:client_options) { timeout_options.merge(environment: environment, fallback_hosts_use_default: true) }
 
-          it 'uses a fallback host on every subsequent disconnected attempt until suspended (#RTN17b, #TO3k7)' do
+          it "uses a fallback host on every subsequent disconnected attempt until suspended (#RTN17b, #TO3k7)" do
             request = 0
             allow(connection).to receive(:create_transport) do |host|
               if request == 0
@@ -1521,7 +1521,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          it 'does not use a fallback host if the connection connects on the default host and then later becomes disconnected', em_timeout: 25 do
+          it "does not use a fallback host if the connection connects on the default host and then later becomes disconnected", em_timeout: 25 do
             request = 0
 
             allow(connection).to receive(:create_transport).and_wrap_original do |wrapped_proc, host, *args, &block|
@@ -1543,13 +1543,13 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
 
-        context ':fallback_hosts array is provided' do
+        context ":fallback_hosts array is provided" do
           let(:max_time_in_state_for_tests) { 4 }
           let(:fallback_hosts) { %w[a.foo.com b.foo.com] }
           let(:fallback_hosts_used) { [] }
           let(:client_options) { timeout_options.merge(environment: environment, fallback_hosts: fallback_hosts) }
 
-          it 'uses a fallback host on every subsequent disconnected attempt until suspended (#RTN17b, #TO3k6)' do
+          it "uses a fallback host on every subsequent disconnected attempt until suspended (#RTN17b, #TO3k6)" do
             request = 0
             allow(connection).to receive(:create_transport) do |host|
               if request == 0
@@ -1569,23 +1569,23 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         end
       end
 
-      context 'with production environment' do
+      context "with production environment" do
         let(:custom_hosts) { %w[a.ably-realtime.com b.ably-realtime.com] }
         before do
-          stub_const 'Ably::FALLBACK_HOSTS', custom_hosts
+          stub_const "Ably::FALLBACK_HOSTS", custom_hosts
         end
 
-        let(:expected_host)  { Ably::Realtime::Client::DOMAIN }
+        let(:expected_host) { Ably::Realtime::Client::DOMAIN }
         let(:client_options) { timeout_options.merge(environment: nil) }
 
         let(:fallback_hosts_used) { [] }
 
-        context 'when the Internet is down' do
+        context "when the Internet is down" do
           before do
             allow(connection).to receive(:internet_up?).and_yield(false)
           end
 
-          it 'never uses a fallback host' do
+          it "never uses a fallback host" do
             expect(connection).to receive(:create_transport).exactly(retry_count_for_all_states).times do |host|
               expect(host).to eql(expected_host)
               raise EventMachine::ConnectionError
@@ -1599,16 +1599,16 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
 
-        context 'when the Internet is up' do
+        context "when the Internet is up" do
           before do
             allow(connection).to receive(:internet_up?).and_yield(true)
             @suspended = 0
           end
 
-          context 'and default options' do
+          context "and default options" do
             let(:max_time_in_state_for_tests) { 2 } # allow time for 3 attempts, 2 configured fallbacks + primary host
 
-            it 'uses a fallback host + the original host once on every subsequent disconnected attempt until suspended' do
+            it "uses a fallback host + the original host once on every subsequent disconnected attempt until suspended" do
               request = 0
               expect(connection).to receive(:create_transport).exactly(retry_count_for_one_state).times do |host|
                 if request == 0
@@ -1627,7 +1627,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               end
             end
 
-            it 'uses the primary host when suspended, and then every fallback host and the primary host again on every subsequent suspended attempt' do
+            it "uses the primary host when suspended, and then every fallback host and the primary host again on every subsequent suspended attempt" do
               request = 0
               expect(connection).to receive(:create_transport).at_least(:once) do |host|
                 if request == 0 || request == expected_retry_attempts + 1
@@ -1650,7 +1650,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               end
             end
 
-            it 'uses the correct host name for the WebSocket requests to the fallback hosts' do
+            it "uses the correct host name for the WebSocket requests to the fallback hosts" do
               request = 0
               expect(connection).to receive(:create_transport).at_least(:once) do |host, _port, uri|
                 if request == 0 || request == expected_retry_attempts + 1
@@ -1674,13 +1674,13 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          context ':fallback_hosts array is provided by an empty array' do
+          context ":fallback_hosts array is provided by an empty array" do
             let(:max_time_in_state_for_tests) { 3 }
             let(:fallback_hosts) { [] }
             let(:hosts_used) { [] }
-            let(:client_options) { timeout_options.merge(environment: 'production', fallback_hosts: fallback_hosts) }
+            let(:client_options) { timeout_options.merge(environment: "production", fallback_hosts: fallback_hosts) }
 
-            it 'uses a fallback host on every subsequent disconnected attempt until suspended (#RTN17b, #TO3k6)' do
+            it "uses a fallback host on every subsequent disconnected attempt until suspended (#RTN17b, #TO3k6)" do
               allow(connection).to receive(:create_transport) do |host|
                 hosts_used << host
                 raise EventMachine::ConnectionError
@@ -1694,13 +1694,13 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
           end
 
-          context ':fallback_hosts array is provided' do
+          context ":fallback_hosts array is provided" do
             let(:max_time_in_state_for_tests) { 3 }
             let(:fallback_hosts) { %w[a.foo.com b.foo.com] }
             let(:fallback_hosts_used) { [] }
-            let(:client_options) { timeout_options.merge(environment: 'production', fallback_hosts: fallback_hosts) }
+            let(:client_options) { timeout_options.merge(environment: "production", fallback_hosts: fallback_hosts) }
 
-            it 'uses a fallback host on every subsequent disconnected attempt until suspended (#RTN17b, #TO3k6)' do
+            it "uses a fallback host on every subsequent disconnected attempt until suspended (#RTN17b, #TO3k6)" do
               request = 0
               allow(connection).to receive(:create_transport) do |host|
                 if request == 0

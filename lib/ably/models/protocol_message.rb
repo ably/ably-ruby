@@ -49,7 +49,7 @@ module Ably
       # The values correspond to the ints which the API
       # understands.
       ACTION = ruby_enum(
-        'ACTION',
+        "ACTION",
         heartbeat: 0,
         ack: 1,
         nack: 2,
@@ -94,9 +94,9 @@ module Ably
         @logger = options[:logger] # Logger expected for SafeDeferrable
 
         @raw_hash_object = hash_object
-        @hash_object     = IdiomaticRubyWrapper(@raw_hash_object.clone)
+        @hash_object = IdiomaticRubyWrapper(@raw_hash_object.clone)
 
-        raise ArgumentError, 'Invalid ProtocolMessage, action cannot be nil' if @hash_object[:action].nil?
+        raise ArgumentError, "Invalid ProtocolMessage, action cannot be nil" if @hash_object[:action].nil?
 
         @hash_object[:action] = ACTION(@hash_object[:action]).to_i unless @hash_object[:action].is_a?(Integer)
 
@@ -110,7 +110,7 @@ module Ably
       end
 
       def id!
-        raise 'ProtocolMessage #id is nil' unless id
+        raise "ProtocolMessage #id is nil" unless id
 
         id
       end
@@ -280,13 +280,13 @@ module Ably
 
       # Return a JSON ready object from the underlying #attributes using Ably naming conventions for keys
       def as_json(*_args)
-        raise TypeError, ':action is missing, cannot generate a valid Hash for ProtocolMessage' unless action
-        raise TypeError, ':msg_serial or :connection_serial is missing, cannot generate a valid Hash for ProtocolMessage' if ack_required? && !has_serial?
+        raise TypeError, ":action is missing, cannot generate a valid Hash for ProtocolMessage" unless action
+        raise TypeError, ":msg_serial or :connection_serial is missing, cannot generate a valid Hash for ProtocolMessage" if ack_required? && !has_serial?
 
         attributes.dup.tap do |hash_object|
-          hash_object['action']   = action.to_i
-          hash_object['messages'] = messages.map(&:as_json) unless messages.empty?
-          hash_object['presence'] = presence.map(&:as_json) unless presence.empty?
+          hash_object["action"] = action.to_i
+          hash_object["messages"] = messages.map(&:as_json) unless messages.empty?
+          hash_object["presence"] = presence.map(&:as_json) unless presence.empty?
         end.as_json
       end
 
@@ -311,7 +311,7 @@ module Ably
       def invalid?
         action_enum = begin
           action
-        rescue StandardError
+        rescue
           nil
         end
 

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'ably/modules/state_machine'
+require "ably/modules/state_machine"
 
 module Ably
   module Realtime
@@ -24,10 +24,10 @@ module Ably
 
         # Entering or entered states can skip leaving and go straight to left if a channel is detached
         # A channel that detaches very quickly will also go straight to :left from :initialized
-        transition from: :initialized,  to: %I[entering left]
-        transition from: :entering,     to: %I[entered leaving left]
-        transition from: :entered,      to: %I[leaving left]
-        transition from: :leaving,      to: %I[left entering]
+        transition from: :initialized, to: %I[entering left]
+        transition from: :entering, to: %I[entered leaving left]
+        transition from: :entered, to: %I[leaving left]
+        transition from: :leaving, to: %I[left entering]
 
         after_transition do |presence, _|
           presence.synchronize_state_with_statemachine

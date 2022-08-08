@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'base64'
-require 'ably/models/message_encoders/base'
+require "base64"
+require "ably/models/message_encoders/base"
 
 module Ably
   module Models
@@ -10,7 +10,7 @@ module Ably
       # Uses encoding identifier 'base64'
       #
       class Base64 < Base
-        ENCODING_ID = 'base64'
+        ENCODING_ID = "base64"
 
         def encode(message, _channel_options)
           return if is_empty?(message)
@@ -34,7 +34,7 @@ module Ably
         end
 
         def is_base64_encoded?(message)
-          current_encoding_part(message).to_s.match(/^#{ENCODING_ID}$/i)
+          current_encoding_part(message).to_s.match(/^#{ENCODING_ID}$/io)
         end
 
         def transport_protocol_text?

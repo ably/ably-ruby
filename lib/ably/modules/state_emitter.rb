@@ -76,12 +76,12 @@ module Ably
       #
       # @return [void]
       def once_or_if(target_states, options = {}, &block)
-        raise ArgumentError, 'Block required' unless block_given?
+        raise ArgumentError, "Block required" unless block
 
         if Array(target_states).any? { |target_state| state == target_state }
           safe_yield block
         else
-          failure_block   = options.fetch(:else, nil)
+          failure_block = options.fetch(:else, nil)
           failure_wrapper = nil
 
           success_wrapper = lambda do |*_args|
@@ -123,8 +123,8 @@ module Ably
       # @return [void]
       #
       # @api private
-      def once_state_changed(options = {}, &_block)
-        raise ArgumentError, 'Block required' unless block_given?
+      def once_state_changed(options = {}, &block)
+        raise ArgumentError, "Block required" unless block
 
         once_block = lambda do |*args|
           off(*self.class::STATE.map, &once_block)
@@ -184,7 +184,7 @@ module Ably
       end
 
       def safe_unsafe_method(unsafe, method_name, *args, &block)
-        public_send("#{'unsafe_' if unsafe}#{method_name}", *args, &block)
+        public_send("#{"unsafe_" if unsafe}#{method_name}", *args, &block)
       end
     end
   end

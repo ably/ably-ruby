@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'ably/modules/event_emitter'
+require "ably/modules/event_emitter"
 
 module Ably
   module Util

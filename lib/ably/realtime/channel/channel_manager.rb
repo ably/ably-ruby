@@ -13,7 +13,7 @@ module Ably
         extend Forwardable
 
         def initialize(channel, connection)
-          @channel    = channel
+          @channel = channel
           @connection = connection
         end
 
@@ -93,7 +93,7 @@ module Ably
           when :attached, :suspended
             channel.transition_state_machine :attaching, reason: reason
           else
-            logger.debug { 'ChannelManager: DETACHED ProtocolMessage received, but no action to take as not DETACHING, ATTACHED OR SUSPENDED' }
+            logger.debug { "ChannelManager: DETACHED ProtocolMessage received, but no action to take as not DETACHING, ATTACHED OR SUSPENDED" }
           end
         end
 
@@ -105,7 +105,7 @@ module Ably
           immediately = options[:immediately] || false
 
           fail_proc = lambda do
-            error ||= Ably::Exceptions::MessageDeliveryFailed.new('Continuity of connection was lost so published messages awaiting ACK have failed')
+            error ||= Ably::Exceptions::MessageDeliveryFailed.new("Continuity of connection was lost so published messages awaiting ACK have failed")
             fail_messages_in_queue connection.__pending_message_ack_queue__, error
           end
 

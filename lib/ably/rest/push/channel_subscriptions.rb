@@ -29,19 +29,19 @@ module Ably
         # @return [Ably::Models::PaginatedResult<Ably::Models::PushChannelSubscription>]  Paginated list of matching {Ably::Models::PushChannelSubscription}
         #
         def list(params)
-          raise ArgumentError, 'params must be a Hash' unless params.is_a?(Hash)
-          raise ArgumentError, 'at least one channel, client_id or device_id filter param must be provided' if (IdiomaticRubyWrapper(params).keys & %I[channel client_id device_id]).empty?
+          raise ArgumentError, "params must be a Hash" unless params.is_a?(Hash)
+          raise ArgumentError, "at least one channel, client_id or device_id filter param must be provided" if (IdiomaticRubyWrapper(params).keys & %I[channel client_id device_id]).empty?
 
           params = params.clone
 
           paginated_options = {
-            coerce_into: 'Ably::Models::PushChannelSubscription',
+            coerce_into: "Ably::Models::PushChannelSubscription",
             async_blocking_operations: params.delete(:async_blocking_operations)
           }
 
-          response = client.get('/push/channelSubscriptions', IdiomaticRubyWrapper(params).as_json)
+          response = client.get("/push/channelSubscriptions", IdiomaticRubyWrapper(params).as_json)
 
-          Ably::Models::PaginatedResult.new(response, '', client, paginated_options)
+          Ably::Models::PaginatedResult.new(response, "", client, paginated_options)
         end
 
         # List channels with at least one subscribed device
@@ -53,18 +53,18 @@ module Ably
         #
         def list_channels(params = {})
           params = {} if params.nil?
-          raise ArgumentError, 'params must be a Hash' unless params.is_a?(Hash)
+          raise ArgumentError, "params must be a Hash" unless params.is_a?(Hash)
 
           params = params.clone
 
           paginated_options = {
-            coerce_into: 'String',
+            coerce_into: "String",
             async_blocking_operations: params.delete(:async_blocking_operations)
           }
 
-          response = client.get('/push/channels', IdiomaticRubyWrapper(params).as_json)
+          response = client.get("/push/channels", IdiomaticRubyWrapper(params).as_json)
 
-          Ably::Models::PaginatedResult.new(response, '', client, paginated_options)
+          Ably::Models::PaginatedResult.new(response, "", client, paginated_options)
         end
 
         # Save push channel subscription for a device or client ID
@@ -75,9 +75,9 @@ module Ably
         #
         def save(push_channel_subscription)
           push_channel_subscription_object = PushChannelSubscription(push_channel_subscription)
-          raise ArgumentError, 'Channel is required yet is empty' if push_channel_subscription_object.channel.to_s.empty?
+          raise ArgumentError, "Channel is required yet is empty" if push_channel_subscription_object.channel.to_s.empty?
 
-          client.post('/push/channelSubscriptions', push_channel_subscription_object.as_json)
+          client.post("/push/channelSubscriptions", push_channel_subscription_object.as_json)
         end
 
         # Remove a push channel subscription
@@ -88,10 +88,10 @@ module Ably
         #
         def remove(push_channel_subscription)
           push_channel_subscription_object = PushChannelSubscription(push_channel_subscription)
-          raise ArgumentError, 'Channel is required yet is empty' if push_channel_subscription_object.channel.to_s.empty?
-          raise ArgumentError, 'Either client_id or device_id must be present' if push_channel_subscription_object.client_id.to_s.empty? && push_channel_subscription_object.device_id.to_s.empty?
+          raise ArgumentError, "Channel is required yet is empty" if push_channel_subscription_object.channel.to_s.empty?
+          raise ArgumentError, "Either client_id or device_id must be present" if push_channel_subscription_object.client_id.to_s.empty? && push_channel_subscription_object.device_id.to_s.empty?
 
-          client.delete('/push/channelSubscriptions', push_channel_subscription_object.as_json)
+          client.delete("/push/channelSubscriptions", push_channel_subscription_object.as_json)
         end
 
         # Remove all matching push channel subscriptions
@@ -104,12 +104,12 @@ module Ably
         # @return [void]
         #
         def remove_where(params)
-          raise ArgumentError, 'params must be a Hash' unless params.is_a?(Hash)
-          raise ArgumentError, 'at least one channel, client_id or device_id filter param must be provided' if (IdiomaticRubyWrapper(params).keys & %I[channel client_id device_id]).empty?
+          raise ArgumentError, "params must be a Hash" unless params.is_a?(Hash)
+          raise ArgumentError, "at least one channel, client_id or device_id filter param must be provided" if (IdiomaticRubyWrapper(params).keys & %I[channel client_id device_id]).empty?
 
           params = params.clone
 
-          client.delete('/push/channelSubscriptions', IdiomaticRubyWrapper(params).as_json)
+          client.delete("/push/channelSubscriptions", IdiomaticRubyWrapper(params).as_json)
         end
       end
     end

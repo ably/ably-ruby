@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
-require 'faraday'
-require 'json'
-require 'logger'
-require 'uri'
+require "faraday"
+require "json"
+require "logger"
+require "uri"
 
-require 'typhoeus'
-require 'faraday/typhoeus'
+require "typhoeus"
+require "faraday/typhoeus"
 
-require 'ably/rest/middleware/exceptions'
+require "ably/rest/middleware/exceptions"
 
 module Ably
   module Rest
@@ -25,7 +25,7 @@ module Ably
       extend Forwardable
 
       # Default Ably domain for REST
-      DOMAIN = 'rest.ably.io'
+      DOMAIN = "rest.ably.io"
 
       MAX_MESSAGE_SIZE = 65_536 # See spec TO3l8
       MAX_FRAME_SIZE = 524_288 # See spec TO3l8
@@ -42,10 +42,10 @@ module Ably
 
       # Faraday 1.0 introduced new error types, however we want to support Faraday <1 too which only used Faraday::ClientError
       FARADAY_CLIENT_OR_SERVER_ERRORS = if defined?(Faraday::ParsingError)
-                                          [Faraday::ClientError, Faraday::ServerError, Faraday::ConnectionFailed, Faraday::SSLError, Faraday::ParsingError]
-                                        else
-                                          Faraday::ClientError
-                                        end
+        [Faraday::ClientError, Faraday::ServerError, Faraday::ConnectionFailed, Faraday::SSLError, Faraday::ParsingError]
+      else
+        Faraday::ClientError
+      end
 
       def_delegators :auth, :client_id, :auth_options
 
@@ -176,47 +176,47 @@ module Ably
       #    client = Ably::Rest::Client.new(key: 'key.id:secret', client_id: 'john')
       #
       def initialize(options)
-        raise ArgumentError, 'Options Hash is expected' if options.nil?
+        raise ArgumentError, "Options Hash is expected" if options.nil?
 
         options = options.clone
         if options.is_a?(String)
           options = if options.match(Auth::API_KEY_REGEX)
-                      { key: options }
-                    else
-                      { token: options }
-                    end
+            {key: options}
+          else
+            {token: options}
+          end
         end
 
-        @agent               = options.delete(:agent) || Ably::AGENT
-        @realtime_client     = options.delete(:realtime_client)
-        @tls                 = options.delete(:tls) != false
-        @environment         = options.delete(:environment) # nil is production
-        @environment         = nil if [:production, 'production'].include?(@environment)
-        @protocol            = options.delete(:protocol) || :msgpack
-        @debug_http          = options.delete(:debug_http)
-        @log_level           = options.delete(:log_level) || ::Logger::WARN
-        @custom_logger       = options.delete(:logger)
-        @custom_host         = options.delete(:rest_host)
-        @custom_port         = options.delete(:port)
-        @custom_tls_port     = options.delete(:tls_port)
-        @add_request_ids     = options.delete(:add_request_ids)
+        @agent = options.delete(:agent) || Ably::AGENT
+        @realtime_client = options.delete(:realtime_client)
+        @tls = options.delete(:tls) != false
+        @environment = options.delete(:environment) # nil is production
+        @environment = nil if [:production, "production"].include?(@environment)
+        @protocol = options.delete(:protocol) || :msgpack
+        @debug_http = options.delete(:debug_http)
+        @log_level = options.delete(:log_level) || ::Logger::WARN
+        @custom_logger = options.delete(:logger)
+        @custom_host = options.delete(:rest_host)
+        @custom_port = options.delete(:port)
+        @custom_tls_port = options.delete(:tls_port)
+        @add_request_ids = options.delete(:add_request_ids)
         @log_retries_as_info = options.delete(:log_retries_as_info)
-        @max_message_size    = options.delete(:max_message_size) || MAX_MESSAGE_SIZE
-        @max_frame_size      = options.delete(:max_frame_size) || MAX_FRAME_SIZE
+        @max_message_size = options.delete(:max_message_size) || MAX_MESSAGE_SIZE
+        @max_frame_size = options.delete(:max_frame_size) || MAX_FRAME_SIZE
         @idempotent_rest_publishing = Ably::PROTOCOL_VERSION.to_f > 1.1 if (@idempotent_rest_publishing = options.delete(:idempotent_rest_publishing)).nil?
-        raise ArgumentError, 'fallback_hosts_use_default cannot be set to try when fallback_hosts is also provided' if options[:fallback_hosts_use_default] && options[:fallback_hosts]
+        raise ArgumentError, "fallback_hosts_use_default cannot be set to try when fallback_hosts is also provided" if options[:fallback_hosts_use_default] && options[:fallback_hosts]
 
         @fallback_hosts = if options.delete(:fallback_hosts_use_default)
-                            Ably::FALLBACK_HOSTS
-                          elsif (options_fallback_hosts = options.delete(:fallback_hosts))
-                            options_fallback_hosts
-                          elsif custom_host || options[:realtime_host] || custom_port || custom_tls_port
-                            []
-                          elsif environment
-                            CUSTOM_ENVIRONMENT_FALLBACKS_SUFFIXES.map { |host| "#{environment}#{host}" }
-                          else
-                            Ably::FALLBACK_HOSTS
-                          end
+          Ably::FALLBACK_HOSTS
+        elsif (options_fallback_hosts = options.delete(:fallback_hosts))
+          options_fallback_hosts
+        elsif custom_host || options[:realtime_host] || custom_port || custom_tls_port
+          []
+        elsif environment
+          CUSTOM_ENVIRONMENT_FALLBACKS_SUFFIXES.map { |host| "#{environment}#{host}" }
+        else
+          Ably::FALLBACK_HOSTS
+        end
 
         options[:fallback_retry_timeout] ||= FALLBACK_RETRY_TIMEOUT
 
@@ -246,7 +246,7 @@ module Ably
             @protocol = :json
           end
         end
-        raise ArgumentError, 'Protocol is invalid.  Must be either :msgpack or :json' unless %I[msgpack json].include?(@protocol)
+        raise ArgumentError, "Protocol is invalid.  Must be either :msgpack or :json" unless %I[msgpack json].include?(@protocol)
 
         token_params = options.delete(:default_token_params) || {}
         @options = options
@@ -254,7 +254,7 @@ module Ably
           Auth::AUTH_OPTIONS_KEYS.include?(key.to_s)
         end
 
-        @auth     = Auth.new(self, token_params, init_auth_options)
+        @auth = Auth.new(self, token_params, init_auth_options)
         @channels = Ably::Rest::Channels.new(self)
         @encoders = []
 
@@ -291,13 +291,13 @@ module Ably
         }.merge(options)
 
         %I[start end].each { |option| options[option] = as_since_epoch(options[option]) if options.key?(option) }
-        raise ArgumentError, ':end must be equal to or after :start' if options[:start] && options[:end] && (options[:start] > options[:end])
+        raise ArgumentError, ":end must be equal to or after :start" if options[:start] && options[:end] && (options[:start] > options[:end])
 
         paginated_options = {
-          coerce_into: 'Ably::Models::Stats'
+          coerce_into: "Ably::Models::Stats"
         }
 
-        url = '/stats'
+        url = "/stats"
         response = get(url, options)
 
         Ably::Models::PaginatedResult.new(response, url, self, paginated_options)
@@ -307,7 +307,7 @@ module Ably
       #
       # @return [Time] The time as reported by the Ably service
       def time
-        response = get('/time', {}, send_auth_header: false)
+        response = get("/time", {}, send_auth_header: false)
 
         as_time_from_epoch(response.body.first)
       end
@@ -372,20 +372,20 @@ module Ably
         raise "Method #{method.to_s.upcase} not supported" unless %i[get put patch post delete].include?(method.to_sym)
 
         response = case method.to_sym
-                   when :get, :delete
-                     reauthorize_on_authorization_failure do
-                       send_request(method, path, params, headers: headers)
-                     end
-                   when :post, :patch, :put
-                     raise Ably::Exceptions::MaxFrameSizeExceeded, "Maximum frame size exceeded #{max_frame_size} bytes." if body.to_json.bytesize > max_frame_size
+        when :get, :delete
+          reauthorize_on_authorization_failure do
+            send_request(method, path, params, headers: headers)
+          end
+        when :post, :patch, :put
+          raise Ably::Exceptions::MaxFrameSizeExceeded, "Maximum frame size exceeded #{max_frame_size} bytes." if body.to_json.bytesize > max_frame_size
 
-                     path_with_params = Addressable::URI.new
-                     path_with_params.query_values = params || {}
-                     query = path_with_params.query
-                     reauthorize_on_authorization_failure do
-                       send_request(method, "#{path}#{"?#{query}" unless query.nil? || query.empty?}", body, headers: headers)
-                     end
-                   end
+          path_with_params = Addressable::URI.new
+          path_with_params.query_values = params || {}
+          query = path_with_params.query
+          reauthorize_on_authorization_failure do
+            send_request(method, "#{path}#{"?#{query}" unless query.nil? || query.empty?}", body, headers: headers)
+          end
+        end
 
         paginated_options = {
           async_blocking_operations: options.delete(:async_blocking_operations)
@@ -408,7 +408,7 @@ module Ably
       #
       # @note This is unsupported in the Ruby library
       def device
-        raise Ably::Exceptions::PushNotificationsNotSupported, 'This device does not support receiving or subscribing to push notifications. The local device object is not unavailable'
+        raise Ably::Exceptions::PushNotificationsNotSupported, "This device does not support receiving or subscribing to push notifications. The local device object is not unavailable"
       end
 
       # Push notification object for publishing and managing push notifications
@@ -420,7 +420,7 @@ module Ably
       # @!attribute [r] endpoint
       # @return [URI::Generic] Default Ably REST endpoint used for all requests
       def endpoint
-        endpoint_for_host(custom_host || [@environment, DOMAIN].compact.join('-'))
+        endpoint_for_host(custom_host || [@environment, DOMAIN].compact.join("-"))
       end
 
       # @!attribute [r] logger
@@ -435,9 +435,9 @@ module Ably
       def mime_type
         case protocol
         when :json
-          'application/json'
+          "application/json"
         else
-          'application/x-msgpack'
+          "application/x-msgpack"
         end
       end
 
@@ -524,15 +524,15 @@ module Ably
       # See #using_preferred_fallback_host? for context
       def set_preferred_fallback_connection(connection)
         @preferred_fallback_connection = if connection == @connection
-                                           # If the succeeded connection is in fact the primary connection (tried after a failed fallback)
-                                           #   then clear the preferred fallback connection
-                                           nil
-                                         else
-                                           {
-                                             expires_at: Time.now + options.fetch(:fallback_retry_timeout),
-                                             connection_object: connection
-                                           }
-                                         end
+          # If the succeeded connection is in fact the primary connection (tried after a failed fallback)
+          #   then clear the preferred fallback connection
+          nil
+        else
+          {
+            expires_at: Time.now + options.fetch(:fallback_retry_timeout),
+            connection_object: connection
+          }
+        end
       end
 
       def get_preferred_fallback_connection_object
@@ -553,12 +553,12 @@ module Ably
       # Sends HTTP request to connection end point
       # Connection failures will automatically be reattempted until thresholds are met
       def send_request(method, path, params, options)
-        max_retry_count    = http_defaults.fetch(:max_retry_count)
+        max_retry_count = http_defaults.fetch(:max_retry_count)
         max_retry_duration = http_defaults.fetch(:max_retry_duration)
-        requested_at       = Time.now
-        retry_count        = 0
-        retry_sequence_id  = nil
-        request_id         = SecureRandom.urlsafe_base64(10) if add_request_ids
+        requested_at = Time.now
+        retry_count = 0
+        retry_sequence_id = nil
+        request_id = SecureRandom.urlsafe_base64(10) if add_request_ids
 
         preferred_fallback_connection_for_first_request = get_preferred_fallback_connection_object
 
@@ -595,7 +595,7 @@ module Ably
             if retry_count.positive?
               retry_log_severity = log_retries_as_info ? :info : :warn
               logger.public_send(retry_log_severity) do
-                "Ably::Rest::Client - Request SUCCEEDED after #{retry_count} #{retry_count > 1 ? 'retries' : 'retry'} for" \
+                "Ably::Rest::Client - Request SUCCEEDED after #{retry_count} #{retry_count > 1 ? "retries" : "retry"} for" \
                 " #{method} #{path} #{params} (seq ##{retry_sequence_id}, time elapsed #{(Time.now.to_f - requested_at.to_f).round(2)}s)"
               end
               set_preferred_fallback_connection conn
@@ -614,16 +614,16 @@ module Ably
 
           retry_log_severity = log_retries_as_info ? :info : :error
           logger.public_send(retry_log_severity) do
-            "Ably::Rest::Client - Request FAILED after #{retry_count} #{retry_count > 1 ? 'retries' : 'retry'} for" \
+            "Ably::Rest::Client - Request FAILED after #{retry_count} #{retry_count > 1 ? "retries" : "retry"} for" \
             " #{method} #{path} #{params} (seq ##{retry_sequence_id}, time elapsed #{(Time.now.to_f - requested_at.to_f).round(2)}s)"
           end
 
           case e
           when Faraday::TimeoutError
-            raise Ably::Exceptions::ConnectionTimeout.new(e.message, nil, Ably::Exceptions::Codes::CONNECTION_TIMED_OUT, e, { request_id: request_id })
+            raise Ably::Exceptions::ConnectionTimeout.new(e.message, nil, Ably::Exceptions::Codes::CONNECTION_TIMED_OUT, e, {request_id: request_id})
           when *FARADAY_CLIENT_OR_SERVER_ERRORS
             # request_id is also available in the request context
-            raise Ably::Exceptions::ConnectionError.new(e.message, nil, Ably::Exceptions::Codes::CONNECTION_FAILED, e, { request_id: request_id })
+            raise Ably::Exceptions::ConnectionError.new(e.message, nil, Ably::Exceptions::Codes::CONNECTION_FAILED, e, {request_id: request_id})
           else
             raise e
           end
@@ -641,13 +641,13 @@ module Ably
 
       def endpoint_for_host(host)
         port = use_tls? ? custom_tls_port : custom_port
-        raise ArgumentError, 'Custom port must be an Integer or nil' if port && !port.is_a?(Integer)
+        raise ArgumentError, "Custom port must be an Integer or nil" if port && !port.is_a?(Integer)
 
         options = {
-          scheme: use_tls? ? 'https' : 'http',
+          scheme: use_tls? ? "https" : "http",
           host: host
         }
-        options.merge!(port: port) if port
+        options[:port] = port if port
 
         URI::Generic.build(options)
       end
@@ -662,8 +662,8 @@ module Ably
             content_type: mime_type,
             accept: mime_type,
             user_agent: user_agent,
-            'X-Ably-Version': Ably::PROTOCOL_VERSION,
-            'Ably-Agent': agent
+            "X-Ably-Version": Ably::PROTOCOL_VERSION,
+            "Ably-Agent": agent
           },
           request: {
             open_timeout: http_defaults.fetch(:open_timeout),

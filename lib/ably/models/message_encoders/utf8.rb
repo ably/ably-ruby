@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'ably/models/message_encoders/base'
+require "ably/models/message_encoders/base"
 
 module Ably
   module Models
@@ -9,7 +9,7 @@ module Ably
       # Uses encoding identifier 'utf-8' and encodes all JSON objects as UTF-8, and sets the encoding when decoding
       #
       class Utf8 < Base
-        ENCODING_ID = 'utf-8'
+        ENCODING_ID = "utf-8"
 
         def encode(message, channel_options)
           # no encoding of UTF-8 required
@@ -25,7 +25,7 @@ module Ably
         private
 
         def is_utf8_encoded?(message)
-          current_encoding_part(message).to_s.match(/^#{ENCODING_ID}$/i)
+          current_encoding_part(message).to_s.match(/^#{ENCODING_ID}$/io)
         end
       end
     end

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
+require "spec_helper"
 
 describe Ably::Modules::AsyncWrapper, :api_private do
   include RSpec::EventMachine
@@ -20,16 +20,16 @@ describe Ably::Modules::AsyncWrapper, :api_private do
       end
     end
   end
-  let(:subject)    { class_with_module.new }
-  let(:result)     { random_str }
+  let(:subject) { class_with_module.new }
+  let(:result) { random_str }
   let(:sleep_time) { 0.1 }
 
   before do
     subject.block = block
   end
 
-  context '#async_wrap blocking block' do
-    context 'returns result' do
+  context "#async_wrap blocking block" do
+    context "returns result" do
       let(:block) do
         lambda do
           sleep sleep_time
@@ -37,7 +37,7 @@ describe Ably::Modules::AsyncWrapper, :api_private do
         end
       end
 
-      it 'returns a SafeDeferrable that catches and logs exceptions in the provided callbacks' do
+      it "returns a SafeDeferrable that catches and logs exceptions in the provided callbacks" do
         run_reactor do
           deferrable = subject.operation
           expect(deferrable).to be_a(Ably::Util::SafeDeferrable)
@@ -45,7 +45,7 @@ describe Ably::Modules::AsyncWrapper, :api_private do
         end
       end
 
-      it 'calls the provided block with result when provided' do
+      it "calls the provided block with result when provided" do
         run_reactor do
           subject.operation do |result|
             expect(result).to eql(result)
@@ -54,19 +54,19 @@ describe Ably::Modules::AsyncWrapper, :api_private do
         end
       end
 
-      it 'catches exceptions in the provided block and logs them to logger' do
+      it "catches exceptions in the provided block and logs them to logger" do
         run_reactor do
           subject.operation do |_result|
-            raise 'Intentional exception'
+            raise "Intentional exception"
           end
           expect(subject.logger).to receive(:error) do |*args, &block|
-            expect(args.concat([block ? block.call : nil]).join(',')).to match(/Intentional exception/)
+            expect(args.concat([block ? block.call : nil]).join(",")).to match(/Intentional exception/)
             stop_reactor
           end
         end
       end
 
-      it 'returns a SafeDeferrable that calls the callback block' do
+      it "returns a SafeDeferrable that calls the callback block" do
         run_reactor do
           deferrable = subject.operation
           deferrable.callback do |result|
@@ -76,7 +76,7 @@ describe Ably::Modules::AsyncWrapper, :api_private do
         end
       end
 
-      it 'does not call the errback' do
+      it "does not call the errback" do
         run_reactor do
           deferrable = subject.operation
           deferrable.callback do |result|
@@ -84,12 +84,12 @@ describe Ably::Modules::AsyncWrapper, :api_private do
             EventMachine.add_timer(sleep_time * 2) { stop_reactor }
           end
           deferrable.errback do |_error|
-            raise 'Errback should not have been called'
+            raise "Errback should not have been called"
           end
         end
       end
 
-      it 'does not block EventMachine' do
+      it "does not block EventMachine" do
         run_reactor do
           timers_called = 0
           EventMachine.add_periodic_timer(sleep_time / 5) { timers_called += 1 }
@@ -102,15 +102,15 @@ describe Ably::Modules::AsyncWrapper, :api_private do
       end
     end
 
-    context 'raises an Exception' do
+    context "raises an Exception" do
       let(:block) do
         lambda do
           sleep sleep_time
-          raise 'Intentional'
+          raise "Intentional"
         end
       end
 
-      it 'calls the errback block of the SafeDeferrable' do
+      it "calls the errback block of the SafeDeferrable" do
         run_reactor do
           deferrable = subject.operation
           deferrable.errback do |error|
@@ -121,20 +121,20 @@ describe Ably::Modules::AsyncWrapper, :api_private do
         end
       end
 
-      it 'does not call the provided block' do
+      it "does not call the provided block" do
         run_reactor do
           subject.operation do |_result|
-            raise 'Callback should not have been called'
+            raise "Callback should not have been called"
           end
           EventMachine.add_timer(sleep_time * 2) { stop_reactor }
         end
       end
 
-      it 'does not call the callback block of the SafeDeferrable' do
+      it "does not call the callback block of the SafeDeferrable" do
         run_reactor do
           deferrable = subject.operation
           deferrable.callback do |_result|
-            raise 'Callback should not have been called'
+            raise "Callback should not have been called"
           end
           EventMachine.add_timer(sleep_time * 2) { stop_reactor }
         end

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'ably/util/pub_sub'
+require "ably/util/pub_sub"
 
 module Ably
   module Modules
@@ -17,7 +17,7 @@ module Ably
       # @return [void]
       #
       def subscribe(*names, &callback)
-        raise ArgumentError, 'Block required to subscribe to events' unless block_given?
+        raise ArgumentError, "Block required to subscribe to events" unless callback
 
         names = :all unless names && !names.empty?
         Array(names).uniq.each do |name|
@@ -41,7 +41,7 @@ module Ably
             Array(message_emitter_subscriptions_message_name_key(name))
           end.each do |key|
             message_emitter_subscriptions[key].delete_if do |block|
-              !block_given? || callback == block
+              !callback || callback == block
             end
           end
         end

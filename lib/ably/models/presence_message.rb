@@ -50,7 +50,7 @@ module Ably
       extend ::Ably::Modules::Enum
 
       ACTION = ruby_enum(
-        'ACTION',
+        "ACTION",
         :absent,
         :present,
         :enter,
@@ -69,9 +69,9 @@ module Ably
       # @option options     [Logger]          :logger            An optional Logger to be used by {Ably::Modules::SafeDeferrable} if an exception is caught in a callback
       #
       def initialize(attributes, options = {})
-        @logger           = options[:logger] # Logger expected for SafeDeferrable
+        @logger = options[:logger] # Logger expected for SafeDeferrable
         @protocol_message = options[:protocol_message]
-        @raw_hash_object  = attributes
+        @raw_hash_object = attributes
 
         set_attributes_object attributes
 
@@ -117,10 +117,10 @@ module Ably
       # Return a JSON ready object from the underlying #attributes using Ably naming conventions for keys
       def as_json(*_args)
         attributes.dup.tap do |presence_message|
-          presence_message['action'] = action.to_i
+          presence_message["action"] = action.to_i
         end.as_json.reject { |_, val| val.nil? }
       rescue KeyError
-        raise KeyError, ':action is missing or invalid, cannot generate a valid Hash for ProtocolMessage'
+        raise KeyError, ":action is missing or invalid, cannot generate a valid Hash for ProtocolMessage"
       end
 
       def to_json(*args)
@@ -160,7 +160,7 @@ module Ably
       # @return [Ably::Models::ProtocolMessage]
       # @api private
       def protocol_message
-        raise 'Presence Message is not yet published with a ProtocolMessage. ProtocolMessage is nil' if @protocol_message.nil?
+        raise "Presence Message is not yet published with a ProtocolMessage. ProtocolMessage is nil" if @protocol_message.nil?
 
         @protocol_message
       end

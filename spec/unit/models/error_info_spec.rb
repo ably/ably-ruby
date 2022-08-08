@@ -1,79 +1,79 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-require 'shared/model_behaviour'
+require "spec_helper"
+require "shared/model_behaviour"
 
 describe Ably::Models::ErrorInfo do
   subject { Ably::Models::ErrorInfo }
 
-  context '#TI1, #TI4' do
-    it_behaves_like 'a model', with_simple_attributes: %w[code status_code href message request_id cause] do
+  context "#TI1, #TI4" do
+    it_behaves_like "a model", with_simple_attributes: %w[code status_code href message request_id cause] do
       let(:model_args) { [] }
     end
   end
 
-  context '#status #TI1, #TI2' do
-    subject { Ably::Models::ErrorInfo.new('statusCode' => 401) }
-    it 'is an alias for #status_code' do
+  context "#status #TI1, #TI2" do
+    subject { Ably::Models::ErrorInfo.new("statusCode" => 401) }
+    it "is an alias for #status_code" do
       expect(subject.status).to eql(subject.status_code)
       expect(subject.status).to eql(401)
     end
   end
 
-  context '#request_id #RSC7c' do
-    subject { Ably::Models::ErrorInfo.new('request_id' => '123-456-789-001') }
+  context "#request_id #RSC7c" do
+    subject { Ably::Models::ErrorInfo.new("request_id" => "123-456-789-001") }
 
-    it 'should return request ID' do
-      expect(subject.request_id).to eql('123-456-789-001')
+    it "should return request ID" do
+      expect(subject.request_id).to eql("123-456-789-001")
     end
   end
 
-  context '#cause #TI1' do
-    subject { Ably::Models::ErrorInfo.new('cause' => Ably::Models::ErrorInfo.new({})) }
+  context "#cause #TI1" do
+    subject { Ably::Models::ErrorInfo.new("cause" => Ably::Models::ErrorInfo.new({})) }
 
-    it 'should return cause attribute' do
+    it "should return cause attribute" do
       expect(subject.cause).to be_kind_of(Ably::Models::ErrorInfo)
     end
   end
 
-  context 'log entries container help link #TI5' do
-    context 'without an error code' do
-      subject { Ably::Models::ErrorInfo.new('statusCode' => 401) }
+  context "log entries container help link #TI5" do
+    context "without an error code" do
+      subject { Ably::Models::ErrorInfo.new("statusCode" => 401) }
 
-      it 'does not include the help URL' do
+      it "does not include the help URL" do
         expect(subject.to_s.scan(/help\.ably\.io/)).to be_empty
       end
     end
 
-    context 'with a specified error code' do
-      subject { Ably::Models::ErrorInfo.new('code' => 44_444) }
+    context "with a specified error code" do
+      subject { Ably::Models::ErrorInfo.new("code" => 44_444) }
 
-      it 'includes https://help.ably.io/error/[CODE] in the stringified object' do
-        expect(subject.to_s).to include('https://help.ably.io/error/44444')
+      it "includes https://help.ably.io/error/[CODE] in the stringified object" do
+        expect(subject.to_s).to include("https://help.ably.io/error/44444")
       end
     end
 
-    context 'with an error code and an href attribute' do
-      subject { Ably::Models::ErrorInfo.new('code' => 44_444, 'href' => 'http://foo.bar.com/') }
+    context "with an error code and an href attribute" do
+      subject { Ably::Models::ErrorInfo.new("code" => 44_444, "href" => "http://foo.bar.com/") }
 
-      it 'includes the specified href in the stringified object' do
-        expect(subject.to_s).to include('http://foo.bar.com/')
-        expect(subject.to_s).to_not include('https://help.ably.io/error/44444')
+      it "includes the specified href in the stringified object" do
+        expect(subject.to_s).to include("http://foo.bar.com/")
+        expect(subject.to_s).to_not include("https://help.ably.io/error/44444")
       end
     end
 
-    context 'with an error code and a message with the same error URL' do
-      subject { Ably::Models::ErrorInfo.new('message' => 'error https://help.ably.io/error/44444', 'code' => 44_444) }
+    context "with an error code and a message with the same error URL" do
+      subject { Ably::Models::ErrorInfo.new("message" => "error https://help.ably.io/error/44444", "code" => 44_444) }
 
-      it 'includes the specified error URL only once in the stringified object' do
+      it "includes the specified error URL only once in the stringified object" do
         expect(subject.to_s.scan(/help.ably.io/).length).to eql(1)
       end
     end
 
-    context 'with an error code and a message with a different error URL' do
-      subject { Ably::Models::ErrorInfo.new('message' => 'error https://help.ably.io/error/123123', 'code' => 44_444) }
+    context "with an error code and a message with a different error URL" do
+      subject { Ably::Models::ErrorInfo.new("message" => "error https://help.ably.io/error/123123", "code" => 44_444) }
 
-      it 'includes the specified error URL from the message and the error code URL in the stringified object' do
+      it "includes the specified error URL from the message and the error code URL in the stringified object" do
         puts subject.to_s
         expect(subject.to_s.scan(/help.ably.io/).length).to eql(2)
         expect(subject.to_s.scan(%r{error/123123}).length).to eql(1)

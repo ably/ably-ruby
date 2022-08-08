@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'openssl'
+require "openssl"
 
 module Ably
   module Realtime
@@ -12,7 +12,7 @@ module Ably
         extend ::Ably::Modules::Enum
 
         # Valid WebSocket connection states
-        STATE = ruby_enum('STATE', :initialized, :connecting, :connected, :disconnecting, :disconnected)
+        STATE = ruby_enum("STATE", :initialized, :connecting, :connected, :disconnecting, :disconnected)
         include ::Ably::Modules::StateEmitter
 
         attr_reader :host
@@ -21,9 +21,9 @@ module Ably
           super
 
           @connection = connection
-          @state      = STATE.Initialized
-          @url        = url
-          @host       = URI.parse(url).hostname
+          @state = STATE.Initialized
+          @url = url
+          @host = URI.parse(url).hostname
 
           setup_event_handlers
         end
@@ -67,7 +67,7 @@ module Ably
         # Called whenever a connection (either a server or client connection) is closed
         # Required {http://www.rubydoc.info/github/eventmachine/eventmachine/EventMachine/Connection EventMachine::Connection} interface
         def unbind
-          change_state STATE.Disconnected, reason_closed || 'Websocket connection closed unexpectedly'
+          change_state STATE.Disconnected, reason_closed || "Websocket connection closed unexpectedly"
         end
 
         # URL end point including initialization configuration
@@ -97,7 +97,7 @@ module Ably
             begin
               certificate_store.add_cert(@last_seen_cert)
             rescue OpenSSL::X509::StoreError => e
-              unless e.message == 'cert already in hash table'
+              unless e.message == "cert already in hash table"
                 disconnect_with_reason "Websocket host '#{host}' returned an invalid TLS certificate: #{e.message}"
                 return false
               end
@@ -157,7 +157,7 @@ module Ably
           when :json
             driver.text(object.to_json)
           when :msgpack
-            driver.binary(object.to_msgpack.unpack('C*'))
+            driver.binary(object.to_msgpack.unpack("C*"))
           else
             client.logger.fatal { "WebsocketTransport: Unsupported protocol '#{client.protocol}' for serialization, object cannot be serialized and sent to Ably over this WebSocket" }
           end
@@ -184,17 +184,17 @@ module Ably
         def setup_driver
           @driver = WebSocket::Driver.client(self)
 
-          driver.on('open') do
+          driver.on("open") do
             logger.debug { "WebsocketTransport: socket opened to #{url}, waiting for Connected protocol message" }
           end
 
-          driver.on('message') do |event|
+          driver.on("message") do |event|
             event_data = parse_event_data(event.data).freeze
             protocol_message = Ably::Models::ProtocolMessage.new(event_data, logger: logger)
             action_name = begin
-              Ably::Models::ProtocolMessage::ACTION[event_data['action']]
-            rescue StandardError
-              event_data['action']
+              Ably::Models::ProtocolMessage::ACTION[event_data["action"]]
+            rescue
+              event_data["action"]
             end
             logger.debug { "WebsocketTransport: Prot msg recv <=: #{action_name} - #{event_data}" }
 
@@ -212,16 +212,16 @@ module Ably
             end
           end
 
-          driver.on('ping') do
+          driver.on("ping") do
             __incoming_protocol_msgbus__.publish :protocol_message, Ably::Models::ProtocolMessage.new(action: Ably::Models::ProtocolMessage::ACTION.Heartbeat, source: :websocket)
           end
 
-          driver.on('error') do |error|
+          driver.on("error") do |error|
             logger.error { "WebsocketTransport: Protocol Error on transports - #{error.message}" }
           end
 
           @reason_closed = nil
-          driver.on('closed') do |event|
+          driver.on("closed") do |event|
             @reason_closed = "#{event.code}: #{event.reason}"
             logger.warn { "WebsocketTransport: Driver reported transport as closed - #{reason_closed}" }
           end
@@ -241,7 +241,7 @@ module Ably
           when :json
             JSON.parse(data)
           when :msgpack
-            MessagePack.unpack(data.pack('C*'))
+            MessagePack.unpack(data.pack("C*"))
           else
             client.logger.fatal { "WebsocketTransport: Unsupported Protocol Message format #{client.protocol}" }
             data

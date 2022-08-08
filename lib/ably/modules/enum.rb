@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'ably/modules/conversions'
+require "ably/modules/conversions"
 
 module Ably
   module Modules
@@ -43,7 +43,7 @@ module Ably
           extend Conversions
 
           @enum_name = enum_name
-          @by_index  = {}
+          @by_index = {}
           @by_symbol = {}
 
           class << self
@@ -81,7 +81,7 @@ module Ably
 
             # Method ensuring this {Enum} is {http://ruby-doc.org/core-2.1.3/Enumerable.html Enumerable}
             def each(&block)
-              return to_enum(:each) unless block_given?
+              return to_enum(:each) unless block
 
               by_symbol.values.each(&block)
             end
@@ -109,18 +109,18 @@ module Ably
               # Allow another Enum to be used as a set of values
               values = values.first.map(&:to_sym) if values.length == 1 && (klass = values.first) && klass.is_a?(Class) && klass.ancestors.include?(Enum::Base)
 
-              values.map do |value|
+              values.flat_map do |value|
                 # Convert any key => index_value pairs into array pairs
                 Array(value)
-              end.flatten(1).each_with_index do |name, index|
+              end.each_with_index do |name, index|
                 name, index = name if name.is_a?(Array) # name is key => index_value pair
                 raise ArgumentError, "Index value '#{index}' is invalid" unless index.is_a?(Numeric)
 
-                camel_name  = convert_to_mixed_case(name, force_camel: true)
+                camel_name = convert_to_mixed_case(name, force_camel: true)
                 name_symbol = convert_to_snake_case_symbol(name)
-                enum        = new(camel_name, name_symbol, index.to_i)
+                enum = new(camel_name, name_symbol, index.to_i)
 
-                by_index[index.to_i]   = enum
+                by_index[index.to_i] = enum
                 by_symbol[name_symbol] = enum
 
                 define_singleton_method camel_name do
@@ -134,8 +134,8 @@ module Ably
           end
 
           def initialize(name, symbol, index)
-            @name   = name
-            @index  = index
+            @name = name
+            @index = index
             @symbol = symbol
           end
 

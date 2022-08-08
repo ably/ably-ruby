@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'json'
-require 'ably/models/message_encoders/base'
+require "json"
+require "ably/models/message_encoders/base"
 
 module Ably
   module Models
@@ -10,7 +10,7 @@ module Ably
       # Uses encoding identifier 'json' and encodes all objects that are not strings or byte arrays
       #
       class Json < Base
-        ENCODING_ID = 'json'
+        ENCODING_ID = "json"
 
         def encode(message, _channel_options)
           return unless needs_json_encoding?(message)
@@ -33,7 +33,7 @@ module Ably
         end
 
         def is_json_encoded?(message)
-          current_encoding_part(message).to_s.match(/^#{ENCODING_ID}$/i)
+          current_encoding_part(message).to_s.match(/^#{ENCODING_ID}$/io)
         end
       end
     end

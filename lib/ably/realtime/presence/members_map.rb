@@ -21,13 +21,13 @@ module Ably
         include Enumerable
         extend ::Ably::Modules::Enum
 
-        STATE = ruby_enum 'STATE',
-                          :initialized,
-                          :sync_starting, # Indicates the client is waiting for SYNC ProtocolMessages from Ably
-                          :sync_none, # Indicates the ATTACHED ProtocolMessage had no presence flag and thus no members on the channel
-                          :finalizing_sync,
-                          :in_sync,
-                          :failed
+        STATE = ruby_enum "STATE",
+          :initialized,
+          :sync_starting, # Indicates the client is waiting for SYNC ProtocolMessages from Ably
+          :sync_none, # Indicates the ATTACHED ProtocolMessage had no presence flag and thus no members on the channel
+          :finalizing_sync,
+          :in_sync,
+          :failed
         include ::Ably::Modules::StateEmitter
 
         def initialize(presence)
@@ -94,14 +94,14 @@ module Ably
         #
         def get(options = {}, &block)
           wait_for_sync = options.fetch(:wait_for_sync, true)
-          deferrable    = Ably::Util::SafeDeferrable.new(logger)
+          deferrable = Ably::Util::SafeDeferrable.new(logger)
 
           result_block = lambda do
             present_members.tap do |members|
               members.keep_if { |member| member.connection_id == options[:connection_id] } if options[:connection_id]
               members.keep_if { |member| member.client_id == options[:client_id] } if options[:client_id]
             end.tap do |members|
-              safe_yield block, members if block_given?
+              safe_yield block, members if block
               deferrable.succeed members
             end
           end
@@ -145,12 +145,12 @@ module Ably
           present_members.length
         end
         alias_method :count, :length
-        alias_method :size,  :length
+        alias_method :size, :length
 
         # Method to allow {MembersMap} to be {http://ruby-doc.org/core-2.1.3/Enumerable.html Enumerable}
         # @note this method will not wait for the sync operation to complete so may return an incomplete set of members.  Use {MembersMap#get} instead.
         def each(&block)
-          return to_enum(:each) unless block_given?
+          return to_enum(:each) unless block
 
           present_members.each(&block)
         end
@@ -243,7 +243,7 @@ module Ably
           end.transform_values { |member| member.fetch(:message) }
 
           @local_members.reject do |member_key, _|
-            new_local_members.keys.include?(member_key)
+            new_local_members.key?(member_key)
           end.each do |_, message|
             re_enter_local_member_missing_from_presence_map message
           end
@@ -305,7 +305,7 @@ module Ably
         def ensure_presence_message_is_valid(presence_message)
           return true if presence_message.connection_id
 
-          error = Ably::Exceptions::ProtocolError.new('Protocol error, presence message is missing connectionId', 400, Ably::Exceptions::Codes::PROTOCOL_ERROR)
+          error = Ably::Exceptions::ProtocolError.new("Protocol error, presence message is missing connectionId", 400, Ably::Exceptions::Codes::PROTOCOL_ERROR)
           logger.error { "PresenceMap: On channel '#{channel.name}' error: #{error}" }
         end
 
@@ -351,7 +351,7 @@ module Ably
         end
 
         def add_presence_member(presence_message)
-          logger.debug { "#{self.class.name}: Member '#{presence_message.member_key}' for event '#{presence_message.action}' #{members.key?(presence_message.member_key) ? 'updated' : 'added'}.\n#{presence_message.to_json}" }
+          logger.debug { "#{self.class.name}: Member '#{presence_message.member_key}' for event '#{presence_message.action}' #{members.key?(presence_message.member_key) ? "updated" : "added"}.\n#{presence_message.to_json}" }
           # Mutate the PresenceMessage so that the action is :present, see #RTP2d
           present_presence_message = presence_message.shallow_clone(action: Ably::Models::PresenceMessage::ACTION.Present)
           member_set_upsert present_presence_message, true
@@ -378,7 +378,7 @@ module Ably
         end
 
         def member_set_upsert(presence_message, present)
-          members[presence_message.member_key] = { present: present, message: presence_message, sync_session_id: sync_session_id }
+          members[presence_message.member_key] = {present: present, message: presence_message, sync_session_id: sync_session_id}
           return unless presence_message.connection_id == connection.id
 
           local_members[presence_message.member_key] = presence_message

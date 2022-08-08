@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'ably/modules/conversions'
+require "ably/modules/conversions"
 
 # MessageEncoders are registered with the Ably client library and are responsible
 # for encoding & decoding messages.
@@ -37,7 +37,7 @@ module Ably
         #
         # @return [void]
         def encode(_message, _channel_options)
-          raise 'Not yet implemented'
+          raise "Not yet implemented"
         end
 
         # #decode is called once for every encoding step
@@ -53,7 +53,7 @@ module Ably
         #
         # @return [void]
         def decode(_message, _channel_options)
-          raise 'Not yet implemented'
+          raise "Not yet implemented"
         end
 
         # Add encoding to the message Hash.
@@ -64,7 +64,7 @@ module Ably
         #
         # @return [void]
         def add_encoding_to_message(encoding, message)
-          message[:encoding] = [message[:encoding], encoding].compact.join('/')
+          message[:encoding] = [message[:encoding], encoding].compact.join("/")
         end
 
         # Returns the right most encoding form a meessage encoding, and nil if none exists
@@ -74,7 +74,7 @@ module Ably
         def current_encoding_part(message)
           return unless message[:encoding]
 
-          message[:encoding].split('/')[-1]
+          message[:encoding].split("/")[-1]
         end
 
         # Strip the current encoding part within the message Hash.
@@ -86,9 +86,9 @@ module Ably
         #
         # @return [void]
         def strip_current_encoding_part(message)
-          raise 'Cannot strip encoding when there is no encoding for this message' unless message[:encoding]
+          raise "Cannot strip encoding when there is no encoding for this message" unless message[:encoding]
 
-          message[:encoding] = message[:encoding].split('/')[0...-1].join('/')
+          message[:encoding] = message[:encoding].split("/")[0...-1].join("/")
           message[:encoding] = nil if message[:encoding].empty?
         end
 
@@ -98,7 +98,7 @@ module Ably
         #
         # @return [Boolean]
         def is_empty?(message)
-          message[:data].nil? || message[:data] == ''
+          message[:data].nil? || message[:data] == ""
         end
       end
 
@@ -114,14 +114,14 @@ module Ably
       # @api private
       def self.encoder_from(encoder, options)
         encoder_klass = if encoder.is_a?(String)
-                          encoder.split('::').inject(Kernel) do |base, klass_name|
-                            base.public_send(:const_get, klass_name)
-                          end
-                        else
-                          encoder
-                        end
+          encoder.split("::").inject(Kernel) do |base, klass_name|
+            base.public_send(:const_get, klass_name)
+          end
+        else
+          encoder
+        end
 
-        raise 'Encoder must inherit from `Ably::Models::MessageEncoders::Base`' unless encoder_klass.ancestors.include?(::Ably::Models::MessageEncoders::Base)
+        raise "Encoder must inherit from `Ably::Models::MessageEncoders::Base`" unless encoder_klass.ancestors.include?(::Ably::Models::MessageEncoders::Base)
 
         encoder_klass.new(self, options)
       end
@@ -129,7 +129,7 @@ module Ably
   end
 end
 
-require 'ably/models/message_encoders/base64'
-require 'ably/models/message_encoders/cipher'
-require 'ably/models/message_encoders/json'
-require 'ably/models/message_encoders/utf8'
+require "ably/models/message_encoders/base64"
+require "ably/models/message_encoders/cipher"
+require "ably/models/message_encoders/json"
+require "ably/models/message_encoders/utf8"

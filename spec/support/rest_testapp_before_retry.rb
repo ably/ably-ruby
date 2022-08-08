@@ -9,9 +9,9 @@ RSpec.configure do |config|
 
     next if example.metadata[:webmock] # new app is not needed for a mocked test
 
-    if example.exception && ENV['RSPEC_RETRY']
+    if example.exception && ENV["RSPEC_RETRY"]
       reload_test_app
-      puts '** Test app reloaded before next retry **'
+      puts "** Test app reloaded before next retry **"
     end
   end
 end

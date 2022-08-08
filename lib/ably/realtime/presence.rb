@@ -11,7 +11,7 @@ module Ably
       include ::Ably::Modules::SafeYield
       extend ::Ably::Modules::Enum
 
-      STATE = ruby_enum 'STATE', :initialized, :entering, :entered, :leaving, :left
+      STATE = ruby_enum "STATE", :initialized, :entering, :entered, :leaving, :left
 
       include ::Ably::Modules::StateEmitter
       include ::Ably::Modules::UsesStateMachine
@@ -39,13 +39,13 @@ module Ably
       attr_reader :manager
 
       def initialize(channel)
-        @channel       = channel
-        @client_id     = client.client_id
+        @channel = channel
+        @client_id = client.client_id
 
         @state_machine = PresenceStateMachine.new(self)
-        @state         = STATE(state_machine.current_state)
-        @members       = MembersMap.new(self)
-        @manager       = PresenceManager.new(self)
+        @state = STATE(state_machine.current_state)
+        @members = MembersMap.new(self)
+        @manager = PresenceManager.new(self)
       end
 
       # Enter this client into this channel. This client will be added to the presence set
@@ -229,7 +229,7 @@ module Ably
         if wait_for_sync && channel.suspended?
           EventMachine.next_tick do
             deferrable.fail Ably::Exceptions::InvalidState.new(
-              'Presence state is out of sync as channel is SUSPENDED. Presence#get on a SUSPENDED channel is only supported with option wait_for_sync: false',
+              "Presence state is out of sync as channel is SUSPENDED. Presence#get on a SUSPENDED channel is only supported with option wait_for_sync: false",
               nil,
               Ably::Exceptions::Codes::PRESENCE_STATE_IS_OUT_OF_SYNC
             )
@@ -240,7 +240,7 @@ module Ably
         ensure_channel_attached(deferrable, allow_suspended: true) do
           members.get(options).tap do |members_map_deferrable|
             members_map_deferrable.callback do |members|
-              safe_yield(block, members) if block_given?
+              safe_yield(block, members) if block
               deferrable.succeed(members)
             end
             members_map_deferrable.errback do |*args|
@@ -314,7 +314,7 @@ module Ably
       # @return [Ably::Models::PresenceMessage] presence message is returned allowing callbacks to be added
       def send_presence_protocol_message(presence_action, client_id, data)
         presence_message = create_presence_message(presence_action, client_id, data)
-        raise Ably::Exceptions::Standard.new('Unable to enter create presence message without a client_id', 400, Ably::Exceptions::Codes::UNABLE_TO_ENTER_PRESENCE_CHANNEL_NO_CLIENTID) unless presence_message.client_id
+        raise Ably::Exceptions::Standard.new("Unable to enter create presence message without a client_id", 400, Ably::Exceptions::Codes::UNABLE_TO_ENTER_PRESENCE_CHANNEL_NO_CLIENTID) unless presence_message.client_id
 
         protocol_message = {
           action: Ably::Models::ProtocolMessage::ACTION.Presence,
@@ -358,9 +358,9 @@ module Ably
       end
 
       def ensure_supported_client_id(check_client_id)
-        raise Ably::Exceptions::IncompatibleClientId, 'Unable to enter/update/leave presence channel without a client_id' unless check_client_id
-        raise Ably::Exceptions::IncompatibleClientId, 'Unable to enter/update/leave presence channel with the reserved wildcard client_id' if check_client_id == '*'
-        raise Ably::Exceptions::IncompatibleClientId, 'Unable to enter/update/leave with a non String client_id value' unless check_client_id.is_a?(String)
+        raise Ably::Exceptions::IncompatibleClientId, "Unable to enter/update/leave presence channel without a client_id" unless check_client_id
+        raise Ably::Exceptions::IncompatibleClientId, "Unable to enter/update/leave presence channel with the reserved wildcard client_id" if check_client_id == "*"
+        raise Ably::Exceptions::IncompatibleClientId, "Unable to enter/update/leave with a non String client_id value" unless check_client_id.is_a?(String)
 
         return if client.auth.can_assume_client_id?(check_client_id)
 
@@ -368,8 +368,8 @@ module Ably
       end
 
       def send_protocol_message_and_transition_state_to(action, options = {}, &success_block)
-        deferrable   = options.fetch(:deferrable) { raise ArgumentError, 'option :deferrable is required' }
-        client_id    = options.fetch(:client_id)  { raise ArgumentError, 'option :client_id is required' }
+        deferrable = options.fetch(:deferrable) { raise ArgumentError, "option :deferrable is required" }
+        client_id = options.fetch(:client_id) { raise ArgumentError, "option :client_id is required" }
         target_state = options.fetch(:target_state, nil)
         failed_state = options.fetch(:failed_state, nil)
 
@@ -387,13 +387,13 @@ module Ably
       end
 
       def deferrable_succeed(deferrable, *args, &block)
-        safe_yield(block, self, *args) if block_given?
+        safe_yield(block, self, *args) if block
         EventMachine.next_tick { deferrable.succeed self, *args } # allow callback to be added to the returned Deferrable before calling succeed
         deferrable
       end
 
       def deferrable_fail(deferrable, *args, &block)
-        safe_yield(block, *args) if block_given?
+        safe_yield(block, *args) if block
         EventMachine.next_tick { deferrable.fail(*args) } # allow errback to be added to the returned Deferrable
         deferrable
       end
@@ -406,7 +406,7 @@ module Ably
         ensure_channel_attached(deferrable) do
           send_presence_protocol_message(action, client_id, data).tap do |protocol_message|
             protocol_message.callback { |_| deferrable_succeed deferrable, &success_block }
-            protocol_message.errback  { |error| deferrable_fail deferrable, error }
+            protocol_message.errback { |error| deferrable_fail deferrable, error }
           end
         end
       end
@@ -454,6 +454,6 @@ module Ably
   end
 end
 
-require 'ably/realtime/presence/presence_manager'
-require 'ably/realtime/presence/members_map'
-require 'ably/realtime/presence/presence_state_machine'
+require "ably/realtime/presence/presence_manager"
+require "ably/realtime/presence/members_map"
+require "ably/realtime/presence/presence_state_machine"

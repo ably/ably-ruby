@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'eventmachine'
+require "eventmachine"
 
 module Ably
   module Modules

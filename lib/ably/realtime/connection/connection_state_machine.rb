@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'ably/modules/state_machine'
+require "ably/modules/state_machine"
 
 module Ably
   module Realtime
@@ -22,14 +22,14 @@ module Ably
           state state_enum.to_sym, initial: index.zero?
         end
 
-        transition from: :initialized,  to: %I[connecting closing]
-        transition from: :connecting,   to: %I[connected failed closing disconnected suspended]
-        transition from: :connected,    to: %I[disconnected suspended closing failed]
+        transition from: :initialized, to: %I[connecting closing]
+        transition from: :connecting, to: %I[connected failed closing disconnected suspended]
+        transition from: :connected, to: %I[disconnected suspended closing failed]
         transition from: :disconnected, to: %I[connecting closing suspended failed]
-        transition from: :suspended,    to: %I[connecting closing failed]
-        transition from: :closing,      to: %I[closed]
-        transition from: :closed,       to: %I[connecting]
-        transition from: :failed,       to: %I[connecting]
+        transition from: :suspended, to: %I[connecting closing failed]
+        transition from: :closing, to: %I[closed]
+        transition from: :closed, to: %I[connecting]
+        transition from: :failed, to: %I[connecting]
 
         after_transition do |connection, _|
           connection.synchronize_state_with_statemachine

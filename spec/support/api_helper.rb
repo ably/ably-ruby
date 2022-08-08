@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'support/test_app'
+require "support/test_app"
 
 module ApiHelper
   def app_id
@@ -33,7 +33,7 @@ module ApiHelper
   end
 
   def encode64(text)
-    Base64.encode64(text).gsub("\n", '')
+    Base64.encode64(text).delete("\n")
   end
 end
 
@@ -46,7 +46,7 @@ RSpec.configure do |config|
 
   config.after(:suite) do
     WebMock.disable!
-    TestApp.instance.delete if TestApp.instance_variable_get('@singleton__instance__')
+    TestApp.instance.delete if TestApp.instance_variable_get(:@singleton__instance__)
   end
 end
 

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'ably/modules/exception_codes'
+require "ably/modules/exception_codes"
 
 module Ably
   module Exceptions
@@ -39,10 +39,10 @@ module Ably
           additional_info << "http status: #{status}" if status
           additional_info << "base exception: #{@base_exception.class}" if @base_exception
           additional_info << "request_id: #{request_id}" if request_id
-          message << "(#{additional_info.join(', ')})"
+          message << "(#{additional_info.join(", ")})"
           message << "-> see https://help.ably.io/error/#{code} for help" if code
         end
-        message.join(' ')
+        message.join(" ")
       end
 
       def as_json(*_args)
@@ -93,9 +93,9 @@ module Ably
         message = [super]
         if @base_exception
           message << @base_exception.to_s
-          message << 'See https://goo.gl/eKvfcR to resolve this issue.' if @base_exception.respond_to?(:message) && @base_exception.message.match(/certificate verify failed/i)
+          message << "See https://goo.gl/eKvfcR to resolve this issue." if @base_exception.respond_to?(:message) && @base_exception.message.match(/certificate verify failed/i)
         end
-        message.join(' < ')
+        message.join(" < ")
       end
     end
 

@@ -1,31 +1,31 @@
 # frozen_string_literal: true
 
-require 'eventmachine'
-require 'websocket/driver'
-require 'em-http-request'
+require "eventmachine"
+require "websocket/driver"
+require "em-http-request"
 
-require 'ably/modules/event_emitter'
+require "ably/modules/event_emitter"
 
-require 'ably/realtime/auth'
-require 'ably/realtime/channel'
-require 'ably/realtime/channels'
-require 'ably/realtime/client'
-require 'ably/realtime/connection'
-require 'ably/realtime/push'
-require 'ably/realtime/presence'
+require "ably/realtime/auth"
+require "ably/realtime/channel"
+require "ably/realtime/channels"
+require "ably/realtime/client"
+require "ably/realtime/connection"
+require "ably/realtime/push"
+require "ably/realtime/presence"
 
-require 'ably/models/message_encoders/base'
+require "ably/models/message_encoders/base"
 
-Dir.glob(File.expand_path('models/*.rb', File.dirname(__FILE__))).sort.each do |file|
+Dir.glob(File.expand_path("models/*.rb", File.dirname(__FILE__))).sort.each do |file|
   require file
 end
 
-Dir.glob(File.expand_path('realtime/models/*.rb', File.dirname(__FILE__))).sort.each do |file|
+Dir.glob(File.expand_path("realtime/models/*.rb", File.dirname(__FILE__))).sort.each do |file|
   require file
 end
 
-require 'ably/realtime/client/incoming_message_dispatcher'
-require 'ably/realtime/client/outgoing_message_dispatcher'
+require "ably/realtime/client/incoming_message_dispatcher"
+require "ably/realtime/client/outgoing_message_dispatcher"
 
 module Ably
   # Realtime provides the top-level class to be instanced for the Ably Realtime library

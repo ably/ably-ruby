@@ -47,7 +47,7 @@ module Ably
         super
 
         @raw_hash_object = hash_object
-        @hash_object     = IdiomaticRubyWrapper(hash_object.clone.freeze)
+        @hash_object = IdiomaticRubyWrapper(hash_object.clone.freeze)
       end
 
       %w[message code href status_code request_id cause].each do |attribute|
@@ -62,7 +62,7 @@ module Ably
       end
 
       def to_s
-        error_href = href || (code ? "https://help.ably.io/error/#{code}" : '')
+        error_href = href || (code ? "https://help.ably.io/error/#{code}" : "")
         see_msg = " -> see #{error_href} for help" unless message.to_s.include?(error_href.to_s)
         "<Error: #{message} (code: #{code}, http status: #{status} request_id: #{request_id} cause: #{cause})>#{see_msg}"
       end

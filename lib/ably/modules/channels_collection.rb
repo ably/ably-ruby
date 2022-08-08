@@ -8,9 +8,9 @@ module Ably
       include Enumerable
 
       def initialize(client, channel_klass)
-        @client         = client
-        @channel_klass  = channel_klass
-        @channels       = {}
+        @client = client
+        @channel_klass = channel_klass
+        @channels = {}
       end
 
       # Return a Channel for the given name
@@ -71,11 +71,11 @@ module Ably
         channels.length
       end
       alias_method :count, :length
-      alias_method :size,  :length
+      alias_method :size, :length
 
       # Method to allow {ChannelsCollection} to be {http://ruby-doc.org/core-2.1.3/Enumerable.html Enumerable}
       def each(&block)
-        return to_enum(:each) unless block_given?
+        return to_enum(:each) unless block
 
         channels.values.each(&block)
       end
@@ -83,11 +83,11 @@ module Ably
       private
 
       def raise_implicit_options_update
-        raise ArgumentError, 'You are trying to indirectly update channel options which will trigger reattachment of the channel. Please use Channel#set_options directly if you wish to continue'
+        raise ArgumentError, "You are trying to indirectly update channel options which will trigger reattachment of the channel. Please use Channel#set_options directly if you wish to continue"
       end
 
       def warn_implicit_options_update
-        logger.warn { 'Channels#get: Using this method to update channel options is deprecated and may be removed in a future version of ably-ruby. Please use Channel#setOptions instead' }
+        logger.warn { "Channels#get: Using this method to update channel options is deprecated and may be removed in a future version of ably-ruby. Please use Channel#setOptions instead" }
       end
 
       def logger

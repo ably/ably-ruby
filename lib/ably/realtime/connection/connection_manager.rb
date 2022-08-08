@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'ably/rest/middleware/exceptions'
+require "ably/rest/middleware/exceptions"
 
 module Ably
   module Realtime
@@ -19,8 +19,8 @@ module Ably
         }.freeze
 
         def initialize(connection)
-          @connection     = connection
-          @timers         = Hash.new { |hash, key| hash[key] = [] }
+          @connection = connection
+          @timers = Hash.new { |hash, key| hash[key] = [] }
 
           connection.unsafe_on(:closed) do
             connection.reset_resume_info
@@ -41,14 +41,14 @@ module Ably
         # @yield [Ably::Realtime::Connection::WebsocketTransport] block is called with new websocket transport
         # @api private
         def setup_transport
-          raise 'Existing WebsocketTransport is connected, and must be closed first' if transport && !transport.ready_for_release?
+          raise "Existing WebsocketTransport is connected, and must be closed first" if transport && !transport.ready_for_release?
 
           unless client.auth.authentication_security_requirements_met?
-            connection.transition_state_machine :failed, reason: Ably::Exceptions::InsecureRequest.new('Cannot use Basic Auth over non-TLS connections', 401, Ably::Exceptions::Codes::INVALID_USE_OF_BASIC_AUTH_OVER_NONTLS_TRANSPORT)
+            connection.transition_state_machine :failed, reason: Ably::Exceptions::InsecureRequest.new("Cannot use Basic Auth over non-TLS connections", 401, Ably::Exceptions::Codes::INVALID_USE_OF_BASIC_AUTH_OVER_NONTLS_TRANSPORT)
             return
           end
 
-          logger.debug { 'ConnectionManager: Opening a websocket transport connection' }
+          logger.debug { "ConnectionManager: Opening a websocket transport connection" }
 
           # The socket attempt can fail at the same time as a timer firing so ensure
           #   only one outcome is processed from this setup attempt
@@ -378,7 +378,7 @@ module Ably
         # Create a timer that will execute in timeout_in seconds.
         # If the connection state changes however, cancel the timer
         def create_timeout_timer_whilst_in_state(timer_id, timeout_in, &block)
-          raise ArgumentError, 'Block required' unless block_given?
+          raise ArgumentError, "Block required" unless block
 
           timers[timer_id] << EventMachine::Timer.new(timeout_in, &block)
           connection.unsafe_once_state_changed { clear_timers timer_id }
@@ -390,10 +390,10 @@ module Ably
 
         def get_next_retry_state_info(allow_extra_immediate_retries = 0)
           retry_state = if connection_retry_from_suspended_state? || !can_reattempt_connect_for_state?(:disconnected)
-                          :suspended
-                        else
-                          :disconnected
-                        end
+            :suspended
+          else
+            :disconnected
+          end
           {
             state: retry_state,
             pause: next_retry_pause(retry_state, allow_extra_immediate_retries)
@@ -503,10 +503,10 @@ module Ably
               connection.transition_state_machine :closed
             elsif !connection.closed? && !connection.disconnected? && !connection.failed? && !connection.suspended?
               exception = if reason
-                            Ably::Exceptions::TransportClosed.new(reason, nil, Ably::Exceptions::Codes::DISCONNECTED)
-                          else
-                            Ably::Exceptions::TransportClosed.new('Transport disconnected unexpectedly', nil, Ably::Exceptions::Codes::DISCONNECTED)
-                          end
+                Ably::Exceptions::TransportClosed.new(reason, nil, Ably::Exceptions::Codes::DISCONNECTED)
+              else
+                Ably::Exceptions::TransportClosed.new("Transport disconnected unexpectedly", nil, Ably::Exceptions::Codes::DISCONNECTED)
+              end
               next_state = get_next_retry_state_info
               connection.transition_state_machine next_state.fetch(:state), retry_in: next_state.fetch(:pause), reason: exception
             end
@@ -516,16 +516,16 @@ module Ably
         def renew_token_and_reconnect(error)
           if client.auth.token_renewable?
             if currently_renewing_token?
-              logger.error { 'ConnectionManager: Attempting to renew token whilst another token renewal is underway. Aborting current renew token request' }
+              logger.error { "ConnectionManager: Attempting to renew token whilst another token renewal is underway. Aborting current renew token request" }
               return
             end
 
-            logger.info { 'ConnectionManager: Token has expired and is renewable, renewing token now' }
+            logger.info { "ConnectionManager: Token has expired and is renewable, renewing token now" }
 
             # Authorize implicitly reconnects, see #RTC8
             client.auth.authorize.tap do |authorize_deferrable|
               authorize_deferrable.callback do |_|
-                logger.info { 'ConnectionManager: Token renewed succesfully following expiration' }
+                logger.info { "ConnectionManager: Token renewed succesfully following expiration" }
               end
             end
           else
@@ -537,7 +537,7 @@ module Ably
         def unsubscribe_from_transport_events(transport)
           transport.__incoming_protocol_msgbus__.unsubscribe
           transport.off
-          logger.debug { 'ConnectionManager: Unsubscribed from all events from current transport' }
+          logger.debug { "ConnectionManager: Unsubscribed from all events from current transport" }
         end
 
         def close_connection_when_reactor_is_stopped

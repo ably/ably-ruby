@@ -105,7 +105,7 @@ module Ably
         end
 
         def get_const(klass_name)
-          klass_names = klass_name.split('::')
+          klass_names = klass_name.split("::")
           klass_names.inject(Kernel) do |klass, name|
             klass.const_get(name)
           end

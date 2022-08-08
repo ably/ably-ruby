@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'msgpack'
+require "msgpack"
 
 module Ably
   module Modules

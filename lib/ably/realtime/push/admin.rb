@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'ably/realtime/push/device_registrations'
-require 'ably/realtime/push/channel_subscriptions'
+require "ably/realtime/push/device_registrations"
+require "ably/realtime/push/channel_subscriptions"
 
 module Ably
   module Realtime
@@ -30,9 +30,9 @@ module Ably
         #
         def publish(recipient, data, &callback)
           raise ArgumentError, "Expecting a Hash object for recipient, got #{recipient.class}" unless recipient.is_a?(Hash)
-          raise ArgumentError, 'Recipient data is empty. You must provide recipient details' if recipient.empty?
+          raise ArgumentError, "Recipient data is empty. You must provide recipient details" if recipient.empty?
           raise ArgumentError, "Expecting a Hash object for data, got #{data.class}" unless data.is_a?(Hash)
-          raise ArgumentError, 'Push data field is empty. You must provide attributes for the push notification' if data.empty?
+          raise ArgumentError, "Push data field is empty. You must provide attributes for the push notification" if data.empty?
 
           async_wrap(callback) do
             rest_push_admin.publish(recipient, data)

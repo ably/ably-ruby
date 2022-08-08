@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'ably/models/stats_types'
+require "ably/models/stats_types"
 
 module Ably
   # Models module provides the methods and classes for the Ably library
@@ -43,13 +43,13 @@ module Ably
       include ::Ably::Modules::ModelCommon
       extend ::Ably::Modules::Enum
 
-      GRANULARITY = ruby_enum('GRANULARITY', :minute, :hour, :day, :month)
+      GRANULARITY = ruby_enum("GRANULARITY", :minute, :hour, :day, :month)
 
       INTERVAL_FORMAT_STRING = [
-        '%Y-%m-%d:%H:%M',
-        '%Y-%m-%d:%H',
-        '%Y-%m-%d',
-        '%Y-%m'
+        "%Y-%m-%d:%H:%M",
+        "%Y-%m-%d:%H",
+        "%Y-%m-%d",
+        "%Y-%m"
       ].freeze
 
       class << self
@@ -63,7 +63,7 @@ module Ably
         # @return [String] interval ID used for stats
         #
         def to_interval_id(time, granularity)
-          raise ArgumentError, 'Time object required as first argument' unless time.is_a?(Time)
+          raise ArgumentError, "Time object required as first argument" unless time.is_a?(Time)
 
           granularity = GRANULARITY(granularity)
           format = INTERVAL_FORMAT_STRING[granularity.to_i]
@@ -80,10 +80,10 @@ module Ably
         # @return [Time] start time of the provided interval_id
         #
         def from_interval_id(interval_id)
-          raise ArgumentError, 'Interval ID must be a string' unless interval_id.is_a?(String)
+          raise ArgumentError, "Interval ID must be a string" unless interval_id.is_a?(String)
 
           format = INTERVAL_FORMAT_STRING.find { |fmt| expected_length(fmt) == interval_id.length }
-          raise ArgumentError, 'Interval ID is an invalid length' unless format
+          raise ArgumentError, "Interval ID is an invalid length" unless format
 
           Time.strptime("#{interval_id} +0000", "#{format} %z").utc
         end
@@ -97,10 +97,10 @@ module Ably
         # @return [GRANULARITY] Granularity Enum for the interval_id
         #
         def granularity_from_interval_id(interval_id)
-          raise ArgumentError, 'Interval ID must be a string' unless interval_id.is_a?(String)
+          raise ArgumentError, "Interval ID must be a string" unless interval_id.is_a?(String)
 
           format = INTERVAL_FORMAT_STRING.find { |fmt| expected_length(fmt) == interval_id.length }
-          raise ArgumentError, 'Interval ID is an invalid length' unless format
+          raise ArgumentError, "Interval ID is an invalid length" unless format
 
           GRANULARITY[INTERVAL_FORMAT_STRING.index(format)]
         end
@@ -108,7 +108,7 @@ module Ably
         private
 
         def expected_length(format)
-          format.gsub('%Y', 'YYYY').length
+          format.gsub("%Y", "YYYY").length
         end
       end
 

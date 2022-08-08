@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'ably/models/paginated_result'
+require "ably/models/paginated_result"
 
 module Ably
   # Models module provides the methods and classes for the Ably library
@@ -20,7 +20,7 @@ module Ably
         async_wrap_if_realtime(success_callback) do
           return nil unless supports_pagination?
 
-          HttpPaginatedResponse.new(client.get(pagination_url('first')), base_url, client, pagination_options, &each_block)
+          HttpPaginatedResponse.new(client.get(pagination_url("first")), base_url, client, pagination_options, &each_block)
         end
       end
 
@@ -33,7 +33,7 @@ module Ably
         async_wrap_if_realtime(success_callback) do
           return nil unless has_next?
 
-          HttpPaginatedResponse.new(client.get(pagination_url('next')), base_url, client, pagination_options, &each_block)
+          HttpPaginatedResponse.new(client.get(pagination_url("next")), base_url, client, pagination_options, &each_block)
         end
       end
 
@@ -46,21 +46,21 @@ module Ably
       # True if the response is considered successful due to the HTTP status code
       # @return [Boolean]
       def success?
-        (200..299).include?(http_response.status.to_i)
+        (200..299).cover?(http_response.status.to_i)
       end
 
       # Ably error code from +X-Ably-Errorcode+ header if available from response
       # @return [Integer]
       def error_code
-        return unless http_response.headers['X-Ably-Errorcode']
+        return unless http_response.headers["X-Ably-Errorcode"]
 
-        http_response.headers['X-Ably-Errorcode'].to_i
+        http_response.headers["X-Ably-Errorcode"].to_i
       end
 
       # Error message from +X-Ably-Errormessage+ header if available from response
       # @return [String]
       def error_message
-        http_response.headers['X-Ably-Errormessage']
+        http_response.headers["X-Ably-Errormessage"]
       end
 
       # Headers for the HTTP response
@@ -82,8 +82,8 @@ module Ably
 
         def headers
           {
-            'X-Ably-Errorcode' => @error_code,
-            'X-Ably-Errormessage' => @error_message
+            "X-Ably-Errorcode" => @error_code,
+            "X-Ably-Errormessage" => @error_message
           }
         end
 

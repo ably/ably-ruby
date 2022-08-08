@@ -17,14 +17,14 @@ module Ably
 
       def safe_yield(block, *args)
         block.call(*args)
-      rescue StandardError => e
+      rescue => e
         message = "An exception in an external block was caught. #{e.class}: #{e.message}\n#{e.backtrace.join("\n")}"
         safe_yield_log_error message
       end
 
       def safe_yield_log_error(message)
         return logger.error message if defined?(:logger) && logger.respond_to?(:error)
-      rescue StandardError
+      rescue
         fallback_logger.error message
       end
 
@@ -32,7 +32,7 @@ module Ably
         @fallback_logger ||= ::Logger.new($stdout).tap do |logger|
           logger.formatter = lambda do |severity, datetime, _, msg|
             [
-              "#{datetime.strftime('%Y-%m-%d %H:%M:%S.%L')} #{::Logger::SEV_LABEL[severity]} #{msg}",
+              "#{datetime.strftime("%Y-%m-%d %H:%M:%S.%L")} #{::Logger::SEV_LABEL[severity]} #{msg}",
               "Warning: SafeYield expects the method #logger to be defined in the class it is included in, the method was not found in #{self.class}"
             ].join("\n")
           end

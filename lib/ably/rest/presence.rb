@@ -21,7 +21,7 @@ module Ably
       # @param client [Ably::Rest::Client]
       # @param channel [Channel] The channel object
       def initialize(client, channel)
-        @client  = client
+        @client = client
         @channel = channel
       end
 
@@ -40,7 +40,7 @@ module Ably
         }.merge(options)
 
         paginated_options = {
-          coerce_into: 'Ably::Models::PresenceMessage',
+          coerce_into: "Ably::Models::PresenceMessage",
           async_blocking_operations: options.delete(:async_blocking_operations)
         }
 
@@ -71,10 +71,10 @@ module Ably
         }.merge(options)
 
         %I[start end].each { |option| options[option] = as_since_epoch(options[option]) if options.key?(option) }
-        raise ArgumentError, ':end must be equal to or after :start' if options[:start] && options[:end] && (options[:start] > options[:end])
+        raise ArgumentError, ":end must be equal to or after :start" if options[:start] && options[:end] && (options[:start] > options[:end])
 
         paginated_options = {
-          coerce_into: 'Ably::Models::PresenceMessage',
+          coerce_into: "Ably::Models::PresenceMessage",
           async_blocking_operations: options.delete(:async_blocking_operations)
         }
 

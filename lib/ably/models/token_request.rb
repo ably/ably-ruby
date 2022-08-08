@@ -44,7 +44,7 @@ module Ably
       # @!attribute [r] key_name
       # @return [String] API key name of the key against which this request is made.  An API key is made up of an API key name and secret delimited by a +:+
       def key_name
-        attributes.fetch(:key_name) { raise Ably::Exceptions::InvalidTokenRequest, 'Key name is missing' }
+        attributes.fetch(:key_name) { raise Ably::Exceptions::InvalidTokenRequest, "Key name is missing" }
       end
 
       # @!attribute [r] ttl
@@ -61,7 +61,7 @@ module Ably
       #                the capability of the returned token will be the intersection of
       #                this capability with the capability of the issuing key.
       def capability
-        capability_val = attributes.fetch(:capability) { raise Ably::Exceptions::InvalidTokenRequest, 'Capability is missing' }
+        capability_val = attributes.fetch(:capability) { raise Ably::Exceptions::InvalidTokenRequest, "Capability is missing" }
 
         case capability_val
         when Hash
@@ -86,7 +86,7 @@ module Ably
       #                token requests from being replayed.
       #                Timestamp when sent to Ably is in milliseconds.
       def timestamp
-        timestamp_val = attributes.fetch(:timestamp) { raise Ably::Exceptions::InvalidTokenRequest, 'Timestamp is missing' }
+        timestamp_val = attributes.fetch(:timestamp) { raise Ably::Exceptions::InvalidTokenRequest, "Timestamp is missing" }
         as_time_from_epoch(timestamp_val, granularity: :ms)
       end
 
@@ -95,14 +95,14 @@ module Ably
       #                   uniqueness of this request. Any subsequent request using the
       #                   same nonce will be rejected.
       def nonce
-        attributes.fetch(:nonce) { raise Ably::Exceptions::InvalidTokenRequest, 'Nonce is missing' }
+        attributes.fetch(:nonce) { raise Ably::Exceptions::InvalidTokenRequest, "Nonce is missing" }
       end
 
       # @!attribute [r] mac
       # @return [String]  the Message Authentication Code for this request. See the
       #                   {https://www.ably.com/docs Ably Authentication documentation} for more details.
       def mac
-        attributes.fetch(:mac) { raise Ably::Exceptions::InvalidTokenRequest, 'MAC is missing' }
+        attributes.fetch(:mac) { raise Ably::Exceptions::InvalidTokenRequest, "MAC is missing" }
       end
 
       # Requests that the token is always persisted

@@ -10,7 +10,7 @@ module Ably
   # network failures either at the client, between the client and Ably, within an Ably data center, or at the IO domain registrar
   # see https://ably.com/docs/client-lib-development-guide/features/#RSC15a
   #
-  FALLBACK_DOMAIN = 'ably-realtime.com'
+  FALLBACK_DOMAIN = "ably-realtime.com"
   FALLBACK_IDS = %w[a b c d e].freeze
 
   # Default production fallbacks a.ably-realtime.com ... e.ably-realtime.com
@@ -22,7 +22,7 @@ module Ably
   end.freeze
 
   INTERNET_CHECK = {
-    url: '//internet-up.ably-realtime.com/is-the-internet-up.txt',
-    ok_text: 'yes'
+    url: "//internet-up.ably-realtime.com/is-the-internet-up.txt",
+    ok_text: "yes"
   }.freeze
 end

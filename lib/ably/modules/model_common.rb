@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require 'base64'
-require 'ably/modules/conversions'
-require 'ably/modules/message_pack'
+require "base64"
+require "ably/modules/conversions"
+require "ably/modules/message_pack"
 
 module Ably
   module Modules
@@ -55,7 +55,7 @@ module Ably
             "#{key}=#{val_str}"
           end
         end
-        "<#{self.class.name}: #{representation.compact.join(', ')}>"
+        "<#{self.class.name}: #{representation.compact.join(", ")}>"
       end
 
       # ClassMethods provides the methods for the Ably library classes

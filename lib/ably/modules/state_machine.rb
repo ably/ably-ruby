@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'statesman'
-require 'ably/modules/statesman_monkey_patch'
+require "statesman"
+require "ably/modules/statesman_monkey_patch"
 
 module Ably
   module Modules

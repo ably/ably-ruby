@@ -26,7 +26,7 @@ module Ably
         #
         def get(device_id)
           device_id = device_id.id if device_id.is_a?(Ably::Models::DeviceDetails)
-          raise ArgumentError, 'device_id must be a string or DeviceDetails object' unless device_id.is_a?(String)
+          raise ArgumentError, "device_id must be a string or DeviceDetails object" unless device_id.is_a?(String)
 
           DeviceDetails(client.get("/push/deviceRegistrations/#{device_id}").body)
         end
@@ -42,19 +42,19 @@ module Ably
         #
         def list(params = {})
           params = {} if params.nil?
-          raise ArgumentError, 'params must be a Hash' unless params.is_a?(Hash)
-          raise ArgumentError, 'device_id filter cannot be specified alongside a client_id filter. Use one or the other' if params[:client_id] && params[:device_id]
+          raise ArgumentError, "params must be a Hash" unless params.is_a?(Hash)
+          raise ArgumentError, "device_id filter cannot be specified alongside a client_id filter. Use one or the other" if params[:client_id] && params[:device_id]
 
           params = params.clone
 
           paginated_options = {
-            coerce_into: 'Ably::Models::DeviceDetails',
+            coerce_into: "Ably::Models::DeviceDetails",
             async_blocking_operations: params.delete(:async_blocking_operations)
           }
 
-          response = client.get('/push/deviceRegistrations', IdiomaticRubyWrapper(params).as_json)
+          response = client.get("/push/deviceRegistrations", IdiomaticRubyWrapper(params).as_json)
 
-          Ably::Models::PaginatedResult.new(response, '', client, paginated_options)
+          Ably::Models::PaginatedResult.new(response, "", client, paginated_options)
         end
 
         # Save and register device
@@ -65,7 +65,7 @@ module Ably
         #
         def save(device)
           device_details = DeviceDetails(device)
-          raise ArgumentError, 'Device ID is required yet is empty' if device_details.id.nil? || device_details == ''
+          raise ArgumentError, "Device ID is required yet is empty" if device_details.id.nil? || device_details == ""
 
           client.put("/push/deviceRegistrations/#{device_details.id}", device_details.as_json)
         end
@@ -78,7 +78,7 @@ module Ably
         #
         def remove(device_id)
           device_id = device_id.id if device_id.is_a?(Ably::Models::DeviceDetails)
-          raise ArgumentError, 'device_id must be a string or DeviceDetails object' unless device_id.is_a?(String)
+          raise ArgumentError, "device_id must be a string or DeviceDetails object" unless device_id.is_a?(String)
 
           client.delete("/push/deviceRegistrations/#{device_id}", {})
         end
@@ -93,14 +93,14 @@ module Ably
         #
         def remove_where(params = {})
           filter = if params.is_a?(Ably::Models::DeviceDetails)
-                     { 'deviceId' => params.id }
-                   else
-                     raise ArgumentError, 'params must be a Hash' unless params.is_a?(Hash)
-                     raise ArgumentError, 'device_id filter cannot be specified alongside a client_id filter. Use one or the other' if params[:client_id] && params[:device_id]
+            {"deviceId" => params.id}
+          else
+            raise ArgumentError, "params must be a Hash" unless params.is_a?(Hash)
+            raise ArgumentError, "device_id filter cannot be specified alongside a client_id filter. Use one or the other" if params[:client_id] && params[:device_id]
 
-                     IdiomaticRubyWrapper(params).as_json
-                   end
-          client.delete('/push/deviceRegistrations', filter)
+            IdiomaticRubyWrapper(params).as_json
+          end
+          client.delete("/push/deviceRegistrations", filter)
         end
       end
     end

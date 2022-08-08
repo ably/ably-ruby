@@ -9,7 +9,7 @@ module Ably
         ACTION = ::Ably::Models::ProtocolMessage::ACTION
 
         def initialize(client, connection)
-          @client     = client
+          @client = client
           @connection = connection
 
           subscribe_to_incoming_protocol_messages
@@ -25,7 +25,7 @@ module Ably
 
         def get_channel(channel_name)
           channels.fetch(channel_name) do
-            logger.warn { 'Received channel message for non-existent channel' }
+            logger.warn { "Received channel message for non-existent channel" }
             ::Ably::Realtime::Models::NilChannel.new
           end
         end
@@ -67,7 +67,7 @@ module Ably
             elsif connection.disconnected? || connection.closing? || connection.closed? || connection.failed?
               logger.warn { "Out-of-order incoming CONNECTED ProtocolMessage discarded as connection has moved on and is in state: #{connection.state}" }
             elsif connection.connected?
-              logger.debug { 'Updated CONNECTED ProtocolMessage received (whilst connected)' }
+              logger.debug { "Updated CONNECTED ProtocolMessage received (whilst connected)" }
               process_connected_update_message protocol_message
               connection.set_connection_confirmed_alive # Connection protocol messages can change liveness settings such as max_idle_interval
             else
@@ -153,7 +153,7 @@ module Ably
         end
 
         def process_connection_error(protocol_message)
-          connection.manager.error_received_from_server(protocol_message.error || Ably::Models::ErrorInfo.new(message: 'Error reason unknown'))
+          connection.manager.error_received_from_server(protocol_message.error || Ably::Models::ErrorInfo.new(message: "Error reason unknown"))
         end
 
         def process_connected_message(protocol_message)

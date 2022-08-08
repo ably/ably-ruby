@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'ably/auth'
+require "ably/auth"
 
 module Ably
   module Realtime
@@ -71,7 +71,7 @@ module Ably
       #      token_details #=> Ably::Models::TokenDetails
       #    end
       #
-      def authorize(token_params = nil, auth_options = nil, &_success_callback)
+      def authorize(token_params = nil, auth_options = nil, &success_callback)
         Ably::Util::SafeDeferrable.new(logger).tap do |authorize_method_deferrable|
           # Wrap the sync authorize method and wait for the result from the deferrable
           async_wrap do
@@ -115,15 +115,15 @@ module Ably
 
           # Call the block provided to this method upon success of this deferrable
           authorize_method_deferrable.callback do |token|
-            yield token if block_given?
+            yield token if success_callback
           end
         end
       end
 
       # @deprecated Use {#authorize} instead
-      def authorise(*args, &block)
-        logger.warn { 'Auth#authorise is deprecated and will be removed in 1.0. Please use Auth#authorize instead' }
-        authorize(*args, &block)
+      def authorise(...)
+        logger.warn { "Auth#authorise is deprecated and will be removed in 1.0. Please use Auth#authorize instead" }
+        authorize(...)
       end
 
       # Synchronous version of {#authorize}. See {Ably::Auth#authorize} for method definition
@@ -148,7 +148,7 @@ module Ably
 
       # @deprecated Use {#authorize_sync} instead
       def authorise_sync(*args)
-        logger.warn { 'Auth#authorise_sync is deprecated and will be removed in 1.0. Please use Auth#authorize_sync instead' }
+        logger.warn { "Auth#authorise_sync is deprecated and will be removed in 1.0. Please use Auth#authorize_sync instead" }
         authorize_sync(*args)
       end
 
@@ -270,7 +270,7 @@ module Ably
         logger.debug { "Performing inline AUTH with Ably using token #{token}" }
         connection.send_protocol_message(
           action: Ably::Models::ProtocolMessage::ACTION.Auth.to_i,
-          auth: { access_token: token.token }
+          auth: {access_token: token.token}
         )
       end
     end

@@ -27,19 +27,19 @@ module Ably
       # @return [PaginatedResult]
       def initialize(http_response, base_url, client, options = {}, &each_block)
         @http_response = http_response
-        @client        = client
-        @base_url      = "#{base_url.gsub(%r{/[^/]*$}, '')}/"
-        @coerce_into   = options[:coerce_into]
-        @raw_body      = http_response.body
-        @each_block    = each_block
-        @make_async    = options.fetch(:async_blocking_operations, false)
+        @client = client
+        @base_url = "#{base_url.gsub(%r{/[^/]*$}, "")}/"
+        @coerce_into = options[:coerce_into]
+        @raw_body = http_response.body
+        @each_block = each_block
+        @make_async = options.fetch(:async_blocking_operations, false)
 
         @items = http_response.body
         @items = [] if @items.nil? || @items.to_s.strip.empty?
         @items = [@items] if @items.is_a?(Hash)
 
         @items = coerce_items_into(items, @coerce_into) if @coerce_into
-        @items = items.map(&each_block) if block_given?
+        @items = items.map(&each_block) if each_block
       end
 
       # Retrieve the first page of results.
@@ -51,7 +51,7 @@ module Ably
         async_wrap_if_realtime(success_callback) do
           return nil unless supports_pagination?
 
-          PaginatedResult.new(client.get(pagination_url('first')), base_url, client, pagination_options, &each_block)
+          PaginatedResult.new(client.get(pagination_url("first")), base_url, client, pagination_options, &each_block)
         end
       end
 
@@ -64,7 +64,7 @@ module Ably
         async_wrap_if_realtime(success_callback) do
           return nil unless has_next?
 
-          PaginatedResult.new(client.get(pagination_url('next')), base_url, client, pagination_options, &each_block)
+          PaginatedResult.new(client.get(pagination_url("next")), base_url, client, pagination_options, &each_block)
         end
       end
 
@@ -73,7 +73,7 @@ module Ably
       # @return [Boolean]
       def last?
         !supports_pagination? ||
-          pagination_header('next').nil?
+          pagination_header("next").nil?
       end
 
       # True if there is a subsequent page in this paginated set available with {#next}
@@ -91,13 +91,13 @@ module Ably
       end
 
       def inspect
-        <<-INSPECT.gsub(/^        /, '')
+        <<-INSPECT.gsub(/^        /, "")
           #<#{self.class.name}:#{object_id}
            @base_url="#{base_url}",
            @last?=#{!!last?},
            @has_next?=#{!!has_next?},
            @items=
-             #{items.map(&:inspect).join(",\n#{' ' * 11}")}
+             #{items.map(&:inspect).join(",\n#{" " * 11}")}
           >
         INSPECT
       end
@@ -108,7 +108,7 @@ module Ably
 
       def coerce_items_into(items, _type_string)
         items.map do |item|
-          @coerce_into.split('::').inject(Kernel) do |base, klass_name|
+          @coerce_into.split("::").inject(Kernel) do |base, klass_name|
             base.public_send(:const_get, klass_name)
           end.new(item)
         end
@@ -119,7 +119,7 @@ module Ably
         @pagination_headers ||= begin
           # All `Link:` headers are concatenated by Faraday into a comma separated list
           # Finding matching `<url>; rel="rel"` pairs
-          link_headers = http_response.headers['link'] || ''
+          link_headers = http_response.headers["link"] || ""
           link_headers.scan(link_regex).each_with_object({}) do |val_array, hash|
             url, rel = val_array
             hash[rel] = url
@@ -134,7 +134,7 @@ module Ably
       def pagination_url(id)
         raise Ably::Exceptions::PageMissing, "Paging header link #{id} does not exist" unless pagination_header(id)
 
-        if pagination_header(id).match(%r{^\./})
+        if %r{^\./}.match?(pagination_header(id))
           "#{base_url}#{pagination_header(id)[2..]}"
         else
           pagination_header[id]
@@ -150,7 +150,7 @@ module Ably
 
       def async_wrap_if_realtime(success_callback, &operation)
         if make_async
-          raise 'EventMachine is required for asynchronous operations' unless defined?(EventMachine)
+          raise "EventMachine is required for asynchronous operations" unless defined?(EventMachine)
 
           async_wrap success_callback, &operation
         else

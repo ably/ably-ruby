@@ -25,7 +25,7 @@ module Ably
       include ::Ably::Modules::ModelCommon
 
       MODES = ruby_enum(
-        'MODES',
+        "MODES",
         presence: 0,
         publish: 1,
         subscribe: 2,

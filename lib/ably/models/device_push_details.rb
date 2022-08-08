@@ -43,7 +43,7 @@ module Ably
         super
 
         @raw_hash_object = hash_object || {}
-        @hash_object     = IdiomaticRubyWrapper(@raw_hash_object)
+        @hash_object = IdiomaticRubyWrapper(@raw_hash_object)
       end
 
       %w[state].each do |attribute|
@@ -63,7 +63,7 @@ module Ably
       end
 
       def recipient=(val)
-        raise ArgumentError, 'recipient must be nil or a Hash value' unless val.nil? || val.is_a?(Hash)
+        raise ArgumentError, "recipient must be nil or a Hash value" unless val.nil? || val.is_a?(Hash)
 
         attributes[:recipient] = val
       end
@@ -73,7 +73,7 @@ module Ably
       end
 
       def error_reason=(val)
-        raise ArgumentError, 'error_reason must be nil, a Hash value or a ErrorInfo object' unless val.nil? || val.is_a?(Hash) || val.is_a?(Ably::Models::ErrorInfo)
+        raise ArgumentError, "error_reason must be nil, a Hash value or a ErrorInfo object" unless val.nil? || val.is_a?(Hash) || val.is_a?(Ably::Models::ErrorInfo)
 
         attributes[:error_reason] = val.nil? ? nil : ErrorInfo(val)
       end

@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
-require 'base64'
+require "base64"
 
-require 'ably/version'
+require "ably/version"
 
-require 'ably/rest/middleware/encoder'
-require 'ably/rest/middleware/external_exceptions'
-require 'ably/rest/middleware/fail_if_unsupported_mime_type'
-require 'ably/rest/middleware/logger'
-require 'ably/rest/middleware/parse_json'
-require 'ably/rest/middleware/parse_message_pack'
+require "ably/rest/middleware/encoder"
+require "ably/rest/middleware/external_exceptions"
+require "ably/rest/middleware/fail_if_unsupported_mime_type"
+require "ably/rest/middleware/logger"
+require "ably/rest/middleware/parse_json"
+require "ably/rest/middleware/parse_message_pack"
 
 module Ably
   module Modules
@@ -18,7 +18,7 @@ module Ably
       protected
 
       def encode64(text)
-        Base64.encode64(text).gsub("\n", '')
+        Base64.encode64(text).delete("\n")
       end
 
       def user_agent

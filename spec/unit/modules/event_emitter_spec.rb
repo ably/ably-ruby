@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
+require "spec_helper"
 
 describe Ably::Modules::EventEmitter do
   let(:options) { {} }
@@ -14,13 +14,13 @@ describe Ably::Modules::EventEmitter do
       end
     end
   end
-  let(:obj) { double('example') }
-  let(:msg) { double('message') }
+  let(:obj) { double("example") }
+  let(:msg) { double("message") }
 
   subject { klass.new }
 
-  context '#emit event fan out' do
-    it 'should emit an event for any number of subscribers' do
+  context "#emit event fan out" do
+    it "should emit an event for any number of subscribers" do
       2.times do
         subject.on(:message) { |msg| obj.received_message msg }
       end
@@ -29,39 +29,39 @@ describe Ably::Modules::EventEmitter do
       subject.emit :message, msg
     end
 
-    it 'sends only messages to matching event names' do
+    it "sends only messages to matching event names" do
       subject.on(:valid) { |msg| obj.received_message msg }
 
       expect(obj).to receive(:received_message).with(msg).once
       subject.emit :valid, msg
       subject.emit :ignored, msg
-      subject.emit 'valid', msg
+      subject.emit "valid", msg
     end
 
-    context 'with coercion', :api_private do
+    context "with coercion", :api_private do
       let(:options) do
-        { coerce_into: ->(event) { String(event) } }
+        {coerce_into: ->(event) { String(event) }}
       end
 
-      it 'calls the provided proc to coerce the event name' do
-        subject.on('valid') { |msg| obj.received_message msg }
+      it "calls the provided proc to coerce the event name" do
+        subject.on("valid") { |msg| obj.received_message msg }
 
         expect(obj).to receive(:received_message).with(msg).once
         subject.emit :valid, msg
       end
     end
 
-    context 'without coercion', :api_private do
-      it 'only matches event names on type matches' do
-        subject.on('valid') { |msg| obj.received_message msg }
+    context "without coercion", :api_private do
+      it "only matches event names on type matches" do
+        subject.on("valid") { |msg| obj.received_message msg }
 
         expect(obj).to_not receive(:received_message).with(msg)
         subject.emit :valid, msg
       end
     end
 
-    context '#on subscribe to multiple events' do
-      it 'with the same block' do
+    context "#on subscribe to multiple events" do
+      it "with the same block" do
         subject.on(:click, :hover) { |msg| obj.received_message msg }
 
         expect(obj).to receive(:received_message).with(msg).twice
@@ -71,8 +71,8 @@ describe Ably::Modules::EventEmitter do
       end
     end
 
-    context 'event callback changes within the callback block' do
-      context 'when new event callbacks are added' do
+    context "event callback changes within the callback block" do
+      context "when new event callbacks are added" do
         before do
           2.times do
             subject.on(:message) do |msg|
@@ -85,13 +85,13 @@ describe Ably::Modules::EventEmitter do
           allow(obj).to receive(:received_message)
         end
 
-        it 'is unaffected and processes the prior event callbacks once (#RTE6b)' do
+        it "is unaffected and processes the prior event callbacks once (#RTE6b)" do
           expect(obj).to receive(:received_message).with(msg).twice
           expect(obj).to_not receive(:received_message_from_new_callbacks).with(msg)
           subject.emit :message, msg
         end
 
-        it 'adds them for the next emitted event (#RTE6b)' do
+        it "adds them for the next emitted event (#RTE6b)" do
           expect(obj).to receive(:received_message_from_new_callbacks).with(msg).twice
 
           # New callbacks are added in this emit
@@ -102,7 +102,7 @@ describe Ably::Modules::EventEmitter do
         end
       end
 
-      context 'when callbacks are removed' do
+      context "when callbacks are removed" do
         before do
           2.times do
             subject.once(:message) do |msg|
@@ -112,12 +112,12 @@ describe Ably::Modules::EventEmitter do
           end
         end
 
-        it 'is unaffected and processes the prior event callbacks once (#RTE6b)' do
+        it "is unaffected and processes the prior event callbacks once (#RTE6b)" do
           expect(obj).to receive(:received_message).with(msg).twice
           subject.emit :message, msg
         end
 
-        it 'removes them for the next emitted event (#RTE6b)' do
+        it "removes them for the next emitted event (#RTE6b)" do
           expect(obj).to receive(:received_message).with(msg).twice
 
           # Callbacks are removed in this emit
@@ -129,126 +129,126 @@ describe Ably::Modules::EventEmitter do
     end
   end
 
-  context '#on (#RTE3)' do
-    context 'with event specified' do
-      it 'calls the block every time an event is emitted only' do
+  context "#on (#RTE3)" do
+    context "with event specified" do
+      it "calls the block every time an event is emitted only" do
         block_called = 0
-        subject.on('event') { block_called += 1 }
-        3.times { subject.emit 'event', 'data' }
+        subject.on("event") { block_called += 1 }
+        3.times { subject.emit "event", "data" }
         expect(block_called).to eql(3)
       end
 
-      it 'catches exceptions in the provided block, logs the error and continues' do
+      it "catches exceptions in the provided block, logs the error and continues" do
         expect(subject.logger).to receive(:error) do |*args, &block|
-          expect(args.concat([block ? block.call : nil]).join(',')).to match(/Intentional exception/)
+          expect(args.concat([block ? block.call : nil]).join(",")).to match(/Intentional exception/)
         end
-        subject.on(:event) { raise 'Intentional exception' }
+        subject.on(:event) { raise "Intentional exception" }
         subject.emit :event
       end
     end
 
-    context 'with no event specified' do
-      it 'calls the block every time an event is emitted only' do
+    context "with no event specified" do
+      it "calls the block every time an event is emitted only" do
         block_called = 0
         subject.on { block_called += 1 }
-        3.times { subject.emit 'event', 'data' }
+        3.times { subject.emit "event", "data" }
         expect(block_called).to eql(3)
       end
 
-      it 'catches exceptions in the provided block, logs the error and continues' do
+      it "catches exceptions in the provided block, logs the error and continues" do
         expect(subject.logger).to receive(:error) do |*args, &block|
-          expect(args.concat([block ? block.call : nil]).join(',')).to match(/Intentional exception/)
+          expect(args.concat([block ? block.call : nil]).join(",")).to match(/Intentional exception/)
         end
-        subject.on { raise 'Intentional exception' }
+        subject.on { raise "Intentional exception" }
         subject.emit :event
       end
     end
   end
 
-  context '#unsafe_on', api_private: true do
-    it 'calls the block every time an event is emitted only' do
+  context "#unsafe_on", api_private: true do
+    it "calls the block every time an event is emitted only" do
       block_called = 0
-      subject.unsafe_on('event') { block_called += 1 }
-      3.times { subject.emit 'event', 'data' }
+      subject.unsafe_on("event") { block_called += 1 }
+      3.times { subject.emit "event", "data" }
       expect(block_called).to eql(3)
     end
 
-    it 'does not catch exceptions in provided blocks' do
-      subject.unsafe_on(:event) { raise 'Intentional exception' }
+    it "does not catch exceptions in provided blocks" do
+      subject.unsafe_on(:event) { raise "Intentional exception" }
       expect { subject.emit :event }.to raise_error(/Intentional exception/)
     end
   end
 
-  context '#once (#RTE4)' do
-    context 'with event specified' do
-      it 'calls the block the first time an event is emitted only' do
+  context "#once (#RTE4)" do
+    context "with event specified" do
+      it "calls the block the first time an event is emitted only" do
         block_called = 0
-        subject.once('event') { block_called += 1 }
-        3.times { subject.emit 'event', 'data' }
+        subject.once("event") { block_called += 1 }
+        3.times { subject.emit "event", "data" }
         expect(block_called).to eql(1)
       end
 
-      it 'does not remove other blocks after it is called' do
+      it "does not remove other blocks after it is called" do
         block_called = 0
-        subject.once('event') { block_called += 1 }
-        subject.on('event')   { block_called += 1 }
-        3.times { subject.emit 'event', 'data' }
+        subject.once("event") { block_called += 1 }
+        subject.on("event") { block_called += 1 }
+        3.times { subject.emit "event", "data" }
         expect(block_called).to eql(4)
       end
 
-      it 'catches exceptions in the provided block, logs the error and continues' do
+      it "catches exceptions in the provided block, logs the error and continues" do
         expect(subject.logger).to receive(:error) do |*args, &block|
-          expect(args.concat([block ? block.call : nil]).join(',')).to match(/Intentional exception/)
+          expect(args.concat([block ? block.call : nil]).join(",")).to match(/Intentional exception/)
         end
-        subject.once(:event) { raise 'Intentional exception' }
+        subject.once(:event) { raise "Intentional exception" }
         subject.emit :event
       end
     end
 
-    context 'with no event specified' do
-      it 'calls the block the first time an event is emitted only' do
+    context "with no event specified" do
+      it "calls the block the first time an event is emitted only" do
         block_called = 0
         subject.once { block_called += 1 }
-        3.times { subject.emit 'event', 'data' }
+        3.times { subject.emit "event", "data" }
         expect(block_called).to eql(1)
       end
 
-      it 'does not remove other blocks after it is called' do
+      it "does not remove other blocks after it is called" do
         block_called = 0
         subject.once { block_called += 1 }
-        subject.on   { block_called += 1 }
-        3.times { subject.emit 'event', 'data' }
+        subject.on { block_called += 1 }
+        3.times { subject.emit "event", "data" }
         expect(block_called).to eql(4)
       end
 
-      it 'catches exceptions in the provided block, logs the error and continues' do
+      it "catches exceptions in the provided block, logs the error and continues" do
         expect(subject.logger).to receive(:error) do |*args, &block|
-          expect(args.concat([block ? block.call : nil]).join(',')).to match(/Intentional exception/)
+          expect(args.concat([block ? block.call : nil]).join(",")).to match(/Intentional exception/)
         end
-        subject.once { raise 'Intentional exception' }
+        subject.once { raise "Intentional exception" }
         subject.emit :event
       end
     end
   end
 
-  context '#unsafe_once' do
-    it 'calls the block the first time an event is emitted only' do
+  context "#unsafe_once" do
+    it "calls the block the first time an event is emitted only" do
       block_called = 0
-      subject.unsafe_once('event') { block_called += 1 }
-      3.times { subject.emit 'event', 'data' }
+      subject.unsafe_once("event") { block_called += 1 }
+      3.times { subject.emit "event", "data" }
       expect(block_called).to eql(1)
     end
 
-    it 'does not catch exceptions in provided blocks' do
-      subject.unsafe_once(:event) { raise 'Intentional exception' }
+    it "does not catch exceptions in provided blocks" do
+      subject.unsafe_once(:event) { raise "Intentional exception" }
       expect { subject.emit :event }.to raise_error(/Intentional exception/)
     end
   end
 
-  context '#off' do
+  context "#off" do
     let(:callback) { ->(msg) { obj.received_message msg } }
 
-    context 'with event specified in on handler' do
+    context "with event specified in on handler" do
       before do
         subject.on(:message, &callback)
       end
@@ -257,37 +257,37 @@ describe Ably::Modules::EventEmitter do
         subject.emit :message, msg
       end
 
-      context 'with event names as arguments' do
-        it 'deletes matching callbacks when a block is provided' do
+      context "with event names as arguments" do
+        it "deletes matching callbacks when a block is provided" do
           expect(obj).to_not receive(:received_message).with(msg)
           subject.off(:message, &callback)
         end
 
-        it 'deletes all matching callbacks when a block is not provided' do
+        it "deletes all matching callbacks when a block is not provided" do
           expect(obj).to_not receive(:received_message).with(msg)
           subject.off(:message)
         end
 
-        it 'continues if the block does not exist' do
+        it "continues if the block does not exist" do
           expect(obj).to receive(:received_message).with(msg)
           subject.off(:message) { true }
         end
       end
 
-      context 'without any event names' do
-        it 'deletes all matching callbacks' do
+      context "without any event names" do
+        it "deletes all matching callbacks" do
           expect(obj).to_not receive(:received_message).with(msg)
           subject.off(&callback)
         end
 
-        it 'deletes all callbacks if not block given' do
+        it "deletes all callbacks if not block given" do
           expect(obj).to_not receive(:received_message).with(msg)
           subject.off
         end
       end
     end
 
-    context 'when on callback is configured for all events' do
+    context "when on callback is configured for all events" do
       before do
         subject.on(&callback)
       end
@@ -296,37 +296,37 @@ describe Ably::Modules::EventEmitter do
         subject.emit :message, msg
       end
 
-      context 'with event names as arguments' do
-        it 'does not remove the all events callback when a block is provided' do
+      context "with event names as arguments" do
+        it "does not remove the all events callback when a block is provided" do
           expect(obj).to receive(:received_message).with(msg)
           subject.off(:message, &callback)
         end
 
-        it 'does not remove the all events callback when a block is not provided' do
+        it "does not remove the all events callback when a block is not provided" do
           expect(obj).to receive(:received_message).with(msg)
           subject.off(:message)
         end
 
-        it 'does not remove the all events callback when the block does not match' do
+        it "does not remove the all events callback when the block does not match" do
           expect(obj).to receive(:received_message).with(msg)
           subject.off(:message) { true }
         end
       end
 
-      context 'without any event names' do
-        it 'deletes all matching callbacks' do
+      context "without any event names" do
+        it "deletes all matching callbacks" do
           expect(obj).to_not receive(:received_message).with(msg)
           subject.off(&callback)
         end
 
-        it 'deletes all callbacks if not block given' do
+        it "deletes all callbacks if not block given" do
           expect(obj).to_not receive(:received_message).with(msg)
           subject.off
         end
       end
     end
 
-    context 'with unsafe_on subscribers' do
+    context "with unsafe_on subscribers" do
       before do
         subject.unsafe_on(&callback)
       end
@@ -335,13 +335,13 @@ describe Ably::Modules::EventEmitter do
         subject.emit :message, msg
       end
 
-      it 'does not deregister them' do
+      it "does not deregister them" do
         expect(obj).to receive(:received_message).with(msg)
         subject.off
       end
     end
 
-    context 'with unsafe_once subscribers' do
+    context "with unsafe_once subscribers" do
       before do
         subject.unsafe_once(&callback)
       end
@@ -350,17 +350,17 @@ describe Ably::Modules::EventEmitter do
         subject.emit :message, msg
       end
 
-      it 'does not deregister them' do
+      it "does not deregister them" do
         expect(obj).to receive(:received_message).with(msg)
         subject.off
       end
     end
   end
 
-  context '#unsafe_off' do
+  context "#unsafe_off" do
     let(:callback) { ->(msg) { obj.received_message msg } }
 
-    context 'with unsafe_on subscribers' do
+    context "with unsafe_on subscribers" do
       before do
         subject.unsafe_on(&callback)
       end
@@ -369,13 +369,13 @@ describe Ably::Modules::EventEmitter do
         subject.emit :message, msg
       end
 
-      it 'deregisters them' do
+      it "deregisters them" do
         expect(obj).to_not receive(:received_message).with(msg)
         subject.unsafe_off
       end
     end
 
-    context 'with unsafe_once subscribers' do
+    context "with unsafe_once subscribers" do
       before do
         subject.unsafe_once(&callback)
       end
@@ -384,13 +384,13 @@ describe Ably::Modules::EventEmitter do
         subject.emit :message, msg
       end
 
-      it 'deregister them' do
+      it "deregister them" do
         expect(obj).to_not receive(:received_message).with(msg)
         subject.unsafe_off
       end
     end
 
-    context 'with on subscribers' do
+    context "with on subscribers" do
       before do
         subject.on(&callback)
       end
@@ -399,13 +399,13 @@ describe Ably::Modules::EventEmitter do
         subject.emit :message, msg
       end
 
-      it 'does not deregister them' do
+      it "does not deregister them" do
         expect(obj).to receive(:received_message).with(msg)
         subject.unsafe_off
       end
     end
 
-    context 'with once subscribers' do
+    context "with once subscribers" do
       before do
         subject.once(&callback)
       end
@@ -414,7 +414,7 @@ describe Ably::Modules::EventEmitter do
         subject.emit :message, msg
       end
 
-      it 'does not deregister them' do
+      it "does not deregister them" do
         expect(obj).to receive(:received_message).with(msg)
         subject.unsafe_off
       end

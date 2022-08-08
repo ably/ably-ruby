@@ -1,27 +1,27 @@
 # frozen_string_literal: true
 
-shared_examples 'a safe Deferrable' do
-  let(:logger) { instance_double('Logger') }
+shared_examples "a safe Deferrable" do
+  let(:logger) { instance_double("Logger") }
   let(:arguments) { [random_str] }
   let(:errback_calls) { [] }
   let(:success_calls) { [] }
-  let(:exception) { StandardError.new('Intentional error') }
+  let(:exception) { StandardError.new("Intentional error") }
 
   before do
     allow(subject).to receive(:logger).and_return(logger)
   end
 
-  context '#errback' do
-    it 'adds a callback that is called when #fail is called' do
+  context "#errback" do
+    it "adds a callback that is called when #fail is called" do
       subject.errback do |*args|
         expect(args).to eql(arguments)
       end
       subject.fail(*arguments)
     end
 
-    it 'catches exceptions in the callback and logs the error to the logger' do
+    it "catches exceptions in the callback and logs the error to the logger" do
       expect(subject.send(:logger)).to receive(:error) do |*args, &block|
-        expect(args.concat([block ? block.call : nil]).join(',')).to match(/#{exception.message}/)
+        expect(args.concat([block ? block.call : nil]).join(",")).to match(/#{exception.message}/)
       end
       subject.errback do
         raise exception
@@ -30,10 +30,10 @@ shared_examples 'a safe Deferrable' do
     end
   end
 
-  context '#fail' do
-    it 'calls the callbacks defined with #errback, but not the ones added for success #callback' do
+  context "#fail" do
+    it "calls the callbacks defined with #errback, but not the ones added for success #callback" do
       3.times do
-        subject.errback  { errback_calls << true }
+        subject.errback { errback_calls << true }
         subject.callback { success_calls << true }
       end
       subject.fail(*arguments)
@@ -42,17 +42,17 @@ shared_examples 'a safe Deferrable' do
     end
   end
 
-  context '#callback' do
-    it 'adds a callback that is called when #succed is called' do
+  context "#callback" do
+    it "adds a callback that is called when #succed is called" do
       subject.callback do |*args|
         expect(args).to eql(arguments)
       end
       subject.succeed(*arguments)
     end
 
-    it 'catches exceptions in the callback and logs the error to the logger' do
+    it "catches exceptions in the callback and logs the error to the logger" do
       expect(subject.send(:logger)).to receive(:error) do |*args, &block|
-        expect(args.concat([block ? block.call : nil]).join(',')).to match(/#{exception.message}/)
+        expect(args.concat([block ? block.call : nil]).join(",")).to match(/#{exception.message}/)
       end
       subject.callback do
         raise exception
@@ -61,10 +61,10 @@ shared_examples 'a safe Deferrable' do
     end
   end
 
-  context '#succeed' do
-    it 'calls the callbacks defined with #callback, but not the ones added for #errback' do
+  context "#succeed" do
+    it "calls the callbacks defined with #callback, but not the ones added for #errback" do
       3.times do
-        subject.errback  { errback_calls << true }
+        subject.errback { errback_calls << true }
         subject.callback { success_calls << true }
       end
       subject.succeed(*arguments)

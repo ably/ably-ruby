@@ -17,7 +17,7 @@ module Ably
       end
 
       def example_started(notification)
-        notification.example.metadata[:description] = "#{yellow('(private)')} #{green(notification.example.metadata[:description])}" if notification.example.metadata[:api_private]
+        notification.example.metadata[:description] = "#{yellow("(private)")} #{green(notification.example.metadata[:description])}" if notification.example.metadata[:api_private]
       end
 
       private

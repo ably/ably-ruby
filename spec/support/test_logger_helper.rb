@@ -14,10 +14,10 @@ class TestLogger
   SEVERITIES.each do |severity_sym|
     define_method(severity_sym) do |*args, &block|
       @messages << if block
-                     [severity_sym, block.call]
-                   else
-                     [severity_sym, args.join(', ')]
-                   end
+        [severity_sym, block.call]
+      else
+        [severity_sym, args.join(", ")]
+      end
     end
   end
 
@@ -39,5 +39,6 @@ class TestLogger
     1
   end
 
-  def level=(new_level); end
+  def level=(new_level)
+  end
 end

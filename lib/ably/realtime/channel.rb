@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'ably/realtime/channel/publisher'
+require "ably/realtime/channel/publisher"
 
 module Ably
   module Realtime
@@ -42,18 +42,18 @@ module Ably
 
       # ChannelState
       # The permited states for this channel
-      STATE = ruby_enum('STATE', :initialized, :attaching, :attached, :detaching, :detached, :suspended, :failed)
+      STATE = ruby_enum("STATE", :initialized, :attaching, :attached, :detaching, :detached, :suspended, :failed)
 
       # ChannelEvent
       # The permitted channel events that are emitted for this channel
       EVENT = ruby_enum(
-        'EVENT',
+        "EVENT",
         STATE.to_sym_arr + [:update]
       )
 
       include ::Ably::Modules::StateEmitter
       include ::Ably::Modules::UsesStateMachine
-      ensure_state_machine_emits 'Ably::Models::ChannelStateChange'
+      ensure_state_machine_emits "Ably::Models::ChannelStateChange"
 
       # Max number of messages to bundle in a single ProtocolMessage
       MAX_PROTOCOL_MESSAGE_BATCH_SIZE = 50
@@ -106,16 +106,16 @@ module Ably
       def initialize(client, name, channel_options = {})
         name = ensure_utf_8(:name, name)
 
-        @options       = Ably::Models::ChannelOptions(channel_options)
-        @client        = client
-        @name          = name
-        @queue         = []
+        @options = Ably::Models::ChannelOptions(channel_options)
+        @client = client
+        @name = name
+        @queue = []
 
         @state_machine = ChannelStateMachine.new(self)
-        @state         = STATE(state_machine.current_state)
-        @manager       = ChannelManager.new(self, client.connection)
-        @push          = PushChannel.new(self)
-        @properties    = ChannelProperties.new(self)
+        @state = STATE(state_machine.current_state)
+        @manager = ChannelManager.new(self, client.connection)
+        @push = PushChannel.new(self)
+        @properties = ChannelProperties.new(self)
         @attach_resume = false
 
         setup_event_handlers
@@ -187,7 +187,7 @@ module Ably
         end
 
         enqueue_messages_on_connection(client, messages, channel_name, options).tap do |deferrable|
-          deferrable.callback(&success_block) if block_given?
+          deferrable.callback(&success_block) if success_block
         end
       end
 
@@ -248,7 +248,7 @@ module Ably
       #
       def detach(&success_block)
         if initialized?
-          success_block.call if block_given?
+          success_block&.call
           return Ably::Util::SafeDeferrable.new_and_succeed_immediately(logger)
         end
         return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, exception_for_state_change_to(:detaching)) if failed? || connection.closing? || connection.failed?
@@ -292,7 +292,7 @@ module Ably
       def history(options = {}, &callback)
         if options.delete(:until_attach)
           unless attached?
-            error = Ably::Exceptions::InvalidRequest.new('option :until_attach is invalid as the channel is not attached')
+            error = Ably::Exceptions::InvalidRequest.new("option :until_attach is invalid as the channel is not attached")
             return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
           end
           options[:from_serial] = properties.attach_serial
@@ -320,7 +320,7 @@ module Ably
 
         manager.request_reattach if need_reattach?
       end
-      alias options= set_options
+      alias_method :options=, :set_options
 
       # @api private
       def set_channel_error_reason(error)
@@ -383,7 +383,7 @@ module Ably
   end
 end
 
-require 'ably/realtime/channel/channel_manager'
-require 'ably/realtime/channel/channel_state_machine'
-require 'ably/realtime/channel/push_channel'
-require 'ably/realtime/channel/channel_properties'
+require "ably/realtime/channel/channel_manager"
+require "ably/realtime/channel/channel_state_machine"
+require "ably/realtime/channel/push_channel"
+require "ably/realtime/channel/channel_properties"

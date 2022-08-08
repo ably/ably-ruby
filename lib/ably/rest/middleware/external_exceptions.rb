@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'faraday'
+require "faraday"
 
 module Ably
   module Rest
@@ -12,7 +12,7 @@ module Ably
           return unless env.status >= 400
 
           error_status_code = env.status
-          message = "Error #{error_status_code}: #{(env.body || '')[0...200]}"
+          message = "Error #{error_status_code}: #{(env.body || "")[0...200]}"
 
           raise Ably::Exceptions::ServerError, message if error_status_code >= 500
 
