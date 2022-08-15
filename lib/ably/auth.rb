@@ -35,7 +35,7 @@ module Ably
       renew_token_buffer: 10 # buffer to allow a token to be reissued before the token is considered expired (Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER)
     }.freeze
 
-    API_KEY_REGEX = /^[\w-]{2,}\.[\w-]{2,}:[\w-]{2,}$/.freeze
+    API_KEY_REGEX = /^[\w-]{2,}\.[\w-]{2,}:[\w-]{2,}$/
 
     # Supported AuthOption keys, see https://www.ably.com/docs/realtime/types#auth-options
     # TODO: Review client_id usage embedded incorrectly within AuthOptions.
