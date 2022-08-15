@@ -3,7 +3,7 @@
 require "spec_helper"
 
 describe Ably::Modules::Conversions, :api_private do
-  let(:class_with_module) { Class.new { ; include Ably::Modules::Conversions; } }
+  let(:class_with_module) { Class.new { include Ably::Modules::Conversions } }
   let(:subject) { class_with_module.new }
   before do
     # make method being tested public
