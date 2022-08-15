@@ -9,7 +9,7 @@ module Ably
       # Used by auth calls
       class ExternalExceptions < Faraday::Middleware
         def on_complete(env)
-          return unless env.status >= 400
+          return if env.status < 400
 
           error_status_code = env.status
           message = "Error #{error_status_code}: #{(env.body || "")[0...200]}"

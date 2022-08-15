@@ -10,7 +10,7 @@ module Ably
       # Ably returns JSON/Msgpack error codes and messages so include this if possible in the exception messages
       class Exceptions < Faraday::Middleware
         def on_complete(env)
-          return unless env.status >= 400
+          return if env.status < 400
 
           error_status_code = env.status
           error_code = nil
