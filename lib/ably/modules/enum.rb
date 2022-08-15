@@ -151,7 +151,7 @@ module Ably
             symbol
           end
 
-          def to_json(*_arg)
+          def to_json(*_args)
             %("#{symbol}")
           end
 

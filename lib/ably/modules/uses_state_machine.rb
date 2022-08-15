@@ -32,7 +32,7 @@ module Ably
       # Provides an internal method for this object's state to match the StateMachine's current state.
       # The current object's state will be changed to the StateMachine state and will emit an event
       # @api private
-      def synchronize_state_with_statemachine(*_arg)
+      def synchronize_state_with_statemachine(*_args)
         log_state_machine_state_change
         change_state state_machine.current_state, state_machine.last_transition.metadata
       end

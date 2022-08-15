@@ -22,14 +22,14 @@ module Ably
       # Activate this device for push notifications by registering with the push transport such as GCM/APNS
       #
       # @note This is unsupported in the Ruby library
-      def activate(*_arg)
+      def activate(*_args)
         raise_unsupported
       end
 
       # Deactivate this device for push notifications by removing the registration with the push transport such as GCM/APNS
       #
       # @note This is unsupported in the Ruby library
-      def deactivate(*_arg)
+      def deactivate(*_args)
         raise_unsupported
       end
 

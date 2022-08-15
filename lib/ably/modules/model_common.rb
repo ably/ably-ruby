@@ -29,7 +29,7 @@ module Ably
 
       # Return a JSON ready object from the underlying #attributes using Ably naming conventions for keys
       # @return [Hash]
-      def as_json(*_arg)
+      def as_json(*_args)
         attributes.as_json.reject { |_, val| val.nil? }
       end
 

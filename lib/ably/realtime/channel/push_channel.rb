@@ -25,35 +25,35 @@ module Ably
         # Subscribe local device for push notifications on this channel
         #
         # @note This is unsupported in the Ruby library
-        def subscribe_device(*_arg)
+        def subscribe_device(*_args)
           raise_unsupported
         end
 
         # Subscribe all devices registered to this client's authenticated client_id for push notifications on this channel
         #
         # @note This is unsupported in the Ruby library
-        def subscribe_client_id(*_arg)
+        def subscribe_client_id(*_args)
           raise_unsupported
         end
 
         # Unsubscribe local device for push notifications on this channel
         #
         # @note This is unsupported in the Ruby library
-        def unsubscribe_device(*_arg)
+        def unsubscribe_device(*_args)
           raise_unsupported
         end
 
         # Unsubscribe all devices registered to this client's authenticated client_id for push notifications on this channel
         #
         # @note This is unsupported in the Ruby library
-        def unsubscribe_client_id(*_arg)
+        def unsubscribe_client_id(*_args)
           raise_unsupported
         end
 
         # Get list of subscriptions on this channel for this device or authenticate client_id
         #
         # @note This is unsupported in the Ruby library
-        def get_subscriptions(*_arg)
+        def get_subscriptions(*_args)
           raise_unsupported
         end
 
