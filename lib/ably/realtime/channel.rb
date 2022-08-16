@@ -26,7 +26,7 @@ module Ably
     #   Channel::STATE.Failed
     #
     # @!attribute [r] state
-    #   @return {Ably::Realtime::Connection::STATE} channel state
+    #   @return {Ably::Realtime::Channel::STATE} channel state
     #
     class Channel
       include Ably::Modules::Conversions
