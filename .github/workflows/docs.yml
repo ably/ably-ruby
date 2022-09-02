@@ -19,7 +19,7 @@ jobs:
 
       - name: Build Documentation
         run: |
-          yard
+          bundle exec yard
           ls -al doc/
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
