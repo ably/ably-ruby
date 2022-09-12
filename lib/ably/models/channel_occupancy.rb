@@ -4,6 +4,7 @@ module Ably::Models
   # @param attributes (see #initialize)
   #
   # @return [ChannelOccupancy]
+  #
   def self.ChannelOccupancy(attributes)
     case attributes
     when ChannelOccupancy
@@ -13,14 +14,18 @@ module Ably::Models
     end
   end
 
-  # Type that contain channel metrics (CHO1)
+  # Contains the metrics of a {Ably::Models::Rest::Channel} or {Ably::Models::Realtime::Channel} object.
+  #
+  # @spec CHO1
   #
   class ChannelOccupancy
     extend Ably::Modules::Enum
     extend Forwardable
     include Ably::Modules::ModelCommon
 
-    # The attributes of ChannelOccupancy (CH02)
+    # The attributes of ChannelOccupancy.
+    #
+    # @spec CH02
     #
     attr_reader :attributes
 
@@ -32,7 +37,9 @@ module Ably::Models
       @attributes = IdiomaticRubyWrapper(attrs.clone)
     end
 
-    # Metrics object (CHO2a)
+    # A {Ably::Models::ChannelMetrics} object.
+    #
+    # @spec CHO2a
     #
     # @return [Ably::Models::ChannelMetrics, nil]
     #
