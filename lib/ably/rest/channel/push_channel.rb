@@ -3,9 +3,6 @@ module Ably::Rest
     # A push channel used for push notifications
     # Each PushChannel maps to exactly one Rest Channel
     #
-    # @!attribute [r] channel
-    #   @return [Ably::Rest::Channel] Underlying channel object
-    #
     class PushChannel
       attr_reader :channel
 
