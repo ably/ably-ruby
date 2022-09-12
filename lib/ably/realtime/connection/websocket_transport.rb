@@ -31,7 +31,9 @@ module Ably::Realtime
 
       # Disconnect the socket transport connection and write all pending text.
       # If Disconnected state is not automatically emitted, it will be emitted automatically
+      #
       # @return [void]
+      #
       # @api public
       def disconnect
         close_connection_after_writing
@@ -133,15 +135,15 @@ module Ably::Realtime
         !connecting? && !connected?
       end
 
-      # @!attribute [r] __incoming_protocol_msgbus__
       # @return [Ably::Util::PubSub] Websocket Transport internal incoming protocol message bus
+      #
       # @api private
       def __incoming_protocol_msgbus__
         @__incoming_protocol_msgbus__ ||= create_pub_sub_message_bus
       end
 
-      # @!attribute [r] __outgoing_protocol_msgbus__
       # @return [Ably::Util::PubSub] Websocket Transport internal outgoing protocol message bus
+      #
       # @api private
       def __outgoing_protocol_msgbus__
         @__outgoing_protocol_msgbus__ ||= create_pub_sub_message_bus
