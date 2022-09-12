@@ -1,15 +1,5 @@
 module Ably::Models
-  # ConnectionStateChange is a class that is emitted by the {Ably::Realtime::Connection} object
-  # when a state change occurs
-  #
-  # @!attribute [r] current
-  #   @return [Connection::STATE] Current connection state
-  # @!attribute [r] previous
-  #   @return [Connection::STATE] Previous connection state
-  # @!attribute [r] retry_in
-  #   @return [Integer] Time in seconds until the connection will reattempt to connect when in the +:disconnected+ or +:suspended+ state
-  # @!attribute [r] reason
-  #   @return [Ably::Models::ErrorInfo] Object describing the reason for a state change when not initiated by the consumer of the client library
+  # Contains {Ably::Models::ConnectionState} change information emitted by the {Ably::Realtime::Connection} object.
   #
   class ConnectionStateChange
     include Ably::Modules::ModelCommon
@@ -31,10 +21,59 @@ module Ably::Models
       raise ArgumentError, e
     end
 
-    %w(current previous event retry_in reason protocol_message).each do |attribute|
-      define_method attribute do
-        @hash_object[attribute.to_sym]
-      end
+    # The new {Ably::Realtime::Connection::STATE}.
+    #
+    # @spec TA2
+    #
+    # @return [Ably::Realtime::Connection::STATE]
+    #
+    def current
+      @hash_object[:current]
+    end
+
+    # The event that triggered this {Ably::Realtime::Connection::EVENT} change.
+    #
+    # @spec TA5
+    #
+    # @return [Ably::Realtime::Connection::STATE]
+    #
+    def event
+      @hash_object[:event]
+    end
+
+    # The previous {Ably::Models::Connection::STATE}. For the {Ably::Models::Connection::EVENT} UPDATE event,
+    # this is equal to the current {Ably::Models::Connection::STATE}.
+    #
+    # @spec TA2
+    #
+    # @return [Ably::Realtime::Connection::STATE]
+    #
+    def previous
+      @hash_object[:previous]
+    end
+
+    # An {Ably::Models::ErrorInfo} object containing any information relating to the transition.
+    #
+    # @spec RTN4f, TA3
+    #
+    # @return [Ably::Models::ErrorInfo, nil]
+    #
+    def reason
+      @hash_object[:reason]
+    end
+
+    # Duration in milliseconds, after which the client retries a connection where applicable.
+    #
+    # @spec RTN14d, TA2
+    #
+    # @return [Integer]
+    #
+    def retry_in
+      @hash_object[:retry_in]
+    end
+
+    def protocol_message
+      @hash_object[:protocol_message]
     end
 
     def to_s
