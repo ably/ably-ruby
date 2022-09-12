@@ -2,10 +2,8 @@ require 'ably/realtime/channel/publisher'
 
 module Ably
   module Realtime
-    # The Channel class represents a Channel belonging to this application.
-    # The Channel instance allows messages to be published and
-    # received, and controls the lifecycle of this instance's
-    # attachment to the channel.
+    # Enables messages to be published and subscribed to. Also enables historic messages to be retrieved and provides
+    # access to the {Ably::Realtime::Channel} object of a channel.
     #
     # Channels will always be in one of the following states:
     #
@@ -18,15 +16,17 @@ module Ably
     #
     # Note that the states are available as Enum-like constants:
     #
-    #   Channel::STATE.Initialized
-    #   Channel::STATE.Attaching
-    #   Channel::STATE.Attached
-    #   Channel::STATE.Detaching
-    #   Channel::STATE.Detached
-    #   Channel::STATE.Failed
-    #
-    # @!attribute [r] state
-    #   @return {Ably::Realtime::Channel::STATE} channel state
+    #   Channel::STATE.Initialized  The channel has been initialized but no attach has yet been attempted.
+    #   Channel::STATE.Attaching    An attach has been initiated by sending a request to Ably.
+    #                               This is a transient state, followed either by a transition to ATTACHED, SUSPENDED, or FAILED.
+    #   Channel::STATE.Attached     The attach has succeeded. In the ATTACHED state a client may publish and subscribe to messages, or be present on the channel.
+    #   Channel::STATE.Detaching    A detach has been initiated on an ATTACHED channel by sending a request to Ably.
+    #                               This is a transient state, followed either by a transition to DETACHED or FAILED.
+    #   Channel::STATE.Detached     The channel, having previously been ATTACHED, has been detached by the user.
+    #   Channel::STATE.Suspended    The channel, having previously been ATTACHED, has lost continuity, usually due to
+    #                               the client being disconnected from Ably for longer than two minutes. It will automatically attempt to reattach as soon as connectivity is restored.
+    #   Channel::STATE.Failed       An indefinite failure condition. This state is entered if a channel error
+    #                               has been received from the Ably service, such as an attempt to attach without the necessary access rights.
     #
     class Channel
       include Ably::Modules::Conversions
@@ -38,7 +38,10 @@ module Ably
       extend Ably::Modules::Enum
       extend Forwardable
 
-      # ChannelState
+      # The current {Abbly::Realtime::Channel::STATE} of the channel.
+      #
+      # @spec RTL2b
+      #
       # The permited states for this channel
       STATE = ruby_enum('STATE',
         :initialized,
@@ -50,8 +53,13 @@ module Ably
         :failed
       )
 
-      # ChannelEvent
+      # Describes the events emitted by a {Ably::Rest::Channel} or {Ably::Realtime::Channel} object.
+      # An event is either an UPDATE or a {Ably::Rest::Channel::STATE}.
+      #
       # The permitted channel events that are emitted for this channel
+      #
+      # @spec RTL2g
+      #
       EVENT = ruby_enum('EVENT',
         STATE.to_sym_arr + [:update]
       )
@@ -64,15 +72,18 @@ module Ably
       MAX_PROTOCOL_MESSAGE_BATCH_SIZE = 50
 
       # {Ably::Realtime::Client} associated with this channel
+      #
       # @return [Ably::Realtime::Client]
+      #
       # @api private
       attr_reader :client
 
-      # Channel name
+      # The channel name.
       # @return [String]
       attr_reader :name
 
-      # Push channel used for push notification
+      # A {Ably::Realtime::Channel::PushChannel} object.
+      #
       # @return [Ably::Realtime::Channel::PushChannel]
       attr_reader :push
 
@@ -80,11 +91,15 @@ module Ably
       # @return [Hash]
       attr_reader :options
 
-      # Properties of a channel and its state
+      # A {Ably::Realtime::Channel::ChannelProperties} object.
+      #
+      # @spec CP1, RTL15
+      #
       # @return [{Ably::Realtime::Channel::ChannelProperties}]
       attr_reader :properties
 
-      # When a channel failure occurs this attribute contains the Ably Exception
+      # An {Ably::Models::ErrorInfo} object describing the last error which occurred on the channel, if any.
+      # @spec RTL4e
       # @return [Ably::Models::ErrorInfo,Ably::Exceptions::BaseAblyException]
       attr_reader :error_reason
 
@@ -94,11 +109,12 @@ module Ably
       attr_reader :manager
 
       # Flag that specifies whether channel is resuming attachment(reattach) or is doing a 'clean attach' RTL4j1
-      # @return [Bolean]
+      # @return [Boolean]
       # @api private
       attr_reader :attach_resume
 
-      # ChannelOptions params attrribute (#RTL4k)
+      # Optional channel parameters that configure the behavior of the channel.
+      # @spec RTL4k1
       # return [Hash]
       def_delegators :options, :params
 
@@ -127,9 +143,11 @@ module Ably
         setup_presence
       end
 
-      # Publish one or more messages to the channel.
+      # Publish a message to the channel. A callback may optionally be passed in to this call to be notified of success
+      # or failure of the operation. When publish is called with this client library, it won't attempt to implicitly
+      # attach to the channel.
       #
-      # When publishing a message, if the channel is not attached, the channel is implicitly attached
+      # @spec RTL6i
       #
       # @param name [String, Array<Ably::Models::Message|Hash>, nil]   The event name of the message to publish, or an Array of [Ably::Model::Message] objects or [Hash] objects with +:name+ and +:data+ pairs
       # @param data [String, ByteArray, nil]   The message payload unless an Array of [Ably::Model::Message] objects passed in the first argument
@@ -195,9 +213,11 @@ module Ably
         end
       end
 
-      # Subscribe to messages matching providing event name, or all messages if event name not provided.
+      # Registers a listener for messages on this channel. The caller supplies a listener function, which is called
+      # each time one or more messages arrives on the channel. A callback may optionally be passed in to this call
+      # to be notified of success or failure of the channel {Ably::Realtime::Channel#attach} operation.
       #
-      # When subscribing to messages, if the channel is not attached, the channel is implicitly attached
+      # @spec RTL7a
       #
       # @param names [String] The event name of the message to subscribe to if provided.  Defaults to all events.
       # @yield [Ably::Models::Message] For each message received, the block is called
@@ -209,8 +229,9 @@ module Ably
         super
       end
 
-      # Unsubscribe the matching block for messages matching providing event name, or all messages if event name not provided.
-      # If a block is not provided, all subscriptions will be unsubscribed
+      # Deregisters the given listener for the specified event name(s). This removes an earlier event-specific subscription.
+      #
+      # @spec RTL8a
       #
       # @param names [String] The event name of the message to subscribe to if provided.  Defaults to all events.
       #
@@ -220,9 +241,15 @@ module Ably
         super
       end
 
-      # Attach to this channel, and call the block if provided when attached.
-      # Attaching to a channel is implicit in when a message is published or #subscribe is called, so it is uncommon
-      # to need to call attach explicitly.
+      # Attach to this channel ensuring the channel is created in the Ably system and all messages published on
+      # the channel are received by any channel listeners registered using {Ably::Realtime::Channel#subscribe}.
+      # Any resulting channel state change will be emitted to any listeners registered using the {Ably::Modules::EventEmitter#on}
+      # or {Ably::Modules::EventEmitter#once} methods. A callback may optionally be passed in to this call to be notified
+      # of success or failure of the operation. As a convenience, attach() is called implicitly
+      # if {Ably::Realtime::Channel#subscribe} for the channel is called, or {Ably::Realtime::Presence#enter}
+      # or {Ably::Realtime::Presence#subscribe} are called on the {Ably::Realtime::Presence} object for this channel.
+      #
+      # @spec RTL4d
       #
       # @yield [Ably::Realtime::Channel] Block is called as soon as this channel is in the Attached state
       # @return [Ably::Util::SafeDeferrable] Deferrable that supports both success (callback) and failure (errback) callback
@@ -245,7 +272,12 @@ module Ably
         deferrable_for_state_change_to(STATE.Attached, &success_block)
       end
 
-      # Detach this channel, and call the block if provided when in a Detached or Failed state
+      # Detach from this channel. Any resulting channel state change is emitted to any listeners registered using
+      # the {Ably::Modules::EventEmitter#on} or {Ably::Modules::EventEmitter#once} methods. A callback may optionally
+      # be passed in to this call to be notified of success or failure of the operation. Once all clients globally
+      # have detached from the channel, the channel will be released in the Ably service within two minutes.
+      #
+      # @spec RTL5e
       #
       # @yield [Ably::Realtime::Channel] Block is called as soon as this channel is in the Detached or Failed state
       # @return [Ably::Util::SafeDeferrable] Deferrable that supports both success (callback) and failure (errback) callback
@@ -274,9 +306,9 @@ module Ably
         deferrable_for_state_change_to(STATE.Detached, &success_block)
       end
 
-      # Presence object for this Channel.  This controls this client's
-      # presence on the channel and may also be used to obtain presence information
-      # and change events for other members of the channel.
+      # A {Ably::Realtime::Presence} object.
+      #
+      # @spec RTL9
       #
       # @return {Ably::Realtime::Presence}
       #
@@ -284,14 +316,15 @@ module Ably
         @presence
       end
 
-      # Return the message history of the channel
+      # Retrieves a {Ably::Models::PaginatedResult} object, containing an array of historical
+      # {Ably::Models::Message} objects for the channel. If the channel is configured to persist messages,
+      # then messages can be retrieved from history for up to 72 hours in the past. If not, messages can only
+      # be retrieved from history for up to two minutes in the past.
       #
-      # If the channel is attached, you can retrieve messages published on the channel before the
-      # channel was attached with the option <tt>until_attach: true</tt>.  This is useful when a developer
-      # wishes to display historical messages with the guarantee that no messages have been missed since attach.
+      # @spec RSL2a
       #
-      # @param (see Ably::Rest::Channel#history)
-      # @option options (see Ably::Rest::Channel#history)
+      # @param (see {Ably::Rest::Channel#history})
+      # @option options (see {Ably::Rest::Channel#history})
       # @option options [Boolean]  :until_attach  When true, the history request will be limited only to messages published before this channel was attached. Channel must be attached
       #
       # @yield [Ably::Models::PaginatedResult<Ably::Models::Message>] First {Ably::Models::PaginatedResult page} of {Ably::Models::Message} objects accessible with {Ably::Models::PaginatedResult#items #items}.
@@ -312,8 +345,8 @@ module Ably
         end
       end
 
-      # @!attribute [r] __incoming_msgbus__
       # @return [Ably::Util::PubSub] Client library internal channel incoming message bus
+      #
       # @api private
       def __incoming_msgbus__
         @__incoming_msgbus__ ||= Ably::Util::PubSub.new(
@@ -321,7 +354,11 @@ module Ably
         )
       end
 
-      # Sets or updates the stored channel options. (#RTL16)
+      # Sets the {Ably::Models::ChannelOptions} for the channel.
+      # An optional callback may be provided to notify of the success or failure of the operation.
+      #
+      # @spec RTL16
+      #
       # @param channel_options [Hash, Ably::Models::ChannelOptions]     A hash of options or a {Ably::Models::ChannelOptions}
       # @return [Ably::Models::ChannelOptions]
       def set_options(channel_options)
