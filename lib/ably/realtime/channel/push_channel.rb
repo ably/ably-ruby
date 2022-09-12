@@ -1,10 +1,6 @@
 module Ably::Realtime
   class Channel
-    # A push channel used for push notifications
-    # Each PushChannel maps to exactly one Realtime Channel
-    #
-    # @!attribute [r] channel
-    #   @return [Ably::Realtime::Channel] Underlying channel object
+    # Enables devices to subscribe to push notifications for a channel.
     #
     class PushChannel
       attr_reader :channel
@@ -18,35 +14,46 @@ module Ably::Realtime
         "<PushChannel: name=#{channel.name}>"
       end
 
-      # Subscribe local device for push notifications on this channel
+      # Subscribes the device to push notifications for the channel.
+      #
+      # @spec RSH7a
       #
       # @note This is unsupported in the Ruby library
       def subscribe_device(*args)
         raise_unsupported
       end
 
-      # Subscribe all devices registered to this client's authenticated client_id for push notifications on this channel
+      # Subscribes all devices associated with the current device's clientId to push notifications for the channel.
+      #
+      # @spec RSH7b
       #
       # @note This is unsupported in the Ruby library
       def subscribe_client_id(*args)
         raise_unsupported
       end
 
-      # Unsubscribe local device for push notifications on this channel
+      # Unsubscribes the device from receiving push notifications for the channel.
+      #
+      # @spec RSH7c
       #
       # @note This is unsupported in the Ruby library
       def unsubscribe_device(*args)
         raise_unsupported
       end
 
-      # Unsubscribe all devices registered to this client's authenticated client_id for push notifications on this channel
+      # Unsubscribes all devices associated with the current device's clientId from receiving push notifications for the channel.
+      #
+      # @spec RSH7d
       #
       # @note This is unsupported in the Ruby library
       def unsubscribe_client_id(*args)
         raise_unsupported
       end
 
-      # Get list of subscriptions on this channel for this device or authenticate client_id
+      # Retrieves all push subscriptions for the channel. Subscriptions can be filtered using a params object.
+      # Returns a {Ably::Models::PaginatedResult} object containing an array of {Ably::Models::PushChannelSubscription} objects.
+      #
+      # @spec RSH7e
       #
       # @note This is unsupported in the Ruby library
       def get_subscriptions(*args)
