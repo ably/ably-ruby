@@ -4,6 +4,7 @@ module Ably::Models
   # @param attributes (see #initialize)
   #
   # @return [ChannelOptions]
+  #
   def self.ChannelOptions(attributes)
     case attributes
     when ChannelOptions
@@ -19,6 +20,15 @@ module Ably::Models
     extend Forwardable
     include Ably::Modules::ModelCommon
 
+    # Describes the possible flags used to configure client capabilities, using {Ably::Models::ChannelOptions::MODES}.
+    #
+    #   PRESENCE		          The client can enter the presence set.
+    #   PUBLISH		            The client can publish messages.
+    #   SUBSCRIBE		          The client can subscribe to messages.
+    #   PRESENCE_SUBSCRIBE		The client can receive presence messages.
+    #
+    # @spec TB2d
+    #
     MODES = ruby_enum('MODES',
       presence: 0,
       publish: 1,
@@ -33,6 +43,8 @@ module Ably::Models
     def_delegators :attributes, :fetch, :size, :empty?
     # Initialize a new ChannelOptions
     #
+    # @spec TB3
+    #
     # @option params [Hash] (TB2c) params (for realtime client libraries only) a  of key/value pairs
     # @option modes [Hash] modes (for realtime client libraries only) an array of ChannelMode
     # @option cipher [Hash,Ably::Models::CipherParams]   :cipher   A hash of options or a {Ably::Models::CipherParams} to configure the encryption. *:key* is required, all other options are optional.
@@ -45,23 +57,33 @@ module Ably::Models
       attributes.clone
     end
 
-    # @!attribute cipher
+    # Requests encryption for this channel when not null, and specifies encryption-related parameters (such as algorithm,
+    # chaining mode, key length and key). See an example.
+    #
+    # @spec RSL5a, TB2b
     #
     # @return [CipherParams]
+    #
     def cipher
       attributes[:cipher]
     end
 
-    # @!attribute params
+    # Channel Parameters that configure the behavior of the channel.
+    #
+    # @spec TB2c
     #
     # @return [Hash]
+    #
     def params
       attributes[:params].to_h
     end
 
-    # @!attribute modes
+    # An array of {Ably:Models:ChannelOptions::MODES} objects.
+    #
+    # @spec TB2d
     #
     # @return [Array<ChannelOptions::MODES>]
+    #
     def modes
       attributes[:modes]
     end
@@ -69,6 +91,7 @@ module Ably::Models
     # Converts modes to a bitfield that coresponds to ProtocolMessage#flags
     #
     # @return [Integer]
+    #
     def modes_to_flags
       modes.map { |mode| Ably::Models::ProtocolMessage::ATTACH_FLAGS_MAPPING[mode.to_sym] }.reduce(:|)
     end
