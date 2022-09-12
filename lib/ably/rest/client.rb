@@ -10,12 +10,7 @@ require 'ably/rest/middleware/exceptions'
 
 module Ably
   module Rest
-    # Client for the Ably REST API
-    #
-    # @!attribute [r] client_id
-    #   @return [String] A client ID, used for identifying this client for presence purposes
-    # @!attribute [r] auth_options
-    #   @return [Hash] {Ably::Auth} options configured for this client
+    # A client that offers a simple stateless API to interact directly with Ably's REST API.
     #
     class Client
       include Ably::Modules::Conversions
@@ -59,11 +54,13 @@ module Ably
       # @return [String]
       attr_reader :agent
 
-      # {Ably::Auth} authentication object configured for this connection
+      # An {Ably::Auth} object.
+      # @spec RSC5
       # @return [Ably::Auth]
       attr_reader :auth
 
-      # The collection of {Ably::Rest::Channel}s that have been created
+      # A {Ably::Rest::Channels} object.
+      # @spec RSN1
       # @return [Aby::Rest::Channels]
       attr_reader :channels
 
@@ -127,7 +124,9 @@ module Ably
       # @return [Integer]
       attr_reader :max_frame_size
 
-      # Creates a {Ably::Rest::Client Rest Client} and configures the {Ably::Auth} object for the connection.
+      # Constructs a {Ably::Rest::Client} object using an Ably API key or token string.
+      #
+      # @spec RSC1
       #
       # @param [Hash,String] options an options Hash used to configure the client and the authentication, or String with an API key or Token ID
       # @option options [Boolean]                 :tls                 (true) When false, TLS is disabled. Please note Basic Auth is disallowed without TLS as secrets cannot be transmitted over unsecured connections.
@@ -167,10 +166,10 @@ module Ably
       # @return [Ably::Rest::Client]
       #
       # @example
-      #    # create a new client authenticating with basic auth
+      #    # The Ably API key or token string used to validate the client.
       #    client = Ably::Rest::Client.new('key.id:secret')
       #
-      #    # create a new client and configure a client ID used for presence
+      #    # Construct a RestClient object using an Ably [Hash]{@link Hash} object.
       #    client = Ably::Rest::Client.new(key: 'key.id:secret', client_id: 'john')
       #
       def initialize(options)
@@ -275,16 +274,18 @@ module Ably
         channels.get(name, channel_options)
       end
 
-      # Retrieve the Stats for the application
+      # Queries the REST /stats API and retrieves your application's usage statistics. Returns a {Ably::Models::PaginatedResult} object, containing an array of {Ably::Models::Stats} objects. See the Stats docs.
+      #
+      # @spec RSC6a, RSC6b1, RSC6b2, RSC6b3, RSC6b4
       #
       # @param [Hash] options the options for the stats request
-      # @option options [Integer,Time] :start      Ensure earliest time or millisecond since epoch for any stats retrieved is +:start+
-      # @option options [Integer,Time] :end        Ensure latest time or millisecond since epoch for any stats retrieved is +:end+
-      # @option options [Symbol]       :direction  +:forwards+ or +:backwards+, defaults to +:backwards+
-      # @option options [Integer]      :limit      Maximum number of messages to retrieve up to 1,000, defaults to 100
-      # @option options [Symbol]       :unit       `:minute`, `:hour`, `:day` or `:month`. Defaults to `:minute`
+      # @option options [Integer,Time] :start      The time from which stats are retrieved, specified as milliseconds since the Unix epoch. RSC6b1
+      # @option options [Integer,Time] :end        The time until stats are retrieved, specified as milliseconds since the Unix epoch. RSC6b1
+      # @option options [Symbol]       :direction  The order for which stats are returned in. Valid values are backwards which orders stats from most recent to oldest, or forwards which orders stats from oldest to most recent. The default is backwards. RSC6b2
+      # @option options [Integer]      :limit      An upper limit on the number of stats returned. The default is 100, and the maximum is 1000. RSC6b3
+      # @option options [Symbol]       :unit       minute, hour, day or month. Based on the unit selected, the given start or end times are rounded down to the start of the relevant interval depending on the unit granularity of the query. RSC6b4
       #
-      # @return [Ably::Models::PaginatedResult<Ably::Models::Stats>] An Array of Stats
+      # @return [Ably::Models::PaginatedResult<Ably::Models::Stats>] A {Ably::Models::PaginatedResult} object containing an array of {Ably::Models::Stats} objects.
       #
       def stats(options = {})
         options = {
@@ -306,9 +307,13 @@ module Ably
         Ably::Models::PaginatedResult.new(response, url, self, paginated_options)
       end
 
-      # Retrieve the Ably service time
+      # Retrieves the time from the Ably service as milliseconds since the Unix epoch. Clients that do not have access
+      # to a sufficiently well maintained time source and wish to issue Ably {Ably::Models::TokenRequest} with
+      # a more accurate timestamp should use the {Ably::Rest::Client#queryTime} property instead of this method.
       #
-      # @return [Time] The time as reported by the Ably service
+      # @spec RSC16
+      #
+      # @return [Time] The time as milliseconds since the Unix epoch.
       def time
         response = get('/time', {}, send_auth_header: false)
 
@@ -357,20 +362,19 @@ module Ably
         raw_request(:delete, path, params, options)
       end
 
-      # Perform an HTTP request to the Ably API
-      # This is a convenience for customers who wish to use bleeding edge REST API functionality
-      # that is either not documented or is not included in the API for our client libraries.
-      # The REST client library provides a function to issue HTTP requests to the Ably endpoints
-      # with all the built in functionality of the library such as authentication, paging,
-      # fallback hosts, MsgPack and JSON support etc.
+      # Makes a REST request to a provided path. This is provided as a convenience for developers who wish to use REST API
+      # functionality that is either not documented or is not yet included in the public API, without having to directly
+      # handle features such as authentication, paging, fallback hosts, MsgPack and JSON support.
       #
-      # @param method  [Symbol]    The HTTP method symbol such as +:get+, +:post+, +:put+
-      # @param path    [String]    The path of the URL such +/channel/foo/publish+
-      # @param params  [Hash, nil] Optional querystring params
-      # @param body    [Hash, nil] Optional body for the POST or PUT request, must be nil or a JSON-like object
-      # @param headers [Hash, nil] Optional additional headers
+      # @spec RSC19
       #
-      # @return [Ably::Models::HttpPaginatedResponse<>]
+      # @param method  [Symbol]    The request method to use, such as GET, POST.
+      # @param path    [String]    The request path.
+      # @param params  [Hash, nil] The parameters to include in the URL query of the request. The parameters depend on the endpoint being queried. See the REST API reference for the available parameters of each endpoint.
+      # @param body    [Hash, nil] The JSON body of the request.
+      # @param headers [Hash, nil] Additional HTTP headers to include in the request.
+      #
+      # @return [Ably::Models::HttpPaginatedResponse<>] An {Ably::Models::HttpPaginatedResponse} object returned by the HTTP request, containing an empty or JSON-encodable object.
       def request(method, path, params = {}, body = nil, headers = {}, options = {})
         raise "Method #{method.to_s.upcase} not supported" unless %i(get put patch post delete).include?(method.to_sym)
 
@@ -408,7 +412,8 @@ module Ably
         Models::HttpPaginatedResponse.new(response, path, self)
       end
 
-      # The local device detilas
+      # Retrieves an object that represents the current state of the device as a target for push notifications.
+      # @spec RSH8
       # @return [Ably::Models::LocalDevice]
       #
       # @note This is unsupported in the Ruby library
@@ -416,7 +421,8 @@ module Ably
         raise Ably::Exceptions::PushNotificationsNotSupported, 'This device does not support receiving or subscribing to push notifications. The local device object is not unavailable'
       end
 
-      # Push notification object for publishing and managing push notifications
+      # A {Ably::Rest::Push} object.
+      # @spec RSH7
       # @return [Ably::Rest::Push]
       def push
         @push ||= Push.new(self)
