@@ -46,9 +46,12 @@ module Ably
 
       # On receiving an event matching the event_name, call the provided block
       #
+      # @spec RTE4
+      #
       # @param [Array<String>] event_names event name
       #
       # @return [void]
+      #
       def on(*event_names, &block)
         add_callback event_names, proc_for_block(block)
       end
@@ -62,9 +65,12 @@ module Ably
 
       # On receiving an event maching the event_name, call the provided block only once and remove the registered callback
       #
+      # @spec RTE4
+      #
       # @param [Array<String>] event_names event name
       #
       # @return [void]
+      #
       def once(*event_names, &block)
         add_callback event_names, proc_for_block(block, delete_once_run: true)
       end
@@ -76,7 +82,11 @@ module Ably
         add_callback event_names, proc_for_block(block, delete_once_run: true, unsafe: true)
       end
 
-      # Emit an event with event_name that will in turn call all matching callbacks setup with `on`
+      # Emits an event, calling registered listeners with the given event name and any other given arguments.
+      # If an exception is raised in any of the listeners, the exception is caught by the EventEmitter and the exception is logged to the Ably logger.
+      #
+      # @spec RTE6
+      #
       def emit(event_name, *args)
         [callbacks_any, callbacks[callbacks_event_coerced(event_name)]].each do |callback_arr|
           callback_arr.clone.
@@ -97,9 +107,12 @@ module Ably
       # If a block is provided, only callbacks matching that block signature will be removed.
       # If block is not provided, all callbacks matching the event_name will be removed.
       #
+      # @spec RTE5
+      #
       # @param [Array<String>] event_names event name
       #
       # @return [void]
+      #
       def off(*event_names, &block)
         off_internal(false, *event_names, &block)
       end
