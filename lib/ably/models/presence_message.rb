@@ -86,7 +86,7 @@ module Ably::Models
     # @return [Hash, nil]
     #
     def data
-      attributes[:date]
+      attributes[:data]
     end
 
     # This will typically be empty as all presence messages received from Ably are automatically decoded client-side
