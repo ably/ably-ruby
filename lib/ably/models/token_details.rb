@@ -4,6 +4,7 @@ module Ably::Models
   # @param attributes (see #initialize)
   #
   # @return [TokenDetails]
+  #
   def self.TokenDetails(attributes)
     case attributes
     when TokenDetails
@@ -13,11 +14,7 @@ module Ably::Models
     end
   end
 
-  # TokenDetails is a class providing details of the token string and the token's associated metadata,
-  # constructed from the response from Ably when request in a token via the REST API.
-  #
-  # Ruby {http://ruby-doc.org/core/Time.html Time} objects are supported in place of Ably ms since epoch time fields.  However, if a numeric is provided
-  # it must always be expressed in milliseconds as the Ably API always uses milliseconds for time fields.
+  # Contains an Ably Token and its associated metadata.
   #
   class TokenDetails
     include Ably::Modules::ModelCommon
@@ -46,31 +43,39 @@ module Ably::Models
       self.attributes.freeze
     end
 
-    # @!attribute [r] token
+    # The Ably Token itself. A typical Ably Token string appears with the form xVLyHw.A-pwh7wicf3afTfgiw4k2Ku33kcnSA7z6y8FjuYpe3QaNRTEo4.
+    #
+    # @spec TD2
+    #
     # @return [String] Token used to authenticate requests
+    #
     def token
       attributes[:token]
     end
 
-    # @!attribute [r] key_name
     # @return [String] API key name used to create this token.  An API key is made up of an API key name and secret delimited by a +:+
+    #
     def key_name
       attributes[:key_name]
     end
 
-    # @!attribute [r] issued
+    # The timestamp at which this token was issued as milliseconds since the Unix epoch.
+    # @spec TD4
     # @return [Time] Time the token was issued
     def issued
       as_time_from_epoch(attributes[:issued], granularity: :ms, allow_nil: :true)
     end
 
-    # @!attribute [r] expires
+    # The timestamp at which this token expires as milliseconds since the Unix epoch.
+    # @spec TD3
     # @return [Time] Time the token expires
     def expires
       as_time_from_epoch(attributes[:expires], granularity: :ms, allow_nil: :true)
     end
 
-    # @!attribute [r] capability
+    # The capabilities associated with this Ably Token. The capabilities value is a JSON-encoded representation of the
+    # resource paths and associated operations. Read more about capabilities in the capabilities docs.
+    # @spec TD5
     # @return [Hash] Capabilities assigned to this token
     def capability
       if attributes.has_key?(:capability)
@@ -86,7 +91,10 @@ module Ably::Models
       end
     end
 
-    # @!attribute [r] client_id
+    # The client ID, if any, bound to this Ably Token. If a client ID is included, then the Ably Token authenticates its
+    # bearer as that client ID, and the Ably Token may only be used to perform operations on behalf of that client ID.
+    # The client is then considered to be an identified client.
+    # @spec TD6
     # @return [String] Optional client ID assigned to this token
     def client_id
       attributes[:client_id]
@@ -113,8 +121,8 @@ module Ably::Models
       attributes.keys == [:token]
     end
 
-    # @!attribute [r] attributes
     # @return [Hash] Access the token details Hash object ruby'fied to use symbolized keys
+    #
     def attributes
       @hash_object
     end
@@ -122,5 +130,19 @@ module Ably::Models
     def to_s
       "<TokenDetails token=#{token} client_id=#{client_id} key_name=#{key_name} issued=#{issued} expires=#{expires} capability=#{capability} expired?=#{expired?}>"
     end
+
+    # A static factory method to create a {Ably::Models::TokenDetails} object from a deserialized {Ably::Models::TokenDetails}-like
+    # object or a JSON stringified TokenDetails object. This method is provided to minimize bugs as a result of differing
+    # types by platform for fields such as timestamp or ttl. For example, in Ruby ttl in the {Ably::Models::TokenDetails}
+    # object is exposed in seconds as that is idiomatic for the language, yet when serialized to JSON using to_json it
+    # is automatically converted to the Ably standard which is milliseconds. By using the fromJson() method when constructing
+    # a {Ably::Models::TokenDetails} object, Ably ensures that all fields are consistently serialized and deserialized across platforms.
+    #
+    # @overload from_json(json_like_object)
+    # @spec TD7
+    # @param json_like_object [Hash, String] A deserialized TokenDetails-like object or a JSON stringified TokenDetails object.
+    #
+    # @return [Ably::Models::TokenDetails]  An Ably authentication token.
+    #
   end
 end
