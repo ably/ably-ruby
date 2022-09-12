@@ -270,7 +270,9 @@ module Ably::Realtime
       end
 
       # Number of consecutive attempts for provided state
+      #
       # @return [Integer]
+      #
       # @api private
       def retry_count_for_state(state)
         retries_for_state(state, ignore_states: [:connecting]).count
@@ -356,7 +358,9 @@ module Ably::Realtime
       end
 
       # Timers used to manage connection state, for internal use by the client library
+      #
       # @return [Hash]
+      #
       def timers
         @timers
       end
