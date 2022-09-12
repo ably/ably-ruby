@@ -6,6 +6,7 @@ module Ably::Modules
     # @param error_details [ErrorInfo,Hash] Error info attributes
     #
     # @return [ErrorInfo]
+    #
     def ErrorInfo(error_details)
       case error_details
       when Ably::Models::ErrorInfo
@@ -21,19 +22,6 @@ module Ably::Models
   # An exception type encapsulating error information containing
   # an Ably-specific error code and generic status code.
   #
-  # @!attribute [r] message
-  #   @return [String] Additional reason information, where available
-  # @!attribute [r] code
-  #   @return [Integer] Ably error code (see ably-common/protocol/errors.json)
-  # @!attribute [r] status
-  #   @return [Integer] HTTP Status Code corresponding to this error, where applicable
-  # @!attribute [r] request_id
-  #   @return [Integer] HTTP RequestId corresponding to this error, where applicable (#RSC7c)
-  # @!attribute [r] cause
-  #   @return [Integer] HTTP Status Code corresponding to this error, where applicable (#TI1)
-  # @!attribute [r] attributes
-  #   @return [Hash] Access the protocol message Hash object ruby'fied to use symbolized keys
-  #
   class ErrorInfo < Ably::Exceptions::BaseAblyException
     include Ably::Modules::ModelCommon
 
@@ -42,10 +30,64 @@ module Ably::Models
       @hash_object     = IdiomaticRubyWrapper(hash_object.clone.freeze)
     end
 
-    %w(message code href status_code request_id cause).each do |attribute|
-      define_method attribute do
-        attributes[attribute.to_sym]
-      end
+    # Ably error code.
+    #
+    # @spec TI1
+    #
+    # @return [Integer]
+    #
+    def code
+      attributes[:code]
+    end
+
+    # This is included for REST responses to provide a URL for additional help on the error code.
+    #
+    # @spec TI4
+    #
+    # @return [String]
+    #
+    def href
+      attributes[:href]
+    end
+
+    # Additional message information, where available.
+    #
+    # @spec TI1
+    #
+    # @return [String]
+    #
+    def message
+      attributes[:message]
+    end
+
+    # Information pertaining to what caused the error where available.
+    #
+    # @spec TI1
+    #
+    # @return [Ably::Models::ErrorInfo]
+    #
+    def cause
+      attributes[:cause]
+    end
+
+    # HTTP Status Code corresponding to this error, where applicable.
+    #
+    # @spec TI1
+    #
+    # @return [Integer]
+    #
+    def status_code
+      attributes[:status_code]
+    end
+
+    # If a request fails, the request ID must be included in the ErrorInfo returned to the user.
+    #
+    # @spec RSC7c
+    #
+    # @return [String]
+    #
+    def request_id
+      attributes[:request_id]
     end
     alias_method :status, :status_code
 
