@@ -5,6 +5,7 @@ module Ably::Models
   # @param [Hash] options (see PresenceMessage#initialize)
   #
   # @return [PresenceMessage]
+  #
   def self.PresenceMessage(presence_message, options = {})
     case presence_message
     when PresenceMessage
@@ -19,24 +20,6 @@ module Ably::Models
   # A class representing an individual presence message to be sent or received
   # via the Ably Realtime service.
   #
-  # @!attribute [r] action
-  #   @return [ACTION] the state change event signified by a PresenceMessage
-  # @!attribute [r] client_id
-  #   @return [String] The client_id associated with this presence state
-  # @!attribute [r] connection_id
-  #   @return [String] A unique member identifier, disambiguating situations where a given client_id is present on multiple connections simultaneously
-  # @!attribute [r] member_key
-  #   @return [String] A unique connection and client_id identifier ensuring multiple connected clients with the same client_id are unique
-  # @!attribute [r] data
-  #   @return [Object] Optional client-defined status or other event payload associated with this state
-  # @!attribute [r] encoding
-  #   @return [String] The encoding for the message data. Encoding and decoding of messages is handled automatically by the client library.
-  #                    Therefore, the `encoding` attribute should always be nil unless an Ably library decoding error has occurred.
-  # @!attribute [r] timestamp
-  #   @return [Time] Timestamp when the message was received by the Ably the realtime service
-  # @!attribute [r] attributes
-  #   @return [Hash] Access the protocol message Hash object ruby'fied to use symbolized keys
-  #
   class PresenceMessage
     include Ably::Modules::Conversions
     include Ably::Modules::Encodeable
@@ -44,6 +27,16 @@ module Ably::Models
     include Ably::Modules::SafeDeferrable if defined?(Ably::Realtime)
     extend Ably::Modules::Enum
 
+    # Describes the possible actions members in the presence set can emit.
+    #
+    #   ABSENT	    TP2	A member is not present in the channel.
+    #   PRESENT	    TP2	When subscribing to presence events on a channel that already has members present, this event is emitted for every member already present on the channel before the subscribe listener was registered.
+    #   ENTER	      TP2	A new member has entered the channel.
+    #   LEAVE	      TP2	A member who was present has now left the channel. This may be a result of an explicit request to leave or implicitly when detaching from the channel. Alternatively, if a member's connection is abruptly disconnected and they do not resume their connection within a minute, Ably treats this as a leave event as the client is no longer present.
+    #   UPDATE	    TP2	An already present member has updated their member data. Being notified of member data updates can be very useful, for example, it can be used to update the status of a user when they are typing a message.
+    #
+    # @spec TP2
+    #
     ACTION = ruby_enum('ACTION',
       :absent,
       :present,
@@ -76,24 +69,75 @@ module Ably::Models
       self.attributes.freeze
     end
 
-    %w( client_id data encoding ).each do |attribute|
-      define_method attribute do
-        attributes[attribute.to_sym]
-      end
+    # The ID of the client that published the PresenceMessage.
+    #
+    # @spec TP3c
+    #
+    # @return [String]
+    #
+    def client_id
+      attributes[:client_id]
     end
 
+    # The payload of the {Ably::Models::PresenceMessage}.
+    #
+    # @spec TP3e
+    #
+    # @return [Hash, nil]
+    #
+    def data
+      attributes[:date]
+    end
+
+    # This will typically be empty as all presence messages received from Ably are automatically decoded client-side
+    # using this value. However, if the message encoding cannot be processed, this attribute will contain the remaining
+    # transformations not applied to the data payload.
+    #
+    # @spec TP3f
+    #
+    # @return [String]
+    #
+    def encoding
+      attributes[:encoding]
+    end
+
+    # A unique ID assigned to each {Ably::Models::PresenceMessage} by Ably.
+    #
+    # @spec TP3a
+    #
+    # @return [String]
+    #
     def id
       attributes.fetch(:id) { "#{protocol_message.id!}:#{protocol_message_index}" }
     end
 
+    # The ID of the connection associated with the client that published the {Ably::Models::PresenceMessage}.
+    #
+    # @spec TP3d
+    #
+    # @return [String]
+    #
     def connection_id
       attributes.fetch(:connection_id) { protocol_message.connection_id if assigned_to_protocol_message? }
     end
 
+    # Combines clientId and connectionId to ensure that multiple connected clients with an identical clientId are uniquely
+    # identifiable. A string function that returns the combined clientId and connectionId.
+    #
+    # @spec TP3h
+    #
+    # @return [String]
+    #
     def member_key
       "#{connection_id}:#{client_id}"
     end
 
+    # The time the {Ably::Models::PresenceMessage} was received by Ably, as milliseconds since the Unix epoch.
+    #
+    # @spec TP3g
+    #
+    # @return [Integer]
+    #
     def timestamp
       if attributes[:timestamp]
         as_time_from_epoch(attributes[:timestamp])
@@ -102,6 +146,12 @@ module Ably::Models
       end
     end
 
+    # The type of {Ably::Models::PresenceMessage::ACTION} the PresenceMessage is for.
+    #
+    # @spec TP3b
+    #
+    # @return [Ably::Models::PresenceMessage::ACTION]
+    #
     def action
       ACTION(attributes[:action])
     end
