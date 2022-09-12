@@ -4,6 +4,7 @@ module Ably::Models
   # @param attributes (see #initialize)
   #
   # @return [AuthDetails]
+  #
   def self.AuthDetails(attributes)
     case attributes
     when AuthDetails
@@ -27,14 +28,16 @@ module Ably::Models
       self.attributes.freeze
     end
 
-    %w(access_token).each do |attribute|
-      define_method attribute do
-        attributes[attribute.to_sym]
-      end
+    # The authentication token string.
+    #
+    # @spec AD2
+    #
+    # @return [String]
+    #
+    def access_token
+      attributes[:access_token]
     end
 
-    # @!attribute [r] attributes
-    # @return [Hash] Access the token details Hash object ruby'fied to use symbolized keys
     def attributes
       @hash_object
     end
