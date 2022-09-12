@@ -5,7 +5,9 @@ module Ably::Realtime
       private
 
       # Prepare and queue messages on the connection queue immediately
+      #
       # @return [Ably::Util::SafeDeferrable]
+      #
       def enqueue_messages_on_connection(client, raw_messages, channel_name, channel_options = {})
         messages = Array(raw_messages).map do |raw_msg|
           create_message(client, raw_msg, channel_options).tap do |message|
