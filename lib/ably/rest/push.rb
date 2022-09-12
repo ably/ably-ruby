@@ -14,7 +14,9 @@ module Ably
       end
 
       # Admin features for push notifications like managing devices and channel subscriptions
+      #
       # @return [Ably::Rest::Push::Admin]
+      #
       def admin
         @admin ||= Admin.new(self)
       end
