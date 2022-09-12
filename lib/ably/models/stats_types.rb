@@ -59,71 +59,47 @@ module Ably::Models
     end
 
     # MessageCount contains aggregate counts for messages and data transferred
-    # @!attribute [r] count
-    #   @return [Integer] count of all messages
-    # @!attribute [r] data
-    #   @return [Integer] total data transferred for all messages in bytes
+    #
+    # @spec TS5a, TS5b
+    #
     class MessageCount < StatsStruct
       coerce_attributes :count, :data, into: IntegerDefaultZero
     end
 
     # RequestCount contains aggregate counts for requests made
-    # @!attribute [r] succeeded
-    #   @return [Integer] requests succeeded
-    # @!attribute [r] failed
-    #   @return [Integer] requests failed
-    # @!attribute [r] refused
-    #   @return [Integer] requests refused typically as a result of permissions or a limit being exceeded
+    #
+    # @spec TS8a, TS8b, TS8c
+    #
     class RequestCount < StatsStruct
       coerce_attributes :succeeded, :failed, :refused, into: IntegerDefaultZero
     end
 
     # ResourceCount contains aggregate data for usage of a resource in a specific scope
-    # @!attribute [r] opened
-    #   @return [Integer] total resources of this type opened
-    # @!attribute [r] peak
-    #   @return [Integer] peak resources of this type used for this period
-    # @!attribute [r] mean
-    #   @return [Integer] average resources of this type used for this period
-    # @!attribute [r] min
-    #   @return [Integer] minimum total resources of this type used for this period
-    # @!attribute [r] refused
-    #   @return [Integer] resource requests refused within this period
+    #
     class ResourceCount < StatsStruct
       coerce_attributes :opened, :peak, :mean, :min, :refused, into: IntegerDefaultZero
     end
 
     # ConnectionTypes contains a breakdown of summary stats data for different (TLS vs non-TLS) connection types
-    # @!attribute [r] tls
-    #   @return [ResourceCount] TLS connection count
-    # @!attribute [r] plain
-    #   @return [ResourceCount] non-TLS connection count (unencrypted)
-    # @!attribute [r] all
-    #   @return [ResourceCount] all connection count (includes both TLS & non-TLS connections)
+    #
+    # @spec TS4a, TS4b, TS4c
+    #
     class ConnectionTypes < StatsStruct
       coerce_attributes :tls, :plain, :all, into: ResourceCount
     end
 
     # MessageTypes contains a breakdown of summary stats data for different (message vs presence) message types
-    # @!attribute [r] messages
-    #   @return [MessageCount] count of channel messages
-    # @!attribute [r] presence
-    #   @return [MessageCount] count of presence messages
-    # @!attribute [r] all
-    #   @return [MessageCount] all messages count (includes both presence & messages)
+    #
+    # @spec TS6a, TS6b, TS6c
+    #
     class MessageTypes < StatsStruct
       coerce_attributes :messages, :presence, :all, into: MessageCount
     end
 
     # MessageTraffic contains a breakdown of summary stats data for traffic over various transport types
-    # @!attribute [r] realtime
-    #   @return [MessageTypes] count of messages transferred over a realtime transport such as WebSockets
-    # @!attribute [r] rest
-    #   @return [MessageTypes] count of messages transferred using REST
-    # @!attribute [r] webhook
-    #   @return [MessageTypes] count of messages delivered using WebHooks
-    # @!attribute [r] all
-    #   @return [MessageTypes] all messages count (includes realtime, rest and webhook messages)
+    #
+    # @spec TS7a, TS7b, TS7c, TS7d
+    #
     class MessageTraffic < StatsStruct
       coerce_attributes :realtime, :rest, :webhook, :all, into: MessageTypes
     end
