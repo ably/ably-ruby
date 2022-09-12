@@ -43,7 +43,7 @@ module Ably::Models
 
     def state=(val)
       unless val.nil? || val.kind_of?(String)
-        raise ArgumentError, "#{attribute} must be nil or a string value"
+        raise ArgumentError, "state must be nil or a string value"
       end
       attributes[:state] = val
     end
