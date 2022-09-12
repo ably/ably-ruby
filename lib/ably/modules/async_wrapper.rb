@@ -36,6 +36,7 @@ module Ably::Modules
     # Will yield the provided block in a new thread and return an {Ably::Util::SafeDeferrable}
     #
     # @yield [Object] operation block that is run in a thread
+    #
     # @return [Ably::Util::SafeDeferrable]
     #
     def async_wrap(success_callback = nil, custom_error_handling = nil)
