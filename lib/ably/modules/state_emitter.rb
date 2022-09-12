@@ -35,6 +35,7 @@ module Ably::Modules
     # Current state {Ably::Modules::Enum}
     #
     # @return [Symbol] state
+    #
     def state
       STATE(@state)
     end
@@ -42,6 +43,7 @@ module Ably::Modules
     # Evaluates if check_state matches current state
     #
     # @return [Boolean]
+    #
     def state?(check_state)
       state == check_state
     end
