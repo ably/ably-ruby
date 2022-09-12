@@ -2,39 +2,7 @@ require 'securerandom'
 
 module Ably
   module Realtime
-    # The Connection class represents the connection associated with an Ably Realtime instance.
-    # The Connection object exposes the lifecycle and parameters of the realtime connection.
-    #
-    # Connections will always be in one of the following states:
-    #
-    #   initialized:  0
-    #   connecting:   1
-    #   connected:    2
-    #   disconnected: 3
-    #   suspended:    4
-    #   closing:      5
-    #   closed:       6
-    #   failed:       7
-    #
-    # Note that the states are available as Enum-like constants:
-    #
-    #   Connection::STATE.Initialized
-    #   Connection::STATE.Connecting
-    #   Connection::STATE.Connected
-    #   Connection::STATE.Disconnected
-    #   Connection::STATE.Suspended
-    #   Connection::STATE.Closing
-    #   Connection::STATE.Closed
-    #   Connection::STATE.Failed
-    #
-    # @example
-    #    client = Ably::Realtime::Client.new('key.id:secret')
-    #    client.connection.on(:connected) do
-    #      puts "Connected with connection ID: #{client.connection.id}"
-    #    end
-    #
-    # @!attribute [r] state
-    #   @return [Ably::Realtime::Connection::STATE] connection state
+    # Enables the management of a connection to Ably.
     #
     class Connection
       include Ably::Modules::EventEmitter
@@ -42,8 +10,50 @@ module Ably
       include Ably::Modules::SafeYield
       extend Ably::Modules::Enum
 
-      # ConnectionState
-      # The permited states for this connection
+      # The current {Ably::Realtime::Connection::STATE} of the connection.
+      # Describes the realtime [Connection]{@link Connection} object states.
+      #
+      # @spec RTN4d
+      #
+      # INITIALIZED		A connection with this state has been initialized but no connection has yet been attempted.
+      # CONNECTING		A connection attempt has been initiated. The connecting state is entered as soon as the library
+      #               has completed initialization, and is reentered each time connection is re-attempted following disconnection.
+      # CONNECTED		  A connection exists and is active.
+      # DISCONNECTED		A temporary failure condition. No current connection exists because there is no network connectivity
+      #                 or no host is available. The disconnected state is entered if an established connection is dropped,
+      #                 or if a connection attempt was unsuccessful. In the disconnected state the library will periodically
+      #                 attempt to open a new connection (approximately every 15 seconds), anticipating that the connection
+      #                 will be re-established soon and thus connection and channel continuity will be possible. 
+      #                 In this state, developers can continue to publish messages as they are automatically placed
+      #                 in a local queue, to be sent as soon as a connection is reestablished. Messages published by 
+      #                 other clients while this client is disconnected will be delivered to it upon reconnection,
+      #                 so long as the connection was resumed within 2 minutes. After 2 minutes have elapsed, recovery 
+      #                 is no longer possible and the connection will move to the SUSPENDED state.
+      # SUSPENDED		  A long term failure condition. No current connection exists because there is no network connectivity 
+      #               or no host is available. The suspended state is entered after a failed connection attempt if 
+      #               there has then been no connection for a period of two minutes. In the suspended state, the library 
+      #               will periodically attempt to open a new connection every 30 seconds. Developers are unable to 
+      #               publish messages in this state. A new connection attempt can also be triggered by an explicit
+      #               call to {Ably::Realtime::Connection#connect}. Once the connection has been re-established, 
+      #               channels will be automatically re-attached. The client has been disconnected for too long for them 
+      #               to resume from where they left off, so if it wants to catch up on messages published by other clients 
+      #               while it was disconnected, it needs to use the History API.
+      # CLOSING		  An explicit request by the developer to close the connection has been sent to the Ably service. 
+      #             If a reply is not received from Ably within a short period of time, the connection is forcibly 
+      #             terminated and the connection state becomes CLOSED.
+      # CLOSED		  The connection has been explicitly closed by the client. In the closed state, no reconnection attempts 
+      #             are made automatically by the library, and clients may not publish messages. No connection state is 
+      #             preserved by the service or by the library. A new connection attempt can be triggered by an explicit
+      #             call to {Ably::Realtime::Connection#connect}, which results in a new connection.
+      # FAILED		  This state is entered if the client library encounters a failure condition that it cannot recover from.
+      #             This may be a fatal connection error received from the Ably service, for example an attempt to connect
+      #             with an incorrect API key, or a local terminal error, for example the token in use has expired
+      #             and the library does not have any way to renew it. In the failed state, no reconnection attempts
+      #             are made automatically by the library, and clients may not publish messages. A new connection attempt
+      #             can be triggered by an explicit call to {Ably::Realtime::Connection#connect}.
+      #
+      # @return [Ably::Realtime::Connection::STATE]
+      #
       STATE = ruby_enum('STATE',
         :initialized,
         :connecting,
@@ -55,8 +65,10 @@ module Ably
         :failed
       )
 
-      # ConnectionEvent
-      # The permitted connection events that are emitted for this connection
+      # Describes the events emitted by a {Ably::Realtime::Connection} object. An event is either an UPDATE or a {Ably::Realtime::Connection::STATE}.
+      #
+      # UPDATE	RTN4h	An event for changes to connection conditions for which the {Ably::Realtime::Connection::STATE} does not change.
+      #
       EVENT = ruby_enum('EVENT',
         STATE.to_sym_arr + [:update]
       )
@@ -82,20 +94,41 @@ module Ably
       # Max number of messages to bundle in a single ProtocolMessage
       MAX_PROTOCOL_MESSAGE_BATCH_SIZE = 50
 
-      # A unique public identifier for this connection, used to identify this member in presence events and messages
+      # A unique public identifier for this connection, used to identify this member.
+      #
+      # @spec RTN8
+      #
       # @return [String]
+      #
       attr_reader :id
 
-      # A unique private connection key used to recover this connection, assigned by Ably
+      # A unique private connection key used to recover or resume a connection, assigned by Ably.
+      # When recovering a connection explicitly, the recoveryKey is used in the recover client options as it contains
+      # both the key and the last message serial. This private connection key can also be used by other REST clients
+      # to publish on behalf of this client. See the publishing over REST on behalf of a realtime client docs for more info.
+      #
+      # @spec RTN9
+      #
       # @return [String]
+      #
       attr_reader :key
 
-      # The serial number of the last message to be received on this connection, used to recover or resume a connection
+      # The serial number of the last message to be received on this connection, used automatically by the library when
+      # recovering or resuming a connection. When recovering a connection explicitly, the recoveryKey is used in
+      # the recover client options as it contains both the key and the last message serial.
+      #
+      # @spec RTN10
+      #
       # @return [Integer]
+      #
       attr_reader :serial
 
-      # When a connection failure occurs this attribute contains the Ably Exception
+      # An {Ably::Models::ErrorInfo} object describing the last error received if a connection failure occurs.
+      #
+      # @spec RTN14a
+      #
       # @return [Ably::Models::ErrorInfo,Ably::Exceptions::BaseAblyException]
+      #
       attr_reader :error_reason
 
       # Connection details of the currently established connection
@@ -165,9 +198,11 @@ module Ably
         @current_host = client.endpoint.host
       end
 
-      # Causes the connection to close, entering the closed state, from any state except
-      # the failed state. Once closed, the library will not attempt to re-establish the
-      # connection without a call to {Connection#connect}.
+      # Causes the connection to close, entering the {Ably::Realtime::Connection::STATE} CLOSING state.
+      # Once closed, the library does not attempt to re-establish the connection without an explicit call to
+      # {Ably::Realtime::Connection#connect}.
+      #
+      # @spec RTN12
       #
       # @yield block is called as soon as this connection is in the Closed state
       #
@@ -183,13 +218,11 @@ module Ably
         deferrable_for_state_change_to(STATE.Closed, &success_block)
       end
 
-      # Causes the library to attempt connection.  If it was previously explicitly
-      # closed by the user, or was closed as a result of an unrecoverable error, a new connection will be opened.
-      # Succeeds when connection is established i.e. state is @Connected@
-      # Fails when state becomes either @Closing@, @Closed@ or @Failed@
+      # Explicitly calling connect() is unnecessary unless the autoConnect attribute of
+      # the ClientOptions object is false. Unless already connected or connecting,
+      # this method causes the connection to open, entering the {Ably::Realtime::Connection::STATE} CONNECTING state.
       #
-      # Note that if the connection remains in the disconnected ans suspended states indefinitely,
-      # the Deferrable or block provided may never be called
+      # @spec RTC1b, RTN3, RTN11
       #
       # @yield block is called as soon as this connection is in the Connected state
       #
@@ -223,9 +256,11 @@ module Ably
         end
       end
 
-      # Sends a ping to Ably and yields the provided block when a heartbeat ping request is echoed from the server.
-      # This can be useful for measuring true roundtrip client to Ably server latency for a simple message, or checking that an underlying transport is responding currently.
-      # The elapsed time in seconds is passed as an argument to the block and represents the time taken to echo a ping heartbeat once the connection is in the `:connected` state.
+      # When connected, sends a heartbeat ping to the Ably server and executes the callback with any error
+      # and the response time in milliseconds when a heartbeat ping request is echoed from the server.
+      # This can be useful for measuring true round-trip latency to the connected Ably server.
+      #
+      # @spec RTN13
       #
       # @yield [Integer] if a block is passed to this method, then this block will be called once the ping heartbeat is received with the time elapsed in seconds.
       #                  If the ping is not received within an acceptable timeframe, the block will be called with +nil+ as he first argument
@@ -312,8 +347,12 @@ module Ably
         end
       end
 
-      # @!attribute [r] recovery_key
-      # @return [String] recovery key that can be used by another client to recover this connection with the :recover option
+      # The recovery key string can be used by another client to recover this connection's state in the recover client options property. See connection state recover options for more information.
+      #
+      # @spec RTN16b, RTN16c
+      #
+      # @return [String]
+      #
       def recovery_key
         "#{key}:#{serial}:#{client_msg_serial}" if connection_resumable?
       end
