@@ -15,6 +15,7 @@ module Ably::Modules
     # Provide a normal Hash accessor to the underlying raw message object
     #
     # @return [Object]
+    #
     def [](key)
       attributes[key]
     end
@@ -25,13 +26,17 @@ module Ably::Modules
     end
 
     # Return a JSON ready object from the underlying #attributes using Ably naming conventions for keys
+    #
     # @return [Hash]
+    #
     def as_json(*args)
       attributes.as_json.reject { |key, val| val.nil? }
     end
 
     # Stringify the JSON representation of this object from the underlying #attributes
+    #
     # @return [String]
+    #
     def to_json(*args)
       as_json.to_json(*args)
     end
