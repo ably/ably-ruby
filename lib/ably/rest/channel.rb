@@ -1,12 +1,7 @@
 module Ably
   module Rest
-    # The Ably Realtime service organises the traffic within any application into named channels.
-    # Channels are the "unit" of message distribution; clients attach to channels to subscribe to messages, and every message broadcast by the service is associated with a unique channel.
+    # Enables messages to be published and historic messages to be retrieved for a channel.
     #
-    # @!attribute [r] name
-    #   @return {String} channel name
-    # @!attribute [r] options
-    #   @return {Hash} channel options configured for this channel, see {#initialize} for channel_options
     class Channel
       include Ably::Modules::Conversions
 
@@ -15,9 +10,14 @@ module Ably
       # @api private
       attr_reader :client
 
-      attr_reader :name, :options
+      # The channel name.
+      # @return [String]
+      attr_reader :name
 
-      # Push channel used for push notification (client-side)
+      attr_reader :options
+
+      # A {Ably::Rest::Channel::PushChannel} object
+      # @spec RSH4
       # @return [Ably::Rest::Channel::PushChannel]
       # @api private
       attr_reader :push
@@ -39,7 +39,10 @@ module Ably
         @push    = PushChannel.new(self)
       end
 
-      # Publish one or more messages to the channel. Five overloaded forms
+      # Publishes a message to the channel. A callback may optionally be passed in to this call to be notified of success or failure of the operation.
+      #
+      # @spec RSL1
+      #
       # @param name [String, Array<Ably::Models::Message|Hash>, Ably::Models::Message, nil]   The event name of the message to publish, or an Array of [Ably::Model::Message] objects or [Hash] objects with +:name+ and +:data+ pairs, or a single Ably::Model::Message object
       # @param data [String, Array, Hash, nil]   The message payload unless an Array of [Ably::Model::Message] objects passed in the first argument, in which case an optional hash of query parameters
       # @param attributes [Hash, nil]   Optional additional message attributes such as :extras, :id, :client_id or :connection_id, applied when name attribute is nil or a string (Deprecated, will be removed in 2.0 in favour of constructing a Message object)
@@ -112,15 +115,19 @@ module Ably
         [201, 204].include?(response.status)
       end
 
-      # Return the message   of the channel
+      # Retrieves a {Ably::Models::PaginatedResult} object, containing an array of historical {Ably::Models::Message}
+      # objects for the channel. If the channel is configured to persist messages, then messages can be retrieved from
+      # history for up to 72 hours in the past. If not, messages can only be retrieved from history for up to two minutes in the past.
+      #
+      # @spec RSL2a
       #
       # @param [Hash] options   the options for the message history request
-      # @option options [Integer,Time] :start      Ensure earliest time or millisecond since epoch for any messages retrieved is +:start+
-      # @option options [Integer,Time] :end        Ensure latest time or millisecond since epoch for any messages retrieved is +:end+
-      # @option options [Symbol]       :direction  +:forwards+ or +:backwards+, defaults to +:backwards+
-      # @option options [Integer]      :limit      Maximum number of messages to retrieve up to 1,000, defaults to 100
+      # @option options [Integer,Time] :start      The time from which messages are retrieved, specified as milliseconds since the Unix epoch. RSL2b1
+      # @option options [Integer,Time] :end        The time until messages are retrieved, specified as milliseconds since the Unix epoch. RSL2b1
+      # @option options [Symbol]       :direction  The order for which messages are returned in. Valid values are backwards which orders messages from most recent to oldest, or forwards which orders messages from oldest to most recent. The default is backwards. RSL2b2
+      # @option options [Integer]      :limit      An upper limit on the number of messages returned. The default is 100, and the maximum is 1000. RSL2b3
       #
-      # @return [Ably::Models::PaginatedResult<Ably::Models::Message>] First {Ably::Models::PaginatedResult page} of {Ably::Models::Message} objects accessible with {Ably::Models::PaginatedResult#items #items}.
+      # @return [Ably::Models::PaginatedResult<Ably::Models::Message>] A {Ably::Models::PaginatedResult} object containing an array of {Ably::Models::Message} objects.
       #
       def history(options = {})
         url = "#{base_path}/messages"
@@ -146,14 +153,15 @@ module Ably
         end
       end
 
-      # Return the {Ably::Rest::Presence} object
-      #
+      # A {Ably::Rest::Presence} object.
+      # @spec RSL3
       # @return [Ably::Rest::Presence]
       def presence
         @presence ||= Presence.new(client, self)
       end
 
-      # Sets or updates the stored channel options. (#RSL7)
+      # Sets the {Ably::Models::ChannelOptions} for the channel.
+      # @spec RSL7
       # @param channel_options [Hash, Ably::Models::ChannelOptions]  A hash of options or a {Ably::Models::ChannelOptions}
       # @return [Ably::Models::ChannelOptions]
       def set_options(channel_options)
@@ -161,9 +169,9 @@ module Ably
       end
       alias options= set_options
 
-      # Makes GET request for channel details (#RSL8, #RSL8a)
-      #
-      # @return [Ably::Models::ChannelDetails]
+      # Retrieves a {Ably::Models::ChannelDetails} object for the channel, which includes status and occupancy metrics.
+      # @spec RSL8
+      # @return [Ably::Models::ChannelDetails] 	A {Ably::Models::ChannelDetails} object.
       def status
         Ably::Models::ChannelDetails.new(client.get(base_path).body)
       end
