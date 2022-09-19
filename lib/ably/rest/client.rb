@@ -166,10 +166,10 @@ module Ably
       # @return [Ably::Rest::Client]
       #
       # @example
-      #    # Create a new client authenticating with basic auth
+      #    # Create a new client authenticating with basic auth using a String object
       #    client = Ably::Rest::Client.new('key.id:secret')
       #
-      #    # Construct a RestClient object using an Ably [Hash]{@link Hash} object.
+      #    # Construct a RestClient object using a Hash object.
       #    client = Ably::Rest::Client.new(key: 'key.id:secret', client_id: 'john')
       #
       def initialize(options)
