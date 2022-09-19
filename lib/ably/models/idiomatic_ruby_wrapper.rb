@@ -36,6 +36,9 @@ module Ably::Models
   #   ruby_hash[:none] # => nil
   #   ruby_hash.none # => nil
   #
+  # @!attribute [r] stop_at
+  #   @return [Array<Symbol,String>] array of keys that this wrapper should stop wrapping at to preserve the underlying Hash as is
+  #
   class IdiomaticRubyWrapper
     include Enumerable
     include Ably::Modules::Conversions
@@ -140,6 +143,8 @@ module Ably::Models
       end
     end
 
+    # @!attribute [r] Hash
+    # @return [Hash] Access to the raw Hash object provided to the constructor of this wrapper
     def attributes
       @attributes
     end
@@ -194,6 +199,8 @@ module Ably::Models
       attributes.to_s
     end
 
+    # @!attribute [r] hash
+    # @return [Integer] Compute a hash-code for this hash. Two hashes with the same content will have the same hash code
     def hash
       attributes.hash
     end
