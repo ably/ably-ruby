@@ -57,7 +57,10 @@ module Ably::Models
       end
     end
 
-    # Returns a new PaginatedResult loaded with the next page of results. If there are no further pages, then null is returned.
+    # Retrieve the next page of results.
+    #
+    # When used as part of the {Ably::Realtime} library, it will return a {Ably::Util::SafeDeferrable} object,
+    # and allows an optional success callback block to be provided.
     #
     # @spec TG4
     #
