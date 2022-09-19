@@ -19,7 +19,7 @@ jobs:
 
       - name: Build Documentation
         run: |
-          bundle exec yard --readme INTRO.md
+          bundle exec yard --readme INTRO.md --tag "spec:Specification"
           ls -al doc/
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
