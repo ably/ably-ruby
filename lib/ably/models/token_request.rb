@@ -15,7 +15,11 @@ module Ably::Models
   end
 
 
-  # Contains the properties of a request for a token to Ably. Tokens are generated using {Ably::Auth#requestToken}.
+  # Contains the properties of a request for a token to Ably.
+  # Tokens are generated using {Ably::Auth#requestToken}.
+  #
+  # Ruby {http://ruby-doc.org/core/Time.html Time} objects are supported in place of Ably ms since epoch time fields.  However, if a numeric is provided
+  # it must always be expressed in milliseconds as the Ably API always uses milliseconds for time fields.
   #
   class TokenRequest
     include Ably::Modules::ModelCommon
@@ -38,8 +42,13 @@ module Ably::Models
     end
 
     # The name of the key against which this request is made. The key name is public, whereas the key secret is private.
+    #
+    # @!attribute [r] key_name
+    #
     # @spec TE2
+    #
     # @return [String] API key name of the key against which this request is made.  An API key is made up of an API key name and secret delimited by a +:+
+    #
     def key_name
       attributes.fetch(:key_name) { raise Ably::Exceptions::InvalidTokenRequest, 'Key name is missing' }
     end
@@ -47,7 +56,11 @@ module Ably::Models
     # Requested time to live for the Ably Token in milliseconds. If the Ably TokenRequest is successful, the TTL of the
     # returned Ably Token is less than or equal to this value, depending on application settings and the attributes of
     # the issuing key. The default is 60 minutes.
+    #
+    # @!attribute [r] ttl
+    #
     # @spec TE4
+    #
     # @return [Integer] requested time to live for the token in seconds. If the token request is successful,
     #                   the TTL of the returned token will be less than or equal to this value depending on application
     #                   settings and the attributes of the issuing key.
@@ -60,7 +73,11 @@ module Ably::Models
     # Ably Token will be the intersection of this capability with the capability of the issuing key. The capabilities
     # value is a JSON-encoded representation of the resource paths and associated operations. Read more about
     # capabilities in the capabilities docs.
+    #
+    # @!attribute [r] capability
+    #
     # @spec TE3
+    #
     # @return [Hash] capability of the token. If the token request is successful,
     #                the capability of the returned token will be the intersection of
     #                this capability with the capability of the issuing key.
@@ -79,7 +96,11 @@ module Ably::Models
 
     # The client ID to associate with the requested Ably Token. When provided, the Ably Token may only be used to
     # perform operations on behalf of that client ID.
+    #
+    # @!attribute [r] client_id
+    #
     # @spec TE2
+    #
     # @return [String] the client ID to associate with this token. The generated token
     #                  may be used to authenticate as this clientId.
     def client_id
@@ -87,7 +108,11 @@ module Ably::Models
     end
 
     # The timestamp of this request as milliseconds since the Unix epoch.
+    #
+    # @!attribute [r] timestamp
+    #
     # @spec TE5
+    #
     # @return [Time] the timestamp of this request.
     #                Timestamps, in conjunction with the nonce, are used to prevent
     #                token requests from being replayed.
@@ -98,7 +123,11 @@ module Ably::Models
     end
 
     # A cryptographically secure random string of at least 16 characters, used to ensure the TokenRequest cannot be reused.
+    #
+    # @!attribute [r] nonce
+    #
     # @spec TE2
+    #
     # @return [String]  an opaque nonce string of at least 16 characters to ensure
     #                   uniqueness of this request. Any subsequent request using the
     #                   same nonce will be rejected.
@@ -107,19 +136,27 @@ module Ably::Models
     end
 
     # The Message Authentication Code for this request.
+    #
+    # @!attribute [r] mac
+    #
     # @spec TE2
+    #
     # @return [String]  the Message Authentication Code for this request. See the
+    #
     def mac
       attributes.fetch(:mac) { raise Ably::Exceptions::InvalidTokenRequest, 'MAC is missing' }
     end
 
     # Requests that the token is always persisted
+    #
     # @api private
     #
     def persisted
       attributes[:persisted]
     end
 
+    # @!attribute [r] attributes
+    #
     # @return [Hash] the token request Hash object ruby'fied to use symbolized keys
     #
     def attributes
