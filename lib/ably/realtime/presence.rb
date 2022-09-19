@@ -277,7 +277,8 @@ module Ably::Realtime
       super
     end
 
-    # Deregisters all listeners currently receiving {Ably::Models::PresenceMessage} for the channel.
+    # Unsubscribe the matching block for presence events on the associated Channel.
+    # If a block is not provided, all subscriptions will be unsubscribed {Ably::Models::PresenceMessage} for the channel.
     #
     # @spec RTP7a, RTP7b, RTE5
     #
