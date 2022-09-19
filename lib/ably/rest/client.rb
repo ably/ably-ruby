@@ -166,7 +166,7 @@ module Ably
       # @return [Ably::Rest::Client]
       #
       # @example
-      #    # The Ably API key or token string used to validate the client.
+      #    # Create a new client authenticating with basic auth
       #    client = Ably::Rest::Client.new('key.id:secret')
       #
       #    # Construct a RestClient object using an Ably [Hash]{@link Hash} object.
@@ -368,7 +368,7 @@ module Ably
       #
       # @spec RSC19
       #
-      # @param method  [Symbol]    The request method to use, such as GET, POST.
+      # @param method  [Symbol]    The request method to use, such as :get, :post.
       # @param path    [String]    The request path.
       # @param params  [Hash, nil] The parameters to include in the URL query of the request. The parameters depend on the endpoint being queried. See the REST API reference for the available parameters of each endpoint.
       # @param body    [Hash, nil] The JSON body of the request.
