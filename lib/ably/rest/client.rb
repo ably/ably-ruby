@@ -128,7 +128,7 @@ module Ably
       #
       # @spec RSC1
       #
-      # @param [Hash,String] options an options Hash used to configure the client and the authentication, or String with an API key or Token ID
+      # @param [Hash,String] options an options Hash or String used to configure the client and the authentication, or String with an API key or Token ID
       # @option options [Boolean]                 :tls                 (true) When false, TLS is disabled. Please note Basic Auth is disallowed without TLS as secrets cannot be transmitted over unsecured connections.
       # @option options [String]                  :key                 API key comprising the key name and key secret in a single string
       # @option options [String]                  :token               Token string or {Models::TokenDetails} used to authenticate requests
