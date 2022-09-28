@@ -104,6 +104,16 @@ module Ably::Models
       end
     end
 
+    # Get {Ably::Models::ConnectionDetails} object
+    #
+    # @spec RSA7b3, RTN19, TR4o
+    #
+    # @return [Ably::Models::ConnectionDetails]
+    #
+    def connection_details
+      Ably::Models::ConnectionDetails.new(attributes[:connection_details].dup || {})
+    end
+
     def id!
       raise RuntimeError, 'ProtocolMessage #id is nil' unless id
       id
@@ -251,10 +261,6 @@ module Ably::Models
     # @api private
     def has_attach_presence_subscribe_flag?
       flags & ATTACH_FLAGS_MAPPING[:presence_subscribe] == ATTACH_FLAGS_MAPPING[:presence_subscribe] # 2^19
-    end
-
-    def connection_details
-      @connection_details ||= Ably::Models::ConnectionDetails(attributes[:connection_details])
     end
 
     def auth

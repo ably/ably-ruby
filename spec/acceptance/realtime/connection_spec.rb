@@ -1328,9 +1328,10 @@ describe Ably::Realtime::Connection, :event_machine do
     context '#details' do
       let(:connection) { client.connection }
 
-      it 'is nil before connected' do
+      it 'has default max_message_size and max_frame_size before connected' do
         connection.on(:connecting) do
-          expect(connection.details).to eql(nil)
+          expect(connection.details.max_message_size).to eql(65536)
+          expect(connection.details.max_frame_size).to eql(524288)
           stop_reactor
         end
       end
