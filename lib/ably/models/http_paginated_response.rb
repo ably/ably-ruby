@@ -11,6 +11,7 @@ module Ably::Models
     #   and allows an optional success callback block to be provided.
     #
     # @return [HttpPaginatedResponse,Ably::Util::SafeDeferrable]
+    #
     def first(&success_callback)
       async_wrap_if_realtime(success_callback) do
         return nil unless supports_pagination?
@@ -23,6 +24,7 @@ module Ably::Models
     #   and allows an optional success callback block to be provided.
     #
     # @return [HttpPaginatedResponse,Ably::Util::SafeDeferrable]
+    #
     def next(&success_callback)
       async_wrap_if_realtime(success_callback) do
         return nil unless has_next?
@@ -30,34 +32,54 @@ module Ably::Models
       end
     end
 
-    # HTTP status code for response
+    # The HTTP status code of the response.
+    #
+    # @spec HP4
+    #
     # @return [Integer]
+    #
     def status_code
       http_response.status.to_i
     end
 
-    # True if the response is considered successful due to the HTTP status code
+    # Whether statusCode indicates success. This is equivalent to 200 <= statusCode < 300.
+    #
+    # @spec HP5
+    #
     # @return [Boolean]
+    #
     def success?
       (200..299).include?(http_response.status.to_i)
     end
 
-    # Ably error code from +X-Ably-Errorcode+ header if available from response
+    # The error code if the X-Ably-Errorcode HTTP header is sent in the response.
+    #
+    # @spec HP6
+    #
     # @return [Integer]
+    #
     def error_code
       if http_response.headers['X-Ably-Errorcode']
         http_response.headers['X-Ably-Errorcode'].to_i
       end
     end
 
-    # Error message from +X-Ably-Errormessage+ header if available from response
+    # The error message if the X-Ably-Errormessage HTTP header is sent in the response.
+    #
+    # @spec HP7
+    #
     # @return [String]
+    #
     def error_message
       http_response.headers['X-Ably-Errormessage']
     end
 
-    # Headers for the HTTP response
+    # The headers of the response.
+    #
+    # @spec HP8
+    #
     # @return [Hash<String, String>]
+    #
     def headers
       http_response.headers || {}
     end

@@ -1,14 +1,21 @@
 module Ably::Realtime
   class Channel
-    # Represents properties of a channel and its state
+    # Describes the properties of the channel state.
     class ChannelProperties
       # {Ably::Realtime::Channel} this object associated with
+      #
       # @return [Ably::Realtime::Channel]
+      #
       attr_reader :channel
 
-      # Contains the last channelSerial received in an ATTACHED ProtocolMesage for the channel, see RTL15a
+      # Starts unset when a channel is instantiated, then updated with the channelSerial from each
+      # {Ably::Realtime::Channel::STATE.Attached} event that matches the channel.
+      # Used as the value for {Ably::Realtime::Channel#history}.
+      #
+      # @spec CP2a
       #
       # @return [String]
+      #
       attr_reader :attach_serial
 
       def initialize(channel)

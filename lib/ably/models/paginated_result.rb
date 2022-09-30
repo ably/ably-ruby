@@ -1,16 +1,18 @@
 module Ably::Models
-  # Wraps any Ably HTTP response that supports paging and provides methods to iterate through
-  # the pages using {#first}, {#next}, {#has_next?} and {#last?}
-  #
-  # All items in the HTTP response are available in the Array returned from {#items}
-  #
-  # Paging information is provided by Ably in the LINK HTTP headers
+  # Contains a page of results for message or presence history, stats, or REST presence requests.
+  # A PaginatedResult response from a REST API paginated query is also accompanied by metadata
+  # that indicates the relative queries available to the PaginatedResult object.
   #
   class PaginatedResult
     include Ably::Modules::AsyncWrapper if defined?(Ably::Realtime)
 
-    # The items contained within this {PaginatedResult}
+    # Contains the current page of results; for example, an array of {Ably::Models::Message} or {Ably::Models::PresenceMessage} objects
+    # for a channel history request.
+    #
+    # @spec TG3
+    #
     # @return [Array]
+    #
     attr_reader :items
 
     # @param [Faraday::Response] http_response Initial HTTP response from an Ably request to a paged resource
@@ -22,6 +24,7 @@ module Ably::Models
     # @yield [Object] block will be called for each resource object for the current page.  This is a useful way to apply a transformation to any page resources after they are retrieved
     #
     # @return [PaginatedResult]
+    #
     def initialize(http_response, base_url, client, options = {}, &each_block)
       @http_response = http_response
       @client        = client
@@ -41,11 +44,12 @@ module Ably::Models
       @items = items.map { |item| yield item } if block_given?
     end
 
-    # Retrieve the first page of results.
-    # When used as part of the {Ably::Realtime} library, it will return a {Ably::Util::SafeDeferrable} object,
-    #   and allows an optional success callback block to be provided.
+    # Returns a new PaginatedResult for the first page of results.
     #
-    # @return [PaginatedResult,Ably::Util::SafeDeferrable]
+    # @spec TG5
+    #
+    # @return [PaginatedResult, Ably::Util::SafeDeferrable]
+    #
     def first(&success_callback)
       async_wrap_if_realtime(success_callback) do
         return nil unless supports_pagination?
@@ -54,10 +58,14 @@ module Ably::Models
     end
 
     # Retrieve the next page of results.
+    #
     # When used as part of the {Ably::Realtime} library, it will return a {Ably::Util::SafeDeferrable} object,
-    #   and allows an optional success callback block to be provided.
+    # and allows an optional success callback block to be provided.
+    #
+    # @spec TG4
     #
     # @return [PaginatedResult,Ably::Util::SafeDeferrable]
+    #
     def next(&success_callback)
       async_wrap_if_realtime(success_callback) do
         return nil unless has_next?
@@ -65,17 +73,23 @@ module Ably::Models
       end
     end
 
-    # True if this is the last page in the paged resource set
+    # Returns true if this page is the last page and returns false if there are more pages available by calling next available.
+    #
+    # @spec TG7
     #
     # @return [Boolean]
+    #
     def last?
       !supports_pagination? ||
         pagination_header('next').nil?
     end
 
-    # True if there is a subsequent page in this paginated set available with {#next}
+    # Returns true if there are more pages available by calling next and returns false if this page is the last page available.
+    #
+    # @spec TG6
     #
     # @return [Boolean]
+    #
     def has_next?
       supports_pagination? && !last?
     end
@@ -83,6 +97,7 @@ module Ably::Models
     # True if the HTTP response supports paging with the expected LINK HTTP headers
     #
     # @return [Boolean]
+    #
     def supports_pagination?
       !pagination_headers.empty?
     end

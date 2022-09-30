@@ -2,6 +2,8 @@ require 'msgpack'
 require 'openssl'
 
 module Ably::Util
+  # Contains the properties required to configure the encryption of {Ably::Models::Message} payloads.
+  #
   class Crypto
     DEFAULTS = {
       algorithm: 'aes',
@@ -14,6 +16,7 @@ module Ably::Util
     # Configured {Ably::Models::CipherParams} for this Crypto object, see {#initialize} for a list of configureable options
     #
     # @return [Ably::Models::CipherParams]
+    #
     attr_reader :cipher_params
 
     # Creates a {Ably::Util::Crypto} object
@@ -34,13 +37,12 @@ module Ably::Util
       @cipher_params = Ably::Models::CipherParams(params)
     end
 
-    # Obtain a default {Ably::Models::CipherParams}. This uses default algorithm, mode and
-    # padding and key length. An IV is generated using the default
-    # system SecureRandom; the key may be obtained from the returned {Ably::Models::CipherParams}
-    # for out-of-band distribution to other clients.
-
+    # Returns a {Ably::Models::CipherParams} object, using the default values for any fields not supplied by the `Hash` object.
+    #
+    # @spec RSE1, RSE1b, RSE1b
+    #
     # @param [Hash]  params  a Hash used to configure the Crypto library's {Ably::Models::CipherParams}
-    # @option params  (see Ably::Models::CipherParams#initialize)
+    # @option params  (see {Ably::Models::CipherParams#initialize})
     #
     # @return [Ably::Models::CipherParams]   Configured cipher params with :key, :algorithm, :mode, :key_length attributes
     #
@@ -48,11 +50,13 @@ module Ably::Util
       Ably::Models::CipherParams(params)
     end
 
-    # Generate a random encryption key from the supplied keylength (or the
-    # default key_length of 256 if none supplied)
+    # Generates a random key to be used in the encryption of the channel. If the language cryptographic randomness
+    # primitives are blocking or async, a callback is used. The callback returns a generated binary key.
     #
-    # @param  [Integer]  key_length  Optional (default 256) key length for the generated random key. 128 and 256 bit key lengths are supported
-    # @return   Binary   String (byte array) with ASCII_8BIT encoding
+    # @spec RSE2, RSE2a, RSE2b
+    #
+    # @param  [Integer]  key_length  The length of the key, in bits, to be generated. If not specified, this is equal to the default keyLength of the default algorithm: for AES this is 256 bits.
+    # @return   Binary   The key as a binary, for example, a byte array.
     #
     def self.generate_random_key(key_length = DEFAULTS.fetch(:key_length))
       params = DEFAULTS.merge(key_length: key_length)

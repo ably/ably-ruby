@@ -5,24 +5,7 @@ require 'securerandom'
 require 'ably/rest/middleware/external_exceptions'
 
 module Ably
-  # Auth is responsible for authentication with {https://www.ably.com Ably} using basic or token authentication
-  #
-  # Find out more about Ably authentication at: https://www.ably.com/docs/general/authentication/
-  #
-  # @!attribute [r] client_id
-  #   @return [String] The provided client ID, used for identifying this client for presence purposes
-  # @!attribute [r] current_token_details
-  #   @return [Ably::Models::TokenDetails] Current {Ably::Models::TokenDetails} issued by this library or one of the provided callbacks used to authenticate requests
-  # @!attribute [r] key
-  #   @return [String] Complete API key containing both the key name and key secret, if present
-  # @!attribute [r] key_name
-  #   @return [String] Key name (public part of the API key), if present
-  # @!attribute [r] key_secret
-  #   @return [String] Key secret (private secure part of the API key), if present
-  # @!attribute [r] options
-  #   @return [Hash] Default {Ably::Auth} options configured for this client
-  # @!attribute [r] token_params
-  #   @return [Hash] Default token params used for token requests, see {#request_token}
+  # Creates Ably {Ably::Models::TokenRequest} objects and obtains Ably Tokens from Ably to subsequently issue to less trusted clients.
   #
   class Auth
     include Ably::Modules::Conversions
@@ -124,9 +107,13 @@ module Ably
       @token_params.freeze
     end
 
-    # Ensures valid auth credentials are present for the library instance. This may rely on an already-known and valid token, and will obtain a new token if necessary.
+    # Instructs the library to get a new token immediately. When using the realtime client, it upgrades the current
+    # realtime connection to use the new token, or if not connected, initiates a connection to Ably, once the new token
+    # has been obtained. Also stores any `token_params` and `auth_options` passed
+    # in as the new defaults, to be used for all subsequent implicit or explicit token requests. Any `token_params`
+    # and `auth_options` objects passed in entirely replace, as opposed to being merged with, the current client library saved values.
     #
-    # In the event that a new token request is made, the provided options are used.
+    # @spec RSA10
     #
     # @param [Hash, nil] token_params the token params used for future token requests. When nil, previously configured token params are used
     # @param [Hash, nil] auth_options the authentication options used for future token requests. When nil, previously configure authentication options are used
@@ -205,7 +192,13 @@ module Ably
       authorize(*args, &block)
     end
 
-    # Request a {Ably::Models::TokenDetails} which can be used to make authenticated token based requests
+    # Calls the requestToken REST API endpoint to obtain an Ably Token according to the specified `token_params` and `auth_options`.
+    # Both `token_params` and `auth_options` are optional. When omitted or null, the default token parameters and authentication
+    # options for the client library are used, as specified in the `client_options` when the client library was instantiated,
+    # or later updated with an explicit authorize request. Values passed in are used instead of, rather than being merged with, the default values.
+    # To understand why an Ably {Ably::Models::TokenRequest} may be issued to clients in favor of a token, see Token Authentication explained.
+    #
+    # @spec RSA8e
     #
     # @param [Hash] auth_options (see #create_token_request)
     # @option auth_options [String]  :auth_url      a URL to be used to GET or POST a set of token request params, to obtain a signed token request
@@ -217,7 +210,7 @@ module Ably
     # @param [Hash] token_params (see #create_token_request)
     # @option (see #create_token_request)
     #
-    # @return [Ably::Models::TokenDetails]
+    # @return [Ably::Models::TokenDetails] A {Ably::Models::TokenDetails} object. RSA16
     #
     # @example
     #    # simple token request using basic auth
@@ -273,7 +266,17 @@ module Ably
       send_token_request(token_request)
     end
 
-    # Creates and signs a token request that can then subsequently be used by any client to request a token
+    # Creates and signs an {Ably::Models::TokenRequest} based on the specified (or if none specified, the client
+    # library stored) `token_params` and `auth_options`. Note this can only be used when the API key value is available
+    # locally. Otherwise, the {Ably::Models::TokenRequest} must be obtained from the key owner. Use this to generate
+    # an {Ably::Models::TokenRequest} in order to implement an Ably Token request callback for use by other clients.
+    # Both `token_params` and `auth_options` are optional. When omitted or null, the default token parameters
+    # and authentication options for the client library are used, as specified in the `client_options` when the client
+    # library was instantiated, or later updated with an explicit authorize request. Values passed in are used instead
+    # of, rather than being merged with, the default values. To understand why an {Ably::Models::TokenRequest} may be
+    # issued to clients in favor of a token, see Token Authentication explained.
+    #
+    # @spec RSA9
     #
     # @param [Hash] token_params the token params used in the token request
     # @option token_params [String]  :client_id     A client ID to associate with this token. The generated token may be used to authenticate as this +client_id+

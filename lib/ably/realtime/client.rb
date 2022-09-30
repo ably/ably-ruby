@@ -3,22 +3,7 @@ require 'ably/realtime/channel/publisher'
 
 module Ably
   module Realtime
-    # Client for the Ably Realtime API
-    #
-    # @!attribute [r] client_id
-    #   (see Ably::Rest::Client#client_id)
-    # @!attribute [r] auth_options
-    #   (see Ably::Rest::Client#auth_options)
-    # @!attribute [r] environment
-    #   (see Ably::Rest::Client#environment)
-    # @!attribute [r] channels
-    #   @return [Aby::Realtime::Channels] The collection of {Ably::Realtime::Channel}s that have been created
-    # @!attribute [r] encoders
-    #   (see Ably::Rest::Client#encoders)
-    # @!attribute [r] protocol
-    #   (see Ably::Rest::Client#protocol)
-    # @!attribute [r] protocol_binary?
-    #   (see Ably::Rest::Client#protocol_binary?)
+    # A client that extends the functionality of the {Ably::Realtime::Client} and provides additional realtime-specific features.
     #
     class Client
       include Ably::Modules::AsyncWrapper
@@ -29,19 +14,33 @@ module Ably
 
       DOMAIN = 'realtime.ably.io'
 
-      # The collection of {Ably::Realtime::Channel}s that have been created
+      # A {Aby::Realtime::Channels} object.
+      #
+      # @spec RTC3, RTS1
+      #
       # @return [Aby::Realtime::Channels]
+      #
       attr_reader :channels
 
-      # (see Ably::Rest::Client#auth)
+      # An {Ably::Auth} object.
+      #
+      # @spec RTC4
+      #
+      # @return [Ably::Auth]
+      #
       attr_reader :auth
 
-      # The underlying connection for this client
+      # A {Aby::Realtime::Connection} object.
+      #
+      # @spec RTC2
+      #
       # @return [Aby::Realtime::Connection]
+      #
       attr_reader :connection
 
       # The {Ably::Rest::Client REST client} instantiated with the same credentials and configuration that is used for all REST operations such as authentication
       # @return [Ably::Rest::Client]
+
       # @private
       attr_reader :rest_client
 
@@ -78,8 +77,10 @@ module Ably
 
       # Creates a {Ably::Realtime::Client Realtime Client} and configures the {Ably::Auth} object for the connection.
       #
-      # @param (see Ably::Rest::Client#initialize)
-      # @option options (see Ably::Rest::Client#initialize)
+      # @spec RSC1
+      #
+      # @param (see {Ably::Rest::Client#initialize})
+      # @option options (see Ably::Rest::Client#initialize) An options {Hash} object.
       # @option options [Proc]                    :auth_callback       when provided, the Proc will be called with the token params hash as the first argument, whenever a new token is required.
       #                                                                Whilst the proc is called synchronously, it does not block the EventMachine reactor as it is run in a separate thread.
       #                                                                The Proc should return a token string, {Ably::Models::TokenDetails} or JSON equivalent, {Ably::Models::TokenRequest} or JSON equivalent
@@ -97,10 +98,10 @@ module Ably
       # @return [Ably::Realtime::Client]
       #
       # @example
-      #    # create a new client authenticating with basic auth
+      #    # Constructs a {Ably::Realtime::Client} object using an Ably API key or token string.
       #    client = Ably::Realtime::Client.new('key.id:secret')
       #
-      #    # create a new client and configure a client ID used for presence
+      #    # Constructs a {Ably::Realtime::Client} object using an Ably options object.
       #    client = Ably::Realtime::Client.new(key: 'key.id:secret', client_id: 'john')
       #
       def initialize(options)
@@ -141,9 +142,13 @@ module Ably
         channels.get(name, channel_options)
       end
 
-      # Retrieve the Ably service time
+      # Retrieves the time from the Ably service as milliseconds since the Unix epoch. Clients that do not have access
+      # to a sufficiently well maintained time source and wish to issue Ably {Ably::Models::TokenRequests} with
+      # a more accurate timestamp should use the queryTime property instead of this method.
       #
-      # @yield [Time] The time as reported by the Ably service
+      # @spec RTC6a
+      #
+      # @yield [Time] The time as milliseconds since the Unix epoch.
       # @return [Ably::Util::SafeDeferrable]
       #
       def time(&success_callback)
@@ -152,12 +157,15 @@ module Ably
         end
       end
 
-      # Retrieve the stats for the application
+      # Queries the REST /stats API and retrieves your application's usage statistics.
+      # Returns a {Ably::Util::SafeDeferrable} object, containing an array of {Ably::Models::Stats} objects. See the Stats docs.
+      #
+      # @spec RTC5
       #
       # @param (see Ably::Rest::Client#stats)
       # @option options (see Ably::Rest::Client#stats)
       #
-      # @yield [Ably::Models::PaginatedResult<Ably::Models::Stats>] An Array of Stats
+      # @yield [Ably::Models::PaginatedResult<Ably::Models::Stats>] A {Ably::Util::SafeDeferrable} object containing an array of {Ably::Models::Stats} objects.
       #
       # @return [Ably::Util::SafeDeferrable]
       #
@@ -167,26 +175,38 @@ module Ably
         end
       end
 
+      # Calls {Connection#close} and causes the connection to close, entering the closing state.
+      # Once closed, the library will not attempt to re-establish the connection without an explicit call to {Connection#connect}.
+      # @spec RTN12
       # (see Ably::Realtime::Connection#close)
       def close(&block)
         connection.close(&block)
       end
 
+      # Calls {Ably::Realtime::Connection#connect} and causes the connection to open, entering the connecting
+      # state. Explicitly calling connect() is unnecessary unless the autoConnect property is disabled.
+      # @spec RTN11
       # (see Ably::Realtime::Connection#connect)
       def connect(&block)
         connection.connect(&block)
       end
 
-      # Push notification object for publishing and managing push notifications
+      # A {Ably::Realtime::Push} object.
       # @return [Ably::Realtime::Push]
       def push
         @push ||= Push.new(self)
       end
 
-      # (see Ably::Rest::Client#request)
+      # Makes a REST request to a provided path. This is provided as a convenience for developers who wish to use REST
+      # API functionality that is either not documented or is not yet included in the public API, without having to
+      # directly handle features such as authentication, paging, fallback hosts, MsgPack and JSON support.
+      #
+      # @spec RTC9
+      #
+      # (see {Ably::Rest::Client#request})
       # @yield [Ably::Models::HttpPaginatedResponse<>] An Array of Stats
       #
-      # @return [Ably::Util::SafeDeferrable]
+      # @return [Ably::Util::SafeDeferrable] An {Ably::Util::SafeDeferrable} response object returned by the HTTP request, containing an empty or JSON-encodable object.
       def request(method, path, params = {}, body = nil, headers = {}, &callback)
         async_wrap(callback) do
           rest_client.request(method, path, params, body, headers, async_blocking_operations: true)
@@ -303,8 +323,9 @@ module Ably
         @fallback_endpoints[fallback_endpoint_index % @fallback_endpoints.count]
       end
 
-      # The local device detilas
-      # @return [Ably::Models::LocalDevice]
+      # Retrieves a {Ably::Models::LocalDevice} object that represents the current state of the device as a target for push notifications.
+      # @spec RSH8
+      # @return [Ably::Models::LocalDevice] A {Ably::Models::LocalDevice} object.
       #
       # @note This is unsupported in the Ruby library
       def device

@@ -6,6 +6,7 @@ module Ably::Modules
     # @param push_channel_subscription [Ably::Models::PushChannelSubscription,Hash,nil] A device details object
     #
     # @return [Ably::Models::PushChannelSubscription]
+    #
     def PushChannelSubscription(push_channel_subscription)
       case push_channel_subscription
       when Ably::Models::PushChannelSubscription
@@ -18,20 +19,14 @@ module Ably::Modules
 end
 
 module Ably::Models
-  # An object representing a devices details, used currently for push notifications
-  #
-  # @!attribute [r] channel
-  #   @return [String] The realtime pub/sub channel this subscription is registered to
-  # @!attribute [r] client_id
-  #   @return [String] Client ID that is assigned to one or more registered push devices
-  # @!attribute [r] device_id
-  #   @return [String] Unique device identifier assigned to the push device
+  # Contains the subscriptions of a device, or a group of devices sharing the same clientId,
+  # has to a channel in order to receive push notifications.
   #
   class PushChannelSubscription < Ably::Exceptions::BaseAblyException
     include Ably::Modules::ModelCommon
 
     # @param hash_object   [Hash,nil]  Device detail attributes
-    #a
+    #
     def initialize(hash_object = {})
       @raw_hash_object = hash_object || {}
       @hash_object     = IdiomaticRubyWrapper(hash_object)
@@ -47,7 +42,9 @@ module Ably::Models
       end
     end
 
-    # Constructor for channel subscription by device ID
+    # A static factory method to create a PushChannelSubscription object for a channel and single device.
+    #
+    # @spec PSC5
     #
     # @param channel    [String]  the realtime pub/sub channel this subscription is registered to
     # @param device_id  [String]  Unique device identifier assigned to the push device
@@ -58,7 +55,9 @@ module Ably::Models
       PushChannelSubscription.new(channel: channel, device_id: device_id)
     end
 
-    # Constructor for channel subscription by client ID
+    # A static factory method to create a PushChannelSubscription object for a channel and group of devices sharing the same clientId.
+    #
+    # @spec PSC5
     #
     # @param channel    [String]  the realtime pub/sub channel this subscription is registered to
     # @param client_id  [String]  Client ID that is assigned to one or more registered push devices
@@ -69,11 +68,37 @@ module Ably::Models
       PushChannelSubscription.new(channel: channel, client_id: client_id)
     end
 
-    %w(channel client_id device_id).each do |attribute|
-      define_method attribute do
-        attributes[attribute.to_sym]
-      end
+    # The channel the push notification subscription is for.
+    #
+    # @spec PCS4
+    #
+    # @return [String]
+    #
+    def channel
+      attributes[:channel]
+    end
 
+    # The ID of the client the device, or devices are associated to.
+    #
+    # @spec PCS3, PCS6
+    #
+    # @return [String]
+    #
+    def client_id
+      attributes[:client_id]
+    end
+
+    # The unique ID of the device.
+    #
+    # @spec PCS2, PCS5, PCS6
+    #
+    # @return [String]
+    #
+    def device_id
+      attributes[:device_id]
+    end
+
+    %w(channel client_id device_id).each do |attribute|
       define_method "#{attribute}=" do |val|
         unless val.nil? || val.kind_of?(String)
           raise ArgumentError, "#{attribute} must be nil or a string value"

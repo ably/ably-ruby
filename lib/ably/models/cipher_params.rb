@@ -7,6 +7,7 @@ module Ably::Models
   # @param attributes (see #initialize)
   #
   # @return [CipherParams]
+  #
   def self.CipherParams(attributes)
     case attributes
     when CipherParams
@@ -16,7 +17,7 @@ module Ably::Models
     end
   end
 
-  # CipherParams is used to configure a channel for encryption
+  # Sets the properties to configure encryption for a {Ably::Models::Rest::Channel} or {Ably::Models::Realtime::Channel} object.
   #
   class CipherParams
     include Ably::Modules::ModelCommon
@@ -57,49 +58,71 @@ module Ably::Models
     end
 
     # The Cipher algorithm string such as AES-128-CBC
+    #
     # @param [Hash]  params  Hash containing :algorithm, :key_length and :mode key values
     #
     # @return [String]
+    #
     def self.cipher_type(params)
       "#{params[:algorithm]}-#{params[:key_length]}-#{params[:mode]}".to_s.upcase
     end
 
-    # @!attribute [r] algorithm
-    # @return [String] The algorithm to use for encryption, currently only +AES+ is supported
+    # The algorithm to use for encryption. Only AES is supported and is the default value.
+    #
+    # @spec TZ2a
+    #
+    # @return [String]
+    #
     def algorithm
       attributes.fetch(:algorithm) do
         Ably::Util::Crypto::DEFAULTS.fetch(:algorithm)
       end.downcase
     end
 
-    # @!attribute [r] key
-    # @return [Binary] Private key used to encrypt and decrypt payloads
+    # The private key used to encrypt and decrypt payloads.
+    #
+    # @spec TZ2d
+    #
+    # @return [Binary]
+    #
     def key
       attributes[:key]
     end
 
-    # @!attribute [r] key_length
-    # @return [Integer] The length in bits of the +key+
+    # The length of the key in bits; for example 128 or 256.
+    #
+    # @spec TZ2b
+    #
+    # @return [Integer]
+    #
     def key_length
       key.unpack('b*').first.length
     end
 
-    # @!attribute [r] mode
-    # @return [String] The cipher mode, currently only +CBC+ is supported
+    # The cipher mode. Only CBC is supported and is the default value.
+    #
+    # @spec TZ2c
+    #
+    # @return [String]
+    #
     def mode
       attributes.fetch(:mode) do
         Ably::Util::Crypto::DEFAULTS.fetch(:mode)
       end.downcase
     end
 
-    # @!attribute [r] cipher_type
-    # @return [String] The complete Cipher algorithm string such as AES-128-CBC
+    # The complete Cipher algorithm string such as AES-128-CBC
+    #
+    # @return [String]
+    #
     def cipher_type
       self.class.cipher_type(algorithm: algorithm, key_length: key_length, mode: mode)
     end
 
-    # @!attribute [r] attributes
-    # @return [Hash] Access the token details Hash object ruby'fied to use symbolized keys
+    # Access the token details Hash object ruby'fied to use symbolized keys
+    #
+    # @return [Hash]
+    #
     def attributes
       @attributes
     end

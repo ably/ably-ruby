@@ -1,0 +1,36 @@
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      deployments: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '2.7'
+          bundler-cache: true
+
+      - name: Build Documentation
+        run: |
+          bundle exec yard --readme INTRO.md --tag "spec:Specification"
+          ls -al doc/
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-region: eu-west-2
+          role-to-assume: arn:aws:iam::${{ secrets.ABLY_AWS_ACCOUNT_ID_SDK }}:role/ably-sdk-builds-ably-ruby
+          role-session-name: "${{ github.run_id }}-${{ github.run_number }}"
+
+      - name: Upload Documentation
+        uses: ably/sdk-upload-action@v1
+        with:
+          sourcePath: doc/
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          artifactName: docs

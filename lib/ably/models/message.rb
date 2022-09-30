@@ -7,6 +7,7 @@ module Ably::Models
   # @param [Hash] options (see Message#initialize)
   #
   # @return [Message]
+  #
   def self.Message(message, options = {})
     case message
     when Message
@@ -18,26 +19,7 @@ module Ably::Models
     end
   end
 
-  # A class representing an individual message to be sent or received
-  # via the Ably Realtime service.
-  #
-  # @!attribute [r] name
-  #   @return [String] The event name, if available
-  # @!attribute [r] client_id
-  #   @return [String] The id of the publisher of this message
-  # @!attribute [r] data
-  #   @return [Object] The message payload. See the documentation for supported datatypes.
-  # @!attribute [r] encoding
-  #   @return [Object] The encoding for the message data. Encoding and decoding of messages is handled automatically by the client library.
-  #                    Therefore, the `encoding` attribute should always be nil unless an Ably library decoding error has occurred.
-  # @!attribute [r] timestamp
-  #   @return [Time] Timestamp when the message was received by the Ably the realtime service
-  # @!attribute [r] id
-  #   @return [String] A globally unique message ID
-  # @!attribute [r] connection_id
-  #   @return [String] The connection_id of the publisher of the message
-  # @!attribute [r] attributes
-  #   @return [Hash] Access the protocol message Hash object ruby'fied to use symbolized keys
+  # Contains an individual message that is sent to, or received from, Ably.
   #
   class Message
     include Ably::Modules::Conversions
@@ -49,6 +31,8 @@ module Ably::Models
     Ably::Models::MessageEncoders.register_default_encoders self
 
     # {Message} initializer
+    #
+    # @spec TM2, TM3
     #
     # @param  attributes [Hash]             object with the underlying message detail key value attributes
     # @param  [Hash]      options           an options Hash for this initializer
@@ -69,24 +53,74 @@ module Ably::Models
       self.attributes.freeze
     end
 
-    %w( name client_id encoding ).each do |attribute|
-      define_method attribute do
-        attributes[attribute.to_sym]
-      end
+    # The client ID of the publisher of this message.
+    #
+    # @spec RSL1g1, TM2b
+    #
+    # @return [String]
+    #
+    def client_id
+      attributes[:client_id]
     end
 
+    # This is typically empty, as all messages received from Ably are automatically decoded client-side using this value.
+    # However, if the message encoding cannot be processed, this attribute contains the remaining transformations
+    # not applied to the data payload.
+    #
+    # @spec TM2e
+    #
+    # @return [String]
+    #
+    def encoding
+      attributes[:encoding]
+    end
+
+    # The event name.
+    #
+    # @spec TM2g
+    #
+    # @return [String]
+    #
+    def name
+      attributes[:name]
+    end
+
+    # The message payload, if provided.
+    #
+    # @spec TM2d
+    #
+    # @return [Hash, nil]
+    #
     def data
       @data ||= attributes[:data].freeze
     end
 
+    # A Unique ID assigned by Ably to this message.
+    #
+    # @spec TM2a
+    #
+    # @return [String]
+    #
     def id
       attributes.fetch(:id) { "#{protocol_message.id!}:#{protocol_message_index}" }
     end
 
+    # The connection ID of the publisher of this message.
+    #
+    # @spec TM2c
+    #
+    # @return [String]
+    #
     def connection_id
       attributes.fetch(:connection_id) { protocol_message.connection_id if assigned_to_protocol_message? }
     end
 
+    # Timestamp of when the message was received by Ably, as milliseconds since the Unix epoch.
+    #
+    # @spec TM2f
+    #
+    # @return [Integer]
+    #
     def timestamp
       if attributes[:timestamp]
         as_time_from_epoch(attributes[:timestamp])
@@ -126,14 +160,18 @@ module Ably::Models
     end
 
     # True if this message is assigned to a ProtocolMessage for delivery to Ably, or received from Ably
+    #
     # @return [Boolean]
+    #
     # @api private
     def assigned_to_protocol_message?
       !!@protocol_message
     end
 
     # The optional ProtocolMessage this message is assigned to.  If ProtocolMessage is nil, an error will be raised.
+    #
     # @return [Ably::Models::ProtocolMessage]
+    #
     # @api private
     def protocol_message
       raise RuntimeError, 'Message is not yet published with a ProtocolMessage. ProtocolMessage is nil' if @protocol_message.nil?
@@ -155,7 +193,9 @@ module Ably::Models
     end
 
     # Delta extras extension (TM2i)
+    #
     # @return [DeltaExtras, nil]
+    #
     # @api private
     def delta_extras
       return nil if attributes[:extras][:delta].nil?

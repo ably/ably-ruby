@@ -4,6 +4,7 @@ module Ably::Models
   # @param attributes (see #initialize)
   #
   # @return [ChannelMetrics]
+  #
   def self.ChannelMetrics(attributes)
     case attributes
     when ChannelMetrics
@@ -13,8 +14,10 @@ module Ably::Models
     end
   end
 
-  # ChannelMetrics is a type that contains the count of publishers and subscribers, connections and presenceConnections,
-  # presenceMembers and presenceSubscribers (CHM1)
+  # Contains the metrics associated with a {Ably::Models::Rest::Channel} or {Ably::Models::Realtime::Channel},
+  # such as the number of publishers, subscribers and connections it has.
+  #
+  # @spec CHM1
   #
   class ChannelMetrics
     extend Ably::Modules::Enum
@@ -33,7 +36,9 @@ module Ably::Models
       @attributes = IdiomaticRubyWrapper(attrs.clone)
     end
 
-    # The total number of connections to the channel (CHM2a)
+    # The number of realtime connections attached to the channel.
+    #
+    # @spec CHM2a
     #
     # @return [Integer]
     #
@@ -41,7 +46,11 @@ module Ably::Models
       attributes[:connections]
     end
 
-    # The total number of presence connections to the channel (CHM2b)
+    # The number of realtime connections attached to the channel with permission to enter the presence set, regardless
+    # of whether or not they have entered it. This requires the presence capability and for a client to not have specified
+    # a {Ably::Models::ChannelOptions::MODES} flag that excludes {Ably::Models::ChannelOptions::MODES}#PRESENCE.
+    #
+    # @spec CHM2b
     #
     # @return [Integer]
     #
@@ -49,7 +58,9 @@ module Ably::Models
       attributes[:presence_connections]
     end
 
-    # The total number of presence members for the channel (CHM2c)
+    # The number of members in the presence set of the channel.
+    #
+    # @spec CHM2c
     #
     # @return [Integer]
     #
@@ -57,7 +68,11 @@ module Ably::Models
       attributes[:presence_members]
     end
 
-    # The total number of presence subscribers for the channel (CHM2d)
+    # The number of realtime attachments receiving presence messages on the channel. This requires the subscribe capability
+    # and for a client to not have specified a {Ably::Models::ChannelOptions::MODES} flag that excludes
+    # {Ably::Models::ChannelOptions::MODES}#PRESENCE_SUBSCRIBE.
+    #
+    # @spec CHM2d
     #
     # @return [Integer]
     #
@@ -65,7 +80,11 @@ module Ably::Models
       attributes[:presence_subscribers]
     end
 
-    # The total number of publishers to the channel (CHM2e)
+    # The number of realtime attachments permitted to publish messages to the channel. This requires the publish
+    # capability and for a client to not have specified a {Ably::Models::ChannelOptions::MODES} flag that excludes
+    # {Ably::Models::ChannelOptions::MODES}#PUBLISH.
+    #
+    # @spec CHM2e
     #
     # @return [Integer]
     #
@@ -73,7 +92,11 @@ module Ably::Models
       attributes[:publishers]
     end
 
-    # The total number of subscribers to the channel (CHM2f)
+    # The number of realtime attachments receiving messages on the channel. This requires the subscribe capability and
+    # for a client to not have specified a {Ably::Models::ChannelOptions::MODES} flag that excludes
+    # {Ably::Models::ChannelOptions::MODES}#SUBSCRIBE.
+    #
+    # @spec CHM2f
     #
     # @return [Integer]
     #

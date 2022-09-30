@@ -32,6 +32,7 @@ module Ably
         # @param [Hash] channel_options  the options used to initialize the channel that this message was received on
         #
         # @return [void]
+        #
         def encode(message, channel_options)
           raise "Not yet implemented"
         end
@@ -48,6 +49,7 @@ module Ably
         # @param [Hash] channel_options  the options used to initialize the channel that this message was received on
         #
         # @return [void]
+        #
         def decode(message, channel_options)
           raise "Not yet implemented"
         end
@@ -59,6 +61,7 @@ module Ably
         # @param [String] encoding  encoding to add to the current encoding
         #
         # @return [void]
+        #
         def add_encoding_to_message(encoding, message)
           message[:encoding] = [message[:encoding], encoding].compact.join('/')
         end
@@ -67,6 +70,7 @@ module Ably
         # i.e. current_encoding_part('utf-8/cipher+aes-128-cbc/base64') => 'base64'
         #
         # @return [String,nil]
+        #
         def current_encoding_part(message)
           if message[:encoding]
             message[:encoding].split('/')[-1]
@@ -81,6 +85,7 @@ module Ably
         # @param [Hash]   message   the message as a Hash object received directly from Ably.
         #
         # @return [void]
+        #
         def strip_current_encoding_part(message)
           raise "Cannot strip encoding when there is no encoding for this message" unless message[:encoding]
           message[:encoding] = message[:encoding].split('/')[0...-1].join('/')
@@ -92,6 +97,7 @@ module Ably
         # @param [Hash]   message   the message as a Hash object received directly from Ably.
         #
         # @return [Boolean]
+        #
         def is_empty?(message)
           message[:data].nil? || message[:data] == ''
         end

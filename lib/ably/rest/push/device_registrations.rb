@@ -17,6 +17,8 @@ module Ably::Rest
 
       # Get registered device by device ID
       #
+      # @spec RSH1b1
+      #
       # @param [String, Ably::Models::DeviceDetails] device_id   the device to retrieve
       #
       # @return [Ably::Models::DeviceDetails]  Returns {Ably::Models::DeviceDetails} if a match is found else a {Ably::Exceptions::ResourceMissing} is raised
@@ -29,6 +31,8 @@ module Ably::Rest
       end
 
       # List registered devices filtered by optional params
+      #
+      # @spec RSH1b2
       #
       # @param [Hash] params   the filter options for the list registered device request
       # @option params [String]   :client_id  filter by devices registered to a client identifier. Cannot be used with +device_id+ param
@@ -54,7 +58,10 @@ module Ably::Rest
         Ably::Models::PaginatedResult.new(response, '', client, paginated_options)
       end
 
-      # Save and register device
+      # Registers or updates a {Ably::Models::DeviceDetails} object with Ably.
+      # Returns the new, or updated {Ably::Models::DeviceDetails} object.
+      #
+      # @spec RSH1b3
       #
       # @param [Ably::Models::DeviceDetails, Hash]  device   the device details to save
       #
@@ -69,6 +76,8 @@ module Ably::Rest
 
       # Remove device
       #
+      # @spec RSH1b4
+      #
       # @param [String, Ably::Models::DeviceDetails]  device_id  the device to remove
       #
       # @return [void]
@@ -80,7 +89,9 @@ module Ably::Rest
         client.delete("/push/deviceRegistrations/#{device_id}", {})
       end
 
-      # Remove device matching where params
+      # Removes all devices registered to receive push notifications from Ably matching the filter params provided.
+      #
+      # @spec RSH1b5
       #
       # @param [Hash] params   the filter params for the remove request
       # @option params [String]   :client_id  remove devices registered to a client identifier. Cannot be used with +device_id+ param

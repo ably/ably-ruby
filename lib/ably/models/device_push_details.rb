@@ -6,6 +6,7 @@ module Ably::Modules
     # @param device_push_details [Ably::Models::DevicePushDetails,Hash,nil] A device push notification details object
     #
     # @return [Ably::Models::DevicePushDetails]
+    #
     def DevicePushDetails(device_push_details)
       case device_push_details
       when Ably::Models::DevicePushDetails
@@ -20,38 +21,39 @@ end
 module Ably::Models
   # An object with the push notification details for {DeviceDetails} object
   #
-  # @!attribute [r] transport_type
-  #   @return [String] Transport type for push notifications such as gcm, apns, web
-  # @!attribute [r] state
-  #   @return [String] The current state of this push target such as Active, Failing or Failed
-  # @!attribute [r] error_reason
-  #   @return [ErrorInfo] If the state is Failing of Failed, this field may optionally contain a reason
-  # @!attribute [r] metadata
-  #   @return [Hash] Arbitrary metadata that can be associated with this object
-  #
   class DevicePushDetails < Ably::Exceptions::BaseAblyException
     include Ably::Modules::ModelCommon
 
     # @param hash_object   [Hash,nil]  Device push detail attributes
-    #a
+    #
     def initialize(hash_object = {})
       @raw_hash_object = hash_object || {}
       @hash_object     = IdiomaticRubyWrapper(@raw_hash_object)
     end
 
-    %w(state).each do |attribute|
-      define_method attribute do
-        attributes[attribute.to_sym]
-      end
-
-      define_method "#{attribute}=" do |val|
-        unless val.nil? || val.kind_of?(String)
-          raise ArgumentError, "#{attribute} must be nil or a string value"
-        end
-        attributes[attribute.to_sym] = val
-      end
+    # The current state of the push registration.
+    #
+    # @spec PCP4
+    #
+    # @return [Symbol]
+    #
+    def state
+      attributes[:state]
     end
 
+    def state=(val)
+      unless val.nil? || val.kind_of?(String)
+        raise ArgumentError, "state must be nil or a string value"
+      end
+      attributes[:state] = val
+    end
+
+    # A JSON object of key-value pairs that contains of the push transport and address.
+    #
+    # @spec PCP3
+    #
+    # @return [Hash, nil]
+    #
     def recipient
       attributes[:recipient] || {}
     end
@@ -63,6 +65,12 @@ module Ably::Models
       attributes[:recipient] = val
     end
 
+    # An {Ably::Models::ErrorInfo} object describing the most recent error when the state is Failing or Failed.
+    #
+    # @spec PCP2
+    #
+    # @return [Ably::Models::ErrorInfo]
+    #
     def error_reason
       attributes[:error_reason]
     end

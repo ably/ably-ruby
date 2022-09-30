@@ -1,34 +1,45 @@
 module Ably
   module Rest
+    # Enables the retrieval of the current and historic presence set for a channel.
+    #
     class Presence
       include Ably::Modules::Conversions
 
       # {Ably::Rest::Client} for this Presence object
+      #
       # @return {Ably::Rest::Client}
+      #
       # @private
       attr_reader :client
 
       # {Ably::Rest::Channel} this Presence object is associated with
-      # @return {Ably::Rest::Channel}
+      #
+      # @return [Ably::Rest::Channel]
+      #
       attr_reader :channel
 
       # Initialize a new Presence object
       #
       # @param client [Ably::Rest::Client]
       # @param channel [Channel] The channel object
+      #
       def initialize(client, channel)
         @client  = client
         @channel = channel
       end
 
-      # Obtain the set of members currently present for a channel
+      # Retrieves the current members present on the channel and the metadata for each member, such as their
+      # {Ably::Models::PresenceMessage::ACTION} and ID. Returns a {Ably::Models::PaginatedResult} object,
+      # containing an array of {Ably::Models::PresenceMessage} objects.
+      #
+      # @spec RSPa, RSP3a, RSP3a2, RSP3a3
       #
       # @param [Hash] options the options for the set of members present
-      # @option options [Integer]   :limit           Maximum number of members to retrieve up to 1,000, defaults to 100
-      # @option options [String]    :client_id       optional client_id filter for the member
-      # @option options [String]    :connection_id   optional connection_id filter for the member
+      # @option options [Integer]   :limit           An upper limit on the number of messages returned. The default is 100, and the maximum is 1000. (RSP3a)
+      # @option options [String]    :client_id       Filters the list of returned presence members by a specific client using its ID. (RSP3a2)
+      # @option options [String]    :connection_id   Filters the list of returned presence members by a specific connection using its ID. (RSP3a3)
       #
-      # @return [Ably::Models::PaginatedResult<Ably::Models::PresenceMessage>] First {Ably::Models::PaginatedResult page} of {Ably::Models::PresenceMessage} objects accessible with {Ably::Models::PaginatedResult#items #items}.
+      # @return [Ably::Models::PaginatedResult<Ably::Models::PresenceMessage>] A {Ably::Models::PaginatedResult} object containing an array of {Ably::Models::PresenceMessage} objects.
       #
       def get(options = {})
         options = options = {
@@ -49,15 +60,19 @@ module Ably
         end
       end
 
-      # Return the presence messages history for the channel
+      # Retrieves a {Ably::Models::PaginatedResult} object, containing an array of historical {Ably::Models::PresenceMessage}
+      # objects for the channel. If the channel is configured to persist messages, then presence messages can be retrieved
+      # from history for up to 72 hours in the past. If not, presence messages can only be retrieved from history for up to two minutes in the past.
+      #
+      # @spec RSP4a
       #
       # @param [Hash] options the options for the message history request
-      # @option options [Integer,Time] :start      Ensure earliest time or millisecond since epoch for any presence messages retrieved is +:start+
-      # @option options [Integer,Time] :end        Ensure latest time or millisecond since epoch for any presence messages retrieved is +:end+
-      # @option options [Symbol]       :direction  +:forwards+ or +:backwards+, defaults to +:backwards+
-      # @option options [Integer]      :limit      Maximum number of messages to retrieve up to 1,000, defaults to 100
+      # @option options [Integer,Time] :start      The time from which messages are retrieved, specified as milliseconds since the Unix epoch. (RSP4b1)
+      # @option options [Integer,Time] :end        The time until messages are retrieved, specified as milliseconds since the Unix epoch. (RSP4b1)
+      # @option options [Symbol]       :direction  The order for which messages are returned in. Valid values are backwards which orders messages from most recent to oldest, or forwards which orders messages from oldest to most recent. The default is backwards. (RSP4b2)
+      # @option options [Integer]      :limit      An upper limit on the number of messages returned. The default is 100, and the maximum is 1000. (RSP4b3)
       #
-      # @return [Ably::Models::PaginatedResult<Ably::Models::PresenceMessage>] First {Ably::Models::PaginatedResult page} of {Ably::Models::PresenceMessage} objects accessible with {Ably::Models::PaginatedResult#items #items}.
+      # @return [Ably::Models::PaginatedResult<Ably::Models::PresenceMessage>] A {Ably::Models::PaginatedResult} object containing an array of {Ably::Models::PresenceMessage} objects.
       #
       def history(options = {})
         url = "#{base_path}/history"

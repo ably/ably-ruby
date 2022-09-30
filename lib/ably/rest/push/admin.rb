@@ -39,13 +39,17 @@ module Ably::Rest
       end
 
       # Manage device registrations
+      #
       # @return [Ably::Rest::Push::DeviceRegistrations]
+      #
       def device_registrations
         @device_registrations ||= DeviceRegistrations.new(self)
       end
 
       # Manage channel subscriptions for devices or clients
+      #
       # @return [Ably::Rest::Push::ChannelSubscriptions]
+      #
       def channel_subscriptions
         @channel_subscriptions ||= ChannelSubscriptions.new(self)
       end

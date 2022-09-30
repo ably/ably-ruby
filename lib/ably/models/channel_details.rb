@@ -4,6 +4,7 @@ module Ably::Models
   # @param attributes (see #initialize)
   #
   # @return [ChannelDetails]
+  #
   def self.ChannelDetails(attributes)
     case attributes
     when ChannelDetails
@@ -13,14 +14,17 @@ module Ably::Models
     end
   end
 
-  # ChannelDetails is a type that represents information for a channel including channelId, name, status and occupancy (CHD1)
+  # Contains the details of a {Ably::Models::Rest::Channel} or {Ably::Models::Realtime::Channel} object
+  # such as its ID and {Ably::Models::ChannelStatus}.
   #
   class ChannelDetails
     extend Ably::Modules::Enum
     extend Forwardable
     include Ably::Modules::ModelCommon
 
-    # The attributes of ChannelDetails (CHD2)
+    # The attributes of ChannelDetails
+    #
+    # @spec CHD2
     #
     attr_reader :attributes
 
@@ -32,7 +36,9 @@ module Ably::Models
       @attributes = IdiomaticRubyWrapper(attrs.clone)
     end
 
-    # The identifier of the channel (CHD2a)
+    # The identifier of the channel
+    #
+    # @spec CHD2a
     #
     # @return [String]
     #
@@ -40,7 +46,9 @@ module Ably::Models
       attributes[:channel_id]
     end
 
-    # The identifier of the channel (CHD2a)
+    # The identifier of the channel
+    #
+    # @spec CHD2a
     #
     # @return [String]
     #
@@ -48,7 +56,9 @@ module Ably::Models
       attributes[:name]
     end
 
-    # The status of the channel (CHD2b)
+    # A {Ably::Models::ChannelStatus} object.
+    #
+    # @spec CHD2b
     #
     # @return [Ably::Models::ChannelStatus, nil]
     #

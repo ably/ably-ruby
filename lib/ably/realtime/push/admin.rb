@@ -5,6 +5,7 @@ module Ably::Realtime
   class Push
     # Class providing push notification administrative functionality
     # for registering devices and attaching to channels etc.
+    #
     class Admin
       include Ably::Modules::AsyncWrapper
       include Ably::Modules::Conversions
@@ -20,9 +21,14 @@ module Ably::Realtime
         @client = push.client
       end
 
+      # Sends a push notification directly to a device, or a group of devices sharing the same clientId.
+      #
       # (see Ably::Rest::Push#publish)
       #
+      # @spec RSH1a
+      #
       # @yield  Block is invoked upon successful publish of the message
+      #
       # @return [Ably::Util::SafeDeferrable]
       #
       def publish(recipient, data, &callback)
@@ -36,14 +42,22 @@ module Ably::Realtime
         end
       end
 
-      # Manage device registrations
+      # A {Ably::Realtime::Push::DeviceRegistrations} object.
+      #
+      # @spec RSH1b
+      #
       # @return [Ably::Realtime::Push::DeviceRegistrations]
+      #
       def device_registrations
         @device_registrations ||= DeviceRegistrations.new(self)
       end
 
-      # Manage channel subscriptions for devices or clients
+      # A {Ably::Realtime::Push::ChannelSubscriptions} object.
+      #
+      # @spec RSH1c
+      #
       # @return [Ably::Realtime::Push::ChannelSubscriptions]
+      #
       def channel_subscriptions
         @channel_subscriptions ||= ChannelSubscriptions.new(self)
       end

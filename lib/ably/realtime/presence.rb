@@ -1,5 +1,6 @@
 module Ably::Realtime
-  # Presence provides access to presence operations and state for the associated Channel
+  # Enables the presence set to be entered and subscribed to, and the historic presence set to be retrieved for a channel.
+  #
   class Presence
     include Ably::Modules::Conversions
     include Ably::Modules::EventEmitter
@@ -90,15 +91,14 @@ module Ably::Realtime
       end
     end
 
-    # Enter the specified client_id into this channel. The given client will be added to the
-    # presence set and presence subscribers will see a corresponding presence message.
-    # This method is provided to support connections (e.g. connections from application
-    # server instances) that act on behalf of multiple client_ids. In order to be able to
-    # enter the channel with this method, the client library must have been instanced
-    # either with a key, or with a token bound to the wildcard client_id
+    # Enters the presence set of the channel for a given clientId. Enables a single client to update presence on behalf
+    # of any number of clients using a single connection. The library must have been instantiated with an API key
+    # or a token bound to a wildcard clientId. An optional callback may be provided to notify of the success or failure of the operation.
+    #
+    # @spec RTP4, RTP14, RTP15
     #
     # @param [String]  client_id   id of the client
-    # @param [String,Hash,nil]   data   optional data (eg a status message) for this member
+    # @param [String,Hash,nil]   data   The payload associated with the presence member. A JSON object of arbitrary key-value pairs that may contain metadata, and/or ancillary payloads.
     #
     # @yield [Ably::Realtime::Presence] On success, will call the block with this {Ably::Realtime::Presence} object
     # @return [Ably::Util::SafeDeferrable] Deferrable that supports both success (callback) and failure (errback) callbacks
@@ -151,13 +151,16 @@ module Ably::Realtime
       end
     end
 
-    # Leave a given client_id from this channel. This client will be removed from the
-    # presence set and presence subscribers will see a leave message for this client.
+    # Leaves the presence set of the channel for a given clientId. Enables a single client to update presence on behalf
+    # of any number of clients using a single connection. The library must have been instantiated with an API key
+    # or a token bound to a wildcard clientId. An optional callback may be provided to notify of the success or failure of the operation.
     #
-    # @param (see Presence#enter_client)
+    # @spec RTP15
     #
-    # @yield (see Presence#enter_client)
-    # @return (see Presence#enter_client)
+    # @param (see {Ably::Realtime::Presence#enter_client})
+    #
+    # @yield (see {Ably::Realtime::Presence#enter_client})
+    # @return (see {Ably::Realtime::Presence#enter_client})
     #
     def leave_client(client_id, data = nil, &success_block)
       ensure_supported_client_id client_id
@@ -166,14 +169,15 @@ module Ably::Realtime
       send_presence_action_for_client(Ably::Models::PresenceMessage::ACTION.Leave, client_id, data, &success_block)
     end
 
-    # Update the presence data for this client. If the client is not already a member of
-    # the presence set it will be added, and presence subscribers will see an enter or
-    # update message for this client.
+    # Updates the data payload for a presence member. If called before entering the presence set, this is treated as
+    # an {Ably::Realtime::Presence::STATE.Entered} event. An optional callback may be provided to notify of the success or failure of the operation.
     #
-    # @param (see Presence#enter)
+    # @spec RTP9
     #
-    # @yield (see Presence#enter)
-    # @return (see Presence#enter)
+    # @param (see {Ably::Realtime::Presence#enter})
+    #
+    # @yield (see {Ably::Realtime::Presence#enter})
+    # @return (see {Ably::Realtime::Presence#enter})
     #
     def update(data = nil, &success_block)
       deferrable = create_deferrable
@@ -197,11 +201,12 @@ module Ably::Realtime
       end
     end
 
-    # Update the presence data for a specified client_id into this channel.
-    # If the client is not already a member of the presence set it will be added, and
-    # presence subscribers will see an enter or update message for this client.
-    # As with {#enter_client}, the connection must be authenticated in a way that
-    # enables it to represent an arbitrary clientId.
+    # Updates the data payload for a presence member using a given clientId. Enables a single client to update presence
+    # on behalf of any number of clients using a single connection. The library must have been instantiated with an API
+    # key or a token bound to a wildcard clientId. An optional callback may be provided to notify of the success
+    # or failure of the operation.
+    #
+    # @spec RTP15
     #
     # @param (see Presence#enter_client)
     #
@@ -215,12 +220,16 @@ module Ably::Realtime
       send_presence_action_for_client(Ably::Models::PresenceMessage::ACTION.Update, client_id, data, &success_block)
     end
 
-    # Get the presence members for this Channel.
+    # Retrieves the current members present on the channel and the metadata for each member, such as their
+    # {Ably::Models::ProtocolMessage::ACTION} and ID. Returns an array of {Ably::Models::PresenceMessage} objects.
     #
-    # @param (see Ably::Realtime::Presence::MembersMap#get)
-    # @option options (see Ably::Realtime::Presence::MembersMap#get)
-    # @yield (see Ably::Realtime::Presence::MembersMap#get)
-    # @return (see Ably::Realtime::Presence::MembersMap#get)
+    # @spec RTP11, RTP11c1, RTP11c2, RTP11c3
+    #
+    # @param (see {Ably::Realtime::Presence::MembersMap#get})
+    # @option options (see {Ably::Realtime::Presence::MembersMap#get})
+    # @yield (see {Ably::Realtime::Presence::MembersMap#get})
+    #
+    # @return (see {Ably::Realtime::Presence::MembersMap#get})
     #
     def get(options = {}, &block)
       deferrable = create_deferrable
@@ -252,8 +261,11 @@ module Ably::Realtime
       end
     end
 
-    # Subscribe to presence events on the associated Channel.
-    # This implicitly attaches the Channel if it is not already attached.
+    # Registers a listener that is called each time a {Ably::Models::PresenceMessage} is received on the channel,
+    # such as a new member entering the presence set. A callback may optionally be passed in to this call to be notified
+    # of success or failure of the channel {Ably::Realtime::Channel#attach} operation.
+    #
+    # @spec RTP6a, RTP6b
     #
     # @param actions [Ably::Models::PresenceMessage::ACTION] Optional, the state change action to subscribe to. Defaults to all presence actions
     # @yield [Ably::Models::PresenceMessage] For each presence state change event, the block is called
@@ -266,7 +278,9 @@ module Ably::Realtime
     end
 
     # Unsubscribe the matching block for presence events on the associated Channel.
-    # If a block is not provided, all subscriptions will be unsubscribed
+    # If a block is not provided, all subscriptions will be unsubscribed {Ably::Models::PresenceMessage} for the channel.
+    #
+    # @spec RTP7a, RTP7b, RTE5
     #
     # @param actions [Ably::Models::PresenceMessage::ACTION] Optional, the state change action to subscribe to. Defaults to all presence actions
     #
@@ -276,10 +290,15 @@ module Ably::Realtime
       super
     end
 
-    # Return the presence messages history for the channel
+    # Retrieves a {Ably::Models::PaginatedResult} object, containing an array of historical
+    # {Ably::Models::PresenceMessage} objects for the channel. If the channel is configured to persist messages,
+    # then presence messages can be retrieved from history for up to 72 hours in the past. If not, presence messages
+    # can only be retrieved from history for up to two minutes in the past.
     #
-    # @param (see Ably::Rest::Presence#history)
-    # @option options (see Ably::Rest::Presence#history)
+    # @spec RTP12c, RTP12a
+    #
+    # @param (see {Ably::Rest::Presence#history})
+    # @option options (see {Ably::Rest::Presence#history})
     #
     # @yield [Ably::Models::PaginatedResult<Ably::Models::PresenceMessage>] First {Ably::Models::PaginatedResult page} of {Ably::Models::PresenceMessage} objects accessible with {Ably::Models::PaginatedResult#items #items}.
     #
@@ -306,7 +325,13 @@ module Ably::Realtime
       client.logger
     end
 
-    # Returns true when the initial member SYNC following channel attach is completed
+    # Indicates whether the presence set synchronization between Ably and the clients on the channel has been completed.
+    # Set to true when the sync is complete.
+    #
+    # @spec RTP13
+    #
+    # return [Boolean]
+    #
     def sync_complete?
       members.sync_complete?
     end

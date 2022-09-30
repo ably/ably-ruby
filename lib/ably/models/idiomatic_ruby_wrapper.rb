@@ -5,7 +5,8 @@ module Ably::Modules
     private
     # Creates or returns an {IdiomaticRubyWrapper} ensuring it never wraps itself
     #
-    # @return {IdiomaticRubyWrapper}
+    # @return [IdiomaticRubyWrapper]
+    #
     def IdiomaticRubyWrapper(object, options = {})
       case object
       when Ably::Models::IdiomaticRubyWrapper
@@ -143,7 +144,7 @@ module Ably::Models
     end
 
     # @!attribute [r] Hash
-    # @return [Hash] Access to the raw Hash object provided to the constructer of this wrapper
+    # @return [Hash] Access to the raw Hash object provided to the constructor of this wrapper
     def attributes
       @attributes
     end

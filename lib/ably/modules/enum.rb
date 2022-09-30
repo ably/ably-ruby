@@ -90,7 +90,9 @@ module Ably::Modules
           end
 
           # Array of Enum values as symbols
+          #
           # @return [Array<Symbol>]
+          #
           def to_sym_arr
             @by_symbol.keys
           end

@@ -1,19 +1,18 @@
 module Ably::Models
-  #
-  # @!attribute [r] from
-  #   @return [String] The id of the message the delta was generated from
-  # @!attribute [r] format
-  #   @return [String] The delta format. Only vcdiff is supported as at API version 1.2
+  # Contains any arbitrary key-value pairs, which may also contain other primitive JSON types, JSON-encodable objects,
+  # or JSON-encodable arrays from delta compression.
   #
   class DeltaExtras
     include Ably::Modules::ModelCommon
 
-    # The id of the message the delta was generated from.
+    # The ID of the message the delta was generated from.
+    #
     # @return [String, nil]
     #
     attr_reader :from
 
-    # The delta format.
+    # The delta compression format. Only vcdiff is supported.
+    #
     # @return [String, nil]
     #
     attr_reader :format
