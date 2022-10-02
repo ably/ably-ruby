@@ -32,43 +32,5 @@ describe Ably::Realtime::Client::IncomingMessageDispatcher, :api_private do
       expect(subject).to receive_message_chain(:logger, :warn)
       msgbus.publish :protocol_message, Ably::Models::ProtocolMessage.new(:action => :attached, channel: 'unknown')
     end
-
-    context 'TO3l8' do
-      context 'on action presence' do
-        let(:presence) { 101.times.map { { data: 'x' * 655 } } }
-
-        let(:protocol_message) do
-          Ably::Models::ProtocolMessage.new(action: :presence, channel: 'default', presence: presence, connection_serial: 123123123)
-        end
-
-        it 'should raise a protocol error when message size exceeded 65536 bytes' do
-          allow(connection).to receive(:serial).and_return(12312312)
-          allow(subject).to receive(:update_connection_recovery_info)
-          allow(subject).to receive_message_chain(:logger, :debug)
-          allow(subject).to receive_message_chain(:logger, :warn)
-          expect(subject).to receive_message_chain(:logger, :fatal)
-
-          msgbus.publish :protocol_message, protocol_message
-        end
-      end
-
-      context 'on action message' do
-        let(:messages) { 101.times.map { { data: 'x' * 655 } } }
-
-        let(:protocol_message) do
-          Ably::Models::ProtocolMessage.new(action: :message, channel: 'default', messages: messages, connection_serial: 123123123)
-        end
-
-        it 'should raise a protocol error when message size exceeded 65536 bytes' do
-          allow(connection).to receive(:serial).and_return(12312312)
-          allow(subject).to receive(:update_connection_recovery_info)
-          allow(subject).to receive_message_chain(:logger, :debug)
-          allow(subject).to receive_message_chain(:logger, :warn)
-          expect(subject).to receive_message_chain(:logger, :fatal)
-
-          msgbus.publish :protocol_message, protocol_message
-        end
-      end
-    end
   end
 end
