@@ -111,7 +111,7 @@ module Ably::Models
     # @return [Ably::Models::ConnectionDetails]
     #
     def connection_details
-      Ably::Models::ConnectionDetails.new(attributes[:connection_details].dup || {})
+      @connection_details ||= Ably::Models::ConnectionDetails.new(attributes[:connection_details])
     end
 
     def id!
