@@ -400,32 +400,6 @@ describe Ably::Models::ProtocolMessage do
       end
     end
 
-    context '#has_correct_message_size? (#TO3l8)' do
-      context 'on presence' do
-        it 'should return true when a message has correct size' do
-          protocol_message = new_protocol_message(presence: [{ action: 1, data: 'x' * 100 }])
-          expect(protocol_message.has_correct_message_size?).to eq(true)
-        end
-
-        it 'should return false when a message has not correct size' do
-          protocol_message = new_protocol_message(presence: [{ action: 1, data: 'x' * 65537 }])
-          expect(protocol_message.has_correct_message_size?).to eq(false)
-        end
-      end
-
-      context 'on message' do
-        it 'should return true when a message has correct size' do
-          protocol_message = new_protocol_message(messages: [{ name: 'x' * 100 }])
-          expect(protocol_message.has_correct_message_size?).to eq(true)
-        end
-
-        it 'should return false when a message has not correct size' do
-          protocol_message = new_protocol_message(messages: [{ name: 'x' * 65537 }])
-          expect(protocol_message.has_correct_message_size?).to eq(false)
-        end
-      end
-    end
-
     context '#connection_details (#TR4o)' do
       let(:connection_details) { protocol_message.connection_details }
 

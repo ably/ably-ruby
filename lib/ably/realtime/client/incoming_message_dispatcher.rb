@@ -121,23 +121,15 @@ module Ably::Realtime
             presence.manager.sync_process_messages protocol_message.channel_serial, protocol_message.presence
 
           when ACTION.Presence
-            if protocol_message.has_correct_message_size?
-              presence = get_channel(protocol_message.channel).presence
-              protocol_message.presence.each do |presence_message|
-                presence.__incoming_msgbus__.publish :presence, presence_message
-              end
-            else
-              logger.fatal Ably::Exceptions::ProtocolError.new("Not published. Channel message limit exceeded #{protocol_message.message_size} bytes", 400, Ably::Exceptions::Codes::UNABLE_TO_RECOVER_CHANNEL_MESSAGE_LIMIT_EXCEEDED).message
+            presence = get_channel(protocol_message.channel).presence
+            protocol_message.presence.each do |presence_message|
+              presence.__incoming_msgbus__.publish :presence, presence_message
             end
 
           when ACTION.Message
-            if protocol_message.has_correct_message_size?
-              channel = get_channel(protocol_message.channel)
-              protocol_message.messages.each do |message|
-                channel.__incoming_msgbus__.publish :message, message
-              end
-            else
-              logger.fatal Ably::Exceptions::ProtocolError.new("Not published. Channel message limit exceeded #{protocol_message.message_size} bytes", 400, Ably::Exceptions::Codes::UNABLE_TO_RECOVER_CHANNEL_MESSAGE_LIMIT_EXCEEDED).message
+            channel = get_channel(protocol_message.channel)
+            protocol_message.messages.each do |message|
+              channel.__incoming_msgbus__.publish :message, message
             end
 
           when ACTION.Auth
