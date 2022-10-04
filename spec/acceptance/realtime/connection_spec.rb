@@ -1620,21 +1620,6 @@ describe Ably::Realtime::Connection, :event_machine do
           end
         end
 
-        context 'with invalid formatted value sent to server' do
-          let(:client_options) { default_options.merge(recover: 'not-a-valid-connection-key:1:0', log_level: :none) }
-
-          it 'sets the #error_reason and moves the connection to FAILED' do
-            connection.once(:failed) do |state_change|
-              expect(connection.state).to eq(:failed)
-              expect(state_change.reason.message).to match(/Invalid connectionKey/i)
-              expect(connection.error_reason.message).to match(/Invalid connectionKey/i)
-              expect(connection.error_reason.code).to eql(80018)
-              expect(connection.error_reason).to eql(state_change.reason)
-              stop_reactor
-            end
-          end
-        end
-
         context 'with expired (missing) value sent to server' do
           let(:client_options) { default_options.merge(recover: 'wVIsgTHAB1UvXh7z-1991d8586:0:0', log_level: :fatal) }
 
