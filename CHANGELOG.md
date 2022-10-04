@@ -1,5 +1,23 @@
 # Change Log
 
+## [v1.2.3](https://github.com/ably/ably-ruby/tree/v1.2.3)
+
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.2.2...v1.2.3)
+
+**Implemented enhancements:**
+
+- Add full docstring coverage to public API [\#376](https://github.com/ably/ably-ruby/pull/376) ([lukaszsliwa](https://github.com/lukaszsliwa))
+
+**Fixed bugs:**
+
+- Incorrect ProtocolMessage\#connection\_details object \(overwrites original connection\_details send on CONNECTED state\) [\#377](https://github.com/ably/ably-ruby/issues/377)
+
+**Merged pull requests:**
+
+- fix: remove inbound message size validation [\#382](https://github.com/ably/ably-ruby/pull/382) ([owenpearson](https://github.com/owenpearson))
+- Changes related to docstring, generate docs and CI workflow [\#376](https://github.com/ably/ably-ruby/pull/376) ([lukaszsliwa](https://github.com/lukaszsliwa))
+- Fix doc comment: incorrect channel.state type [\#375](https://github.com/ably/ably-ruby/pull/375) ([lukaszsliwa](https://github.com/lukaszsliwa))
+
 ## [v1.2.2](https://github.com/ably/ably-ruby/tree/v1.2.2)
 
 [Full Changelog](https://github.com/ably/ably-ruby/compare/v1.2.1...v1.2.2)
