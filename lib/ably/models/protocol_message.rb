@@ -189,10 +189,6 @@ module Ably::Models
       presence.map(&:size).sum + messages.map(&:size).sum
     end
 
-    def has_correct_message_size?
-      message_size <= connection_details.max_message_size
-    end
-
     def params
       @params ||= attributes[:params].to_h
     end
