@@ -47,7 +47,7 @@ module Ably::Realtime
           logger.debug { "#{protocol_message.action} received: #{protocol_message}" }
         end
 
-        if protocol_message.action.match_any?(:sync, :presence, :message)
+        if protocol_message.action.match_any?(:attached, :presence, :message)
           protocol_message.channel.properties.channel_serial = protocol_message.channel_serial
         end
 
