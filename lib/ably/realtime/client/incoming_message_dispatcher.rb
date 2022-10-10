@@ -48,7 +48,7 @@ module Ably::Realtime
         end
 
         if protocol_message.action.match_any?(:sync, :presence, :message)
-          protocol_message.channel.properties.attach_serial = protocol_message.channel_serial
+          protocol_message.channel.properties.channel_serial = protocol_message.channel_serial
         end
 
         connection.set_connection_confirmed_alive
@@ -133,6 +133,10 @@ module Ably::Realtime
           else
             error = Ably::Exceptions::ProtocolError.new("Protocol Message Action #{protocol_message.action} is unsupported by this MessageDispatcher", 400, Ably::Exceptions::Codes::PROTOCOL_ERROR)
             logger.fatal error.message
+        end
+
+        if protocol_message.action.match_any?(:detached, :suspended, :failed)
+          protocol_message.channel.properties.channel_serial = nil
         end
       end
 
