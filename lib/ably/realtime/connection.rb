@@ -78,7 +78,7 @@ module Ably
       ensure_state_machine_emits 'Ably::Models::ConnectionStateChange'
 
       # Expected format for a connection recover key
-      RECOVER_REGEX = /^(?<recover>[^:]+):(?<connection_serial>[^:]+):(?<msg_serial>\-?\d+)$/
+      RECOVER_REGEX = /^(?<recover>[^:]+):(?<msg_serial>\-?\d+)$/
 
       # Defaults for automatic connection recovery and timeouts
       DEFAULTS = {
@@ -112,16 +112,6 @@ module Ably
       # @return [String]
       #
       attr_reader :key
-
-      # The serial number of the last message to be received on this connection, used automatically by the library when
-      # recovering or resuming a connection. When recovering a connection explicitly, the recoveryKey is used in
-      # the recover client options as it contains both the key and the last message serial.
-      #
-      # @spec RTN10
-      #
-      # @return [Integer]
-      #
-      attr_reader :serial
 
       # An {Ably::Models::ErrorInfo} object describing the last error received if a connection failure occurs.
       #
@@ -354,7 +344,7 @@ module Ably
       # @return [String]
       #
       def recovery_key
-        "#{key}:#{serial}:#{client_msg_serial}" if connection_resumable?
+        manager.recovery_key if connection_resumable?
       end
 
       # Following a new connection being made, the connection ID, connection key
@@ -362,18 +352,9 @@ module Ably
       #
       # @return [void]
       # @api private
-      def configure_new(connection_id, connection_key, connection_serial)
+      def configure_new(connection_id, connection_key)
         @id            = connection_id
         @key           = connection_key
-
-        update_connection_serial connection_serial
-      end
-
-      # Store last received connection serial so that the connection can be resumed from the last known point-in-time
-      # @return [void]
-      # @api private
-      def update_connection_serial(connection_serial)
-        @serial = connection_serial
       end
 
       # Disable automatic resume of a connection
@@ -381,7 +362,6 @@ module Ably
       # @api private
       def reset_resume_info
         @key    = nil
-        @serial = nil
       end
 
       # @!attribute [r] __outgoing_protocol_msgbus__
@@ -487,10 +467,10 @@ module Ably
               url_params.merge!(client.transport_params)
 
               if connection_resumable?
-                url_params.merge! resume: key, connection_serial: serial
+                url_params.merge! resume: key
                 logger.debug { "Resuming connection key #{key} with serial #{serial}" }
               elsif connection_recoverable?
-                url_params.merge! recover: connection_recover_parts[:recover], connectionSerial: connection_recover_parts[:connection_serial]
+                url_params.merge! recover: connection_recover_parts[:recover]
                 logger.debug { "Recovering connection with key #{client.recover}" }
                 unsafe_once(:connected, :closed, :failed) do
                   client.disable_automatic_connection_recovery
