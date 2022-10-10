@@ -20,8 +20,6 @@ module Ably::Models
   #   @return [String] Contains a serial number for a message on the current channel
   # @!attribute [r] connection_id
   #   @return [String] Contains a string private connection key used to recover this connection
-  # @!attribute [r] connection_serial
-  #   @return [Bignum] Contains a serial number for a message sent from the server to the client
   # @!attribute [r] message_serial
   #   @return [Bignum] Contains a serial number for a message sent from the client to the server
   # @!attribute [r] timestamp
@@ -63,7 +61,8 @@ module Ably::Models
       presence:     14,
       message:      15,
       sync:         16,
-      auth:         17
+      auth:         17,
+      activate:     18
     )
 
     ATTACH_FLAGS_MAPPING = {
@@ -129,12 +128,6 @@ module Ably::Models
       raise TypeError, "msg_serial '#{attributes[:msg_serial]}' is invalid, a positive Integer is expected for a ProtocolMessage"
     end
 
-    def connection_serial
-      Integer(attributes[:connection_serial])
-    rescue TypeError
-      raise TypeError, "connection_serial '#{attributes[:connection_serial]}' is invalid, a positive Integer is expected for a ProtocolMessage"
-    end
-
     def count
       [1, attributes[:count].to_i].max
     end
@@ -146,24 +139,13 @@ module Ably::Models
       false
     end
 
-    # @api private
-    def has_connection_serial?
-      connection_serial && true
-    rescue TypeError
-      false
-    end
-
     def serial
-      if has_connection_serial?
-        connection_serial
-      else
-        message_serial
-      end
+      message_serial
     end
 
     # @api private
     def has_serial?
-      has_connection_serial? || has_message_serial?
+      has_message_serial?
     end
 
     def messages
@@ -271,7 +253,7 @@ module Ably::Models
     # Return a JSON ready object from the underlying #attributes using Ably naming conventions for keys
     def as_json(*args)
       raise TypeError, ':action is missing, cannot generate a valid Hash for ProtocolMessage' unless action
-      raise TypeError, ':msg_serial or :connection_serial is missing, cannot generate a valid Hash for ProtocolMessage' if ack_required? && !has_serial?
+      raise TypeError, ':msg_serial is missing, cannot generate a valid Hash for ProtocolMessage' if ack_required? && !has_serial?
 
       attributes.dup.tap do |hash_object|
         hash_object['action']   = action.to_i
