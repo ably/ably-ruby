@@ -41,6 +41,7 @@ module Ably::Realtime
       end
 
       before_transition(to: [:attached]) do |channel, current_transition|
+        channel.properties.attach_serial = current_transition.metadata.protocol_message.channel_serial
         channel.manager.attached current_transition.metadata.protocol_message
         channel.attach_resume!
       end
@@ -58,6 +59,7 @@ module Ably::Realtime
         err = error_from_state_change(current_transition)
         channel.manager.fail_queued_messages(err) if channel.failed? or channel.suspended? #RTL11
         channel.manager.log_channel_error err if err
+        channel.properties.channel_serial = nil
       end
 
       after_transition(to: [:suspended]) do |channel, current_transition|
