@@ -127,7 +127,7 @@ module Ably::Realtime
 
         reattach_suspended_channels protocol_message.error
 
-        connection.configure_new protocol_message.connection_id, protocol_message.connection_details.connection_key, protocol_message.connection_serial
+        connection.configure_new protocol_message.connection_id, protocol_message.connection_details.connection_key
       end
 
       # When connection is CONNECTED and receives an update
@@ -139,7 +139,7 @@ module Ably::Realtime
         # Update the connection details and any associated defaults
         connection.set_connection_details protocol_message.connection_details
 
-        connection.configure_new protocol_message.connection_id, protocol_message.connection_details.connection_key, protocol_message.connection_serial
+        connection.configure_new protocol_message.connection_id, protocol_message.connection_details.connection_key
 
         state_change = Ably::Models::ConnectionStateChange.new(
           current: connection.state,
@@ -352,7 +352,12 @@ module Ably::Realtime
         end
       end
 
+      def recovery_key
+
+      end
+
       private
+
       def connection
         @connection
       end
