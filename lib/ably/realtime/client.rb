@@ -332,6 +332,16 @@ module Ably
         raise Ably::Exceptions::PushNotificationsNotSupported, 'This device does not support receiving or subscribing to push notifications. The local device object is not unavailable'
       end
 
+      def recovery_serials
+        serials.map do |name, serial|
+          channel(name).properties.channel_serial = serial
+        end
+      end
+
+      def serials
+        Hash[channels.map { |channel| [channel.name, channel.properties.channel_serial] }]
+      end
+
       private
       def endpoint_for_host(host)
         port = if use_tls?
