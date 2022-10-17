@@ -77,9 +77,6 @@ module Ably
       include Ably::Modules::UsesStateMachine
       ensure_state_machine_emits 'Ably::Models::ConnectionStateChange'
 
-      # Expected format for a connection recover key
-      RECOVER_REGEX = /^(?<recover>[^:]+):(?<msg_serial>\-?\d+)$/
-
       # Defaults for automatic connection recovery and timeouts
       DEFAULTS = {
         channel_retry_timeout:      15, # when a channel becomes SUSPENDED, after this delay in seconds, the channel will automatically attempt to reattach if the connection is CONNECTED
@@ -337,14 +334,21 @@ module Ably
         end
       end
 
-      # The recovery key string can be used by another client to recover this connection's state in the recover client options property. See connection state recover options for more information.
+      # The recovery key string can be used by another client to recover this connection's state in the recover client
+      # options property. See connection state recover options for more information.
       #
-      # @spec RTN16b, RTN16c
+      # @spec RTN16g, RTN16g1, RTN16h
       #
       # @return [String]
       #
       def recovery_key
-        manager.recovery_key if connection_resumable?
+        return nil if key.empty? || closing? || closed? || failed? || suspended?
+
+        IdiomaticRubyWrapper(
+          connection_key: @key,
+          msg_serial: @client_msg_serial,
+          channel_serials: client.channels.serials
+        ).to_json
       end
 
       # Following a new connection being made, the connection ID, connection key
@@ -667,7 +671,7 @@ module Ably
       end
 
       def connection_recover_parts
-        client.recover.to_s.match(RECOVER_REGEX)
+        JSON.parse(client.recover.to_s)
       end
 
       def production?
