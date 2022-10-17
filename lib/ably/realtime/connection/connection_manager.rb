@@ -352,10 +352,6 @@ module Ably::Realtime
         end
       end
 
-      def recovery_key
-
-      end
-
       private
 
       def connection
