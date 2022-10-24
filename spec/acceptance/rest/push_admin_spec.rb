@@ -400,7 +400,7 @@ describe Ably::Rest::Push::Admin do
 
           expect(device_retrieved.push.state).to eql('ACTIVE')
 
-          expect(device_retrieved.device_secret).to be_nil
+          expect(device_retrieved.device_secret).to be_a(String)
 
           # Errors are exclusively configure by Ably
           expect(device_retrieved.push.error_reason).to be_nil
