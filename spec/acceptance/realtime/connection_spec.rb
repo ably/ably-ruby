@@ -1422,7 +1422,7 @@ describe Ably::Realtime::Connection, :event_machine do
                   expected_serial += 1 # attach message received
                   expect(connection.serial).to eql(expected_serial)
 
-                  expect(connection.recovery_key).to eql("#{connection.key}:#{connection.serial}:#{connection.send(:client_msg_serial)}")
+                  expect(connection.create_recovery_key()).to eql("#{connection.key}:#{connection.serial}:#{connection.send(:client_msg_serial)}")
                   stop_reactor
                 end
               end
@@ -1445,7 +1445,7 @@ describe Ably::Realtime::Connection, :event_machine do
 
           available_states.each do |state|
             connection.on(state) do
-              states[state.to_sym] = true if connection.recovery_key
+              states[state.to_sym] = true if connection.create_recovery_key()
             end
           end
 
@@ -1463,7 +1463,7 @@ describe Ably::Realtime::Connection, :event_machine do
         it 'is nil when connection is explicitly CLOSED' do
           connection.once(:connected) do
             connection.close do
-              expect(connection.recovery_key).to be_nil
+              expect(connection.create_recovery_key()).to be_nil
               stop_reactor
             end
           end
@@ -1481,7 +1481,7 @@ describe Ably::Realtime::Connection, :event_machine do
             end
 
             connection.once(:failed) do
-              recover_client = auto_close Ably::Realtime::Client.new(default_options.merge(recover: client.connection.recovery_key))
+              recover_client = auto_close Ably::Realtime::Client.new(default_options.merge(recover: client.connection.create_recovery_key()))
               recover_client.connection.on(:connected) do
                 expect(recover_client.connection.id).to eql(previous_connection_id)
                 stop_reactor
@@ -1495,7 +1495,7 @@ describe Ably::Realtime::Connection, :event_machine do
             end
 
             connection.once(:failed) do
-              recover_client = auto_close Ably::Realtime::Client.new(default_options.merge(recover: client.connection.recovery_key))
+              recover_client = auto_close Ably::Realtime::Client.new(default_options.merge(recover: client.connection.create_recovery_key()))
               recover_client.connection.on_resume do
                 raise 'Should not call the resume callback'
               end
@@ -1513,7 +1513,7 @@ describe Ably::Realtime::Connection, :event_machine do
 
               channel.attach do
                 connection_id = client.connection.id
-                recovery_key = client.connection.recovery_key
+                recovery_key = client.connection.create_recovery_key()
                 connection.transport.__incoming_protocol_msgbus__
                 publishing_client_channel.publish('event', 'message') do
                   connection.transition_state_machine! :failed
@@ -1547,7 +1547,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 channel.publish('event', 'message') do
                   msg_serial = connection.send(:client_msg_serial)
                   expect(msg_serial).to eql(0)
-                  recovery_key = client.connection.recovery_key
+                  recovery_key = client.connection.create_recovery_key()
                   connection.transition_state_machine! :failed
                 end
               end
@@ -1578,7 +1578,7 @@ describe Ably::Realtime::Connection, :event_machine do
                   expect(message.data).to eql('message-1')
                   msg_serial = connection.send(:client_msg_serial)
                   expect(msg_serial).to eql(0)
-                  recovery_key = client.connection.recovery_key
+                  recovery_key = client.connection.create_recovery_key()
                   connection.transition_state_machine! :failed
                 end
                 channel.publish('event', 'message-1')

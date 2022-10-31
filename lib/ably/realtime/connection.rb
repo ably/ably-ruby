@@ -341,7 +341,7 @@ module Ably
       #
       # @return [String]
       #
-      def recovery_key
+      def create_recovery_key
         return nil if key.empty? || closing? || closed? || failed? || suspended?
 
         IdiomaticRubyWrapper(
