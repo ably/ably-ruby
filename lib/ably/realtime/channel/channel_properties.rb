@@ -25,7 +25,7 @@ module Ably::Realtime
       #
       # @return [String]
       #
-      attr_reader :channel_serial
+      attr_accessor :channel_serial
 
       def initialize(channel)
         @channel = channel
