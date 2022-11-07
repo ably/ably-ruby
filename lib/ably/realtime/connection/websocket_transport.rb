@@ -214,18 +214,7 @@ module Ably::Realtime
           action_name = Ably::Models::ProtocolMessage::ACTION[event_data['action']] rescue event_data['action']
           logger.debug { "WebsocketTransport: Prot msg recv <=: #{action_name} - #{event_data}" }
 
-          if protocol_message.invalid?
-            error = Ably::Exceptions::ProtocolError.new("Invalid Protocol Message received: #{event_data}\nConnection moving to the failed state as the protocol is invalid and unsupported", 400, Ably::Exceptions::Codes::PROTOCOL_ERROR)
-            logger.fatal { "WebsocketTransport: #{error.message}" }
-            failed_protocol_message = Ably::Models::ProtocolMessage.new(
-              action: Ably::Models::ProtocolMessage::ACTION.Error,
-              error: error.as_json,
-              logger: logger
-            )
-            __incoming_protocol_msgbus__.publish :protocol_message, failed_protocol_message
-          else
-            __incoming_protocol_msgbus__.publish :protocol_message, protocol_message
-          end
+          __incoming_protocol_msgbus__.publish :protocol_message, protocol_message
         end
 
         driver.on("ping") do
