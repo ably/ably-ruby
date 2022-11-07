@@ -127,14 +127,6 @@ describe Ably::Models::ProtocolMessage do
       end
     end
 
-    context '#connection_serial' do
-      let(:protocol_message) { new_protocol_message(connection_serial: "55") }
-      it 'converts :connection_serial to an Integer' do
-        expect(protocol_message.connection_serial).to be_a(Integer)
-        expect(protocol_message.connection_serial).to eql(55)
-      end
-    end
-
     context '#flags (#TR4i)' do
       context 'when nil' do
         let(:protocol_message) { new_protocol_message({}) }
@@ -241,24 +233,6 @@ describe Ably::Models::ProtocolMessage do
       end
     end
 
-    context '#has_connection_serial?' do
-      context 'without connection_serial' do
-        let(:protocol_message) { new_protocol_message({}) }
-
-        it 'returns false' do
-          expect(protocol_message.has_connection_serial?).to eql(false)
-        end
-      end
-
-      context 'with connection_serial' do
-        let(:protocol_message) { new_protocol_message(connection_serial: "55") }
-
-        it 'returns true' do
-          expect(protocol_message.has_connection_serial?).to eql(true)
-        end
-      end
-    end
-
     context '#serial' do
       context 'with underlying msg_serial' do
         let(:protocol_message) { new_protocol_message(msg_serial: "55") }
@@ -267,26 +241,10 @@ describe Ably::Models::ProtocolMessage do
           expect(protocol_message.serial).to eql(55)
         end
       end
-
-      context 'with underlying connection_serial' do
-        let(:protocol_message) { new_protocol_message(connection_serial: "55") }
-        it 'converts :connection_serial to an Integer' do
-          expect(protocol_message.serial).to be_a(Integer)
-          expect(protocol_message.serial).to eql(55)
-        end
-      end
-
-      context 'with underlying connection_serial and msg_serial' do
-        let(:protocol_message) { new_protocol_message(connection_serial: "99", msg_serial: "11") }
-        it 'prefers connection_serial and converts :connection_serial to an Integer' do
-          expect(protocol_message.serial).to be_a(Integer)
-          expect(protocol_message.serial).to eql(99)
-        end
-      end
     end
 
     context '#has_serial?' do
-      context 'without msg_serial or connection_serial' do
+      context 'without msg_serial' do
         let(:protocol_message) { new_protocol_message({}) }
 
         it 'returns false' do
@@ -296,14 +254,6 @@ describe Ably::Models::ProtocolMessage do
 
       context 'with msg_serial' do
         let(:protocol_message) { new_protocol_message(msg_serial: "55") }
-
-        it 'returns true' do
-          expect(protocol_message.has_serial?).to eql(true)
-        end
-      end
-
-      context 'with connection_serial' do
-        let(:protocol_message) { new_protocol_message(connection_serial: "55") }
 
         it 'returns true' do
           expect(protocol_message.has_serial?).to eql(true)
