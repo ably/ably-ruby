@@ -41,8 +41,10 @@ module Ably::Realtime
       end
 
       before_transition(to: [:attached]) do |channel, current_transition|
-        channel.properties.attach_serial = current_transition.metadata.protocol_message.channel_serial
-        channel.manager.attached current_transition.metadata.protocol_message
+        unless (protocol_message = current_transition.metadata.protocol_message).nil?
+          channel.properties.set_attach_serial protocol_message.channel_serial
+          channel.manager.attached protocol_message
+        end
         channel.attach_resume!
       end
 
