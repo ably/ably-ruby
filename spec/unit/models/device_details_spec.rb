@@ -7,7 +7,7 @@ describe Ably::Models::DeviceDetails do
 
   subject { Ably::Models::DeviceDetails }
 
-  %w(id platform form_factor client_id device_secret).each do |string_attribute|
+  %w(id platform form_factor client_id).each do |string_attribute|
     let(:empty_device_details) { subject.new }
 
     describe "##{string_attribute} and ##{string_attribute}=" do
@@ -29,6 +29,31 @@ describe Ably::Models::DeviceDetails do
       specify 'rejects non string or nil values' do
         expect { empty_device_details.public_send("#{string_attribute}=", {}) }.to raise_error(ArgumentError)
       end
+    end
+  end
+
+  describe "#device_secret and #device_secret=" do
+    let(:new_val) { random_str }
+
+    specify 'should generate random token' do
+      expect(empty_device_details.device_secret).not_to be_nil
+      expect(empty_device_details.device_secret.size).not_to eq(0)
+    end
+
+    specify 'setter accepts a string value and getter returns the new value' do
+      empty_device_details.device_secret = new_val
+      expect(empty_device_details.device_secret).to eql(new_val)
+    end
+
+    specify 'setter accepts nil' do
+      empty_device_details.device_secret = new_val
+      expect(empty_device_details.device_secret).to eql(new_val)
+      empty_device_details.device_secret = nil
+      expect(empty_device_details.device_secret).to be_nil
+    end
+
+    specify 'rejects non string or nil values' do
+      expect { empty_device_details.device_secret = {} }.to raise_error(ArgumentError)
     end
   end
 
