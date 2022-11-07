@@ -47,8 +47,9 @@ module Ably::Realtime
           logger.debug { "#{protocol_message.action} received: #{protocol_message}" }
         end
 
-        if protocol_message.action.match_any?(:attached, :presence, :message)
-          protocol_message.channel.properties.channel_serial = protocol_message.channel_serial
+        if protocol_message.action.match_any?(:detached, :suspended, :failed)
+          channel = get_channel(protocol_message.channel)
+          channel.properties.channel_serial = nil
         end
 
         connection.set_connection_confirmed_alive
@@ -94,6 +95,7 @@ module Ably::Realtime
           when ACTION.Attach
           when ACTION.Attached
             get_channel(protocol_message.channel).tap do |channel|
+              channel.properties.channel_serial = protocol_message.channel_serial
               if channel.attached?
                 channel.manager.duplicate_attached_received protocol_message
               else
@@ -108,6 +110,7 @@ module Ably::Realtime
           when ACTION.Detach
           when ACTION.Detached
             get_channel(protocol_message.channel).tap do |channel|
+              channel.properties.channel_serial = nil
               channel.manager.detached_received protocol_message.error
             end
 
@@ -116,13 +119,16 @@ module Ably::Realtime
             presence.manager.sync_process_messages protocol_message.channel_serial, protocol_message.presence
 
           when ACTION.Presence
-            presence = get_channel(protocol_message.channel).presence
+            channel = get_channel(protocol_message.channel)
+            channel.properties.channel_serial = protocol_message.channel_serial
+            presence = channel.presence
             protocol_message.presence.each do |presence_message|
               presence.__incoming_msgbus__.publish :presence, presence_message
             end
 
           when ACTION.Message
             channel = get_channel(protocol_message.channel)
+            channel.properties.channel_serial = protocol_message.channel_serial
             protocol_message.messages.each do |message|
               channel.__incoming_msgbus__.publish :message, message
             end
@@ -133,10 +139,6 @@ module Ably::Realtime
           else
             error = Ably::Exceptions::ProtocolError.new("Protocol Message Action #{protocol_message.action} is unsupported by this MessageDispatcher", 400, Ably::Exceptions::Codes::PROTOCOL_ERROR)
             logger.fatal error.message
-        end
-
-        if protocol_message.action.match_any?(:detached, :suspended, :failed)
-          protocol_message.channel.properties.channel_serial = nil
         end
       end
 
