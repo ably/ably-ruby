@@ -342,12 +342,12 @@ module Ably
       # @return [String]
       #
       def recovery_key
-        return nil if key.empty? || closing? || closed? || failed? || suspended?
+        return nil if key.nil? || key.empty? || closing? || closed? || failed? || suspended?
 
         IdiomaticRubyWrapper(
-          connection_key: @key,
-          msg_serial: @client_msg_serial,
-          channel_serials: client.channels.serials
+          connection_key: key,
+          msg_serial: client_msg_serial,
+          channel_serials: client.serials
         ).to_json
       end
 
@@ -472,7 +472,7 @@ module Ably
 
               if connection_resumable?
                 url_params.merge! resume: key
-                logger.debug { "Resuming connection key #{key} with serial #{serial}" }
+                logger.debug { "Resuming connection key #{key}" }
               elsif connection_recoverable?
                 url_params.merge! recover: connection_recover_parts[:recover]
                 logger.debug { "Recovering connection with key #{client.recover}" }
@@ -601,8 +601,6 @@ module Ably
       # #transition_state_machine must be used instead
       private :change_state
 
-      private
-
       # The client message serial (msgSerial) is incremented for every message that is published that requires an ACK.
       # Note that this is different to the connection serial that contains the last known serial number
       # received from the server.
@@ -613,6 +611,8 @@ module Ably
       def client_msg_serial
         @client_msg_serial
       end
+
+      private
 
       def resume_callbacks
         @resume_callbacks ||= []
@@ -650,7 +650,7 @@ module Ably
       end
 
       def connection_resumable?
-        !key.nil? && !serial.nil? && connection_state_available?
+        !key.nil? && connection_state_available?
       end
 
       def connection_state_available?
@@ -667,11 +667,15 @@ module Ably
       end
 
       def connection_recoverable?
-        connection_recover_parts
+        !connection_recover_parts.empty?
       end
 
       def connection_recover_parts
+        return {} if client.recover.nil? || client.recover.empty?
+
         JSON.parse(client.recover.to_s)
+      rescue JSON::ParserError
+        nil
       end
 
       def production?
