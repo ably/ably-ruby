@@ -955,7 +955,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             previous_connection_id = connection.id
             connection.transport.close_connection_after_writing
 
-            expect(connection).to receive(:configure_new).with(previous_connection_id, anything, anything).and_call_original
+            expect(connection).to receive(:configure_new).with(previous_connection_id, anything).and_call_original
 
             connection.once(:connected) do
               expect(connection.key).to_not be_nil
@@ -1089,7 +1089,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
           def kill_connection_transport_and_prevent_valid_resume
             connection.transport.close_connection_after_writing
-            connection.configure_new '0123456789abcdef', 'wVIsgTHAB1UvXh7z-1991d8586', -1 # force the resume connection key to be invalid
+            connection.configure_new '0123456789abcdef', 'wVIsgTHAB1UvXh7z-1991d8586' # force the resume connection key to be invalid
           end
 
           it 'updates the connection_id and connection_key' do
