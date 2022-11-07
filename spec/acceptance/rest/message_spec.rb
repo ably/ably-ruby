@@ -217,7 +217,7 @@ describe Ably::Rest::Channel, 'messages' do
         stub_const 'Ably::PROTOCOL_VERSION', '1.2'
         client = Ably::Rest::Client.new(key: api_key, protocol: protocol)
         expect(client.idempotent_rest_publishing).to be_truthy
-        stub_const 'Ably::PROTOCOL_VERSION', '1.3'
+        stub_const 'Ably::PROTOCOL_VERSION', '2.0'
         client = Ably::Rest::Client.new(key: api_key, protocol: protocol)
         expect(client.idempotent_rest_publishing).to be_truthy
       end
