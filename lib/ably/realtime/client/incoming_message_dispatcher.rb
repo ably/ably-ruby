@@ -95,7 +95,7 @@ module Ably::Realtime
           when ACTION.Attach
           when ACTION.Attached
             get_channel(protocol_message.channel).tap do |channel|
-              channel.properties.channel_serial = protocol_message.channel_serial
+              channel.properties.channel_serial = protocol_message.channel_serial if channel.respond_to?(:properties)
               if channel.attached?
                 channel.manager.duplicate_attached_received protocol_message
               else
