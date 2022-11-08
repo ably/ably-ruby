@@ -39,7 +39,7 @@ describe Ably::Realtime::Connection do
       before { allow(subject).to receive(:key).and_return nil }
 
       it 'should return nil' do
-        expect(subject.recovery_key).to be_nil
+        expect(subject.create_recovery_key).to be_nil
       end
     end
 
@@ -47,7 +47,7 @@ describe Ably::Realtime::Connection do
       it 'should return nil' do
         allow(subject).to receive(:key).and_return nil
         allow(subject).to receive(:closing?).and_return(true)
-        expect(subject.recovery_key).to be_nil
+        expect(subject.create_recovery_key).to be_nil
       end
     end
 
@@ -56,7 +56,7 @@ describe Ably::Realtime::Connection do
         allow(subject).to receive(:key).and_return 'present'
         allow(subject).to receive(:closing?).and_return(false)
         allow(subject).to receive(:closed?).and_return(true)
-        expect(subject.recovery_key).to be_nil
+        expect(subject.create_recovery_key).to be_nil
       end
     end
 
@@ -66,7 +66,7 @@ describe Ably::Realtime::Connection do
         allow(subject).to receive(:closing?).and_return(false)
         allow(subject).to receive(:closed?).and_return(false)
         allow(subject).to receive(:failed?).and_return(true)
-        expect(subject.recovery_key).to be_nil
+        expect(subject.create_recovery_key).to be_nil
       end
     end
 
@@ -77,7 +77,7 @@ describe Ably::Realtime::Connection do
         allow(subject).to receive(:closed?).and_return(false)
         allow(subject).to receive(:failed?).and_return(false)
         allow(subject).to receive(:suspended?).and_return(true)
-        expect(subject.recovery_key).to be_nil
+        expect(subject.create_recovery_key).to be_nil
       end
     end
 
@@ -91,7 +91,7 @@ describe Ably::Realtime::Connection do
         allow(subject.client).to receive(:connection).and_return(subject)
         channels = [['channel1', '1234'], ['channel2', '1235'], ['channel3', '1236']]
         allow(subject.client).to receive(:serials).and_return(Hash[channels])
-        expect(subject.recovery_key).to eq("{\"connectionKey\":\"present\",\"msgSerial\":0,\"channelSerials\":{\"channel1\":\"1234\",\"channel2\":\"1235\",\"channel3\":\"1236\"}}")
+        expect(subject.create_recovery_key).to eq("{\"connectionKey\":\"present\",\"msgSerial\":0,\"channelSerials\":{\"channel1\":\"1234\",\"channel2\":\"1235\",\"channel3\":\"1236\"}}")
       end
     end
   end

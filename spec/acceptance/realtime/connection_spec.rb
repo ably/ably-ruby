@@ -1361,7 +1361,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 channel.publish('event', 'data')
                 channel.subscribe do
                   channel.unsubscribe
-                  expect(connection.recovery_key).to eql("{\"connectionKey\":\"#{connection.key}\",\"msgSerial\":#{connection.send(:client_msg_serial)},\"channelSerials\":{\"#{channel.name}\":\"#{channel.properties.channel_serial}\"}}")
+                  expect(connection.create_recovery_key).to eql("{\"connectionKey\":\"#{connection.key}\",\"msgSerial\":#{connection.send(:client_msg_serial)},\"channelSerials\":{\"#{channel.name}\":\"#{channel.properties.channel_serial}\"}}")
                   stop_reactor
                 end
               end
