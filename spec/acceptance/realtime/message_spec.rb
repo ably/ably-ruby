@@ -734,7 +734,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
           expect(message_state).to be_empty
           EventMachine.add_timer(2) do
             expect(message_state).to contain_exactly(:delivered)
-            expect(msgs_received.length).to eql(1)
+            expect(msgs_received.length).to eql(0)
             stop_reactor
           end
         end
