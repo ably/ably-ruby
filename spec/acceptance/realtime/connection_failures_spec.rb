@@ -1064,13 +1064,13 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end
 
             channel.publish("first") do
-              expect(last_message.message_serial).to eql(0)
+              expect(last_message.message_serial).to eql(1)
               channel.publish("second") do
-                expect(last_message.message_serial).to eql(1)
+                expect(last_message.message_serial).to eql(2)
                 connection.once(:connected) do
                   channel.publish("first on resumed connection") do
                     # Message serial reset after failed resume
-                    expect(last_message.message_serial).to eql(2)
+                    expect(last_message.message_serial).to eql(3)
                     stop_reactor
                   end
                 end
@@ -1122,7 +1122,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                 end
                 channel.on(:attaching) do |channel_state_change|
                   error = channel_state_change.reason
-                  expect(error.message).to match(/Unable to recover connection/i)
+                  expect(error.message).to match(/Invalid connection key/i)
                   reattaching_channels << channel
                 end
                 channel.on(:attached) do
@@ -1222,9 +1222,9 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           it 'sets the error reason on each channel' do
             channel.attach do
               channel.on(:attaching) do |state_change|
-                expect(state_change.reason.message).to match(/Unable to recover connection/i)
-                expect(state_change.reason.code).to eql(80008)
-                expect(channel.error_reason.code).to eql(80008)
+                expect(state_change.reason.message).to match(/Invalid connection key/i)
+                expect(state_change.reason.code).to eql(80018)
+                expect(channel.error_reason.code).to eql(80018)
 
                 channel.on(:attached) do |state_change|
                   stop_reactor
@@ -1246,13 +1246,13 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               end
 
               channel.publish("first") do
-                expect(last_message.message_serial).to eql(0)
+                expect(last_message.message_serial).to eql(1)
                 channel.publish("second") do
-                  expect(last_message.message_serial).to eql(1)
+                  expect(last_message.message_serial).to eql(2)
                   connection.once(:connected) do
                     channel.publish("first on new connection") do
                       # Message serial reset after failed resume
-                      expect(last_message.message_serial).to eql(2)
+                      expect(last_message.message_serial).to eql(3)
                       stop_reactor
                     end
                   end
