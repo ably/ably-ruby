@@ -342,7 +342,7 @@ module Ably
       # @return [String]
       #
       def create_recovery_key
-        return nil if key.nil? || key.empty? || closing? || closed? || failed? || suspended?
+        return nil if key.nil? || key.empty? || closing? || closed? || failed? || suspended? || !connection_resumable?
 
         IdiomaticRubyWrapper(
           connection_key: key,
