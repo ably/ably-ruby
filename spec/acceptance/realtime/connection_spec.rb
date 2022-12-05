@@ -1420,7 +1420,8 @@ describe Ably::Realtime::Connection, :event_machine do
             end
 
             connection.once(:failed) do
-              recover_client = auto_close Ably::Realtime::Client.new(default_options.merge(recover: client.connection.create_recovery_key))
+              recover = client.connection.create_recovery_key
+              recover_client = auto_close Ably::Realtime::Client.new(default_options.merge(recover: recover))
               recover_client.connection.on(:connected) do
                 expect(recover_client.connection.id).to eql(previous_connection_id)
                 stop_reactor
@@ -2024,7 +2025,7 @@ describe Ably::Realtime::Connection, :event_machine do
       it 'sends the protocol version param v (#G4, #RTN2f)' do
         expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
           uri = URI.parse(url)
-          expect(CGI::parse(uri.query)['v'][0]).to eql('2.0')
+          expect(CGI::parse(uri.query)['v'][0]).to eql('2')
           stop_reactor
         end
         client
