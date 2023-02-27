@@ -1,5 +1,7 @@
 # [Ably](https://ably.com)
 
+[![Features](https://github.com/ably/ably-ruby/actions/workflows/features.yml/badge.svg)](https://github.com/ably/ably-ruby/actions/workflows/features.yml)
+
 [![Gem Version](https://img.shields.io/gem/v/ably?style=flat)](https://img.shields.io/gem/v/ably?style=flat)
 [![Coverage Status](https://coveralls.io/repos/ably/ably-ruby/badge.svg)](https://coveralls.io/r/ably/ably-ruby)
 
