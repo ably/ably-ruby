@@ -1,0 +1,112 @@
+%YAML 1.2
+---
+common-version: 1.2.0
+compliance:
+  Agent Identifier:
+    Agents:
+    Runtime:
+  Authentication:
+    API Key:
+    Token:
+      Callback:
+      Literal:
+      URL:
+        Query Time:
+  Debugging:
+    Error Information:
+    Logs:
+  Protocol:
+    JSON:
+    Maximum Message Size:
+    MessagePack:
+  Realtime:
+    Channel:
+      Attach:
+
+      # setOptions on existing channel instance is missing (i.e. it works but is inelegant, requiring soft-deprecated mechanism)
+      # see:
+      # - https://sdk.ably.com/builds/ably/specification/main/features/#RSN3c
+      # - https://sdk.ably.com/builds/ably/specification/main/features/#RTS3c
+      Encryption:
+
+      History:
+      Presence:
+        Enter:
+          Client:
+        Get:
+        History:
+        Subscribe:
+        Update:
+          Client:
+      Publish:
+      Retry Timeout:
+      State Events:
+      Subscribe:
+        Rewind:
+    Connection:
+      Disconnected Retry Timeout:
+      Get Identifier:
+      Lifecycle Control:
+      Ping:
+      Recovery:
+      State Events:
+      Suspended Retry Timeout:
+    Message Echoes:
+    Message Queuing:
+    Transport Parameters:
+  REST:
+    Authentication:
+      Authorize:
+      Create Token Request:
+      Get Client Identifier:
+      Request Token:
+    Channel:
+      Existence Check:
+      Get:
+      History:
+      Iterate:
+      Name:
+      Presence:
+        History:
+        Member List:
+      Publish:
+        Idempotence:
+      Release:
+      Status:
+        Channel Details: # https://github.com/ably/ably-ruby/pull/365
+    Opaque Request:
+    Push Notifications Administration:
+      Channel Subscription:
+        List:
+        List Channels:
+        Remove:
+        Save:
+      Device Registration:
+        Get:
+        List:
+        Remove:
+        Save:
+      Publish:
+    Request Identifiers:
+    Request Timeout:
+    Service:
+      Get Time:
+    Statistics:
+      Query:
+  Service:
+    Environment:
+    Fallbacks:
+      Hosts:
+      Internet Up Check:
+      Retry Count:
+      Retry Duration:
+      Retry Timeout:
+    Host:
+  Testing:
+    Disable TLS:
+    TCP Insecure Port:
+    TCP Secure Port:
+  Transport:
+    Connection Open Timeout:
+    HTTP/2: # https://github.com/ably/ably-ruby/pull/197
+    Maximum Frame Size:
