@@ -1,5 +1,13 @@
 # Change Log
 
+## [v1.2.4](https://github.com/ably/ably-ruby/tree/v1.2.4)
+
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.2.3...v1.2.4)
+
+**Merged pull requests:**
+
+- fix: unpin msgpack dependency minor/patch version [\#382](https://github.com/ably/ably-ruby-rest/pull/29)
+
 ## [v1.2.3](https://github.com/ably/ably-ruby/tree/v1.2.3)
 
 [Full Changelog](https://github.com/ably/ably-ruby/compare/v1.2.2...v1.2.3)
