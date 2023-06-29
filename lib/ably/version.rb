@@ -1,5 +1,5 @@
 module Ably
-  VERSION = '1.2.3'
+  VERSION = '1.2.4'
   PROTOCOL_VERSION = '1.2'
 
   # @api private
