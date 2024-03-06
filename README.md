@@ -337,3 +337,7 @@ This library uses [semantic versioning](http://semver.org/). For each release, t
 * Visit [https://github.com/ably/ably-ruby/tags](https://github.com/ably/ably-ruby/tags) and `Add release notes` for the release including links to the changelog entry.
 * Run `rake release` to publish the gem to [Rubygems](https://rubygems.org/gems/ably)
 * Release the [REST-only library `ably-ruby-rest`](https://github.com/ably/ably-ruby-rest#release-process)
+
+# Code sample test
+
+https://github.com/ably/ably-ruby/blob/2d4eaeb1608a4f46e33260dced82b15e0242c103/spec/acceptance/realtime/client_spec.rb#L28-L42
