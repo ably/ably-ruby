@@ -7,7 +7,7 @@ Gem::Specification.new do |spec|
   spec.name          = 'ably'
   spec.version       = Ably::VERSION
   spec.authors       = ['Lewis Marshall', "Matthew O'Riordan"]
-  spec.email         = ['lewis@lmars.net', 'matt@ably.io']
+  spec.email         = %w[lewis@lmars.net matt@ably.io]
   spec.description   = %q{A Ruby client library for ably.io realtime messaging}
   spec.summary       = %q{A Ruby client library for ably.io realtime messaging implemented using EventMachine}
   spec.homepage      = 'http://github.com/ably/ably-ruby'
