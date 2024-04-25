@@ -327,7 +327,7 @@ module Ably
       def internet_up?
         url = "http#{'s' if client.use_tls?}:#{Ably::INTERNET_CHECK.fetch(:url)}"
         EventMachine::DefaultDeferrable.new.tap do |deferrable|
-          EventMachine::HttpRequest.new(url, tls: { verify_peer: true }).get.tap do |http|
+          EventMachine::AblyHttpRequest::HttpRequest.new(url, tls: { verify_peer: true }).get.tap do |http|
             http.errback do
               yield false if block_given?
               deferrable.fail Ably::Exceptions::ConnectionFailed.new("Unable to connect to #{url}", nil, Ably::Exceptions::Codes::CONNECTION_FAILED)
