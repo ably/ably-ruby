@@ -74,17 +74,12 @@ describe Ably::Util::Crypto do
 
   context 'encrypts & decrypt' do
     let(:string) { random_str }
-    let(:byte_array) { random_str.to_msgpack.unpack('C*') }
 
-    specify '#encrypt encrypts a string' do
+    specify '#encrypts and decrypts a string' do
       encrypted = subject.encrypt(string)
       expect(subject.decrypt(encrypted)).to eql(string)
     end
 
-    specify '#decrypt decrypts a string' do
-      encrypted = subject.encrypt(string)
-      expect(subject.decrypt(encrypted)).to eql(string)
-    end
   end
 
   context 'encrypting an empty string' do
