@@ -74,20 +74,26 @@ describe Ably::Util::Crypto do
 
   context 'encrypts & decrypt' do
     let(:string) { random_str }
-
-    specify '#encrypts and decrypts a string' do
-      encrypted = subject.encrypt(string)
-      expect(subject.decrypt(encrypted)).to eql(string)
-    end
-
-  end
-
-  context 'encrypting an empty string' do
     let(:empty_string) { '' }
 
-    it 'raises an ArgumentError' do
-      expect { subject.encrypt(empty_string) }.to raise_error ArgumentError, /data must not be empty/
+    specify '#encrypts and decrypts a string' do
+      expect(string).to be_ascii_only
+      encrypted = subject.encrypt(string)
+      expect(encrypted).to be_truthy
+      decrypted = subject.decrypt(encrypted)
+      expect(decrypted).to eql(string)
+      expect(decrypted).to be_ascii_only
     end
+
+    specify '#encrypts and decrypts an empty string' do
+      expect(empty_string).to be_ascii_only
+      encrypted = subject.encrypt(empty_string)
+      expect(encrypted).to be_truthy
+      decrypted = subject.decrypt(encrypted)
+      expect(decrypted).to eql(empty_string)
+      expect(decrypted).to be_ascii_only
+    end
+
   end
 
   context 'using shared client lib fixture data' do
