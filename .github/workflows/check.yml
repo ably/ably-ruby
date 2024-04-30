@@ -20,7 +20,7 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
-          bundler-cache: true
+          bundler-cache: false
       - name: 'Run ${{ matrix.type }} tests on ruby ${{ matrix.ruby }} (${{ matrix.protocol }} protocol)'
         env:
           PARALLEL_TEST_PROCESSORS: 2
