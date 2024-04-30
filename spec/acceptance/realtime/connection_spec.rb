@@ -153,8 +153,8 @@ describe Ably::Realtime::Connection, :event_machine do
                     first_disconnected_at = nil
                     connection.on(:disconnected) do |connection_state_change|
                       first_disconnected_at ||= begin
-                        Time.now.to_f
-                      end
+                                                  Time.now.to_f
+                                                end
                       expect(connection_state_change.reason.code).to eql(40142) # token expired
                       if disconnect_count == 4 # 3 attempts to reconnect after initial
                         # First disconnect reattempts immediately as part of connect sequence
@@ -181,9 +181,9 @@ describe Ably::Realtime::Connection, :event_machine do
                   it 'uses the primary host for subsequent connection and auth requests' do
                     connection.once(:disconnected) do
                       expect(client.rest_client.connection).to receive(:post).
-                                                                 with(/requestToken$/, anything).
-                                                                 exactly(:twice). # it retries an expired token request immediately
-                                                                 and_call_original
+                        with(/requestToken$/, anything).
+                        exactly(:twice). # it retries an expired token request immediately
+                      and_call_original
 
                       expect(client.rest_client).to_not receive(:fallback_connection)
                       expect(client).to_not receive(:fallback_endpoint)
@@ -1702,13 +1702,13 @@ describe Ably::Realtime::Connection, :event_machine do
         end
 
         context 'internet up URL protocol' do
-          let(:http_request) { double('EventMachine::HttpRequest', get: EventMachine::DefaultDeferrable.new) }
+          let(:http_request) { double('EventMachine::AblyHttpRequest::HttpRequest', get: EventMachine::DefaultDeferrable.new) }
 
           context 'when using TLS for the connection' do
             let(:client_options) { default_options.merge(tls: true) }
 
             it 'uses TLS for the Internet check to https://internet-up.ably-realtime.com/is-the-internet-up.txt' do
-              expect(EventMachine::HttpRequest).to receive(:new).with('https://internet-up.ably-realtime.com/is-the-internet-up.txt', { tls: { verify_peer: true } }).and_return(http_request)
+              expect(EventMachine::AblyHttpRequest::HttpRequest).to receive(:new).with('https://internet-up.ably-realtime.com/is-the-internet-up.txt', { tls: { verify_peer: true } }).and_return(http_request)
               connection.internet_up?
               stop_reactor
             end
@@ -1718,7 +1718,7 @@ describe Ably::Realtime::Connection, :event_machine do
             let(:client_options) { default_options.merge(tls: false, use_token_auth: true) }
 
             it 'uses TLS for the Internet check to http://internet-up.ably-realtime.com/is-the-internet-up.txt' do
-              expect(EventMachine::HttpRequest).to receive(:new).with('http://internet-up.ably-realtime.com/is-the-internet-up.txt', { tls: { verify_peer: true } }).and_return(http_request)
+              expect(EventMachine::AblyHttpRequest::HttpRequest).to receive(:new).with('http://internet-up.ably-realtime.com/is-the-internet-up.txt', { tls: { verify_peer: true } }).and_return(http_request)
               connection.internet_up?
               stop_reactor
             end
@@ -1732,7 +1732,7 @@ describe Ably::Realtime::Connection, :event_machine do
             let(:client_options) { default_options.merge(tls: true) }
 
             it 'checks the Internet up URL over TLS' do
-              expect(EventMachine::HttpRequest).to receive(:new).with("https:#{Ably::INTERNET_CHECK.fetch(:url)}", { tls: { verify_peer: true } }).and_return(double('request', get: EventMachine::DefaultDeferrable.new))
+              expect(EventMachine::AblyHttpRequest::HttpRequest).to receive(:new).with("https:#{Ably::INTERNET_CHECK.fetch(:url)}", { tls: { verify_peer: true } }).and_return(double('request', get: EventMachine::DefaultDeferrable.new))
               connection.internet_up?
               stop_reactor
             end
@@ -1742,7 +1742,7 @@ describe Ably::Realtime::Connection, :event_machine do
             let(:client_options) { default_options.merge(tls: false, use_token_auth: true) }
 
             it 'checks the Internet up URL over TLS' do
-              expect(EventMachine::HttpRequest).to receive(:new).with("http:#{Ably::INTERNET_CHECK.fetch(:url)}", { tls: { verify_peer: true } }).and_return(double('request', get: EventMachine::DefaultDeferrable.new))
+              expect(EventMachine::AblyHttpRequest::HttpRequest).to receive(:new).with("http:#{Ably::INTERNET_CHECK.fetch(:url)}", { tls: { verify_peer: true } }).and_return(double('request', get: EventMachine::DefaultDeferrable.new))
               connection.internet_up?
               stop_reactor
             end
@@ -2109,12 +2109,12 @@ describe Ably::Realtime::Connection, :event_machine do
 
       it 'pases transport_params to query' do
         expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
-            uri = URI.parse(url)
-            expect(CGI::parse(uri.query)['extra_param'][0]).to eq('extra_param')
-            stop_reactor
-          end
+          uri = URI.parse(url)
+          expect(CGI::parse(uri.query)['extra_param'][0]).to eq('extra_param')
+          stop_reactor
+        end
 
-          client
+        client
       end
 
       context 'when changing default param' do

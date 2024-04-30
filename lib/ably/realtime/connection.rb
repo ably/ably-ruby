@@ -23,26 +23,26 @@ module Ably
       #                 or no host is available. The disconnected state is entered if an established connection is dropped,
       #                 or if a connection attempt was unsuccessful. In the disconnected state the library will periodically
       #                 attempt to open a new connection (approximately every 15 seconds), anticipating that the connection
-      #                 will be re-established soon and thus connection and channel continuity will be possible. 
+      #                 will be re-established soon and thus connection and channel continuity will be possible.
       #                 In this state, developers can continue to publish messages as they are automatically placed
-      #                 in a local queue, to be sent as soon as a connection is reestablished. Messages published by 
+      #                 in a local queue, to be sent as soon as a connection is reestablished. Messages published by
       #                 other clients while this client is disconnected will be delivered to it upon reconnection,
-      #                 so long as the connection was resumed within 2 minutes. After 2 minutes have elapsed, recovery 
+      #                 so long as the connection was resumed within 2 minutes. After 2 minutes have elapsed, recovery
       #                 is no longer possible and the connection will move to the SUSPENDED state.
-      # SUSPENDED		  A long term failure condition. No current connection exists because there is no network connectivity 
-      #               or no host is available. The suspended state is entered after a failed connection attempt if 
-      #               there has then been no connection for a period of two minutes. In the suspended state, the library 
-      #               will periodically attempt to open a new connection every 30 seconds. Developers are unable to 
+      # SUSPENDED		  A long term failure condition. No current connection exists because there is no network connectivity
+      #               or no host is available. The suspended state is entered after a failed connection attempt if
+      #               there has then been no connection for a period of two minutes. In the suspended state, the library
+      #               will periodically attempt to open a new connection every 30 seconds. Developers are unable to
       #               publish messages in this state. A new connection attempt can also be triggered by an explicit
-      #               call to {Ably::Realtime::Connection#connect}. Once the connection has been re-established, 
-      #               channels will be automatically re-attached. The client has been disconnected for too long for them 
-      #               to resume from where they left off, so if it wants to catch up on messages published by other clients 
+      #               call to {Ably::Realtime::Connection#connect}. Once the connection has been re-established,
+      #               channels will be automatically re-attached. The client has been disconnected for too long for them
+      #               to resume from where they left off, so if it wants to catch up on messages published by other clients
       #               while it was disconnected, it needs to use the History API.
-      # CLOSING		  An explicit request by the developer to close the connection has been sent to the Ably service. 
-      #             If a reply is not received from Ably within a short period of time, the connection is forcibly 
+      # CLOSING		  An explicit request by the developer to close the connection has been sent to the Ably service.
+      #             If a reply is not received from Ably within a short period of time, the connection is forcibly
       #             terminated and the connection state becomes CLOSED.
-      # CLOSED		  The connection has been explicitly closed by the client. In the closed state, no reconnection attempts 
-      #             are made automatically by the library, and clients may not publish messages. No connection state is 
+      # CLOSED		  The connection has been explicitly closed by the client. In the closed state, no reconnection attempts
+      #             are made automatically by the library, and clients may not publish messages. No connection state is
       #             preserved by the service or by the library. A new connection attempt can be triggered by an explicit
       #             call to {Ably::Realtime::Connection#connect}, which results in a new connection.
       # FAILED		  This state is entered if the client library encounters a failure condition that it cannot recover from.
@@ -55,14 +55,14 @@ module Ably
       # @return [Ably::Realtime::Connection::STATE]
       #
       STATE = ruby_enum('STATE',
-        :initialized,
-        :connecting,
-        :connected,
-        :disconnected,
-        :suspended,
-        :closing,
-        :closed,
-        :failed
+                        :initialized,
+                        :connecting,
+                        :connected,
+                        :disconnected,
+                        :suspended,
+                        :closing,
+                        :closed,
+                        :failed
       )
 
       # Describes the events emitted by a {Ably::Realtime::Connection} object. An event is either an UPDATE or a {Ably::Realtime::Connection::STATE}.
@@ -70,7 +70,7 @@ module Ably
       # UPDATE	RTN4h	An event for changes to connection conditions for which the {Ably::Realtime::Connection::STATE} does not change.
       #
       EVENT = ruby_enum('EVENT',
-        STATE.to_sym_arr + [:update]
+                        STATE.to_sym_arr + [:update]
       )
 
       include Ably::Modules::StateEmitter
@@ -327,7 +327,7 @@ module Ably
       def internet_up?
         url = "http#{'s' if client.use_tls?}:#{Ably::INTERNET_CHECK.fetch(:url)}"
         EventMachine::DefaultDeferrable.new.tap do |deferrable|
-          EventMachine::HttpRequest.new(url, tls: { verify_peer: true }).get.tap do |http|
+          EventMachine::AblyHttpRequest::HttpRequest.new(url, tls: { verify_peer: true }).get.tap do |http|
             http.errback do
               yield false if block_given?
               deferrable.fail Ably::Exceptions::ConnectionFailed.new("Unable to connect to #{url}", nil, Ably::Exceptions::Codes::CONNECTION_FAILED)
@@ -407,10 +407,10 @@ module Ably
         if should_use_fallback_hosts?
           internet_up? do |internet_is_up_result|
             @current_host = if internet_is_up_result
-              client.fallback_endpoint.host
-            else
-              client.endpoint.host
-            end
+                              client.fallback_endpoint.host
+                            else
+                              client.endpoint.host
+                            end
             yield current_host
           end
         else
@@ -478,10 +478,10 @@ module Ably
 
               # Use native websocket heartbeats if possible, but allow Ably protocol heartbeats
               url_params['heartbeats'] = if defaults.fetch(:websocket_heartbeats_disabled)
-                'true'
-              else
-                'false'
-              end
+                                           'true'
+                                         else
+                                           'false'
+                                         end
 
               url_params['clientId'] = client.auth.client_id if client.auth.has_client_id?
               url_params.merge!(client.transport_params)
