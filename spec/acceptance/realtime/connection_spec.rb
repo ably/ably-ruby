@@ -102,7 +102,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 end
 
                 let(:ttl) { 2 }
-                let(:skew) { 0.1 }
+                let(:clock_skew) { 0.1 } # 0.1 second clock skew
 
                 it 'renews token every time after it expires' do
                   started_at = Time.now.to_f
@@ -115,8 +115,8 @@ describe Ably::Realtime::Connection, :event_machine do
                     disconnected_times += 1
                     if disconnected_times == 3
                       expect(connected_times).to eql(3)
-                      expect((Time.now.to_f - started_at) + skew).to be > ttl * 3
-                      expect((Time.now.to_f - started_at) + skew).to be < (ttl * 2) * 3
+                      expect((Time.now.to_f - started_at) + clock_skew).to be > ttl * 3
+                      expect((Time.now.to_f - started_at) + clock_skew).to be < (ttl * 2) * 3
                       stop_reactor
                     end
                   end
