@@ -337,7 +337,7 @@ module Ably
             error = Ably::Exceptions::InvalidRequest.new('option :until_attach is invalid as the channel is not attached' )
             return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
           end
-          options[:from_serial] = properties.attach_serial
+          options[:fromSerial] = properties.attach_serial
         end
 
         async_wrap(callback) do
