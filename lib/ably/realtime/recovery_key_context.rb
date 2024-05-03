@@ -1,7 +1,8 @@
 require 'json'
 # frozen_string_literal: true
 
-module Ably::Realtime
+module Ably
+  module Realtime
   class RecoveryKeyContext
     attr_reader :connection_key
     attr_reader :msg_serial
@@ -14,8 +15,9 @@ module Ably::Realtime
     end
 
     def encode
-      JSON.generate(self)
+      JSON.dump(self)
     end
 
+  end
   end
 end
