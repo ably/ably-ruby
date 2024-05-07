@@ -15,7 +15,9 @@ describe Ably::Realtime::RecoveryKeyContext do
     end
 
     it 'should encode recovery key context' do
-      encoded_recovery_key = recovery_context.encode
+      encoded_recovery_key = recovery_context.to_json
+      expect(encoded_recovery_key).to eql "{\"connection_key\":\"key\",\"msg_serial\":123," <<
+                                            "\"channel_serials\":{\"channel1\":\"serial1\",\"channel2\":\"serial2\"}}"
     end
   end
 end
