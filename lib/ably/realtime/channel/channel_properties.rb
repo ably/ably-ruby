@@ -18,6 +18,8 @@ module Ably::Realtime
       #
       attr_reader :attach_serial
 
+      attr_accessor :channel_serial
+
       def initialize(channel)
         @channel = channel
       end
