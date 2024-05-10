@@ -18,7 +18,7 @@ module Ably::Modules
     end
 
     def user_agent
-      "Ably Ruby client #{Ably::VERSION} (https://www.ably.io)"
+      "Ably Ruby client #{Ably::LIB_VERSION} (https://www.ably.io)"
     end
 
     def setup_outgoing_middleware(builder)
