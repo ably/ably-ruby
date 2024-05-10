@@ -54,6 +54,14 @@ module Ably
         end
       end
 
+      def get_channel_serials
+        channel_serials = {}
+        self.each do |channel|
+          channel_serials[channel.name] = channel.properties.channel_serial
+        end
+        channel_serials
+      end
+
     end
   end
 end
