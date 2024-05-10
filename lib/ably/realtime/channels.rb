@@ -46,6 +46,14 @@ module Ably
           @channels.delete(channel)
         end if @channels.has_key?(channel)
       end
+
+      # @param [Hash] serials - map of channel name to respective serial
+      def set_channel_serials(serials)
+        serials.each do |channel_name, channel_serial|
+          channels[channel_name].properties.channel_serial = channel_serial
+        end
+      end
+
     end
   end
 end
