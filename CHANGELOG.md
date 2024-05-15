@@ -1,5 +1,15 @@
 # Change Log
 
+## [v1.2.5](https://github.com/ably/ably-ruby/tree/v1.2.5)
+
+This contains an important fix for a TLS certificate validation bug which prevented the library from being able to use Realtime fallback hosts.
+
+[Full changelog](https://github.com/ably/ably-ruby/compare/v1.2.4...v1.2.5)
+
+**Fixed bugs:**
+
+- Fix server certificate validation for HTTP in Realtime [\#397](https://github.com/ably/ably-ruby/pull/397)
+
 ## [v1.2.4](https://github.com/ably/ably-ruby/tree/v1.2.4)
 
 [Full Changelog](https://github.com/ably/ably-ruby/compare/v1.2.3...v1.2.4)
