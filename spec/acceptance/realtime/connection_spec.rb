@@ -1702,13 +1702,13 @@ describe Ably::Realtime::Connection, :event_machine do
         end
 
         context 'internet up URL protocol' do
-          let(:http_request) { double('EventMachine::HttpRequest', get: EventMachine::DefaultDeferrable.new) }
+          let(:http_request) { double('EventMachine::AblyHttpRequest::HttpRequest', get: EventMachine::DefaultDeferrable.new) }
 
           context 'when using TLS for the connection' do
             let(:client_options) { default_options.merge(tls: true) }
 
             it 'uses TLS for the Internet check to https://internet-up.ably-realtime.com/is-the-internet-up.txt' do
-              expect(EventMachine::HttpRequest).to receive(:new).with('https://internet-up.ably-realtime.com/is-the-internet-up.txt', { tls: { verify_peer: true } }).and_return(http_request)
+              expect(EventMachine::AblyHttpRequest::HttpRequest).to receive(:new).with('https://internet-up.ably-realtime.com/is-the-internet-up.txt', { tls: { verify_peer: true } }).and_return(http_request)
               connection.internet_up?
               stop_reactor
             end
@@ -1718,7 +1718,7 @@ describe Ably::Realtime::Connection, :event_machine do
             let(:client_options) { default_options.merge(tls: false, use_token_auth: true) }
 
             it 'uses TLS for the Internet check to http://internet-up.ably-realtime.com/is-the-internet-up.txt' do
-              expect(EventMachine::HttpRequest).to receive(:new).with('http://internet-up.ably-realtime.com/is-the-internet-up.txt', { tls: { verify_peer: true } }).and_return(http_request)
+              expect(EventMachine::AblyHttpRequest::HttpRequest).to receive(:new).with('http://internet-up.ably-realtime.com/is-the-internet-up.txt', { tls: { verify_peer: true } }).and_return(http_request)
               connection.internet_up?
               stop_reactor
             end
@@ -1732,7 +1732,7 @@ describe Ably::Realtime::Connection, :event_machine do
             let(:client_options) { default_options.merge(tls: true) }
 
             it 'checks the Internet up URL over TLS' do
-              expect(EventMachine::HttpRequest).to receive(:new).with("https:#{Ably::INTERNET_CHECK.fetch(:url)}", { tls: { verify_peer: true } }).and_return(double('request', get: EventMachine::DefaultDeferrable.new))
+              expect(EventMachine::AblyHttpRequest::HttpRequest).to receive(:new).with("https:#{Ably::INTERNET_CHECK.fetch(:url)}", { tls: { verify_peer: true } }).and_return(double('request', get: EventMachine::DefaultDeferrable.new))
               connection.internet_up?
               stop_reactor
             end
@@ -1742,7 +1742,7 @@ describe Ably::Realtime::Connection, :event_machine do
             let(:client_options) { default_options.merge(tls: false, use_token_auth: true) }
 
             it 'checks the Internet up URL over TLS' do
-              expect(EventMachine::HttpRequest).to receive(:new).with("http:#{Ably::INTERNET_CHECK.fetch(:url)}", { tls: { verify_peer: true } }).and_return(double('request', get: EventMachine::DefaultDeferrable.new))
+              expect(EventMachine::AblyHttpRequest::HttpRequest).to receive(:new).with("http:#{Ably::INTERNET_CHECK.fetch(:url)}", { tls: { verify_peer: true } }).and_return(double('request', get: EventMachine::DefaultDeferrable.new))
               connection.internet_up?
               stop_reactor
             end
