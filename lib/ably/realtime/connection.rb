@@ -617,6 +617,10 @@ module Ably
       # #transition_state_machine must be used instead
       private :change_state
 
+      def client_msg_serial=(serial)
+        @client_msg_serial = serial
+      end
+
       private
 
       # The client message serial (msgSerial) is incremented for every message that is published that requires an ACK.

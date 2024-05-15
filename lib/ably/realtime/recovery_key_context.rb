@@ -18,9 +18,16 @@ module Ably
         {'connection_key' => @connection_key, 'msg_serial' => @msg_serial, 'channel_serials' => @channel_serials }.to_json
       end
 
-      def self.from_json(obj)
-        data = JSON.load obj
-        self.new data['connection_key'], data['msg_serial'], data['channel_serials']
+      def self.from_json(obj, logger = nil)
+        begin
+          data = JSON.load obj
+          self.new data['connection_key'], data['msg_serial'], data['channel_serials']
+        rescue => e
+          unless logger.nil?
+            logger.warn "unable to decode recovery key, found error #{e}"
+          end
+          return nil
+        end
       end
 
     end

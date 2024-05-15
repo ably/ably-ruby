@@ -124,15 +124,19 @@ module Ably
         @queue_messages        = rest_client.options.fetch(:queue_messages, true)
         @custom_realtime_host  = rest_client.options[:realtime_host] || rest_client.options[:ws_host]
         @auto_connect          = rest_client.options.fetch(:auto_connect, true)
-        @recover               = rest_client.options[:recover]
-
-        raise ArgumentError, "Recovery key '#{recover}' is invalid" if recover && !recover.match(Connection::RECOVER_REGEX)
+        @recover               = rest_client.options.fetch(:recover, '')
 
         @auth       = Ably::Realtime::Auth.new(self)
         @channels   = Ably::Realtime::Channels.new(self)
         @connection = Ably::Realtime::Connection.new(self, options)
 
-
+        unless @recover.empty? do
+          recovery_context = RecoveryKeyContext.from_json(@recover)
+          unless recovery_context.nil? do
+            @channels.set_channel_serials recovery_context.channel_serials
+            @connection.client_msg_serial = recovery_context.msg_serial
+          end
+        end
       end
 
       # Return a {Ably::Realtime::Channel Realtime Channel} for the given name
