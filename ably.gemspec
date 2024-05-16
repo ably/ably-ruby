@@ -7,7 +7,7 @@ Gem::Specification.new do |spec|
   spec.name          = 'ably'
   spec.version       = Ably::VERSION
   spec.authors       = ['Lewis Marshall', "Matthew O'Riordan"]
-  spec.email         = %w[lewis@lmars.net matt@ably.io]
+  spec.email         = ['lewis@lmars.net', 'matt@ably.io']
   spec.description   = %q{A Ruby client library for ably.io realtime messaging}
   spec.summary       = %q{A Ruby client library for ably.io realtime messaging implemented using EventMachine}
   spec.homepage      = 'http://github.com/ably/ably-ruby'
@@ -19,7 +19,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ['lib']
 
   spec.add_runtime_dependency 'eventmachine', '~> 1.2.6'
-  spec.add_runtime_dependency 'ably-em-http-request', '~> 1.1'
+  spec.add_runtime_dependency 'ably-em-http-request', '~> 1.1.8'
   spec.add_runtime_dependency 'statesman', '~> 9.0'
   spec.add_runtime_dependency 'faraday', '~> 2.2'
   spec.add_runtime_dependency 'faraday-typhoeus', '~> 0.2.0'
