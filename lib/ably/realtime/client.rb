@@ -130,14 +130,13 @@ module Ably
         @channels   = Ably::Realtime::Channels.new(self)
         @connection = Ably::Realtime::Connection.new(self, options)
 
-        unless @recover.empty? do
+        unless @recover.empty?
           recovery_context = RecoveryKeyContext.from_json(@recover)
-          unless recovery_context.nil? do
+          unless recovery_context.nil?
             @channels.set_channel_serials recovery_context.channel_serials
             @connection.client_msg_serial = recovery_context.msg_serial
           end
         end
-      end
 
       # Return a {Ably::Realtime::Channel Realtime Channel} for the given name
       #

@@ -12,10 +12,13 @@ module Ably
         @connection_key = connection_key
         @msg_serial = msg_serial
         @channel_serials = channel_serials
+        if @channel_serials.nil?
+          @channel_serials = {}
+        end
       end
 
       def to_json
-        {'connection_key' => @connection_key, 'msg_serial' => @msg_serial, 'channel_serials' => @channel_serials }.to_json
+        { 'connection_key' => @connection_key, 'msg_serial' => @msg_serial, 'channel_serials' => @channel_serials }.to_json
       end
 
       def self.from_json(obj, logger = nil)
@@ -23,9 +26,7 @@ module Ably
           data = JSON.load obj
           self.new data['connection_key'], data['msg_serial'], data['channel_serials']
         rescue => e
-          unless logger.nil?
-            logger.warn "unable to decode recovery key, found error #{e}"
-          end
+          logger.warn "unable to decode recovery key, found error #{e}" unless logger.nil?
           return nil
         end
       end
