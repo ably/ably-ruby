@@ -26,5 +26,11 @@ describe Ably::Realtime::RecoveryKeyContext do
       expect(decoded_recovery_key.msg_serial).to eq(123)
     end
 
+    it 'should return nil for invalid recovery key' do
+      encoded_recovery_key = "{\"invalid key\"}"
+      decoded_recovery_key = Ably::Realtime::RecoveryKeyContext.from_json(encoded_recovery_key)
+      expect(decoded_recovery_key).to be_nil
+    end
+
   end
 end
