@@ -333,21 +333,29 @@ module Ably
         end
       end
 
-      # The recovery key string can be used by another client to recover this connection's state in the recover client options property. See connection state recover options for more information.
+      # The recovery key string can be used by another client to recover this connection's state in the
+      # recover client options property. See connection state recover options for more information.
       #
       # @spec RTN16b, RTN16c
       #
       # @return [String]
+      # @deprecated Use {#create_recovery_key} instead
       #
       def recovery_key
         create_recovery_key
       end
 
+      # The recovery key string can be used by another client to recover this connection's state in the recover client
+      # options property. See connection state recover options for more information.
+      #
+      # @spec RTN16b, RTN16c
+      #
+      # @return [String]
       def create_recovery_key
         if key.nil? || key.empty? || state == :closing || state == :closed || state == :failed || state == :suspended
           return "";
         end
-        RecoveryKeyContext.to_json(key, message_serial, client.channels.get_channel_serials)
+        Ably::Modules::RecoveryKeyContext.to_json(key, message_serial, client.channels.get_channel_serials)
       end
 
       # Following a new connection being made, the connection ID, connection key
