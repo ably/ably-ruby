@@ -340,7 +340,14 @@ module Ably
       # @return [String]
       #
       def recovery_key
-        "#{key}:#{serial}:#{message_serial}" if connection_resumable?
+        create_recovery_key
+      end
+
+      def create_recovery_key
+        if key.nil? || key.empty? || state == :closing || state == :closed || state == :failed || state == :suspended
+          return "";
+        end
+        RecoveryKeyContext.to_json(key, message_serial, client.channels.get_channel_serials)
       end
 
       # Following a new connection being made, the connection ID, connection key
