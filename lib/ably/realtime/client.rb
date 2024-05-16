@@ -137,6 +137,7 @@ module Ably
             @connection.client_msg_serial = recovery_context.msg_serial
           end
         end
+      end
 
       # Return a {Ably::Realtime::Channel Realtime Channel} for the given name
       #
