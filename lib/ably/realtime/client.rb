@@ -134,7 +134,7 @@ module Ably
           recovery_context = RecoveryKeyContext.from_json(@recover)
           unless recovery_context.nil?
             @channels.set_channel_serials recovery_context.channel_serials
-            @connection.client_msg_serial = recovery_context.msg_serial  # RTN16f
+            @connection.message_serial = recovery_context.msg_serial  # RTN16f
           end
         end
       end
@@ -306,13 +306,6 @@ module Ably
       # (see Ably::Rest::Client#logger)
       def logger
         @logger ||= Ably::Logger.new(self, log_level, rest_client.logger.custom_logger)
-      end
-
-      # Disable connection recovery, typically used after a connection has been recovered
-      # @return [void]
-      # @api private
-      def disable_automatic_connection_recovery
-        @recover = nil
       end
 
       # @!attribute [r] fallback_endpoint

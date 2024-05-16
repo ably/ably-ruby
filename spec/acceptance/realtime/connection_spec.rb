@@ -744,58 +744,6 @@ describe Ably::Realtime::Connection, :event_machine do
       end
     end
 
-    describe '#serial connection serial' do
-      let(:channel) { client.channel(random_str) }
-
-      it 'is set to -1 when a new connection is opened' do
-        connection.connect do
-          expect(connection.serial).to eql(-1)
-          stop_reactor
-        end
-      end
-
-      context 'when a message is sent but the ACK has not yet been received' do
-        it 'the sent message msgSerial is 0 but the connection serial remains at -1' do
-          channel.attach do
-            connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
-              if protocol_message.action == :message
-                connection.__outgoing_protocol_msgbus__.unsubscribe
-                expect(protocol_message['msgSerial']).to eql(0)
-                expect(connection.serial).to eql(-1)
-                stop_reactor
-              end
-            end
-            channel.publish('event', 'data')
-          end
-        end
-      end
-
-      it 'is set to 0 when a message is received back' do
-        channel.publish('event', 'data')
-        channel.subscribe do
-          expect(connection.serial).to eql(0)
-          stop_reactor
-        end
-      end
-
-      it 'is set to 1 when the second message is received' do
-        channel.attach do
-          messages = []
-          channel.subscribe do |message|
-            messages << message
-            if messages.length == 2
-              expect(connection.serial).to eql(1)
-              stop_reactor
-            end
-          end
-
-          channel.publish('event', 'data') do
-            channel.publish('event', 'data')
-          end
-        end
-      end
-    end
-
     describe '#msgSerial' do
       context 'when messages are queued for publish before a connection is established' do
         let(:batches) { 6 }
@@ -922,7 +870,6 @@ describe Ably::Realtime::Connection, :event_machine do
             let(:protocol_message_attributes) do
               {
                 action: Ably::Models::ProtocolMessage::ACTION.Connected.to_i,
-                connection_serial: 55,
                 connection_details: {
                   max_idle_interval: 2 * 1000
                 }
@@ -1232,7 +1179,6 @@ describe Ably::Realtime::Connection, :event_machine do
           let(:protocol_message_attributes) do
             {
               action: Ably::Models::ProtocolMessage::ACTION.Connected.to_i,
-              connection_serial: 55,
               connection_details: {
                 max_idle_interval: 2 * 1000
               }
@@ -1403,34 +1349,6 @@ describe Ably::Realtime::Connection, :event_machine do
         let(:states)           { Hash.new }
         let(:channel)          { client.channel(random_str) }
 
-        it 'is composed of connection key and serial that is kept up to date with each message ACK received' do
-          connection.on(:connected) do
-            expected_serial = -1
-            expect(connection.key).to_not be_nil
-            expect(connection.serial).to eql(expected_serial)
-
-            channel.attach do
-              channel.publish('event', 'data')
-              channel.subscribe do
-                channel.unsubscribe
-
-                expected_serial += 1 # attach message received
-                expect(connection.serial).to eql(expected_serial)
-
-                channel.publish('event', 'data')
-                channel.subscribe do
-                  channel.unsubscribe
-                  expected_serial += 1 # attach message received
-                  expect(connection.serial).to eql(expected_serial)
-
-                  expect(connection.recovery_key).to eql("#{connection.key}:#{connection.serial}:#{connection.send(:client_msg_serial)}")
-                  stop_reactor
-                end
-              end
-            end
-          end
-        end
-
         it "is available when connection is in one of the states: #{available_states.join(', ')}" do
           connection.once(:connected) do
             allow(client).to receive(:endpoint).and_return(
@@ -1542,11 +1460,11 @@ describe Ably::Realtime::Connection, :event_machine do
               msg_serial, recovery_key, connection_id = nil, nil, nil
 
               channel.attach do
-                expect(connection.send(:client_msg_serial)).to eql(-1) # no messages published yet
+                expect(connection.send(:message_serial)).to eql(-1) # no messages published yet
                 connection_id = client.connection.id
                 connection.transport.__incoming_protocol_msgbus__
                 channel.publish('event', 'message') do
-                  msg_serial = connection.send(:client_msg_serial)
+                  msg_serial = connection.send(:message_serial)
                   expect(msg_serial).to eql(0)
                   recovery_key = client.connection.recovery_key
                   connection.transition_state_machine! :failed
@@ -1558,7 +1476,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 recover_client_channel = recover_client.channel(channel_name)
                 recover_client_channel.attach do
                   expect(recover_client.connection.id).to eql(connection_id)
-                  expect(recover_client.connection.send(:client_msg_serial)).to eql(msg_serial)
+                  expect(recover_client.connection.send(:message_serial)).to eql(msg_serial)
                   stop_reactor
                 end
               end
@@ -1572,12 +1490,12 @@ describe Ably::Realtime::Connection, :event_machine do
               msg_serial, recovery_key, connection_id = nil, nil, nil
 
               channel.attach do
-                expect(connection.send(:client_msg_serial)).to eql(-1) # no messages published yet
+                expect(connection.send(:message_serial)).to eql(-1) # no messages published yet
                 connection_id = client.connection.id
                 connection.transport.__incoming_protocol_msgbus__
                 channel.subscribe('event') do |message|
                   expect(message.data).to eql('message-1')
-                  msg_serial = connection.send(:client_msg_serial)
+                  msg_serial = connection.send(:message_serial)
                   expect(msg_serial).to eql(0)
                   recovery_key = client.connection.recovery_key
                   connection.transition_state_machine! :failed
@@ -1588,11 +1506,11 @@ describe Ably::Realtime::Connection, :event_machine do
               connection.on(:failed) do
                 recover_client = auto_close Ably::Realtime::Client.new(default_options.merge(recover: recovery_key))
                 recover_client_channel = recover_client.channel(channel_name)
-                expect(recover_client.connection.send(:client_msg_serial)).to eql(msg_serial)
+                expect(recover_client.connection.send(:message_serial)).to eql(msg_serial)
 
                 recover_client.connection.once(:connecting) do
                   recover_client_channel.publish('event', 'message-2')
-                  expect(recover_client.connection.send(:client_msg_serial)).to eql(msg_serial + 1)
+                  expect(recover_client.connection.send(:message_serial)).to eql(msg_serial + 1)
                 end
 
                 recover_client_channel.attach do
@@ -2001,7 +1919,6 @@ describe Ably::Realtime::Connection, :event_machine do
           let(:protocol_message_attributes) do
             {
               action: Ably::Models::ProtocolMessage::ACTION.Connected.to_i,
-              connection_serial: 55,
               connection_details: {
                 client_id: 'bob',
                 connection_key: connection_key,
@@ -2037,7 +1954,6 @@ describe Ably::Realtime::Connection, :event_machine do
               connection.once(:update) do |connection_state_change|
                 expect(client.auth.client_id).to eql('bob')
                 expect(connection.key).to eql(connection_key)
-                expect(connection.serial).to eql(55)
                 expect(connection.connection_state_ttl).to eql(33)
 
                 expect(connection.details.client_id).to eql('bob')
@@ -2060,7 +1976,6 @@ describe Ably::Realtime::Connection, :event_machine do
           let(:protocol_message_attributes) do
             {
               action: Ably::Models::ProtocolMessage::ACTION.Connected.to_i,
-              connection_serial: 22,
               error: { code: 50000, message: 'Internal failure' },
             }
           end
