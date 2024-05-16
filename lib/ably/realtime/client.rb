@@ -134,7 +134,7 @@ module Ably
           recovery_context = RecoveryKeyContext.from_json(@recover)
           unless recovery_context.nil?
             @channels.set_channel_serials recovery_context.channel_serials
-            @connection.client_msg_serial = recovery_context.msg_serial
+            @connection.client_msg_serial = recovery_context.msg_serial  # RTN16f
           end
         end
       end
