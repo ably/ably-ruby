@@ -483,11 +483,11 @@ module Ably
                 url_params.merge! resume: key
                 logger.debug { "Resuming connection with key #{key}" }
               elsif not (client.recover.nil? || client.recover.empty?)
-                recovery_context = RecoveryKeyContext.from_json client.recover
+                recovery_context = RecoveryKeyContext.from_json(client.recover, logger)
                 unless recovery_context.nil?
                   key = recovery_context.connection_key
                   logger.debug { "Recovering connection with key #{key}" }
-                  url_params.merge! resume: key
+                  url_params.merge! recover: key
                 end
               end
 

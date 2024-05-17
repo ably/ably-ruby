@@ -131,7 +131,7 @@ module Ably
         @connection = Ably::Realtime::Connection.new(self, options)
 
         unless @recover.empty?
-          recovery_context = RecoveryKeyContext.from_json(@recover)
+          recovery_context = RecoveryKeyContext.from_json(@recover, logger)
           unless recovery_context.nil?
             @channels.set_channel_serials recovery_context.channel_serials
             @connection.message_serial = recovery_context.msg_serial  # RTN16f
