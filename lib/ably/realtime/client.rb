@@ -62,7 +62,7 @@ module Ably
 
       # When a recover option is specified a connection inherits the state of a previous connection that may have existed under a different instance of the Realtime library, please refer to the API documentation for further information on connection state recovery
       # @return [String,Nil]
-      attr_reader :recover
+      attr_accessor :recover
 
       # Additional parameters to be sent in the querystring when initiating a realtime connection
       # @return [Hash]

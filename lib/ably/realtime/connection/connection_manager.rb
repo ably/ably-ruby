@@ -111,6 +111,14 @@ module Ably::Realtime
         # Update the connection details and any associated defaults
         connection.set_connection_details protocol_message.connection_details
 
+        is_connection_resume_or_recover_attempt = !connection.key.nil? || !client.recover.nil?
+        # RTN15c7, RTN16d
+        failed_resume_or_recover = !protocol_message.connection_id == connection.id && !protocol_message.error.nil?
+        if is_connection_resume_or_recover_attempt and failed_resume_or_recover # RTN15c7
+          connection.message_serial = 0
+        end
+        client.recover = nil # RTN16k, explicitly setting null, so it won't be used for subsequent connection requests
+
         if connection.key
           if protocol_message.connection_id == connection.id
             logger.debug { "ConnectionManager: Connection resumed successfully - ID #{connection.id} and key #{connection.key}" }
