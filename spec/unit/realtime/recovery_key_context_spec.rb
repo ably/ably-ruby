@@ -5,7 +5,7 @@ describe Ably::Realtime::RecoveryKeyContext do
 
   context 'connection recovery key' do
 
-    it 'should encode recovery key' do
+    it 'should encode recovery key - RTN16i, RTN16f, RTN16j' do
       connection_key = 'key'
       msg_serial = 123
       channel_serials = {
@@ -18,7 +18,7 @@ describe Ably::Realtime::RecoveryKeyContext do
                                                 "\"channel_serials\":{\"channel1\":\"serial1\",\"channel2\":\"serial2\"}}"
     end
 
-    it 'should decode recovery key' do
+    it 'should decode recovery key - RTN16i, RTN16f, RTN16j' do
       encoded_recovery_key = "{\"connection_key\":\"key\",\"msg_serial\":123," <<
                                      "\"channel_serials\":{\"channel1\":\"serial1\",\"channel2\":\"serial2\"}}"
       decoded_recovery_key = Ably::Realtime::RecoveryKeyContext.from_json(encoded_recovery_key)
@@ -26,7 +26,7 @@ describe Ably::Realtime::RecoveryKeyContext do
       expect(decoded_recovery_key.msg_serial).to eq(123)
     end
 
-    it 'should return nil for invalid recovery key' do
+    it 'should return nil for invalid recovery key - RTN16i, RTN16f, RTN16j' do
       encoded_recovery_key = "{\"invalid key\"}"
       decoded_recovery_key = Ably::Realtime::RecoveryKeyContext.from_json(encoded_recovery_key)
       expect(decoded_recovery_key).to be_nil
