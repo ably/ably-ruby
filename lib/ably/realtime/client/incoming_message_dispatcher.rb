@@ -38,7 +38,7 @@ module Ably::Realtime
 
       def dispatch_protocol_message(*args)
         protocol_message = args.first
-
+        # RTL15b
         unless protocol_message.nil?
           if protocol_message.has_message_serial? &&
                   (
@@ -46,6 +46,9 @@ module Ably::Realtime
                     protocol_message.action == :presence ||
                     protocol_message.action == :attached
                   )
+
+            logger.info "Setting channel serial for #{channel.name}"
+            logger.info "Previous serial #{channel.name}, new serial #{protocol_message.channel_serial}"
             get_channel(protocol_message.channel).tap do |channel|
               channel.properties.channel_serial = protocol_message.channel_serial
             end
