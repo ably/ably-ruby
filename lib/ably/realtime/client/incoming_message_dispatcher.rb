@@ -39,6 +39,19 @@ module Ably::Realtime
       def dispatch_protocol_message(*args)
         protocol_message = args.first
 
+        unless protocol_message.nil?
+          if protocol_message.has_message_serial? &&
+                  (
+                    protocol_message.action == :message ||
+                    protocol_message.action == :presence ||
+                    protocol_message.action == :attached
+                  )
+            get_channel(protocol_message.channel).tap do |channel|
+              channel.properties.channel_serial = protocol_message.channel_serial
+            end
+          end
+        end
+
         unless protocol_message.kind_of?(Ably::Models::ProtocolMessage)
           raise ArgumentError, "Expected a ProtocolMessage. Received #{protocol_message}"
         end
