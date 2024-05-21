@@ -18,6 +18,13 @@ module Ably::Realtime
       #
       attr_reader :attach_serial
 
+      # ChannelSerial contains the channelSerial from latest ProtocolMessage of action type
+      # Message/PresenceMessage received on the channel.
+      #
+      # @spec CP2b, RTL15b
+      #
+      # @return [String]
+      #
       attr_accessor :channel_serial
 
       def initialize(channel)
