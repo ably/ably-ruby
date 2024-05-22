@@ -209,7 +209,7 @@ module Ably::Realtime
           message_options[:flags] = message_options[:flags].to_i | Ably::Models::ProtocolMessage::ATTACH_FLAGS_MAPPING[:resume]
         end
 
-        message_options[:channelSerial] = channel.properties.channel_serial
+        message_options[:channelSerial] = channel.properties.channel_serial # RTL4c1
         send_state_change_protocol_message Ably::Models::ProtocolMessage::ACTION.Attach, :suspended, message_options
       end
 

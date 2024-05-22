@@ -465,7 +465,7 @@ module Ably
               url_params = auth_params.merge(
                 'format' =>     client.protocol,
                 'echo' =>       client.echo_messages,
-                'v' =>          Ably::PROTOCOL_VERSION,
+                'v' =>          Ably::PROTOCOL_VERSION, # RSC7a
                 'agent' =>      client.rest_client.agent
               )
 
