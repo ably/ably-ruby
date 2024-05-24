@@ -213,6 +213,7 @@ module Ably::Realtime
           update_members_and_emit_events presence_message
         end
 
+        # RTP5a
         channel.unsafe_on(:failed, :detached) do
           reset_members
           reset_local_members
