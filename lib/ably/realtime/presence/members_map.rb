@@ -23,7 +23,7 @@ module Ably::Realtime
         :sync_starting, # Indicates the client is waiting for SYNC ProtocolMessages from Ably
         :sync_none, # Indicates the ATTACHED ProtocolMessage had no presence flag and thus no members on the channel
         :finalizing_sync,
-        :in_sync,
+        :sync_complete, # Indicates completion of server initiated sync
         :failed
       )
       include Ably::Modules::StateEmitter
@@ -47,16 +47,6 @@ module Ably::Realtime
         @sync_session_id = -1
 
         setup_event_handlers
-      end
-
-      # When attaching to a channel that has members present, the server
-      # initiates a sync automatically so that the client has a complete list of members.
-      #
-      # Until this sync is complete, this method returns false
-      #
-      # @return [Boolean]
-      def sync_complete?
-        in_sync?
       end
 
       # Update the SYNC serial from the ProtocolMessage so that SYNC can be resumed.
@@ -110,27 +100,27 @@ module Ably::Realtime
           # Must be defined before subsequent procs reference this callback
           reset_callbacks = nil
 
-          in_sync_callback = lambda do
+          sync_complete_callback = lambda do
             reset_callbacks.call if reset_callbacks
             result_block.call
           end
 
-          failed_callback = lambda do |error|
+          sync_failed_callback = lambda do |error|
             reset_callbacks.call if reset_callbacks
             deferrable.fail error
           end
 
           reset_callbacks = lambda do
-            off(&in_sync_callback)
-            off(&failed_callback)
-            channel.off(&failed_callback)
+            off(&sync_complete_callback)
+            off(&sync_failed_callback)
+            channel.off(&sync_failed_callback)
           end
 
-          unsafe_once(:in_sync, &in_sync_callback)
-          unsafe_once(:failed, &failed_callback)
+          unsafe_once(:sync_complete, &sync_complete_callback)
+          unsafe_once(:failed, &sync_failed_callback)
 
           channel.unsafe_once(:detaching, :detached, :failed) do |error_reason|
-            failed_callback.call error_reason
+            sync_failed_callback.call error_reason
           end
         end
 
@@ -228,7 +218,7 @@ module Ably::Realtime
             connection.on_resume(&resume_sync_proc)
           end
 
-          unsafe_once(:in_sync, :failed) do
+          unsafe_once(:sync_complete, :failed) do
             connection.off_resume(&resume_sync_proc)
           end
         end
@@ -241,11 +231,11 @@ module Ably::Realtime
 
         unsafe_on(:finalizing_sync) do
           clean_up_absent_members
-          clean_up_members_not_present_in_sync
-          change_state :in_sync
+          clean_up_members_not_present_after_sync
+          change_state :sync_complete
         end
 
-        unsafe_on(:in_sync) do
+        unsafe_on(:sync_complete) do
           update_local_member_state
         end
       end
@@ -376,7 +366,7 @@ module Ably::Realtime
       def remove_presence_member(presence_message)
         logger.debug { "#{self.class.name}: Member '#{presence_message.member_key}' removed.\n#{presence_message.to_json}" }
 
-        if in_sync?
+        if sync_complete?
           member_set_delete presence_message
         else
           member_set_upsert presence_message, false
@@ -402,7 +392,7 @@ module Ably::Realtime
 
       def member_set_delete(presence_message)
         members.delete presence_message.member_key
-        if in_sync?
+        if sync_complete?
           # If not in SYNC, then local members missing may need to be re-entered
           # Let #update_local_member_state handle missing members
           local_members.delete presence_message.member_key
@@ -432,7 +422,7 @@ module Ably::Realtime
         end
       end
 
-      def clean_up_members_not_present_in_sync
+      def clean_up_members_not_present_after_sync
         members.select do |member_key, member|
           member.fetch(:sync_session_id) != sync_session_id
         end.each do |member_key, member|
