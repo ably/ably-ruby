@@ -243,15 +243,15 @@ module Ably::Realtime
       # Listen for events that change the PresenceMap state and thus
       # need to be replicated to the local member set
       def update_local_member_state
-        new_local_members = members.select do |member_key, member|
+        new_local_members = members.select do |_, member|
           member.fetch(:message).connection_id == connection.id
-        end.each_with_object({}) do |(member_key, member), hash_object|
-          hash_object[member_key] = member.fetch(:message)
+        end.each_with_object({}) do |(_, member), hash_object|
+          hash_object[member.fetch(:client_id)] = member.fetch(:message)
         end
 
-        @local_members.reject do |member_key, message|
+        @local_members.reject do |member_key, _|
           new_local_members.keys.include?(member_key)
-        end.each do |member_key, message|
+        end.values.each do |message|
           re_enter_local_member_missing_from_presence_map message
         end
 
