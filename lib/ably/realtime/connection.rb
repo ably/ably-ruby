@@ -55,14 +55,14 @@ module Ably
       # @return [Ably::Realtime::Connection::STATE]
       #
       STATE = ruby_enum('STATE',
-                        :initialized,
-                        :connecting,
-                        :connected,
-                        :disconnected,
-                        :suspended,
-                        :closing,
-                        :closed,
-                        :failed
+        :initialized,
+        :connecting,
+        :connected,
+        :disconnected,
+        :suspended,
+        :closing,
+        :closed,
+        :failed
       )
 
       # Describes the events emitted by a {Ably::Realtime::Connection} object. An event is either an UPDATE or a {Ably::Realtime::Connection::STATE}.
@@ -70,7 +70,7 @@ module Ably
       # UPDATE	RTN4h	An event for changes to connection conditions for which the {Ably::Realtime::Connection::STATE} does not change.
       #
       EVENT = ruby_enum('EVENT',
-                        STATE.to_sym_arr + [:update]
+        STATE.to_sym_arr + [:update]
       )
 
       include Ably::Modules::StateEmitter
@@ -407,10 +407,10 @@ module Ably
         if should_use_fallback_hosts?
           internet_up? do |internet_is_up_result|
             @current_host = if internet_is_up_result
-                              client.fallback_endpoint.host
-                            else
-                              client.endpoint.host
-                            end
+              client.fallback_endpoint.host
+            else
+              client.endpoint.host
+            end
             yield current_host
           end
         else
@@ -478,10 +478,10 @@ module Ably
 
               # Use native websocket heartbeats if possible, but allow Ably protocol heartbeats
               url_params['heartbeats'] = if defaults.fetch(:websocket_heartbeats_disabled)
-                                           'true'
-                                         else
-                                           'false'
-                                         end
+                'true'
+              else
+                'false'
+              end
 
               url_params['clientId'] = client.auth.client_id if client.auth.has_client_id?
               url_params.merge!(client.transport_params)
