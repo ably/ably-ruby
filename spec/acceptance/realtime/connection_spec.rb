@@ -116,7 +116,7 @@ describe Ably::Realtime::Connection, :event_machine do
                     if disconnected_times == 3
                       expect(connected_times).to eql(3)
                       expect((Time.now.to_f - started_at) + clock_skew).to be > ttl * 3
-                      expect((Time.now.to_f - started_at) + clock_skew).to be < (ttl * 2) * 3
+                      expect((Time.now.to_f - started_at) - clock_skew).to be < (ttl * 2) * 3
                       stop_reactor
                     end
                   end
@@ -154,8 +154,8 @@ describe Ably::Realtime::Connection, :event_machine do
                     first_disconnected_at = nil
                     connection.on(:disconnected) do |connection_state_change|
                       first_disconnected_at ||= begin
-                                                  Time.now.to_f
-                                                end
+                        Time.now.to_f
+                      end
                       expect(connection_state_change.reason.code).to eql(40142) # token expired
                       if disconnect_count == 4 # 3 attempts to reconnect after initial
                         # First disconnect reattempts immediately as part of connect sequence
@@ -182,9 +182,9 @@ describe Ably::Realtime::Connection, :event_machine do
                   it 'uses the primary host for subsequent connection and auth requests' do
                     connection.once(:disconnected) do
                       expect(client.rest_client.connection).to receive(:post).
-                        with(/requestToken$/, anything).
-                        exactly(:twice). # it retries an expired token request immediately
-                      and_call_original
+                                                                 with(/requestToken$/, anything).
+                                                                 exactly(:twice). # it retries an expired token request immediately
+                                                                 and_call_original
 
                       expect(client.rest_client).to_not receive(:fallback_connection)
                       expect(client).to_not receive(:fallback_endpoint)
@@ -2110,12 +2110,12 @@ describe Ably::Realtime::Connection, :event_machine do
 
       it 'pases transport_params to query' do
         expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
-          uri = URI.parse(url)
-          expect(CGI::parse(uri.query)['extra_param'][0]).to eq('extra_param')
-          stop_reactor
-        end
+            uri = URI.parse(url)
+            expect(CGI::parse(uri.query)['extra_param'][0]).to eq('extra_param')
+            stop_reactor
+          end
 
-        client
+          client
       end
 
       context 'when changing default param' do
