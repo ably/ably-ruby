@@ -72,11 +72,11 @@ describe Ably::Util::Crypto do
     end
   end
 
-  context 'encrypts & decrypt' do
+  context '#encrypt & #decrypt' do
     let(:string) { random_str }
     let(:empty_string) { '' }
 
-    specify '#encrypts and decrypts a string' do
+    specify 'encrypts and decrypts a non-empty string' do
       expect(string).to be_ascii_only
       encrypted = subject.encrypt(string)
       expect(encrypted).to be_truthy
@@ -85,7 +85,7 @@ describe Ably::Util::Crypto do
       expect(decrypted).to be_ascii_only
     end
 
-    specify '#encrypts and decrypts an empty string' do
+    specify 'encrypts and decrypts an empty string' do
       expect(empty_string).to be_ascii_only
       encrypted = subject.encrypt(empty_string)
       expect(encrypted).to be_truthy
@@ -93,7 +93,6 @@ describe Ably::Util::Crypto do
       expect(decrypted).to eql(empty_string)
       expect(decrypted).to be_ascii_only
     end
-
   end
 
   context 'using shared client lib fixture data' do
