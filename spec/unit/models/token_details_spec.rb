@@ -91,6 +91,7 @@ describe Ably::Models::TokenDetails do
           expect(subject.expired?(from: (Time.now - server_offset_time))).to eql(false)
         end
 
+        # Test is flaky and fails on CI, so adding a bit of extra tolerance (clock_skew) to make it work
         it 'is true' do
           expect(subject.expired?(from: Time.now + clock_skew)).to eql(true)
         end
