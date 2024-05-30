@@ -332,6 +332,7 @@ module Ably
       # @return [Ably::Util::SafeDeferrable]
       #
       def history(options = {}, &callback)
+        # RTL10b
         if options.delete(:until_attach)
           unless attached?
             error = Ably::Exceptions::InvalidRequest.new('option :until_attach is invalid as the channel is not attached' )

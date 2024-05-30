@@ -72,26 +72,26 @@ describe Ably::Util::Crypto do
     end
   end
 
-  context 'encrypts & decrypt' do
+  context '#encrypt & #decrypt' do
     let(:string) { random_str }
-    let(:byte_array) { random_str.to_msgpack.unpack('C*') }
-
-    specify '#encrypt encrypts a string' do
-      encrypted = subject.encrypt(string)
-      expect(subject.decrypt(encrypted)).to eql(string)
-    end
-
-    specify '#decrypt decrypts a string' do
-      encrypted = subject.encrypt(string)
-      expect(subject.decrypt(encrypted)).to eql(string)
-    end
-  end
-
-  context 'encrypting an empty string' do
     let(:empty_string) { '' }
 
-    it 'raises an ArgumentError' do
-      expect { subject.encrypt(empty_string) }.to raise_error ArgumentError, /data must not be empty/
+    specify 'encrypts and decrypts a non-empty string' do
+      expect(string).to be_ascii_only
+      encrypted = subject.encrypt(string)
+      expect(encrypted).to be_truthy
+      decrypted = subject.decrypt(encrypted)
+      expect(decrypted).to eql(string)
+      expect(decrypted).to be_ascii_only
+    end
+
+    specify 'encrypts and decrypts an empty string' do
+      expect(empty_string).to be_ascii_only
+      encrypted = subject.encrypt(empty_string)
+      expect(encrypted).to be_truthy
+      decrypted = subject.decrypt(encrypted)
+      expect(decrypted).to eql(empty_string)
+      expect(decrypted).to be_ascii_only
     end
   end
 

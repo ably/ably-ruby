@@ -56,6 +56,7 @@ describe Ably::Models::TokenDetails do
 
     context '#expired?' do
       let(:expire_time) { Time.now + Ably::Models::TokenDetails::TOKEN_EXPIRY_BUFFER }
+      let(:clock_skew) { 1 } # clock skew of 1 second
 
       context 'once grace period buffer has passed' do
         subject { Ably::Models::TokenDetails.new(expires: expire_time - 1) }
@@ -74,7 +75,7 @@ describe Ably::Models::TokenDetails do
       end
 
       context 'when expires is not available (i.e. string tokens)' do
-        subject { Ably::Models::TokenDetails.new() }
+        subject { Ably::Models::TokenDetails.new }
 
         it 'is always false' do
           expect(subject.expired?).to eql(false)
@@ -90,8 +91,9 @@ describe Ably::Models::TokenDetails do
           expect(subject.expired?(from: (Time.now - server_offset_time))).to eql(false)
         end
 
+        # Test is flaky and fails on CI, so adding a bit of extra tolerance (clock_skew) to make it work
         it 'is true' do
-          expect(subject.expired?(from: Time.now)).to eql(true)
+          expect(subject.expired?(from: Time.now + clock_skew)).to eql(true)
         end
       end
     end

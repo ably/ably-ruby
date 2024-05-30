@@ -83,8 +83,8 @@ module Ably::Util
       cipher.key = key
       iv = encrypt_options[:iv] || fixed_iv || cipher.random_iv
       cipher.iv = iv
-
-      iv << cipher.update(payload) << cipher.final
+      iv << cipher.update(payload) unless payload.empty?
+      iv << cipher.final
     end
 
     # Decrypt payload using configured Cipher
