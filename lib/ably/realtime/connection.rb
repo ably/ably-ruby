@@ -342,20 +342,20 @@ module Ably
       # @deprecated Use {#create_recovery_key} instead
       #
       def recovery_key
-        logger.warn "recovery_key method is deprecated, use create_recovery_key method instead"
+        logger.warn "[DEPRECATION] recovery_key is deprecated, use create_recovery_key method instead"
         create_recovery_key
       end
 
       # The recovery key string can be used by another client to recover this connection's state in the recover client
       # options property. See connection state recover options for more information.
       #
-      # @spec RTN16g
+      # @spec RTN16g, RTN16c
       #
       # @return [String] a json string which incorporates the @connectionKey@, the current @msgSerial@ and collection
       # of pairs of channel @name@ and current @channelSerial@ for every currently attached channel
       def create_recovery_key
         if key.nil? || key.empty? || state == :closing || state == :closed || state == :failed || state == :suspended
-          return "" #RTN16h
+          return "" #RTN16g2
         end
         Ably::Modules::RecoveryKeyContext.to_json(key, message_serial, client.channels.get_channel_serials)
       end
@@ -479,10 +479,10 @@ module Ably
               url_params['clientId'] = client.auth.client_id if client.auth.has_client_id?
               url_params.merge!(client.transport_params)
 
-              if not (key.nil? || key.empty?)
+              if not (key.nil? || key.empty?) # RTN15b1
                 url_params.merge! resume: key
                 logger.debug { "Resuming connection with key #{key}" }
-              elsif not (client.recover.nil? || client.recover.empty?)
+              elsif not (client.recover.nil? || client.recover.empty?) # RTN16k
                 recovery_context = RecoveryKeyContext.from_json(client.recover, logger)
                 unless recovery_context.nil?
                   key = recovery_context.connection_key
