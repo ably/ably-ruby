@@ -57,7 +57,7 @@ module Ably
       def get_channel_serials
         channel_serials = {}
         self.each do |channel|
-          channel_serials[channel.name] = channel.properties.channel_serial
+          channel_serials[channel.name] = channel.properties.channel_serial if channel.state == :attached
         end
         channel_serials
       end
