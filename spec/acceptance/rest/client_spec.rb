@@ -1095,9 +1095,16 @@ describe Ably::Rest::Client do
           end
 
           it 'sends a protocol version and lib version header (#G4, #RSC7a, #RSC7b)' do
-            client.channels.get('foo').publish("event")
+            response = client.channels.get('foo').publish("event")
+            expect(response).to eql true
             expect(publish_message_stub).to have_been_requested
-            expect(Ably::PROTOCOL_VERSION).to eql('1.2')
+            if agent.nil?
+              expect(publish_message_stub.to_s).to include("'Ably-Agent'=>'#{Ably::AGENT}'")
+              expect(publish_message_stub.to_s).to include("'X-Ably-Version'=>'2'")
+            else
+              expect(publish_message_stub.to_s).to include("'Ably-Agent'=>'ably-ruby/1.1.1 ruby/3.1.1'")
+              expect(publish_message_stub.to_s).to include("'X-Ably-Version'=>'2'")
+            end
           end
         end
       end
