@@ -133,9 +133,7 @@ module Ably::Models
 
     # @api private
     def has_message_serial?
-      message_serial && true
-    rescue TypeError
-      false
+      not Ably::Util::String::is_null_or_empty(message_serial)
     end
 
     # @api private

@@ -465,7 +465,7 @@ module Ably
               url_params = auth_params.merge(
                 'format' =>     client.protocol,
                 'echo' =>       client.echo_messages,
-                'v' =>          Ably::PROTOCOL_VERSION,
+                'v' =>          Ably::PROTOCOL_VERSION, # RSC7a
                 'agent' =>      client.rest_client.agent
               )
 
@@ -479,10 +479,10 @@ module Ably
               url_params['clientId'] = client.auth.client_id if client.auth.has_client_id?
               url_params.merge!(client.transport_params)
 
-              if not (key.nil? || key.empty?) # RTN15b1
+              if not Ably::Util::String.is_null_or_empty(key)
                 url_params.merge! resume: key
                 logger.debug { "Resuming connection with key #{key}" }
-              elsif not (client.recover.nil? || client.recover.empty?) # RTN16k
+              elsif not Ably::Util::String.is_null_or_empty(client.recover)
                 recovery_context = RecoveryKeyContext.from_json(client.recover, logger)
                 unless recovery_context.nil?
                   key = recovery_context.connection_key
