@@ -77,9 +77,6 @@ module Ably
       include Ably::Modules::UsesStateMachine
       ensure_state_machine_emits 'Ably::Models::ConnectionStateChange'
 
-      # Expected format for a connection recover key
-      RECOVER_REGEX = /^(?<recover>[^:]+):(?<connection_serial>[^:]+):(?<msg_serial>\-?\d+)$/
-
       # Defaults for automatic connection recovery and timeouts
       DEFAULTS = {
         channel_retry_timeout:      15, # when a channel becomes SUSPENDED, after this delay in seconds, the channel will automatically attempt to reattach if the connection is CONNECTED
@@ -112,16 +109,6 @@ module Ably
       # @return [String]
       #
       attr_reader :key
-
-      # The serial number of the last message to be received on this connection, used automatically by the library when
-      # recovering or resuming a connection. When recovering a connection explicitly, the recoveryKey is used in
-      # the recover client options as it contains both the key and the last message serial.
-      #
-      # @spec RTN10
-      #
-      # @return [Integer]
-      #
-      attr_reader :serial
 
       # An {Ably::Models::ErrorInfo} object describing the last error received if a connection failure occurs.
       #
@@ -176,17 +163,6 @@ module Ably
           @defaults[key] = val if DEFAULTS.has_key?(key)
         end if options.kind_of?(Hash)
         @defaults.freeze
-
-        # If a recover client options is provided, then we need to ensure that the msgSerial matches the
-        # recover serial immediately at client library instantiation. This is done immediately so that any queued
-        # publishes use the correct serial number for these queued messages as well.
-        # There is no harm if the msgSerial is higher than expected if the recover fails.
-        recovery_msg_serial = connection_recover_parts && connection_recover_parts[:msg_serial].to_i
-        if recovery_msg_serial
-          @client_msg_serial = recovery_msg_serial
-        else
-          reset_client_msg_serial
-        end
 
         Client::IncomingMessageDispatcher.new client, self
         Client::OutgoingMessageDispatcher.new client, self
@@ -362,7 +338,7 @@ module Ably
       #
       # @return [void]
       # @api private
-      def configure_new(connection_id, connection_key, connection_serial)
+      def configure_new(connection_id, connection_key)
         @id            = connection_id
         @key           = connection_key
       end
@@ -480,7 +456,7 @@ module Ably
               if connection_resumable?
                 puts "this is already implemented as per spec"
               elsif connection_recoverable?
-                url_params.merge! recover: connection_recover_parts[:recover], connectionSerial: connection_recover_parts[:connection_serial]
+                puts "this is already implemented as per spec"
                 logger.debug { "Recovering connection with key #{client.recover}" }
                 unsafe_once(:connected, :closed, :failed) do
                   client.disable_automatic_connection_recovery
@@ -666,14 +642,6 @@ module Ably
         else
           true
         end
-      end
-
-      def connection_recoverable?
-        connection_recover_parts
-      end
-
-      def connection_recover_parts
-        client.recover.to_s.match(RECOVER_REGEX)
       end
 
       def production?

@@ -633,7 +633,6 @@ describe Ably::Realtime::Presence, :event_machine do
                     action = Ably::Models::ProtocolMessage::ACTION.Presence
                     presence_msg = Ably::Models::ProtocolMessage.new(
                       action: action,
-                      connection_serial: anonymous_client.connection.serial + 1,
                       channel: channel_name,
                       presence: presence_data,
                       timestamp: Time.now.to_i * 1000
@@ -644,7 +643,6 @@ describe Ably::Realtime::Presence, :event_machine do
                     action = Ably::Models::ProtocolMessage::ACTION.Sync
                     sync_msg = Ably::Models::ProtocolMessage.new(
                       action: action,
-                      connection_serial: anonymous_client.connection.serial + 2,
                       channel: channel_name,
                       channel_serial: 'validserialprefix:', # with no part after the `:` this indicates the end to the SYNC
                       presence: [],
