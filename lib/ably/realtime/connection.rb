@@ -354,7 +354,7 @@ module Ably
       # @return [String]
       #
       def recovery_key
-        "#{key}:#{serial}:#{client_msg_serial}" if connection_resumable?
+        "already implemented"
       end
 
       # Following a new connection being made, the connection ID, connection key
@@ -365,15 +365,6 @@ module Ably
       def configure_new(connection_id, connection_key, connection_serial)
         @id            = connection_id
         @key           = connection_key
-
-        update_connection_serial connection_serial
-      end
-
-      # Store last received connection serial so that the connection can be resumed from the last known point-in-time
-      # @return [void]
-      # @api private
-      def update_connection_serial(connection_serial)
-        @serial = connection_serial
       end
 
       # Disable automatic resume of a connection
@@ -381,7 +372,7 @@ module Ably
       # @api private
       def reset_resume_info
         @key    = nil
-        @serial = nil
+        @id     = nil
       end
 
       # @!attribute [r] __outgoing_protocol_msgbus__
@@ -487,8 +478,7 @@ module Ably
               url_params.merge!(client.transport_params)
 
               if connection_resumable?
-                url_params.merge! resume: key, connection_serial: serial
-                logger.debug { "Resuming connection key #{key} with serial #{serial}" }
+                puts "this is already implemented as per spec"
               elsif connection_recoverable?
                 url_params.merge! recover: connection_recover_parts[:recover], connectionSerial: connection_recover_parts[:connection_serial]
                 logger.debug { "Recovering connection with key #{client.recover}" }
@@ -663,10 +653,6 @@ module Ably
       # Simply wait until the next EventMachine tick to ensure Connection initialization is complete
       def when_initialized
         EventMachine.next_tick { yield }
-      end
-
-      def connection_resumable?
-        !key.nil? && !serial.nil? && connection_state_available?
       end
 
       def connection_state_available?

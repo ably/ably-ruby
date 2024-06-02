@@ -47,15 +47,6 @@ module Ably::Realtime
           logger.debug { "#{protocol_message.action} received: #{protocol_message}" }
         end
 
-        if protocol_message.action.match_any?(:sync, :presence, :message)
-          if connection.serial && protocol_message.has_connection_serial? && protocol_message.connection_serial <= connection.serial
-            error_message = "Protocol error, duplicate message received for serial #{protocol_message.connection_serial}"
-            logger.error error_message
-            return
-          end
-        end
-
-        update_connection_recovery_info protocol_message
         connection.set_connection_confirmed_alive
 
         case protocol_message.action
@@ -170,10 +161,6 @@ module Ably::Realtime
           reason = Ably::Exceptions::IncompatibleClientId.new("Client ID '#{protocol_message.connection_details.client_id}' in CONNECTED update specified by the server is incompatible with the library's configured client ID '#{client.client_id}'")
           connection.transition_state_machine :failed, reason: reason, protocol_message: protocol_message
         end
-      end
-
-      def update_connection_recovery_info(protocol_message)
-        connection.update_connection_serial protocol_message.connection_serial if protocol_message.has_connection_serial?
       end
 
       def ack_pending_queue_for_message_serial(ack_protocol_message)
