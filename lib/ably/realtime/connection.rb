@@ -375,6 +375,7 @@ module Ably
       # @api private
       def reset_resume_info
         @key    = nil
+        @id     = nil
       end
 
       # @!attribute [r] __outgoing_protocol_msgbus__

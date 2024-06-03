@@ -19,7 +19,8 @@ module Ably::Realtime
         @connection     = connection
         @timers         = Hash.new { |hash, key| hash[key] = [] }
 
-        connection.unsafe_on(:closed) do
+        # RTN8c, RTN9c
+        connection.unsafe_on(:closing, :closed, :suspended, :failed) do
           connection.reset_resume_info
         end
 
