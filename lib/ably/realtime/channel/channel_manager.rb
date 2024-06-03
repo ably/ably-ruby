@@ -36,7 +36,7 @@ module Ably::Realtime
         # If no attached ProtocolMessage then this attached request was triggered by the client
         # library, such as returning to attached when detach has failed
         if attached_protocol_message
-          update_presence_sync_state_following_attached attached_protocol_message.has_presence_flag?
+          channel.presence.manager.on_attach attached_protocol_message.has_presence_flag?
           channel.properties.set_attach_serial(attached_protocol_message.channel_serial)
           channel.options.set_modes_from_flags(attached_protocol_message.flags)
           channel.options.set_params(attached_protocol_message.params)
@@ -77,7 +77,7 @@ module Ably::Realtime
             reason: protocol_message.error,
             resumed: false,
           )
-          update_presence_sync_state_following_attached protocol_message.has_presence_flag?
+          channel.presence.manager.on_attach protocol_message.has_presence_flag?
         end
       end
 
@@ -251,14 +251,6 @@ module Ably::Realtime
           channel: channel.name,
           **message_options.to_h
         )
-      end
-
-      def update_presence_sync_state_following_attached(has_presence_flag)
-        if has_presence_flag
-          channel.presence.manager.sync_expected
-        else
-          channel.presence.manager.sync_not_expected
-        end
       end
 
       def logger

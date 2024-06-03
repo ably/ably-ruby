@@ -146,7 +146,7 @@ module Ably::Realtime
       # and thus the responsibility of this library to re-enter on the channel automatically if the
       # channel loses continuity
       #
-      # @return [Array<PresenceMessage>]
+      # @return [Hash<String, PresenceMessage>]
       # @api private
       def local_members
         @local_members
@@ -209,18 +209,8 @@ module Ably::Realtime
           reset_local_members
         end
 
-        resume_sync_proc = method(:resume_sync).to_proc
-
         unsafe_on(:sync_starting) do
           @sync_session_id += 1
-
-          channel.unsafe_once(:attached) do
-            connection.on_resume(&resume_sync_proc)
-          end
-
-          unsafe_once(:sync_complete, :failed) do
-            connection.off_resume(&resume_sync_proc)
-          end
         end
 
         unsafe_on(:sync_none) do
@@ -234,59 +224,31 @@ module Ably::Realtime
           clean_up_members_not_present_after_sync
           change_state :sync_complete
         end
-
-        unsafe_on(:sync_complete) do
-          update_local_member_state
-        end
       end
 
-      # Listen for events that change the PresenceMap state and thus
-      # need to be replicated to the local member set
-      def update_local_member_state
-        new_local_members = members.select do |_, member|
-          member.fetch(:message).connection_id == connection.id
-        end.each_with_object({}) do |(_, member), hash_object|
-          hash_object[member.fetch(:client_id)] = member.fetch(:message)
-        end
-
-        @local_members.reject do |member_key, _|
-          new_local_members.keys.include?(member_key)
-        end.values.each do |message|
-          re_enter_local_member_missing_from_presence_map message
-        end
-
-        @local_members = new_local_members
-      end
-
-      def re_enter_local_member_missing_from_presence_map(presence_message)
-        local_client_id = presence_message.client_id || client.auth.client_id
-        logger.debug { "#{self.class.name}: Manually re-entering local presence member, client ID: #{local_client_id} with data: #{presence_message.data}" }
-        presence.enter_client(local_client_id, presence_message.data).tap do |deferrable|
-          deferrable.errback do |error|
-            presence_message_client_id = presence_message.client_id || client.auth.client_id
-            re_enter_error = Ably::Models::ErrorInfo.new(
-              message: "unable to automatically re-enter presence channel for client_id '#{presence_message_client_id}'. Source error code #{error.code} and message '#{error.message}'",
-              code: Ably::Exceptions::Codes::UNABLE_TO_AUTOMATICALLY_REENTER_PRESENCE_CHANNEL
-            )
-            channel.emit :update, Ably::Models::ChannelStateChange.new(
-              current: channel.state,
-              previous: channel.state,
-              event: Ably::Realtime::Channel::EVENT(:update),
-              reason: re_enter_error,
-              resumed: true
-            )
+      def _enter_local_members
+        local_members.values.each do |member|
+          local_client_id = member.client_id || client.auth.client_id
+          logger.debug { "#{self.class.name}: Manually re-entering local presence member, client ID: #{local_client_id} with data: #{member.data}" }
+          presence.enter_client_with_id(member.id, local_client_id, member.data).tap do |deferrable|
+            deferrable.errback do |error|
+              presence_message_client_id = member.client_id || client.auth.client_id
+              re_enter_error = Ably::Models::ErrorInfo.new(
+                message: "unable to automatically re-enter presence channel for client_id '#{presence_message_client_id}'. Source error code #{error.code} and message '#{error.message}'",
+                code: Ably::Exceptions::Codes::UNABLE_TO_AUTOMATICALLY_REENTER_PRESENCE_CHANNEL
+              )
+              channel.emit :update, Ably::Models::ChannelStateChange.new(
+                current: channel.state,
+                previous: channel.state,
+                event: Ably::Realtime::Channel::EVENT(:update),
+                reason: re_enter_error,
+                resumed: true
+              )
+            end
           end
         end
       end
-
-      # Trigger a manual SYNC operation to resume member synchronisation from last known cursor position
-      def resume_sync
-        connection.send_protocol_message(
-          action:         Ably::Models::ProtocolMessage::ACTION.Sync.to_i,
-          channel:        channel.name,
-          channel_serial: sync_serial
-        ) if channel.attached?
-      end
+      public :_enter_local_members
 
       def update_members_and_emit_events(presence_message)
         return unless ensure_presence_message_is_valid(presence_message)
@@ -385,17 +347,16 @@ module Ably::Realtime
       def member_set_upsert(presence_message, present)
         members[presence_message.member_key] = { present: present, message: presence_message, sync_session_id: sync_session_id }
         if presence_message.connection_id == connection.id
-          local_members[presence_message.member_key] = presence_message
-          logger.debug { "#{self.class.name}: Local member '#{presence_message.member_key}' added" }
+          local_members[presence_message.client_id] = presence_message
+          logger.debug { "#{self.class.name}: Local member '#{presence_message.client_id}' added" }
         end
       end
 
       def member_set_delete(presence_message)
         members.delete presence_message.member_key
-        if sync_complete?
-          # If not in SYNC, then local members missing may need to be re-entered
-          # Let #update_local_member_state handle missing members
-          local_members.delete presence_message.member_key
+        if sync_complete? and presence_message.connection_id == connection.id
+          local_members.delete presence_message.client_id
+          logger.debug { "#{self.class.name}: Local member '#{presence_message.client_id}' deleted" }
         end
       end
 
