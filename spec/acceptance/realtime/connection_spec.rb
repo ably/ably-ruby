@@ -870,7 +870,6 @@ describe Ably::Realtime::Connection, :event_machine do
             let(:protocol_message_attributes) do
               {
                 action: Ably::Models::ProtocolMessage::ACTION.Connected.to_i,
-                connection_serial: 55,
                 connection_details: {
                   max_idle_interval: 2 * 1000
                 }
@@ -1180,7 +1179,6 @@ describe Ably::Realtime::Connection, :event_machine do
           let(:protocol_message_attributes) do
             {
               action: Ably::Models::ProtocolMessage::ACTION.Connected.to_i,
-              connection_serial: 55,
               connection_details: {
                 max_idle_interval: 2 * 1000
               }
@@ -1921,7 +1919,6 @@ describe Ably::Realtime::Connection, :event_machine do
           let(:protocol_message_attributes) do
             {
               action: Ably::Models::ProtocolMessage::ACTION.Connected.to_i,
-              connection_serial: 55,
               connection_details: {
                 client_id: 'bob',
                 connection_key: connection_key,
@@ -1979,7 +1976,6 @@ describe Ably::Realtime::Connection, :event_machine do
           let(:protocol_message_attributes) do
             {
               action: Ably::Models::ProtocolMessage::ACTION.Connected.to_i,
-              connection_serial: 22,
               error: { code: 50000, message: 'Internal failure' },
             }
           end

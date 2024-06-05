@@ -330,7 +330,7 @@ module Ably
       # @return [String]
       #
       def recovery_key
-        "already implemented"
+        "will be implemented"
       end
 
       # Following a new connection being made, when connection key is sent
@@ -454,9 +454,9 @@ module Ably
               url_params.merge!(client.transport_params)
 
               if connection_resumable?
-                puts "this is already implemented as per spec"
+                puts "this is will be implemented as per spec"
               elsif connection_recoverable?
-                puts "this is already implemented as per spec"
+                puts "this is will be implemented as per spec"
                 logger.debug { "Recovering connection with key #{client.recover}" }
                 unsafe_once(:connected, :closed, :failed) do
                   client.disable_automatic_connection_recovery

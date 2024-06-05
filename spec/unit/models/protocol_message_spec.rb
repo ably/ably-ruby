@@ -127,14 +127,6 @@ describe Ably::Models::ProtocolMessage do
       end
     end
 
-    context '#connection_serial' do
-      let(:protocol_message) { new_protocol_message(connection_serial: "55") }
-      it 'converts :connection_serial to an Integer' do
-        expect(protocol_message.connection_serial).to be_a(Integer)
-        expect(protocol_message.connection_serial).to eql(55)
-      end
-    end
-
     context '#flags (#TR4i)' do
       context 'when nil' do
         let(:protocol_message) { new_protocol_message({}) }

@@ -127,12 +127,6 @@ module Ably::Models
       raise TypeError, "msg_serial '#{attributes[:msg_serial]}' is invalid, a positive Integer is expected for a ProtocolMessage"
     end
 
-    def connection_serial
-      Integer(attributes[:connection_serial])
-    rescue TypeError
-      raise TypeError, "connection_serial '#{attributes[:connection_serial]}' is invalid, a positive Integer is expected for a ProtocolMessage"
-    end
-
     def count
       [1, attributes[:count].to_i].max
     end

@@ -127,7 +127,7 @@ module Ably::Realtime
 
         reattach_suspended_channels protocol_message.error
 
-        connection.configure_new protocol_message.connection_id, protocol_message.connection_details.connection_key, protocol_message.connection_serial
+        connection.configure_new protocol_message.connection_id, protocol_message.connection_details.connection_key
       end
 
       # When connection is CONNECTED and receives an update
@@ -139,7 +139,7 @@ module Ably::Realtime
         # Update the connection details and any associated defaults
         connection.set_connection_details protocol_message.connection_details
 
-        connection.configure_new protocol_message.connection_id, protocol_message.connection_details.connection_key, protocol_message.connection_serial
+        connection.configure_new protocol_message.connection_id, protocol_message.connection_details.connection_key
 
         state_change = Ably::Models::ConnectionStateChange.new(
           current: connection.state,
@@ -281,7 +281,7 @@ module Ably::Realtime
       # Any message sent before an ACK/NACK was received on the previous transport
       # need to be resent to the Ably service so that a subsequent ACK/NACK is received.
       # It is up to Ably to ensure that duplicate messages are not retransmitted on the channel
-      # base on the serial numbers
+      # based on the message serial numbers
       #
       # @api private
       def resend_pending_message_ack_queue
