@@ -333,8 +333,8 @@ module Ably
         "already implemented"
       end
 
-      # Following a new connection being made, the connection ID, connection key
-      # and connection serial need to match the details provided by the server.
+      # Following a new connection being made, when connection key is sent
+      # connection id need to match with the details provided by the server.
       #
       # @return [void]
       # @api private
@@ -586,11 +586,7 @@ module Ably
       private
 
       # The client message serial (msgSerial) is incremented for every message that is published that requires an ACK.
-      # Note that this is different to the connection serial that contains the last known serial number
-      # received from the server.
-      #
       # A message serial number does not guarantee a message has been received, only sent.
-      # A connection serial guarantees the server has received the message and is thus used for connection recovery and resumes.
       # @return [Integer] starting at -1 indicating no messages sent, 0 when the first message is sent
       def client_msg_serial
         @client_msg_serial
