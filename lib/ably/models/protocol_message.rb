@@ -278,7 +278,7 @@ module Ably::Models
     # @api private
     def invalid?
       action_enum = action rescue nil
-      !action_enum || (ack_required? && !has_message_serial?)
+      !action_enum
     end
 
     # @!attribute [r] logger
