@@ -46,10 +46,9 @@ module Ably::Realtime
                     protocol_message.action == :presence ||
                     protocol_message.action == :attached
                   )
-
-            logger.info "Setting channel serial for #{channel.name}"
-            logger.info "Previous serial #{channel.name}, new serial #{protocol_message.channel_serial}"
             get_channel(protocol_message.channel).tap do |channel|
+              logger.info "Setting channel serial for channel #{channel.name}"
+              logger.info "Previous serial #{channel.properties.channel_serial}, new serial #{protocol_message.channel_serial}"
               channel.properties.channel_serial = protocol_message.channel_serial
             end
           end
