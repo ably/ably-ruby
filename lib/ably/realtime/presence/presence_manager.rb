@@ -19,13 +19,18 @@ module Ably::Realtime
         setup_channel_event_handlers
       end
 
-      # Expect SYNC ProtocolMessages from the server with a list of current members on this channel
-      #
-      # @return [void]
-      #
       # @api private
-      def sync_expected
-        presence.members.change_state :sync_starting
+      def on_attach(has_presence_flag)
+        if has_presence_flag
+          # Expect SYNC ProtocolMessages from the server with a list of current members on this channel
+          presence.members.change_state :sync_starting
+        else
+          # There server has indicated that there are no SYNC ProtocolMessages to come because
+          # there are no members on this channel
+          logger.debug { "#{self.class.name}: Emitting leave events for all members as a SYNC is not expected and thus there are no members on the channel" }
+          presence.members.change_state :sync_none
+        end
+        presence.members.send(:enter_local_members)
       end
 
       # Process presence messages from SYNC messages. Sync can be server-initiated or triggered following ATTACH
@@ -45,17 +50,6 @@ module Ably::Realtime
         end
 
         presence.members.change_state :finalizing_sync if presence.members.sync_serial_cursor_at_end?
-      end
-
-      # There server has indicated that there are no SYNC ProtocolMessages to come because
-      # there are no members on this channel
-      #
-      # @return [void]
-      #
-      # @api private
-      def sync_not_expected
-        logger.debug { "#{self.class.name}: Emitting leave events for all members as a SYNC is not expected and thus there are no members on the channel" }
-        presence.members.change_state :sync_none
       end
 
       private

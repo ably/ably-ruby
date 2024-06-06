@@ -110,6 +110,14 @@ module Ably::Realtime
       send_presence_action_for_client(Ably::Models::PresenceMessage::ACTION.Enter, client_id, data, &success_block)
     end
 
+    # @api private
+    def enter_client_with_id(id, client_id, data = nil, &success_block)
+      ensure_supported_client_id client_id
+      ensure_supported_payload data
+
+      send_presence_action_for_client(Ably::Models::PresenceMessage::ACTION.Enter, client_id, data, id, &success_block)
+    end
+
     # Leave this client from this channel. This client will be removed from the presence
     # set and presence subscribers will see a leave message for this client.
     #
@@ -338,8 +346,11 @@ module Ably::Realtime
 
     private
     # @return [Ably::Models::PresenceMessage] presence message is returned allowing callbacks to be added
-    def send_presence_protocol_message(presence_action, client_id, data)
+    def send_presence_protocol_message(presence_action, client_id, data, id = nil)
       presence_message = create_presence_message(presence_action, client_id, data)
+      unless id.nil?
+        presence_message.id = id
+      end
       unless presence_message.client_id
         raise Ably::Exceptions::Standard.new('Unable to enter create presence message without a client_id', 400, Ably::Exceptions::Codes::UNABLE_TO_ENTER_PRESENCE_CHANNEL_NO_CLIENTID)
       end
@@ -433,13 +444,13 @@ module Ably::Realtime
       deferrable
     end
 
-    def send_presence_action_for_client(action, client_id, data, &success_block)
+    def send_presence_action_for_client(action, client_id, data, id = nil, &success_block)
       requirements_failed_deferrable = ensure_presence_publishable_on_connection_deferrable
       return requirements_failed_deferrable if requirements_failed_deferrable
 
       deferrable = create_deferrable
       ensure_channel_attached(deferrable) do
-        send_presence_protocol_message(action, client_id, data).tap do |protocol_message|
+        send_presence_protocol_message(action, client_id, data, id).tap do |protocol_message|
           protocol_message.callback { |message| deferrable_succeed deferrable, &success_block }
           protocol_message.errback  { |error| deferrable_fail deferrable, error }
         end
