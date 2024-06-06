@@ -138,6 +138,12 @@ module Ably::Models
       false
     end
 
+    def has_channel_serial?
+      channel_serial && true
+    rescue TypeError
+      false
+    end
+
     def messages
       @messages ||=
         Array(attributes[:messages]).map do |message|
