@@ -120,15 +120,23 @@ module Ably
           acc[key.to_s] = value.to_s
         end
         @rest_client           = Ably::Rest::Client.new(options.merge(realtime_client: self))
-        @echo_messages         = rest_client.options.fetch(:echo_messages, true) == false ? false : true
-        @queue_messages        = rest_client.options.fetch(:queue_messages, true) == false ? false : true
+        @echo_messages         = rest_client.options.fetch(:echo_messages, true)
+        @queue_messages        = rest_client.options.fetch(:queue_messages, true)
         @custom_realtime_host  = rest_client.options[:realtime_host] || rest_client.options[:ws_host]
-        @auto_connect          = rest_client.options.fetch(:auto_connect, true) == false ? false : true
-        @recover               = rest_client.options[:recover]
+        @auto_connect          = rest_client.options.fetch(:auto_connect, true)
+        @recover               = rest_client.options.fetch(:recover, '')
 
         @auth       = Ably::Realtime::Auth.new(self)
         @channels   = Ably::Realtime::Channels.new(self)
         @connection = Ably::Realtime::Connection.new(self, options)
+
+        unless @recover.empty?
+          recovery_context = RecoveryKeyContext.from_json(@recover, logger)
+          unless recovery_context.nil?
+            @channels.set_channel_serials recovery_context.channel_serials # RTN16j
+            @connection.set_msg_serial_from_recover = recovery_context.msg_serial  # RTN16f
+          end
+        end
       end
 
       # Return a {Ably::Realtime::Channel Realtime Channel} for the given name

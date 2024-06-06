@@ -19,7 +19,8 @@ module Ably::Realtime
         @connection     = connection
         @timers         = Hash.new { |hash, key| hash[key] = [] }
 
-        connection.unsafe_on(:closed) do
+        # RTN8c, RTN9c
+        connection.unsafe_on(:closing, :closed, :suspended, :failed) do
           connection.reset_resume_info
         end
 
@@ -111,23 +112,30 @@ module Ably::Realtime
         # Update the connection details and any associated defaults
         connection.set_connection_details protocol_message.connection_details
 
+        is_connection_resume_or_recover_attempt = !Ably::Util::String.is_null_or_empty(connection.key) ||
+          !Ably::Util::String.is_null_or_empty(client.recover)
+
+        # RTN15c7, RTN16d
+        failed_resume_or_recover = !protocol_message.connection_id == connection.id && !protocol_message.error.nil?
+        if is_connection_resume_or_recover_attempt and failed_resume_or_recover # RTN15c7
+          connection.reset_client_msg_serial
+        end
+        client.disable_automatic_connection_recovery # RTN16k, explicitly setting null, so it won't be used for subsequent connection requests
+
         if connection.key
           if protocol_message.connection_id == connection.id
             logger.debug { "ConnectionManager: Connection resumed successfully - ID #{connection.id} and key #{connection.key}" }
             EventMachine.next_tick { connection.trigger_resumed }
             resend_pending_message_ack_queue
           else
-            logger.debug { "ConnectionManager: Connection was not resumed, old connection ID #{connection.id} has been updated with new connection ID #{protocol_message.connection_id} and key #{protocol_message.connection_details.connection_key}" }
             nack_messages_on_all_channels protocol_message.error
-            force_reattach_on_channels protocol_message.error
           end
         else
           logger.debug { "ConnectionManager: New connection created with ID #{protocol_message.connection_id} and key #{protocol_message.connection_details.connection_key}" }
         end
 
-        reattach_suspended_channels protocol_message.error
-
         connection.configure_new protocol_message.connection_id, protocol_message.connection_details.connection_key
+        force_reattach_on_channels protocol_message.error # irrespective of connection success/failure, reattach channels
       end
 
       # When connection is CONNECTED and receives an update
@@ -568,20 +576,12 @@ module Ably::Realtime
         client.auth.authorization_in_flight?
       end
 
-      def reattach_suspended_channels(error)
-        channels.select do |channel|
-          channel.suspended?
-        end.each do |channel|
-          channel.transition_state_machine :attaching
-        end
-      end
-
-      # When continuity on a connection is lost all messages
-      # Channels in the ATTACHED or ATTACHING state should explicitly be re-attached
-      # by sending a new ATTACH to Ably
+      # When reconnected if channel is in ATTACHING, ATTACHED or SUSPENDED state
+      # it should explicitly be re-attached by sending a new ATTACH to Ably
+      # Spec : RTN15c6, RTN15c7
       def force_reattach_on_channels(error)
         channels.select do |channel|
-          channel.attached? || channel.attaching?
+          channel.attached? || channel.attaching? || channel.suspended?
         end.each do |channel|
           channel.manager.request_reattach reason: error
         end

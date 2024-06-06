@@ -46,6 +46,26 @@ module Ably
           @channels.delete(channel)
         end if @channels.has_key?(channel)
       end
+
+      # Sets channel serial to each channel from given serials hashmap
+      # @param [Hash] serials - map of channel name to respective channel serial
+      # @api private
+      def set_channel_serials(serials)
+        serials.each do |channel_name, channel_serial|
+          channels[channel_name].properties.channel_serial = channel_serial
+        end
+      end
+
+      # @return [Hash] serials - map of channel name to respective channel serial
+      # @api private
+      def get_channel_serials
+        channel_serials = {}
+        self.each do |channel|
+          channel_serials[channel.name] = channel.properties.channel_serial if channel.state == :attached
+        end
+        channel_serials
+      end
+
     end
   end
 end

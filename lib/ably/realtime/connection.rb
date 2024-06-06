@@ -172,6 +172,8 @@ module Ably
         @manager       = ConnectionManager.new(self)
 
         @current_host = client.endpoint.host
+
+        reset_client_msg_serial
       end
 
       # Causes the connection to close, entering the {Ably::Realtime::Connection::STATE} CLOSING state.
@@ -323,18 +325,35 @@ module Ably
         end
       end
 
-      # The recovery key string can be used by another client to recover this connection's state in the recover client options property. See connection state recover options for more information.
+      # The recovery key string can be used by another client to recover this connection's state in the
+      # recover client options property. See connection state recover options for more information.
       #
       # @spec RTN16b, RTN16c
       #
       # @return [String]
+      # @deprecated Use {#create_recovery_key} instead
       #
       def recovery_key
-        "will be implemented"
+        logger.warn "[DEPRECATION] recovery_key is deprecated, use create_recovery_key method instead"
+        create_recovery_key
       end
 
-      # Following a new connection being made, when connection key is sent
-      # connection id need to match with the details provided by the server.
+      # The recovery key string can be used by another client to recover this connection's state in the recover client
+      # options property. See connection state recover options for more information.
+      #
+      # @spec RTN16g, RTN16c
+      #
+      # @return [String] a json string which incorporates the @connectionKey@, the current @msgSerial@ and collection
+      # of pairs of channel @name@ and current @channelSerial@ for every currently attached channel
+      def create_recovery_key
+        if key.nil? || key.empty? || state == :closing || state == :closed || state == :failed || state == :suspended
+          return "" #RTN16g2
+        end
+        Ably::Modules::RecoveryKeyContext.to_json(key, message_serial, client.channels.get_channel_serials)
+      end
+
+      # Following a new connection being made, the connection ID, connection key
+      # need to match the details provided by the server.
       #
       # @return [void]
       # @api private
@@ -439,7 +458,7 @@ module Ably
               url_params = auth_params.merge(
                 'format' =>     client.protocol,
                 'echo' =>       client.echo_messages,
-                'v' =>          Ably::PROTOCOL_VERSION,
+                'v' =>          Ably::PROTOCOL_VERSION, # RSC7a
                 'agent' =>      client.rest_client.agent
               )
 
@@ -453,13 +472,15 @@ module Ably
               url_params['clientId'] = client.auth.client_id if client.auth.has_client_id?
               url_params.merge!(client.transport_params)
 
-              if connection_resumable?
-                puts "this is will be implemented as per spec"
-              elsif connection_recoverable?
-                puts "this is will be implemented as per spec"
-                logger.debug { "Recovering connection with key #{client.recover}" }
-                unsafe_once(:connected, :closed, :failed) do
-                  client.disable_automatic_connection_recovery
+              if not Ably::Util::String.is_null_or_empty(key)
+                url_params.merge! resume: key
+                logger.debug { "Resuming connection with key #{key}" }
+              elsif not Ably::Util::String.is_null_or_empty(client.recover)
+                recovery_context = RecoveryKeyContext.from_json(client.recover, logger)
+                unless recovery_context.nil?
+                  key = recovery_context.connection_key
+                  logger.debug { "Recovering connection with key #{key}" }
+                  url_params.merge! recover: key
                 end
               end
 
@@ -564,6 +585,12 @@ module Ably
       # @api private
       def reset_client_msg_serial
         @client_msg_serial = -1
+      end
+
+      # Sets the client message serial from recover clientOption.
+      # @api private
+      def set_msg_serial_from_recover=(value)
+        @client_msg_serial = value
       end
 
       # When a hearbeat or any other message from Ably is received
