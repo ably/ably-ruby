@@ -2004,7 +2004,7 @@ describe Ably::Realtime::Connection, :event_machine do
       it 'sends the protocol version param v (#G4, #RTN2f)' do
         expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
           uri = URI.parse(url)
-          expect(CGI::parse(uri.query)['v'][0]).to eql('1.2')
+          expect(CGI::parse(uri.query)['v'][0]).to eql('2')
           stop_reactor
         end
         client
