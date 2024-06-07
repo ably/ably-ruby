@@ -330,7 +330,6 @@ module Ably
       #
       # @spec RTN16b, RTN16c
       #
-      # @return [String]
       # @deprecated Use {#create_recovery_key} instead
       #
       def recovery_key
@@ -347,9 +346,9 @@ module Ably
       # of pairs of channel @name@ and current @channelSerial@ for every currently attached channel
       def create_recovery_key
         if key.nil? || key.empty? || state == :closing || state == :closed || state == :failed || state == :suspended
-          return "" #RTN16g2
+          return nil #RTN16g2
         end
-        Ably::Modules::RecoveryKeyContext.to_json(key, message_serial, client.channels.get_channel_serials)
+        RecoveryKeyContext.new(key, client_msg_serial, client.channels.get_channel_serials).to_json
       end
 
       # Following a new connection being made, the connection ID, connection key
@@ -717,3 +716,4 @@ end
 require 'ably/realtime/connection/connection_manager'
 require 'ably/realtime/connection/connection_state_machine'
 require 'ably/realtime/connection/websocket_transport'
+require 'ably/realtime/recovery_key_context'

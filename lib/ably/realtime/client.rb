@@ -1,5 +1,6 @@
 require 'uri'
 require 'ably/realtime/channel/publisher'
+require 'ably/realtime/recovery_key_context'
 
 module Ably
   module Realtime
