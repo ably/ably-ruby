@@ -52,7 +52,7 @@ module Ably
       # @api private
       def set_channel_serials(serials)
         serials.each do |channel_name, channel_serial|
-          channels[channel_name].properties.channel_serial = channel_serial
+          self[channel_name].properties.channel_serial = channel_serial
         end
       end
 
