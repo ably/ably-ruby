@@ -1364,7 +1364,7 @@ describe Ably::Realtime::Connection, :event_machine do
 
           available_states.each do |state|
             connection.on(state) do
-              states[state.to_sym] = true if connection.recovery_key
+              states[state.to_sym] = true if connection.create_recovery_key
             end
           end
 
@@ -1382,7 +1382,7 @@ describe Ably::Realtime::Connection, :event_machine do
         it 'is nil when connection is explicitly CLOSED' do
           connection.once(:connected) do
             connection.close do
-              expect(connection.recovery_key).to be_nil
+              expect(connection.create_recovery_key).to be_nil
               stop_reactor
             end
           end
@@ -1418,7 +1418,7 @@ describe Ably::Realtime::Connection, :event_machine do
 
               channel.attach do
                 connection_id = client.connection.id
-                recovery_key = client.connection.recovery_key
+                recovery_key = client.connection.create_recovery_key
                 connection.transport.__incoming_protocol_msgbus__
                 publishing_client_channel.publish('event', 'message') do
                   connection.transition_state_machine! :failed
@@ -1452,7 +1452,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 channel.publish('event', 'message') do
                   msg_serial = connection.send(:client_msg_serial)
                   expect(msg_serial).to eql(0)
-                  recovery_key = client.connection.recovery_key
+                  recovery_key = client.connection.create_recovery_key
                   connection.transition_state_machine! :failed
                 end
               end
@@ -1483,7 +1483,7 @@ describe Ably::Realtime::Connection, :event_machine do
                   expect(message.data).to eql('message-1')
                   msg_serial = connection.send(:client_msg_serial)
                   expect(msg_serial).to eql(0)
-                  recovery_key = client.connection.recovery_key
+                  recovery_key = client.connection.create_recovery_key
                   connection.transition_state_machine! :failed
                 end
                 channel.publish('event', 'message-1')

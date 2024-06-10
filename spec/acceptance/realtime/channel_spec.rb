@@ -2426,7 +2426,7 @@ describe Ably::Realtime::Channel, :event_machine do
               connection_id = client.connection.id
               expect(channel_state_change.resumed).to be_falsey
 
-              recover_client = auto_close Ably::Realtime::Client.new(client_options.merge(recover: client.connection.recovery_key))
+              recover_client = auto_close Ably::Realtime::Client.new(client_options.merge(recover: client.connection.create_recovery_key))
               recover_client.connection.once(:connected) do
                 expect(recover_client.connection.id).to eql(connection_id)
                 recover_channel = recover_client.channels.get(channel_name)
@@ -2441,7 +2441,7 @@ describe Ably::Realtime::Channel, :event_machine do
 
           it 'is false when a connection fails to recover and the channel is attached' do
             client.connection.once(:connected) do
-              recovery_key = client.connection.recovery_key
+              recovery_key = client.connection.create_recovery_key
               client.connection.once(:closed) do
                 recover_client = auto_close Ably::Realtime::Client.new(client_options.merge(recover: recovery_key, log_level: :error))
                 recover_client.connection.once(:connected) do

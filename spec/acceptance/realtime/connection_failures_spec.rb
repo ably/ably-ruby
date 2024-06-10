@@ -955,7 +955,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             previous_connection_id = connection.id
             connection.transport.close_connection_after_writing
 
-            expect(connection).to receive(:configure_new).with(previous_connection_id, anything, anything).and_call_original
+            expect(connection).to receive(:configure_new).with(previous_connection_id, anything).and_call_original
 
             connection.once(:connected) do
               expect(connection.key).to_not be_nil
@@ -1079,7 +1079,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
           def kill_connection_transport_and_prevent_valid_resume
             connection.transport.close_connection_after_writing
-            connection.configure_new '0123456789abcdef', 'wVIsgTHAB1UvXh7z-1991d8586', -1 # force the resume connection key to be invalid
+            connection.configure_new '0123456789abcdef', '0123456789abcdef-99'  # force the resume connection key to be invalid
           end
 
           it 'updates the connection_id and connection_key' do
@@ -1112,7 +1112,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                 end
                 channel.on(:attaching) do |channel_state_change|
                   error = channel_state_change.reason
-                  expect(error.message).to match(/Unable to recover connection/i)
+                  expect(error.message).to match(/Invalid connection key/i)
                   reattaching_channels << channel
                 end
                 channel.on(:attached) do
@@ -1212,9 +1212,9 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           it 'sets the error reason on each channel' do
             channel.attach do
               channel.on(:attaching) do |state_change|
-                expect(state_change.reason.message).to match(/Unable to recover connection/i)
-                expect(state_change.reason.code).to eql(80008)
-                expect(channel.error_reason.code).to eql(80008)
+                expect(state_change.reason.message).to match(/Invalid connection key/i)
+                expect(state_change.reason.code).to eql(80018)
+                expect(channel.error_reason.code).to eql(80018)
 
                 channel.on(:attached) do |state_change|
                   stop_reactor
