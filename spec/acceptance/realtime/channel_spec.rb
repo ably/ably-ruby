@@ -2470,7 +2470,7 @@ describe Ably::Realtime::Channel, :event_machine do
                   stop_reactor
                 end
                 client.connection.transport.close_connection_after_writing
-                client.connection.configure_new '0123456789abcdef', 'wVIsgTHAB1UvXh7z-1991d8586', -1 # force the resume connection key to be invalid
+                client.connection.configure_new '0123456789abcdef', 'wVIsgTHAB1UvXh7z-1991d8586' # force the resume connection key to be invalid
               end
             end
           end

@@ -777,7 +777,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
               if protocol_message.messages.find { |message| message.name == event_name }
                 EventMachine.add_timer(0.0001) do
                   connection.transport.unbind # trigger failure
-                  connection.configure_new '0123456789abcdef', 'wVIsgTHAB1UvXh7z-1991d8586', -1 # force the resume connection key to be invalid
+                  connection.configure_new '0123456789abcdef', 'wVIsgTHAB1UvXh7z-1991d8586' # force the resume connection key to be invalid
                 end
               end
             end
