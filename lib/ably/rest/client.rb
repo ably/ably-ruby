@@ -16,6 +16,7 @@ module Ably
       include Ably::Modules::Conversions
       include Ably::Modules::HttpHelpers
       extend Forwardable
+      using Ably::Util::AblyExtensions
 
       # Default Ably domain for REST
       DOMAIN = 'rest.ably.io'
@@ -186,7 +187,7 @@ module Ably
 
         @agent               = options.delete(:agent) || Ably::AGENT
         @realtime_client     = options.delete(:realtime_client)
-        @tls                 = options.fetch(:tls, true); options.delete(:tls)
+        @tls                 = options.fetch_or_default(:tls, true); options.delete(:tls)
         @environment         = options.delete(:environment) # nil is production
         @environment         = nil if [:production, 'production'].include?(@environment)
         @protocol            = options.delete(:protocol) || :msgpack
@@ -200,7 +201,7 @@ module Ably
         @log_retries_as_info = options.delete(:log_retries_as_info)
         @max_message_size    = options.delete(:max_message_size) || MAX_MESSAGE_SIZE
         @max_frame_size      = options.delete(:max_frame_size) || MAX_FRAME_SIZE
-        @idempotent_rest_publishing = options.fetch(:idempotent_rest_publishing, true); options.delete(:idempotent_rest_publishing)
+        @idempotent_rest_publishing = options.fetch_or_default(:idempotent_rest_publishing, true); options.delete(:idempotent_rest_publishing)
 
         if options[:fallback_hosts_use_default] && options[:fallback_hosts]
           raise ArgumentError, "fallback_hosts_use_default cannot be set to try when fallback_hosts is also provided"

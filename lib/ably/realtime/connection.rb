@@ -9,6 +9,8 @@ module Ably
       include Ably::Modules::Conversions
       include Ably::Modules::SafeYield
       extend Ably::Modules::Enum
+      using Ably::Util::AblyExtensions
+
 
       # The current {Ably::Realtime::Connection::STATE} of the connection.
       # Describes the realtime [Connection]{@link Connection} object states.
@@ -345,7 +347,7 @@ module Ably
       # @return [String] a json string which incorporates the @connectionKey@, the current @msgSerial@ and collection
       # of pairs of channel @name@ and current @channelSerial@ for every currently attached channel
       def create_recovery_key
-        if key.nil? || key.empty? || state == :closing || state == :closed || state == :failed || state == :suspended
+        if key.nil_or_empty? || state == :closing || state == :closed || state == :failed || state == :suspended
           return nil #RTN16g2
         end
         RecoveryKeyContext.new(key, client_msg_serial, client.channels.get_channel_serials).to_json
@@ -471,10 +473,10 @@ module Ably
               url_params['clientId'] = client.auth.client_id if client.auth.has_client_id?
               url_params.merge!(client.transport_params)
 
-              if not Ably::Util::String.is_null_or_empty(key)
+              if not key.nil_or_empty?
                 url_params.merge! resume: key
                 logger.debug { "Resuming connection with key #{key}" }
-              elsif not Ably::Util::String.is_null_or_empty(client.recover)
+              elsif not client.recover.nil_or_empty?
                 recovery_context = RecoveryKeyContext.from_json(client.recover, logger)
                 unless recovery_context.nil?
                   key = recovery_context.connection_key
