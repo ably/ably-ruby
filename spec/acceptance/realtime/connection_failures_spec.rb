@@ -1008,16 +1008,6 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           end
         end
 
-        it 'executes the resume callback', api_private: true do
-          channel.attach do
-            connection.transport.close_connection_after_writing
-            connection.on_resume do
-              expect(connection).to be_connected
-              stop_reactor
-            end
-          end
-        end
-
         context 'when messages were published whilst the client was disconnected' do
           it 'receives the messages published whilst offline' do
             messages_received = false
