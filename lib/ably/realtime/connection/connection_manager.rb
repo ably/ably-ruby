@@ -121,7 +121,6 @@ module Ably::Realtime
           connection.reset_client_msg_serial
         end
         client.disable_automatic_connection_recovery # RTN16k, explicitly setting null, so it won't be used for subsequent connection requests
-        connection.configure_new protocol_message.connection_id, protocol_message.connection_details.connection_key
 
         if connection.key
           if protocol_message.connection_id == connection.id
@@ -134,6 +133,7 @@ module Ably::Realtime
           logger.debug { "ConnectionManager: New connection created with ID #{protocol_message.connection_id} and key #{protocol_message.connection_details.connection_key}" }
         end
 
+        connection.configure_new protocol_message.connection_id, protocol_message.connection_details.connection_key
         force_reattach_on_channels protocol_message.error # irrespective of connection success/failure, reattach channels
       end
 
