@@ -304,8 +304,6 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
         it 'will not echo messages to the client but will still broadcast messages to other connected clients', em_timeout: 10 do
           channel.attach do |echo_channel|
             no_echo_channel.attach do
-              no_echo_channel.publish 'test_event', payload
-
               no_echo_channel.subscribe('test_event') do |message|
                 fail "Message should not have been echoed back"
               end
@@ -316,6 +314,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
                   stop_reactor
                 end
               end
+              no_echo_channel.publish 'test_event', payload
             end
           end
         end
@@ -636,11 +635,13 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
         let(:payload) { MessagePack.pack({ 'key' => random_str }) }
 
         it 'delivers the message but still encrypted with the cipher detials in the #encoding attribute (#RTL7e)' do
-          encrypted_channel_client1.publish 'example', payload
-          encrypted_channel_client2.subscribe do |message|
-            expect(message.data).to_not eql(payload)
-            expect(message.encoding).to match(/^cipher\+aes-256-cbc/)
-            stop_reactor
+          encrypted_channel_client2.attach do
+            encrypted_channel_client2.subscribe do |message|
+              expect(message.data).to_not eql(payload)
+              expect(message.encoding).to match(/^cipher\+aes-256-cbc/)
+              stop_reactor
+            end
+            encrypted_channel_client1.publish 'example', payload
           end
         end
 
@@ -716,10 +717,13 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
           end
         end
 
-        channel.publish(event_name).tap do |deferrable|
-          deferrable.callback { message_state << :delivered }
-          deferrable.errback do
-            raise 'Message delivery should not fail'
+        # Attaching channel first before publishing message in order to get channel serial set on channel
+        channel.attach do
+          channel.publish(event_name).tap do |deferrable|
+            deferrable.callback { message_state << :delivered }
+            deferrable.errback do
+              raise 'Message delivery should not fail'
+            end
           end
         end
 
