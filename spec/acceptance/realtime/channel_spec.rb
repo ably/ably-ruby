@@ -342,8 +342,10 @@ describe Ably::Realtime::Channel, :event_machine do
             channel.attach
           end
 
-          channel.attach do
-            channel.detach
+          client.connection.once :connected do
+            channel.attach do
+              channel.detach
+            end
           end
         end
       end
@@ -467,7 +469,9 @@ describe Ably::Realtime::Channel, :event_machine do
               stop_reactor
             end
 
-            channel.attach
+            client.connection.once :connected do
+              channel.attach
+            end
           end
         end
 
@@ -488,7 +492,9 @@ describe Ably::Realtime::Channel, :event_machine do
               channel.detach
             end
 
-            channel.attach
+            client.connection.once :connected do
+              channel.attach
+            end
           end
         end
       end

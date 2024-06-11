@@ -244,7 +244,12 @@ module Ably::Realtime
             end
           end
         end
-        resend_if_disconnected_and_connected.call
+
+        # since attach is sent on every connect, no need to introduce logic that sends attach on disconnect and connect
+        # RTN15c6, RTN15c7
+        if new_state != Ably::Models::ProtocolMessage::ACTION.Attach
+          resend_if_disconnected_and_connected.call
+        end
 
         connection.send_protocol_message(
           action:  new_state.to_i,
