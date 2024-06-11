@@ -67,6 +67,8 @@ client = Ably::Realtime.new(key: 'xxxxx')
 client = Ably::Realtime.new(token: 'xxxxx')
 ```
 
+`Warning - Do not expose ABLY_KEY to client code. It is meant to only be used at server side`.
+
 If you do not have an API key, [sign up for a free API key now](https://ably.com/signup)
 
 ### Connection
