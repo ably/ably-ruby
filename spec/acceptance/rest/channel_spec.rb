@@ -191,7 +191,8 @@ describe Ably::Rest::Channel do
         let(:client_options) { default_options.merge(use_token_auth: true, default_token_params: { capability: capability }) }
 
         it 'raises a permission error when publishing' do
-          expect { channel.publish(name, data) }.to raise_error(Ably::Exceptions::UnauthorizedRequest, /not permitted/)
+          expect { channel.publish(name, data) }.to raise_error(Ably::Exceptions::UnauthorizedRequest,
+                                                                /Unauthorized to publish to channel/)
         end
       end
 
@@ -280,7 +281,7 @@ describe Ably::Rest::Channel do
 
             context 'with an invalid client_id in the message' do
               it 'succeeds in the client library but then fails when published to Ably' do
-                expect { channel.publish([name: 'event', client_id: 'invalid']) }.to raise_error Ably::Exceptions::InvalidRequest, /mismatched clientId/
+                expect { channel.publish([name: 'event', client_id: 'invalid']) }.to raise_error Ably::Exceptions::InvalidRequest, /invalid clientId/
               end
             end
 
