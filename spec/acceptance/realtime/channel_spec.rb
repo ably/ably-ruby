@@ -1546,14 +1546,15 @@ describe Ably::Realtime::Channel, :event_machine do
 
             context 'with an invalid client_id in the message' do
               let(:client_options)   { default_options.merge(key: nil, token: token, log_level: :error) }
-              it 'succeeds in the client library but then fails when delivered to Ably' do
-                connection.once :connected do
-                  channel.publish([name: 'event', client_id: 'invalid']).tap do |deferrable|
-                    EM.add_timer(0.5) { stop_reactor }
+              it 'succeeds in the client library ( while connecting ) but then fails when delivered to Ably' do
+                channel.publish([name: 'event', client_id: 'invalid']).tap do |deferrable|
+                  deferrable.errback do |err|
+                    expect(err).to be_truthy
                   end
-                  channel.subscribe('event') do |message|
-                    raise 'Message should not have been published'
-                  end
+                  EM.add_timer(0.5) { stop_reactor }
+                end
+                channel.subscribe('event') do |message|
+                  raise 'Message should not have been published'
                 end
               end
             end
@@ -2142,9 +2143,7 @@ describe Ably::Realtime::Channel, :event_machine do
                 client.connection.transition_state_machine :suspended
               end
             end
-            connection.once :connected do
               channel.attach
-            end
           end
         end
 
@@ -2582,15 +2581,33 @@ describe Ably::Realtime::Channel, :event_machine do
             end
           end
 
-          context 'when a resume fails' do
+          context 'when a connection resume fails' do
             let(:client_options) { default_options.merge(log_level: :error) }
 
-            it 'is false when a resume fails to recover and the channel is automatically re-attached' do
+            it 'is false when channel_serial goes nil (RTP5a1) and the channel is automatically re-attached' do
               channel.once :attached do
                 connection_id = client.connection.id
                 channel.once(:attached) do |channel_state_change|
                   expect(client.connection.id).to_not eql(connection_id)
                   expect(channel_state_change.resumed).to be_falsey
+                  stop_reactor
+                end
+                client.connection.transport.close_connection_after_writing
+                channel.properties.channel_serial = nil
+                client.connection.configure_new '0123456789abcdef', 'wVIsgTHAB1UvXh7z-1991d8586' # force the resume connection key to be invalid
+              end
+
+              connection.once :connected do
+                channel.attach
+              end
+            end
+
+            it 'is true when channel_serial is intact and the channel is automatically re-attached' do
+              channel.once :attached do
+                connection_id = client.connection.id
+                channel.once(:attached) do |channel_state_change|
+                  expect(client.connection.id).to_not eql(connection_id)
+                  expect(channel_state_change.resumed).to be_truthy
                   stop_reactor
                 end
                 client.connection.transport.close_connection_after_writing
