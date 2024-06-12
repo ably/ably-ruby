@@ -61,10 +61,10 @@ All examples assume a client has been created using one of the following:
 
 ```ruby
 # basic auth with an API key
-client = Ably::Realtime.new(key: 'xxxxx')
+client = Ably::Realtime.new(key: 'API_KEY_COPIED_FROM_ABLY_WEB_DASHBOARD')
 
 # using token auth
-client = Ably::Realtime.new(token: 'xxxxx')
+client = Ably::Realtime.new(token: 'TOKEN_CREATED_USING_ABLY_KEY')
 ```
 
 `Warning - Do not expose ABLY_KEY to client code. It is meant to only be used at server side`.
