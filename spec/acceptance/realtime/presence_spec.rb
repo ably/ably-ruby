@@ -62,7 +62,7 @@ describe Ably::Realtime::Presence, :event_machine do
       unless expected_state == :left
         it "presence #{method_name} : raise an exception if the channel is detached" do
           setup_test(method_name, args, options) do
-            client_one.connection.on :connected do
+            client_one.connection.once :connected do
               channel_client_one.attach do
                 channel_client_one.transition_state_machine :detaching
                 channel_client_one.once(:detached) do
@@ -82,7 +82,7 @@ describe Ably::Realtime::Presence, :event_machine do
 
         it "presence #{method_name} : raise an exception if the channel becomes detached" do
           setup_test(method_name, args, options) do
-            client_one.connection.on :connected do
+            client_one.connection.once :connected do
               channel_client_one.attach do
                 channel_client_one.transition_state_machine :detaching
                 presence_client_one.public_send(method_name, args).tap do |deferrable|
@@ -1593,7 +1593,7 @@ describe Ably::Realtime::Presence, :event_machine do
       end
 
       it 'fails if the connection is DETACHED (#RTP11b)' do
-        client_one.connection.on :connected do
+        client_one.connection.once :connected do
           channel_client_one.attach do
             channel_client_one.detach do
               presence_client_one.get.tap do |deferrable|
@@ -2685,23 +2685,25 @@ describe Ably::Realtime::Presence, :event_machine do
 
       context 'channel transitions to the DETACHED state' do
         it 'clears the PresenceMap and local member map copy and does not emit any presence events (#RTP5a)' do
-          presence_client_one.enter
-          presence_client_one.subscribe(:enter) do
-            presence_client_one.unsubscribe :enter
+          wait_until(lambda { client_one.connection.state == :connected and anonymous_client.connection.state == :connected }) do
+            presence_client_one.enter
+            presence_client_one.subscribe(:enter) do
+              presence_client_one.unsubscribe :enter
 
-            channel_anonymous_client.attach do
-              presence_anonymous_client.get do |members|
-                expect(members.count).to eq(1)
+              channel_anonymous_client.attach do
+                presence_anonymous_client.get do |members|
+                  expect(members.count).to eq(1)
 
-                presence_anonymous_client.subscribe { raise 'No presence events should be emitted' }
-                channel_anonymous_client.detach do
-                  expect(presence_anonymous_client.members.length).to eq(0)
-                  expect(channel_anonymous_client).to be_detached
+                  presence_anonymous_client.subscribe { raise 'No presence events should be emitted' }
+                  channel_anonymous_client.detach do
+                    expect(presence_anonymous_client.members.length).to eq(0)
+                    expect(channel_anonymous_client).to be_detached
 
-                  expect(presence_client_one.members.local_members.count).to eq(1)
-                  channel_client_one.detach do
-                    expect(presence_client_one.members.local_members.count).to eq(0)
-                    stop_reactor
+                    expect(presence_client_one.members.local_members.count).to eq(1)
+                    channel_client_one.detach do
+                      expect(presence_client_one.members.local_members.count).to eq(0)
+                      stop_reactor
+                    end
                   end
                 end
               end
