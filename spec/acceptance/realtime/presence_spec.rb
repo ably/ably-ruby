@@ -62,15 +62,17 @@ describe Ably::Realtime::Presence, :event_machine do
       unless expected_state == :left
         it 'raise an exception if the channel is detached' do
           setup_test(method_name, args, options) do
-            channel_client_one.attach do
-              channel_client_one.transition_state_machine :detaching
-              channel_client_one.once(:detached) do
-                presence_client_one.public_send(method_name, args).tap do |deferrable|
-                  deferrable.callback { raise 'Get should not succeed' }
-                  deferrable.errback do |error|
-                    expect(error).to be_a(Ably::Exceptions::InvalidState)
-                    expect(error.message).to match(/Operation is not allowed when channel is in STATE.Detached/)
-                    stop_reactor
+            client_one.connection.on :connected do
+              channel_client_one.attach do
+                channel_client_one.transition_state_machine :detaching
+                channel_client_one.once(:detached) do
+                  presence_client_one.public_send(method_name, args).tap do |deferrable|
+                    deferrable.callback { raise 'Get should not succeed' }
+                    deferrable.errback do |error|
+                      expect(error).to be_a(Ably::Exceptions::InvalidState)
+                      expect(error.message).to match(/Operation is not allowed when channel is in STATE.Detached/)
+                      stop_reactor
+                    end
                   end
                 end
               end
@@ -80,14 +82,16 @@ describe Ably::Realtime::Presence, :event_machine do
 
         it 'raise an exception if the channel becomes detached' do
           setup_test(method_name, args, options) do
-            channel_client_one.attach do
-              channel_client_one.transition_state_machine :detaching
-              presence_client_one.public_send(method_name, args).tap do |deferrable|
-                deferrable.callback { raise 'Get should not succeed' }
-                deferrable.errback do |error|
-                  expect(error).to be_a(Ably::Exceptions::InvalidState)
-                  expect(error.message).to match(/Operation failed as channel transitioned to STATE.Detached/)
-                  stop_reactor
+            client_one.connection.on :connected do
+              channel_client_one.attach do
+                channel_client_one.transition_state_machine :detaching
+                presence_client_one.public_send(method_name, args).tap do |deferrable|
+                  deferrable.callback { raise 'Get should not succeed' }
+                  deferrable.errback do |error|
+                    expect(error).to be_a(Ably::Exceptions::InvalidState)
+                    expect(error.message).to match(/Operation failed as channel transitioned to STATE.Detached/)
+                    stop_reactor
+                  end
                 end
               end
             end
