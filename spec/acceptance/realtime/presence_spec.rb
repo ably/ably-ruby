@@ -1589,14 +1589,16 @@ describe Ably::Realtime::Presence, :event_machine do
       end
 
       it 'fails if the connection is DETACHED (#RTP11b)' do
-        channel_client_one.attach do
-          channel_client_one.detach do
-            presence_client_one.get.tap do |deferrable|
-              deferrable.callback { raise 'Get should not succeed' }
-              deferrable.errback do |error|
-                expect(error).to be_a(Ably::Exceptions::InvalidState)
-                expect(error.message).to match(/Operation is not allowed when channel is in STATE.Detached/)
-                stop_reactor
+        client_one.connection.on :connected do
+          channel_client_one.attach do
+            channel_client_one.detach do
+              presence_client_one.get.tap do |deferrable|
+                deferrable.callback { raise 'Get should not succeed' }
+                deferrable.errback do |error|
+                  expect(error).to be_a(Ably::Exceptions::InvalidState)
+                  expect(error.message).to match(/Operation is not allowed when channel is in STATE.Detached/)
+                  stop_reactor
+                end
               end
             end
           end
@@ -1812,29 +1814,31 @@ describe Ably::Realtime::Presence, :event_machine do
         let(:total_members)      { members_per_client * 2 }
 
         it 'returns a complete list of members on all clients' do
-          members_per_client.times do |indx|
-            presence_client_one.enter_client("client_1:#{indx}")
-            presence_client_two.enter_client("client_2:#{indx}")
-          end
+          wait_until(lambda { client_one.connection.state == :connected and client_two.connection.state == :connected }) do
+            presence_client_one.subscribe(:enter) do
+              clients_entered[:client_one] += 1
+            end
 
-          presence_client_one.subscribe(:enter) do
-            clients_entered[:client_one] += 1
-          end
+            presence_client_two.subscribe(:enter) do
+              clients_entered[:client_two] += 1
+            end
 
-          presence_client_two.subscribe(:enter) do
-            clients_entered[:client_two] += 1
-          end
+            members_per_client.times do |indx|
+              presence_client_one.enter_client("client_1:#{indx}")
+              presence_client_two.enter_client("client_2:#{indx}")
+            end
 
-          wait_until(lambda { clients_entered[:client_one] + clients_entered[:client_two] == total_members * 2 }) do
-            presence_anonymous_client.get(wait_for_sync: true) do |anonymous_members|
-              expect(anonymous_members.count).to eq(total_members)
-              expect(anonymous_members.map(&:client_id).uniq.count).to eq(total_members)
+            wait_until(lambda { clients_entered[:client_one] + clients_entered[:client_two] == total_members * 2 }) do
+              presence_anonymous_client.get(wait_for_sync: true) do |anonymous_members|
+                expect(anonymous_members.count).to eq(total_members)
+                expect(anonymous_members.map(&:client_id).uniq.count).to eq(total_members)
 
-              presence_client_one.get(wait_for_sync: true) do |client_one_members|
-                presence_client_two.get(wait_for_sync: true) do |client_two_members|
-                  expect(client_one_members.count).to eq(total_members)
-                  expect(client_one_members.count).to eq(client_two_members.count)
-                  stop_reactor
+                presence_client_one.get(wait_for_sync: true) do |client_one_members|
+                  presence_client_two.get(wait_for_sync: true) do |client_two_members|
+                    expect(client_one_members.count).to eq(total_members)
+                    expect(client_one_members.count).to eq(client_two_members.count)
+                    stop_reactor
+                  end
                 end
               end
             end
