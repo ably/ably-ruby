@@ -347,10 +347,7 @@ module Ably::Realtime
     private
     # @return [Ably::Models::PresenceMessage] presence message is returned allowing callbacks to be added
     def send_presence_protocol_message(presence_action, client_id, data, id = nil)
-      presence_message = create_presence_message(presence_action, client_id, data)
-      unless id.nil?
-        presence_message.id = id
-      end
+      presence_message = create_presence_message(presence_action, client_id, data, id)
       unless presence_message.client_id
         raise Ably::Exceptions::Standard.new('Unable to enter create presence message without a client_id', 400, Ably::Exceptions::Codes::UNABLE_TO_ENTER_PRESENCE_CHANNEL_NO_CLIENTID)
       end
@@ -366,12 +363,13 @@ module Ably::Realtime
       presence_message
     end
 
-    def create_presence_message(action, client_id, data)
+    def create_presence_message(action, client_id, data, id = nil)
       model = {
         action:   Ably::Models::PresenceMessage.ACTION(action).to_i,
         clientId: client_id,
-        data:     data
+        data:     data,
       }
+      model[:id] = id unless id.nil?
 
       Ably::Models::PresenceMessage.new(model, logger: logger).tap do |presence_message|
         presence_message.encode(client.encoders, channel.options) do |encode_error, error_message|
