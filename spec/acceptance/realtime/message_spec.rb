@@ -586,11 +586,13 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
         let(:payload) { MessagePack.pack({ 'key' => random_str }) }
 
         it 'does not attempt to decrypt the message' do
-          unencrypted_channel_client1.publish 'example', payload
-          encrypted_channel_client2.subscribe do |message|
-            expect(message.data).to eql(payload)
-            expect(message.encoding).to be_nil
-            stop_reactor
+          wait_until(lambda { client.connection.state == :connected and other_client.connection.state == :connected }) do
+            encrypted_channel_client2.subscribe do |message|
+              expect(message.data).to eql(payload)
+              expect(message.encoding).to be_nil
+              stop_reactor
+            end
+            unencrypted_channel_client1.publish 'example', payload
           end
         end
       end
