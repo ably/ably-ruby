@@ -2466,7 +2466,7 @@ describe Ably::Realtime::Presence, :event_machine do
                 end
 
                 leave_message = Ably::Models::PresenceMessage.new(
-                  'id' => "#{client_two.connection.id}:#{presence_client_two.client_id}:1",
+                  'id' => "#{client_two.connection.id}:#{client_two.connection.send(:client_msg_serial)}:1",
                   'clientId' => presence_client_two.client_id,
                   'connectionId' => client_two.connection.id,
                   'timestamp' => as_since_epoch(Time.now),
