@@ -473,10 +473,10 @@ module Ably
               url_params['clientId'] = client.auth.client_id if client.auth.has_client_id?
               url_params.merge!(client.transport_params)
 
-              if not key.nil_or_empty?
+              if !key.nil_or_empty? and connection_state_available?
                 url_params.merge! resume: key
                 logger.debug { "Resuming connection with key #{key}" }
-              elsif not client.recover.nil_or_empty?
+              elsif !client.recover.nil_or_empty?
                 recovery_context = RecoveryKeyContext.from_json(client.recover, logger)
                 unless recovery_context.nil?
                   key = recovery_context.connection_key
