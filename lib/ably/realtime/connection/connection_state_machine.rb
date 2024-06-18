@@ -53,6 +53,7 @@ module Ably::Realtime
         if is_error_type?(error)
           connection.logger.warn { "ConnectionManager: Connected with error - #{error.message}" }
         end
+        connection.manager.send(:force_reattach_on_channels, error) # irrespective of connection success/failure, reattach channels
       end
 
       after_transition(to: [:disconnected, :suspended], from: [:connecting]) do |connection, current_transition|

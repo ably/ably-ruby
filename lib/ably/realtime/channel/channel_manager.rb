@@ -201,15 +201,18 @@ module Ably::Realtime
       end
 
       def send_attach_protocol_message
-        message_options = {}
-        message_options[:params] = channel.options.params if channel.options.params.any?
-        message_options[:flags] = channel.options.modes_to_flags if channel.options.modes
-        if channel.attach_resume
-          message_options[:flags] = message_options[:flags].to_i | Ably::Models::ProtocolMessage::ATTACH_FLAGS_MAPPING[:resume]
-        end
+        # Shouldn't queue attach message as per RTL4i
+        if connection.state?(:connected)
+          message_options = {}
+          message_options[:params] = channel.options.params if channel.options.params.any?
+          message_options[:flags] = channel.options.modes_to_flags if channel.options.modes
+          if channel.attach_resume
+            message_options[:flags] = message_options[:flags].to_i | Ably::Models::ProtocolMessage::ATTACH_FLAGS_MAPPING[:resume]
+          end
 
-        message_options[:channelSerial] = channel.properties.channel_serial # RTL4c1
-        send_state_change_protocol_message Ably::Models::ProtocolMessage::ACTION.Attach, :suspended, message_options
+          message_options[:channelSerial] = channel.properties.channel_serial # RTL4c1
+          send_state_change_protocol_message Ably::Models::ProtocolMessage::ACTION.Attach, :suspended, message_options
+        end
       end
 
       def send_detach_protocol_message(previous_state)
@@ -247,9 +250,16 @@ module Ably::Realtime
 
         # since attach is sent on every connect, no need to introduce logic that sends attach on disconnect and connect
         # RTN15c6, RTN15c7
-        if new_state != Ably::Models::ProtocolMessage::ACTION.Attach
-          resend_if_disconnected_and_connected.call
+        if new_state == Ably::Models::ProtocolMessage::ACTION.Attach
+          connection.send_protocol_message_immediately(
+            action:  new_state.to_i,
+            channel: channel.name,
+            **message_options.to_h
+            )
+          return
         end
+
+        resend_if_disconnected_and_connected.call
 
         connection.send_protocol_message(
           action:  new_state.to_i,

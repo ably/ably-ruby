@@ -134,7 +134,6 @@ module Ably::Realtime
         end
 
         connection.configure_new protocol_message.connection_id, protocol_message.connection_details.connection_key
-        force_reattach_on_channels protocol_message.error # irrespective of connection success/failure, reattach channels
       end
 
       # When connection is CONNECTED and receives an update
