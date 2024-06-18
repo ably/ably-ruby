@@ -134,6 +134,7 @@ module Ably::Realtime
         end
 
         connection.configure_new protocol_message.connection_id, protocol_message.connection_details.connection_key
+        force_reattach_on_channels protocol_message.error # irrespective of connection success/failure, reattach channels
       end
 
       # When connection is CONNECTED and receives an update
@@ -581,7 +582,7 @@ module Ably::Realtime
         channels.select do |channel|
           channel.attached? || channel.attaching? || channel.suspended?
         end.each do |channel|
-          channel.manager.request_reattach reason: error
+          channel.manager.request_reattach reason: error, forced_attach: true
         end
       end
 

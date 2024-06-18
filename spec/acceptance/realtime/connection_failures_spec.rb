@@ -821,6 +821,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                   end
 
                   connection.once(:disconnected) do
+                    disconnected_at = Time.now
 
                     pseudo_time_passed = connection.connection_state_ttl + connection.details.max_idle_interval + 1
                     allow(connection).to receive(:time_since_connection_confirmed_alive?).and_return(pseudo_time_passed)
@@ -839,7 +840,8 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                         expect(connection.id).to_not eql(connection_id)
                         expect(resumed_with_clean_connection).to be_truthy
 
-                        wait_until(lambda { channel.attached? and channel_emitted_an_attached}) do
+                        wait_until(lambda { channel.attached? }) do
+                          expect(channel_emitted_an_attached).to be_truthy
                           stop_reactor
                         end
                       end

@@ -21,6 +21,7 @@ module Ably::Realtime
 
       # @api private
       def on_attach(has_presence_flag)
+        # RTP1
         if has_presence_flag
           # Expect SYNC ProtocolMessages from the server with a list of current members on this channel
           presence.members.change_state :sync_starting
@@ -30,7 +31,7 @@ module Ably::Realtime
           logger.debug { "#{self.class.name}: Emitting leave events for all members as a SYNC is not expected and thus there are no members on the channel" }
           presence.members.change_state :sync_none
         end
-        presence.members.send(:enter_local_members)
+        presence.members.send(:enter_local_members) # RTP17f
       end
 
       # Process presence messages from SYNC messages. Sync can be server-initiated or triggered following ATTACH

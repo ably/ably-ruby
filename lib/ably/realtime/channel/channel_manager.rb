@@ -53,7 +53,7 @@ module Ably::Realtime
       # @option options [Ably::Models::ErrorInfo]  :reason
       def request_reattach(options = {})
         reason = options[:reason]
-        send_attach_protocol_message
+        send_attach_protocol_message(options[:forced_attach])
         logger.debug { "Explicit channel reattach request sent to Ably due to #{reason}" }
         channel.set_channel_error_reason(reason) if reason
         channel.transition_state_machine! :attaching, reason: reason unless channel.attaching?
@@ -200,9 +200,9 @@ module Ably::Realtime
         connection.defaults.fetch(:channel_retry_timeout)
       end
 
-      def send_attach_protocol_message
+      def send_attach_protocol_message(forced_attach = false)
         # Shouldn't queue attach message as per RTL4i
-        if connection.state?(:connected)
+        if forced_attach || connection.state?(:connected)
           message_options = {}
           message_options[:params] = channel.options.params if channel.options.params.any?
           message_options[:flags] = channel.options.modes_to_flags if channel.options.modes
