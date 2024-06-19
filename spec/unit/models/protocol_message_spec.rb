@@ -397,6 +397,14 @@ describe Ably::Models::ProtocolMessage do
       end
     end
 
+    context 'with missing msg_serial for ack message' do
+      let(:model) { new_protocol_message({ :action => message_action }) }
+
+      it 'it raises an exception' do
+        expect { model.to_json }.to raise_error TypeError, /msg_serial.*missing/
+      end
+    end
+
     context 'is aliased by #to_s' do
       let(:model) { new_protocol_message({ :action => attached_action, :channelSerial => 'unique', messages: [message1, message2, message3], :timestamp => as_since_epoch(Time.now) }) }
 

@@ -249,6 +249,7 @@ module Ably::Models
     # Return a JSON ready object from the underlying #attributes using Ably naming conventions for keys
     def as_json(*args)
       raise TypeError, ':action is missing, cannot generate a valid Hash for ProtocolMessage' unless action
+      raise TypeError, ':msg_serial is missing, cannot generate a valid Hash for ProtocolMessage' if ack_required? && !has_message_serial?
 
       attributes.dup.tap do |hash_object|
         hash_object['action']   = action.to_i
