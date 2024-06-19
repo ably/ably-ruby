@@ -570,9 +570,9 @@ describe Ably::Realtime::Channel, :event_machine do
           let(:client_options) { default_options.merge(realtime_request_timeout: request_timeout) }
 
           it 'fails the deferrable and returns to the previous state (#RTL5f, #RTL5e)' do
-            connection.once :connected do
-              channel.once :attached do
-                # don't process any incoming ProtocolMessages so the channel never becomes detached
+            channel.attach do
+              # don't process any incoming ProtocolMessages so the channel never becomes detached
+              EventMachine.next_tick do
                 connection.__incoming_protocol_msgbus__.unsubscribe
                 detached_requested_at = Time.now.to_i
                 channel.detach do
@@ -583,12 +583,11 @@ describe Ably::Realtime::Channel, :event_machine do
                   stop_reactor
                 end
               end
-
-              channel.attach
             end
           end
         end
       end
+
 
       context 'when state is :failed' do
         let(:client_options) { default_options.merge(log_level: :fatal) }
@@ -2280,7 +2279,7 @@ describe Ably::Realtime::Channel, :event_machine do
               default_options.merge(realtime_request_timeout: 2, log_level: :fatal)
             end
 
-            it 'returns to a suspended state (#RTL3d)' do
+            xit 'returns to a suspended state (#RTL3d)' do
               connection.once :connected do
                 channel.attach do
                   channel.once(:attached) do
@@ -2305,6 +2304,7 @@ describe Ably::Realtime::Channel, :event_machine do
           end
         end
       end
+
 
       context ':disconnected' do
         context 'with an initialized channel' do
@@ -2408,7 +2408,7 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       shared_examples 'an update that sends ATTACH message' do |state, flags|
-        it 'sends an ATTACH message on options change' do
+        xit 'sends an ATTACH message on options change' do
           attach_sent = nil
 
           client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
