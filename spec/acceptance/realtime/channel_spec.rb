@@ -571,17 +571,14 @@ describe Ably::Realtime::Channel, :event_machine do
 
           it 'fails the deferrable and returns to the previous state (#RTL5f, #RTL5e)' do
             channel.attach do
-              # don't process any incoming ProtocolMessages so the channel never becomes detached
-              EventMachine.next_tick do
-                connection.__incoming_protocol_msgbus__.unsubscribe
-                detached_requested_at = Time.now.to_i
-                channel.detach do
-                  raise "The detach should not succeed if no incoming protocol messages are processed"
-                end.errback do
-                  expect(channel).to be_attached
-                  expect(Time.now.to_i - detached_requested_at).to be_within(1).of(request_timeout)
-                  stop_reactor
-                end
+              connection.__incoming_protocol_msgbus__.unsubscribe
+              detached_requested_at = Time.now.to_i
+              channel.detach do
+                raise "The detach should not succeed if no incoming protocol messages are processed"
+              end.errback do
+                expect(channel).to be_attached
+                expect(Time.now.to_i - detached_requested_at).to be_within(1).of(request_timeout)
+                stop_reactor
               end
             end
           end
@@ -2279,7 +2276,7 @@ describe Ably::Realtime::Channel, :event_machine do
               default_options.merge(realtime_request_timeout: 2, log_level: :fatal)
             end
 
-            xit 'returns to a suspended state (#RTL3d)' do
+            it 'returns to a suspended state (#RTL3d)' do
               connection.once :connected do
                 channel.attach do
                   channel.once(:attached) do
