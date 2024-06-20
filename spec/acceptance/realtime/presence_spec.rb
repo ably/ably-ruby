@@ -2530,17 +2530,38 @@ describe Ably::Realtime::Presence, :event_machine do
 
             it 'immediately resends all local presence members (#RTP5c2, #RTP19a)' do
               member_leave_event_fired = false
+              local_members_sent = false
 
-              presence_client_one.enter(member_data)
-              presence_client_one.subscribe(:enter) do
+              presence_client_one.subscribe(:enter) do |entered_member|
+                expect(entered_member.action).to eq(Ably::Models::PresenceMessage::ACTION.Enter)
+                expect(entered_member.data).to eq(member_data)
+                expect(entered_member.client_id).to eq(client_one.auth.client_id)
+                expect(entered_member.id).to be_truthy
+                entered_member_id = entered_member.id
+
                 presence_client_one.unsubscribe :enter
+
+                expect(presence_client_one.members.length).to eql(1)
+                expect(presence_client_one.members.local_members.length).to eql(1)
+
+                # subscribe to outgoing messages to check for entered local members with id
+                client_one.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                  if protocol_message.action == :presence
+                    protocol_message.presence.each do |local_member|
+                      expect(local_member.id).to eq(entered_member_id)
+                      expect(local_member.action).to eq(Ably::Models::PresenceMessage::ACTION.Enter)
+                      expect(local_member.data).to eq(member_data)
+                      expect(local_member.client_id).to eq(client_one.auth.client_id)
+                      local_members_sent = true
+                    end
+                  end
+                end
 
                 presence_client_one.subscribe(:leave) do |message|
                   # Member will leave the PresenceMap due to the ATTACHED without Presence
-                  member_leave_event_fired = true
                   expect(message.data).to eq(member_data)
                   expect(message.client_id).to eq(client_one.auth.client_id)
-                  stop_reactor
+                  member_leave_event_fired = true
                 end
 
                 # Shouldn't receive enter/update message when local_members are entered
@@ -2553,12 +2574,12 @@ describe Ably::Realtime::Presence, :event_machine do
 
                 presence_client_one.members.once(:sync_complete) do
                   expect(presence_client_one.members.length).to eql(0)
-                  expect(member_leave_event_fired).to be_truthy
 
-                  # TODO - Ideally both members and local_members should be cleared as per RTP19a
-                  # expect(presence_client_one.members.local_members.length).to eql(0)
+                  # Since, this is a client sent event, local_members are not cleared
+                  # local_members acts a source of truth for server and not vice versa
+                  expect(presence_client_one.members.local_members.length).to eql(1)
 
-                  EventMachine.next_tick do
+                  wait_until(lambda { member_leave_event_fired and local_members_sent}) do
                     stop_reactor
                   end
                 end
@@ -2570,6 +2591,8 @@ describe Ably::Realtime::Presence, :event_machine do
                   flags: 0 # no resume or presence flag
                 )
               end
+
+              presence_client_one.enter(member_data)
             end
           end
         end
