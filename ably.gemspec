@@ -5,7 +5,7 @@ require 'ably/version'
 
 Gem::Specification.new do |spec|
   spec.name          = 'ably'
-  spec.version       = Ably::LIB_VERSION
+  spec.version       = Ably::VERSION
   spec.authors       = ['Lewis Marshall', "Matthew O'Riordan"]
   spec.email         = ['lewis@lmars.net', 'matt@ably.io']
   spec.description   = %q{A Ruby client library for ably.io realtime messaging}
