@@ -122,11 +122,11 @@ module Ably
           acc[key.to_s] = value.to_s
         end
         @rest_client           = Ably::Rest::Client.new(options.merge(realtime_client: self))
-        @echo_messages         = rest_client.options.fetch_or_default(:echo_messages, true)
-        @queue_messages        = rest_client.options.fetch_or_default(:queue_messages, true)
+        @echo_messages         = rest_client.options.fetch_with_default(:echo_messages, true)
+        @queue_messages        = rest_client.options.fetch_with_default(:queue_messages, true)
         @custom_realtime_host  = rest_client.options[:realtime_host] || rest_client.options[:ws_host]
-        @auto_connect          = rest_client.options.fetch_or_default(:auto_connect, true)
-        @recover               = rest_client.options.fetch_or_default(:recover, '')
+        @auto_connect          = rest_client.options.fetch_with_default(:auto_connect, true)
+        @recover               = rest_client.options.fetch_with_default(:recover, '')
 
         @auth       = Ably::Realtime::Auth.new(self)
         @channels   = Ably::Realtime::Channels.new(self)

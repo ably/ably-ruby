@@ -9,8 +9,16 @@ module Ably::Util
     end
 
     refine Hash do
-      def fetch_or_default(key, default)
+      def fetch_with_default(key, default)
         value = self.fetch(key, default)
+        if value.nil?
+          return default
+        end
+        return value
+      end
+
+      def delete_with_default(key, default)
+        value = self.delete(key)
         if value.nil?
           return default
         end
