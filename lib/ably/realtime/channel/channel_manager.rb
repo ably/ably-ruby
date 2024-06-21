@@ -218,7 +218,7 @@ module Ably::Realtime
         send_state_change_protocol_message Ably::Models::ProtocolMessage::ACTION.Detach, previous_state # return to previous state if failed
       end
 
-      def cancel_pending_state_change_timer
+      def notify_state_change
         @pending_state_change_timer.cancel if @pending_state_change_timer
         @pending_state_change_timer = nil
       end
