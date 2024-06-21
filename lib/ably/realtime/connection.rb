@@ -347,7 +347,7 @@ module Ably
       # of pairs of channel @name@ and current @channelSerial@ for every currently attached channel
       def create_recovery_key
         if key.nil? || key.empty? || state == :closing || state == :closed || state == :failed || state == :suspended
-          return "" #RTN16g2
+          return nil #RTN16g2
         end
         Ably::Modules::RecoveryKeyContext.to_json(key, message_serial, client.channels.get_channel_serials)
       end
