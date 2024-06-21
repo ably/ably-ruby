@@ -274,6 +274,7 @@ module Ably::Models
     end
 
     # True if the ProtocolMessage appears to be invalid, however this is not a guarantee
+    # Used for validating incoming protocol messages, so no need to add unnecessary checks
     # @return [Boolean]
     # @api private
     def invalid?
