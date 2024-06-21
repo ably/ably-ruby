@@ -2405,13 +2405,13 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       shared_examples 'an update that sends ATTACH message' do |state, flags|
-        xit 'sends an ATTACH message on options change' do
-          attach_sent = nil
+        it 'sends an ATTACH message on options change' do
+          attach_sent_with_flags_set_via_channel_options = nil
 
           client.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
             if protocol_message.action == :attach && protocol_message.flags.nonzero?
-              attach_sent = true
               expect(protocol_message.flags).to eq(flags)
+              attach_sent_with_flags_set_via_channel_options = true
             end
           end
 
@@ -2420,10 +2420,7 @@ describe Ably::Realtime::Channel, :event_machine do
           end
 
           channel.on(:attached) do
-            client.connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
-              next if protocol_message.action != :attached
-
-              expect(attach_sent).to eq(true)
+            wait_until(lambda { attach_sent_with_flags_set_via_channel_options }) do
               stop_reactor
             end
           end
@@ -2436,7 +2433,7 @@ describe Ably::Realtime::Channel, :event_machine do
         it_behaves_like 'an update that sends ATTACH message', :attaching, build_flags(%i[subscribe])
       end
 
-      context 'when channel is attaching' do
+      context 'when channel is attached' do
         it_behaves_like 'an update that sends ATTACH message', :attached, build_flags(%i[resume subscribe])
       end
 
