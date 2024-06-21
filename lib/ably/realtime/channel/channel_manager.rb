@@ -201,7 +201,6 @@ module Ably::Realtime
       end
 
       def send_attach_protocol_message(forced_attach = false)
-        # Shouldn't queue attach message as per RTL4i
         message_options = {}
         message_options[:forced_attach] = forced_attach
         message_options[:params] = channel.options.params if channel.options.params.any?
@@ -247,10 +246,14 @@ module Ably::Realtime
           end
         end
 
-        # since attach is sent on every connect, no need to introduce logic that sends attach on disconnect and connect
-        # RTN15c6, RTN15c7
+        # Attach is sent on every connected msg received as per RTN15c6, RTN15c7
+        # So, no need to introduce logic that sends attach on disconnect and connect
         if new_state == Ably::Models::ProtocolMessage::ACTION.Attach
+          # Sends attach message only if it's forced_attach/connected_msg_received or
+          # connection state is connected.
           if message_options.delete(:forced_attach) || connection.state?(:connected)
+            # Shouldn't queue attach message as per RTL4i, so message is added top of the queue
+            # to be sent immediately while processing next message
             connection.send_protocol_message_immediately(
               action:  new_state.to_i,
               channel: channel.name,
