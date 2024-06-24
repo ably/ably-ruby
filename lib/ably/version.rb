@@ -1,9 +1,7 @@
 module Ably
   VERSION = '1.2.5'
-  PROTOCOL_VERSION = '1.2'
-
-  # @api private
-  def self.major_minor_version_numeric
-    VERSION.gsub(/\.\d+$/, '').to_f
-  end
+  # The level of compatibility with the Ably service that this SDK supports.
+  # Also referred to as the 'wire protocol version'.
+  # spec : CSV2
+  PROTOCOL_VERSION = '2'
 end

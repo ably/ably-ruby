@@ -42,7 +42,7 @@ module Ably
       #
       # @spec RTL2b
       #
-      # The permited states for this channel
+      # The permitted states for this channel
       STATE = ruby_enum('STATE',
         :initialized,
         :attaching,
