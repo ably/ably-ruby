@@ -439,9 +439,22 @@ module Ably
         end
       end
 
+      def send_protocol_message_immediately(protocol_message)
+        Ably::Models::ProtocolMessage.new(protocol_message, logger: logger).tap do |message|
+          add_message_to_outgoing_queue(message, true)
+          notify_message_dispatcher_of_new_message message
+          logger.debug { "Connection: Prot msg pushed at the top =>: #{message.action} #{message}" }
+        end
+      end
+
       # @api private
-      def add_message_to_outgoing_queue(protocol_message)
-        __outgoing_message_queue__ << protocol_message
+      def add_message_to_outgoing_queue(protocol_message, send_immediately = false)
+        if send_immediately
+          # Adding msg at the top of the queue to get processed immediately while connection is CONNECTED
+          __outgoing_message_queue__.prepend(protocol_message)
+        else
+          __outgoing_message_queue__ << protocol_message
+        end
       end
 
       # @api private
