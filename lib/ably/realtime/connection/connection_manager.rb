@@ -125,7 +125,6 @@ module Ably::Realtime
         if connection.key
           if protocol_message.connection_id == connection.id
             logger.debug { "ConnectionManager: Connection resumed successfully - ID #{connection.id} and key #{connection.key}" }
-            EventMachine.next_tick { connection.trigger_resumed }
             resend_pending_message_ack_queue
           else
             nack_messages_on_all_channels protocol_message.error
