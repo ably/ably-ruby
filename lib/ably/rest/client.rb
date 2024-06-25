@@ -597,8 +597,8 @@ module Ably
             end
             unless options[:send_auth_header] == false
               request.headers[:authorization] = auth.auth_header
-
-              options[:headers].to_h.merge(auth.extra_auth_headers).map do |key, val|
+              # RSA7e2
+              options[:headers].to_h.merge(auth.client_id_header).map do |key, val|
                 request.headers[key] = val
               end
             end

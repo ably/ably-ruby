@@ -226,6 +226,10 @@ module Ably
         auth_sync.auth_header
       end
 
+      def client_id_header_sync
+        auth_sync.client_id_header(true)
+      end
+
       # Auth params used in URI endpoint for Realtime connections
       # Will reauthorize implicitly if required and capable
       #
