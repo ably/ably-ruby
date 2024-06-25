@@ -413,9 +413,9 @@ module Ably
     # Extra headers that may be used during authentication
     # spec - RSA7e
     # @return [Hash] headers
-    def client_id_header(realtime=false)
+    def client_id_header(realtime_params=false)
       if options[:client_id] && using_basic_auth?
-        if realtime
+        if realtime_params
           { 'clientId' => options[:client_id] }
         else
           { 'X-Ably-ClientId' => Base64.urlsafe_encode64(options[:client_id]) }

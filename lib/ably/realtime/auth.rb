@@ -226,7 +226,7 @@ module Ably
         auth_sync.auth_header
       end
 
-      def client_id_header_sync
+      def client_id_params_sync
         auth_sync.client_id_header(true)
       end
 
