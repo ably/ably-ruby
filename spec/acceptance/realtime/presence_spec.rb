@@ -516,11 +516,11 @@ describe Ably::Realtime::Presence, :event_machine do
         stop_reactor
       end
 
-      it 'will emit an :in_sync event when synchronisation is complete' do
+      it 'will emit an :sync_complete event when synchronisation is complete' do
         presence_client_one.enter
         presence_client_two.enter
 
-        presence_anonymous_client.members.once(:in_sync) do
+        presence_anonymous_client.members.once(:sync_complete) do
           stop_reactor
         end
 
@@ -545,7 +545,7 @@ describe Ably::Realtime::Presence, :event_machine do
             entered += 1
             next unless entered == 2
 
-            presence_anonymous_client.members.once(:in_sync) do
+            presence_anonymous_client.members.once(:sync_complete) do
               expect(presence_anonymous_client.members.count).to eql(2)
               member_ids = presence_anonymous_client.members.map(&:member_key)
               expect(member_ids.count).to eql(2)
@@ -848,7 +848,7 @@ describe Ably::Realtime::Presence, :event_machine do
                   # Hacky accessing a private method, but absent members are intentionally not exposed to any public APIs
                   expect(presence_anonymous_client.members.send(:absent_members).length).to eql(1)
 
-                  presence_anonymous_client.members.once(:in_sync) do
+                  presence_anonymous_client.members.once(:sync_complete) do
                     # Check that members count is exact indicating the members with LEAVE action after sync are removed
                     expect(presence_anonymous_client).to be_sync_complete
                     expect(presence_anonymous_client.members.length).to eql(enter_expected_count - 1)
@@ -1004,7 +1004,7 @@ describe Ably::Realtime::Presence, :event_machine do
 
                       channel_anonymous_client.attach do
                         presence_anonymous_client.get(wait_for_sync: false) do |members|
-                          expect(presence_anonymous_client.members).to_not be_in_sync
+                          expect(presence_anonymous_client.members).to_not be_sync_complete
                           expect(members.count).to eql(0)
                           stop_reactor
                         end
@@ -1211,7 +1211,7 @@ describe Ably::Realtime::Presence, :event_machine do
               presence_client_one.subscribe(:enter) do
                 presence_client_one.unsubscribe :enter
                 EventMachine.add_timer(0.5) do
-                  expect(presence_client_one.members).to be_in_sync
+                  expect(presence_client_one.members).to be_sync_complete
                   expect(presence_client_one.members.send(:members).count).to eql(1)
                   presence_client_one.leave data
                 end
@@ -2525,7 +2525,7 @@ describe Ably::Realtime::Presence, :event_machine do
             let(:member_data) { random_str }
 
             it 'immediately resends all local presence members (#RTP5c2, #RTP19a)' do
-              in_sync_confirmed_no_local_members = false
+              sync_complete_confirmed_no_local_members = false
               local_member_leave_event_fired = false
 
               presence_client_one.enter(member_data)
@@ -2546,16 +2546,16 @@ describe Ably::Realtime::Presence, :event_machine do
                   EventMachine.next_tick do
                     expect(presence_client_one.members.length).to eql(1)
                     expect(presence_client_one.members.local_members.length).to eql(1)
-                    expect(in_sync_confirmed_no_local_members).to be_truthy
+                    expect(sync_complete_confirmed_no_local_members).to be_truthy
                     stop_reactor
                   end
                 end
 
-                presence_client_one.members.once(:in_sync) do
+                presence_client_one.members.once(:sync_complete) do
                   # Immediately after SYNC (no sync actually occurred, but this event fires immediately after a channel SYNCs or is not expecting to SYNC)
                   expect(presence_client_one.members.length).to eql(0)
                   expect(presence_client_one.members.local_members.length).to eql(0)
-                  in_sync_confirmed_no_local_members = true
+                  sync_complete_confirmed_no_local_members = true
                 end
 
                 # ATTACHED ProtocolMessage with no presence flag will clear the presence set immediately, #RTP19a
