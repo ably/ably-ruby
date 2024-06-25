@@ -274,11 +274,12 @@ module Ably::Models
     end
 
     # True if the ProtocolMessage appears to be invalid, however this is not a guarantee
+    # Used for validating incoming protocol messages, so no need to add unnecessary checks
     # @return [Boolean]
     # @api private
     def invalid?
       action_enum = action rescue nil
-      !action_enum || (ack_required? && !has_message_serial?)
+      !action_enum
     end
 
     # @!attribute [r] logger

@@ -214,7 +214,7 @@ describe Ably::Rest::Channel, 'messages' do
         expect(client.idempotent_rest_publishing).to be_truthy
       end
 
-      specify 'idempotent publishing is enabled by default with >= 1.2 (#TO3n)' do
+      specify 'idempotent publishing is enabled by default (#TO3n)' do
         client = Ably::Rest::Client.new(key: api_key, protocol: protocol)
         expect(client.idempotent_rest_publishing).to be_truthy
       end

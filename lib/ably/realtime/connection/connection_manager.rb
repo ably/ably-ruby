@@ -14,6 +14,7 @@ module Ably::Realtime
       RESOLVABLE_ERROR_CODES = {
         token_expired: Ably::Exceptions::TOKEN_EXPIRED_CODE
       }
+      using Ably::Util::AblyExtensions
 
       def initialize(connection)
         @connection     = connection
@@ -112,8 +113,7 @@ module Ably::Realtime
         # Update the connection details and any associated defaults
         connection.set_connection_details protocol_message.connection_details
 
-        is_connection_resume_or_recover_attempt = !Ably::Util::String.is_null_or_empty(connection.key) ||
-          !Ably::Util::String.is_null_or_empty(client.recover)
+        is_connection_resume_or_recover_attempt = !connection.key.nil_or_empty? || !client.recover.nil_or_empty?
 
         # RTN15c7, RTN16d
         failed_resume_or_recover = !protocol_message.connection_id == connection.id && !protocol_message.error.nil?

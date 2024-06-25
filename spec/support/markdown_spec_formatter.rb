@@ -28,7 +28,7 @@ module Ably
         else
           'REST'
         end
-        output.write "# Ably #{scope} Client Library #{Ably::LIB_VERSION} Specification\n"
+        output.write "# Ably #{scope} Client Library #{Ably::VERSION} Specification\n"
       end
 
       def close(notification)
