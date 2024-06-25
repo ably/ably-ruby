@@ -226,8 +226,8 @@ module Ably
         auth_sync.auth_header
       end
 
-      def client_id_params_sync
-        auth_sync.client_id_header(true)
+      def external_client_id_sync
+        auth_sync.external_client_id(true)
       end
 
       # Auth params used in URI endpoint for Realtime connections

@@ -470,7 +470,7 @@ module Ably
                 'false'
               end
 
-              url_params.merge!(client.auth.client_id_params_sync) # RSA7e1
+              url_params.merge!(client.auth.external_client_id_sync) # RSA7e1
               url_params.merge!(client.transport_params)
 
               if !key.nil_or_empty? and connection_state_available?
