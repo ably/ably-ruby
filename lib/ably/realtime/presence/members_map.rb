@@ -152,6 +152,29 @@ module Ably::Realtime
         @local_members
       end
 
+      def enter_local_members
+        local_members.values.each do |member|
+          local_client_id = member.client_id || client.auth.client_id
+          logger.debug { "#{self.class.name}: Manually re-entering local presence member, client ID: #{local_client_id} with data: #{member.data}" }
+          presence.enter_client_with_id(member.id, local_client_id, member.data).tap do |deferrable|
+            deferrable.errback do |error|
+              presence_message_client_id = member.client_id || client.auth.client_id
+              re_enter_error = Ably::Models::ErrorInfo.new(
+                message: "unable to automatically re-enter presence channel for client_id '#{presence_message_client_id}'. Source error code #{error.code} and message '#{error.message}'",
+                code: Ably::Exceptions::Codes::UNABLE_TO_AUTOMATICALLY_REENTER_PRESENCE_CHANNEL
+              )
+              channel.emit :update, Ably::Models::ChannelStateChange.new(
+                current: channel.state,
+                previous: channel.state,
+                event: Ably::Realtime::Channel::EVENT(:update),
+                reason: re_enter_error,
+                resumed: true
+              )
+            end
+          end
+        end
+      end
+
       private
       attr_reader :sync_session_id
 
@@ -223,29 +246,6 @@ module Ably::Realtime
           clean_up_absent_members
           clean_up_members_not_present_after_sync
           change_state :sync_complete
-        end
-      end
-
-      def enter_local_members
-        local_members.values.each do |member|
-          local_client_id = member.client_id || client.auth.client_id
-          logger.debug { "#{self.class.name}: Manually re-entering local presence member, client ID: #{local_client_id} with data: #{member.data}" }
-          presence.enter_client_with_id(member.id, local_client_id, member.data).tap do |deferrable|
-            deferrable.errback do |error|
-              presence_message_client_id = member.client_id || client.auth.client_id
-              re_enter_error = Ably::Models::ErrorInfo.new(
-                message: "unable to automatically re-enter presence channel for client_id '#{presence_message_client_id}'. Source error code #{error.code} and message '#{error.message}'",
-                code: Ably::Exceptions::Codes::UNABLE_TO_AUTOMATICALLY_REENTER_PRESENCE_CHANNEL
-              )
-              channel.emit :update, Ably::Models::ChannelStateChange.new(
-                current: channel.state,
-                previous: channel.state,
-                event: Ably::Realtime::Channel::EVENT(:update),
-                reason: re_enter_error,
-                resumed: true
-              )
-            end
-          end
         end
       end
 
