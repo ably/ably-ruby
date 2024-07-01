@@ -1,5 +1,5 @@
 module Ably
-  LIB_VERSION = '1.2.5'
+  VERSION = '1.2.5'
   # The level of compatibility with the Ably service that this SDK supports.
   # Also referred to as the 'wire protocol version'.
   # spec : CSV2

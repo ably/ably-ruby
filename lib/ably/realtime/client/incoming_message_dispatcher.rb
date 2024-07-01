@@ -44,18 +44,16 @@ module Ably::Realtime
         end
 
         # RTL15b
-        unless protocol_message.nil?
-          if protocol_message.has_channel_serial? &&
-            (
-              protocol_message.action == :message ||
-                protocol_message.action == :presence ||
-                protocol_message.action == :attached
-            )
-            get_channel(protocol_message.channel).tap do |channel|
-              logger.info "Setting channel serial for channel #{channel.name}, " <<
-                            "Previous: #{channel.properties.channel_serial}, New: #{protocol_message.channel_serial}"
-              channel.properties.channel_serial = protocol_message.channel_serial
-            end
+        if protocol_message.has_channel_serial? &&
+          (
+            protocol_message.action == :message ||
+              protocol_message.action == :presence ||
+              protocol_message.action == :attached
+          )
+          get_channel(protocol_message.channel).tap do |channel|
+            logger.info "Setting channel serial for channel #{channel.name}, " <<
+                          "Previous: #{channel.properties.channel_serial}, New: #{protocol_message.channel_serial}"
+            channel.properties.channel_serial = protocol_message.channel_serial
           end
         end
 

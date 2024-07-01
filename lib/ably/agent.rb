@@ -1,3 +1,3 @@
 module Ably
-  AGENT = "ably-ruby/#{Ably::LIB_VERSION} ruby/#{RUBY_VERSION}"
+  AGENT = "ably-ruby/#{Ably::VERSION} ruby/#{RUBY_VERSION}"
 end

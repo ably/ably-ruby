@@ -31,7 +31,7 @@ module Ably::Realtime
           logger.debug { "#{self.class.name}: Emitting leave events for all members as a SYNC is not expected and thus there are no members on the channel" }
           presence.members.change_state :sync_none
         end
-        presence.members.send(:enter_local_members) # RTP17f
+        presence.members.enter_local_members # RTP17f
       end
 
       # Process presence messages from SYNC messages. Sync can be server-initiated or triggered following ATTACH
