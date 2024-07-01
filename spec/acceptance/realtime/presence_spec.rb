@@ -704,21 +704,29 @@ describe Ably::Realtime::Presence, :event_machine do
 
     context '#sync_complete? and SYNC flags (#RTP1)' do
       context 'when attaching to a channel without any members present' do
-        xit 'sync_complete? is true, there is no presence flag, and the presence channel is considered synced immediately (#RTP1)' do
-          flag_checked = false
+        it 'sync_complete? is true, no members are received and the presence channel is synced (#RTP1)' do
+          sync_info_received = false
 
           anonymous_client.connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
             if protocol_message.action == :attached
-              flag_checked = true
-              expect(protocol_message.has_presence_flag?).to eql(false)
+              if protocol_message.has_presence_flag?
+                sync_info_received = false
+              else
+                sync_info_received = true
+              end
+            end
+            if protocol_message.action == Ably::Models::ProtocolMessage::ACTION.Sync
+              expect(protocol_message.presence).to be_empty
+              sync_info_received = true
             end
           end
 
           channel_anonymous_client.attach do
-            expect(channel_anonymous_client.presence).to be_sync_complete
-            EventMachine.next_tick do
-              expect(flag_checked).to eql(true)
-              stop_reactor
+            wait_until(lambda { channel_anonymous_client.presence.sync_complete? and sync_info_received}) do
+              channel_anonymous_client.presence.get do |members|
+                expect(members).to be_empty
+                stop_reactor
+              end
             end
           end
         end
