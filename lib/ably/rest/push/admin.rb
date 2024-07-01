@@ -21,7 +21,7 @@ module Ably::Rest
 
       # Publish a push message directly to a single recipient
       #
-      # @param recipient [Hash] A recipient device, client_id or raw APNS/FCM target. Refer to push documentation
+      # @param recipient [Hash] A recipient device, client_id or raw APNS/FCM/web target. Refer to push documentation
       # @param data      [Hash] The notification payload data and fields. Refer to push documentation
       #
       # @return [void]
