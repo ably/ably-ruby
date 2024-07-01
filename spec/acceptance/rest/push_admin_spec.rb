@@ -181,7 +181,7 @@ describe Ably::Rest::Push::Admin do
                 client_id: client_id,
                 push: {
                   recipient: {
-                    transport_type: 'gcm',
+                    transport_type: 'fcm',
                     registration_token: 'secret_token',
                   }
                 }
@@ -250,7 +250,7 @@ describe Ably::Rest::Push::Admin do
                 client_id: client_id,
                 push: {
                   recipient: {
-                    transport_type: 'gcm',
+                    transport_type: 'fcm',
                     registration_token: 'secret_token',
                   }
                 }
@@ -268,7 +268,7 @@ describe Ably::Rest::Push::Admin do
           expect(device).to be_a(Ably::Models::DeviceDetails)
           expect(device.platform).to eql('ios')
           expect(device.client_id).to eql(client_id)
-          expect(device.push.recipient.fetch(:transport_type)).to eql('gcm')
+          expect(device.push.recipient.fetch(:transport_type)).to eql('fcm')
         end
 
         it 'returns a DeviceDetails object if a DeviceDetails object is provided' do
@@ -276,7 +276,7 @@ describe Ably::Rest::Push::Admin do
           expect(device).to be_a(Ably::Models::DeviceDetails)
           expect(device.platform).to eql('ios')
           expect(device.client_id).to eql(client_id)
-          expect(device.push.recipient.fetch(:transport_type)).to eql('gcm')
+          expect(device.push.recipient.fetch(:transport_type)).to eql('fcm')
         end
 
         it 'raises a ResourceMissing exception if device ID does not exist' do
@@ -350,14 +350,14 @@ describe Ably::Rest::Push::Admin do
           expect(device_retrieved.push.recipient['foo_bar']).to eql('string')
         end
 
-        context 'with GCM target' do
+        context 'with FCM target' do
           let(:device_token) { random_str }
 
           it 'saves the associated DevicePushDetails' do
             subject.save(device_details.merge(
               push: {
                 recipient: {
-                  transport_type: 'gcm',
+                  transport_type: 'fcm',
                   registrationToken: device_token
                 }
               }
@@ -365,7 +365,7 @@ describe Ably::Rest::Push::Admin do
 
             device_retrieved = subject.get(device_details.fetch(:id))
 
-            expect(device_retrieved.push.recipient.fetch('transportType')).to eql('gcm')
+            expect(device_retrieved.push.recipient.fetch('transportType')).to eql('fcm')
             expect(device_retrieved.push.recipient[:registration_token]).to eql(device_token)
           end
         end
@@ -462,7 +462,7 @@ describe Ably::Rest::Push::Admin do
                 client_id: client_id,
                 push: {
                   recipient: {
-                    transport_type: 'gcm',
+                    transport_type: 'fcm',
                     registrationToken: 'secret_token',
                   }
                 }
@@ -476,7 +476,7 @@ describe Ably::Rest::Push::Admin do
                 client_id: client_id,
                 push: {
                   recipient: {
-                    transport_type: 'gcm',
+                    transport_type: 'fcm',
                     registration_token: 'secret_token',
                   }
                 }
@@ -525,7 +525,7 @@ describe Ably::Rest::Push::Admin do
                 client_id: client_id,
                 push: {
                   recipient: {
-                    transport_type: 'gcm',
+                    transport_type: 'fcm',
                     registration_token: 'secret_token',
                   }
                 }
@@ -539,7 +539,7 @@ describe Ably::Rest::Push::Admin do
                 client_id: client_id,
                 push: {
                   recipient: {
-                    transport_type: 'gcm',
+                    transport_type: 'fcm',
                     registration_token: 'secret_token',
                   }
                 }
@@ -580,7 +580,7 @@ describe Ably::Rest::Push::Admin do
           client_id: client_id,
           push: {
             recipient: {
-              transport_type: 'gcm',
+              transport_type: 'fcm',
               registration_token: 'secret_token',
             }
           }
