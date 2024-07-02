@@ -372,7 +372,8 @@ describe Ably::Rest::Push::Admin do
 
         context 'with web target' do
           let(:target_url) { 'http://foo.com/bar' }
-          let(:encryption_key) { random_str }
+          let(:p256dh) { random_str }
+          let(:auth) { random_str }
 
           it 'saves the associated DevicePushDetails' do
             subject.save(device_details.merge(
@@ -380,7 +381,10 @@ describe Ably::Rest::Push::Admin do
                 recipient: {
                   transport_type: 'web',
                   targetUrl: target_url,
-                  encryptionKey: encryption_key
+                  encryptionKey: {
+                    p256dh: p256dh,
+                    auth: auth
+                  }
                 }
               }
             ))
@@ -389,7 +393,8 @@ describe Ably::Rest::Push::Admin do
 
             expect(device_retrieved.push.recipient[:transport_type]).to eql('web')
             expect(device_retrieved.push.recipient['targetUrl']).to eql(target_url)
-            expect(device_retrieved.push.recipient['encryptionKey']).to eql(encryption_key)
+            expect(device_retrieved.push.recipient['encryptionKey']['p256dh']).to eql(p256dh)
+            expect(device_retrieved.push.recipient['encryptionKey']['auth']).to eql(auth)
           end
         end
 

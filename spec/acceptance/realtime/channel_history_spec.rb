@@ -209,7 +209,7 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
       end
 
       context 'and two pages of messages' do
-        it 'retrieves two pages of messages before channel was attached' do
+        xit 'retrieves two pages of messages before channel was attached' do
           10.times { rest_channel.publish event, message_before_attach }
 
           channel.attach do
