@@ -184,8 +184,11 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
       end
 
       context 'when channel receives update event after an attachment' do
+        attach_serial = "old attach serial"
+        subsequent_serial = "new attach serial that needs to be updated"
         before do
           channel.on(:attached) do
+            attach_serial = channel.properties.attach_serial
             channel.publish(event, message_after_attach) do
               subsequent_serial = channel.properties.attach_serial.dup.tap { |serial| serial[-1] = '1' }
               attached_message = Ably::Models::ProtocolMessage.new(action: 11, channel: channel_name, flags: 0, channel_serial: subsequent_serial)
@@ -194,14 +197,13 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
           end
         end
 
-        xit 'updates attach_serial' do
+        it 'updates attach_serial' do
           rest_channel.publish event, message_before_attach
-
           channel.on(:update) do
-            channel.history(until_attach: true) do |messages|
-              expect(messages.items.count).to eql(2)
-              stop_reactor
-            end
+            new_attach_serial = channel.properties.attach_serial
+            expect(new_attach_serial).not_to eq(attach_serial)
+            expect(new_attach_serial).to eq(subsequent_serial)
+            stop_reactor
           end
 
           channel.attach
