@@ -211,66 +211,63 @@ module Ably::Realtime
         end
 
         message_options[:channelSerial] = channel.properties.channel_serial # RTL4c1
-        send_state_change_protocol_message Ably::Models::ProtocolMessage::ACTION.Attach, :suspended, message_options
+
+        state_at_time_of_request = channel.state
+        attach_action = Ably::Models::ProtocolMessage::ACTION.Attach
+        @pending_state_change_timer = EventMachine::Timer.new(realtime_request_timeout) do
+          if channel.state == state_at_time_of_request
+            error = Ably::Models::ErrorInfo.new(code: Ably::Exceptions::Codes::CHANNEL_OPERATION_FAILED_NO_RESPONSE_FROM_SERVER, message: "Channel #{attach_action} operation failed (timed out)")
+            channel.transition_state_machine :suspended, reason: error # return to suspended state if failed
+          end
+        end
+        # Sends attach message only if it's forced_attach/connected_msg_received or
+        # connection state is connected.
+        if message_options.delete(:forced_attach) || connection.state?(:connected)
+          # Shouldn't queue attach message as per RTL4i, so message is added top of the queue
+          # to be sent immediately while processing next message
+          connection.send_protocol_message_immediately(
+            action:  attach_action.to_i,
+            channel: channel.name,
+            **message_options.to_h
+          )
+        end
       end
 
       def send_detach_protocol_message(previous_state)
-        send_state_change_protocol_message Ably::Models::ProtocolMessage::ACTION.Detach, previous_state # return to previous state if failed
+        state_at_time_of_request = channel.state
+        detach_action = Ably::Models::ProtocolMessage::ACTION.Detach
+
+        @pending_state_change_timer = EventMachine::Timer.new(realtime_request_timeout) do
+          if channel.state == state_at_time_of_request
+            error = Ably::Models::ErrorInfo.new(code: Ably::Exceptions::Codes::CHANNEL_OPERATION_FAILED_NO_RESPONSE_FROM_SERVER, message: "Channel #{detach_action} operation failed (timed out)")
+            channel.transition_state_machine previous_state, reason: error # return to previous state if failed
+          end
+        end
+
+        on_disconnected_and_connected = lambda do
+          connection.unsafe_once(:disconnected) do
+            connection.unsafe_once(:connected) do
+              yield if pending_state_change_timer
+            end if pending_state_change_timer
+          end
+        end
+
+        send_detach_message = lambda do
+          on_disconnected_and_connected.call do
+            send_detach_message.call
+          end
+          connection.send_protocol_message(
+            action:  detach_action.to_i,
+            channel: channel.name
+          )
+        end
+
+        send_detach_message.call
       end
 
       def notify_state_change
         @pending_state_change_timer.cancel if @pending_state_change_timer
         @pending_state_change_timer = nil
-      end
-
-      def send_state_change_protocol_message(new_state, state_if_failed, message_options = {})
-        state_at_time_of_request = channel.state
-        @pending_state_change_timer = EventMachine::Timer.new(realtime_request_timeout) do
-          if channel.state == state_at_time_of_request
-            error = Ably::Models::ErrorInfo.new(code: Ably::Exceptions::Codes::CHANNEL_OPERATION_FAILED_NO_RESPONSE_FROM_SERVER, message: "Channel #{new_state} operation failed (timed out)")
-            channel.transition_state_machine state_if_failed, reason: error
-          end
-        end
-
-        resend_if_disconnected_and_connected = lambda do
-          connection.unsafe_once(:disconnected) do
-            connection.unsafe_once(:connected) do
-              if pending_state_change_timer
-                connection.send_protocol_message(
-                  action:  new_state.to_i,
-                  channel: channel.name,
-                  **message_options.to_h
-                )
-                resend_if_disconnected_and_connected.call
-              end
-            end if pending_state_change_timer
-          end
-        end
-
-        # Attach is sent on every connected msg received as per RTN15c6, RTN15c7
-        # So, no need to introduce logic that sends attach on disconnect and connect
-        if new_state == Ably::Models::ProtocolMessage::ACTION.Attach
-          # Sends attach message only if it's forced_attach/connected_msg_received or
-          # connection state is connected.
-          if message_options.delete(:forced_attach) || connection.state?(:connected)
-            # Shouldn't queue attach message as per RTL4i, so message is added top of the queue
-            # to be sent immediately while processing next message
-            connection.send_protocol_message_immediately(
-              action:  new_state.to_i,
-              channel: channel.name,
-              **message_options.to_h
-              )
-          end
-          return
-        end
-
-        resend_if_disconnected_and_connected.call
-
-        connection.send_protocol_message(
-          action:  new_state.to_i,
-          channel: channel.name,
-          **message_options.to_h
-        )
       end
 
       def update_presence_sync_state_following_attached(attached_protocol_message)

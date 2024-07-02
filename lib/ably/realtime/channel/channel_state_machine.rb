@@ -29,7 +29,7 @@ module Ably::Realtime
       transition :from => :failed,       :to => [:attaching, :initialized]
 
       after_transition do |channel, transition|
-        channel.manager.send(:notify_state_change)
+        channel.manager.notify_state_change
         channel.synchronize_state_with_statemachine
       end
 
