@@ -52,10 +52,10 @@ module Ably::Realtime
       # @param reason
       # @option options [Ably::Models::ErrorInfo]  :reason
       def request_reattach(reason = nil)
-        send_attach_protocol_message
-        logger.debug { "Explicit channel reattach request sent to Ably due to #{reason}" }
         channel.set_channel_error_reason(reason) if reason
         channel.transition_state_machine! :attaching, reason: reason unless channel.attaching?
+        send_attach_protocol_message
+        logger.debug { "Explicit channel reattach request sent to Ably due to #{reason}" }
       end
 
       def duplicate_attached_received(protocol_message)
