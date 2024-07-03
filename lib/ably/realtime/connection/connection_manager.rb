@@ -582,7 +582,7 @@ module Ably::Realtime
         channels.select do |channel|
           channel.attached? || channel.attaching? || channel.suspended?
         end.each do |channel|
-          channel.manager.request_reattach reason: error, forced_attach: true
+          channel.manager.request_reattach reason: error
         end
       end
 
