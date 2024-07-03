@@ -18,7 +18,7 @@ module Ably::Realtime
       def attach
         if can_transition_to?(:attached)
           connect_if_connection_initialized
-          send_attach_protocol_message
+          send_attach_protocol_message if connection.state?(:connected)
         end
       end
 
@@ -49,14 +49,12 @@ module Ably::Realtime
       end
 
       # Request channel to be reattached by sending an attach protocol message
-      # @param [Hash] options
-      # @option options [Ably::Models::ErrorInfo]  :reason
-      def request_reattach(options = {})
-        reason = options[:reason]
-        send_attach_protocol_message(options[:forced_attach])
-        logger.debug { "Explicit channel reattach request sent to Ably due to #{reason}" }
+      # @param [Ably::Models::ErrorInfo] reason
+      def request_reattach(reason = nil)
         channel.set_channel_error_reason(reason) if reason
         channel.transition_state_machine! :attaching, reason: reason unless channel.attaching?
+        send_attach_protocol_message
+        logger.debug { "Explicit channel reattach request sent to Ably due to #{reason}" }
       end
 
       def duplicate_attached_received(protocol_message)
@@ -201,9 +199,8 @@ module Ably::Realtime
         connection.defaults.fetch(:channel_retry_timeout)
       end
 
-      def send_attach_protocol_message(forced_attach = false)
+      def send_attach_protocol_message
         message_options = {}
-        message_options[:forced_attach] = forced_attach
         message_options[:params] = channel.options.params if channel.options.params.any?
         message_options[:flags] = channel.options.modes_to_flags if channel.options.modes
         if channel.attach_resume
@@ -220,17 +217,13 @@ module Ably::Realtime
             channel.transition_state_machine :suspended, reason: error # return to suspended state if failed
           end
         end
-        # Sends attach message only if it's forced_attach/connected_msg_received or
-        # connection state is connected.
-        if message_options.delete(:forced_attach) || connection.state?(:connected)
-          # Shouldn't queue attach message as per RTL4i, so message is added top of the queue
-          # to be sent immediately while processing next message
-          connection.send_protocol_message_immediately(
-            action:  attach_action.to_i,
-            channel: channel.name,
-            **message_options.to_h
-          )
-        end
+        # Shouldn't queue attach message as per RTL4i, so message is added top of the queue
+        # to be sent immediately while processing next message
+        connection.send_protocol_message_immediately(
+          action:  attach_action.to_i,
+          channel: channel.name,
+          **message_options.to_h
+        )
       end
 
       def send_detach_protocol_message(previous_state)
