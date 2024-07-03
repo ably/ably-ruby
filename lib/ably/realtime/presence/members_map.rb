@@ -154,13 +154,11 @@ module Ably::Realtime
 
       def enter_local_members
         local_members.values.each do |member|
-          local_client_id = member.client_id || client.auth.client_id
-          logger.debug { "#{self.class.name}: Manually re-entering local presence member, client ID: #{local_client_id} with data: #{member.data}" }
-          presence.enter_client_with_id(member.id, local_client_id, member.data).tap do |deferrable|
+          logger.debug { "#{self.class.name}: Manually re-entering local presence member, client ID: #{member.client_id} with data: #{member.data}" }
+          presence.enter_client_with_id(member.id, member.client_id, member.data).tap do |deferrable|
             deferrable.errback do |error|
-              presence_message_client_id = member.client_id || client.auth.client_id
               re_enter_error = Ably::Models::ErrorInfo.new(
-                message: "unable to automatically re-enter presence channel for client_id '#{presence_message_client_id}'. Source error code #{error.code} and message '#{error.message}'",
+                message: "unable to automatically re-enter presence channel for client_id '#{member.client_id}'. Source error code #{error.code} and message '#{error.message}'",
                 code: Ably::Exceptions::Codes::UNABLE_TO_AUTOMATICALLY_REENTER_PRESENCE_CHANNEL
               )
               channel.emit :update, Ably::Models::ChannelStateChange.new(
