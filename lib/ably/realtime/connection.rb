@@ -431,20 +431,16 @@ module Ably
       # @api private
       def send_protocol_message(protocol_message)
         add_message_serial_if_ack_required_to(protocol_message) do
-          Ably::Models::ProtocolMessage.new(protocol_message, logger: logger).tap do |message|
-            add_message_to_outgoing_queue message
-            notify_message_dispatcher_of_new_message message
-            logger.debug { "Connection: Prot msg queued =>: #{message.action} #{message}" }
-          end
+          message = Ably::Models::ProtocolMessage.new(protocol_message, logger: logger)
+          add_message_to_outgoing_queue(message)
+          notify_message_dispatcher_of_new_message message
         end
       end
 
       def send_protocol_message_immediately(protocol_message)
-        Ably::Models::ProtocolMessage.new(protocol_message, logger: logger).tap do |message|
-          add_message_to_outgoing_queue(message, true)
-          notify_message_dispatcher_of_new_message message
-          logger.debug { "Connection: Prot msg pushed at the top =>: #{message.action} #{message}" }
-        end
+        message = Ably::Models::ProtocolMessage.new(protocol_message, logger: logger)
+        add_message_to_outgoing_queue(message, true)
+        notify_message_dispatcher_of_new_message message
       end
 
       # @api private
@@ -452,8 +448,10 @@ module Ably
         if send_immediately
           # Adding msg at the top of the queue to get processed immediately while connection is CONNECTED
           __outgoing_message_queue__.prepend(protocol_message)
+          logger.debug { "Connection: protocol msg pushed at the top =>: #{message.action} #{message}" }
         else
           __outgoing_message_queue__ << protocol_message
+          logger.debug { "Connection: protocol msg queued =>: #{message.action} #{message}" }
         end
       end
 
