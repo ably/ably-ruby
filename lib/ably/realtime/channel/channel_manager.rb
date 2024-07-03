@@ -49,10 +49,9 @@ module Ably::Realtime
       end
 
       # Request channel to be reattached by sending an attach protocol message
-      # @param [Hash] options
+      # @param reason
       # @option options [Ably::Models::ErrorInfo]  :reason
-      def request_reattach(options = {})
-        reason = options[:reason]
+      def request_reattach(reason = nil)
         send_attach_protocol_message
         logger.debug { "Explicit channel reattach request sent to Ably due to #{reason}" }
         channel.set_channel_error_reason(reason) if reason
