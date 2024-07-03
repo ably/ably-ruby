@@ -411,18 +411,21 @@ module Ably
     end
 
     # Extra headers that may be used during authentication
-    # spec - RSA7e
+    #
     # @return [Hash] headers
-    def external_client_id(realtime=false)
-      if options[:client_id] && using_basic_auth?
-        if realtime
-          { 'clientId' => options[:client_id] }
-        else
-          { 'X-Ably-ClientId' => Base64.urlsafe_encode64(options[:client_id]) }
-        end
+    def extra_auth_headers
+      if client_id_for_request
+        { 'X-Ably-ClientId' => Base64.urlsafe_encode64(client_id_for_request) }
       else
         {}
       end
+    end
+
+    # ClientId that needs to be included with every rest/realtime request
+    # spec - RSA7e
+    # @return string
+    def client_id_for_request
+      options[:client_id] if options[:client_id] && using_basic_auth?
     end
 
     # Auth params used in URI endpoint for Realtime connections
