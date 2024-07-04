@@ -280,7 +280,7 @@ describe Ably::Rest::Channel do
 
             context 'with an invalid client_id in the message' do
               it 'succeeds in the client library but then fails when published to Ably' do
-                expect { channel.publish([name: 'event', client_id: 'invalid']) }.to raise_error Ably::Exceptions::InvalidRequest, /40012/
+                expect { channel.publish([name: 'event', client_id: 'invalid']) }.to raise_error(Ably::Exceptions::InvalidRequest, /40012/)
               end
             end
 
