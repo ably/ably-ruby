@@ -432,9 +432,35 @@ describe Ably::Realtime::Channel, :event_machine do
       end
 
       context 'with connection state' do
+
+        sent_attach_messages = []
+        received_attached_messages = []
+        before(:each) do
+          sent_attach_messages = []
+          received_attached_messages = []
+          client.connection.__outgoing_protocol_msgbus__.subscribe do |message|
+            if message.action == :attach
+              sent_attach_messages << message
+            end
+          end
+          client.connection.__incoming_protocol_msgbus__.subscribe do |message|
+            if message.action == :attached
+              received_attached_messages << message
+            end
+          end
+        end
+
+        # Should send/receive attach/attached message only once
+        # No duplicates should be sent or received
+        let(:check_for_attach_messages) do
+          expect(sent_attach_messages.size).to eq(1)
+          expect(received_attached_messages.size).to eq(1)
+        end
+
         it 'is initialized (#RTL4i)' do
           expect(connection).to be_initialized
           channel.attach do
+            check_for_attach_messages
             stop_reactor
           end
         end
@@ -442,6 +468,7 @@ describe Ably::Realtime::Channel, :event_machine do
         it 'is connecting (#RTL4i)' do
           connection.once(:connecting) do
             channel.attach do
+              check_for_attach_messages
               stop_reactor
             end
           end
@@ -451,6 +478,7 @@ describe Ably::Realtime::Channel, :event_machine do
           connection.once(:connected) do
             connection.once(:disconnected) do
               channel.attach do
+                check_for_attach_messages
                 stop_reactor
               end
             end
