@@ -364,7 +364,7 @@ module Ably
       # @return [Ably::Models::ChannelOptions]
       def set_options(channel_options)
         @options = Ably::Models::ChannelOptions(channel_options)
-
+        # RTL4i
         manager.request_reattach if (need_reattach? and connection.state?(:connected))
       end
       alias options= set_options

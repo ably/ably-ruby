@@ -18,7 +18,7 @@ module Ably::Realtime
       def attach
         if can_transition_to?(:attached)
           connect_if_connection_initialized
-          send_attach_protocol_message if connection.state?(:connected)
+          send_attach_protocol_message if connection.state?(:connected) # RTL4i
         end
       end
 
@@ -167,6 +167,12 @@ module Ably::Realtime
         end
       end
 
+      # RTL13c
+      def notify_state_change
+        @pending_state_change_timer.cancel if @pending_state_change_timer
+        @pending_state_change_timer = nil
+      end
+
       private
       attr_reader :pending_state_change_timer
 
@@ -210,6 +216,7 @@ module Ably::Realtime
 
         state_at_time_of_request = channel.state
         attach_action = Ably::Models::ProtocolMessage::ACTION.Attach
+        # RTL4f
         @pending_state_change_timer = EventMachine::Timer.new(realtime_request_timeout) do
           if channel.state == state_at_time_of_request
             error = Ably::Models::ErrorInfo.new(code: Ably::Exceptions::Codes::CHANNEL_OPERATION_FAILED_NO_RESPONSE_FROM_SERVER, message: "Channel #{attach_action} operation failed (timed out)")
@@ -255,11 +262,6 @@ module Ably::Realtime
         end
 
         send_detach_message.call
-      end
-
-      def notify_state_change
-        @pending_state_change_timer.cancel if @pending_state_change_timer
-        @pending_state_change_timer = nil
       end
 
       def logger
