@@ -480,8 +480,8 @@ module Ably
               else
                 'false'
               end
-
-              url_params['clientId'] = client.auth.client_id if client.auth.has_client_id?
+              # RSA7e1
+              url_params['clientId'] = client.auth.client_id_for_request_sync if client.auth.client_id_for_request_sync
               url_params.merge!(client.transport_params)
 
               if !key.nil_or_empty? and connection_state_available?
