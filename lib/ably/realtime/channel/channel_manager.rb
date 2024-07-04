@@ -34,9 +34,9 @@ module Ably::Realtime
       # Channel is attached, notify presence if sync is expected
       def attached(attached_protocol_message)
         # If no attached ProtocolMessage then this attached request was triggered by the client
-        # library, such as returning to attached whne detach has failed
+        # library, such as returning to attached when detach has failed
         if attached_protocol_message
-          update_presence_sync_state_following_attached attached_protocol_message
+          channel.presence.manager.on_attach attached_protocol_message.has_presence_flag?
           channel.properties.set_attach_serial(attached_protocol_message.channel_serial)
           channel.options.set_modes_from_flags(attached_protocol_message.flags)
           channel.options.set_params(attached_protocol_message.params)
@@ -58,6 +58,7 @@ module Ably::Realtime
       end
 
       def duplicate_attached_received(protocol_message)
+        logger.debug { "Server initiated ATTACHED message received for channel '#{channel.name}' with state #{channel.state}" }
         if protocol_message.error
           channel.set_channel_error_reason protocol_message.error
           log_channel_error protocol_message.error
@@ -66,9 +67,7 @@ module Ably::Realtime
         channel.properties.set_attach_serial(protocol_message.channel_serial)
         channel.options.set_modes_from_flags(protocol_message.flags)
 
-        if protocol_message.has_channel_resumed_flag?
-          logger.debug { "ChannelManager: Additional resumed ATTACHED message received for #{channel.state} channel '#{channel.name}'" }
-        else
+        unless protocol_message.has_channel_resumed_flag?
           channel.emit :update, Ably::Models::ChannelStateChange.new(
             current: channel.state,
             previous: channel.state,
@@ -76,7 +75,7 @@ module Ably::Realtime
             reason: protocol_message.error,
             resumed: false,
           )
-          update_presence_sync_state_following_attached protocol_message
+          channel.presence.manager.on_attach protocol_message.has_presence_flag?
         end
       end
 
@@ -261,14 +260,6 @@ module Ably::Realtime
       def notify_state_change
         @pending_state_change_timer.cancel if @pending_state_change_timer
         @pending_state_change_timer = nil
-      end
-
-      def update_presence_sync_state_following_attached(attached_protocol_message)
-        if attached_protocol_message.has_presence_flag?
-          channel.presence.manager.sync_expected
-        else
-          channel.presence.manager.sync_not_expected
-        end
       end
 
       def logger

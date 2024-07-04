@@ -543,24 +543,6 @@ module Ably
         @details = connection_details
       end
 
-      # Executes registered callbacks for a successful connection resume event
-      # @api private
-      def trigger_resumed
-        resume_callbacks.each(&:call)
-      end
-
-      # Provides a simple hook to inject a callback when a connection is successfully resumed
-      # @api private
-      def on_resume(&callback)
-        resume_callbacks << callback
-      end
-
-      # Remove a registered connection resume callback
-      # @api private
-      def off_resume(&callback)
-        resume_callbacks.delete(callback)
-      end
-
       # Returns false if messages cannot be published as a result of message queueing being disabled
       # @api private
       def can_publish_messages?
@@ -629,10 +611,6 @@ module Ably
       # @return [Integer] starting at -1 indicating no messages sent, 0 when the first message is sent
       def client_msg_serial
         @client_msg_serial
-      end
-
-      def resume_callbacks
-        @resume_callbacks ||= []
       end
 
       def create_pub_sub_message_bus
