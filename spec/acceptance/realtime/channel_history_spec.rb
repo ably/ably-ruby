@@ -184,32 +184,28 @@ describe Ably::Realtime::Channel, '#history', :event_machine do
       end
 
       context 'when channel receives update event after an attachment' do
+        old_attach_serial = ""
+        new_attach_serial = "xxxx-xxxx-1"
         before do
           channel.on(:attached) do
-            channel.publish(event, message_after_attach) do
-              subsequent_serial = channel.properties.attach_serial.dup.tap { |serial| serial[-1] = '1' }
-              attached_message = Ably::Models::ProtocolMessage.new(action: 11, channel: channel_name, flags: 0, channel_serial: subsequent_serial)
-              client.connection.__incoming_protocol_msgbus__.publish :protocol_message, attached_message
-            end
+            old_attach_serial = channel.properties.attach_serial
+            attached_message = Ably::Models::ProtocolMessage.new(action: 11, channel: channel_name, flags: 0, channel_serial: new_attach_serial)
+            client.connection.__incoming_protocol_msgbus__.publish :protocol_message, attached_message
           end
         end
 
-        xit 'updates attach_serial' do
-          rest_channel.publish event, message_before_attach
-
+        it 'updates attach_serial' do
           channel.on(:update) do
-            channel.history(until_attach: true) do |messages|
-              expect(messages.items.count).to eql(2)
-              stop_reactor
-            end
+            expect(channel.properties.attach_serial).not_to eq(old_attach_serial)
+            expect(channel.properties.attach_serial).to eq(new_attach_serial)
+            stop_reactor
           end
-
           channel.attach
         end
       end
 
       context 'and two pages of messages' do
-        xit 'retrieves two pages of messages before channel was attached' do
+        it 'retrieves two pages of messages before channel was attached' do
           10.times { rest_channel.publish event, message_before_attach }
 
           channel.attach do
