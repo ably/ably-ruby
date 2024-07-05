@@ -83,7 +83,7 @@ module Ably
       attr_reader :output, :indent
 
       def documenting_rest_only?
-        File.exists?(File.expand_path('../../../../../../ably-rest.gemspec', __FILE__))
+        File.exist?(File.expand_path('../../../../../../ably-rest.gemspec', __FILE__))
       end
 
       def example_name_and_link(notification)
