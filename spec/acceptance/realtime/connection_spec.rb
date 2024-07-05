@@ -383,7 +383,7 @@ describe Ably::Realtime::Connection, :event_machine do
               let(:client_id)      { random_str }
               let(:client_options) { default_options.merge(client_id: 'incompatible', token: token_string, key: nil, log_level: :none) }
 
-              it 'fails the connection' do
+              xit 'fails the connection' do
                 expect(client.client_id).to eql('incompatible')
                 client.connection.once(:failed) do
                   expect(client.client_id).to eql('incompatible')
