@@ -60,13 +60,13 @@ describe Ably::Realtime::Presence, :event_machine do
       end
 
       unless expected_state == :left
-        it 'raise an exception if the channel is detached' do
+        it "presence #{method_name} : raise an exception if the channel is detached" do
           setup_test(method_name, args, options) do
             channel_client_one.attach do
               channel_client_one.transition_state_machine :detaching
               channel_client_one.once(:detached) do
                 presence_client_one.public_send(method_name, args).tap do |deferrable|
-                  deferrable.callback { raise 'Get should not succeed' }
+                  deferrable.callback { raise "presence #{method_name} should not succeed" }
                   deferrable.errback do |error|
                     expect(error).to be_a(Ably::Exceptions::InvalidState)
                     expect(error.message).to match(/Operation is not allowed when channel is in STATE.Detached/)
@@ -78,12 +78,12 @@ describe Ably::Realtime::Presence, :event_machine do
           end
         end
 
-        it 'raise an exception if the channel becomes detached' do
+        it "presence #{method_name} : raise an exception if the channel becomes detached" do
           setup_test(method_name, args, options) do
             channel_client_one.attach do
               channel_client_one.transition_state_machine :detaching
               presence_client_one.public_send(method_name, args).tap do |deferrable|
-                deferrable.callback { raise 'Get should not succeed' }
+                deferrable.callback { raise "presence #{method_name} should not succeed" }
                 deferrable.errback do |error|
                   expect(error).to be_a(Ably::Exceptions::InvalidState)
                   expect(error.message).to match(/Operation failed as channel transitioned to STATE.Detached/)
@@ -94,13 +94,13 @@ describe Ably::Realtime::Presence, :event_machine do
           end
         end
 
-        it 'raise an exception if the channel is failed' do
+        it "presence #{method_name} : raise an exception if the channel is failed" do
           setup_test(method_name, args, options) do
             channel_client_one.attach do
               channel_client_one.transition_state_machine :failed
               expect(channel_client_one.state).to eq(:failed)
               presence_client_one.public_send(method_name, args).tap do |deferrable|
-                deferrable.callback { raise 'Get should not succeed' }
+                deferrable.callback { raise "presence #{method_name} : Get should not succeed" }
                 deferrable.errback do |error|
                   expect(error).to be_a(Ably::Exceptions::InvalidState)
                   expect(error.message).to match(/Operation is not allowed when channel is in STATE.Failed/)
@@ -111,11 +111,11 @@ describe Ably::Realtime::Presence, :event_machine do
           end
         end
 
-        it 'raise an exception if the channel becomes failed' do
+        it "presence #{method_name} : raise an exception if the channel becomes failed" do
           setup_test(method_name, args, options) do
             channel_client_one.attach do
               presence_client_one.public_send(method_name, args).tap do |deferrable|
-                deferrable.callback { raise 'Get should not succeed' }
+                deferrable.callback { raise "presence #{method_name} : Get should not succeed" }
                 deferrable.errback do |error|
                   expect(error).to be_a(Ably::Exceptions::MessageDeliveryFailed)
                   stop_reactor
@@ -516,11 +516,11 @@ describe Ably::Realtime::Presence, :event_machine do
         stop_reactor
       end
 
-      it 'will emit an :in_sync event when synchronisation is complete' do
+      it 'will emit an :sync_complete event when synchronisation is complete' do
         presence_client_one.enter
         presence_client_two.enter
 
-        presence_anonymous_client.members.once(:in_sync) do
+        presence_anonymous_client.members.once(:sync_complete) do
           stop_reactor
         end
 
@@ -545,7 +545,7 @@ describe Ably::Realtime::Presence, :event_machine do
             entered += 1
             next unless entered == 2
 
-            presence_anonymous_client.members.once(:in_sync) do
+            presence_anonymous_client.members.once(:sync_complete) do
               expect(presence_anonymous_client.members.count).to eql(2)
               member_ids = presence_anonymous_client.members.map(&:member_key)
               expect(member_ids.count).to eql(2)
@@ -580,7 +580,6 @@ describe Ably::Realtime::Presence, :event_machine do
               action = Ably::Models::ProtocolMessage::ACTION.Presence
               presence_msg = Ably::Models::ProtocolMessage.new(
                 action: action,
-                connection_serial: 20,
                 channel: channel_name,
                 presence: presence_data,
                 timestamp: Time.now.to_i * 1000
@@ -633,7 +632,6 @@ describe Ably::Realtime::Presence, :event_machine do
                     action = Ably::Models::ProtocolMessage::ACTION.Presence
                     presence_msg = Ably::Models::ProtocolMessage.new(
                       action: action,
-                      connection_serial: anonymous_client.connection.serial + 1,
                       channel: channel_name,
                       presence: presence_data,
                       timestamp: Time.now.to_i * 1000
@@ -644,7 +642,6 @@ describe Ably::Realtime::Presence, :event_machine do
                     action = Ably::Models::ProtocolMessage::ACTION.Sync
                     sync_msg = Ably::Models::ProtocolMessage.new(
                       action: action,
-                      connection_serial: anonymous_client.connection.serial + 2,
                       channel: channel_name,
                       channel_serial: 'validserialprefix:', # with no part after the `:` this indicates the end to the SYNC
                       presence: [],
@@ -707,21 +704,29 @@ describe Ably::Realtime::Presence, :event_machine do
 
     context '#sync_complete? and SYNC flags (#RTP1)' do
       context 'when attaching to a channel without any members present' do
-        xit 'sync_complete? is true, there is no presence flag, and the presence channel is considered synced immediately (#RTP1)' do
-          flag_checked = false
+        it 'sync_complete? is true, no members are received and the presence channel is synced (#RTP1)' do
+          sync_info_received = false
 
           anonymous_client.connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
             if protocol_message.action == :attached
-              flag_checked = true
-              expect(protocol_message.has_presence_flag?).to eql(false)
+              if protocol_message.has_presence_flag?
+                sync_info_received = false
+              else
+                sync_info_received = true
+              end
+            end
+            if protocol_message.action == Ably::Models::ProtocolMessage::ACTION.Sync
+              expect(protocol_message.presence).to be_empty
+              sync_info_received = true
             end
           end
 
           channel_anonymous_client.attach do
-            expect(channel_anonymous_client.presence).to be_sync_complete
-            EventMachine.next_tick do
-              expect(flag_checked).to eql(true)
-              stop_reactor
+            wait_until(lambda { channel_anonymous_client.presence.sync_complete? and sync_info_received}) do
+              channel_anonymous_client.presence.get do |members|
+                expect(members).to be_empty
+                stop_reactor
+              end
             end
           end
         end
@@ -851,7 +856,7 @@ describe Ably::Realtime::Presence, :event_machine do
                   # Hacky accessing a private method, but absent members are intentionally not exposed to any public APIs
                   expect(presence_anonymous_client.members.send(:absent_members).length).to eql(1)
 
-                  presence_anonymous_client.members.once(:in_sync) do
+                  presence_anonymous_client.members.once(:sync_complete) do
                     # Check that members count is exact indicating the members with LEAVE action after sync are removed
                     expect(presence_anonymous_client).to be_sync_complete
                     expect(presence_anonymous_client.members.length).to eql(enter_expected_count - 1)
@@ -1007,7 +1012,7 @@ describe Ably::Realtime::Presence, :event_machine do
 
                       channel_anonymous_client.attach do
                         presence_anonymous_client.get(wait_for_sync: false) do |members|
-                          expect(presence_anonymous_client.members).to_not be_in_sync
+                          expect(presence_anonymous_client.members).to_not be_sync_complete
                           expect(members.count).to eql(0)
                           stop_reactor
                         end
@@ -1214,7 +1219,7 @@ describe Ably::Realtime::Presence, :event_machine do
               presence_client_one.subscribe(:enter) do
                 presence_client_one.unsubscribe :enter
                 EventMachine.add_timer(0.5) do
-                  expect(presence_client_one.members).to be_in_sync
+                  expect(presence_client_one.members).to be_sync_complete
                   expect(presence_client_one.members.send(:members).count).to eql(1)
                   presence_client_one.leave data
                 end
@@ -1592,14 +1597,16 @@ describe Ably::Realtime::Presence, :event_machine do
       end
 
       it 'fails if the connection is DETACHED (#RTP11b)' do
-        channel_client_one.attach do
-          channel_client_one.detach do
-            presence_client_one.get.tap do |deferrable|
-              deferrable.callback { raise 'Get should not succeed' }
-              deferrable.errback do |error|
-                expect(error).to be_a(Ably::Exceptions::InvalidState)
-                expect(error.message).to match(/Operation is not allowed when channel is in STATE.Detached/)
-                stop_reactor
+        client_one.connection.once :connected do
+          channel_client_one.attach do
+            channel_client_one.detach do
+              presence_client_one.get.tap do |deferrable|
+                deferrable.callback { raise 'Get should not succeed' }
+                deferrable.errback do |error|
+                  expect(error).to be_a(Ably::Exceptions::InvalidState)
+                  expect(error.message).to match(/Operation is not allowed when channel is in STATE.Detached/)
+                  stop_reactor
+                end
               end
             end
           end
@@ -1815,29 +1822,31 @@ describe Ably::Realtime::Presence, :event_machine do
         let(:total_members)      { members_per_client * 2 }
 
         it 'returns a complete list of members on all clients' do
-          members_per_client.times do |indx|
-            presence_client_one.enter_client("client_1:#{indx}")
-            presence_client_two.enter_client("client_2:#{indx}")
-          end
+          wait_until(lambda { client_one.connection.state == :connected and client_two.connection.state == :connected }) do
+            presence_client_one.subscribe(:enter) do
+              clients_entered[:client_one] += 1
+            end
 
-          presence_client_one.subscribe(:enter) do
-            clients_entered[:client_one] += 1
-          end
+            presence_client_two.subscribe(:enter) do
+              clients_entered[:client_two] += 1
+            end
 
-          presence_client_two.subscribe(:enter) do
-            clients_entered[:client_two] += 1
-          end
+            members_per_client.times do |indx|
+              presence_client_one.enter_client("client_1:#{indx}")
+              presence_client_two.enter_client("client_2:#{indx}")
+            end
 
-          wait_until(lambda { clients_entered[:client_one] + clients_entered[:client_two] == total_members * 2 }) do
-            presence_anonymous_client.get(wait_for_sync: true) do |anonymous_members|
-              expect(anonymous_members.count).to eq(total_members)
-              expect(anonymous_members.map(&:client_id).uniq.count).to eq(total_members)
+            wait_until(lambda { clients_entered[:client_one] + clients_entered[:client_two] == total_members * 2 }) do
+              presence_anonymous_client.get(wait_for_sync: true) do |anonymous_members|
+                expect(anonymous_members.count).to eq(total_members)
+                expect(anonymous_members.map(&:client_id).uniq.count).to eq(total_members)
 
-              presence_client_one.get(wait_for_sync: true) do |client_one_members|
-                presence_client_two.get(wait_for_sync: true) do |client_two_members|
-                  expect(client_one_members.count).to eq(total_members)
-                  expect(client_one_members.count).to eq(client_two_members.count)
-                  stop_reactor
+                presence_client_one.get(wait_for_sync: true) do |client_one_members|
+                  presence_client_two.get(wait_for_sync: true) do |client_two_members|
+                    expect(client_one_members.count).to eq(total_members)
+                    expect(client_one_members.count).to eq(client_two_members.count)
+                    stop_reactor
+                  end
                 end
               end
             end
@@ -2243,7 +2252,6 @@ describe Ably::Realtime::Presence, :event_machine do
             action = Ably::Models::ProtocolMessage::ACTION.Sync
             sync_message = Ably::Models::ProtocolMessage.new(
               action: action,
-              connection_serial: 10,
               channel_serial: 'sequenceid:cursor',
               channel: channel_name,
               presence: presence_sync_1,
@@ -2253,7 +2261,6 @@ describe Ably::Realtime::Presence, :event_machine do
 
             sync_message = Ably::Models::ProtocolMessage.new(
               action: action,
-              connection_serial: 11,
               channel_serial: 'sequenceid:', # indicates SYNC is complete
               channel: channel_name,
               presence: presence_sync_2,
@@ -2294,7 +2301,6 @@ describe Ably::Realtime::Presence, :event_machine do
             action = Ably::Models::ProtocolMessage::ACTION.Sync
             sync_message = Ably::Models::ProtocolMessage.new(
               action: action,
-              connection_serial: 10,
               channel: channel_name,
               presence: presence_sync,
               timestamp: Time.now.to_i * 1000
@@ -2348,7 +2354,6 @@ describe Ably::Realtime::Presence, :event_machine do
                 action = Ably::Models::ProtocolMessage::ACTION.Sync
                 sync_message = Ably::Models::ProtocolMessage.new(
                   action: action,
-                  connection_serial: 10,
                   channel: channel_name,
                   presence: presence_sync_protocol_message,
                   timestamp: Time.now.to_i * 1000
@@ -2467,7 +2472,7 @@ describe Ably::Realtime::Presence, :event_machine do
                 end
 
                 leave_message = Ably::Models::PresenceMessage.new(
-                  'id' => "#{client_two.connection.id}:#{presence_client_two.client_id}:1",
+                  'id' => "#{client_two.connection.id}:#{client_two.connection.send(:client_msg_serial)}:1",
                   'clientId' => presence_client_two.client_id,
                   'connectionId' => client_two.connection.id,
                   'timestamp' => as_since_epoch(Time.now),
@@ -2532,37 +2537,59 @@ describe Ably::Realtime::Presence, :event_machine do
             let(:member_data) { random_str }
 
             it 'immediately resends all local presence members (#RTP5c2, #RTP19a)' do
-              in_sync_confirmed_no_local_members = false
-              local_member_leave_event_fired = false
+              member_leave_event_fired = false
+              local_members_sent = false
 
-              presence_client_one.enter(member_data)
-              presence_client_one.subscribe(:enter) do
+              presence_client_one.subscribe(:enter) do |entered_member|
+                expect(entered_member.action).to eq(Ably::Models::PresenceMessage::ACTION.Enter)
+                expect(entered_member.data).to eq(member_data)
+                expect(entered_member.client_id).to eq(client_one.auth.client_id)
+                expect(entered_member.id).to be_truthy
+                entered_member_id = entered_member.id
+
                 presence_client_one.unsubscribe :enter
 
-                presence_client_one.subscribe(:leave) do |message|
-                  # The local member will leave the PresenceMap due to the ATTACHED without Presence
-                  local_member_leave_event_fired = true
-                end
+                expect(presence_client_one.members.length).to eql(1)
+                expect(presence_client_one.members.local_members.length).to eql(1)
 
-                # Local members re-entered automatically appear as updates due to the
-                # fabricated ATTACHED message sent and the members already being present
-                presence_client_one.subscribe(:update) do |message|
-                  expect(local_member_leave_event_fired).to be_truthy
-                  expect(message.data).to eq(member_data)
-                  expect(message.client_id).to eq(client_one.auth.client_id)
-                  EventMachine.next_tick do
-                    expect(presence_client_one.members.length).to eql(1)
-                    expect(presence_client_one.members.local_members.length).to eql(1)
-                    expect(in_sync_confirmed_no_local_members).to be_truthy
-                    stop_reactor
+                # subscribe to outgoing messages to check for entered local members with id
+                client_one.connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
+                  if protocol_message.action == :presence
+                    protocol_message.presence.each do |local_member|
+                      expect(local_member.id).to eq(entered_member_id)
+                      expect(local_member.action).to eq(Ably::Models::PresenceMessage::ACTION.Enter)
+                      expect(local_member.data).to eq(member_data)
+                      expect(local_member.client_id).to eq(client_one.auth.client_id)
+                      local_members_sent = true
+                    end
                   end
                 end
 
-                presence_client_one.members.once(:in_sync) do
-                  # Immediately after SYNC (no sync actually occurred, but this event fires immediately after a channel SYNCs or is not expecting to SYNC)
+                presence_client_one.subscribe(:leave) do |message|
+                  # Member will leave the PresenceMap due to the ATTACHED without Presence
+                  expect(message.data).to eq(member_data)
+                  expect(message.client_id).to eq(client_one.auth.client_id)
+                  member_leave_event_fired = true
+                end
+
+                # Shouldn't receive enter/update message when local_members are entered
+                # This is due to the fact that, when we enter local member we also send
+                # member id, and server automatically checks for duplicate id and doesn't
+                # send presenceEnter or presenceUpdate if id is found.
+                presence_client_one.subscribe(:enter, :update) do |message|
+                  raise { "client shouldn't receive update event for entered local members" }
+                end
+
+                presence_client_one.members.once(:sync_complete) do
                   expect(presence_client_one.members.length).to eql(0)
-                  expect(presence_client_one.members.local_members.length).to eql(0)
-                  in_sync_confirmed_no_local_members = true
+
+                  # Since, this is a client sent event, local_members are not cleared
+                  # local_members acts a source of truth for server and not vice versa
+                  expect(presence_client_one.members.local_members.length).to eql(1)
+
+                  wait_until(lambda { member_leave_event_fired and local_members_sent}) do
+                    stop_reactor
+                  end
                 end
 
                 # ATTACHED ProtocolMessage with no presence flag will clear the presence set immediately, #RTP19a
@@ -2572,6 +2599,8 @@ describe Ably::Realtime::Presence, :event_machine do
                   flags: 0 # no resume or presence flag
                 )
               end
+
+              presence_client_one.enter(member_data)
             end
           end
         end
@@ -2684,23 +2713,25 @@ describe Ably::Realtime::Presence, :event_machine do
 
       context 'channel transitions to the DETACHED state' do
         it 'clears the PresenceMap and local member map copy and does not emit any presence events (#RTP5a)' do
-          presence_client_one.enter
-          presence_client_one.subscribe(:enter) do
-            presence_client_one.unsubscribe :enter
+          wait_until(lambda { client_one.connection.state == :connected and anonymous_client.connection.state == :connected }) do
+            presence_client_one.enter
+            presence_client_one.subscribe(:enter) do
+              presence_client_one.unsubscribe :enter
 
-            channel_anonymous_client.attach do
-              presence_anonymous_client.get do |members|
-                expect(members.count).to eq(1)
+              channel_anonymous_client.attach do
+                presence_anonymous_client.get do |members|
+                  expect(members.count).to eq(1)
 
-                presence_anonymous_client.subscribe { raise 'No presence events should be emitted' }
-                channel_anonymous_client.detach do
-                  expect(presence_anonymous_client.members.length).to eq(0)
-                  expect(channel_anonymous_client).to be_detached
+                  presence_anonymous_client.subscribe { raise 'No presence events should be emitted' }
+                  channel_anonymous_client.detach do
+                    expect(presence_anonymous_client.members.length).to eq(0)
+                    expect(channel_anonymous_client).to be_detached
 
-                  expect(presence_client_one.members.local_members.count).to eq(1)
-                  channel_client_one.detach do
-                    expect(presence_client_one.members.local_members.count).to eq(0)
-                    stop_reactor
+                    expect(presence_client_one.members.local_members.count).to eq(1)
+                    channel_client_one.detach do
+                      expect(presence_client_one.members.local_members.count).to eq(0)
+                      stop_reactor
+                    end
                   end
                 end
               end
