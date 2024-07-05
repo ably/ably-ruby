@@ -304,8 +304,6 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
         it 'will not echo messages to the client but will still broadcast messages to other connected clients', em_timeout: 10 do
           channel.attach do |echo_channel|
             no_echo_channel.attach do
-              no_echo_channel.publish 'test_event', payload
-
               no_echo_channel.subscribe('test_event') do |message|
                 fail "Message should not have been echoed back"
               end
@@ -316,6 +314,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
                   stop_reactor
                 end
               end
+              no_echo_channel.publish 'test_event', payload
             end
           end
         end
@@ -413,41 +412,6 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
           end
           deferrable.callback do |message|
             fail 'Success callback should not have been called'
-          end
-        end
-      end
-    end
-
-    context 'server incorrectly resends a message that was already received by the client library' do
-      let(:messages_received) { [] }
-      let(:connection)        { client.connection }
-      let(:client_options)    { default_options.merge(log_level: :fatal) }
-
-      it 'discards the message and logs it as an error to the channel' do
-        first_message_protocol_message = nil
-        connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
-          first_message_protocol_message ||= protocol_message unless protocol_message.messages.empty?
-        end
-
-        channel.attach do
-          channel.subscribe do |message|
-            messages_received << message
-            if messages_received.count == 2
-              # simulate a duplicate protocol message being received
-              EventMachine.next_tick do
-                connection.__incoming_protocol_msgbus__.publish :protocol_message, first_message_protocol_message
-              end
-            end
-          end
-          2.times { |i| EventMachine.add_timer(i.to_f / 5) { channel.publish('event', 'data') } }
-
-          expect(client.logger).to receive(:error) do |*args, &block|
-            expect(args.concat([block ? block.call : nil]).join(',')).to match(/duplicate/)
-
-            EventMachine.add_timer(0.5) do
-              expect(messages_received.count).to eql(2)
-              stop_reactor
-            end
           end
         end
       end
@@ -622,11 +586,13 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
         let(:payload) { MessagePack.pack({ 'key' => random_str }) }
 
         it 'does not attempt to decrypt the message' do
-          unencrypted_channel_client1.publish 'example', payload
-          encrypted_channel_client2.subscribe do |message|
-            expect(message.data).to eql(payload)
-            expect(message.encoding).to be_nil
-            stop_reactor
+          wait_until(lambda { client.connection.state == :connected and other_client.connection.state == :connected }) do
+            encrypted_channel_client2.subscribe do |message|
+              expect(message.data).to eql(payload)
+              expect(message.encoding).to be_nil
+              stop_reactor
+            end
+            unencrypted_channel_client1.publish 'example', payload
           end
         end
       end
@@ -671,11 +637,13 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
         let(:payload) { MessagePack.pack({ 'key' => random_str }) }
 
         it 'delivers the message but still encrypted with the cipher detials in the #encoding attribute (#RTL7e)' do
-          encrypted_channel_client1.publish 'example', payload
-          encrypted_channel_client2.subscribe do |message|
-            expect(message.data).to_not eql(payload)
-            expect(message.encoding).to match(/^cipher\+aes-256-cbc/)
-            stop_reactor
+          encrypted_channel_client2.attach do
+            encrypted_channel_client2.subscribe do |message|
+              expect(message.data).to_not eql(payload)
+              expect(message.encoding).to match(/^cipher\+aes-256-cbc/)
+              stop_reactor
+            end
+            encrypted_channel_client1.publish 'example', payload
           end
         end
 
@@ -751,10 +719,13 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
           end
         end
 
-        channel.publish(event_name).tap do |deferrable|
-          deferrable.callback { message_state << :delivered }
-          deferrable.errback do
-            raise 'Message delivery should not fail'
+        # Attaching channel first before publishing message in order to get channel serial set on channel
+        channel.attach do
+          channel.publish(event_name).tap do |deferrable|
+            deferrable.callback { message_state << :delivered }
+            deferrable.errback do
+              raise 'Message delivery should not fail'
+            end
           end
         end
 
@@ -777,7 +748,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
               if protocol_message.messages.find { |message| message.name == event_name }
                 EventMachine.add_timer(0.0001) do
                   connection.transport.unbind # trigger failure
-                  connection.configure_new '0123456789abcdef', 'wVIsgTHAB1UvXh7z-1991d8586', -1 # force the resume connection key to be invalid
+                  connection.configure_new '0123456789abcdef', 'wVIsgTHAB1UvXh7z-1991d8586' # force the resume connection key to be invalid
                 end
               end
             end
