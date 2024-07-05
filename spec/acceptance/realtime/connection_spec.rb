@@ -383,7 +383,8 @@ describe Ably::Realtime::Connection, :event_machine do
               let(:client_id)      { random_str }
               let(:client_options) { default_options.merge(client_id: 'incompatible', token: token_string, key: nil, log_level: :none) }
 
-              it 'fails the connection' do
+              # Skipped because more clarification needed on RSA7e, see https://github.com/ably/ably-ruby/issues/425
+              xit 'fails the connection' do
                 expect(client.client_id).to eql('incompatible')
                 client.connection.once(:failed) do
                   expect(client.client_id).to eql('incompatible')
@@ -1364,7 +1365,7 @@ describe Ably::Realtime::Connection, :event_machine do
 
           available_states.each do |state|
             connection.on(state) do
-              states[state.to_sym] = true if connection.recovery_key
+              states[state.to_sym] = true if connection.create_recovery_key
             end
           end
 
@@ -1382,7 +1383,7 @@ describe Ably::Realtime::Connection, :event_machine do
         it 'is nil when connection is explicitly CLOSED' do
           connection.once(:connected) do
             connection.close do
-              expect(connection.recovery_key).to be_nil
+              expect(connection.create_recovery_key).to be_nil
               stop_reactor
             end
           end
@@ -1393,33 +1394,19 @@ describe Ably::Realtime::Connection, :event_machine do
         context 'connection#id after recovery' do
           it 'remains the same' do
             previous_connection_id  = nil
+            recovery_key = nil
 
             connection.once(:connected) do
               previous_connection_id  = connection.id
+              recovery_key = client.connection.create_recovery_key
               connection.transition_state_machine! :failed
             end
 
             connection.once(:failed) do
-              recover_client = auto_close Ably::Realtime::Client.new(default_options.merge(recover: client.connection.recovery_key))
+              recover_client = auto_close Ably::Realtime::Client.new(default_options.merge(recover: recovery_key))
               recover_client.connection.on(:connected) do
                 expect(recover_client.connection.id).to eql(previous_connection_id)
                 stop_reactor
-              end
-            end
-          end
-
-          it 'does not call a resume callback', api_private: true do
-            connection.once(:connected) do
-              connection.transition_state_machine! :failed
-            end
-
-            connection.once(:failed) do
-              recover_client = auto_close Ably::Realtime::Client.new(default_options.merge(recover: client.connection.recovery_key))
-              recover_client.connection.on_resume do
-                raise 'Should not call the resume callback'
-              end
-              recover_client.connection.on(:connected) do
-                EventMachine.add_timer(0.5) { stop_reactor }
               end
             end
           end
@@ -1432,7 +1419,7 @@ describe Ably::Realtime::Connection, :event_machine do
 
               channel.attach do
                 connection_id = client.connection.id
-                recovery_key = client.connection.recovery_key
+                recovery_key = client.connection.create_recovery_key
                 connection.transport.__incoming_protocol_msgbus__
                 publishing_client_channel.publish('event', 'message') do
                   connection.transition_state_machine! :failed
@@ -1466,7 +1453,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 channel.publish('event', 'message') do
                   msg_serial = connection.send(:client_msg_serial)
                   expect(msg_serial).to eql(0)
-                  recovery_key = client.connection.recovery_key
+                  recovery_key = client.connection.create_recovery_key
                   connection.transition_state_machine! :failed
                 end
               end
@@ -1497,7 +1484,7 @@ describe Ably::Realtime::Connection, :event_machine do
                   expect(message.data).to eql('message-1')
                   msg_serial = connection.send(:client_msg_serial)
                   expect(msg_serial).to eql(0)
-                  recovery_key = client.connection.recovery_key
+                  recovery_key = client.connection.create_recovery_key
                   connection.transition_state_machine! :failed
                 end
                 channel.publish('event', 'message-1')
@@ -1531,23 +1518,29 @@ describe Ably::Realtime::Connection, :event_machine do
 
       context 'with :recover option' do
         context 'with invalid syntax' do
-          let(:invaid_client_options) { default_options.merge(recover: 'invalid') }
+          let(:client_options) { default_options.merge(recover: 'invalid') }
 
-          it 'raises an exception' do
-            expect { Ably::Realtime::Client.new(invaid_client_options) }.to raise_error ArgumentError, /Recover/
-            stop_reactor
+          it 'logs recovery decode error as a warning and connects successfully' do
+            connection.once(:connected) do
+              EventMachine.add_timer(1) { stop_reactor }
+            end
+            expect(client.logger).to receive(:warn).at_least(:once) do |*args, &block|
+              expect(args.concat([block ? block.call : nil]).join(',')).to match(/unable to decode recovery key/)
+            end
           end
         end
 
-        context 'with expired (missing) value sent to server' do
-          let(:client_options) { default_options.merge(recover: 'wVIsgTHAB1UvXh7z-1991d8586:0:0', log_level: :fatal) }
+        context 'with invalid connection key' do
+          recovery_key = "{\"connection_key\":\"0123456789abcdef-99\",\"msg_serial\":2," <<
+            "\"channel_serials\":{\"channel1\":\"serial1\",\"channel2\":\"serial2\"}}"
+          let(:client_options) { default_options.merge(recover: recovery_key, log_level: :fatal) }
 
           it 'connects but sets the error reason and includes the reason in the state change' do
             connection.once(:connected) do |state_change|
               expect(connection.state).to eq(:connected)
-              expect(state_change.reason.message).to match(/Unable to recover connection/i)
-              expect(connection.error_reason.message).to match(/Unable to recover connection/i)
-              expect(connection.error_reason.code).to eql(80008)
+              expect(state_change.reason.message).to match(/Invalid connection key/i)
+              expect(connection.error_reason.message).to match(/Invalid connection key/i)
+              expect(connection.error_reason.code).to eql(80018)
               expect(connection.error_reason).to eql(state_change.reason)
               stop_reactor
             end
