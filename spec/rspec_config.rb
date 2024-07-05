@@ -53,7 +53,7 @@ RSpec.configure do |config|
     puts 'Running tests using RSpec retry'
     config.verbose_retry = true # show retry status in spec process
     config.display_try_failure_messages = true # show exception that triggered the try
-    config.default_retry_count = 3
+    config.default_retry_count = 1
     config.default_sleep_interval = 2
   end
 end
