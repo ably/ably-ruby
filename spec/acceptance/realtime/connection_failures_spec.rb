@@ -747,8 +747,6 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                 resumed_connection = false
 
                 connection.once(:disconnected) do
-                  disconnected_at = Time.now
-
                   allow(connection).to receive(:time_since_connection_confirmed_alive?).and_return(connection.connection_state_ttl + 1)
 
                   # Make sure the next connect does not have the resume param
@@ -781,8 +779,6 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                 resumed_with_clean_connection = false
 
                 connection.once(:disconnected) do
-                  disconnected_at = Time.now
-
                   pseudo_time_passed = connection.connection_state_ttl + connection.details.max_idle_interval + 1
                   allow(connection).to receive(:time_since_connection_confirmed_alive?).and_return(pseudo_time_passed)
 
@@ -815,14 +811,11 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                 channel_emitted_an_attached = false
 
                 channel.attach do
-                  channel.once(:attached) do |channel_state_change|
-                    # expect(channel_state_change.resumed).to be_falsey
+                  channel.once(:attached) do
                     channel_emitted_an_attached = true
                   end
 
                   connection.once(:disconnected) do
-                    disconnected_at = Time.now
-
                     pseudo_time_passed = connection.connection_state_ttl + connection.details.max_idle_interval + 1
                     allow(connection).to receive(:time_since_connection_confirmed_alive?).and_return(pseudo_time_passed)
 
