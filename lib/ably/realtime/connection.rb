@@ -448,10 +448,10 @@ module Ably
         if send_immediately
           # Adding msg at the top of the queue to get processed immediately while connection is CONNECTED
           __outgoing_message_queue__.prepend(protocol_message)
-          logger.debug { "Connection: protocol msg pushed at the top =>: #{message.action} #{message}" }
+          logger.debug { "Connection: protocol msg pushed at the top =>: #{protocol_message.action} #{protocol_message}" }
         else
           __outgoing_message_queue__ << protocol_message
-          logger.debug { "Connection: protocol msg queued =>: #{message.action} #{message}" }
+          logger.debug { "Connection: protocol msg queued =>: #{protocol_message.action} #{protocol_message}" }
         end
       end
 
