@@ -97,6 +97,14 @@ client.connection.on do |state_change|
 end
 ```
 
+Retrieve connection id, state etc
+
+```ruby
+connection_id = client.connection.id
+state = client.connection.state
+recovery_key = client.connection.create_recovery_key # https://ably.com/docs/connect/states?q=recovery#connection-state-recover-options
+```
+
 ### Subscribing to a channel
 
 Given a channel is created as follows:
