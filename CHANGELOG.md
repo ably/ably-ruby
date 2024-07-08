@@ -1,5 +1,22 @@
 # Change Log
 
+## [v1.2.6](https://github.com/ably/ably-ruby/tree/v1.2.6)
+
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.2.5...v1.2.6)
+
+**Implemented enhancements:**
+
+- [ably-ruby][no-connection-serial] Implement connection resume/recover [\#393](https://github.com/ably/ably-ruby/issues/393)
+- [ably-ruby][no-connection-serial] Implement missing internal presence [\#392](https://github.com/ably/ably-ruby/issues/392)
+- [ably-ruby][no-connection-serial] Implement code + tests for no-connection-serial [\#378](https://github.com/ably/ably-ruby/issues/378)
+
+**Closed issues:**
+
+- Remove unimplemented push activation methods [\#417](https://github.com/ably/ably-ruby/issues/417)
+- Failing Test - updates attach\_serial [\#415](https://github.com/ably/ably-ruby/issues/415)
+- Failing Test - retrieves two pages of messages before channel was attached [\#414](https://github.com/ably/ably-ruby/issues/414)
+- [ably-ruby] Fix failing tests [\#394](https://github.com/ably/ably-ruby/issues/394)
+
 ## [v1.2.5](https://github.com/ably/ably-ruby/tree/v1.2.5)
 
 This contains an important fix for a TLS certificate validation bug which prevented the library from being able to use Realtime fallback hosts.
