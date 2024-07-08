@@ -830,10 +830,8 @@ describe Ably::Realtime::Channel, :event_machine do
           it 'does the detach operation once the connection state is connected (#RTL5h)' do
             connection.once(:connected) do
               connection.once(:disconnected) do
-                channel.on :attaching do
-                  channel.detach
-                end
                 channel.attach
+                channel.detach
                 connection.once(:connected) do
                   channel.once(:attached) do
                     channel.once(:detached) do
