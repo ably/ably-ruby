@@ -243,10 +243,10 @@ module Ably::Realtime
           end
         end
 
-        on_disconnected_and_connected = lambda do
+        on_disconnected_and_connected = lambda do |&block|
           connection.unsafe_once(:disconnected) do
             connection.unsafe_once(:connected) do
-              yield if pending_state_change_timer
+              block.call if pending_state_change_timer
             end if pending_state_change_timer
           end
         end
