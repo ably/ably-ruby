@@ -243,25 +243,10 @@ module Ably::Realtime
           end
         end
 
-        on_disconnected_and_connected = lambda do
-          connection.unsafe_once(:disconnected) do
-            connection.unsafe_once(:connected) do
-              yield if pending_state_change_timer
-            end if pending_state_change_timer
-          end
-        end
-
-        send_detach_message = lambda do
-          on_disconnected_and_connected.call do
-            send_detach_message.call
-          end
-          connection.send_protocol_message(
-            action:  detach_action.to_i,
-            channel: channel.name
-          )
-        end
-
-        send_detach_message.call
+        connection.send_protocol_message_immediately(
+          action:  detach_action.to_i,
+          channel: channel.name
+        )
       end
 
       def logger

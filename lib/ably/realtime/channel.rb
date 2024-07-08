@@ -283,22 +283,22 @@ module Ably
       # @return [Ably::Util::SafeDeferrable] Deferrable that supports both success (callback) and failure (errback) callback
       #
       def detach(&success_block)
-        if initialized?
+        if initialized? || detached? # RTL5a
           success_block.call if block_given?
           return Ably::Util::SafeDeferrable.new_and_succeed_immediately(logger)
         end
 
-        if failed? || connection.closing? || connection.failed?
+        if failed? || connection.closing? || connection.failed? # RTL5b, RTL5g
           return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, exception_for_state_change_to(:detaching))
         end
 
-        if !detached?
-          if attaching?
+        connection.once_or_if :connected do # RTL5h
+          if attaching? || detaching?
             # Let the pending operation complete (#RTL5i)
             once_state_changed { transition_state_machine :detaching if can_transition_to?(:detaching) }
           elsif can_transition_to?(:detaching)
             transition_state_machine :detaching
-          else
+          else # RTL5j
             transition_state_machine! :detached
           end
         end
