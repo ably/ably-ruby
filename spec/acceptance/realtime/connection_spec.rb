@@ -383,12 +383,11 @@ describe Ably::Realtime::Connection, :event_machine do
               let(:client_id)      { random_str }
               let(:client_options) { default_options.merge(client_id: 'incompatible', token: token_string, key: nil, log_level: :none) }
 
-              # Skipped because more clarification needed on RSA7e, see https://github.com/ably/ably-ruby/issues/425
-              xit 'fails the connection' do
+              it 'fails the connection' do
                 expect(client.client_id).to eql('incompatible')
                 client.connection.once(:failed) do
                   expect(client.client_id).to eql('incompatible')
-                  expect(client.connection.error_reason.code).to eql(40101) # Invalid clientId for credentials
+                  expect(client.connection.error_reason.code).to eql(40102) # Incompatible clientId for credentials
                   stop_reactor
                 end
               end

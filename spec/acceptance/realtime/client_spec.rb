@@ -142,8 +142,7 @@ describe Ably::Realtime::Client, :event_machine do
             context 'and an explicit client_id in ClientOptions' do
               let(:client_id) { random_str }
 
-              # Skipped because more clarification needed on RSA7e, see https://github.com/ably/ably-ruby/issues/425
-              xit 'allows uses the explicit client_id in the connection' do
+              it 'allows uses the explicit client_id in the connection' do
                 connection.__incoming_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
                   if protocol_message.action == :connected
                     expect(protocol_message.connection_details.client_id).to eql(client_id)

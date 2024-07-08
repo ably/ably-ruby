@@ -425,7 +425,7 @@ module Ably
     # spec - RSA7e
     # @return string
     def client_id_for_request
-      options[:client_id] if options[:client_id] && using_basic_auth?
+      options[:client_id]
     end
 
     # Auth params used in URI endpoint for Realtime connections
