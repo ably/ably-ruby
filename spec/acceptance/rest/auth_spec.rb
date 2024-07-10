@@ -1300,14 +1300,14 @@ describe Ably::Auth do
       end
 
       context 'when the JWT embeds an Ably token' do
-        let(:token) { Faraday.post(auth_url, { keyName: key_name, keySecret: key_secret, jwtType: :embedded }).body }
+        let(:token) { Faraday.post(auth_url, { environment: environment, keyName: key_name, keySecret: key_secret, jwtType: :embedded }).body }
 
         it 'authenticates correctly using the embedded token' do
           expect(client.stats).to_not be_nil()
         end
 
         context 'and the requested token is encrypted' do
-          let(:token) { Faraday.post(auth_url, { keyName: key_name, keySecret: key_secret, jwtType: :embedded, encrypted: 1 }).body }
+          let(:token) { Faraday.post(auth_url, { environment: environment, keyName: key_name, keySecret: key_secret, jwtType: :embedded, encrypted: 1 }).body }
 
           it 'authenticates correctly using the embedded token' do
             expect(client.stats).to_not be_nil()
