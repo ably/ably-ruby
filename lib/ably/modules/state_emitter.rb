@@ -3,7 +3,7 @@ module Ably::Modules
   # the instance variable @state is used exclusively, the {Enum} STATE is defined prior to inclusion of this
   # module, and the class is an {EventEmitter}.  It then emits state changes.
   #
-  # It also ensures the EventEmitter is configured to retrict permitted events to the
+  # It also ensures the EventEmitter is configured to restrict permitted events to the
   # the available STATEs or EVENTs if defined i.e. if EVENTs includes an additional type such as
   # :update, then it will support all EVENTs being emitted. EVENTs must be a superset of STATEs
   #

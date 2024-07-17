@@ -2,7 +2,7 @@
 require 'spec_helper'
 
 describe Ably::Realtime::Channels do
-  let(:connection) { instance_double('Ably::Realtime::Connection', unsafe_on: true, on_resume: true) }
+  let(:connection) { instance_double('Ably::Realtime::Connection', unsafe_on: true) }
   let(:client) do
     instance_double('Ably::Realtime::Client', connection: connection, client_id: 'clientId', logger: double('logger').as_null_object)
   end

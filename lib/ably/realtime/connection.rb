@@ -9,6 +9,8 @@ module Ably
       include Ably::Modules::Conversions
       include Ably::Modules::SafeYield
       extend Ably::Modules::Enum
+      using Ably::Util::AblyExtensions
+
 
       # The current {Ably::Realtime::Connection::STATE} of the connection.
       # Describes the realtime [Connection]{@link Connection} object states.
@@ -77,9 +79,6 @@ module Ably
       include Ably::Modules::UsesStateMachine
       ensure_state_machine_emits 'Ably::Models::ConnectionStateChange'
 
-      # Expected format for a connection recover key
-      RECOVER_REGEX = /^(?<recover>[^:]+):(?<connection_serial>[^:]+):(?<msg_serial>\-?\d+)$/
-
       # Defaults for automatic connection recovery and timeouts
       DEFAULTS = {
         channel_retry_timeout:      15, # when a channel becomes SUSPENDED, after this delay in seconds, the channel will automatically attempt to reattach if the connection is CONNECTED
@@ -112,16 +111,6 @@ module Ably
       # @return [String]
       #
       attr_reader :key
-
-      # The serial number of the last message to be received on this connection, used automatically by the library when
-      # recovering or resuming a connection. When recovering a connection explicitly, the recoveryKey is used in
-      # the recover client options as it contains both the key and the last message serial.
-      #
-      # @spec RTN10
-      #
-      # @return [Integer]
-      #
-      attr_reader :serial
 
       # An {Ably::Models::ErrorInfo} object describing the last error received if a connection failure occurs.
       #
@@ -177,17 +166,6 @@ module Ably
         end if options.kind_of?(Hash)
         @defaults.freeze
 
-        # If a recover client options is provided, then we need to ensure that the msgSerial matches the
-        # recover serial immediately at client library instantiation. This is done immediately so that any queued
-        # publishes use the correct serial number for these queued messages as well.
-        # There is no harm if the msgSerial is higher than expected if the recover fails.
-        recovery_msg_serial = connection_recover_parts && connection_recover_parts[:msg_serial].to_i
-        if recovery_msg_serial
-          @client_msg_serial = recovery_msg_serial
-        else
-          reset_client_msg_serial
-        end
-
         Client::IncomingMessageDispatcher.new client, self
         Client::OutgoingMessageDispatcher.new client, self
 
@@ -196,6 +174,8 @@ module Ably
         @manager       = ConnectionManager.new(self)
 
         @current_host = client.endpoint.host
+
+        reset_client_msg_serial
       end
 
       # Causes the connection to close, entering the {Ably::Realtime::Connection::STATE} CLOSING state.
@@ -347,33 +327,40 @@ module Ably
         end
       end
 
-      # The recovery key string can be used by another client to recover this connection's state in the recover client options property. See connection state recover options for more information.
+      # The recovery key string can be used by another client to recover this connection's state in the
+      # recover client options property. See connection state recover options for more information.
       #
       # @spec RTN16b, RTN16c
       #
-      # @return [String]
+      # @deprecated Use {#create_recovery_key} instead
       #
       def recovery_key
-        "#{key}:#{serial}:#{client_msg_serial}" if connection_resumable?
+        logger.warn "[DEPRECATION] recovery_key is deprecated, use create_recovery_key method instead"
+        create_recovery_key
+      end
+
+      # The recovery key string can be used by another client to recover this connection's state in the recover client
+      # options property. See connection state recover options for more information.
+      #
+      # @spec RTN16g, RTN16c
+      #
+      # @return [String] a json string which incorporates the @connectionKey@, the current @msgSerial@ and collection
+      # of pairs of channel @name@ and current @channelSerial@ for every currently attached channel
+      def create_recovery_key
+        if key.nil_or_empty? || state == :closing || state == :closed || state == :failed || state == :suspended
+          return nil #RTN16g2
+        end
+        RecoveryKeyContext.new(key, client_msg_serial, client.channels.get_channel_serials).to_json
       end
 
       # Following a new connection being made, the connection ID, connection key
-      # and connection serial need to match the details provided by the server.
+      # need to match the details provided by the server.
       #
       # @return [void]
       # @api private
-      def configure_new(connection_id, connection_key, connection_serial)
+      def configure_new(connection_id, connection_key)
         @id            = connection_id
         @key           = connection_key
-
-        update_connection_serial connection_serial
-      end
-
-      # Store last received connection serial so that the connection can be resumed from the last known point-in-time
-      # @return [void]
-      # @api private
-      def update_connection_serial(connection_serial)
-        @serial = connection_serial
       end
 
       # Disable automatic resume of a connection
@@ -381,7 +368,7 @@ module Ably
       # @api private
       def reset_resume_info
         @key    = nil
-        @serial = nil
+        @id     = nil
       end
 
       # @!attribute [r] __outgoing_protocol_msgbus__
@@ -444,17 +431,28 @@ module Ably
       # @api private
       def send_protocol_message(protocol_message)
         add_message_serial_if_ack_required_to(protocol_message) do
-          Ably::Models::ProtocolMessage.new(protocol_message, logger: logger).tap do |message|
-            add_message_to_outgoing_queue message
-            notify_message_dispatcher_of_new_message message
-            logger.debug { "Connection: Prot msg queued =>: #{message.action} #{message}" }
-          end
+          message = Ably::Models::ProtocolMessage.new(protocol_message, logger: logger)
+          add_message_to_outgoing_queue(message)
+          notify_message_dispatcher_of_new_message message
         end
       end
 
+      def send_protocol_message_immediately(protocol_message)
+        message = Ably::Models::ProtocolMessage.new(protocol_message, logger: logger)
+        add_message_to_outgoing_queue(message, true)
+        notify_message_dispatcher_of_new_message message
+      end
+
       # @api private
-      def add_message_to_outgoing_queue(protocol_message)
-        __outgoing_message_queue__ << protocol_message
+      def add_message_to_outgoing_queue(protocol_message, send_immediately = false)
+        if send_immediately
+          # Adding msg at the top of the queue to get processed immediately while connection is CONNECTED
+          __outgoing_message_queue__.prepend(protocol_message)
+          logger.debug { "Connection: protocol msg pushed at the top =>: #{protocol_message.action} #{protocol_message}" }
+        else
+          __outgoing_message_queue__ << protocol_message
+          logger.debug { "Connection: protocol msg queued =>: #{protocol_message.action} #{protocol_message}" }
+        end
       end
 
       # @api private
@@ -472,7 +470,7 @@ module Ably
               url_params = auth_params.merge(
                 'format' =>     client.protocol,
                 'echo' =>       client.echo_messages,
-                'v' =>          Ably::PROTOCOL_VERSION,
+                'v' =>          Ably::PROTOCOL_VERSION, # RSC7a
                 'agent' =>      client.rest_client.agent
               )
 
@@ -482,18 +480,19 @@ module Ably
               else
                 'false'
               end
-
-              url_params['clientId'] = client.auth.client_id if client.auth.has_client_id?
+              # RSA7e1
+              url_params['clientId'] = client.auth.client_id_for_request_sync if client.auth.client_id_for_request_sync
               url_params.merge!(client.transport_params)
 
-              if connection_resumable?
-                url_params.merge! resume: key, connection_serial: serial
-                logger.debug { "Resuming connection key #{key} with serial #{serial}" }
-              elsif connection_recoverable?
-                url_params.merge! recover: connection_recover_parts[:recover], connectionSerial: connection_recover_parts[:connection_serial]
-                logger.debug { "Recovering connection with key #{client.recover}" }
-                unsafe_once(:connected, :closed, :failed) do
-                  client.disable_automatic_connection_recovery
+              if !key.nil_or_empty? and connection_state_available?
+                url_params.merge! resume: key
+                logger.debug { "Resuming connection with key #{key}" }
+              elsif !client.recover.nil_or_empty?
+                recovery_context = RecoveryKeyContext.from_json(client.recover, logger)
+                unless recovery_context.nil?
+                  key = recovery_context.connection_key
+                  logger.debug { "Recovering connection with key #{key}" }
+                  url_params.merge! recover: key
                 end
               end
 
@@ -544,24 +543,6 @@ module Ably
         @details = connection_details
       end
 
-      # Executes registered callbacks for a successful connection resume event
-      # @api private
-      def trigger_resumed
-        resume_callbacks.each(&:call)
-      end
-
-      # Provides a simple hook to inject a callback when a connection is successfully resumed
-      # @api private
-      def on_resume(&callback)
-        resume_callbacks << callback
-      end
-
-      # Remove a registered connection resume callback
-      # @api private
-      def off_resume(&callback)
-        resume_callbacks.delete(callback)
-      end
-
       # Returns false if messages cannot be published as a result of message queueing being disabled
       # @api private
       def can_publish_messages?
@@ -600,6 +581,12 @@ module Ably
         @client_msg_serial = -1
       end
 
+      # Sets the client message serial from recover clientOption.
+      # @api private
+      def set_msg_serial_from_recover=(value)
+        @client_msg_serial = value
+      end
+
       # When a hearbeat or any other message from Ably is received
       # we know it's alive, see #RTN23
       # @api private
@@ -620,18 +607,10 @@ module Ably
       private
 
       # The client message serial (msgSerial) is incremented for every message that is published that requires an ACK.
-      # Note that this is different to the connection serial that contains the last known serial number
-      # received from the server.
-      #
       # A message serial number does not guarantee a message has been received, only sent.
-      # A connection serial guarantees the server has received the message and is thus used for connection recovery and resumes.
       # @return [Integer] starting at -1 indicating no messages sent, 0 when the first message is sent
       def client_msg_serial
         @client_msg_serial
-      end
-
-      def resume_callbacks
-        @resume_callbacks ||= []
       end
 
       def create_pub_sub_message_bus
@@ -665,10 +644,6 @@ module Ably
         EventMachine.next_tick { yield }
       end
 
-      def connection_resumable?
-        !key.nil? && !serial.nil? && connection_state_available?
-      end
-
       def connection_state_available?
         return true if connected?
 
@@ -680,14 +655,6 @@ module Ably
         else
           true
         end
-      end
-
-      def connection_recoverable?
-        connection_recover_parts
-      end
-
-      def connection_recover_parts
-        client.recover.to_s.match(RECOVER_REGEX)
       end
 
       def production?
@@ -740,3 +707,4 @@ end
 require 'ably/realtime/connection/connection_manager'
 require 'ably/realtime/connection/connection_state_machine'
 require 'ably/realtime/connection/websocket_transport'
+require 'ably/realtime/recovery_key_context'

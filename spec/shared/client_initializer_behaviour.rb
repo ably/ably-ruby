@@ -130,7 +130,7 @@ shared_examples 'a client initializer' do
     end
 
     context 'with token' do
-      let(:client_options) { { token: 'token', auth_connect: false } }
+      let(:client_options) { { token: 'token', auto_connect: false } }
 
       it 'sets the token' do
         expect(subject.auth.current_token_details.token).to eql('token')

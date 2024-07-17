@@ -747,8 +747,6 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                 resumed_connection = false
 
                 connection.once(:disconnected) do
-                  disconnected_at = Time.now
-
                   allow(connection).to receive(:time_since_connection_confirmed_alive?).and_return(connection.connection_state_ttl + 1)
 
                   # Make sure the next connect does not have the resume param
@@ -781,8 +779,6 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                 resumed_with_clean_connection = false
 
                 connection.once(:disconnected) do
-                  disconnected_at = Time.now
-
                   pseudo_time_passed = connection.connection_state_ttl + connection.details.max_idle_interval + 1
                   allow(connection).to receive(:time_since_connection_confirmed_alive?).and_return(pseudo_time_passed)
 
@@ -815,14 +811,11 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                 channel_emitted_an_attached = false
 
                 channel.attach do
-                  channel.once(:attached) do |channel_state_change|
-                    expect(channel_state_change.resumed).to be_falsey
+                  channel.once(:attached) do
                     channel_emitted_an_attached = true
                   end
 
                   connection.once(:disconnected) do
-                    disconnected_at = Time.now
-
                     pseudo_time_passed = connection.connection_state_ttl + connection.details.max_idle_interval + 1
                     allow(connection).to receive(:time_since_connection_confirmed_alive?).and_return(pseudo_time_passed)
 
@@ -955,7 +948,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             previous_connection_id = connection.id
             connection.transport.close_connection_after_writing
 
-            expect(connection).to receive(:configure_new).with(previous_connection_id, anything, anything).and_call_original
+            expect(connection).to receive(:configure_new).with(previous_connection_id, anything).and_call_original
 
             connection.once(:connected) do
               expect(connection.key).to_not be_nil
@@ -1004,16 +997,6 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               connection.once(:connected) do
                 publishing_client_channel.publish 'event', 'message'
               end
-            end
-          end
-        end
-
-        it 'executes the resume callback', api_private: true do
-          channel.attach do
-            connection.transport.close_connection_after_writing
-            connection.on_resume do
-              expect(connection).to be_connected
-              stop_reactor
             end
           end
         end
@@ -1089,7 +1072,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
 
           def kill_connection_transport_and_prevent_valid_resume
             connection.transport.close_connection_after_writing
-            connection.configure_new '0123456789abcdef', 'wVIsgTHAB1UvXh7z-1991d8586', -1 # force the resume connection key to be invalid
+            connection.configure_new '0123456789abcdef', '0123456789abcdef-99'  # force the resume connection key to be invalid
           end
 
           it 'updates the connection_id and connection_key' do
@@ -1122,7 +1105,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                 end
                 channel.on(:attaching) do |channel_state_change|
                   error = channel_state_change.reason
-                  expect(error.message).to match(/Unable to recover connection/i)
+                  expect(error.message).to match(/Invalid connection key/i)
                   reattaching_channels << channel
                 end
                 channel.on(:attached) do
@@ -1222,9 +1205,9 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           it 'sets the error reason on each channel' do
             channel.attach do
               channel.on(:attaching) do |state_change|
-                expect(state_change.reason.message).to match(/Unable to recover connection/i)
-                expect(state_change.reason.code).to eql(80008)
-                expect(channel.error_reason.code).to eql(80008)
+                expect(state_change.reason.message).to match(/Invalid connection key/i)
+                expect(state_change.reason.code).to eql(80018)
+                expect(channel.error_reason.code).to eql(80018)
 
                 channel.on(:attached) do |state_change|
                   stop_reactor
@@ -1375,7 +1358,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
             end)
           end
 
-          xit 'triggers a re-authentication and then resumes the connection' do
+          it 'triggers a re-authentication and then resumes the connection' do
             # [PENDING] After sandbox env update connection isn't found and a new connection is created. Spec fails
             #
             connection.once(:connected) do

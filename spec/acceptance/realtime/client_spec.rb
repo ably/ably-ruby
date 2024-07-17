@@ -133,7 +133,7 @@ describe Ably::Realtime::Client, :event_machine do
             end
           end
 
-          context 'with a wildcard client_id token' do
+          context 'with a wildcard client_id token ' do
             subject                 { auto_close Ably::Realtime::Client.new(client_options) }
             let(:client_options)    { default_options.merge(auth_callback: lambda { |token_params| auth_token_object }, client_id: client_id) }
             let(:rest_auth_client)  { Ably::Rest::Client.new(default_options.merge(key: api_key)) }

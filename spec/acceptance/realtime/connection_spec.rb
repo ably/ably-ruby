@@ -387,7 +387,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 expect(client.client_id).to eql('incompatible')
                 client.connection.once(:failed) do
                   expect(client.client_id).to eql('incompatible')
-                  expect(client.connection.error_reason.code).to eql(40101) # Invalid clientId for credentials
+                  expect(client.connection.error_reason.code).to eql(40102) # Incompatible clientId for credentials
                   stop_reactor
                 end
               end
@@ -744,58 +744,6 @@ describe Ably::Realtime::Connection, :event_machine do
       end
     end
 
-    describe '#serial connection serial' do
-      let(:channel) { client.channel(random_str) }
-
-      it 'is set to -1 when a new connection is opened' do
-        connection.connect do
-          expect(connection.serial).to eql(-1)
-          stop_reactor
-        end
-      end
-
-      context 'when a message is sent but the ACK has not yet been received' do
-        it 'the sent message msgSerial is 0 but the connection serial remains at -1' do
-          channel.attach do
-            connection.__outgoing_protocol_msgbus__.subscribe(:protocol_message) do |protocol_message|
-              if protocol_message.action == :message
-                connection.__outgoing_protocol_msgbus__.unsubscribe
-                expect(protocol_message['msgSerial']).to eql(0)
-                expect(connection.serial).to eql(-1)
-                stop_reactor
-              end
-            end
-            channel.publish('event', 'data')
-          end
-        end
-      end
-
-      it 'is set to 0 when a message is received back' do
-        channel.publish('event', 'data')
-        channel.subscribe do
-          expect(connection.serial).to eql(0)
-          stop_reactor
-        end
-      end
-
-      it 'is set to 1 when the second message is received' do
-        channel.attach do
-          messages = []
-          channel.subscribe do |message|
-            messages << message
-            if messages.length == 2
-              expect(connection.serial).to eql(1)
-              stop_reactor
-            end
-          end
-
-          channel.publish('event', 'data') do
-            channel.publish('event', 'data')
-          end
-        end
-      end
-    end
-
     describe '#msgSerial' do
       context 'when messages are queued for publish before a connection is established' do
         let(:batches) { 6 }
@@ -922,7 +870,6 @@ describe Ably::Realtime::Connection, :event_machine do
             let(:protocol_message_attributes) do
               {
                 action: Ably::Models::ProtocolMessage::ACTION.Connected.to_i,
-                connection_serial: 55,
                 connection_details: {
                   max_idle_interval: 2 * 1000
                 }
@@ -1232,7 +1179,6 @@ describe Ably::Realtime::Connection, :event_machine do
           let(:protocol_message_attributes) do
             {
               action: Ably::Models::ProtocolMessage::ACTION.Connected.to_i,
-              connection_serial: 55,
               connection_details: {
                 max_idle_interval: 2 * 1000
               }
@@ -1403,34 +1349,6 @@ describe Ably::Realtime::Connection, :event_machine do
         let(:states)           { Hash.new }
         let(:channel)          { client.channel(random_str) }
 
-        it 'is composed of connection key and serial that is kept up to date with each message ACK received' do
-          connection.on(:connected) do
-            expected_serial = -1
-            expect(connection.key).to_not be_nil
-            expect(connection.serial).to eql(expected_serial)
-
-            channel.attach do
-              channel.publish('event', 'data')
-              channel.subscribe do
-                channel.unsubscribe
-
-                expected_serial += 1 # attach message received
-                expect(connection.serial).to eql(expected_serial)
-
-                channel.publish('event', 'data')
-                channel.subscribe do
-                  channel.unsubscribe
-                  expected_serial += 1 # attach message received
-                  expect(connection.serial).to eql(expected_serial)
-
-                  expect(connection.recovery_key).to eql("#{connection.key}:#{connection.serial}:#{connection.send(:client_msg_serial)}")
-                  stop_reactor
-                end
-              end
-            end
-          end
-        end
-
         it "is available when connection is in one of the states: #{available_states.join(', ')}" do
           connection.once(:connected) do
             allow(client).to receive(:endpoint).and_return(
@@ -1446,7 +1364,7 @@ describe Ably::Realtime::Connection, :event_machine do
 
           available_states.each do |state|
             connection.on(state) do
-              states[state.to_sym] = true if connection.recovery_key
+              states[state.to_sym] = true if connection.create_recovery_key
             end
           end
 
@@ -1464,7 +1382,7 @@ describe Ably::Realtime::Connection, :event_machine do
         it 'is nil when connection is explicitly CLOSED' do
           connection.once(:connected) do
             connection.close do
-              expect(connection.recovery_key).to be_nil
+              expect(connection.create_recovery_key).to be_nil
               stop_reactor
             end
           end
@@ -1475,33 +1393,19 @@ describe Ably::Realtime::Connection, :event_machine do
         context 'connection#id after recovery' do
           it 'remains the same' do
             previous_connection_id  = nil
+            recovery_key = nil
 
             connection.once(:connected) do
               previous_connection_id  = connection.id
+              recovery_key = client.connection.create_recovery_key
               connection.transition_state_machine! :failed
             end
 
             connection.once(:failed) do
-              recover_client = auto_close Ably::Realtime::Client.new(default_options.merge(recover: client.connection.recovery_key))
+              recover_client = auto_close Ably::Realtime::Client.new(default_options.merge(recover: recovery_key))
               recover_client.connection.on(:connected) do
                 expect(recover_client.connection.id).to eql(previous_connection_id)
                 stop_reactor
-              end
-            end
-          end
-
-          it 'does not call a resume callback', api_private: true do
-            connection.once(:connected) do
-              connection.transition_state_machine! :failed
-            end
-
-            connection.once(:failed) do
-              recover_client = auto_close Ably::Realtime::Client.new(default_options.merge(recover: client.connection.recovery_key))
-              recover_client.connection.on_resume do
-                raise 'Should not call the resume callback'
-              end
-              recover_client.connection.on(:connected) do
-                EventMachine.add_timer(0.5) { stop_reactor }
               end
             end
           end
@@ -1514,7 +1418,7 @@ describe Ably::Realtime::Connection, :event_machine do
 
               channel.attach do
                 connection_id = client.connection.id
-                recovery_key = client.connection.recovery_key
+                recovery_key = client.connection.create_recovery_key
                 connection.transport.__incoming_protocol_msgbus__
                 publishing_client_channel.publish('event', 'message') do
                   connection.transition_state_machine! :failed
@@ -1548,7 +1452,7 @@ describe Ably::Realtime::Connection, :event_machine do
                 channel.publish('event', 'message') do
                   msg_serial = connection.send(:client_msg_serial)
                   expect(msg_serial).to eql(0)
-                  recovery_key = client.connection.recovery_key
+                  recovery_key = client.connection.create_recovery_key
                   connection.transition_state_machine! :failed
                 end
               end
@@ -1579,7 +1483,7 @@ describe Ably::Realtime::Connection, :event_machine do
                   expect(message.data).to eql('message-1')
                   msg_serial = connection.send(:client_msg_serial)
                   expect(msg_serial).to eql(0)
-                  recovery_key = client.connection.recovery_key
+                  recovery_key = client.connection.create_recovery_key
                   connection.transition_state_machine! :failed
                 end
                 channel.publish('event', 'message-1')
@@ -1613,23 +1517,29 @@ describe Ably::Realtime::Connection, :event_machine do
 
       context 'with :recover option' do
         context 'with invalid syntax' do
-          let(:invaid_client_options) { default_options.merge(recover: 'invalid') }
+          let(:client_options) { default_options.merge(recover: 'invalid') }
 
-          it 'raises an exception' do
-            expect { Ably::Realtime::Client.new(invaid_client_options) }.to raise_error ArgumentError, /Recover/
-            stop_reactor
+          it 'logs recovery decode error as a warning and connects successfully' do
+            connection.once(:connected) do
+              EventMachine.add_timer(1) { stop_reactor }
+            end
+            expect(client.logger).to receive(:warn).at_least(:once) do |*args, &block|
+              expect(args.concat([block ? block.call : nil]).join(',')).to match(/unable to decode recovery key/)
+            end
           end
         end
 
-        context 'with expired (missing) value sent to server' do
-          let(:client_options) { default_options.merge(recover: 'wVIsgTHAB1UvXh7z-1991d8586:0:0', log_level: :fatal) }
+        context 'with invalid connection key' do
+          recovery_key = "{\"connection_key\":\"0123456789abcdef-99\",\"msg_serial\":2," <<
+            "\"channel_serials\":{\"channel1\":\"serial1\",\"channel2\":\"serial2\"}}"
+          let(:client_options) { default_options.merge(recover: recovery_key, log_level: :fatal) }
 
           it 'connects but sets the error reason and includes the reason in the state change' do
             connection.once(:connected) do |state_change|
               expect(connection.state).to eq(:connected)
-              expect(state_change.reason.message).to match(/Unable to recover connection/i)
-              expect(connection.error_reason.message).to match(/Unable to recover connection/i)
-              expect(connection.error_reason.code).to eql(80008)
+              expect(state_change.reason.message).to match(/Invalid connection key/i)
+              expect(connection.error_reason.message).to match(/Invalid connection key/i)
+              expect(connection.error_reason.code).to eql(80018)
               expect(connection.error_reason).to eql(state_change.reason)
               stop_reactor
             end
@@ -2001,7 +1911,6 @@ describe Ably::Realtime::Connection, :event_machine do
           let(:protocol_message_attributes) do
             {
               action: Ably::Models::ProtocolMessage::ACTION.Connected.to_i,
-              connection_serial: 55,
               connection_details: {
                 client_id: 'bob',
                 connection_key: connection_key,
@@ -2037,7 +1946,6 @@ describe Ably::Realtime::Connection, :event_machine do
               connection.once(:update) do |connection_state_change|
                 expect(client.auth.client_id).to eql('bob')
                 expect(connection.key).to eql(connection_key)
-                expect(connection.serial).to eql(55)
                 expect(connection.connection_state_ttl).to eql(33)
 
                 expect(connection.details.client_id).to eql('bob')
@@ -2060,7 +1968,6 @@ describe Ably::Realtime::Connection, :event_machine do
           let(:protocol_message_attributes) do
             {
               action: Ably::Models::ProtocolMessage::ACTION.Connected.to_i,
-              connection_serial: 22,
               error: { code: 50000, message: 'Internal failure' },
             }
           end
@@ -2089,7 +1996,7 @@ describe Ably::Realtime::Connection, :event_machine do
       it 'sends the protocol version param v (#G4, #RTN2f)' do
         expect(EventMachine).to receive(:connect) do |host, port, transport, object, url|
           uri = URI.parse(url)
-          expect(CGI::parse(uri.query)['v'][0]).to eql('1.2')
+          expect(CGI::parse(uri.query)['v'][0]).to eql('2')
           stop_reactor
         end
         client

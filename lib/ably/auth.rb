@@ -414,11 +414,18 @@ module Ably
     #
     # @return [Hash] headers
     def extra_auth_headers
-      if client_id && using_basic_auth?
-        { 'X-Ably-ClientId' => Base64.urlsafe_encode64(client_id) }
+      if client_id_for_request
+        { 'X-Ably-ClientId' => Base64.urlsafe_encode64(client_id_for_request) }
       else
         {}
       end
+    end
+
+    # ClientId that needs to be included with every rest/realtime request
+    # spec - RSA7e
+    # @return string
+    def client_id_for_request
+      options[:client_id]
     end
 
     # Auth params used in URI endpoint for Realtime connections
@@ -482,15 +489,16 @@ module Ably
     #
     # @api private
     def configure_client_id(new_client_id)
-      # If new client ID from Ably is a wildcard, but preconfigured clientId is set, then keep the existing clientId
-      if has_client_id? && new_client_id == '*'
-        @client_id_validated = true
-        return
-      end
-
-      # If client_id is defined and not a wildcard, prevent it changing, this is not supported
-      if client_id && client_id != '*' &&  new_client_id != client_id
-        raise Ably::Exceptions::IncompatibleClientId.new("Client ID is immutable once configured for a client. Client ID cannot be changed to '#{new_client_id}'")
+      if has_client_id?
+        # If new client ID from Ably is a wildcard, but preconfigured clientId is set, then keep the existing clientId
+        if new_client_id == "*"
+          @client_id_validated = true
+          return
+        end
+        # If client_id is defined and not a wildcard, prevent it changing, this is not supported
+        if new_client_id != client_id
+          raise Ably::Exceptions::IncompatibleClientId.new("Client ID is immutable once configured for a client. Client ID cannot be changed to '#{new_client_id}'")
+        end
       end
       @client_id_validated = true
       @client_id = new_client_id

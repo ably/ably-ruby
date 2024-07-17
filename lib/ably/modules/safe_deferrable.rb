@@ -39,7 +39,7 @@ module Ably::Modules
       end
     end
 
-    # Mark the Deferrable as succeeded and trigger all callbacks.
+    # Mark the Deferrable as succeeded and trigger all success callbacks.
     # See http://www.rubydoc.info/gems/eventmachine/1.0.7/EventMachine/Deferrable#succeed-instance_method
     #
     # @return [void]
@@ -48,7 +48,7 @@ module Ably::Modules
       super(*args)
     end
 
-    # Mark the Deferrable as failed and trigger all callbacks.
+    # Mark the Deferrable as failed and trigger all error callbacks.
     # See http://www.rubydoc.info/gems/eventmachine/1.0.7/EventMachine/Deferrable#fail-instance_method
     #
     # @return [void]

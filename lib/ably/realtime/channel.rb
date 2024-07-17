@@ -42,7 +42,7 @@ module Ably
       #
       # @spec RTL2b
       #
-      # The permited states for this channel
+      # The permitted states for this channel
       STATE = ruby_enum('STATE',
         :initialized,
         :attaching,
@@ -364,8 +364,8 @@ module Ably
       # @return [Ably::Models::ChannelOptions]
       def set_options(channel_options)
         @options = Ably::Models::ChannelOptions(channel_options)
-
-        manager.request_reattach if need_reattach?
+        # RTL4i
+        manager.request_reattach if (need_reattach? and connection.state?(:connected))
       end
       alias options= set_options
 

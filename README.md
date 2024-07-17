@@ -7,11 +7,11 @@
 
 _[Ably](https://ably.com) is the platform that powers synchronized digital experiences in realtime. Whether attending an event in a virtual venue, receiving realtime financial information, or monitoring live car performance data – consumers simply expect realtime digital experiences as standard. Ably provides a suite of APIs to build, extend, and deliver powerful digital experiences in realtime for more than 250 million devices across 80 countries each month. Organizations like Bloomberg, HubSpot, Verizon, and Hopin depend on Ably’s platform to offload the growing complexity of business-critical realtime data synchronization at global scale. For more information, see the [Ably documentation](https://ably.com/documentation)._
 
-This is a Ruby client library for Ably. The library currently targets the [Ably 2.0.2 client library specification](https://ably.com/documentation/client-lib-development-guide/features/). You can see the complete list of features this client library supports in [our client library SDKs feature support matrix](https://ably.com/download/sdk-feature-support-matrix).
+This is a Ruby client library for Ably. The library currently targets the [Ably 2.0.0 client library specification](https://ably.com/documentation/client-lib-development-guide/features/). You can see the complete list of features this client library supports in [our client library SDKs feature support matrix](https://ably.com/download/sdk-feature-support-matrix).
 
 ## Supported platforms
 
-This SDK supports Ruby 2.7 onwards. For eventmachine and Ruby 3.x note please visit [Ruby 3.0 support](#ruby-30-support) section.
+This SDK supports Ruby 2.7 and 3.x. For eventmachine and Ruby 3.x note please visit [Ruby 3.0 support](#ruby-30-support) section.
 
 As of v1.1.5 this library requires `libcurl` as a system dependency. On most systems this is already installed but in rare cases where it isn't (for example debian-slim Docker images such as ruby-slim) you will need to install it yourself. On debian you can install it with the command `sudo apt-get install libcurl4`.
 
@@ -61,13 +61,11 @@ All examples assume a client has been created using one of the following:
 
 ```ruby
 # basic auth with an API key
-client = Ably::Realtime.new(key: 'API_KEY_COPIED_FROM_ABLY_WEB_DASHBOARD')
+client = Ably::Realtime.new(key: 'xxxxx')
 
 # using token auth
-client = Ably::Realtime.new(token: 'TOKEN_CREATED_USING_ABLY_KEY')
+client = Ably::Realtime.new(token: 'xxxxx')
 ```
-
-`Warning - Do not expose ABLY_KEY to client code. It is meant to only be used at server side`.
 
 If you do not have an API key, [sign up for a free API key now](https://ably.com/signup)
 
@@ -97,6 +95,14 @@ client.connection.on do |state_change|
   state_change.current #=> :connected
   state_change.previous #=> :connecting
 end
+```
+
+Retrieve connection id, state etc
+
+```ruby
+connection_id = client.connection.id
+state = client.connection.state
+recovery_key = client.connection.create_recovery_key # https://ably.com/docs/connect/states?q=recovery#connection-state-recover-options
 ```
 
 ### Subscribing to a channel
@@ -333,9 +339,18 @@ To see what has changed in recent versions of Bundler, see the [CHANGELOG](CHANG
 
 This library uses [semantic versioning](http://semver.org/). For each release, the following needs to be done:
 
-* Update the version number in [version.rb](./lib/ably/version.rb) and commit the change.
-* Run [`github_changelog_generator`](https://github.com/skywinder/Github-Changelog-Generator) to automate the update of the [CHANGELOG](./CHANGELOG.md). Once the `CHANGELOG` update has completed, manually change the `Unreleased` heading and link with the current version number such as `v1.0.0`. Also ensure that the `Full Changelog` link points to the new version tag instead of the `HEAD`. Ideally, run `rake doc:spec` to generate a new [spec file](./SPEC.md). Then commit these changes.
-* Add a tag and push to origin such as `git tag v1.0.0 && git push origin v1.0.0`
-* Visit [https://github.com/ably/ably-ruby/tags](https://github.com/ably/ably-ruby/tags) and `Add release notes` for the release including links to the changelog entry.
-* Run `rake release` to publish the gem to [Rubygems](https://rubygems.org/gems/ably)
-* Release the [REST-only library `ably-ruby-rest`](https://github.com/ably/ably-ruby-rest#release-process)
+1. Create a branch for the release, named like `release/1.2.3` (where `1.2.3` is the new version number)
+2. Update the version number in [version.rb](./lib/ably/version.rb) and commit the change.
+3. Run [`github_changelog_generator`](https://github.com/github-changelog-generator/github-changelog-generator) to automate the update of the [CHANGELOG](./CHANGELOG.md). This may require some manual intervention, both in terms of how the command is run and how the change log file is modified. Your mileage may vary:
+   - The command you will need to run will look something like this: `github_changelog_generator -u ably -p ably-ruby --since-tag v1.2.3 --output delta.md --token $GITHUB_TOKEN_WITH_REPO_ACCESS`. Generate token [here](https://github.com/settings/tokens/new?description=GitHub%20Changelog%20Generator%20token).
+   - Using the command above, `--output delta.md` writes changes made after `--since-tag` to a new file
+   - The contents of that new file (`delta.md`) then need to be manually inserted at the top of the `CHANGELOG.md`, changing the "Unreleased" heading and linking with the current version numbers
+   - Also ensure that the "Full Changelog" link points to the new version tag instead of the `HEAD`
+4. Commit this change: `git add CHANGELOG.md && git commit -m "Update change log."`
+5. Ideally, run `rake doc:spec` to generate a new [spec file](./SPEC.md). Then commit these changes.
+6. Make a PR against `main`. Once the PR is approved, merge it into `main`.
+7. Add a tag to the new `main` head commit and push to origin such as `git tag v1.0.3 && git push origin v1.0.3`.
+8. Visit [https://github.com/ably/ably-ruby/tags](https://github.com/ably/ably-ruby/tags) and `Add release notes` for the release including links to the changelog entry.
+9. Run `rake release` to publish the gem to [Rubygems](https://rubygems.org/gems/ably).
+10. Release the [REST-only library `ably-ruby-rest`](https://github.com/ably/ably-ruby-rest#release-process).
+11. Create the entry on the [Ably Changelog](https://changelog.ably.com/) (via [headwayapp](https://headwayapp.co/)).
