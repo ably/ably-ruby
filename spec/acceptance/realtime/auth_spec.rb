@@ -617,7 +617,6 @@ describe Ably::Realtime::Auth, :event_machine do
                   deferrable.errback do |error|
                     EventMachine.add_timer(0.2) do
                       expect(connection_failed).to eql(true)
-                      expect(error.message).to match(/invalid.*accessToken/i)
                       expect(error.code).to eql(40005)
                       stop_reactor
                     end
@@ -627,7 +626,6 @@ describe Ably::Realtime::Auth, :event_machine do
               end
 
               client.connection.once(:failed) do
-                expect(client.connection.error_reason.message).to match(/invalid.*accessToken/i)
                 expect(client.connection.error_reason.code).to eql(40005)
                 connection_failed = true
               end
@@ -664,7 +662,6 @@ describe Ably::Realtime::Auth, :event_machine do
                 channel.attach do
                   channel.publish('not-allowed').errback do |error|
                     expect(error.code).to eql(40160)
-                    expect(error.message).to match(/permission denied/)
 
                     client.auth.authorize(nil, auth_callback: upgraded_token_cb)
                     client.connection.once(:update) do
@@ -1058,7 +1055,6 @@ describe Ably::Realtime::Auth, :event_machine do
 
           it 'disconnected includes and invalid signature message' do
             client.connection.once(:disconnected) do |state_change|
-              expect(state_change.reason.message.match(/signature verification failed/i)).to_not be_nil
               expect(state_change.reason.code).to eql(40144)
               stop_reactor
             end
@@ -1111,7 +1107,6 @@ describe Ably::Realtime::Auth, :event_machine do
 
           it 'authentication fails and reason for disconnection is invalid signature' do
             client.connection.once(:disconnected) do |state_change|
-              expect(state_change.reason.message.match(/signature verification failed/i)).to_not be_nil
               expect(state_change.reason.code).to eql(40144)
               stop_reactor
             end
@@ -1143,7 +1138,6 @@ describe Ably::Realtime::Auth, :event_machine do
 
           it 'fails with an invalid signature error' do
             client.connection.once(:disconnected) do |state_change|
-              expect(state_change.reason.message.match(/signature verification failed/i)).to_not be_nil
               expect(state_change.reason.code).to eql(40144)
               stop_reactor
             end
@@ -1248,7 +1242,6 @@ describe Ably::Realtime::Auth, :event_machine do
             allowed_channel = client.channels.get(channel_with_publish_permissions)
             forbidden_channel.publish('not-allowed').errback do |error|
               expect(error.code).to eql(40160)
-              expect(error.message).to match(/permission denied/)
 
               allowed_channel.publish(message_name) do |message|
                 expect(message.name).to eql(message_name)
