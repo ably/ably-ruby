@@ -1469,7 +1469,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
       end
 
       context 'with non-production environment' do
-        let(:environment)    { 'sandbox' }
+        let(:environment)    { 'lmars-dev' }
         let(:expected_host)  { "#{environment}-#{Ably::Realtime::Client::DOMAIN}" }
         let(:client_options) { timeout_options.merge(environment: environment) }
 

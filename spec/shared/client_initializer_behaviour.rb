@@ -164,10 +164,10 @@ shared_examples 'a client initializer' do
       end
 
       context 'with environment option' do
-        let(:client_options) { default_options.merge(environment: 'sandbox', auto_connect: false) }
+        let(:client_options) { default_options.merge(environment: 'lmars-dev', auto_connect: false) }
 
         it 'uses an alternate endpoint' do
-          expect(subject.endpoint.to_s).to eql("#{protocol}s://sandbox-#{subdomain}.ably.io")
+          expect(subject.endpoint.to_s).to eql("#{protocol}s://lmars-dev-#{subdomain}.ably.io")
         end
       end
 

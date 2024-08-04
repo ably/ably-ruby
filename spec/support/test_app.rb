@@ -66,7 +66,7 @@ class TestApp
   end
 
   def environment
-    ENV['ABLY_ENV'] || 'sandbox'
+    ENV['ABLY_ENV'] || 'lmars-dev'
   end
 
   def create_test_app

@@ -214,7 +214,7 @@ module Ably
         when custom_host || options[:realtime_host] || custom_port || custom_tls_port
           []
         when environment
-          CUSTOM_ENVIRONMENT_FALLBACKS_SUFFIXES.map { |host| "#{environment}#{host}" }
+          CUSTOM_ENVIRONMENT_FALLBACKS_SUFFIXES.map { |host| "#{environment.sub(/-dev$/, '')}#{host}" }
         else
           Ably::FALLBACK_HOSTS
         end

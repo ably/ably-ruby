@@ -312,7 +312,7 @@ describe Ably::Rest::Client do
 
       context 'when environment is NOT production (#RSC15b)' do
         context 'and custom fallback hosts are empty' do
-          let(:client_options) { default_options.merge(environment: 'sandbox', key: api_key, fallback_hosts: []) }
+          let(:client_options) { default_options.merge(environment: 'lmars-dev', key: api_key, fallback_hosts: []) }
           let!(:default_host_request_stub) do
             stub_request(:post, "https://#{environment}-#{Ably::Rest::Client::DOMAIN}#{path}").to_return do
               raise Faraday::TimeoutError.new('timeout error message')
@@ -325,14 +325,14 @@ describe Ably::Rest::Client do
         end
 
         context 'and no custom fallback hosts are provided' do
-          let(:client_options) { default_options.merge(environment: 'sandbox', key: api_key) }
+          let(:client_options) { default_options.merge(environment: 'lmars-dev', key: api_key) }
 
-          it 'should make connection attempts to sandbox-a-fallback.ably-realtime.com, sandbox-b-fallback.ably-realtime.com, sandbox-c-fallback.ably-realtime.com, sandbox-d-fallback.ably-realtime.com, sandbox-e-fallback.ably-realtime.com (#RSC15a)' do
+          it 'should make connection attempts to lmars-dev-a-fallback.ably-realtime.com, lmars-dev-b-fallback.ably-realtime.com, lmars-dev-c-fallback.ably-realtime.com, lmars-dev-d-fallback.ably-realtime.com, lmars-dev-e-fallback.ably-realtime.com (#RSC15a)' do
             hosts = []
             5.times do
               hosts << client.fallback_connection.host
             end
-            expect(hosts).to match_array(%w(a b c d e).map { |id| "sandbox-#{id}-fallback.ably-realtime.com" })
+            expect(hosts).to match_array(%w(a b c d e).map { |id| "lmars-dev-#{id}-fallback.ably-realtime.com" })
           end
         end
       end
