@@ -173,7 +173,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
       end
 
       context 'JSON Array' do
-        let(:data) { { 'push' => { 'data' => { 'key' => [ true, false, 55, nil, 'string', { 'Hash' => true }, ['array'] ] } } } }
+        let(:data) { { 'push' => { 'data' => { 'key' => [ true, false, 55.1, nil, 'string', { 'Hash' => true }, ['array'] ] } } } }
 
         it 'is encoded and decoded to the same Array' do
           publish_and_check_extras data
