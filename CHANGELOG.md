@@ -1,5 +1,13 @@
 # Change Log
 
+## [v1.2.7](https://github.com/ably/ably-ruby/tree/v1.2.7)
+
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.2.6...v1.2.7)
+
+**Fixed bugs:**
+
+- Fix crash when logging an incoming message with debug-level logging enabled [\#436](https://github.com/ably/ably-ruby/issues/436)
+
 ## [v1.2.6](https://github.com/ably/ably-ruby/tree/v1.2.6)
 
 [Full Changelog](https://github.com/ably/ably-ruby/compare/v1.2.5...v1.2.6)
