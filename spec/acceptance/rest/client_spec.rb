@@ -33,9 +33,9 @@ describe Ably::Rest::Client do
         it 'logs an entry with a help href url matching the code #TI5' do
           begin
             client.channels.get('foo').publish('test')
-            raise 'Expected Ably::Exceptions::ResourceMissing'
-          rescue Ably::Exceptions::ResourceMissing => err
-            expect err.to_s.match(%r{https://help.ably.io/error/40400})
+            raise 'Expected Ably::Exceptions::UnauthorizedRequest'
+          rescue Ably::Exceptions::UnauthorizedRequest => err
+            expect err.to_s.match(%r{https://help.ably.io/error/40101})
           end
         end
       end
