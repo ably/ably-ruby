@@ -18,9 +18,6 @@ module Ably
       extend Forwardable
       using Ably::Util::AblyExtensions
 
-      # Default Ably domain for REST
-      DOMAIN = 'rest.ably.io'
-
       MAX_MESSAGE_SIZE = 65536 # See spec TO3l8
       MAX_FRAME_SIZE = 524288 # See spec TO3l8
 
@@ -43,7 +40,11 @@ module Ably
 
       def_delegators :auth, :client_id, :auth_options
 
-      # Custom environment to use such as 'sandbox' when testing the client library against an alternate Ably environment
+      # The hostname used to connect to Ably
+      # @return [String]
+      attr_reader :endpoint
+
+      # Custom environment to use such as 'sandbox' when testing the client library against an alternate Ably environment (deprecated)
       # @return [String]
       attr_reader :environment
 
@@ -135,7 +136,8 @@ module Ably
       # @option options [String]                  :token               Token string or {Models::TokenDetails} used to authenticate requests
       # @option options [String]                  :token_details       {Models::TokenDetails} used to authenticate requests
       # @option options [Boolean]                 :use_token_auth      Will force Basic Auth if set to false, and Token auth if set to true
-      # @option options [String]                  :environment         Specify 'sandbox' when testing the client library against an alternate Ably environment
+      # @option options [String]                  :endpoint            Specify a routing policy or fully-qualified domain name to connect to Ably
+      # @option options [String]                  :environment         Specify 'sandbox' when testing the client library against an alternate Ably environment (deprecated)
       # @option options [Symbol]                  :protocol            (:msgpack) Protocol used to communicate with Ably, :json and :msgpack currently supported
       # @option options [Boolean]                 :use_binary_protocol (true) When true will use the MessagePack binary protocol, when false it will use JSON encoding. This option will overide :protocol option
       # @option options [Logger::Severity,Symbol] :log_level           (Logger::WARN) Log level for the standard Logger that outputs to STDOUT. Can be set to :fatal (Logger::FATAL), :error (Logger::ERROR), :warn (Logger::WARN), :info (Logger::INFO), :debug (Logger::DEBUG) or :none
@@ -188,8 +190,6 @@ module Ably
         @agent               = options.delete(:agent) || Ably::AGENT
         @realtime_client     = options.delete(:realtime_client)
         @tls                 = options.delete_with_default(:tls, true)
-        @environment         = options.delete(:environment) # nil is production
-        @environment         = nil if [:production, 'production'].include?(@environment)
         @protocol            = options.delete(:protocol) || :msgpack
         @debug_http          = options.delete(:debug_http)
         @log_level           = options.delete(:log_level) || ::Logger::WARN
@@ -203,9 +203,14 @@ module Ably
         @max_frame_size      = options.delete(:max_frame_size) || MAX_FRAME_SIZE
         @idempotent_rest_publishing = options.delete_with_default(:idempotent_rest_publishing, true)
 
+        @environment         = options.delete(:environment) # nil is production
+        @environment         = nil if [:production, 'production'].include?(@environment)
+        @endpoint            = environment || options.delete_with_default(:endpoint, 'main')
+
         if options[:fallback_hosts_use_default] && options[:fallback_hosts]
           raise ArgumentError, "fallback_hosts_use_default cannot be set to try when fallback_hosts is also provided"
         end
+
         @fallback_hosts = case
         when options.delete(:fallback_hosts_use_default)
           Ably::FALLBACK_HOSTS
@@ -213,8 +218,10 @@ module Ably
           options_fallback_hosts
         when custom_host || options[:realtime_host] || custom_port || custom_tls_port
           []
-        when environment
-          CUSTOM_ENVIRONMENT_FALLBACKS_SUFFIXES.map { |host| "#{environment}#{host}" }
+        when endpoint.start_with?('nonprod:')
+          NONPROD_FALLBACKS_SUFFIXES.map { |host| "#{endpoint.gsub('nonprod:', '')}.#{host}" }
+        when endpoint != 'main'
+          PROD_FALLBACKS_SUFFIXES.map { |host| "#{endpoint}.#{host}" }
         else
           Ably::FALLBACK_HOSTS
         end
@@ -426,10 +433,34 @@ module Ably
         @push ||= Push.new(self)
       end
 
-      # @!attribute [r] endpoint
+      # @!attribute [r] hostname
+      # @return [String] The primary hostname to connect to Ably
+      def hostname
+        if endpoint.include?('.') || endpoint.include?('::') || endpoint == 'localhost'
+          return endpoint
+        end
+
+        if endpoint.start_with?('nonprod:')
+          "#{endpoint.gsub('nonprod:', '')}.realtime.#{root_domain}"
+        else
+          "#{endpoint}.realtime.#{root_domain}"
+        end
+      end
+
+      # @!attribute [r] root_domain
+      # @return [String] The root domain used in the hostname
+      def root_domain
+        if endpoint.start_with?('nonprod:')
+          'ably-nonprod.net'
+        else
+          'ably.net'
+        end
+      end
+
+      # @!attribute [r] uri
       # @return [URI::Generic] Default Ably REST endpoint used for all requests
       def uri
-        uri_for_host(custom_host || [@environment, DOMAIN].compact.join('-'))
+        uri_for_host(custom_host || hostname)
       end
 
       # @!attribute [r] logger

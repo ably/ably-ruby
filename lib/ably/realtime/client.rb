@@ -14,8 +14,6 @@ module Ably
       extend Forwardable
       using Ably::Util::AblyExtensions
 
-      DOMAIN = 'realtime.ably.io'
-
       # A {Aby::Realtime::Channels} object.
       #
       # @spec RTC3, RTS1
@@ -73,7 +71,7 @@ module Ably
       def_delegators :auth, :client_id, :auth_options
       def_delegators :@rest_client, :encoders
       def_delegators :@rest_client, :use_tls?, :protocol, :protocol_binary?
-      def_delegators :@rest_client, :environment, :custom_host, :custom_port, :custom_tls_port
+      def_delegators :@rest_client, :endpoint, :environment, :custom_host, :custom_port, :custom_tls_port
       def_delegators :@rest_client, :log_level
       def_delegators :@rest_client, :options
 
@@ -289,10 +287,34 @@ module Ably
         end
       end
 
-      # @!attribute [r] endpoint
+      # @!attribute [r] hostname
+      # @return [String] The primary hostname to connect to Ably
+      def hostname
+        if endpoint.include?('.') || endpoint.include?('::') || endpoint == 'localhost'
+          return endpoint
+        end
+
+        if endpoint.start_with?('nonprod:')
+          "#{endpoint.gsub('nonprod:', '')}.realtime.#{root_domain}"
+        else
+          "#{endpoint}.realtime.#{root_domain}"
+        end
+      end
+
+      # @!attribute [r] root_domain
+      # @return [String] The root domain used in the hostname
+      def root_domain
+        if endpoint.start_with?('nonprod:')
+          'ably-nonprod.net'
+        else
+          'ably.net'
+        end
+      end
+
+      # @!attribute [r] uri
       # @return [URI::Generic] Default Ably Realtime endpoint used for all requests
       def uri
-        uri_for_host(custom_realtime_host || [environment, DOMAIN].compact.join('-'))
+        uri_for_host(custom_realtime_host || hostname)
       end
 
       # (see Ably::Rest::Client#register_encoder)

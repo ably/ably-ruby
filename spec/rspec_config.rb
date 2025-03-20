@@ -35,7 +35,7 @@ RSpec.configure do |config|
       key_name: 'app_id.key_name',
       key_secret: 'secret',
       api_key: 'app_id.key_name:secret',
-      environment: 'sandbox'
+      environment: 'nonprod:sandbox'
     ))
     WebMock.enable!
   end

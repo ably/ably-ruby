@@ -1099,7 +1099,7 @@ describe Ably::Auth do
               }
             }
 
-            stub_request(:post, "https://#{environment}-rest.ably.io/channels/foo/publish").
+            stub_request(:post, "https://#{client.hostname}/channels/foo/publish").
               to_return(status: 401, body: token_expired.to_json, headers: { 'Content-Type' => 'application/json' })
           end
 
@@ -1158,7 +1158,7 @@ describe Ably::Auth do
           sleep 2.5
           WebMock.enable!
           WebMock.disable_net_connect!
-          stub_request(:post, "https://#{environment}-rest.ably.io/keys/#{TestApp.instance.key_name}/requestToken").
+          stub_request(:post, "https://#{client.hostname}/keys/#{TestApp.instance.key_name}/requestToken").
               to_return(status: 401, body: token_expired_response.to_json, headers: { 'Content-Type' => 'application/json' })
           expect { channel.publish 'event' }.to raise_error Ably::Exceptions::TokenExpired
           expect(auth.current_token_details).to eql(token)

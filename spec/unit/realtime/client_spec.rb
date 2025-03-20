@@ -13,13 +13,13 @@ describe Ably::Realtime::Client do
     let(:client_options) { { key: 'appid.keyuid:keysecret', auto_connect: false } }
 
     it 'passes on the options to the initializer' do
-      rest_client = instance_double('Ably::Rest::Client', auth: instance_double('Ably::Auth'), options: client_options, environment: 'production', use_tls?: true, custom_tls_port: nil)
+      rest_client = instance_double('Ably::Rest::Client', auth: instance_double('Ably::Auth'), options: client_options, environment: 'production', use_tls?: true, custom_tls_port: nil, endpoint: 'main')
       expect(Ably::Rest::Client).to receive(:new).with(hash_including(client_options)).and_return(rest_client)
       realtime_client
     end
 
     context 'for attribute' do
-      [:environment, :use_tls?, :log_level, :custom_host].each do |attribute|
+      [:endpoint, :environment, :use_tls?, :log_level, :custom_host].each do |attribute|
         specify "##{attribute}" do
           expect(realtime_client.rest_client).to receive(attribute)
           realtime_client.public_send attribute

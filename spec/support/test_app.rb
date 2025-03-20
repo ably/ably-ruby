@@ -66,7 +66,7 @@ class TestApp
   end
 
   def environment
-    ENV['ABLY_ENV'] || 'sandbox'
+    ENV['ABLY_ENV'] || 'nonprod:sandbox'
   end
 
   def create_test_app
@@ -94,12 +94,13 @@ class TestApp
   end
 
   def create_test_stats(stats)
-    client = Ably::Rest::Client.new(key: api_key, environment: environment)
+    client = Ably::Rest::Client.new(key: api_key, endpoint: environment)
     response = client.post('/stats', stats)
     raise "Could not create stats fixtures.  Ably responded with status #{response.status}\n#{response.body}" unless (200..299).include?(response.status)
   end
 
   private
+
   def sandbox_client
     @sandbox_client ||= Ably::Rest::Client.new(key: 'app.key:secret', tls: true, environment: environment)
   end

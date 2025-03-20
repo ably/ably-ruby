@@ -29,7 +29,7 @@ describe Ably::Realtime::Connection, :event_machine do
 
       context 'current_host' do
         it 'is available immediately after the client is instanced' do
-          expect(connection.current_host.to_s).to match(/\.ably\.io$/)
+          expect(connection.current_host.to_s).to match(/\.realtime\.ably[-nonprod]*\.net$/)
           stop_reactor
         end
       end

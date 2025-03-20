@@ -930,7 +930,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
                   original_method.call(*args, &block)
                 end
                 connection.once(:connected) do
-                  host = "#{"#{environment}-" if environment && environment.to_s != 'production'}#{Ably::Realtime::Client::DOMAIN}"
+                  host = client.hostname
                   expect(hosts.first).to eql(host)
                   expect(hosts.length).to eql(1)
                   stop_reactor
@@ -1469,13 +1469,13 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
       end
 
       context 'with non-production environment' do
-        let(:environment)    { 'sandbox' }
-        let(:expected_host)  { "#{environment}-#{Ably::Realtime::Client::DOMAIN}" }
+        let(:environment)    { 'nonprod:sandbox' }
+        let(:expected_host)  { "sandbox.realtime.ably-nonprod.net" }
         let(:client_options) { timeout_options.merge(environment: environment) }
 
         context ':fallback_hosts_use_default is unset' do
           let(:max_time_in_state_for_tests) { 8 }
-          let(:expected_hosts) { Ably::CUSTOM_ENVIRONMENT_FALLBACKS_SUFFIXES.map { |suffix| "#{environment}#{suffix}" } + [expected_host] }
+          let(:expected_hosts) { Ably::NONPROD_FALLBACKS_SUFFIXES.map { |suffix| "#{environment.gsub("nonprod:", "")}.#{suffix}" } + [expected_host] }
           let(:fallback_hosts_used) { Array.new }
 
           it 'uses fallback hosts by default' do
@@ -1568,7 +1568,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           stub_const 'Ably::FALLBACK_HOSTS', custom_hosts
         end
 
-        let(:expected_host)  { Ably::Realtime::Client::DOMAIN }
+        let(:expected_host)  { 'main.realtime.ably.net' }
         let(:client_options) { timeout_options.merge(environment: nil) }
 
         let(:fallback_hosts_used) { Array.new }
