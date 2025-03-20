@@ -775,7 +775,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
                 EventMachine.add_timer(0.0001) do
                   connection.transition_state_machine :suspended
                   stub_const 'Ably::FALLBACK_HOSTS', []
-                  allow(client).to receive(:endpoint).and_return(URI::Generic.build(scheme: 'wss', host: 'does.not.exist.com'))
+                  allow(client).to receive(:uri).and_return(URI::Generic.build(scheme: 'wss', host: 'does.not.exist.com'))
                 end
               end
             end

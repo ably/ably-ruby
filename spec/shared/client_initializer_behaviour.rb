@@ -154,38 +154,38 @@ shared_examples 'a client initializer' do
       end
     end
 
-    context 'endpoint' do
+    context 'uri' do
       before do
         allow_any_instance_of(subject.class).to receive(:auto_connect).and_return(false)
       end
 
       it 'defaults to production' do
-        expect(subject.endpoint.to_s).to eql("#{protocol}s://#{subdomain}.ably.io")
+        expect(subject.uri.to_s).to eql("#{protocol}s://#{subdomain}.ably.io")
       end
 
       context 'with environment option' do
         let(:client_options) { default_options.merge(environment: 'sandbox', auto_connect: false) }
 
-        it 'uses an alternate endpoint' do
-          expect(subject.endpoint.to_s).to eql("#{protocol}s://sandbox-#{subdomain}.ably.io")
+        it 'uses an alternate uri' do
+          expect(subject.uri.to_s).to eql("#{protocol}s://sandbox-#{subdomain}.ably.io")
         end
       end
 
       context 'with rest_host option' do
         let(:client_options) { default_options.merge(rest_host: 'custom-rest.host.com', auto_connect: false) }
 
-        it 'uses an alternate endpoint for REST clients' do
+        it 'uses an alternate uri for REST clients' do
           skip 'does not apply as testing a Realtime client' unless rest?
-          expect(subject.endpoint.to_s).to eql("#{protocol}s://custom-rest.host.com")
+          expect(subject.uri.to_s).to eql("#{protocol}s://custom-rest.host.com")
         end
       end
 
       context 'with realtime_host option' do
         let(:client_options) { default_options.merge(realtime_host: 'custom-realtime.host.com', auto_connect: false) }
 
-        it 'uses an alternate endpoint for Realtime clients' do
+        it 'uses an alternate uri for Realtime clients' do
           skip 'does not apply as testing a REST client' if rest?
-          expect(subject.endpoint.to_s).to eql("#{protocol}s://custom-realtime.host.com")
+          expect(subject.uri.to_s).to eql("#{protocol}s://custom-realtime.host.com")
         end
       end
 
@@ -193,7 +193,7 @@ shared_examples 'a client initializer' do
         let(:client_options) { default_options.merge(port: 999, tls: false, auto_connect: false) }
 
         it 'uses the custom port for non-TLS requests' do
-          expect(subject.endpoint.to_s).to include(":999")
+          expect(subject.uri.to_s).to include(":999")
         end
       end
 
@@ -201,7 +201,7 @@ shared_examples 'a client initializer' do
         let(:client_options) { default_options.merge(tls_port: 666, tls: true, auto_connect: false) }
 
         it 'uses the custom port for TLS requests' do
-          expect(subject.endpoint.to_s).to include(":666")
+          expect(subject.uri.to_s).to include(":666")
         end
       end
     end
@@ -219,7 +219,7 @@ shared_examples 'a client initializer' do
         end
 
         it 'uses HTTP' do
-          expect(subject.endpoint.to_s).to eql("#{protocol}://#{subdomain}.ably.io")
+          expect(subject.uri.to_s).to eql("#{protocol}://#{subdomain}.ably.io")
         end
       end
 

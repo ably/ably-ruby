@@ -1086,7 +1086,7 @@ describe Ably::Rest::Client do
           let(:client_options) { default_options.merge(key: api_key, agent: agent) }
 
           let!(:publish_message_stub) do
-            stub_request(:post, "#{client.endpoint}/channels/foo/publish").
+            stub_request(:post, "#{client.uri}/channels/foo/publish").
               with(headers: {
                 'X-Ably-Version' => Ably::PROTOCOL_VERSION,
                 'Ably-Agent' => agent || Ably::AGENT
@@ -1113,7 +1113,7 @@ describe Ably::Rest::Client do
     context '#request (#RSC19*, #TO3l9)' do
       let(:client_options) { default_options.merge(key: api_key) }
       let(:device_id) { random_str }
-      let(:endpoint) { client.endpoint }
+      let(:uri) { client.uri }
 
       context 'get' do
         it 'returns an HttpPaginatedResponse object' do
@@ -1156,7 +1156,7 @@ describe Ably::Rest::Client do
 
       context 'post', :webmock do
         before do
-          stub_request(:delete, "#{endpoint}/push/deviceRegistrations/#{device_id}/resetUpdateToken").
+          stub_request(:delete, "#{uri}/push/deviceRegistrations/#{device_id}/resetUpdateToken").
             to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
         end
 
@@ -1168,14 +1168,14 @@ describe Ably::Rest::Client do
 
         it 'raises an exception once body size in bytes exceeded' do
           expect {
-            client.request(:post, endpoint, {}, { content: 'x' * Ably::Rest::Client::MAX_FRAME_SIZE })
+            client.request(:post, uri, {}, { content: 'x' * Ably::Rest::Client::MAX_FRAME_SIZE })
           }.to raise_error(Ably::Exceptions::MaxFrameSizeExceeded)
         end
       end
 
       context 'delete', :webmock do
         before do
-          stub_request(:delete, "#{endpoint}/push/channelSubscriptions?deviceId=#{device_id}").
+          stub_request(:delete, "#{uri}/push/channelSubscriptions?deviceId=#{device_id}").
             to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
         end
 
@@ -1190,7 +1190,7 @@ describe Ably::Rest::Client do
         let(:body_params) { { 'metadata' => { 'key' => 'value' } } }
 
         before do
-          stub_request(:patch, "#{endpoint}/push/deviceRegistrations/#{device_id}")
+          stub_request(:patch, "#{uri}/push/deviceRegistrations/#{device_id}")
             .with(body: serialize_body(body_params, protocol))
             .to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
         end
@@ -1203,7 +1203,7 @@ describe Ably::Rest::Client do
 
         it 'raises an exception once body size in bytes exceeded' do
           expect {
-            client.request(:patch, endpoint, {}, { content: 'x' * Ably::Rest::Client::MAX_FRAME_SIZE })
+            client.request(:patch, uri, {}, { content: 'x' * Ably::Rest::Client::MAX_FRAME_SIZE })
           }.to raise_error(Ably::Exceptions::MaxFrameSizeExceeded)
         end
       end
@@ -1219,7 +1219,7 @@ describe Ably::Rest::Client do
         end
 
         before do
-          stub_request(:put, "#{endpoint}/push/deviceRegistrations/#{device_id}")
+          stub_request(:put, "#{uri}/push/deviceRegistrations/#{device_id}")
             .with(body: serialize_body(body_params, protocol))
             .to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
         end
@@ -1232,7 +1232,7 @@ describe Ably::Rest::Client do
 
         it 'raises an exception once body size in bytes exceeded' do
           expect {
-            client.request(:put, endpoint, {}, { content: 'x' * Ably::Rest::Client::MAX_FRAME_SIZE })
+            client.request(:put, uri, {}, { content: 'x' * Ably::Rest::Client::MAX_FRAME_SIZE })
           }.to raise_error(Ably::Exceptions::MaxFrameSizeExceeded)
         end
       end
@@ -1246,7 +1246,7 @@ describe Ably::Rest::Client do
 
           before do
             @request_id = nil
-            stub_request(:get, Addressable::Template.new("#{client.endpoint}/time{?request_id}")).with do |request|
+            stub_request(:get, Addressable::Template.new("#{client.uri}/time{?request_id}")).with do |request|
               @request_id = request.uri.query_values['request_id']
             end.to_return do
               raise Faraday::TimeoutError.new('timeout error message')
@@ -1268,7 +1268,7 @@ describe Ably::Rest::Client do
 
           context 'with mocks to inspect the params', :webmock do
             before do
-              stub_request(:post, Addressable::Template.new("#{client.endpoint}/channels/#{channel_name}/publish{?request_id}")).
+              stub_request(:post, Addressable::Template.new("#{client.uri}/channels/#{channel_name}/publish{?request_id}")).
                 with do |request|
                   @request_id = request.uri.query_values['request_id']
                 end.to_return(:status => 200, :body => [], :headers => { 'Content-Type' => 'application/json' })

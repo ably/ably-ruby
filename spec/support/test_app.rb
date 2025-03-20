@@ -57,7 +57,7 @@ class TestApp
   def delete
     return unless TestApp.instance_variable_get('@singleton__instance__')
 
-    url = "#{sandbox_client.endpoint}/apps/#{app_id}"
+    url = "#{sandbox_client.uri}/apps/#{app_id}"
 
     basic_auth = Base64.urlsafe_encode64(api_key).chomp
     headers    = { "Authorization" => "Basic #{basic_auth}" }
@@ -70,7 +70,7 @@ class TestApp
   end
 
   def create_test_app
-    url = "#{sandbox_client.endpoint}/apps"
+    url = "#{sandbox_client.uri}/apps"
 
     headers = {
       'Accept'       => 'application/json',
@@ -86,7 +86,7 @@ class TestApp
   end
 
   def host
-    sandbox_client.endpoint.host
+    sandbox_client.uri.host
   end
 
   def realtime_host

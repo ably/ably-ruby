@@ -61,7 +61,7 @@ describe Ably::Auth do
       end
 
       it 'creates a TokenRequest automatically and sends it to Ably to obtain a token', webmock: true do
-        token_request_stub = stub_request(:post, "#{client.endpoint}/keys/#{key_name}/requestToken").
+        token_request_stub = stub_request(:post, "#{client.uri}/keys/#{key_name}/requestToken").
           to_return(status: 201, body: serialize_body({}, protocol), headers: { 'Content-Type' => content_type })
         expect(auth).to receive(:create_token_request).and_call_original
         auth.request_token
@@ -90,7 +90,7 @@ describe Ably::Auth do
 
           let(:token_response) { {} }
           let!(:request_token_stub) do
-            stub_request(:post, "#{client.endpoint}/keys/#{key_name}/requestToken").
+            stub_request(:post, "#{client.uri}/keys/#{key_name}/requestToken").
               with do |request|
                 request_body_includes(request, protocol, token_param, coerce_if_time_value(token_param, random, multiply: 1000))
               end.to_return(
@@ -121,7 +121,7 @@ describe Ably::Auth do
 
         let(:token_response) { {} }
         let!(:request_token_stub) do
-          stub_request(:post, "#{client.endpoint}/keys/#{key_name}/requestToken").
+          stub_request(:post, "#{client.uri}/keys/#{key_name}/requestToken").
             with do |request|
               request_body_includes(request, protocol, 'mac', mac)
             end.to_return(
@@ -151,7 +151,7 @@ describe Ably::Auth do
 
         let(:token_response) { {} }
         let!(:request_token_stub) do
-          stub_request(:post, "#{client.endpoint}/keys/#{key_name}/requestToken").
+          stub_request(:post, "#{client.uri}/keys/#{key_name}/requestToken").
             with do |request|
               request_body_includes(request, protocol, 'mac', mac)
             end.to_return(
@@ -293,7 +293,7 @@ describe Ably::Auth do
         let(:auth_url_content_type) { 'application/json' }
 
         let!(:request_token_stub) do
-          stub_request(:post, "#{client.endpoint}/keys/#{key_name}/requestToken").
+          stub_request(:post, "#{client.uri}/keys/#{key_name}/requestToken").
             with do |request|
               request_body_includes(request, protocol, 'key_name', key_name)
             end.to_return(

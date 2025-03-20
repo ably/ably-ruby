@@ -291,8 +291,8 @@ module Ably
 
       # @!attribute [r] endpoint
       # @return [URI::Generic] Default Ably Realtime endpoint used for all requests
-      def endpoint
-        endpoint_for_host(custom_realtime_host || [environment, DOMAIN].compact.join('-'))
+      def uri
+        uri_for_host(custom_realtime_host || [environment, DOMAIN].compact.join('-'))
       end
 
       # (see Ably::Rest::Client#register_encoder)
@@ -322,8 +322,8 @@ module Ably
       # @api private
       def fallback_endpoint
         unless defined?(@fallback_endpoints) && @fallback_endpoints
-          @fallback_endpoints = fallback_hosts.shuffle.map { |fallback_host| endpoint_for_host(fallback_host) }
-          @fallback_endpoints << endpoint # Try the original host last if all fallbacks have been used
+          @fallback_endpoints = fallback_hosts.shuffle.map { |fallback_host| uri_for_host(fallback_host) }
+          @fallback_endpoints << uri # Try the original host last if all fallbacks have been used
         end
 
         fallback_endpoint_index = connection.manager.retry_count_for_state(:disconnected) + connection.manager.retry_count_for_state(:suspended) - 1
@@ -341,7 +341,8 @@ module Ably
       end
 
       private
-      def endpoint_for_host(host)
+
+      def uri_for_host(host)
         port = if use_tls?
           custom_tls_port
         else

@@ -428,8 +428,8 @@ module Ably
 
       # @!attribute [r] endpoint
       # @return [URI::Generic] Default Ably REST endpoint used for all requests
-      def endpoint
-        endpoint_for_host(custom_host || [@environment, DOMAIN].compact.join('-'))
+      def uri
+        uri_for_host(custom_host || [@environment, DOMAIN].compact.join('-'))
       end
 
       # @!attribute [r] logger
@@ -480,7 +480,7 @@ module Ably
         if options[:use_fallback]
           fallback_connection
         else
-          @connection ||= Faraday.new(endpoint.to_s, connection_options)
+          @connection ||= Faraday.new(uri.to_s, connection_options)
         end
       end
 
@@ -493,7 +493,7 @@ module Ably
       # @api private
       def fallback_connection
         unless defined?(@fallback_connections) && @fallback_connections
-          @fallback_connections = fallback_hosts.shuffle.map { |host| Faraday.new(endpoint_for_host(host).to_s, connection_options) }
+          @fallback_connections = fallback_hosts.shuffle.map { |host| Faraday.new(uri_for_host(host).to_s, connection_options) }
         end
         @fallback_index ||= 0
 
@@ -653,7 +653,7 @@ module Ably
         end
       end
 
-      def endpoint_for_host(host)
+      def uri_for_host(host)
         port = if use_tls?
           custom_tls_port
         else
