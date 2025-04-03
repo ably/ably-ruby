@@ -301,7 +301,7 @@ describe Ably::Rest::Client do
       context 'configured' do
         let(:client_options) { default_options.merge(key: api_key, environment: 'production') }
 
-        it 'should make connection attempts to main.a.fallback.ably-realtime.com, main.b.fallback.ably-realtime.com, main.c.fallback.ably-realtime.com, main.d.fallback.ably-realtime.com, main.e.fallback.ably-realtime.com (#RSC15a)' do
+        it 'should make connection attempts to main.a.fallback.ably-realtime.com, main.b.fallback.ably-realtime.com, main.c.fallback.ably-realtime.com, main.d.fallback.ably-realtime.com, main.e.fallback.ably-realtime.com (#RSC15a, #REC1)' do
           hosts = []
           5.times do
             hosts << client.fallback_connection.host
@@ -327,7 +327,7 @@ describe Ably::Rest::Client do
         context 'and no custom fallback hosts are provided' do
           let(:client_options) { default_options.merge(environment: 'nonprod:sandbox', key: api_key) }
 
-          it 'should make connection attempts to sandbox.a.fallback.ably-realtime.com, sandbox.b.fallback.ably-realtime.com, sandbox.c.fallback.ably-realtime.com, sandbox.d.fallback.ably-realtime.com, sandbox.e.fallback.ably-realtime.com (#RSC15a)' do
+          it 'should make connection attempts to sandbox.a.fallback.ably-realtime-nonprod.com, sandbox.b.fallback.ably-realtime-nonprod.com, sandbox.c.fallback.ably-realtime-nonprod.com, sandbox.d.fallback.ably-realtime-nonprod.com, sandbox.e.fallback.ably-realtime-nonprod.com (#RSC15a, #REC1b3)' do
             hosts = []
             5.times do
               hosts << client.fallback_connection.host

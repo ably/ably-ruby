@@ -401,6 +401,7 @@ module Ably
             yield current_host
           end
         else
+          # Use hostname from client.uri (#REC1)
           @current_host = client.uri.host
           yield current_host
         end

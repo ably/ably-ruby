@@ -276,7 +276,7 @@ shared_examples 'a client initializer' do
           expect(subject.endpoint).to eql(endpoint)
         end
 
-        it 'uses the default fallback hosts (#TBC, see https://github.com/ably/wiki/issues/361)' do
+        it 'uses the default fallback hosts (#REC2c1)' do
           expect(subject.fallback_hosts.sort).to eql(default_fallbacks)
         end
       end
@@ -290,7 +290,7 @@ shared_examples 'a client initializer' do
           expect(subject.endpoint).to eql(endpoint)
         end
 
-        it 'uses the custom provided fallback hosts (#RSC15a)' do
+        it 'uses the custom provided fallback hosts (#REC2a2)' do
           expect(subject.fallback_hosts.sort).to eql(custom_fallbacks)
         end
       end
@@ -305,7 +305,7 @@ shared_examples 'a client initializer' do
           expect(subject.endpoint).to eql(endpoint)
         end
 
-        it 'uses the production default fallback hosts (#RTN17b)' do
+        it 'uses the production default fallback hosts (#REC2b)' do
           expect(subject.fallback_hosts.sort).to eql(default_production_fallbacks)
         end
       end
@@ -321,7 +321,7 @@ shared_examples 'a client initializer' do
           expect(subject.environment).to eql(environment)
         end
 
-        it 'uses the default fallback hosts (#TBC, see https://github.com/ably/wiki/issues/361)' do
+        it 'uses the default fallback hosts (#REC2c1)' do
           expect(subject.fallback_hosts.sort).to eql(default_fallbacks)
         end
       end
@@ -335,7 +335,7 @@ shared_examples 'a client initializer' do
           expect(subject.environment).to eql(environment)
         end
 
-        it 'uses the custom provided fallback hosts (#RSC15a)' do
+        it 'uses the custom provided fallback hosts (#REC2a2)' do
           expect(subject.fallback_hosts.sort).to eql(custom_fallbacks)
         end
       end
@@ -350,7 +350,7 @@ shared_examples 'a client initializer' do
           expect(subject.environment).to eql(environment)
         end
 
-        it 'uses the production default fallback hosts (#RTN17b)' do
+        it 'uses the production default fallback hosts (#REC2b)' do
           expect(subject.fallback_hosts.sort).to eql(default_production_fallbacks)
         end
       end

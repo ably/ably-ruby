@@ -19,11 +19,16 @@ describe Ably::Realtime::Client do
     end
 
     context 'for attribute' do
-      [:endpoint, :environment, :use_tls?, :log_level, :custom_host].each do |attribute|
+      [:environment, :use_tls?, :log_level, :custom_host].each do |attribute|
         specify "##{attribute}" do
           expect(realtime_client.rest_client).to receive(attribute)
           realtime_client.public_send attribute
         end
+      end
+
+      specify "#endpoint (#REC1)" do
+        expect(realtime_client.rest_client).to receive(:endpoint)
+        realtime_client.endpoint
       end
     end
   end

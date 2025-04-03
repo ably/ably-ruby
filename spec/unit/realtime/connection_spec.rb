@@ -2,6 +2,7 @@ require 'spec_helper'
 require 'shared/protocol_msgbus_behaviour'
 
 describe Ably::Realtime::Connection do
+  # Using main.realtime.ably.net as the default hostname (#REC1)
   let(:client) { instance_double('Ably::Realtime::Client', logger: double('logger').as_null_object, recover: nil, uri: double('uri', host: 'main.realtime.ably.net')) }
 
   subject do
