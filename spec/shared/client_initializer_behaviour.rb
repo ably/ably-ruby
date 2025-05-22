@@ -156,18 +156,102 @@ shared_examples 'a client initializer' do
       end
 
       context 'with endpoint option' do
-        let(:client_options) { default_options.merge(endpoint: 'nonprod:sandbox', auto_connect: false) }
+        context 'specifying a routing policy id (REC1b4)' do
+          let(:client_options) { default_options.merge(endpoint: 'test', auto_connect: false) }
 
-        it 'uses an alternate uri' do
-          expect(subject.uri.to_s).to eql("#{protocol}s://sandbox.realtime.ably-nonprod.net")
+          it 'returns the routing policy uri' do
+            expect(subject.uri.to_s).to eql("#{protocol}s://test.realtime.ably.net")
+          end
+        end
+
+        context 'specifying a nonprod routing policy id (REC1b3)' do
+          let(:client_options) { default_options.merge(endpoint: 'nonprod:test', auto_connect: false) }
+
+          it 'returns the nonprod routing policy uri' do
+            expect(subject.uri.to_s).to eql("#{protocol}s://test.realtime.ably-nonprod.net")
+          end
+        end
+
+        context 'specifying a uri (REC1b2)' do
+          let(:client_options) { default_options.merge(endpoint: 'example.com', auto_connect: false) }
+
+          it 'returns the uri' do
+            expect(subject.uri.to_s).to eql("#{protocol}s://example.com")
+          end
+        end
+
+        context 'specifying an IPv4 address (REC1b2)' do
+          let(:client_options) { default_options.merge(endpoint: '127.0.0.1', auto_connect: false) }
+
+          it 'returns the IP address' do
+            expect(subject.uri.to_s).to eql("#{protocol}s://127.0.0.1")
+          end
+        end
+
+        context 'specifying an IPv6 address (REC1b2)' do
+          let(:client_options) { default_options.merge(endpoint: '::1', auto_connect: false) }
+
+          it 'returns the IP address' do
+            expect(subject.uri.to_s).to eql("#{protocol}s://[::1]")
+          end
+        end
+
+        context 'specifying localhost (REC1b2)' do
+          let(:client_options) { default_options.merge(endpoint: 'localhost', auto_connect: false) }
+
+          it 'returns localhost' do
+            expect(subject.uri.to_s).to eql("#{protocol}s://localhost")
+          end
         end
       end
 
       context 'with environment option' do
-        let(:client_options) { default_options.merge(environment: 'nonprod:sandbox', auto_connect: false) }
+        context 'specifying a routing policy id (REC1b4)' do
+          let(:client_options) { default_options.merge(endpoint: 'test', auto_connect: false) }
 
-        it 'uses an alternate uri' do
-          expect(subject.uri.to_s).to eql("#{protocol}s://sandbox.realtime.ably-nonprod.net")
+          it 'returns the routing policy uri' do
+            expect(subject.uri.to_s).to eql("#{protocol}s://test.realtime.ably.net")
+          end
+        end
+
+        context 'specifying a nonprod routing policy id (REC1b3)' do
+          let(:client_options) { default_options.merge(endpoint: 'nonprod:test', auto_connect: false) }
+
+          it 'returns the nonprod routing policy uri' do
+            expect(subject.uri.to_s).to eql("#{protocol}s://test.realtime.ably-nonprod.net")
+          end
+        end
+
+        context 'specifying a uri (REC1b2)' do
+          let(:client_options) { default_options.merge(endpoint: 'example.com', auto_connect: false) }
+
+          it 'returns the uri' do
+            expect(subject.uri.to_s).to eql("#{protocol}s://example.com")
+          end
+        end
+
+        context 'specifying an IPv4 address (REC1b2)' do
+          let(:client_options) { default_options.merge(endpoint: '127.0.0.1', auto_connect: false) }
+
+          it 'returns the IP address' do
+            expect(subject.uri.to_s).to eql("#{protocol}s://127.0.0.1")
+          end
+        end
+
+        context 'specifying an IPv6 address (REC1b2)' do
+          let(:client_options) { default_options.merge(endpoint: '::1', auto_connect: false) }
+
+          it 'returns the IP address' do
+            expect(subject.uri.to_s).to eql("#{protocol}s://[::1]")
+          end
+        end
+
+        context 'specifying localhost (REC1b2)' do
+          let(:client_options) { default_options.merge(endpoint: 'localhost', auto_connect: false) }
+
+          it 'returns localhost' do
+            expect(subject.uri.to_s).to eql("#{protocol}s://localhost")
+          end
         end
       end
 
