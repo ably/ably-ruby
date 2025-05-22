@@ -173,7 +173,7 @@ module Ably
         @state         = STATE(state_machine.current_state)
         @manager       = ConnectionManager.new(self)
 
-        @current_host = client.endpoint.host
+        @current_host = client.uri.host
 
         reset_client_msg_serial
       end
@@ -396,12 +396,13 @@ module Ably
             @current_host = if internet_is_up_result
               client.fallback_endpoint.host
             else
-              client.endpoint.host
+              client.uri.host
             end
             yield current_host
           end
         else
-          @current_host = client.endpoint.host
+          # Use hostname from client.uri (#REC1)
+          @current_host = client.uri.host
           yield current_host
         end
       end
@@ -496,8 +497,8 @@ module Ably
                 end
               end
 
-              url = URI(client.endpoint).tap do |endpoint|
-                endpoint.query = URI.encode_www_form(url_params)
+              url = URI(client.uri).tap do |uri|
+                uri.query = URI.encode_www_form(url_params)
               end
 
               determine_host do |host|

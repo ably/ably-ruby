@@ -23,7 +23,7 @@ describe "Ably::Models::HttpPaginatedResponse: #HP1 -> #HP8" do
       status: status
     })
   end
-  let(:base_url) { 'http://rest.ably.io/channels/channel_name' }
+  let(:base_url) { 'http://main.realtime.ably.net/channels/channel_name' }
   let(:full_url) { "#{base_url}/whatever?param=exists" }
   let(:paginated_result_options) { Hash.new }
   let(:first_paged_request) { paginated_result_class.new(http_response, full_url, client, paginated_result_options) }
@@ -193,7 +193,7 @@ describe "Ably::Models::HttpPaginatedResponse: #HP1 -> #HP8" do
   end
 
   context 'with paged http response' do
-    let(:base_url) { 'http://rest.ably.io/channels/channel_name' }
+    let(:base_url) { 'http://main.realtime.ably.net/channels/channel_name' }
     let(:full_url) { "#{base_url}/messages" }
     let(:headers) do
       {

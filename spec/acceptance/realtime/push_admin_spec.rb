@@ -102,7 +102,7 @@ describe Ably::Realtime::Push::Admin, :event_machine do
         end
 
         let!(:publish_stub) do
-          stub_request(:post, "#{client.rest_client.endpoint}/push/publish").
+          stub_request(:post, "#{client.rest_client.uri}/push/publish").
             with do |request|
               expect(deserialize_body(request.body, protocol)['recipient']['camelCase']['secondLevelCamelCase']).to eql('val')
               expect(deserialize_body(request.body, protocol)['recipient']).to_not have_key('camel_case')
@@ -135,7 +135,7 @@ describe Ably::Realtime::Push::Admin, :event_machine do
             'transportType' => 'ablyChannel',
             'channel' => channel,
             'ablyKey' => api_key,
-            'ablyUrl' => client.rest_client.endpoint.to_s
+            'ablyUrl' => client.rest_client.uri.to_s
           }
         end
         let(:notification_payload) do

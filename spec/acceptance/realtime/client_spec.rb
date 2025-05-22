@@ -34,7 +34,7 @@ describe Ably::Realtime::Client, :event_machine do
             client.connection.once(:failed) do
               expect(custom_logger_object.logs.find do |severity, message|
                 next unless %w(fatal error).include?(severity.to_s)
-                message.match(%r{https://help.ably.io/error/40400})
+                message.match(%r{https://help.ably.io/error/40101})
               end).to_not be_nil
               stop_reactor
             end
@@ -234,7 +234,7 @@ describe Ably::Realtime::Client, :event_machine do
     context '#request (#RSC19*)' do
       let(:client_options) { default_options.merge(key: api_key) }
       let(:device_id) { random_str }
-      let(:endpoint) { subject.rest_client.endpoint }
+      let(:uri) { subject.rest_client.uri }
 
       context 'get' do
         it 'returns an HttpPaginatedResponse object' do
@@ -287,7 +287,7 @@ describe Ably::Realtime::Client, :event_machine do
 
       context 'post', :webmock do
         before do
-          stub_request(:delete, "#{endpoint}/push/deviceRegistrations/#{device_id}/resetUpdateToken").
+          stub_request(:delete, "#{uri}/push/deviceRegistrations/#{device_id}/resetUpdateToken").
             to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
         end
 
@@ -301,7 +301,7 @@ describe Ably::Realtime::Client, :event_machine do
 
       context 'delete', :webmock do
         before do
-          stub_request(:delete, "#{endpoint}/push/channelSubscriptions?deviceId=#{device_id}").
+          stub_request(:delete, "#{uri}/push/channelSubscriptions?deviceId=#{device_id}").
             to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
         end
 
@@ -317,7 +317,7 @@ describe Ably::Realtime::Client, :event_machine do
         let(:body_params) { { 'metadata' => { 'key' => 'value' } } }
 
         before do
-          stub_request(:patch, "#{endpoint}/push/deviceRegistrations/#{device_id}")
+          stub_request(:patch, "#{uri}/push/deviceRegistrations/#{device_id}")
             .with(body: serialize_body(body_params, protocol))
             .to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
         end
@@ -341,7 +341,7 @@ describe Ably::Realtime::Client, :event_machine do
         end
 
         before do
-          stub_request(:put, "#{endpoint}/push/deviceRegistrations/#{device_id}")
+          stub_request(:put, "#{uri}/push/deviceRegistrations/#{device_id}")
             .with(body: serialize_body(body_params, protocol))
             .to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
         end

@@ -57,7 +57,7 @@ class TestApp
   def delete
     return unless TestApp.instance_variable_get('@singleton__instance__')
 
-    url = "#{sandbox_client.endpoint}/apps/#{app_id}"
+    url = "#{sandbox_client.uri}/apps/#{app_id}"
 
     basic_auth = Base64.urlsafe_encode64(api_key).chomp
     headers    = { "Authorization" => "Basic #{basic_auth}" }
@@ -66,11 +66,11 @@ class TestApp
   end
 
   def environment
-    ENV['ABLY_ENV'] || 'sandbox'
+    ENV['ABLY_ENV'] || 'nonprod:sandbox'
   end
 
   def create_test_app
-    url = "#{sandbox_client.endpoint}/apps"
+    url = "#{sandbox_client.uri}/apps"
 
     headers = {
       'Accept'       => 'application/json',
@@ -86,7 +86,7 @@ class TestApp
   end
 
   def host
-    sandbox_client.endpoint.host
+    sandbox_client.uri.host
   end
 
   def realtime_host
@@ -94,12 +94,13 @@ class TestApp
   end
 
   def create_test_stats(stats)
-    client = Ably::Rest::Client.new(key: api_key, environment: environment)
+    client = Ably::Rest::Client.new(key: api_key, endpoint: environment)
     response = client.post('/stats', stats)
     raise "Could not create stats fixtures.  Ably responded with status #{response.status}\n#{response.body}" unless (200..299).include?(response.status)
   end
 
   private
+
   def sandbox_client
     @sandbox_client ||= Ably::Rest::Client.new(key: 'app.key:secret', tls: true, environment: environment)
   end

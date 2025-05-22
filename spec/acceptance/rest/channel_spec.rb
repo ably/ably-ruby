@@ -364,12 +364,12 @@ describe Ably::Rest::Channel do
       context 'with a non ASCII channel name' do
         let(:channel_name) { 'foo:¡€≤`☃' }
         let(:channel_name_encoded) { 'foo%3A%C2%A1%E2%82%AC%E2%89%A4%60%E2%98%83' }
-        let(:endpoint) { client.endpoint }
+        let(:uri) { client.uri }
         let(:channel) { client.channels.get(channel_name) }
 
         context 'stubbed', :webmock do
           let!(:get_stub) {
-            stub_request(:post, "#{endpoint}/channels/#{channel_name_encoded}/publish").
+            stub_request(:post, "#{uri}/channels/#{channel_name_encoded}/publish").
               to_return(:body => '{}', :headers => { 'Content-Type' => 'application/json' })
           }
 
@@ -534,8 +534,8 @@ describe Ably::Rest::Channel do
     describe '#history option' do
       let(:channel_name) { "persisted:#{random_str(4)}" }
       let(:channel) { client.channel(channel_name) }
-      let(:endpoint) do
-        client.endpoint
+      let(:uri) do
+        client.uri
       end
       let(:default_history_options) do
           {
@@ -549,7 +549,7 @@ describe Ably::Rest::Channel do
           let!(:history_stub) {
             query_params = default_history_options
             .merge(option => milliseconds).map { |k, v| "#{k}=#{v}" }.join('&')
-            stub_request(:get, "#{endpoint}/channels/#{URI.encode_www_form_component(channel_name)}/messages?#{query_params}").
+            stub_request(:get, "#{uri}/channels/#{URI.encode_www_form_component(channel_name)}/messages?#{query_params}").
               to_return(:body => '{}', :headers => { 'Content-Type' => 'application/json' })
           }
 

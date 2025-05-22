@@ -220,7 +220,7 @@ describe Ably::Rest::Channel, 'messages' do
       end
 
       context 'when idempotent publishing is enabled in the client library ClientOptions (#TO3n)' do
-        let(:client_options) { default_client_options.merge(idempotent_rest_publishing: true, log_level: :error, fallback_hosts: ["#{environment}-realtime.ably.io"]) }
+        let(:client_options) { default_client_options.merge(idempotent_rest_publishing: true, log_level: :error, fallback_hosts: ["#{environment.gsub("nonprod:", "")}-realtime.ably.io"]) }
 
         context 'when there is a network failure triggering an automatic retry (#RSL1k4)' do
           def mock_for_two_publish_failures

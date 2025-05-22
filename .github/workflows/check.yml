@@ -32,8 +32,9 @@ jobs:
         run: |
           mkdir junit
           bundle exec parallel_rspec --prefix-output-with-test-env-number --first-is-1 -- spec/${{ matrix.type }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
+          name: ${{ matrix.ruby }}-${{ matrix.protocol }}-${{ matrix.type }}
           path: |
             junit/
             coverage/
