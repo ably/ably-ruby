@@ -22,7 +22,7 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'ably-em-http-request', '~> 1.1.8'
   spec.add_runtime_dependency 'statesman', '~> 9.0'
   spec.add_runtime_dependency 'faraday', '~> 2.2'
-  spec.add_runtime_dependency 'faraday-typhoeus', '~> 0.2.0'
+  spec.add_runtime_dependency 'faraday-typhoeus', '~> 1.1.0'
   spec.add_runtime_dependency 'typhoeus', '~> 1.4'
   spec.add_runtime_dependency 'json'
   # We disallow minor version updates, because this gem has introduced breaking API changes in minor releases before (which it's within its rights to do, given it's pre-v1). If you want to allow a new minor version, bump here and run the tests.
