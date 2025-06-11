@@ -257,7 +257,7 @@ module Ably::Realtime
         when :json
           JSON.parse(data)
         when :msgpack
-          MessagePack.unpack(data.pack('C*'))
+          MessagePack.unpack(data)
         else
           client.logger.fatal { "WebsocketTransport: Unsupported Protocol Message format #{client.protocol}" }
           data
