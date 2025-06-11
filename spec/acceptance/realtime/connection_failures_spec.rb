@@ -46,7 +46,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               error = connection_state_change.reason
               expect(connection.state).to eq(:failed)
               # TODO: Check error type is a TokenNotFound exception
-              expect(error.status).to eq(401)
+              expect(error.status).to eq(404)
               expect(error.code).to eq(40400) # not found
               stop_reactor
             end
