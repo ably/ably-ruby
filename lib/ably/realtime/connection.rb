@@ -690,15 +690,43 @@ module Ably
       end
 
       def use_fallback_if_disconnected?
-        second_reconnect_attempt_for(:disconnected, 1)
+        unless second_reconnect_attempt_for(:disconnected, 1)
+          return false
+        end
+
+        does_error_necessitate_fallback(reason_for_last_time_in(:disconnected))
       end
 
       def use_fallback_if_suspended?
-        second_reconnect_attempt_for(:suspended, 2) # on first suspended state use default Ably host again
+        unless second_reconnect_attempt_for(:suspended, 2) # on first suspended state use default Ably host again
+          return false
+        end
+
+        does_error_necessitate_fallback(reason_for_last_time_in(:suspended))
       end
 
       def second_reconnect_attempt_for(state, first_attempt_count)
         previous_state == state && manager.retry_count_for_state(state) >= first_attempt_count
+      end
+
+      # Provides a partial implementation of RTN17f's logic for whether an error necessitates a fallback host.
+      def does_error_necessitate_fallback(error)
+        return false unless error
+
+        # For now we just explicitly exclude token errors. TODO: implement properly in https://github.com/ably/ably-ruby/issues/444
+
+        if error.respond_to?(:status_code) && error.status_code == 401 && error.respond_to?(:code) && Ably::Exceptions::TOKEN_EXPIRED_CODE.include?(error.code)
+          return false
+        end
+
+        true
+      end
+
+      # Returns the error associated with the last state change to the given state (e.g. :disconnected).
+      def reason_for_last_time_in(state)
+        history_item = state_history.reverse.find do |history_item|
+          history_item.fetch(:state) == state
+        end.fetch(:metadata).reason
       end
     end
   end
