@@ -1,5 +1,18 @@
 # Change Log
 
+## [v1.2.8](https://github.com/ably/ably-ruby/tree/v1.2.8)
+
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.2.7...v1.2.8)
+
+**Fixed bugs:**
+
+* Fix incompatibility with `websocket-driver` 0.8 (#443)
+* Do not use fallback hosts as a result of a token error (#443)
+
+**Updated dependencies:**
+
+* Bump `faraday-typhoeus` to 1.1.0 (#442)
+
 ## [v1.2.7](https://github.com/ably/ably-ruby/tree/v1.2.7)
 
 [Full Changelog](https://github.com/ably/ably-ruby/compare/v1.2.6...v1.2.7)

@@ -1,4 +1,4 @@
-# Ably Realtime & REST Client Library 1.2.7 Specification
+# Ably Realtime & REST Client Library 1.2.8 Specification
 
 ### Ably::Realtime::Auth
 _(see [spec/acceptance/realtime/auth_spec.rb](./spec/acceptance/realtime/auth_spec.rb))_
@@ -646,7 +646,7 @@ _(see [spec/acceptance/realtime/connection_failures_spec.rb](./spec/acceptance/r
     * authentication failure
       * when API key is invalid
         * with invalid app part of the key
-          * [enters the failed state and returns a not found error](./spec/acceptance/realtime/connection_failures_spec.rb#L29)
+          * [enters the failed state and returns an invalid credentials error](./spec/acceptance/realtime/connection_failures_spec.rb#L29)
         * with invalid key name part of the key
           * [enters the failed state and returns an authorization error](./spec/acceptance/realtime/connection_failures_spec.rb#L44)
       * with auth_url
@@ -2323,16 +2323,16 @@ _(see [spec/acceptance/rest/base_spec.rb](./spec/acceptance/rest/base_spec.rb))_
   * using JSON protocol
     * failed requests
       * due to invalid Auth
-        * [should raise an InvalidRequest exception with a valid error message and code](./spec/acceptance/rest/base_spec.rb#L75)
+        * [should raise an UnauthorizedRequest exception with a valid error message and code](./spec/acceptance/rest/base_spec.rb#L75)
       * server error with JSON error response body
-        * [should raise a ServerError exception](./spec/acceptance/rest/base_spec.rb#L96)
+        * [should raise a ServerError exception](./spec/acceptance/rest/base_spec.rb#L95)
       * 500 server error without a valid JSON response body
-        * [should raise a ServerError exception](./spec/acceptance/rest/base_spec.rb#L109)
+        * [should raise a ServerError exception](./spec/acceptance/rest/base_spec.rb#L108)
     * token authentication failures
       * when auth#token_renewable?
-        * [should automatically reissue a token](./spec/acceptance/rest/base_spec.rb#L147)
+        * [should automatically reissue a token](./spec/acceptance/rest/base_spec.rb#L146)
       * when NOT auth#token_renewable?
-        * [should raise an TokenExpired exception](./spec/acceptance/rest/base_spec.rb#L162)
+        * [should raise an TokenExpired exception](./spec/acceptance/rest/base_spec.rb#L161)
 
 ### Ably::Rest::Channel
 _(see [spec/acceptance/rest/channel_spec.rb](./spec/acceptance/rest/channel_spec.rb))_
@@ -3100,7 +3100,7 @@ _(see [spec/acceptance/rest/presence_spec.rb](./spec/acceptance/rest/presence_sp
         * default :limit
           * [defaults to a limit of 100](./spec/acceptance/rest/presence_spec.rb#L86)
         * with :client_id option
-          * FAILED: ~~[returns a list members filtered by the provided client ID](./spec/acceptance/rest/presence_spec.rb#L95)~~
+          * [returns a list members filtered by the provided client ID](./spec/acceptance/rest/presence_spec.rb#L95)
         * with :connection_id option
           * [returns a list members filtered by the provided connection ID](./spec/acceptance/rest/presence_spec.rb#L106)
           * [returns a list members filtered by the provided connection ID](./spec/acceptance/rest/presence_spec.rb#L110)
@@ -5075,6 +5075,6 @@ _(see [spec/unit/util/pub_sub_spec.rb](./spec/unit/util/pub_sub_spec.rb))_
 
   ## Test summary
 
-  * Passing tests: 2494
+  * Passing tests: 2495
   * Pending tests: 5
-  * Failing tests: 1
+  * Failing tests: 0
