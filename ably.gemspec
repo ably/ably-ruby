@@ -25,7 +25,8 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'faraday-typhoeus', '~> 0.2.0'
   spec.add_runtime_dependency 'typhoeus', '~> 1.4'
   spec.add_runtime_dependency 'json'
-  spec.add_runtime_dependency 'websocket-driver', '~> 0.7'
+  # We disallow minor version updates, because this gem has introduced breaking API changes in minor releases before (which it's within its rights to do, given it's pre-v1). If you want to allow a new minor version, bump here and run the tests.
+  spec.add_runtime_dependency 'websocket-driver', '~> 0.8.0'
   spec.add_runtime_dependency 'msgpack', '>= 1.3.0'
   spec.add_runtime_dependency 'addressable', '>= 2.0.0'
 

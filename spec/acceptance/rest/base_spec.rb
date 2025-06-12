@@ -72,13 +72,12 @@ describe Ably::Rest do
 
     describe 'failed requests' do
       context 'due to invalid Auth' do
-        it 'should raise an InvalidRequest exception with a valid error message and code' do
+        it 'should raise an UnauthorizedRequest exception with a valid error message and code' do
           invalid_client = Ably::Rest::Client.new(key: 'appid.keyuid:keysecret', environment: environment)
           expect { invalid_client.channel('test').publish('foo', 'choo') }.to raise_error do |error|
-            expect(error).to be_a(Ably::Exceptions::ResourceMissing)
-            expect(error.message).to match(/No application found/)
-            expect(error.code).to eql(40400)
-            expect(error.status).to eql(404)
+            expect(error).to be_a(Ably::Exceptions::UnauthorizedRequest)
+            expect(error.code).to eql(40101)
+            expect(error.status).to eql(401)
           end
         end
       end

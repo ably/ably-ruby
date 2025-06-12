@@ -32,8 +32,9 @@ jobs:
         run: |
           mkdir junit
           bundle exec parallel_rspec --prefix-output-with-test-env-number --first-is-1 -- spec/${{ matrix.type }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
+          name: test-results-ruby-${{ matrix.ruby }}-${{ matrix.protocol }}-${{ matrix.type }}
           path: |
             junit/
             coverage/
@@ -45,7 +46,7 @@ jobs:
           server-url: 'https://test-observability.herokuapp.com'
           server-auth: ${{ secrets.TEST_OBSERVABILITY_SERVER_AUTH_KEY }}
           path: 'junit/'
-      - uses: coverallsapp/github-action@1.1.3
+      - uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           flag-name: ruby-${{ matrix.ruby }}-${{ matrix.protocol }}-${{ matrix.type }}
@@ -55,7 +56,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Coveralls Finished
-        uses: coverallsapp/github-action@1.1.3
+        uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.github_token }}
           parallel-finished: true

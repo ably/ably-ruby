@@ -26,13 +26,13 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
         context 'with invalid app part of the key' do
           let(:invalid_key) { 'not_an_app.invalid_key_name:invalid_key_value' }
 
-          it 'enters the failed state and returns a not found error' do
+          it 'enters the failed state and returns an invalid credentials error' do
             connection.on(:failed) do |connection_state_change|
               error = connection_state_change.reason
               expect(connection.state).to eq(:failed)
               # TODO: Check error type is an InvalidToken exception
-              expect(error.status).to eq(404)
-              expect(error.code).to eq(40400) # not found
+              expect(error.status).to eq(401)
+              expect(error.code).to eq(40101) # invalid credentials
               stop_reactor
             end
           end
@@ -46,7 +46,7 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
               error = connection_state_change.reason
               expect(connection.state).to eq(:failed)
               # TODO: Check error type is a TokenNotFound exception
-              expect(error.status).to eq(401)
+              expect(error.status).to eq(404)
               expect(error.code).to eq(40400) # not found
               stop_reactor
             end
@@ -1396,10 +1396,10 @@ describe Ably::Realtime::Connection, 'failures', :event_machine do
           channel = client.channels.get("foo")
           channel.attach do
             connection.once(:failed) do |state_change|
-              expect(state_change.reason.code).to eql(40400)
-              expect(connection.error_reason.code).to eql(40400)
+              expect(state_change.reason.code).to eql(40101)
+              expect(connection.error_reason.code).to eql(40101)
               expect(channel).to be_failed
-              expect(channel.error_reason.code).to eql(40400)
+              expect(channel.error_reason.code).to eql(40101)
               stop_reactor
             end
 
