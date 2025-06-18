@@ -23,8 +23,6 @@ Everything you need to get started with Ably:
 
 - [Quickstart in Pub/Sub using Ruby.](https://ably.com/docs/getting-started/quickstart?lang=ruby)
 
-This is a Ruby client library for Ably. The library currently targets the [Ably 2.0.0 client library specification](https://ably.com/documentation/client-lib-development-guide/features/). You can see the complete list of features this client library supports in [our client library SDKs feature support matrix](https://ably.com/download/sdk-feature-support-matrix).
-
 ---
 
 ## Supported platforms
