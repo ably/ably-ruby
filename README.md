@@ -67,6 +67,12 @@ The [CHANGELOG.md](/ably/ably-ruby/blob/main/CONTRIBUTING.md) contains details o
 
 ---
 
+## Contributing
+
+Read the [CONTRIBUTING.md](./CONTRIBUTING.md) guidelines to contribute to Ably.
+
+---
+
 ## Support, feedback and troubleshooting
 
 Please visit https://ably.com/support for access to our knowledgebase and to ask for any assistance.
@@ -74,13 +80,3 @@ Please visit https://ably.com/support for access to our knowledgebase and to ask
 You can also view the [community reported Github issues](https://github.com/ably/ably-ruby/issues).
 
 To see what has changed in recent versions of Bundler, see the [CHANGELOG](CHANGELOG.md).
-
-## Contributing
-
-1. Fork it
-2. When pulling to local, make sure to also pull the `ably-common` repo (`git submodule init && git submodule update`)
-3. Create your feature branch (`git checkout -b my-new-feature`)
-4. Commit your changes (`git commit -am 'Add some feature'`)
-5. Ensure you have added suitable tests and the test suite is passing(`bundle exec rspec`)
-6. Push to the branch (`git push origin my-new-feature`)
-7. Create a new Pull Request
