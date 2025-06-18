@@ -40,12 +40,6 @@ Ably aims to support a wide range of platforms and browsers. If you experience a
 > [!IMPORTANT]
 > SDK versions < 1.2.5 will be [deprecated](https://ably.com/docs/platform/deprecate/protocol-v1) from November 1, 2025.
 
----
-
-## Documentation
-
-Visit https://ably.com/documentation for a complete API reference and code examples.
-
 ## Installation
 
 The client library is available as a [gem from RubyGems.org](https://rubygems.org/gems/ably).
