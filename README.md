@@ -21,7 +21,7 @@ Find out more:
 
 Everything you need to get started with Ably:
 
-- [Quickstart in Pub/Sub using Ruby](https://ably.com/docs/getting-started/quickstart?lang=ruby)
+- [Quickstart in Pub/Sub using Ruby.](https://ably.com/docs/getting-started/quickstart?lang=ruby)
 
 This is a Ruby client library for Ably. The library currently targets the [Ably 2.0.0 client library specification](https://ably.com/documentation/client-lib-development-guide/features/). You can see the complete list of features this client library supports in [our client library SDKs feature support matrix](https://ably.com/download/sdk-feature-support-matrix).
 
@@ -75,8 +75,5 @@ Read the [CONTRIBUTING.md](./CONTRIBUTING.md) guidelines to contribute to Ably.
 
 ## Support, feedback and troubleshooting
 
-Please visit https://ably.com/support for access to our knowledgebase and to ask for any assistance.
+For help or technical support, visit Ably's [support page](https://ably.com/support). You can also view the [community reported Github issues](https://github.com/ably/ably-ruby/issues) or raise one yourself.
 
-You can also view the [community reported Github issues](https://github.com/ably/ably-ruby/issues).
-
-To see what has changed in recent versions of Bundler, see the [CHANGELOG](CHANGELOG.md).
