@@ -61,6 +61,12 @@ EventMachine.run do
 
 ---
 
+## Releases
+
+The [CHANGELOG.md](/ably/ably-ruby/blob/main/CONTRIBUTING.md) contains details of the latest releases for this SDK. You can also view all Ably releases on [changelog.ably.com](https://changelog.ably.com).
+
+---
+
 ## Support, feedback and troubleshooting
 
 Please visit https://ably.com/support for access to our knowledgebase and to ask for any assistance.
