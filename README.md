@@ -29,13 +29,18 @@ This is a Ruby client library for Ably. The library currently targets the [Ably 
 
 ## Supported platforms
 
-This SDK supports Ruby 2.7 and 3.x. For eventmachine and Ruby 3.x note please visit [Ruby 3.0 support](#ruby-30-support) section.
+Ably aims to support a wide range of platforms and browsers. If you experience any compatibility issues, open an issue in the repository or contact [Ably support](https://ably.com/support).
 
-As of v1.1.5 this library requires `libcurl` as a system dependency. On most systems this is already installed but in rare cases where it isn't (for example debian-slim Docker images such as ruby-slim) you will need to install it yourself. On debian you can install it with the command `sudo apt-get install libcurl4`.
+| Platform       | Support |
+|----------------|---------|
+| Ruby           | >= 2.7 and 3.x. For EventMachine compatibility with Ruby 3.x |
+| EventMachine   | Required for using the Realtime API. Compatible with Ruby 3.x with OpenSSL configuration. |
+| libcurl        | Required since v1.1.5. On Debian-based systems, install via `sudo apt-get install libcurl4`. |
 
-We regression-test the SDK against a selection of Ruby versions (which we update over time, but usually consists of mainstream and widely used versions). Please refer to [.github/workflows/check.yml](./.github/workflows/check.yml) for the set of versions that currently undergo CI testing.
+> [!IMPORTANT]
+> SDK versions < 1.2.5 will be [deprecated](https://ably.com/docs/platform/deprecate/protocol-v1) from November 1, 2025.
 
-If you find any compatibility issues, please [do raise an issue](https://github.com/ably/ably-ruby/issues/new) in this repository or [contact Ably customer support](https://ably.com/support/) for advice.
+---
 
 ## Documentation
 
