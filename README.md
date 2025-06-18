@@ -75,8 +75,5 @@ Read the [CONTRIBUTING.md](./CONTRIBUTING.md) guidelines to contribute to Ably.
 
 ## Support, feedback and troubleshooting
 
-Please visit https://ably.com/support for access to our knowledgebase and to ask for any assistance.
+For help or technical support, visit Ably's [support page](https://ably.com/support).
 
-You can also view the [community reported Github issues](https://github.com/ably/ably-ruby/issues).
-
-To see what has changed in recent versions of Bundler, see the [CHANGELOG](CHANGELOG.md).
