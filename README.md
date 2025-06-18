@@ -42,6 +42,25 @@ Ably aims to support a wide range of platforms and browsers. If you experience a
 
 ---
 
+## EventMachine
+
+To use the Ably Realtime SDK in Ruby, the EventMachine reactor loop must be running. This is required because the Realtime library depends on EventMachine to handle asynchronous events.
+
+Wrap your code inside an EventMachine.run block:
+
+```ruby
+require 'ably'
+
+EventMachine.run do
+  client = Ably::Realtime.new(key: 'your-api-key')
+
+  client.connection.connect do
+    puts "Connected with connection ID: #{client.connection.id}"
+  end
+```
+
+---
+
 ## Support, feedback and troubleshooting
 
 Please visit https://ably.com/support for access to our knowledgebase and to ask for any assistance.
