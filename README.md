@@ -22,7 +22,7 @@ Find out more:
 
 Everything you need to get started with Ably:
 
-* [Quickstart in Pub/Sub using Ruby.](https://ably.com/docs/getting-started/quickstart?lang=ruby)
+* [Getting started with Pub/Sub using Ruby.](https://ably.com/docs/getting-started/ruby)
 * [SDK Setup for Ruby.](https://ably.com/docs/getting-started/setup?lang=ruby)
 
 ---
