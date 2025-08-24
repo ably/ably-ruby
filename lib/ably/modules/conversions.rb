@@ -113,7 +113,8 @@ module Ably::Modules
         payload.kind_of?(Array) ||
         payload.nil?
 
-      raise Ably::Exceptions::UnsupportedDataType.new('Invalid data payload', 400, Ably::Exceptions::Codes::INVALID_MESSAGE_DATA_OR_ENCODING)
+      # ably-os:inline-error-update:40013:2025-08-22:e8u Original: "Invalid data payload"
+      raise Ably::Exceptions::UnsupportedDataType.new("Invalid data payload: #{payload.class} is not supported. Use String, Hash, Array, or nil", 400, Ably::Exceptions::Codes::INVALID_MESSAGE_DATA_OR_ENCODING)
     end
 
     # Converts the name, data, attributes into the array of Message objects

@@ -349,7 +349,8 @@ module Ably::Realtime
     def send_presence_protocol_message(presence_action, client_id, data, id = nil)
       presence_message = create_presence_message(presence_action, client_id, data, id)
       unless presence_message.client_id
-        raise Ably::Exceptions::Standard.new('Unable to enter create presence message without a client_id', 400, Ably::Exceptions::Codes::UNABLE_TO_ENTER_PRESENCE_CHANNEL_NO_CLIENTID)
+        # ably-os:inline-error-update:91000:2025-08-22:e8u Original: "Unable to enter create presence message without a client_id"
+        raise Ably::Exceptions::Standard.new('Unable to enter presence channel without a client_id', 400, Ably::Exceptions::Codes::UNABLE_TO_ENTER_PRESENCE_CHANNEL_NO_CLIENTID)
       end
 
       protocol_message = {
