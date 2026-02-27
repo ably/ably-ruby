@@ -178,9 +178,12 @@ module Ably::Realtime
       end
 
       def ack_pending_queue_for_message_serial(ack_protocol_message)
+        res_index = 0
         drop_pending_queue_from_ack(ack_protocol_message) do |protocol_message|
-          ack_messages protocol_message.messages
+          publish_result = ack_protocol_message.res[res_index] if ack_protocol_message.res
+          ack_messages protocol_message.messages, publish_result
           ack_messages protocol_message.presence
+          res_index += 1
         end
       end
 
@@ -191,10 +194,20 @@ module Ably::Realtime
         end
       end
 
-      def ack_messages(messages)
-        messages.each do |message|
+      def ack_messages(messages, publish_result = nil)
+        messages.each_with_index do |message, index|
           logger.debug { "Calling ACK success callbacks for #{message.class.name} - #{message.to_json}" }
-          message.succeed message
+          if publish_result && message.respond_to?(:action) && message.action &&
+             message.action.match_any?(Ably::Models::Message::ACTION.MessageUpdate)
+            serials = publish_result.is_a?(Hash) ?
+              (publish_result['serials'] || publish_result[:serials]) :
+              publish_result[:serials]
+            version_serial = serials[index] if serials
+            result = Ably::Models::UpdateDeleteResult.new(version_serial: version_serial)
+            message.succeed result
+          else
+            message.succeed message
+          end
         end
       end
 

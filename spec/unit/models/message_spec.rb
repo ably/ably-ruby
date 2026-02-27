@@ -644,4 +644,153 @@ describe Ably::Models::Message do
       end
     end
   end
+
+  context '#action (#TM2j)' do
+    context 'when action is present' do
+      let(:model) { subject.new({ action: 1 }) }
+
+      it 'returns the action as an ACTION enum' do
+        expect(model.action).to eq(Ably::Models::Message::ACTION.MessageUpdate)
+      end
+
+      it 'can be compared with a symbol' do
+        expect(model.action).to eq(:message_update)
+      end
+
+      it 'can be compared with an integer' do
+        expect(model.action).to eq(1)
+      end
+    end
+
+    context 'when action is not present' do
+      let(:model) { subject.new({}) }
+
+      it 'returns nil' do
+        expect(model.action).to be_nil
+      end
+    end
+
+    context 'ACTION enum values (#TM5)' do
+      it 'has message_create as 0' do
+        expect(Ably::Models::Message::ACTION.MessageCreate.to_i).to eq(0)
+      end
+
+      it 'has message_update as 1' do
+        expect(Ably::Models::Message::ACTION.MessageUpdate.to_i).to eq(1)
+      end
+    end
+  end
+
+  context '#serial (#TM2r)' do
+    let(:serial_value) { 'msg-serial-001' }
+    let(:model) { subject.new({ serial: serial_value }) }
+
+    it 'returns the serial attribute' do
+      expect(model.serial).to eql(serial_value)
+    end
+
+    context 'when not present' do
+      let(:model) { subject.new({}) }
+
+      it 'returns nil' do
+        expect(model.serial).to be_nil
+      end
+    end
+  end
+
+  context '#version (#TM2s)' do
+    let(:version_data) { { 'serial' => 'v1', 'timestamp' => 1234567890 } }
+    let(:model) { subject.new({ version: version_data }) }
+
+    it 'returns the version attribute' do
+      expect(model.version).to eq(version_data)
+    end
+
+    context 'when not present' do
+      let(:model) { subject.new({}) }
+
+      it 'returns nil' do
+        expect(model.version).to be_nil
+      end
+    end
+  end
+
+  context '#created_at' do
+    let(:time_ms) { (Time.now.to_f * 1000).to_i }
+    let(:model) { subject.new({ created_at: time_ms }) }
+
+    it 'returns a Time object' do
+      expect(model.created_at).to be_a(Time)
+    end
+
+    context 'when not present' do
+      let(:model) { subject.new({}) }
+
+      it 'returns nil' do
+        expect(model.created_at).to be_nil
+      end
+    end
+  end
+
+  context '#updated_at' do
+    let(:time_ms) { (Time.now.to_f * 1000).to_i }
+    let(:model) { subject.new({ updated_at: time_ms }) }
+
+    it 'returns a Time object' do
+      expect(model.updated_at).to be_a(Time)
+    end
+
+    context 'when not present' do
+      let(:model) { subject.new({}) }
+
+      it 'returns nil' do
+        expect(model.updated_at).to be_nil
+      end
+    end
+  end
+
+  context '#as_json' do
+    context 'with action' do
+      let(:model) { subject.new({ name: 'test', action: 1 }) }
+
+      it 'converts action to integer' do
+        expect(model.as_json['action']).to eq(1)
+      end
+
+      it 'includes name' do
+        expect(model.as_json['name']).to eq('test')
+      end
+    end
+
+    context 'without action' do
+      let(:model) { subject.new({ name: 'test' }) }
+
+      it 'does not include action key' do
+        expect(model.as_json).not_to have_key('action')
+      end
+    end
+
+    context 'with serial and version' do
+      let(:model) { subject.new({ serial: 'abc', version: { 'description' => 'edit' } }) }
+
+      it 'includes serial' do
+        expect(model.as_json['serial']).to eq('abc')
+      end
+
+      it 'includes version' do
+        expect(model.as_json['version']).to eq({ 'description' => 'edit' })
+      end
+    end
+
+    context 'excludes nil values' do
+      let(:model) { subject.new({ name: 'test' }) }
+
+      it 'does not include nil attributes' do
+        json = model.as_json
+        expect(json).not_to have_key('serial')
+        expect(json).not_to have_key('version')
+        expect(json).not_to have_key('encoding')
+      end
+    end
+  end
 end

@@ -115,6 +115,52 @@ module Ably
         [201, 204].include?(response.status)
       end
 
+      # Updates a previously published message on the channel. Uses patch semantics: non-null fields
+      # in the provided message will replace the corresponding fields in the existing message, while
+      # null fields will be left unchanged.
+      #
+      # @spec RSL15
+      #
+      # @param message [Ably::Models::Message, Hash] A Message object or Hash containing a populated :serial field
+      #   and the fields to update.
+      # @param operation [Hash, Ably::Models::MessageOperation, nil] Optional operation metadata containing
+      #   :description and/or :metadata fields.
+      # @param params [Hash, nil] Optional parameters sent as part of the query string.
+      #
+      # @return [Ably::Models::UpdateDeleteResult] The result containing the version_serial.
+      #
+      def update_message(message, operation = nil, params = {})
+        message = Ably::Models::Message(message)
+
+        raise Ably::Exceptions::InvalidRequest.new(
+          'Message serial is required for update operations. Ensure the message has a serial field.'
+        ) unless message.serial
+
+        # RSL15c - Do not mutate the user-supplied message; build a new one
+        update_attrs = message.as_json
+        update_attrs['action'] = Ably::Models::Message::ACTION.MessageUpdate.to_i
+
+        if operation
+          op_hash = operation.respond_to?(:as_json) ? operation.as_json : operation
+          update_attrs['version'] = op_hash
+        end
+
+        updated_message = Ably::Models::Message.new(update_attrs)
+        updated_message.encode client.encoders, options
+
+        payload = updated_message.as_json
+        serial = message.serial
+
+        request_options = params && !params.empty? ? { qs_params: params } : {}
+        response = client.patch(
+          "#{base_path}/messages/#{URI.encode_www_form_component(serial)}",
+          payload,
+          request_options
+        )
+
+        Ably::Models::UpdateDeleteResult.new(response.body || {})
+      end
+
       # Retrieves a {Ably::Models::PaginatedResult} object, containing an array of historical {Ably::Models::Message}
       # objects for the channel. If the channel is configured to persist messages, then messages can be retrieved from
       # history for up to 72 hours in the past. If not, messages can only be retrieved from history for up to two minutes in the past.

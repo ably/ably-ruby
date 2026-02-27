@@ -213,6 +213,74 @@ module Ably
         end
       end
 
+      # Updates a previously published message on the channel. A callback may optionally be passed in to this
+      # call to be notified of success or failure of the operation.
+      #
+      # @spec RTL32
+      #
+      # @param message [Ably::Models::Message, Hash] A Message object or Hash containing a populated :serial field
+      #   and the fields to update.
+      # @param operation [Hash, Ably::Models::MessageOperation, nil] Optional operation metadata.
+      # @param params [Hash, nil] Optional parameters sent as part of the protocol message.
+      #
+      # @yield [Ably::Models::UpdateDeleteResult] On success, calls the block with the result containing version_serial.
+      # @return [Ably::Util::SafeDeferrable] Deferrable that supports both success (callback) and failure (errback) callbacks
+      #
+      def update_message(message, operation = nil, params = {}, &success_block)
+        if suspended? || failed?
+          error = Ably::Exceptions::ChannelInactive.new("Cannot update messages on a channel in state #{state}")
+          return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
+        end
+
+        if !connection.can_publish_messages?
+          error = Ably::Exceptions::MessageQueueingDisabled.new(
+            "Message cannot be updated. Client is not allowed to queue messages when connection is in state #{connection.state}"
+          )
+          return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
+        end
+
+        message = Ably::Models::Message(message)
+
+        unless message.serial
+          error = Ably::Exceptions::InvalidRequest.new('Message serial is required for update operations. Ensure the message has a serial field.')
+          return Ably::Util::SafeDeferrable.new_and_fail_immediately(logger, error)
+        end
+
+        # RTL32c - Do not mutate the user-supplied message; build a new one
+        update_attrs = message.as_json
+        update_attrs['action'] = Ably::Models::Message::ACTION.MessageUpdate.to_i
+
+        if operation
+          op_hash = operation.respond_to?(:as_json) ? operation.as_json : operation
+          update_attrs['version'] = op_hash
+        end
+
+        updated_message = Ably::Models::Message.new(update_attrs)
+        updated_message.encode(client.encoders, options) do |encode_error, error_message|
+          client.logger.error error_message
+        end
+
+        pm_params = { action: Ably::Models::ProtocolMessage::ACTION.Message.to_i, channel: name, messages: [updated_message] }
+        pm_params[:params] = params.transform_values(&:to_s) if params && !params.empty?
+
+        connection.send_protocol_message(pm_params)
+
+        # Wrap the inner message deferrable to return UpdateDeleteResult
+        Ably::Util::SafeDeferrable.new(logger).tap do |deferrable|
+          updated_message.callback do |result|
+            if result.is_a?(Ably::Models::UpdateDeleteResult)
+              deferrable.succeed result
+            else
+              deferrable.succeed Ably::Models::UpdateDeleteResult.new(version_serial: nil)
+            end
+          end
+          updated_message.errback do |error|
+            deferrable.fail error
+          end
+          deferrable.callback(&success_block) if block_given?
+        end
+      end
+
       # Registers a listener for messages on this channel. The caller supplies a listener function, which is called
       # each time one or more messages arrives on the channel. A callback may optionally be passed in to this call
       # to be notified of success or failure of the channel {Ably::Realtime::Channel#attach} operation.

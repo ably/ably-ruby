@@ -170,4 +170,121 @@ describe Ably::Rest::Channel do
       end
     end
   end
+
+  describe '#update_message (#RSL15)' do
+    let(:serial) { 'msg-serial-001' }
+    let(:patch_response) { instance_double('Faraday::Response', status: 200, body: { 'versionSerial' => 'v1-serial' }) }
+    let(:client) do
+      instance_double(
+        'Ably::Rest::Client',
+        encoders: [],
+        post: instance_double('Faraday::Response', status: 201),
+        patch: patch_response,
+        idempotent_rest_publishing: false,
+        max_message_size: max_message_size
+      )
+    end
+
+    context 'with a valid message containing serial' do
+      let(:message) { Ably::Models::Message.new(name: 'test', data: 'hello', serial: serial) }
+
+      it 'sends a PATCH request' do
+        expect(client).to receive(:patch).with(
+          "/channels/#{channel_name}/messages/#{serial}",
+          hash_including('action' => 1),
+          {}
+        ).and_return(patch_response)
+
+        subject.update_message(message)
+      end
+
+      it 'returns an UpdateDeleteResult' do
+        result = subject.update_message(message)
+        expect(result).to be_a(Ably::Models::UpdateDeleteResult)
+        expect(result.version_serial).to eql('v1-serial')
+      end
+
+      it 'sets action to MESSAGE_UPDATE' do
+        expect(client).to receive(:patch) do |_path, payload, _opts|
+          expect(payload['action']).to eq(Ably::Models::Message::ACTION.MessageUpdate.to_i)
+          patch_response
+        end
+
+        subject.update_message(message)
+      end
+    end
+
+    context 'with an operation parameter' do
+      let(:message) { Ably::Models::Message.new(name: 'test', serial: serial) }
+      let(:operation) { { description: 'Fixed typo', metadata: { 'reason' => 'correction' } } }
+
+      it 'includes the operation as version in the payload' do
+        expect(client).to receive(:patch) do |_path, payload, _opts|
+          expect(payload['version']).to eq({ 'description' => 'Fixed typo', 'metadata' => { 'reason' => 'correction' } })
+          patch_response
+        end
+
+        subject.update_message(message, operation)
+      end
+    end
+
+    context 'with a MessageOperation object' do
+      let(:message) { Ably::Models::Message.new(name: 'test', serial: serial) }
+      let(:operation) { Ably::Models::MessageOperation.new(description: 'Fixed typo') }
+
+      it 'serializes the operation via as_json' do
+        expect(client).to receive(:patch) do |_path, payload, _opts|
+          expect(payload['version']).to be_a(Hash)
+          expect(payload['version']['description']).to eq('Fixed typo')
+          patch_response
+        end
+
+        subject.update_message(message, operation)
+      end
+    end
+
+    context 'without serial (#RSL15a)' do
+      let(:message) { Ably::Models::Message.new(name: 'test', data: 'hello') }
+
+      it 'raises an InvalidRequest exception' do
+        expect { subject.update_message(message) }.to raise_error(Ably::Exceptions::InvalidRequest, /serial is required/)
+      end
+    end
+
+    context 'with a Hash message' do
+      it 'converts to Message and validates serial' do
+        expect { subject.update_message({ name: 'test' }) }.to raise_error(Ably::Exceptions::InvalidRequest, /serial is required/)
+      end
+
+      it 'works when serial is present' do
+        result = subject.update_message({ name: 'test', serial: serial })
+        expect(result).to be_a(Ably::Models::UpdateDeleteResult)
+      end
+    end
+
+    context 'does not mutate the original message (#RSL15c)' do
+      let(:message) { Ably::Models::Message.new(name: 'test', serial: serial) }
+
+      it 'the original message is unchanged' do
+        original_json = message.as_json.dup
+        subject.update_message(message)
+        expect(message.as_json).to eq(original_json)
+        expect(message.action).to be_nil
+      end
+    end
+
+    context 'with query params (#RSL15f)' do
+      let(:message) { Ably::Models::Message.new(name: 'test', serial: serial) }
+
+      it 'passes params as qs_params' do
+        expect(client).to receive(:patch).with(
+          anything,
+          anything,
+          { qs_params: { 'key' => 'value' } }
+        ).and_return(patch_response)
+
+        subject.update_message(message, nil, { 'key' => 'value' })
+      end
+    end
+  end
 end

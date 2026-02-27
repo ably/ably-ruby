@@ -171,6 +171,19 @@ module Ably::Models
       @params ||= attributes[:params].to_h
     end
 
+    # The res field from ACK protocol messages (protocol v5+), containing publish results.
+    # Each entry corresponds to an ACK'd ProtocolMessage and contains a serials array
+    # with one entry per message in that ProtocolMessage.
+    #
+    # @spec TR4s
+    #
+    # @return [Array, nil]
+    #
+    # @api private
+    def res
+      attributes[:res]
+    end
+
     def flags
       Integer(attributes[:flags])
     rescue TypeError
