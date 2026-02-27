@@ -198,7 +198,11 @@ module Ably::Realtime
         messages.each_with_index do |message, index|
           logger.debug { "Calling ACK success callbacks for #{message.class.name} - #{message.to_json}" }
           if publish_result && message.respond_to?(:action) && message.action &&
-             message.action.match_any?(Ably::Models::Message::ACTION.MessageUpdate)
+             message.action.match_any?(
+               Ably::Models::Message::ACTION.MessageUpdate,
+               Ably::Models::Message::ACTION.MessageDelete,
+               Ably::Models::Message::ACTION.MessageAppend
+             )
             serials = extract_serials(publish_result)
             version_serial = serials[index] if serials
             result = Ably::Models::UpdateDeleteResult.new(version_serial: version_serial)

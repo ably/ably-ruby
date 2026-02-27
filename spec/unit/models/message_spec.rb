@@ -678,6 +678,22 @@ describe Ably::Models::Message do
       it 'has message_update as 1' do
         expect(Ably::Models::Message::ACTION.MessageUpdate.to_i).to eq(1)
       end
+
+      it 'has message_delete as 2' do
+        expect(Ably::Models::Message::ACTION.MessageDelete.to_i).to eq(2)
+      end
+
+      it 'has meta as 3' do
+        expect(Ably::Models::Message::ACTION.Meta.to_i).to eq(3)
+      end
+
+      it 'has message_summary as 4' do
+        expect(Ably::Models::Message::ACTION.MessageSummary.to_i).to eq(4)
+      end
+
+      it 'has message_append as 5' do
+        expect(Ably::Models::Message::ACTION.MessageAppend.to_i).to eq(5)
+      end
     end
   end
 

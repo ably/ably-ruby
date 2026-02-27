@@ -35,6 +35,10 @@ module Ably::Models
     ACTION = ruby_enum('ACTION',
       :message_create,    # 0
       :message_update,    # 1
+      :message_delete,    # 2
+      :meta,              # 3
+      :message_summary,   # 4
+      :message_append,    # 5
     )
 
     # Statically register a default set of encoders for this class
