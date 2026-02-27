@@ -1,5 +1,29 @@
 # Change Log
 
+## [v1.3.0](https://github.com/ably/ably-ruby/tree/v1.3.0)
+
+[Full Changelog](https://github.com/ably/ably-ruby/compare/v1.2.8...v1.3.0)
+
+**Implemented enhancements:**
+
+* Add `update_message` for REST and Realtime channels (RSL15, RTL32)
+* Add `delete_message` for REST and Realtime channels (RSL15, RTL32)
+* Add `append_message` for REST and Realtime channels (RSL15, RTL32)
+* Add `PublishResult` model returned from `publish` with message serials (RSL1n, PBR2a)
+* Add `UpdateDeleteResult` model returned from update/delete/append with version serial (UDR2a)
+* Add `MessageOperation` model for operation metadata on update/delete/append (MOP)
+* Complete `Message::ACTION` enum with all TM5 values (message_create, message_update, message_delete, meta, message_summary, message_append)
+* Rewrite `Stats` model to match Ably spec v2.1+ (TS12): flat `entries` hash replaces nested accessors
+* Upgrade protocol version from 2 to 5
+
+**Breaking changes:**
+
+* `Rest::Channel#publish` now returns `PublishResult` instead of `Boolean`.
+* `Realtime::Channel#publish` deferrable now yields `PublishResult` instead of `Message` or `Array<Message>`. Code relying on the resolved value being a `Message` will need updating.
+* `Stats` model rewritten: nested accessors (`all`, `inbound`, `outbound`, `persisted`, `connections`, `channels`, `api_requests`, `token_requests`) replaced by flat `entries` hash (TS12r). Use `stat.entries['messages.all.all.count']` instead of `stat.all.all.count`.
+* `Stats::MessageTraffic`, `Stats::MessageTypes`, `Stats::MessageCount`, `Stats::ConnectionTypes`, `Stats::RequestCount`, `Stats::ResourceCount` removed.
+* `Stats#interval_granularity` replaced by `Stats#unit` (TS12c).
+
 ## [v1.2.8](https://github.com/ably/ably-ruby/tree/v1.2.8)
 
 [Full Changelog](https://github.com/ably/ably-ruby/compare/v1.2.7...v1.2.8)
