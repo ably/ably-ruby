@@ -388,4 +388,72 @@ describe Ably::Rest::Channel do
       end
     end
   end
+
+  describe '#append_message (#RSL15)' do
+    let(:serial) { 'msg-serial-001' }
+    let(:patch_response) { instance_double('Faraday::Response', status: 200, body: { 'versionSerial' => 'v1-serial' }) }
+    let(:client) do
+      instance_double(
+        'Ably::Rest::Client',
+        encoders: [],
+        post: instance_double('Faraday::Response', status: 201, body: { 'serials' => ['serial-001'] }),
+        patch: patch_response,
+        idempotent_rest_publishing: false,
+        max_message_size: max_message_size
+      )
+    end
+
+    context 'with a valid message containing serial' do
+      let(:message) { Ably::Models::Message.new(name: 'test', data: ' appended', serial: serial) }
+
+      it 'sends a PATCH request with action MESSAGE_APPEND' do
+        expect(client).to receive(:patch).with(
+          "/channels/#{channel_name}/messages/#{serial}",
+          hash_including('action' => Ably::Models::Message::ACTION.MessageAppend.to_i),
+          {}
+        ).and_return(patch_response)
+
+        subject.append_message(message)
+      end
+
+      it 'returns an UpdateDeleteResult' do
+        result = subject.append_message(message)
+        expect(result).to be_a(Ably::Models::UpdateDeleteResult)
+        expect(result.version_serial).to eql('v1-serial')
+      end
+    end
+
+    context 'with an operation parameter' do
+      let(:message) { Ably::Models::Message.new(name: 'test', serial: serial) }
+      let(:operation) { { description: 'Added suffix' } }
+
+      it 'includes the operation as version in the payload' do
+        expect(client).to receive(:patch) do |_path, payload, _opts|
+          expect(payload['version']).to eq({ 'description' => 'Added suffix' })
+          patch_response
+        end
+
+        subject.append_message(message, operation)
+      end
+    end
+
+    context 'without serial' do
+      let(:message) { Ably::Models::Message.new(name: 'test', data: 'hello') }
+
+      it 'raises an InvalidRequest exception' do
+        expect { subject.append_message(message) }.to raise_error(Ably::Exceptions::InvalidRequest, /serial is required/)
+      end
+    end
+
+    context 'does not mutate the original message' do
+      let(:message) { Ably::Models::Message.new(name: 'test', serial: serial) }
+
+      it 'the original message is unchanged' do
+        original_json = message.as_json.dup
+        subject.append_message(message)
+        expect(message.as_json).to eq(original_json)
+        expect(message.action).to be_nil
+      end
+    end
+  end
 end

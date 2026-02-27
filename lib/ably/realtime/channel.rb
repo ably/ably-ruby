@@ -246,6 +246,23 @@ module Ably
         send_message_action(message, Ably::Models::Message::ACTION.MessageDelete, operation, params, &success_block)
       end
 
+      # Appends data to a previously published message on the channel. A callback may optionally be passed in to this
+      # call to be notified of success or failure of the operation.
+      #
+      # @spec RTL32
+      #
+      # @param message [Ably::Models::Message, Hash] A Message object or Hash containing a populated :serial field
+      #   and the data to append.
+      # @param operation [Hash, Ably::Models::MessageOperation, nil] Optional operation metadata.
+      # @param params [Hash, nil] Optional parameters sent as part of the protocol message.
+      #
+      # @yield [Ably::Models::UpdateDeleteResult] On success, calls the block with the result containing version_serial.
+      # @return [Ably::Util::SafeDeferrable] Deferrable that supports both success (callback) and failure (errback) callbacks
+      #
+      def append_message(message, operation = nil, params = {}, &success_block)
+        send_message_action(message, Ably::Models::Message::ACTION.MessageAppend, operation, params, &success_block)
+      end
+
       # Registers a listener for messages on this channel. The caller supplies a listener function, which is called
       # each time one or more messages arrives on the channel. A callback may optionally be passed in to this call
       # to be notified of success or failure of the channel {Ably::Realtime::Channel#attach} operation.

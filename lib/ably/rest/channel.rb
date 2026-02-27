@@ -146,6 +146,22 @@ module Ably
         send_message_action(message, Ably::Models::Message::ACTION.MessageDelete, operation, params)
       end
 
+      # Appends data to a previously published message on the channel.
+      #
+      # @spec RSL15
+      #
+      # @param message [Ably::Models::Message, Hash] A Message object or Hash containing a populated :serial field
+      #   and the data to append.
+      # @param operation [Hash, Ably::Models::MessageOperation, nil] Optional operation metadata containing
+      #   :description and/or :metadata fields.
+      # @param params [Hash, nil] Optional parameters sent as part of the query string.
+      #
+      # @return [Ably::Models::UpdateDeleteResult] The result containing the version_serial.
+      #
+      def append_message(message, operation = nil, params = {})
+        send_message_action(message, Ably::Models::Message::ACTION.MessageAppend, operation, params)
+      end
+
       # Retrieves a {Ably::Models::PaginatedResult} object, containing an array of historical {Ably::Models::Message}
       # objects for the channel. If the channel is configured to persist messages, then messages can be retrieved from
       # history for up to 72 hours in the past. If not, messages can only be retrieved from history for up to two minutes in the past.
