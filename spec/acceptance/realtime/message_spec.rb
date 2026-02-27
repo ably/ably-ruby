@@ -25,10 +25,11 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
     it 'sends a String data payload' do
       channel.attach
       channel.on(:attached) do
-        channel.publish('test_event', payload) do |message|
+        channel.subscribe do |message|
           expect(message.data).to eql(payload)
           stop_reactor
         end
+        channel.publish('test_event', payload)
       end
     end
 

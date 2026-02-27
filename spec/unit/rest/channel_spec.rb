@@ -2,11 +2,12 @@
 require 'spec_helper'
 
 describe Ably::Rest::Channel do
+  let(:post_response) { instance_double('Faraday::Response', status: 201, body: { 'serials' => ['serial-001'] }) }
   let(:client) do
     instance_double(
       'Ably::Rest::Client',
       encoders: [],
-      post: instance_double('Faraday::Response', status: 201),
+      post: post_response,
       idempotent_rest_publishing: false, max_message_size: max_message_size
     )
   end
@@ -91,7 +92,7 @@ describe Ably::Rest::Channel do
       let(:encoding) { Encoding::UTF_8 }
 
       it 'is permitted' do
-        expect(subject.publish(encoded_value, 'data')).to eql(true)
+        expect(subject.publish(encoded_value, 'data')).to be_a(Ably::Models::PublishResult)
       end
     end
 
@@ -100,7 +101,7 @@ describe Ably::Rest::Channel do
       let(:encoding) { Encoding::UTF_8 }
 
       it 'is permitted' do
-        expect(subject.publish(encoded_value, 'data')).to eql(true)
+        expect(subject.publish(encoded_value, 'data')).to be_a(Ably::Models::PublishResult)
       end
     end
 
@@ -108,7 +109,7 @@ describe Ably::Rest::Channel do
       let(:encoding) { Encoding::SHIFT_JIS }
 
       it 'is permitted' do
-        expect(subject.publish(encoded_value, 'data')).to eql(true)
+        expect(subject.publish(encoded_value, 'data')).to be_a(Ably::Models::PublishResult)
       end
     end
 
@@ -116,7 +117,7 @@ describe Ably::Rest::Channel do
       let(:encoding) { Encoding::ASCII_8BIT }
 
       it 'is permitted' do
-        expect(subject.publish(encoded_value, 'data')).to eql(true)
+        expect(subject.publish(encoded_value, 'data')).to be_a(Ably::Models::PublishResult)
       end
     end
 
@@ -148,7 +149,7 @@ describe Ably::Rest::Channel do
 
         context 'and a message size is 10 bytes' do
           it 'should send a message' do
-            expect(subject.publish('x' * 10, 'data')).to eq(true)
+            expect(subject.publish('x' * 10, 'data')).to be_a(Ably::Models::PublishResult)
           end
         end
       end
@@ -164,9 +165,41 @@ describe Ably::Rest::Channel do
 
         context 'and a message size is 2 bytes' do
           it 'should send a message' do
-            expect(subject.publish('x' * 2, 'data')).to eq(true)
+            expect(subject.publish('x' * 2, 'data')).to be_a(Ably::Models::PublishResult)
           end
         end
+      end
+    end
+  end
+
+  describe '#publish returns PublishResult (#RSL1n)' do
+    context 'with serials in response body' do
+      let(:post_response) { instance_double('Faraday::Response', status: 201, body: { 'serials' => ['serial-abc', 'serial-def'] }) }
+
+      it 'returns a PublishResult with serials' do
+        result = subject.publish('event', 'data')
+        expect(result).to be_a(Ably::Models::PublishResult)
+        expect(result.serials).to eql(['serial-abc', 'serial-def'])
+      end
+    end
+
+    context 'with empty response body (204)' do
+      let(:post_response) { instance_double('Faraday::Response', status: 204, body: nil) }
+
+      it 'returns a PublishResult with empty serials' do
+        result = subject.publish('event', 'data')
+        expect(result).to be_a(Ably::Models::PublishResult)
+        expect(result.serials).to eql([])
+      end
+    end
+
+    context 'with non-hash response body' do
+      let(:post_response) { instance_double('Faraday::Response', status: 201, body: '') }
+
+      it 'returns a PublishResult with empty serials' do
+        result = subject.publish('event', 'data')
+        expect(result).to be_a(Ably::Models::PublishResult)
+        expect(result.serials).to eql([])
       end
     end
   end
@@ -178,7 +211,7 @@ describe Ably::Rest::Channel do
       instance_double(
         'Ably::Rest::Client',
         encoders: [],
-        post: instance_double('Faraday::Response', status: 201),
+        post: instance_double('Faraday::Response', status: 201, body: { 'serials' => ['serial-001'] }),
         patch: patch_response,
         idempotent_rest_publishing: false,
         max_message_size: max_message_size

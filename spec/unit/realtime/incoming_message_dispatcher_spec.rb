@@ -162,6 +162,62 @@ describe Ably::Realtime::Client::IncomingMessageDispatcher, :api_private do
       end
     end
 
+    context 'with a regular message and publish_result (PublishResult)' do
+      let(:message) do
+        Ably::Models::Message.new(name: 'test', data: 'hello')
+      end
+      let(:publish_result) { { 'serials' => ['pub-serial-001'] } }
+
+      it 'succeeds with a PublishResult' do
+        succeeded = false
+        message.callback do |result|
+          expect(result).to be_a(Ably::Models::PublishResult)
+          expect(result.serials).to eql(['pub-serial-001'])
+          succeeded = true
+        end
+
+        dispatcher.send(:ack_messages, [message], publish_result)
+        expect(succeeded).to be(true)
+      end
+    end
+
+    context 'with multiple regular messages and publish_result' do
+      let(:message1) { Ably::Models::Message.new(name: 'test1', data: 'hello') }
+      let(:message2) { Ably::Models::Message.new(name: 'test2', data: 'world') }
+      let(:publish_result) { { 'serials' => ['ser-aaa', 'ser-bbb'] } }
+
+      it 'assigns the correct serial to each message by index' do
+        results = []
+        message1.callback { |r| results << r }
+        message2.callback { |r| results << r }
+
+        dispatcher.send(:ack_messages, [message1, message2], publish_result)
+
+        expect(results.length).to eql(2)
+        expect(results[0]).to be_a(Ably::Models::PublishResult)
+        expect(results[0].serials).to eql(['ser-aaa'])
+        expect(results[1]).to be_a(Ably::Models::PublishResult)
+        expect(results[1].serials).to eql(['ser-bbb'])
+      end
+    end
+
+    context 'with a regular message and symbol-keyed publish_result' do
+      let(:message) { Ably::Models::Message.new(name: 'test', data: 'hello') }
+      let(:publish_result) { { serials: ['sym-serial'] } }
+
+      it 'handles symbol keys for serials' do
+        succeeded = false
+        message.callback do |result|
+          expect(result).to be_a(Ably::Models::PublishResult)
+          expect(result.serials).to eql(['sym-serial'])
+          succeeded = true
+        end
+
+        dispatcher.send(:ack_messages, [message], publish_result)
+        expect(succeeded).to be(true)
+      end
+    end
+
     context 'with presence messages' do
       let(:presence_message) do
         Ably::Models::PresenceMessage.new(action: :enter, client_id: 'user1')

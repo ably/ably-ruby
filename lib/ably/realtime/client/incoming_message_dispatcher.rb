@@ -199,16 +199,34 @@ module Ably::Realtime
           logger.debug { "Calling ACK success callbacks for #{message.class.name} - #{message.to_json}" }
           if publish_result && message.respond_to?(:action) && message.action &&
              message.action.match_any?(Ably::Models::Message::ACTION.MessageUpdate)
-            serials = publish_result.is_a?(Hash) ?
-              (publish_result['serials'] || publish_result[:serials]) :
-              publish_result[:serials]
+            serials = extract_serials(publish_result)
             version_serial = serials[index] if serials
             result = Ably::Models::UpdateDeleteResult.new(version_serial: version_serial)
+            message.succeed result
+          elsif publish_result && message.is_a?(Ably::Models::Message)
+            serials = extract_serials(publish_result)
+            serial = serials ? serials[index] : nil
+            result = Ably::Models::PublishResult.new(serials: [serial])
             message.succeed result
           else
             message.succeed message
           end
         end
+      end
+
+      def extract_serials(publish_result)
+        return nil unless publish_result
+
+        if publish_result.is_a?(Hash)
+          publish_result['serials'] || publish_result[:serials]
+        elsif publish_result.respond_to?(:[])
+          publish_result[:serials]
+        else
+          nil
+        end
+      rescue StandardError => e
+        logger.warn { "Failed to extract serials from publish_result (#{publish_result.class}): #{e.message}" }
+        nil
       end
 
       def nack_messages(messages, protocol_message)

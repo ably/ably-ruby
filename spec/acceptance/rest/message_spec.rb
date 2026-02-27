@@ -381,7 +381,7 @@ describe Ably::Rest::Channel, 'messages' do
                 expect(message['encoding']).to eql(encrypted_encoding.gsub(%r{/base64$}, ''))
                 expect(message['data']).to eql(encrypted_data_decoded)
               end
-            end.and_return(double('Response', status: 201))
+            end.and_return(double('Response', status: 201, body: {}))
 
             encrypted_channel.publish 'example', encoded_data_decoded
           end

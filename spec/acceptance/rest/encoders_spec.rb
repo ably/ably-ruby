@@ -7,7 +7,7 @@ describe Ably::Models::MessageEncoders do
   let(:client)                 { Ably::Rest::Client.new(default_client_options.merge(protocol: protocol)) }
   let(:channel_options)        { {} }
   let(:channel)                { client.channel('test', channel_options) }
-  let(:response)               { instance_double('Faraday::Response', status: 201) }
+  let(:response)               { instance_double('Faraday::Response', status: 201, body: {}) }
 
   let(:cipher_params)          { { key: Ably::Util::Crypto.generate_random_key(128), algorithm: 'aes', mode: 'cbc', key_length: 128 } }
   let(:crypto)                 { Ably::Util::Crypto.new(cipher_params) }

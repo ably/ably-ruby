@@ -20,8 +20,8 @@ describe Ably::Rest::Channel do
       let(:data)         { 'woop!' }
 
       context 'with name and data arguments' do
-        it 'publishes the message and return true indicating success' do
-          expect(channel.publish(name, data)).to eql(true)
+        it 'publishes the message and returns a PublishResult' do
+          expect(channel.publish(name, data)).to be_a(Ably::Models::PublishResult)
           expect(channel.history.items.first.name).to eql(name)
           expect(channel.history.items.first.data).to eql(data)
         end
@@ -29,8 +29,8 @@ describe Ably::Rest::Channel do
         context 'and additional attributes' do
           let(:client_id) { random_str }
 
-          it 'publishes the message with the attributes and return true indicating success' do
-            expect(channel.publish(name, data, client_id: client_id)).to eql(true)
+          it 'publishes the message with the attributes and returns a PublishResult' do
+            expect(channel.publish(name, data, client_id: client_id)).to be_a(Ably::Models::PublishResult)
             expect(channel.history.items.first.client_id).to eql(client_id)
           end
         end
@@ -43,9 +43,9 @@ describe Ably::Rest::Channel do
         it 'publishes the message without a client_id' do
           expect(client).to receive(:post).
             with("/channels/#{channel_name}/publish", hash_excluding(client_id: client_id), {}).
-            and_return(double('response', status: 201))
+            and_return(double('response', status: 201, body: {}))
 
-          expect(channel.publish(name, data)).to eql(true)
+          expect(channel.publish(name, data)).to be_a(Ably::Models::PublishResult)
         end
 
         it 'expects a client_id to be added by the realtime service' do
@@ -66,7 +66,7 @@ describe Ably::Rest::Channel do
           expect(messages.sum(&:size) < Ably::Rest::Client::MAX_MESSAGE_SIZE).to eq(true)
 
           expect(client).to receive(:post).once.and_call_original
-          expect(channel.publish(messages)).to eql(true)
+          expect(channel.publish(messages)).to be_a(Ably::Models::PublishResult)
           expect(channel.history.items.map(&:name)).to match_array(messages.map { |message| message[:name] })
           expect(channel.history.items.map(&:data)).to match_array(messages.map { |message| message[:data] })
         end
@@ -89,7 +89,7 @@ describe Ably::Rest::Channel do
             it 'publishes an array of messages in one HTTP request' do
               expect(messages.sum &:size).to eq(130)
               expect(client).to receive(:post).once.and_call_original
-              expect(channel.publish(messages)).to eql(true)
+              expect(channel.publish(messages)).to be_a(Ably::Models::PublishResult)
               expect(channel.history.items.map(&:name)).to match_array(messages.map(&:name))
               expect(channel.history.items.map(&:data)).to match_array(messages.map(&:data))
             end
@@ -127,7 +127,7 @@ describe Ably::Rest::Channel do
             it 'publishes an array of messages in one HTTP request' do
               expect(messages.sum &:size).to eq(130)
               expect(client).to receive(:post).once.and_call_original
-              expect(channel.publish(messages)).to eql(true)
+              expect(channel.publish(messages)).to be_a(Ably::Models::PublishResult)
               expect(channel.history.items.map(&:name)).to match_array(messages.map(&:name))
               expect(channel.history.items.map(&:data)).to match_array(messages.map(&:data))
             end
@@ -157,7 +157,7 @@ describe Ably::Rest::Channel do
 
         it 'publishes the message' do
           expect(client).to receive(:post).once.and_call_original
-          expect(channel.publish(message)).to eql(true)
+          expect(channel.publish(message)).to be_a(Ably::Models::PublishResult)
           expect(channel.history.items.first.name).to eql(name)
         end
       end
@@ -201,7 +201,7 @@ describe Ably::Rest::Channel do
 
           it 'publishes the message without a name attribute in the payload' do
             expect(client).to receive(:post).with(anything, { "data" => data }, {}).once.and_call_original
-            expect(channel.publish(nil, data)).to eql(true)
+            expect(channel.publish(nil, data)).to be_a(Ably::Models::PublishResult)
             expect(channel.history.items.first.name).to be_nil
             expect(channel.history.items.first.data).to eql(data)
           end
@@ -212,7 +212,7 @@ describe Ably::Rest::Channel do
 
           it 'publishes the message without a data attribute in the payload' do
             expect(client).to receive(:post).with(anything, { "name" => name }, {}).once.and_call_original
-            expect(channel.publish(name)).to eql(true)
+            expect(channel.publish(name)).to be_a(Ably::Models::PublishResult)
             expect(channel.history.items.first.name).to eql(name)
             expect(channel.history.items.first.data).to be_nil
           end
@@ -223,7 +223,7 @@ describe Ably::Rest::Channel do
 
           it 'publishes the message without any attributes in the payload' do
             expect(client).to receive(:post).with(anything, {}, {}).once.and_call_original
-            expect(channel.publish(nil)).to eql(true)
+            expect(channel.publish(nil)).to be_a(Ably::Models::PublishResult)
             expect(channel.history.items.first.name).to be_nil
             expect(channel.history.items.first.data).to be_nil
           end
