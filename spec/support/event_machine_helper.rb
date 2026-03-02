@@ -2,6 +2,26 @@ require 'eventmachine'
 require 'rspec'
 require 'timeout'
 
+# Prevent EM signal_loopbreak race condition from corrupting the entire
+# process. When EM.defer is used and the reactor stops while a threadpool
+# worker is mid-flight, the worker calls signal_loopbreak on a stopped
+# reactor, raising RuntimeError. This poisons EM for the rest of the
+# process, cascading failures to every subsequent test that touches EM.
+# Swallowing the error is safe — signal_loopbreak is just a notification
+# that there's work to process, and if EM isn't running there's nothing
+# to notify.
+module EventMachine
+  class << self
+    alias_method :original_signal_loopbreak, :signal_loopbreak
+
+    def signal_loopbreak
+      original_signal_loopbreak
+    rescue RuntimeError
+      # EM not initialized — reactor was stopped between the check and the call
+    end
+  end
+end
+
 module RSpec
   module EventMachine
     extend self
@@ -138,6 +158,21 @@ RSpec.configure do |config|
   config.before(:example, :event_machine) do
     # Ensure EventMachine shutdown hooks are deregistered for every test
     EventMachine.instance_variable_set '@tails', []
+  end
+
+  # Catch-all cleanup for ANY test that used EventMachine, whether via
+  # the :event_machine tag or by calling run_reactor directly. Without this,
+  # a crashed/timed-out reactor and stale client references leak into
+  # subsequent tests causing cascade failures.
+  config.after(:example) do
+    RSpec::EventMachine.realtime_clients.clear
+    begin
+      EventMachine.stop if EventMachine.reactor_running?
+    rescue RuntimeError
+      # EM can be in a corrupted state (e.g. signal_loopbreak failure)
+      # where reactor_running? returns true but stop raises. Swallow
+      # the error to prevent cascading failures across subsequent tests.
+    end
   end
 end
 
