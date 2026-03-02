@@ -1,5 +1,3 @@
-require 'ably/models/stats_types'
-
 module Ably::Models
   # Convert stat argument to a {Stats} object
   #
@@ -17,16 +15,15 @@ module Ably::Models
 
   # A class representing an individual statistic for a specified {#interval_id}
   #
+  # @spec TS12
+  #
   class Stats
     include Ably::Modules::ModelCommon
     extend Ably::Modules::Enum
 
     # Describes the interval unit over which statistics are gathered.
     #
-    # MINUTE		Interval unit over which statistics are gathered as minutes.
-    # HOUR		  Interval unit over which statistics are gathered as hours.
-    # DAY		    Interval unit over which statistics are gathered as days.
-    # MONTH		  Interval unit over which statistics are gathered as months.
+    # @spec TS12c
     #
     GRANULARITY = ruby_enum('GRANULARITY',
       :minute,
@@ -103,96 +100,14 @@ module Ably::Models
 
     # {Stats} initializer
     #
-    # @param hash_object  [Hash]  object with the underlying stat details
+    # @param hash_object [Hash] object with the underlying stat details
     #
     def initialize(hash_object)
-      @raw_hash_object  = hash_object
+      @raw_hash_object = hash_object
       set_attributes_object hash_object
     end
 
-    # A {Ably::Models::Stats::MessageTypes} object containing the aggregate count of all message stats.
-    #
-    # @spec TS12e
-    #
-    # @return [Stats::MessageTypes]
-    #
-    def all
-      @all ||= Stats::MessageTypes.new(attributes[:all])
-    end
-
-    # A {Ably::Models::Stats::MessageTraffic} object containing the aggregate count of inbound message stats.
-    #
-    # @spec TS12f
-    #
-    # @return [Ably::Models::Stats::MessageTraffic]
-    #
-    def inbound
-      @inbound ||= Stats::MessageTraffic.new(attributes[:inbound])
-    end
-
-    # A {Ably::Models::Stats::MessageTraffic} object containing the aggregate count of outbound message stats.
-    #
-    # @spec TS12g
-    #
-    # @return [Ably::Models::Stats::MessageTraffic]
-    #
-    def outbound
-      @outbound ||= Stats::MessageTraffic.new(attributes[:outbound])
-    end
-
-    # A {Ably::Models::Stats::MessageTraffic} object containing the aggregate count of persisted message stats.
-    #
-    # @spec TS12h
-    #
-    # @return [Ably::Models::Stats::MessageTraffic]
-    #
-    def persisted
-      @persisted ||= Stats::MessageTypes.new(attributes[:persisted])
-    end
-
-    # A {Ably::Models::Stats::ConnectionTypes} object containing a breakdown of connection related stats, such as min, mean and peak connections.
-    #
-    # @spec TS12i
-    #
-    # @return [Ably::Models::Stats::ConnectionTypes]
-    #
-    def connections
-      @connections ||= Stats::ConnectionTypes.new(attributes[:connections])
-    end
-
-    # A {Ably::Models::Stats::ResourceCount} object containing a breakdown of connection related stats, such as min, mean and peak connections.
-    #
-    # @spec TS12j
-    #
-    # @return [Ably::Models::Stats::ResourceCount]
-    #
-    def channels
-      @channels ||= Stats::ResourceCount.new(attributes[:channels])
-    end
-
-    # A {Ably::Models::Stats::RequestCount} object containing a breakdown of API Requests.
-    #
-    # @spec TS12k
-    #
-    # @return [Ably::Models::Stats::RequestCount]
-    #
-    def api_requests
-      @api_requests ||= Stats::RequestCount.new(attributes[:api_requests])
-    end
-
-    # A {Ably::Models::Stats::RequestCount} object containing a breakdown of Ably Token requests.
-    #
-    # @spec TS12l
-    #
-    # @return [Ably::Models::Stats::RequestCount]
-    #
-    def token_requests
-      @token_requests ||= Stats::RequestCount.new(attributes[:token_requests])
-    end
-
-    # The UTC time at which the time period covered begins. If unit is set to minute this will be in
-    # the format YYYY-mm-dd:HH:MM, if hour it will be YYYY-mm-dd:HH, if day it will be YYYY-mm-dd:00
-    # and if month it will be YYYY-mm-01:00.
+    # The interval ID for this stats object.
     #
     # @spec TS12a
     #
@@ -204,7 +119,7 @@ module Ably::Models
 
     # Represents the intervalId as a time object.
     #
-    # @spec TS12b
+    # @spec TS12p
     #
     # @return [Time]
     #
@@ -212,14 +127,56 @@ module Ably::Models
       self.class.from_interval_id(interval_id)
     end
 
-    # The length of the interval the stats span. Values will be a [StatsIntervalGranularity]{@link StatsIntervalGranularity}.
+    # The unit of the interval, as provided by the API response.
     #
     # @spec TS12c
     #
-    # @return [GRANULARITY] The granularity of the interval for the stat such as :day, :hour, :minute, see {GRANULARITY}
+    # @return [String]
     #
-    def interval_granularity
-      self.class.granularity_from_interval_id(interval_id)
+    def unit
+      attributes[:unit]
+    end
+
+    # For entries that are still in progress, the last sub-interval included.
+    #
+    # @spec TS12q
+    #
+    # @return [String, nil]
+    #
+    def in_progress
+      attributes[:in_progress]
+    end
+
+    # A flat dictionary of statistics entries with dot-separated keys.
+    #
+    # @spec TS12r
+    #
+    # @return [Hash]
+    #
+    def entries
+      raw_entries = raw_hash_object[:entries] || raw_hash_object['entries']
+      return {} unless raw_entries
+      raw_entries.is_a?(Hash) ? raw_entries : {}
+    end
+
+    # The JSON schema URI for this stats object.
+    #
+    # @spec TS12s
+    #
+    # @return [String]
+    #
+    def schema
+      attributes[:schema]
+    end
+
+    # The Ably application ID this stats object relates to.
+    #
+    # @spec TS12t
+    #
+    # @return [String]
+    #
+    def app_id
+      attributes[:app_id]
     end
 
     def attributes
