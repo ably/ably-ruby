@@ -19,11 +19,11 @@ jobs:
         protocol: [ 'json', 'msgpack' ]
         type: [ 'unit', 'acceptance' ]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2
         with:
           submodules: 'recursive'
           persist-credentials: false
-      - uses: ruby/setup-ruby@v1
+      - uses: ruby/setup-ruby@afeafc3d1ab54a631816aba4c914a0081c12ff2f # v1.310.0
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
@@ -37,7 +37,7 @@ jobs:
         run: |
           mkdir junit
           bundle exec parallel_rspec --prefix-output-with-test-env-number --first-is-1 -- "spec/$TEST_TYPE"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: test-results-ruby-${{ matrix.ruby }}-${{ matrix.protocol }}-${{ matrix.type }}
           path: |
@@ -46,12 +46,12 @@ jobs:
           retention-days: 7
       - name: Upload test results
         if: always()
-        uses: ably/test-observability-action@v1
+        uses: ably/test-observability-action@5b61d9c59f356b83426cab1b8243dd8bf03c1bea # v1
         with:
           server-url: 'https://test-observability.herokuapp.com'
           server-auth: ${{ secrets.TEST_OBSERVABILITY_SERVER_AUTH_KEY }}
           path: 'junit/'
-      - uses: coverallsapp/github-action@v2
+      - uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e # v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           flag-name: ruby-${{ matrix.ruby }}-${{ matrix.protocol }}-${{ matrix.type }}
@@ -63,7 +63,7 @@ jobs:
       contents: read
     steps:
       - name: Coveralls Finished
-        uses: coverallsapp/github-action@v2
+        uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e # v2
         with:
           github-token: ${{ secrets.github_token }}
           parallel-finished: true
