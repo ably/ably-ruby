@@ -6,8 +6,14 @@ on:
     branches:
       - main
 
+permissions: {}
+
 jobs:
   build:
+    permissions:
+      contents: read
+      deployments: write
+      id-token: write
     uses: ably/features/.github/workflows/sdk-features.yml@main
     with:
       repository-name: ably-ruby
