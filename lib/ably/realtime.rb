@@ -41,6 +41,10 @@ module Ably
   module Realtime
     # Convenience method providing an alias to {Ably::Realtime::Client} constructor.
     #
+    # @deprecated Use {Ably::PubSub::Server.create_realtime_client}, from the `ably-pubsub-server`
+    #   gem, or {Ably::PubSub::Device.create_client}, from the `ably-pubsub-device` gem, whichever
+    #   names the side your application runs on.
+    #
     # @param (see Ably::Realtime::Client#initialize)
     # @option options (see Ably::Realtime::Client#initialize)
     #

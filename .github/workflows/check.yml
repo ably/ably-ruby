@@ -56,6 +56,25 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           flag-name: ruby-${{ matrix.ruby }}-${{ matrix.protocol }}-${{ matrix.type }}
           parallel: true
+  package:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2
+        with:
+          submodules: 'recursive'
+          persist-credentials: false
+      - uses: ruby/setup-ruby@afeafc3d1ab54a631816aba4c914a0081c12ff2f # v1.310.0
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+      # The packaging metadata for the Pub/Sub gems is otherwise only exercised at release time,
+      # where a mistake is expensive. spec/unit/pubsub/packaging_spec.rb covers what each gem
+      # ships and that the three stay on one version; this covers that they build at all.
+      - name: 'Check that every gem builds'
+        run: bundle exec rake build packages:build
+
   finish:
     needs: check
     runs-on: ubuntu-latest

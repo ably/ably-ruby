@@ -1,10 +1,15 @@
 require 'uri'
 require 'ably/realtime/channel/publisher'
 require 'ably/realtime/recovery_key_context'
+require 'ably/util/deprecation'
 
 module Ably
   module Realtime
     # A client that extends the functionality of the {Ably::Realtime::Client} and provides additional realtime-specific features.
+    #
+    # @deprecated Use {Ably::PubSub::Server.create_realtime_client}, from the `ably-pubsub-server`
+    #   gem, or {Ably::PubSub::Device.create_client}, from the `ably-pubsub-device` gem, whichever
+    #   names the side your application runs on.
     #
     class Client
       include Ably::Modules::AsyncWrapper
@@ -81,6 +86,10 @@ module Ably
       #
       # @spec RSC1
       #
+      # @deprecated Use {Ably::PubSub::Server.create_realtime_client} or
+      #   {Ably::PubSub::Device.create_client}, which take the same options and return this same
+      #   client.
+      #
       # @param (see {Ably::Rest::Client#initialize})
       # @option options (see Ably::Rest::Client#initialize) An options {Hash} object.
       # @option options [Proc]                    :auth_callback       when provided, the Proc will be called with the token params hash as the first argument, whenever a new token is required.
@@ -117,6 +126,12 @@ module Ably
             { token: options }
           end
         end
+
+        Ably::Util::Deprecation.warn_constructor_deprecated(
+          'Ably::Realtime::Client.new',
+          'Ably::PubSub::Server.create_realtime_client, from the ably-pubsub-server gem, or ' \
+          'Ably::PubSub::Device.create_client, from the ably-pubsub-device gem'
+        )
 
         @transport_params      = options.delete(:transport_params).to_h.each_with_object({}) do |(key, value), acc|
           acc[key.to_s] = value.to_s

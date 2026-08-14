@@ -7,10 +7,14 @@ require 'typhoeus'
 require 'faraday/typhoeus'
 
 require 'ably/rest/middleware/exceptions'
+require 'ably/util/deprecation'
 
 module Ably
   module Rest
     # A client that offers a simple stateless API to interact directly with Ably's REST API.
+    #
+    # @deprecated Use {Ably::PubSub::Server.create_http_client}, from the `ably-pubsub-server`
+    #   gem, which names the side your application runs on.
     #
     class Client
       include Ably::Modules::Conversions
@@ -129,6 +133,9 @@ module Ably
       #
       # @spec RSC1
       #
+      # @deprecated Use {Ably::PubSub::Server.create_http_client}, from the `ably-pubsub-server`
+      #   gem, which takes the same options and returns this same client.
+      #
       # @param [Hash,String] options an options Hash or String used to configure the client and the authentication, or String with an API key or Token ID
       # @option options [Boolean]                 :tls                 (true) When false, TLS is disabled. Please note Basic Auth is disallowed without TLS as secrets cannot be transmitted over unsecured connections.
       # @option options [String]                  :key                 API key comprising the key name and key secret in a single string
@@ -183,6 +190,14 @@ module Ably
           else
             { token: options }
           end
+        end
+
+        # A realtime client builds its REST client with itself as :realtime_client, and warns
+        # about its own constructor, so only direct use of this one is deprecated here.
+        unless options[:realtime_client]
+          Ably::Util::Deprecation.warn_constructor_deprecated(
+            'Ably::Rest::Client.new', 'Ably::PubSub::Server.create_http_client, from the ably-pubsub-server gem'
+          )
         end
 
         @agent               = options.delete(:agent) || Ably::AGENT
