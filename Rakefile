@@ -1,6 +1,6 @@
 require 'rubygems'
 require 'bundler/setup'
-require 'bundler/gem_tasks'
+
 require 'json'
 
 require 'yard'
@@ -32,8 +32,8 @@ begin
 
   desc 'Generate error code constants from ably-common: https://github.com/ably/ably-common/issues/32'
   task :generate_error_codes do
-    errors_json_path = File.join(File.dirname(__FILE__), 'lib/submodules/ably-common/protocol/errors.json')
-    module_path = File.join(File.dirname(__FILE__), 'lib/ably/modules/exception_codes.rb')
+    errors_json_path = File.join(File.dirname(__FILE__), 'core/lib/submodules/ably-common/protocol/errors.json')
+    module_path = File.join(File.dirname(__FILE__), 'core/lib/ably/modules/exception_codes.rb')
     max_length = 0
 
     errors = JSON.parse(File.read(errors_json_path)).each_with_object({}) do |(key, val), hash|

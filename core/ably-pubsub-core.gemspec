@@ -4,18 +4,18 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'ably/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = 'ably'
+  spec.name          = 'ably-pubsub-core'
   spec.version       = Ably::VERSION
-  spec.authors       = ['Lewis Marshall', "Matthew O'Riordan"]
-  spec.email         = ['lewis@lmars.net', 'matt@ably.io']
-  spec.description   = %q{A Ruby client library for ably.io realtime messaging}
-  spec.summary       = %q{A Ruby client library for ably.io realtime messaging implemented using EventMachine}
-  spec.homepage      = 'http://github.com/ably/ably-ruby'
+  spec.authors       = ['Ably']
+  spec.email         = ['support@ably.com']
+  spec.description   = %q{Internal implementation package for Ably's own Pub/Sub packages. Not intended for direct external use: depend on ably-pubsub-server instead.}
+  spec.summary       = %q{Shared core implementation for Ably Pub/Sub Ruby SDKs (internal)}
+  spec.homepage      = 'https://github.com/ably/ably-ruby'
   spec.license       = 'Apache-2.0'
 
-  spec.files         = `git ls-files`.split($/)
-  spec.executables   = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }
-  spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
+  spec.files         = Dir.chdir(File.expand_path(__dir__)) do
+    `git ls-files -z lib`.split("\x0").reject { |f| f.start_with?('lib/submodules') }
+  end
   spec.require_paths = ['lib']
 
   spec.add_runtime_dependency 'eventmachine', '~> 1.2.6'

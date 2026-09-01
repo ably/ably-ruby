@@ -485,7 +485,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
         end
       end
 
-      resources_root = File.expand_path('../../../../lib/submodules/ably-common/test-resources', __FILE__)
+      resources_root = File.expand_path('../../../../core/lib/submodules/ably-common/test-resources', __FILE__)
 
       shared_examples 'add_tests_for_data' do |data|
         data['items'].each_with_index do |item, index|
@@ -823,7 +823,7 @@ describe 'Ably::Realtime::Channel Message', :event_machine do
     let(:client_options)  { { key: api_key, environment: environment, protocol: :json } }
     let(:channel_name) { "subscribe_send_text-#{random_str}" }
 
-    fixtures_path = File.expand_path('../../../../lib/submodules/ably-common/test-resources/messages-encoding.json', __FILE__)
+    fixtures_path = File.expand_path('../../../../core/lib/submodules/ably-common/test-resources/messages-encoding.json', __FILE__)
 
     context 'over a JSON transport' do
       let(:realtime_client) do
