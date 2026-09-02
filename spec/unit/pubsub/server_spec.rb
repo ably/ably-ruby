@@ -7,7 +7,9 @@ require 'ably/pubsub/server'
 # becomes overridable by the caller.
 describe Ably::PubSub::Server do
   let(:api_key) { 'appid.keyuid:keysecret' }
-  let(:side_entry) { "ably-pubsub-server/#{Ably::PubSub::Server::VERSION}" }
+  # The side entry is a versionless flag, matching its ably-common registration: the
+  # ably-ruby/x.y.z entry beside it carries identity and version (see ably-common#361).
+  let(:side_entry) { 'ably-pubsub-server' }
 
   it 'releases in lockstep with ably-pubsub-core' do
     expect(Ably::PubSub::Server::VERSION).to eql(Ably::VERSION)
@@ -24,8 +26,9 @@ describe Ably::PubSub::Server do
       expect(client).to be_a(Ably::Rest::Client)
     end
 
-    it 'appends the side-declaring agent entry to the base agent' do
+    it 'appends the side-declaring agent entry to the base agent, versionless' do
       expect(client.agent).to eql("#{Ably::AGENT} #{side_entry}")
+      expect(client.agent).to_not include('ably-pubsub-server/')
     end
 
     it 'sends the side-declaring agent entry in the Ably-Agent header' do
@@ -62,8 +65,9 @@ describe Ably::PubSub::Server do
       subject(:client) { Ably::PubSub::Server.create_http_client(key: api_key, agents: { 'ably-pubsub-server' => 'not-the-version' }) }
 
       it 'the package wins the collision on its own identifier' do
-        expect(client.agent).to include(side_entry)
+        expect(client.agent).to end_with(side_entry)
         expect(client.agent).to_not include('not-the-version')
+        expect(client.agent).to_not include('ably-pubsub-server/')
       end
 
       it 'does not mutate the caller options' do

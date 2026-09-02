@@ -13,6 +13,12 @@ module Ably
       # `-server`, and an identifier that is not yet in the ably-common registry is
       # classified by that suffix alone. Renaming it without preserving the suffix
       # silently reclassifies every client this package constructs.
+      #
+      # The entry is stamped WITHOUT a version, matching its registration in the
+      # ably-common agents registry (a pure flag, like `browser`): under lockstep
+      # versioning a version here always duplicates the ably-ruby entry beside it,
+      # which keeps carrying identity, version and support status. Wire shape:
+      #   ably-ruby/2.0.0 ruby/3.3.0 ably-pubsub-server
       SERVER_AGENT_IDENTIFIER = 'ably-pubsub-server'
 
       class << self
@@ -61,7 +67,7 @@ module Ably
             options.clone
           end
 
-          agents = options[:agents].to_h.merge(SERVER_AGENT_IDENTIFIER => VERSION)
+          agents = options[:agents].to_h.merge(SERVER_AGENT_IDENTIFIER => nil)
           options.merge(agents: agents)
         end
       end
