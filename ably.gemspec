@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.email         = ['lewis@lmars.net', 'matt@ably.io']
   spec.description   = %q{A Ruby client library for ably.io realtime messaging}
   spec.summary       = %q{A Ruby client library for ably.io realtime messaging implemented using EventMachine}
-  spec.homepage      = 'http://github.com/ably/ably-ruby'
+  spec.homepage      = 'https://github.com/ably/ably-pubsub-ruby'
   spec.license       = 'Apache-2.0'
 
   spec.files         = `git ls-files`.split($/)
