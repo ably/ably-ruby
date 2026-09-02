@@ -8,7 +8,7 @@ token authentication and publishing to a channel.
 
 **Note**: The `Ruby` Client Library SDK implements the realtime and REST interfaces as two separate libraries.
 
-The `Ruby` API references are generated from the [Ably `Ruby` Client Library SDK source code](https://github.com/ably/ably-ruby)
+The `Ruby` API references are generated from the [Ably `Ruby` Client Library SDK source code](https://github.com/ably/ably-pubsub-ruby)
 using [`yard`](https://yardoc.org/). View the [Ably docs](http://ably.com/docs/) for conceptual information on using Ably
 and for client library API references split between the [realtime](http://ably.com/docs/api/realtime-sdk)
 and [REST](http://ably.com/docs/api/rest-sdk) interfaces.

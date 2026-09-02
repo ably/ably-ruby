@@ -2,8 +2,8 @@
 
 ![Ably Pub/Sub Ruby Header](images/rubySDK-github.png)
 [![Gem Version](https://img.shields.io/gem/v/ably?style=flat)](https://rubygems.org/gems/ably)
-[![Coverage Status](https://coveralls.io/repos/ably/ably-ruby/badge.svg)](https://coveralls.io/r/ably/ably-ruby)
-[![License](https://badgen.net/github/license/ably/ably-ruby)](https://github.com/ably/ably-ruby/blob/main/LICENSE)
+[![Coverage Status](https://coveralls.io/repos/ably/ably-pubsub-ruby/badge.svg)](https://coveralls.io/r/ably/ably-pubsub-ruby)
+[![License](https://badgen.net/github/license/ably/ably-pubsub-ruby)](https://github.com/ably/ably-pubsub-ruby/blob/main/LICENSE)
 
 ---
 
@@ -124,5 +124,5 @@ Read the [CONTRIBUTING.md](./CONTRIBUTING.md) guidelines to contribute to Ably.
 
 ## Support, feedback and troubleshooting
 
-For help or technical support, visit Ably's [support page](https://ably.com/support). You can also view the [community reported Github issues](https://github.com/ably/ably-ruby/issues) or raise one yourself.
+For help or technical support, visit Ably's [support page](https://ably.com/support). You can also view the [community reported Github issues](https://github.com/ably/ably-pubsub-ruby/issues) or raise one yourself.
 
