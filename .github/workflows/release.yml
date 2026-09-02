@@ -1,13 +1,12 @@
 name: Release
 
-# Releases ably-pubsub-core and ably-pubsub-server in lockstep at the same version
-# (PDR-091b). The pre-flight fails before anything is pushed if the version input,
-# the two gems' version files, or the server->core exact pin disagree.
+# Releases ably-pubsub-core and ably-pubsub-server in lockstep at the same version.
+# The pre-flight fails before anything is pushed if the version input, the two gems'
+# version files, or the server->core exact pin disagree.
 #
 # Publishing uses RubyGems trusted publishing (OIDC): both gems must have a Trusted
 # Publisher configured on rubygems.org pointing at this repository and this workflow
-# file. NOTE: the binding is to the repo owner+name, so it must be reconfigured when
-# the repo is renamed to ably-pubsub-ruby.
+# file.
 #
 # A partial release fails reversibly: if the server push fails after the core push
 # succeeded, re-running the workflow with the same version skips the already-published
