@@ -51,7 +51,7 @@ module Ably
       # @return [Symbol]
       attr_reader :protocol
 
-      # Client agent i.e. `example-gem/1.2.0 ably-ruby/1.1.5 ruby/3.1.1`
+      # Client agent i.e. `example-gem/1.2.0 ably-pubsub-ruby/1.1.5 ruby/3.1.1`
       # @return [String]
       attr_reader :agent
 
