@@ -1,0 +1,101 @@
+name: Release
+
+# Releases ably-pubsub-core and ably-pubsub-server in lockstep at the same version
+# (PDR-091b). The pre-flight fails before anything is pushed if the version input,
+# the two gems' version files, or the server->core exact pin disagree.
+#
+# Publishing uses RubyGems trusted publishing (OIDC): both gems must have a Trusted
+# Publisher configured on rubygems.org pointing at this repository and this workflow
+# file. NOTE: the binding is to the repo owner+name, so it must be reconfigured when
+# the repo is renamed to ably-pubsub-ruby.
+#
+# A partial release fails reversibly: if the server push fails after the core push
+# succeeded, re-running the workflow with the same version skips the already-published
+# core gem and publishes the server gem.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, e.g. 2.0.0 — must match Ably::VERSION, Ably::PubSub::Server::VERSION and the server gemspec's core pin"
+        required: true
+
+permissions: {}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2
+        with:
+          persist-credentials: false
+
+      - uses: ruby/setup-ruby@afeafc3d1ab54a631816aba4c914a0081c12ff2f # v1.310.0
+        with:
+          ruby-version: '3.3'
+          bundler-cache: false
+
+      - name: 'Pre-flight: versions and pin must agree (nothing is pushed if this fails)'
+        env:
+          RELEASE_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          ruby <<'RUBY'
+          version = ENV.fetch('RELEASE_VERSION')
+          abort "Invalid version input: #{version.inspect}" unless version.match?(/\A\d+\.\d+\.\d+(\.[0-9A-Za-z]+)*\z/)
+
+          require_relative 'core/lib/ably/version'
+          require_relative 'server/lib/ably/pubsub/server/version'
+
+          errors = []
+          errors << "core Ably::VERSION is #{Ably::VERSION}, expected #{version}" unless Ably::VERSION == version
+          errors << "server Ably::PubSub::Server::VERSION is #{Ably::PubSub::Server::VERSION}, expected #{version}" unless Ably::PubSub::Server::VERSION == version
+
+          server_spec = Gem::Specification.load('server/ably-pubsub-server.gemspec')
+          core_dep = server_spec.dependencies.find { |d| d.name == 'ably-pubsub-core' }
+          errors << "server gemspec pins ably-pubsub-core '#{core_dep&.requirement}', expected '= #{version}'" unless core_dep&.requirement.to_s == "= #{version}"
+
+          abort errors.join("\n") unless errors.empty?
+          puts "Pre-flight OK: releasing ably-pubsub-core and ably-pubsub-server at #{version}"
+          RUBY
+
+      - name: Configure RubyGems credentials (trusted publishing)
+        uses: rubygems/configure-rubygems-credentials@dc5a8d8553e6ee01fc26761a49e99e733d17954a # v2.1.0
+
+      - name: Publish both gems in lockstep
+        env:
+          RELEASE_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          set -euo pipefail
+          v="${RELEASE_VERSION}"
+
+          published() {
+            curl -sf "https://rubygems.org/api/v2/rubygems/$1/versions/${v}.json" >/dev/null
+          }
+
+          push_gem() {
+            local name="$1" dir="$2"
+            if published "${name}"; then
+              echo "${name} ${v} is already on RubyGems, skipping (safe re-run)"
+              return 0
+            fi
+            (cd "${dir}" && gem build "${name}.gemspec")
+            gem push "${dir}/${name}-${v}.gem"
+          }
+
+          push_gem ably-pubsub-core core
+
+          # The server gem pins the core at this exact version, so wait until the
+          # core version is visible on RubyGems before publishing the server gem.
+          for i in $(seq 1 30); do
+            published ably-pubsub-core && break
+            echo "Waiting for ably-pubsub-core ${v} to appear on RubyGems (${i}/30)..."
+            sleep 10
+          done
+          published ably-pubsub-core || { echo "ably-pubsub-core ${v} did not appear on RubyGems"; exit 1; }
+
+          push_gem ably-pubsub-server server
+
+          echo "Released ably-pubsub-core and ably-pubsub-server at ${v}"
