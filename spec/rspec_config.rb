@@ -29,6 +29,17 @@ RSpec.configure do |config|
     WebMock.disable!
   end
 
+  # This suite constructs the deprecated clients throughout — they are what it tests — so left
+  # alone it would bury its own output in deprecation warnings. Examples tagged :deprecation are
+  # the ones asserting on the warning, so they opt out.
+  config.around(:example) do |example|
+    if example.metadata[:deprecation]
+      example.run
+    else
+      Ably::Util::Deprecation.suppress_constructor_deprecation { example.run }
+    end
+  end
+
   config.before(:example, :webmock) do
     allow(TestApp).to receive(:instance).and_return(instance_double('TestApp',
       app_id: 'app_id',

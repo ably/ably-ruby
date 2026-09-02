@@ -21,6 +21,9 @@ module Ably
   module Rest
     # Convenience method providing an alias to {Ably::Rest::Client} constructor.
     #
+    # @deprecated Use {Ably::PubSub::Server.create_http_client}, from the `ably-pubsub-server`
+    #   gem, which names the side your application runs on.
+    #
     # @param (see Ably::Rest::Client#initialize)
     # @option options (see Ably::Rest::Client#initialize)
     #

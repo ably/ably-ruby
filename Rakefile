@@ -3,8 +3,36 @@ require 'bundler/setup'
 require 'bundler/gem_tasks'
 require 'json'
 
+require_relative 'lib/ably/version'
+
 require 'yard'
 YARD::Rake::YardocTask.new
+
+# The ably-pubsub-server and ably-pubsub-device gems, released alongside this one — see
+# CONTRIBUTING.md. `rake build` and `rake release`, from bundler/gem_tasks, cover the core gem.
+PUBSUB_GEMS = %w(ably-pubsub-server ably-pubsub-device).freeze
+
+namespace :packages do
+  pkg_path = File.expand_path('pkg', __dir__)
+
+  desc 'Build the Pub/Sub gems into pkg/'
+  task :build do
+    mkdir_p pkg_path
+    PUBSUB_GEMS.each do |gem_name|
+      # A gemspec's files are relative to the working directory, so each is built from its own
+      Dir.chdir("packages/#{gem_name}") do
+        sh "gem build #{gem_name}.gemspec --output #{pkg_path}/#{gem_name}-#{Ably::VERSION}.gem"
+      end
+    end
+  end
+
+  desc 'Build and push the Pub/Sub gems to Rubygems'
+  task :release => :build do
+    PUBSUB_GEMS.each do |gem_name|
+      sh "gem push #{pkg_path}/#{gem_name}-#{Ably::VERSION}.gem"
+    end
+  end
+end
 
 begin
   require 'rspec/core/rake_task'
