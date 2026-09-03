@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.email         = ['support@ably.com']
   spec.description   = %q{Ably Pub/Sub client for servers: backend services and other trusted runtimes. Construct clients with Ably::PubSub::Server.create_http_client or Ably::PubSub::Server.create_realtime_client.}
   spec.summary       = %q{Ably Pub/Sub client for servers}
-  spec.homepage      = 'https://github.com/ably/ably-ruby'
+  spec.homepage      = 'https://github.com/ably/ably-pubsub-ruby'
   spec.license       = 'Apache-2.0'
 
   spec.files         = Dir.chdir(File.expand_path(__dir__)) { `git ls-files -z lib README.md`.split("\x0") }
