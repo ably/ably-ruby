@@ -27,7 +27,7 @@ For each release, the following needs to be done:
    - `Ably::PubSub::Server::VERSION` in [server/lib/ably/pubsub/server/version.rb](./server/lib/ably/pubsub/server/version.rb)
    - the exact-version `ably-pubsub-core` pin in [server/ably-pubsub-server.gemspec](./server/ably-pubsub-server.gemspec) (derived from the version constant, so it normally follows automatically)
 3. Run [`github_changelog_generator`](https://github.com/github-changelog-generator/github-changelog-generator) to automate the update of the [CHANGELOG](./CHANGELOG.md). This may require some manual intervention, both in terms of how the command is run and how the change log file is modified. Your mileage may vary:
-   - The command you will need to run will look something like this: `github_changelog_generator -u ably -p ably-ruby --since-tag v2.0.0 --output delta.md --token $GITHUB_TOKEN_WITH_REPO_ACCESS`. Generate token [here](https://github.com/settings/tokens/new?description=GitHub%20Changelog%20Generator%20token).
+   - The command you will need to run will look something like this: `github_changelog_generator -u ably -p ably-pubsub-ruby --since-tag v2.0.0 --output delta.md --token $GITHUB_TOKEN_WITH_REPO_ACCESS`. Generate token [here](https://github.com/settings/tokens/new?description=GitHub%20Changelog%20Generator%20token).
    - Using the command above, `--output delta.md` writes changes made after `--since-tag` to a new file
    - The contents of that new file (`delta.md`) then need to be manually inserted at the top of the `CHANGELOG.md`, changing the "Unreleased" heading and linking with the current version numbers
    - Also ensure that the "Full Changelog" link points to the new version tag instead of the `HEAD`
@@ -35,7 +35,7 @@ For each release, the following needs to be done:
 5. Ideally, run `rake doc:spec` to generate a new [spec file](./SPEC.md). Then commit these changes.
 6. Make a PR against `main`. Once the PR is approved, merge it into `main`.
 7. Add a tag to the new `main` head commit and push to origin such as `git tag v2.0.1 && git push origin v2.0.1`.
-8. Visit [the tags page](https://github.com/ably/ably-ruby/tags) and `Add release notes` for the release including links to the changelog entry.
+8. Visit [the tags page](https://github.com/ably/ably-pubsub-ruby/tags) and `Add release notes` for the release including links to the changelog entry.
 9. Run the [Release workflow](./.github/workflows/release.yml) (Actions → Release → Run workflow) with the version number. It publishes `ably-pubsub-core` and then `ably-pubsub-server` to RubyGems via trusted publishing — no local credentials involved. A failed run is safe to re-run with the same version: already-published gems are skipped.
 10. Create the entry on the [Ably Changelog](https://changelog.ably.com/) (via [headwayapp](https://headwayapp.co/)).
 

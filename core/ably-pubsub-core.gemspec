@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.email         = ['support@ably.com']
   spec.description   = %q{Internal implementation package for Ably's own Pub/Sub packages. Not intended for direct external use: depend on ably-pubsub-server instead.}
   spec.summary       = %q{Shared core implementation for Ably Pub/Sub Ruby SDKs (internal)}
-  spec.homepage      = 'https://github.com/ably/ably-ruby'
+  spec.homepage      = 'https://github.com/ably/ably-pubsub-ruby'
   spec.license       = 'Apache-2.0'
 
   spec.files         = Dir.chdir(File.expand_path(__dir__)) do

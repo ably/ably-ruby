@@ -16,9 +16,9 @@ module Ably
       #
       # The entry is stamped WITHOUT a version, matching its registration in the
       # ably-common agents registry (a pure flag, like `browser`): under lockstep
-      # versioning a version here always duplicates the ably-ruby entry beside it,
+      # versioning a version here always duplicates the ably-pubsub-ruby entry beside it,
       # which keeps carrying identity, version and support status. Wire shape:
-      #   ably-ruby/2.0.0 ruby/3.3.0 ably-pubsub-server
+      #   ably-pubsub-ruby/2.0.0 ruby/3.3.0 ably-pubsub-server
       SERVER_AGENT_IDENTIFIER = 'ably-pubsub-server'
 
       class << self

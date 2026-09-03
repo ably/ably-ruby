@@ -8,7 +8,7 @@ require 'ably/pubsub/server'
 describe Ably::PubSub::Server do
   let(:api_key) { 'appid.keyuid:keysecret' }
   # The side entry is a versionless flag, matching its ably-common registration: the
-  # ably-ruby/x.y.z entry beside it carries identity and version (see ably-common#361).
+  # ably-pubsub-ruby/x.y.z entry beside it carries identity and version (see ably-common#361).
   let(:side_entry) { 'ably-pubsub-server' }
 
   it 'releases in lockstep with ably-pubsub-core' do
