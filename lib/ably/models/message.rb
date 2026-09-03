@@ -26,6 +26,20 @@ module Ably::Models
     include Ably::Modules::Encodeable
     include Ably::Modules::ModelCommon
     include Ably::Modules::SafeDeferrable if defined?(Ably::Realtime)
+    extend Ably::Modules::Enum
+
+    # Describes the possible actions for a message.
+    #
+    # @spec TM5
+    #
+    ACTION = ruby_enum('ACTION',
+      :message_create,    # 0
+      :message_update,    # 1
+      :message_delete,    # 2
+      :meta,              # 3
+      :message_summary,   # 4
+      :message_append,    # 5
+    )
 
     # Statically register a default set of encoders for this class
     Ably::Models::MessageEncoders.register_default_encoders self
@@ -129,8 +143,61 @@ module Ably::Models
       end
     end
 
+    # The action type of this message.
+    #
+    # @spec TM2j
+    #
+    # @return [ACTION, nil]
+    #
+    def action
+      ACTION(attributes[:action]) if attributes[:action]
+    end
+
+    # An opaque string that uniquely identifies the message within a channel.
+    #
+    # @spec TM2r
+    #
+    # @return [String, nil]
+    #
+    def serial
+      attributes[:serial]
+    end
+
+    # Version information about this message.
+    #
+    # @spec TM2s
+    #
+    # @return [Hash, nil]
+    #
+    def version
+      attributes[:version]
+    end
+
+    # Timestamp of when the message was created.
+    #
+    # @return [Time, nil]
+    #
+    def created_at
+      as_time_from_epoch(attributes[:created_at]) if attributes[:created_at]
+    end
+
+    # Timestamp of when the message was last updated.
+    #
+    # @return [Time, nil]
+    #
+    def updated_at
+      as_time_from_epoch(attributes[:updated_at]) if attributes[:updated_at]
+    end
+
     def attributes
       @attributes
+    end
+
+    # Return a JSON ready object from the underlying #attributes using Ably naming conventions for keys
+    def as_json(*args)
+      attributes.dup.tap do |message|
+        message['action'] = action.to_i if attributes[:action]
+      end.as_json.reject { |key, val| val.nil? }
     end
 
     def to_json(*args)
@@ -212,7 +279,7 @@ module Ably::Models
     end
 
     def set_attributes_object(new_attributes)
-      @attributes = IdiomaticRubyWrapper(new_attributes.clone, stop_at: [:data, :extras])
+      @attributes = IdiomaticRubyWrapper(new_attributes.clone, stop_at: [:data, :extras, :version])
     end
 
     def logger

@@ -46,7 +46,7 @@ module Ably
       # @param name [String, Array<Ably::Models::Message|Hash>, Ably::Models::Message, nil]   The event name of the message to publish, or an Array of [Ably::Model::Message] objects or [Hash] objects with +:name+ and +:data+ pairs, or a single Ably::Model::Message object
       # @param data [String, Array, Hash, nil]   The message payload unless an Array of [Ably::Model::Message] objects passed in the first argument, in which case an optional hash of query parameters
       # @param attributes [Hash, nil]   Optional additional message attributes such as :extras, :id, :client_id or :connection_id, applied when name attribute is nil or a string (Deprecated, will be removed in 2.0 in favour of constructing a Message object)
-      # @return [Boolean]  true if the message was published, otherwise false
+      # @return [Ably::Models::PublishResult]  A {Ably::Models::PublishResult} containing the serials of the published messages.
       #
       # @example
       #   # Publish a single message with (name, data) form
@@ -112,7 +112,54 @@ module Ably
         options = qs_params ? { qs_params: qs_params } : {}
         response = client.post("#{base_path}/publish", payload.length == 1 ? payload.first : payload, options)
 
-        [201, 204].include?(response.status)
+        parse_publish_result(response)
+      end
+
+      # Updates a previously published message on the channel.
+      #
+      # @spec RSL15
+      #
+      # @param message [Ably::Models::Message, Hash] A Message object or Hash containing a populated :serial field
+      #   and the fields to update.
+      # @param operation [Hash, Ably::Models::MessageOperation, nil] Optional operation metadata containing
+      #   :description and/or :metadata fields.
+      # @param params [Hash, nil] Optional parameters sent as part of the query string.
+      #
+      # @return [Ably::Models::UpdateDeleteResult] The result containing the version_serial.
+      #
+      def update_message(message, operation = nil, params = {})
+        send_message_action(message, Ably::Models::Message::ACTION.MessageUpdate, operation, params)
+      end
+
+      # Deletes a previously published message on the channel.
+      #
+      # @spec RSL15
+      #
+      # @param message [Ably::Models::Message, Hash] A Message object or Hash containing a populated :serial field.
+      # @param operation [Hash, Ably::Models::MessageOperation, nil] Optional operation metadata containing
+      #   :description and/or :metadata fields.
+      # @param params [Hash, nil] Optional parameters sent as part of the query string.
+      #
+      # @return [Ably::Models::UpdateDeleteResult] The result containing the version_serial.
+      #
+      def delete_message(message, operation = nil, params = {})
+        send_message_action(message, Ably::Models::Message::ACTION.MessageDelete, operation, params)
+      end
+
+      # Appends data to a previously published message on the channel.
+      #
+      # @spec RSL15
+      #
+      # @param message [Ably::Models::Message, Hash] A Message object or Hash containing a populated :serial field
+      #   and the data to append.
+      # @param operation [Hash, Ably::Models::MessageOperation, nil] Optional operation metadata containing
+      #   :description and/or :metadata fields.
+      # @param params [Hash, nil] Optional parameters sent as part of the query string.
+      #
+      # @return [Ably::Models::UpdateDeleteResult] The result containing the version_serial.
+      #
+      def append_message(message, operation = nil, params = {})
+        send_message_action(message, Ably::Models::Message::ACTION.MessageAppend, operation, params)
       end
 
       # Retrieves a {Ably::Models::PaginatedResult} object, containing an array of historical {Ably::Models::Message}
@@ -177,6 +224,47 @@ module Ably
       end
 
       private
+
+      def send_message_action(message, action_enum, operation = nil, params = {})
+        message = Ably::Models::Message(message)
+
+        raise Ably::Exceptions::InvalidRequest.new(
+          'Message serial is required. Ensure the message has a serial field.'
+        ) unless message.serial
+
+        update_attrs = message.as_json
+        update_attrs['action'] = action_enum.to_i
+
+        if operation
+          op_hash = operation.respond_to?(:as_json) ? operation.as_json : operation
+          update_attrs['version'] = op_hash
+        end
+
+        updated_message = Ably::Models::Message.new(update_attrs)
+        updated_message.encode client.encoders, options
+
+        payload = updated_message.as_json
+        serial = message.serial
+
+        request_options = params && !params.empty? ? { qs_params: params } : {}
+        response = client.patch(
+          "#{base_path}/messages/#{URI.encode_www_form_component(serial)}",
+          payload,
+          request_options
+        )
+
+        Ably::Models::UpdateDeleteResult.new(response.body || {})
+      end
+
+      def parse_publish_result(response)
+        body = response.body
+        if body.is_a?(Hash)
+          serials = body['serials'] || body[:serials] || []
+          Ably::Models::PublishResult.new(serials: serials)
+        else
+          Ably::Models::PublishResult.new(serials: [])
+        end
+      end
 
       def base_path
         "/channels/#{URI.encode_www_form_component(name)}"

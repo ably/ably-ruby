@@ -52,13 +52,18 @@ module Ably::Realtime
         expected_deliveries = messages.count
         actual_deliveries = 0
         failed = false
+        results = Array.new(messages.count)
 
         Ably::Util::SafeDeferrable.new(logger).tap do |deferrable|
-          messages.each do |message|
-            message.callback do
+          messages.each_with_index do |message, index|
+            message.callback do |result|
               next if failed
+              results[index] = result
               actual_deliveries += 1
-              deferrable.succeed messages if actual_deliveries == expected_deliveries
+              if actual_deliveries == expected_deliveries
+                all_serials = results.flat_map(&:serials)
+                deferrable.succeed Ably::Models::PublishResult.new(serials: all_serials)
+              end
             end
             message.errback do |error|
               next if failed

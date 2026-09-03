@@ -215,6 +215,46 @@ describe Ably::Models::ProtocolMessage do
       end
     end
 
+    context '#res (#TR4s)' do
+      context 'when present' do
+        let(:res_data) { [{ 'serials' => ['serial-001', 'serial-002'] }] }
+        let(:protocol_message) { new_protocol_message(res: res_data) }
+
+        it 'returns the res array' do
+          expect(protocol_message.res).to be_a(Array)
+          expect(protocol_message.res.length).to eql(1)
+        end
+
+        it 'contains publish result entries with serials' do
+          entry = protocol_message.res[0]
+          expect(entry['serials']).to eq(['serial-001', 'serial-002'])
+        end
+      end
+
+      context 'when absent' do
+        let(:protocol_message) { new_protocol_message({}) }
+
+        it 'returns nil' do
+          expect(protocol_message.res).to be_nil
+        end
+      end
+
+      context 'with multiple entries' do
+        let(:res_data) do
+          [
+            { 'serials' => ['serial-a'] },
+            { 'serials' => ['serial-b', 'serial-c'] }
+          ]
+        end
+        let(:protocol_message) { new_protocol_message(res: res_data) }
+
+        it 'returns all entries' do
+          expect(protocol_message.res.length).to eql(2)
+          expect(protocol_message.res[1]['serials']).to eq(['serial-b', 'serial-c'])
+        end
+      end
+    end
+
     context '#params (#RTL4k1)' do
       let(:params) do
         { foo: :bar }

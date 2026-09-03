@@ -1243,8 +1243,8 @@ describe Ably::Realtime::Auth, :event_machine do
             forbidden_channel.publish('not-allowed').errback do |error|
               expect(error.code).to eql(40160)
 
-              allowed_channel.publish(message_name) do |message|
-                expect(message.name).to eql(message_name)
+              allowed_channel.publish(message_name) do |result|
+                expect(result).to be_a(Ably::Models::PublishResult)
                 stop_reactor
               end
             end

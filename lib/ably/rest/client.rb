@@ -351,6 +351,15 @@ module Ably
         raw_request(:put, path, params, options)
       end
 
+      # Perform an HTTP PATCH request to the API using configured authentication
+      #
+      # @return [Faraday::Response]
+      #
+      # @api private
+      def patch(path, params, options = {})
+        raw_request(:patch, path, params, options)
+      end
+
       # Perform an HTTP DELETE request to the API using configured authentication
       #
       # @return [Faraday::Response]
