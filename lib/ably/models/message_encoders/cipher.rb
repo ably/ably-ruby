@@ -25,10 +25,12 @@ module Ably::Models::MessageEncoders
         add_encoding_to_message "#{ENCODING_ID}+#{crypto.cipher_params.cipher_type.downcase}", message
       end
     rescue ArgumentError => e
-      raise Ably::Exceptions::CipherError.new(e.message, nil, 92005)
+      # ably-os:inline-error-update:92005:2025-08-22:e8u Original: "#{e.message}"
+      raise Ably::Exceptions::CipherError.new("Encryption failed due to configuration error: #{e.message}. Check your cipher key format and message data", nil, 92005)
     rescue RuntimeError => e
       if e.message.match(/unsupported cipher algorithm/i)
-        raise Ably::Exceptions::CipherError.new(e.message, nil, 92004)
+        # ably-os:inline-error-update:92004:2025-08-22:e8u Original: "#{e.message}"
+        raise Ably::Exceptions::CipherError.new("Unsupported cipher algorithm specified. #{e.message}. Supported algorithms: AES-128-CBC, AES-256-CBC", nil, 92004)
       else
         raise e
       end

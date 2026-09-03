@@ -141,7 +141,8 @@ module Ably::Realtime
             client.auth.authorize
 
           else
-            error = Ably::Exceptions::ProtocolError.new("Protocol Message Action #{protocol_message.action} is unsupported by this MessageDispatcher", 400, Ably::Exceptions::Codes::PROTOCOL_ERROR)
+            # ably-os:inline-error-update:80013:2025-08-22:e8u Original: "Protocol Message Action #{protocol_message.action} is unsupported by this MessageDispatcher"
+            error = Ably::Exceptions::ProtocolError.new("Protocol error: unsupported action '#{protocol_message.action}' received. Check your SDK version and protocol compatibility", 400, Ably::Exceptions::Codes::PROTOCOL_ERROR)
             logger.fatal error.message
         end
       end
