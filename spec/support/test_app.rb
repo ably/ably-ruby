@@ -1,7 +1,7 @@
 require 'singleton'
 
 class TestApp
-  TEST_RESOURCES_PATH = File.expand_path('../../../lib/submodules/ably-common/test-resources', __FILE__)
+  TEST_RESOURCES_PATH = File.expand_path('../../../core/lib/submodules/ably-common/test-resources', __FILE__)
 
   # App configuration for test app
   # See https://github.com/ably/ably-common/blob/main/test-resources/test-app-setup.json

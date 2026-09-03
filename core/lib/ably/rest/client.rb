@@ -51,7 +51,7 @@ module Ably
       # @return [Symbol]
       attr_reader :protocol
 
-      # Client agent i.e. `example-gem/1.2.0 ably-ruby/1.1.5 ruby/3.1.1`
+      # Client agent i.e. `example-gem/1.2.0 ably-pubsub-ruby/1.1.5 ruby/3.1.1`
       # @return [String]
       attr_reader :agent
 
@@ -186,6 +186,13 @@ module Ably
         end
 
         @agent               = options.delete(:agent) || Ably::AGENT
+        # Additive agent entries (`identifier => version`), appended to the base agent
+        # string. This is how a package layered on this one (such as ably-pubsub-server)
+        # declares itself — including the side-declaring entry that MAU classification
+        # reads — without replacing the base identifiers the way :agent does.
+        options.delete(:agents).to_h.each do |identifier, version|
+          @agent = "#{@agent} #{version ? "#{identifier}/#{version}" : identifier}"
+        end
         @realtime_client     = options.delete(:realtime_client)
         @tls                 = options.delete_with_default(:tls, true)
         @environment         = options.delete(:environment) # nil is production
