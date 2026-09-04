@@ -1,5 +1,10 @@
 # Ably `Ruby` Client Library SDK API Reference
 
+> **Using the `ably` gem?** This is the API reference for the `ably-pubsub-server` gem, which replaces it.
+> The API reference for the maintenance-only `ably` gem remains available at
+> [sdk.ably.com/builds/ably/ably-ruby/main/docs](https://sdk.ably.com/builds/ably/ably-ruby/main/docs/)
+> until its end of life.
+
 The `Ruby` Client Library SDK supports a realtime and a REST interface.
 
 The realtime interface enables a client to maintain a persistent connection to Ably and publish, subscribe and be present on channels.

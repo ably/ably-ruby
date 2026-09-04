@@ -56,6 +56,43 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           flag-name: ruby-${{ matrix.ruby }}-${{ matrix.protocol }}-${{ matrix.type }}
           parallel: true
+  # Dry run of the release pipeline: the same consistency assertions release.yml's
+  # pre-flight makes, plus a build of both gems — so a version-file or gemspec
+  # regression surfaces on every PR instead of at release time. Publishes nothing.
+  release-dry-run:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2
+        with:
+          persist-credentials: false
+      - uses: ruby/setup-ruby@afeafc3d1ab54a631816aba4c914a0081c12ff2f # v1.310.0
+        with:
+          ruby-version: '3.3'
+          bundler-cache: false
+      - name: 'Versions and pin must agree (mirrors release.yml pre-flight)'
+        run: |
+          ruby <<'RUBY'
+          require_relative 'core/lib/ably/version'
+          require_relative 'server/lib/ably/pubsub/server/version'
+
+          errors = []
+          errors << "core Ably::VERSION (#{Ably::VERSION}) != server Ably::PubSub::Server::VERSION (#{Ably::PubSub::Server::VERSION})" unless Ably::VERSION == Ably::PubSub::Server::VERSION
+
+          server_spec = Gem::Specification.load('server/ably-pubsub-server.gemspec')
+          core_dep = server_spec.dependencies.find { |d| d.name == 'ably-pubsub-core' }
+          errors << "server gemspec pins ably-pubsub-core '#{core_dep&.requirement}', expected '= #{Ably::VERSION}'" unless core_dep&.requirement.to_s == "= #{Ably::VERSION}"
+
+          abort errors.join("\n") unless errors.empty?
+          puts "Version consistency OK: #{Ably::VERSION}"
+          RUBY
+      - name: Build both gems
+        run: |
+          set -euo pipefail
+          (cd core && gem build ably-pubsub-core.gemspec)
+          (cd server && gem build ably-pubsub-server.gemspec)
+
   finish:
     needs: check
     runs-on: ubuntu-latest
